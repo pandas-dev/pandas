@@ -254,7 +254,9 @@ html_theme_options = {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
-    "show_version_warning_banner": True,
+    # This shows a warning for patch releases since the
+    # patch version doesn't compare as equal (e.g. 2.2.1 != 2.2.0 but it should be)
+    "show_version_warning_banner": False,
     "icon_links": [
         {
             "name": "Mastodon",

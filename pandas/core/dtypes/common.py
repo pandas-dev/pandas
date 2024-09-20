@@ -694,6 +694,15 @@ def is_integer_dtype(arr_or_dtype) -> bool:
         Whether or not the array or dtype is of an integer dtype and
         not an instance of timedelta64.
 
+    See Also
+    --------
+    api.types.is_integer : Return True if given object is integer.
+    api.types.is_numeric_dtype : Check whether the provided array or dtype is of a
+        numeric dtype.
+    api.types.is_float_dtype : Check whether the provided array or dtype is of a
+        float dtype.
+    Int64Dtype : An ExtensionDtype for Int64Dtype integer data.
+
     Examples
     --------
     >>> from pandas.api.types import is_integer_dtype
@@ -1400,6 +1409,10 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     -------
     bool
         Whether the `arr_or_dtype` is an extension array type.
+
+    See Also
+    --------
+    api.extensions.ExtensionArray : Abstract base class for pandas extension arrays.
 
     Notes
     -----

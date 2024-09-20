@@ -261,6 +261,11 @@ class MergeError(ValueError):
 
     Subclass of ``ValueError``.
 
+    See Also
+    --------
+    DataFrame.join : For joining DataFrames on their indexes.
+    merge : For merging two DataFrames on a common set of keys.
+
     Examples
     --------
     >>> left = pd.DataFrame(
