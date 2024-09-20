@@ -57,6 +57,7 @@ Other enhancements
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - :meth:`str.get_dummies` now accepts a  ``dtype`` parameter to specify the dtype of the resulting DataFrame (:issue:`47872`)
 - Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
+- Arithmetic operations on :class:`Datetime` dataframe and series objects will result in :class:`Timedelta` values instead of ``TypeError`` (:issue: `59529`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
 - Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
