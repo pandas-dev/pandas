@@ -2,6 +2,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import (
@@ -149,6 +151,7 @@ class TestFeather:
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_passthrough_keywords(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -167,6 +170,7 @@ class TestFeather:
             res = read_feather(httpserver.url)
         tm.assert_frame_equal(expected, res)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_read_feather_dtype_backend(self, string_storage, dtype_backend):
         # GH#50765
         df = pd.DataFrame(

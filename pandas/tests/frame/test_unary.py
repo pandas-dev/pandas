@@ -3,6 +3,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
@@ -126,6 +128,7 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "df",
         [

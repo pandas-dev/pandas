@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import PY311
 
 from pandas import (
@@ -156,6 +158,7 @@ class TestCategoricalAPI:
         with pytest.raises(ValueError, match=msg):
             cat.reorder_categories(new_categories)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_add_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         old = cat.copy()

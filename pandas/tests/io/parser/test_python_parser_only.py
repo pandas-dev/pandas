@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -496,6 +498,7 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "dtype", [{"a": object}, {"a": str, "b": np.int64, "c": np.int64}]
 )
@@ -523,6 +526,7 @@ a;b;c
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "dtype,expected",
     [

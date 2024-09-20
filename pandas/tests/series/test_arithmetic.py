@@ -9,6 +9,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
 
@@ -499,6 +501,7 @@ class TestSeriesComparison:
             result = op(ser, cidx)
             assert result.name == names[2]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_comparisons(self, using_infer_string):
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])

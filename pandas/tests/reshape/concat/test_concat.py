@@ -9,6 +9,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
@@ -44,6 +46,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_concat_copy(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))

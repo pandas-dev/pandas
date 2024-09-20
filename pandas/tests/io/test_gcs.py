@@ -7,6 +7,8 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.pyarrow import pa_version_under17p0
 
 from pandas import (
@@ -145,6 +147,7 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
         assert result == expected
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("encoding", ["utf-8", "cp1251"])
 def test_to_csv_compression_encoding_gcs(
     gcs_buffer, compression_only, encoding, compression_to_extension

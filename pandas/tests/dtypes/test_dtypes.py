@@ -5,6 +5,8 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas.core.dtypes.base import _registry as registry
@@ -959,6 +961,7 @@ class TestCategoricalDtypeParametrized:
         c2 = CategoricalDtype(["b", "a"], ordered=True)
         assert c1 is not c2
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("ordered1", [True, False, None])
     @pytest.mark.parametrize("ordered2", [True, False, None])
     def test_categorical_equality(self, ordered1, ordered2):

@@ -760,6 +760,7 @@ class TestSeriesReplace:
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_change_dtype_series(self, using_infer_string):
         # GH#25797
         df = pd.DataFrame.from_dict({"Test": ["0.5", True, "0.6"]})

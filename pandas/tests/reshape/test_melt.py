@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -81,6 +83,7 @@ class TestMelt:
         result2 = df.melt(id_vars=["id1", "id2"])
         assert result2.columns.tolist() == ["id1", "id2", "variable", "value"]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_value_vars(self, df):
         result3 = df.melt(id_vars=["id1", "id2"], value_vars="A")
         assert len(result3) == 10
@@ -97,6 +100,7 @@ class TestMelt:
         )
         tm.assert_frame_equal(result4, expected4)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("type_", (tuple, list, np.array))
     def test_value_vars_types(self, type_, df):
         # GH 15348
@@ -177,6 +181,7 @@ class TestMelt:
         with pytest.raises(ValueError, match=msg):
             df1.melt(id_vars=id_vars, value_vars=value_vars)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_custom_var_name(self, df, var_name):
         result5 = df.melt(var_name=var_name)
         assert result5.columns.tolist() == ["var", "value"]
@@ -204,6 +209,7 @@ class TestMelt:
         )
         tm.assert_frame_equal(result9, expected9)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_custom_value_name(self, df, value_name):
         result10 = df.melt(value_name=value_name)
         assert result10.columns.tolist() == ["variable", "val"]
@@ -233,6 +239,7 @@ class TestMelt:
         )
         tm.assert_frame_equal(result14, expected14)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_custom_var_and_value_name(self, df, value_name, var_name):
         result15 = df.melt(var_name=var_name, value_name=value_name)
         assert result15.columns.tolist() == ["var", "val"]
@@ -357,6 +364,7 @@ class TestMelt:
         with pytest.raises(KeyError, match=msg):
             multi.melt(["A"], ["F"], col_level=0)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_melt_mixed_int_str_id_vars(self):
         # GH 29718
         df = DataFrame({0: ["foo"], "a": ["bar"], "b": [1], "d": [2]})
@@ -1197,6 +1205,7 @@ class TestWideToLong:
         ):
             df.melt(id_vars="value", value_name="value")
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("dtype", ["O", "string"])
     def test_missing_stubname(self, dtype):
         # GH46044
@@ -1222,6 +1231,7 @@ class TestWideToLong:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_wide_to_long_pyarrow_string_columns():
     # GH 57066
     pytest.importorskip("pyarrow")

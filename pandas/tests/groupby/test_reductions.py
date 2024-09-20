@@ -5,6 +5,8 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -455,6 +457,7 @@ def test_max_min_non_numeric():
     assert "ss" in result
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_max_min_object_multiple_columns(using_array_manager):
     # GH#41111 case where the aggregation is valid for some columns but not
     # others; we split object blocks column-wise, consistent with

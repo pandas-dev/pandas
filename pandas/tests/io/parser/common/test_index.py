@@ -8,6 +8,8 @@ import os
 
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     Index,
@@ -85,6 +87,7 @@ def test_pass_names_with_index(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("index_col", [[0, 1], [1, 0]])
 def test_multi_index_no_level_names(all_parsers, index_col):
     data = """index1,index2,A,B,C,D

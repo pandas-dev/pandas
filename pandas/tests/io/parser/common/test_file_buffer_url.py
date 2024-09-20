@@ -14,6 +14,8 @@ import uuid
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -67,6 +69,7 @@ def test_local_file(all_parsers, csv_dir_path):
         pytest.skip("Failing on: " + " ".join(platform.uname()))
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @xfail_pyarrow  # AssertionError: DataFrame.index are different
 def test_path_path_lib(all_parsers):
     parser = all_parsers

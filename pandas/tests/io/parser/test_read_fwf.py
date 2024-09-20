@@ -14,6 +14,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -966,6 +968,7 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend(string_storage, dtype_backend):
     # GH#50289
     if string_storage == "python":

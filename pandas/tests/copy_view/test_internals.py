@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -76,6 +78,7 @@ def test_switch_options():
 
 
 @td.skip_array_manager_invalid_test
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("dtype", [np.intp, np.int8])
 @pytest.mark.parametrize(
     "locs, arr",

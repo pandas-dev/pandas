@@ -126,6 +126,7 @@ class TestFillNA:
                 df.x.fillna(method=m, inplace=True)
                 df.x.fillna(method=m)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_fillna_different_dtype(self, using_infer_string):
         # with different dtype (GH#3386)
         df = DataFrame(
@@ -370,6 +371,7 @@ class TestFillNA:
         expected["A"] = 0.0
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_fillna_dtype_conversion(self, using_infer_string):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])

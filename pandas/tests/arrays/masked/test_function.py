@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -58,6 +60,7 @@ def test_tolist(data):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_to_numpy():
     # GH#56991
 
