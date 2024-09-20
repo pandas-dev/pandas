@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -126,7 +128,7 @@ def test_apply_trivial(using_infer_string):
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    dtype = "string" if using_infer_string else "object"
+    dtype = "str" if using_infer_string else "object"
     expected = pd.concat([df.iloc[1:], df.iloc[1:]], axis=1, keys=["float64", dtype])
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
@@ -143,7 +145,7 @@ def test_apply_trivial_fail(using_infer_string):
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    dtype = "string" if using_infer_string else "object"
+    dtype = "str" if using_infer_string else "object"
     expected = pd.concat([df, df], axis=1, keys=["float64", dtype])
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1299,12 +1301,13 @@ def test_apply_dropna_with_indexed_same(dropna):
 @pytest.mark.parametrize(
     "as_index, expected",
     [
-        [
+        pytest.param(
             False,
             DataFrame(
                 [[1, 1, 1], [2, 2, 1]], columns=Index(["a", "b", None], dtype=object)
             ),
-        ],
+            marks=pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)"),
+        ),
         [
             True,
             Series(

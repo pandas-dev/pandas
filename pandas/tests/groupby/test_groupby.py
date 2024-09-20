@@ -1005,7 +1005,7 @@ def test_raises_on_nuisance(df):
     depr_msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = "does not support reduction 'sum'"
+    msg = "does not support reduction 'sum'|Cannot perform reduction 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
