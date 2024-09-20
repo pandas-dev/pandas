@@ -244,7 +244,7 @@ def test_apply_categorical(by_row, using_infer_string):
     result = ser.apply(lambda x: "A")
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object if not using_infer_string else "string[pyarrow_numpy]"
+    assert result.dtype == object if not using_infer_string else "str"
 
 
 @pytest.mark.parametrize("series", [["1-1", "1-1", np.nan], ["1-1", "1-2", np.nan]])

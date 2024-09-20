@@ -295,7 +295,9 @@ class SharedTests:
         assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
-    def test_searchsorted_castable_strings(self, arr1d, box, string_storage):
+    def test_searchsorted_castable_strings(
+        self, arr1d, box, string_storage, using_infer_string
+    ):
         arr = arr1d
         if box is None:
             pass
@@ -331,7 +333,8 @@ class SharedTests:
                 TypeError,
                 match=re.escape(
                     f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                    "or array of those. Got string array instead."
+                    "or array of those. Got "
+                    f"{'str' if using_infer_string else 'string'} array instead."
                 ),
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
