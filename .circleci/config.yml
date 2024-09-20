@@ -92,7 +92,13 @@ jobs:
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
             pip3 install cibuildwheel==2.20.0
-            cibuildwheel --output-dir wheelhouse
+            if [[ $CIBW_BUILD == cp313t* ]]; then
+              # TODO: temporarily run 3.13 free threaded builds without build isolation
+              # since we need pre-release cython
+              CIBW_BUILD_FRONTEND="pip; args: --no-build-isolation" cibuildwheel --output-dir wheelhouse
+            else
+              cibuildwheel --output-dir wheelhouse
+            fi
 
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
@@ -141,6 +147,10 @@ workflows:
               cibw-build: ["cp310-manylinux_aarch64",
                            "cp311-manylinux_aarch64",
                            "cp312-manylinux_aarch64",
+                           "cp313-manylinux_aarch64",
+                           "cp313t-manylinux_aarch64",
                            "cp310-musllinux_aarch64",
                            "cp311-musllinux_aarch64",
-                           "cp312-musllinux_aarch64",]
+                           "cp312-musllinux_aarch64",
+                           "cp313-musllinux_aarch64",
+                           "cp313t-musllinux_aarch64"]
