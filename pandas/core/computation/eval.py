@@ -223,8 +223,8 @@ def eval(
         for further function support details.
 
         Using the ``'python'`` engine allows the use of native Python operators
-        like integer division ``//``, in addition to Python functions,
-        both built-in and user-defined.
+        such as floor division ``//``, in addition to built-in and user-defined
+        Python functions.
 
         Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
         :keyword:`or`, and :keyword:`not` with the same semantics as the
