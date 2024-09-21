@@ -62,6 +62,9 @@ def _reductions(
         ):
             return libmissing.NA
 
+        if values.dtype == np.dtype(object):
+            values = values[~mask]
+            return func(values, axis=axis, **kwargs)
         return func(values, where=~mask, axis=axis, **kwargs)
 
 
