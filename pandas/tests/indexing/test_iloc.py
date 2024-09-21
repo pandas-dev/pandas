@@ -6,8 +6,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import IndexingError
 
 from pandas import (
@@ -1198,22 +1196,25 @@ class TestiLocBaseIndependent:
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_iloc_setitem_multicolumn_to_datetime(self):
+    def test_iloc_setitem_multicolumn_to_datetime(self, using_infer_string):
         # GH#20511
         df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
 
-        df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
-        expected = DataFrame(
-            {
-                "A": [
-                    Timestamp("2021-01-01 00:00:00"),
-                    Timestamp("2022-01-01 00:00:00"),
-                ],
-                "B": ["2021", "2022"],
-            }
-        )
-        tm.assert_frame_equal(df, expected, check_dtype=False)
+        if using_infer_string:
+            with pytest.raises(TypeError, match="Invalid value"):
+                df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
+        else:
+            df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
+            expected = DataFrame(
+                {
+                    "A": [
+                        Timestamp("2021-01-01 00:00:00"),
+                        Timestamp("2022-01-01 00:00:00"),
+                    ],
+                    "B": ["2021", "2022"],
+                }
+            )
+            tm.assert_frame_equal(df, expected, check_dtype=False)
 
 
 class TestILocErrors:
