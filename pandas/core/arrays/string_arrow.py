@@ -418,8 +418,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return ArrowExtensionArray(arr)._reduce(
                 name, skipna=skipna, keepdims=keepdims, **kwargs
             )
-
-        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("min", "max", "sum", "argmin", "argmax"):
+            result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        else:
+            raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
             return self._convert_int_result(result)
         elif isinstance(result, pa.Array):
