@@ -757,6 +757,9 @@ cpdef ndarray[object] ensure_string_array(
         if (
             hasattr(arr, "dtype")
             and arr.dtype.kind in "mM"
+            # TODO: we should add a custom ArrowExtensionArray.astype implementation
+            # that handles astype(str) specifically, avoiding ending up here and
+            # then we can remove the below check for `_pa_array` (for ArrowEA)
             and not hasattr(arr, "_pa_array")
         ):
             # dtype check to exclude DataFrame
