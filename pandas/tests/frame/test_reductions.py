@@ -681,7 +681,12 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
 
-        warning = None if using_infer_string else UserWarning
+        # TODO(infer_string) avoid this UserWarning for python storage
+        warning = (
+            None
+            if using_infer_string and df.A.dtype.storage == "pyarrow"
+            else UserWarning
+        )
         with tm.assert_produces_warning(warning, match="Unable to sort modes"):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
