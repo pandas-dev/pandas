@@ -1730,6 +1730,7 @@ class ArrowExtensionArray(
                         return pa.scalar(None, type=data.type)
 
                 if pa.types.is_large_string(data.type):
+                    # binary_join only supports string, not large_string
                     data = data.cast(pa.string())
                 data_list = pa.ListArray.from_arrays(
                     [0, len(data)], data.combine_chunks()
