@@ -1450,10 +1450,11 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     elif isinstance(dtype, np.dtype):
         return False
     else:
-        # TODO ugly -> move into registry find()? Or make this work with pandas_dtype?
-        if dtype is str and using_string_dtype():
-            return True
-        return registry.find(dtype) is not None
+        try:
+            dtype = pandas_dtype(dtype)
+        except TypeError:
+            return False
+        return isinstance(dtype, ExtensionDtype)
 
 
 def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
