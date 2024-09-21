@@ -1710,7 +1710,7 @@ class ArrowExtensionArray(
             pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
         ):
 
-            def pyarrow_meth(data, skip_nulls, min_count=0):
+            def pyarrow_meth(data, skip_nulls, min_count=0):  # type: ignore[misc]
                 mask = pc.is_null(data) if data.null_count > 0 else None
                 if skip_nulls:
                     if min_count > 0 and check_below_min_count(
