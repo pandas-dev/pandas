@@ -1451,8 +1451,12 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
         return False
     else:
         try:
-            dtype = pandas_dtype(dtype)
-        except TypeError:
+            with warnings.catch_warnings():
+                # pandas_dtype(..) can raise UserWarning for class input
+                warnings.simplefilter("ignore", UserWarning)
+                dtype = pandas_dtype(dtype)
+        except (TypeError, ValueError):
+            # np.dtype(..) can raise ValueError
             return False
         return isinstance(dtype, ExtensionDtype)
 
