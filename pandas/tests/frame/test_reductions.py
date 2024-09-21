@@ -276,10 +276,11 @@ class TestDataFrameAnalytics:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
             elif opname == "median":
                 msg = re.compile(
-                    r"Cannot convert \[.*\] to numeric|does not support", flags=re.S
+                    r"Cannot convert \[.*\] to numeric|does not support|Cannot perform",
+                    flags=re.S,
                 )
             if not isinstance(msg, re.Pattern):
-                msg = msg + "|does not support"
+                msg = msg + "|does not support|Cannot perform reduction"
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -441,20 +442,13 @@ class TestDataFrameAnalytics:
                 "could not convert",
                 "can't multiply sequence by non-int",
                 "does not support",
+                "Cannot perform",
             ]
         )
         with pytest.raises(TypeError, match=msg):
             getattr(df, op)()
 
         with pd.option_context("use_bottleneck", False):
-            msg = "|".join(
-                [
-                    "Could not convert",
-                    "could not convert",
-                    "can't multiply sequence by non-int",
-                    "does not support",
-                ]
-            )
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)()
 
