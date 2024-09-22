@@ -1213,6 +1213,12 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     bool
         Whether `obj` has list-like properties.
 
+    See Also
+    --------
+    Series : One-dimensional ndarray with axis labels (including time series).
+    Index : Immutable sequence used for indexing and alignment.
+    numpy.ndarray : Array object from NumPy, which is considered list-like.
+
     Examples
     --------
     >>> import datetime
