@@ -2694,7 +2694,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        matplotlib.Axes or numpy.ndarray of them
+        matplotlib.Axes or numpy.ndarray
+            A ``matplotlib.Axes`` object or an array of ``Axes`` objects, depending on
+            the layout and grouping.
 
         See Also
         --------
