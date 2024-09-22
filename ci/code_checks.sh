@@ -123,7 +123,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_iterator PR07,SA01" \
         -i "pandas.api.types.is_list_like SA01" \
         -i "pandas.api.types.is_named_tuple PR07,SA01" \
-        -i "pandas.api.types.is_object_dtype SA01" \
         -i "pandas.api.types.is_re PR07,SA01" \
         -i "pandas.api.types.is_re_compilable PR07,SA01" \
         -i "pandas.api.types.pandas_dtype PR07,RT03,SA01" \

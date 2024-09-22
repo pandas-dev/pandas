@@ -139,6 +139,11 @@ def is_object_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the object dtype.
 
+    This method examines the input to determine if it is of the
+    object data type. Object dtype is a generic data type that can
+    hold any Python objects, including strings, lists, and custom
+    objects.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -148,6 +153,15 @@ def is_object_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array-like or dtype is of the object dtype.
+
+    See Also
+    --------
+    api.types.is_numeric_dtype : Check whether the provided array or dtype is of a
+        numeric dtype.
+    api.types.is_string_dtype : Check whether the provided array or dtype is of
+        the string dtype.
+    api.types.is_bool_dtype : Check whether the provided array or dtype is of a
+        boolean dtype.
 
     Examples
     --------
