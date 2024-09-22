@@ -601,15 +601,31 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     @property
     def sp_values(self) -> np.ndarray:
         """
-        An ndarray containing the non- ``fill_value`` values.
+An ndarray containing the non-``fill_value`` values.
 
-        Examples
-        --------
-        >>> from pandas.arrays import SparseArray
-        >>> s = SparseArray([0, 0, 1, 0, 2], fill_value=0)
-        >>> s.sp_values
-        array([1, 2])
-        """
+This method retrieves the non-fill values from a SparseArray. SparseArrays
+are designed to efficiently store large arrays of data where most of the
+elements are the same (the fill value). This method allows you to access
+the actual data points that differ from the fill value.
+
+Returns
+-------
+ndarray
+    An array containing the non-fill values.
+
+See Also
+--------
+Series.sparse.fill_value : The fill value for the SparseArray.
+arrays.SparseArray : Represents an array with sparse data.
+
+Examples
+--------
+>>> from pandas.arrays import SparseArray
+>>> s = SparseArray([0, 0, 1, 0, 2], fill_value=0)
+>>> s.sp_values
+array([1, 2])
+"""
+
         return self._sparse_values
 
     @property

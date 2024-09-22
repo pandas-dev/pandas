@@ -1364,44 +1364,49 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def match(self, pat: str, case: bool = True, flags: int = 0, na=None):
         """
-        Determine if each string starts with a match of a regular expression.
+Determine if each string starts with a match of a regular expression.
 
-        Parameters
-        ----------
-        pat : str
-            Character sequence.
-        case : bool, default True
-            If True, case sensitive.
-        flags : int, default 0 (no flags)
-            Regex module flags, e.g. re.IGNORECASE.
-        na : scalar, optional
-            Fill value for missing values. The default depends on dtype of the
-            array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
-            ``pandas.NA`` is used.
+This method checks if each string in the Series starts with a substring
+that matches the given regular expression pattern. It returns a boolean
+Series indicating whether each string meets the condition.
 
-        Returns
-        -------
-        Series/Index/array of boolean values
-            A Series, Index, or array of boolean values indicating whether the start
-            of each string matches the pattern. The result will be of the same type
-            as the input.
+Parameters
+----------
+pat : str
+    Character sequence.
+case : bool, default True
+    If True, case sensitive.
+flags : int, default 0 (no flags)
+    Regex module flags, e.g. re.IGNORECASE.
+na : scalar, optional
+    Fill value for missing values. The default depends on dtype of the
+    array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
+    ``pandas.NA`` is used.
 
-        See Also
-        --------
-        fullmatch : Stricter matching that requires the entire string to match.
-        contains : Analogous, but less strict, relying on re.search instead of
-            re.match.
-        extract : Extract matched groups.
+Returns
+-------
+Series/Index/array of boolean values
+    A Series, Index, or array of boolean values indicating whether the start
+    of each string matches the pattern. The result will be of the same type
+    as the input.
 
-        Examples
-        --------
-        >>> ser = pd.Series(["horse", "eagle", "donkey"])
-        >>> ser.str.match("e")
-        0   False
-        1   True
-        2   False
-        dtype: bool
-        """
+See Also
+--------
+fullmatch : Stricter matching that requires the entire string to match.
+contains : Analogous, but less strict, relying on re.search instead of
+    re.match.
+extract : Extract matched groups.
+
+Examples
+--------
+>>> ser = pd.Series(["horse", "eagle", "donkey"])
+>>> ser.str.match("e")
+0   False
+1   True
+2   False
+dtype: bool
+"""
+
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
