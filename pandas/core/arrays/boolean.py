@@ -286,6 +286,13 @@ class BooleanArray(BaseMaskedArray):
     -------
     BooleanArray
 
+    See Also
+    --------
+    array : Create an array from data with the appropriate dtype.
+    BooleanDtype : Extension dtype for boolean data.
+    Series : One-dimensional ndarray with axis labels (including time series).
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
     Examples
     --------
     Create an BooleanArray with :func:`pandas.array`:

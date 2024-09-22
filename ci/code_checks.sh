@@ -128,7 +128,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_re_compilable PR07,SA01" \
         -i "pandas.api.types.pandas_dtype PR07,RT03,SA01" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
-        -i "pandas.arrays.BooleanArray SA01" \
         -i "pandas.arrays.DatetimeArray SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
         -i "pandas.arrays.IntervalArray.left SA01" \
