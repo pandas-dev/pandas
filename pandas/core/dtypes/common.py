@@ -1275,6 +1275,9 @@ def is_float_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a float dtype.
 
+    The function checks for floating-point data types, which represent real numbers
+    that may have fractional components.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -1284,6 +1287,15 @@ def is_float_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of a float dtype.
+
+    See Also
+    --------
+    api.types.is_numeric_dtype : Check whether the provided array or dtype is of
+        a numeric dtype.
+    api.types.is_integer_dtype : Check whether the provided array or dtype is of
+        an integer dtype.
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+        object dtype.
 
     Examples
     --------
