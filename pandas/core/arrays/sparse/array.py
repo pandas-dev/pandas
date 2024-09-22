@@ -623,6 +623,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         For memory savings, this should be the most common value in the array.
 
+        See Also
+        --------
+        SparseDtype : Dtype for data stored in :class:`SparseArray`.
+        Series.value_counts : Return a Series containing counts of unique values.
+        Series.fillna : Fill NA/NaN in a Series with a specified value.
+
         Examples
         --------
         >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")
