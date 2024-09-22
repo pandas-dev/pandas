@@ -479,6 +479,15 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the Interval dtype.
 
+    See Also
+    --------
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+        object dtype.
+    api.types.is_numeric_dtype : Check whether the provided array or dtype is
+        of a numeric dtype.
+    api.types.is_categorical_dtype : Check whether an array-like or dtype is of
+        the Categorical dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_interval_dtype

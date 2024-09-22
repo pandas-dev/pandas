@@ -119,7 +119,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_hashable PR01,RT03,SA01" \
         -i "pandas.api.types.is_int64_dtype SA01" \
         -i "pandas.api.types.is_integer PR01,SA01" \
-        -i "pandas.api.types.is_interval_dtype SA01" \
         -i "pandas.api.types.is_iterator PR07,SA01" \
         -i "pandas.api.types.is_list_like SA01" \
         -i "pandas.api.types.is_named_tuple PR07,SA01" \
