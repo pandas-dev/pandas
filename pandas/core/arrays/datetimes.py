@@ -261,6 +261,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
+        "to_timestamp",
         "tz_localize",
         "tz_convert",
         "normalize",
@@ -1270,6 +1271,51 @@ default 'raise'
 
             freq = res
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
+
+    def to_timestamp(self):
+        """
+        Convert ``Series`` of ``Periods`` to ``DatetimeIndex/Array``.
+
+        This method converts a Series of Periods to a ``DatetimeIndex/Array``.
+        The ``freq`` and ``how`` parameters cannot be used when calling
+        ``to_timestamp`` the ``.dt`` accessor.
+
+        Returns
+        -------
+        DatetimeArray/Index
+            A `DatetimeArray` or `DatetimeIndex` object representing the period
+            converted to a timestamp.
+
+        See Also
+        --------
+        PeriodIndex.day : The days of the period.
+        PeriodIndex.from_fields : Construct a PeriodIndex from fields
+            (year, month, day, etc.).
+        PeriodIndex.from_ordinals : Construct a PeriodIndex from ordinals.
+        PeriodIndex.hour : The hour of the period.
+        PeriodIndex.minute : The minute of the period.
+        PeriodIndex.month : The month as January=1, December=12.
+        PeriodIndex.second : The second of the period.
+        PeriodIndex.year : The year of the period.
+
+        Examples
+        --------
+        >>> s = pd.Series(pd.period_range("2023-01", periods=3, freq="M"))
+        >>> s
+        0    2023-01
+        1    2023-02
+        2    2023-03
+        dtype: period[M]
+        >>> s.dt.to_timestamp()
+        0   2023-01-01
+        1   2023-02-01
+        2   2023-03-01
+        dtype: datetime64[ns]
+        """
+        # Call the to_timestamp function in PeriodArray() class, ignoring freq and how
+        from pandas.core.arrays import PeriodArray
+
+        return PeriodArray(self._data).to_timestamp()
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
