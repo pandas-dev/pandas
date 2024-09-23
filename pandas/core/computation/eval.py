@@ -211,8 +211,8 @@ def eval(
         Furthermore, the following mathematical functions are supported:
 
         - Trigonometric: ``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, \
-            ``arctan``, ``sinh``, ``cosh``, ``tanh``, ``arcsinh``, ``arccosh`` \
-            and ``arctanh``
+            ``arctan``, ``arctan2``, ``sinh``, ``cosh``, ``tanh``, ``arcsinh``, \
+            ``arccosh`` and ``arctanh``
         - Logarithms: ``log`` natural, ``log10`` base 10, ``log1p`` log(1+x)
         - Absolute Value ``abs``
         - Square root ``sqrt``
