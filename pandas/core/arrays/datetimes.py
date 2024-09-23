@@ -1312,10 +1312,9 @@ default 'raise'
         2   2023-03-01
         dtype: datetime64[ns]
         """
-        # Call the to_timestamp function in PeriodArray() class, ignoring freq and how
-        from pandas.core.arrays import PeriodArray
-
-        return PeriodArray(self._data).to_timestamp()
+        # Uses to_timestamp method defined in PeriodArray Class()
+        # function here only used to update docstring
+        return
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
