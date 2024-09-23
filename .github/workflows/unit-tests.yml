@@ -89,9 +89,11 @@ jobs:
           - name: "Future infer strings"
             env_file: actions-312.yaml
             pandas_future_infer_string: "1"
+            pandas_copy_on_write: "1"
           - name: "Future infer strings (without pyarrow)"
             env_file: actions-311.yaml
             pandas_future_infer_string: "1"
+            pandas_copy_on_write: "1"
           - name: "Pypy"
             env_file: actions-pypy-39.yaml
             pattern: "not slow and not network and not single_cpu"
