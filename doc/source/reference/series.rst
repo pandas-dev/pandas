@@ -345,6 +345,7 @@ Datetime methods
 
    Series.dt.isocalendar
    Series.dt.to_period
+   Series.dt.to_timestamp
    Series.dt.to_pydatetime
    Series.dt.tz_localize
    Series.dt.tz_convert
