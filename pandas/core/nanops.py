@@ -457,7 +457,11 @@ def maybe_operate_rowwise(func: F) -> F:
     @functools.wraps(func)
     def newfunc(values: np.ndarray, *, axis: AxisInt | None = None, **kwargs):
         if (
-            axis == 1 and values.ndim == 2 and values.flags["C_CONTIGUOUS"] and values.shape[1] / 1000 > values.shape[0] and values.dtype not in (object, bool)
+            axis == 1
+            and values.ndim == 2
+            and values.flags["C_CONTIGUOUS"]
+            and values.shape[1] / 1000 > values.shape[0]
+            and values.dtype not in (object, bool)
         ):
             arrs = list(values)
             if kwargs.get("mask") is not None:
