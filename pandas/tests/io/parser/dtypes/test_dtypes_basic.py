@@ -547,8 +547,7 @@ def test_ea_int_avoid_overflow(all_parsers):
 
 def test_string_inference(all_parsers):
     # GH#54430
-    pytest.importorskip("pyarrow")
-    dtype = "string[pyarrow_numpy]"
+    dtype = pd.StringDtype(na_value=np.nan)
 
     data = """a,b
 x,1
@@ -568,8 +567,6 @@ y,2
 @pytest.mark.parametrize("dtype", ["O", object, "object", np.object_, str, np.str_])
 def test_string_inference_object_dtype(all_parsers, dtype):
     # GH#56047
-    pytest.importorskip("pyarrow")
-
     data = """a,b
 x,a
 y,a
@@ -583,7 +580,7 @@ z,a"""
             "a": pd.Series(["x", "y", "z"], dtype=object),
             "b": pd.Series(["a", "a", "a"], dtype=object),
         },
-        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+        columns=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -593,9 +590,9 @@ z,a"""
     expected = DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=object),
-            "b": pd.Series(["a", "a", "a"], dtype="string[pyarrow_numpy]"),
+            "b": pd.Series(["a", "a", "a"], dtype=pd.StringDtype(na_value=np.nan)),
         },
-        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+        columns=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)
 

@@ -199,6 +199,15 @@ Returns
 Series or DataFrame
     Computed {fname} of values within each group.
 
+See Also
+--------
+SeriesGroupBy.min : Return the min of the group values.
+DataFrameGroupBy.min : Return the min of the group values.
+SeriesGroupBy.max : Return the max of the group values.
+DataFrameGroupBy.max : Return the max of the group values.
+SeriesGroupBy.sum : Return the sum of the group values.
+DataFrameGroupBy.sum : Return the sum of the group values.
+
 Examples
 --------
 {example}
@@ -414,9 +423,9 @@ Returns
 
 See Also
 --------
-{klass}.groupby.apply : Apply function func group-wise
+{klass}GroupBy.apply : Apply function func group-wise
     and combine the results together.
-{klass}.groupby.transform : Transforms the Series on each group
+{klass}GroupBy.transform : Transforms the Series on each group
     based on the given function.
 {klass}.aggregate : Aggregate using one or more operations.
 
