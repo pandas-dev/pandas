@@ -125,7 +125,7 @@ def _astype_nansafe(
         )
         raise ValueError(msg)
 
-    if copy or arr.dtype == object or dtype == object:
+    if copy or object in (arr.dtype, dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
 
