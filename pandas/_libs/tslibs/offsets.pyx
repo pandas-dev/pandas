@@ -3582,6 +3582,11 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
+    This offset allows for generating or adjusting dates by specifying
+    a particular week and weekday within a month. The week is zero-indexed,
+    where 0 corresponds to the first week of the month, and weekday follows
+    a Monday=0 convention.
+
     Attributes
     ----------
     n : int, default 1
@@ -3601,6 +3606,12 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         - 4 is Friday
         - 5 is Saturday
         - 6 is Sunday.
+
+    See Also
+    --------
+    offsets.Week : Describes weekly frequency adjustments.
+    offsets.MonthEnd : Describes month-end frequency adjustments.
+    date_range : Generates a range of dates based on a specific frequency.
 
     Examples
     --------
