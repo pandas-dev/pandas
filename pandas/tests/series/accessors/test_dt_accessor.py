@@ -45,6 +45,7 @@ ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
 ok_for_dt = DatetimeArray._datetimelike_ops
 ok_for_dt_methods = [
     "to_period",
+    "to_timestamp",
     "to_pydatetime",
     "tz_localize",
     "tz_convert",
