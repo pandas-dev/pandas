@@ -122,8 +122,8 @@ class PandasDelegate:
             original_method = getattr(delegate, accessor_mapping(name))
 
             @wraps(original_method)
-            def f(self):
-                return self._delegate_method(name)
+            def f(self, *args, **kwargs):
+                return self._delegate_method(name, *args, **kwargs)
 
             return f
 
