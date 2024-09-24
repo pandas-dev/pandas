@@ -558,11 +558,11 @@ dtype: object
 The csv in the pyarrow must be used if the values in the file have
 new line characters.
 
->>> from pyarrow import csv
->>> parse_options = csv.ParseOptions(newlines_in_values=True)
->>> table = csv.read_csv("example.csv", parse_options=parse_options)
->>> df = table.to_pandas()
->>> df.head()
+>>> from pyarrow import csv  # doctest: +SKIP
+>>> parse_options = csv.ParseOptions(newlines_in_values=True)  # doctest: +SKIP
+>>> table = csv.read_csv("example.csv", parse_options=parse_options)  # doctest: +SKIP
+>>> df = table.to_pandas()  # doctest: +SKIP
+>>> df.head()  # doctest: +SKIP
      text  idx
 0  ab\ncd  0
 1  ab\ncd  1
