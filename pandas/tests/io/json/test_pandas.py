@@ -2286,3 +2286,15 @@ def test_read_json_lines_rangeindex():
     result = read_json(StringIO(data), lines=True).index
     expected = RangeIndex(2)
     tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_large_number():
+    # GH#20608
+    result = read_json(
+        StringIO('["9999999999999999"]'),
+        orient="values",
+        typ="series",
+        convert_dates=False,
+    )
+    expected = Series([9999999999999999])
+    tm.assert_series_equal(result, expected)

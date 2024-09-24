@@ -630,6 +630,7 @@ I/O
 - Bug in :meth:`read_csv` where the order of the ``na_values`` makes an inconsistency when ``na_values`` is a list non-string values. (:issue:`59303`)
 - Bug in :meth:`read_excel` raising ``ValueError`` when passing array of boolean values when ``dtype="boolean"``. (:issue:`58159`)
 - Bug in :meth:`read_json` not validating the ``typ`` argument to not be exactly ``"frame"`` or ``"series"`` (:issue:`59124`)
+- Bug in :meth:`read_json` where extreme value integers in string format were incorrectly parsed as a different integer number (:issue:`20608`)
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
 - Bug in :meth:`read_stata` where extreme value integers were incorrectly interpreted as missing for format versions 111 and prior (:issue:`58130`)
 - Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
