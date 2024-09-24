@@ -116,12 +116,14 @@ class PandasDelegate:
                 doc=getattr(delegate, accessor_mapping(name)).__doc__,
             )
 
-        def _create_delegator_method(name: str):
-            def f(self, *args, **kwargs):
-                return self._delegate_method(name, *args, **kwargs)
+        from functools import wraps
 
-            f.__name__ = name
-            f.__doc__ = getattr(delegate, accessor_mapping(name)).__doc__
+        def _create_delegator_method(name: str):
+            original_method = getattr(delegate, accessor_mapping(name))
+
+            @wraps(original_method)
+            def f(self):
+                return self._delegate_method(name)
 
             return f
 
