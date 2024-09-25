@@ -549,7 +549,7 @@ class BaseMethodsTests:
         dtype = data_for_sorting.dtype
         data_for_sorting = pd.array([True, False], dtype=dtype)
         b, a = data_for_sorting
-        arr = type(data_for_sorting)._from_sequence([a, b])
+        arr = type(data_for_sorting)._from_sequence([a, b], dtype=dtype)
 
         if as_series:
             arr = pd.Series(arr)
