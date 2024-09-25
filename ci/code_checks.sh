@@ -173,7 +173,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.ClosedFileError SA01" \
         -i "pandas.errors.DataError SA01" \
         -i "pandas.errors.DuplicateLabelError SA01" \
-        -i "pandas.errors.EmptyDataError SA01" \
         -i "pandas.errors.IntCastingNaNError SA01" \
         -i "pandas.errors.InvalidIndexError SA01" \
         -i "pandas.errors.InvalidVersion SA01" \
