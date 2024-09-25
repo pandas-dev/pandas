@@ -529,6 +529,11 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Forward fill the values.
 
+        This method fills missing values by propagating the last valid
+        observation forward, up to the next valid observation. It is commonly
+        used in time series analysis when resampling data to a higher frequency
+        (upsampling) and filling gaps in the resampled output.
+
         Parameters
         ----------
         limit : int, optional
@@ -536,7 +541,8 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Returns
         -------
-        An upsampled Series.
+        Series
+            The resampled data with missing values filled forward.
 
         See Also
         --------
