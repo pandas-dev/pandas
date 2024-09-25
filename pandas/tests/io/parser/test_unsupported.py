@@ -152,7 +152,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 read_csv(StringIO(data), engine="pyarrow", **kwargs)
 
     def test_pyarrow_newlines_in_values(self):
-        pytest.importorskip("pyarrow")
         msg = (
             "CSV parser got out of sync with chunker. "
             "This can mean the data file contains cell values spanning multiple "
@@ -161,7 +160,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         rows = [{"text": "ab\ncd", "idx": idx} for idx in range(1_000_000)]
         df = DataFrame(rows)
         df.to_csv("test.csv", index=False)
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ParserError, match=msg):
             read_csv("test.csv", engine="pyarrow")
         os.unlink("test.csv")
 
