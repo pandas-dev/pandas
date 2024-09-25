@@ -11,6 +11,12 @@ from pandas.core.arrays import ExtensionArray
 class BaseParsingTests:
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
+        if engine == "c" and data.dtype.kind == "c":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"engine '{engine}' cannot parse the dtype {data.dtype.name}"
+                )
+            )
         if isinstance(data.dtype, pd.CategoricalDtype):
             # in parsers.pyx _convert_with_dtype there is special-casing for
             #  Categorical that preempts _from_sequence_of_strings
