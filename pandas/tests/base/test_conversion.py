@@ -333,7 +333,8 @@ def test_array_multiindex_raises():
         # Timedelta
         (
             TimedeltaArray._from_sequence(
-                np.array([0, 3600000000000], dtype="i8").view("m8[ns]")
+                np.array([0, 3600000000000], dtype="i8").view("m8[ns]"),
+                dtype=np.dtype("m8[ns]"),
             ),
             np.array([0, 3600000000000], dtype="m8[ns]"),
         ),

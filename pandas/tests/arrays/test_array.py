@@ -370,11 +370,15 @@ def test_array_copy():
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
-            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[ns]")),
+            TimedeltaArray._from_sequence(
+                np.array([1, 2], dtype="m8[ns]"), dtype=np.dtype("m8[ns]")
+            ),
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[us]")),
+            TimedeltaArray._from_sequence(
+                np.array([1, 2], dtype="m8[us]"), dtype=np.dtype("m8[us]")
+            ),
         ),
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2], dtype="Int64")),

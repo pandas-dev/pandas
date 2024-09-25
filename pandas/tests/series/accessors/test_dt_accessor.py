@@ -790,7 +790,8 @@ class TestSeriesPeriodValuesDtAccessor:
         # GH#17157
         # Check that the time part of the Period is adjusted by end_time
         # when using the dt accessor on a Series
-        input_vals = PeriodArray._from_sequence(np.asarray(input_vals))
+        dtype = pd.PeriodDtype(input_vals[0].freq)
+        input_vals = PeriodArray._from_sequence(np.asarray(input_vals), dtype=dtype)
 
         ser = Series(input_vals)
         result = ser.dt.end_time
