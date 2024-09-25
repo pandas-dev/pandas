@@ -1409,7 +1409,15 @@ cdef class _Timedelta(timedelta):
 
     def to_timedelta64(self) -> np.timedelta64:
         """
-        Return a numpy.timedelta64 object with 'ns' precision.
+        Return a numpy.timedelta64 object with ``ns`` (nanosecond) precision.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta format.
+        DatetimeIndex: Index of datetime64 data.
+        TimedeltaIndex : Index of timedelta64 data, representing durations.
+        Timedelta.components : Return a components namedtuple-like
+                               of a single timedelta.
 
         Examples
         --------

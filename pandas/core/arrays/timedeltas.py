@@ -785,11 +785,22 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
-        Return an ndarray of datetime.timedelta objects.
+        Return an ndarray of ``datetime.timedelta`` objects.
 
         Returns
         -------
-        numpy.ndarray
+        **numpy.ndarray**
+            An ``numpy.ndarray`` of ``datetime.timedelta`` objects,
+            corresponding to each entry.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta format.
+        Timedelta : Represents a duration between two dates or times.
+        DatetimeIndex: Index of datetime64 data.
+        TimedeltaIndex.total_seconds : Return total duration expressed in seconds.
+        Timedelta.components : Return a components namedtuple-like
+                               of a single timedelta.
 
         Examples
         --------
