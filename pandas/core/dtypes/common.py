@@ -886,6 +886,16 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of the int64 dtype.
 
+    See Also
+    --------
+    api.types.is_float_dtype : Check whether the provided array or dtype is of a
+        float dtype.
+    api.types.is_bool_dtype : Check whether the provided array or dtype is of a
+        boolean dtype.
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+        object dtype.
+    numpy.int64 : Numpy's 64-bit integer type.
+
     Notes
     -----
     Depending on system architecture, the return value of `is_int64_dtype(
