@@ -1292,7 +1292,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return the midpoint of each Interval in the IntervalArray as an Index.
 
         The midpoint of an interval is calculated as the average of its
-        `left` and `right` bounds. This property returns a `pandas.Index` object
+        ``left`` and ``right`` bounds. This property returns a ``pandas.Index`` object
         containing the midpoint for each interval.
 
         See Also
