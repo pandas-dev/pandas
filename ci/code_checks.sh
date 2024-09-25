@@ -73,7 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
-        -i "pandas.RangeIndex.step SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
         -i "pandas.Series.cat.as_ordered PR01" \
         -i "pandas.Series.cat.as_unordered PR01" \
