@@ -1239,7 +1239,10 @@ class ArrowExtensionArray(
         DataFrame.round : Round values of a DataFrame.
         Series.round : Round values of a Series.
         """
-        return type(self)(pc.round(self._pa_array, ndigits=decimals))
+        if not self.dtype._is_numeric or self.dtype._is_boolean:
+            raise TypeError("Cannot round non-numeric type.")
+        result = pc.round(self._pa_array, ndigits=decimals)
+        return type(self)(result.cast(self._pa_array.type))
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(

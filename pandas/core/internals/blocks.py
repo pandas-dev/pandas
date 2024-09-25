@@ -1489,11 +1489,7 @@ class Block(PandasObject, libinternals.Block):
         """
         if not self.is_numeric or self.is_bool:
             return self.copy(deep=False)
-        # TODO: round only defined on BaseMaskedArray
-        # Series also does this, so would need to fix both places
-        # error: Item "ExtensionArray" of "Union[ndarray[Any, Any], ExtensionArray]"
-        # has no attribute "round"
-        values = self.values.round(decimals)  # type: ignore[union-attr]
+        values = self.values.round(decimals)
 
         refs = None
         if values is self.values:

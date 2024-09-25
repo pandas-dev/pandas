@@ -2512,6 +2512,22 @@ class ExtensionArray:
         # ndarray[Any, Any]]", expected "Self")
         return mode(self, dropna=dropna)  # type: ignore[return-value]
 
+    def round(self, decimals: int = 0, *args, **kwargs) -> Self:
+        # Implementer note: This is a non-optimized default implementation.
+        # Implementers are encouraged to override this method to avoid
+        # elementwise rounding.
+        if self.dtype._is_boolean:
+            return self
+        if not self.dtype._is_numeric:
+            raise TypeError(f"Cannot round {type(self)} dtype as it is non-numeric")
+        return self._from_sequence(
+            [
+                round(element) if not element_isna else element
+                for (element, element_isna) in zip(self, self.isna())
+            ],
+            dtype=self.dtype,
+        )
+
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
             isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)) for other in inputs
