@@ -615,6 +615,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         See Also
         --------
+        Series.filter: Filter elements of ungrouped Series.
         DataFrameGroupBy.filter : Filter elements from groups base on criterion.
 
         Notes
@@ -1963,6 +1964,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         See Also
         --------
+        DataFrame.filter: Filter elements of ungrouped DataFrame.
         SeriesGroupBy.filter : Filter elements from groups base on criterion.
 
         Notes
@@ -2692,7 +2694,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        matplotlib.Axes or numpy.ndarray of them
+        matplotlib.Axes or numpy.ndarray
+            A ``matplotlib.Axes`` object or an array of ``Axes`` objects, depending on
+            the layout and grouping.
 
         See Also
         --------
