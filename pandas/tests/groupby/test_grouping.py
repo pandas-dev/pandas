@@ -1182,17 +1182,26 @@ def test_grouping_by_key_is_in_axis():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_any_with_timedelta(self):
-        # Create a DataFrame with Timedelta and NaT values
-        df = DataFrame({
+def test_groupby_any_with_timedelta():
+    # Create a DataFrame with Timedelta and NaT values
+    df = DataFrame(
+        {
             "A": ["foo", "foo", "bar", "bar"],
-            "B": [pd.Timedelta(1, unit='D'), pd.NaT, pd.Timedelta(2, unit='D'), pd.NaT]
-        })
+            "B": [pd.Timedelta(1, unit="D"), pd.NaT, pd.Timedelta(2, unit="D"), pd.NaT],
+        }
+    )
 
-        # Group by column A and check if any Timedelta exists (i.e., non-NaT)
-        result = df.groupby("A")["B"].any()
+    # Group by column A with sorting enabled and check if any Timedelta exists
+    result = df.groupby("A", sort=True)["B"].any()
 
-        # Expected result: groups with only NaT should return False, others should return True
-        expected = Series([True, False], index=["foo", "bar"], name="B")
+    # Corrected expected result: groups with only NaT should return False, else True
+    expected = Series([True, True], index=["foo", "bar"], name="B")
 
-        tm.assert_series_equal(result, expected)
+    # Set the expected index name to match the result
+    expected.index.name = "A"
+
+    # Sort the expected result to match the order of result
+    expected = expected.sort_index()
+
+    # Assert that the result matches the expected output
+    tm.assert_series_equal(result, expected)
