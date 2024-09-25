@@ -2691,7 +2691,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import NumpyExtensionArray
 
-        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
+        return NumpyExtensionArray(self.to_numpy(str, na_value="NaN"))._str_get_dummies(
+            sep
+        )
 
     # ------------------------------------------------------------------------
     # GroupBy Methods
