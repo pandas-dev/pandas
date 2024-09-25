@@ -6,15 +6,16 @@
 Installation
 ============
 
-The easiest way to install pandas is to install it
-as part of the `Anaconda <https://docs.continuum.io/free/anaconda/>`__ distribution, a
-cross platform distribution for data analysis and scientific computing.
-The `Conda <https://conda.io/en/latest/>`__ package manager is the
-recommended installation method for most users.
+The pandas development team officially distributes pandas for installation
+through the following methods:
 
-Instructions for installing :ref:`from source <install.source>`,
-:ref:`PyPI <install.pypi>`, or a
-:ref:`development version <install.dev>` are also provided.
+* Available on `conda-forge <https://anaconda.org/conda-forge/pandas>`__ for installation with the conda package manager.
+* Available on `PyPI <https://pypi.org/project/pandas/>`__ for installation with pip.
+* Available on `Github <https://github.com/pandas-dev/pandas>`__ for installation from source.
+
+.. note::
+    pandas may be installable from other sources besides the ones listed above,
+    but they are **not** managed by the pandas development team.
 
 .. _install.version:
 
@@ -26,68 +27,54 @@ See :ref:`Python support policy <policies.python_support>`.
 Installing pandas
 -----------------
 
-.. _install.anaconda:
+.. _install.conda:
 
-Installing with Anaconda
-~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Conda
+~~~~~~~~~~~~~~~~~~~~~
 
-For users that are new to Python, the easiest way to install Python, pandas, and the
-packages that make up the `PyData <https://pydata.org/>`__ stack
-(`SciPy <https://scipy.org/>`__, `NumPy <https://numpy.org/>`__,
-`Matplotlib <https://matplotlib.org/>`__, `and more <https://docs.continuum.io/free/anaconda/reference/packages/pkg-docs/>`__)
-is with `Anaconda <https://docs.continuum.io/free/anaconda/>`__, a cross-platform
-(Linux, macOS, Windows) Python distribution for data analytics and
-scientific computing. Installation instructions for Anaconda
-`can be found here <https://docs.continuum.io/free/anaconda/install/>`__.
+For users working with the `Conda <https://conda.io/en/latest/>`__ package manager,
+pandas can be installed from the ``conda-forge`` channel.
 
-.. _install.miniconda:
+.. code-block:: shell
 
-Installing with Miniconda
-~~~~~~~~~~~~~~~~~~~~~~~~~
+    conda install -c conda-forge pandas
 
-For users experienced with Python, the recommended way to install pandas with
-`Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__.
-Miniconda allows you to create a minimal, self-contained Python installation compared to Anaconda and use the
-`Conda <https://conda.io/en/latest/>`__ package manager to install additional packages
-and create a virtual environment for your installation. Installation instructions for Miniconda
-`can be found here <https://docs.conda.io/en/latest/miniconda.html>`__.
+To install the Conda package manager on your system, the
+`Miniforge distribution <https://github.com/conda-forge/miniforge?tab=readme-ov-file#install>`__
+is recommended.
 
-The next step is to create a new conda environment. A conda environment is like a
-virtualenv that allows you to specify a specific version of Python and set of libraries.
-Run the following commands from a terminal window.
+Additionally, it is recommended to install and run pandas from a virtual environment.
 
 .. code-block:: shell
 
     conda create -c conda-forge -n name_of_my_env python pandas
-
-This will create a minimal environment with only Python and pandas installed.
-To put your self inside this environment run.
-
-.. code-block:: shell
-
+    # On Linux or MacOS
     source activate name_of_my_env
     # On Windows
     activate name_of_my_env
 
-.. _install.pypi:
+.. tip::
+    For users that are new to Python, the easiest way to install Python, pandas, and the
+    packages that make up the `PyData <https://pydata.org/>`__ stack such as
+    `SciPy <https://scipy.org/>`__, `NumPy <https://numpy.org/>`__ and
+    `Matplotlib <https://matplotlib.org/>`__
+    is with `Anaconda <https://docs.anaconda.com/anaconda/install/>`__, a cross-platform
+    (Linux, macOS, Windows) Python distribution for data analytics and
+    scientific computing.
 
-Installing from PyPI
-~~~~~~~~~~~~~~~~~~~~
+    However, pandas from Anaconda is **not** officially managed by the pandas development team.
 
-pandas can be installed via pip from
-`PyPI <https://pypi.org/project/pandas>`__.
+.. _install.pip:
+
+Installing with pip
+~~~~~~~~~~~~~~~~~~~
+
+For users working with the `pip <https://pip.pypa.io/en/stable/>`__ package manager,
+pandas can be installed from `PyPI <https://pypi.org/project/pandas/>`__.
 
 .. code-block:: shell
 
     pip install pandas
-
-.. note::
-    You must have ``pip>=19.3`` to install from PyPI.
-
-.. note::
-
-    It is recommended to install and run pandas from a virtual environment, for example,
-    using the Python standard library's `venv <https://docs.python.org/3/library/venv.html>`__
 
 pandas can also be installed with sets of optional dependencies to enable certain functionality. For example,
 to install pandas with the optional dependencies to read Excel files.
@@ -98,25 +85,8 @@ to install pandas with the optional dependencies to read Excel files.
 
 The full list of extras that can be installed can be found in the :ref:`dependency section.<install.optional_dependencies>`
 
-Handling ImportErrors
-~~~~~~~~~~~~~~~~~~~~~
-
-If you encounter an ``ImportError``, it usually means that Python couldn't find pandas in the list of available
-libraries. Python internally has a list of directories it searches through, to find packages. You can
-obtain these directories with.
-
-.. code-block:: python
-
-    import sys
-    sys.path
-
-One way you could be encountering this error is if you have multiple Python installations on your system
-and you don't have pandas installed in the Python installation you're currently using.
-In Linux/Mac you can run ``which python`` on your terminal and it will tell you which Python installation you're
-using. If it's something like "/usr/bin/python", you're using the Python from the system, which is not recommended.
-
-It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
-You can find simple installation instructions for pandas :ref:`in this document <install.miniconda>`.
+Additionally, it is recommended to install and run pandas from a virtual environment, for example,
+using the Python standard library's `venv <https://docs.python.org/3/library/venv.html>`__
 
 .. _install.source:
 
@@ -144,49 +114,24 @@ index from the PyPI registry of anaconda.org. You can install it by running.
 
     pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
 
-Note that you might be required to uninstall an existing version of pandas to install the development version.
+.. note::
+    You might be required to uninstall an existing version of pandas to install the development version.
 
-.. code-block:: shell
+    .. code-block:: shell
 
-    pip uninstall pandas -y
+        pip uninstall pandas -y
 
 Running the test suite
 ----------------------
 
-pandas is equipped with an exhaustive set of unit tests. The packages required to run the tests
-can be installed with ``pip install "pandas[test]"``. To run the tests from a
-Python terminal.
+If pandas has been installed :ref:`from source <install.source>`, running ``pytest pandas`` will run all of pandas unit tests.
 
-.. code-block:: python
-
-    >>> import pandas as pd
-    >>> pd.test()
-    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.10/site-packages/pandas
-
-    ============================= test session starts ==============================
-    platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
-    rootdir: /home/user
-    plugins: dash-1.19.0, anyio-3.5.0, hypothesis-6.29.3
-    collected 154975 items / 4 skipped / 154971 selected
-    ........................................................................ [  0%]
-    ........................................................................ [ 99%]
-    .......................................                                  [100%]
-
-    ==================================== ERRORS ====================================
-
-    =================================== FAILURES ===================================
-
-    =============================== warnings summary ===============================
-
-    =========================== short test summary info ============================
-
-    = 1 failed, 146194 passed, 7402 skipped, 1367 xfailed, 5 xpassed, 197 warnings, 10 errors in 1090.16s (0:18:10) =
-
+The unit tests can also be run from the pandas module itself with the :func:`test` function. The packages required to run the tests
+can be installed with ``pip install "pandas[test]"``.
 
 .. note::
 
-    This is just an example of what information is shown. Test failures are not necessarily indicative
-    of a broken pandas installation.
+    Test failures are not necessarily indicative of a broken pandas installation.
 
 .. _install.dependencies:
 
@@ -219,7 +164,7 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
-If using pip, optional pandas dependencies can be installed or managed in a file (e.g. requirements.txt or pyproject.toml)
+With pip, optional pandas dependencies can be installed or managed in a file (e.g. requirements.txt or pyproject.toml)
 as optional extras (e.g. ``pandas[performance, aws]``). All optional dependencies can be installed with ``pandas[all]``,
 and specific sets of dependencies are listed in the sections below.
 

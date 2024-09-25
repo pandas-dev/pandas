@@ -1065,6 +1065,20 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         The frequency object of this PeriodDtype.
 
+        The `freq` property returns the `BaseOffset` object that represents the
+        frequency of the PeriodDtype. This frequency specifies the interval (e.g.,
+        daily, monthly, yearly) associated with the Period type. It is essential
+        for operations that depend on time-based calculations within a period index
+        or series.
+
+        See Also
+        --------
+        Period : Represents a period of time.
+        PeriodIndex : Immutable ndarray holding ordinal values indicating
+            regular periods.
+        PeriodDtype : An ExtensionDtype for Period data.
+        date_range : Return a fixed frequency range of dates.
+
         Examples
         --------
         >>> dtype = pd.PeriodDtype(freq="D")
