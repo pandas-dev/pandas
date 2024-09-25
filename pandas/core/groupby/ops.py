@@ -371,33 +371,28 @@ class WrappedCythonOp:
 
         is_datetimelike = dtype.kind in "mM"
 
-        if is_datetimelike:
-            values = values.view("int64")
+        if self.how in ["any", "all"]:
+            if mask is None:
+                mask = isna(values)
+            values = values.astype(bool, copy=False).view(np.int8)
             is_numeric = True
 
-            # Fix for NaT handling: ensure NaT is treated as False in any() and all()
-            if self.how in ["any", "all"]:
-                # Set NaT (which is represented as the smallest int64) to False (0)
-                nat_mask = values == np.iinfo(np.int64).min
-                values[nat_mask] = 0  # Treat NaT as False
+        if is_datetimelike:
+            # Handle NaT values correctly
+            if self.how == "any" and mask is not None:
+                # For "any", we want True only if there's at least one non-NaT value
+                values = (~mask).astype(np.int8)  # Convert mask to int8
+            elif self.how == "all" and mask is not None:
+                # For "all", we want True only if all values are non-NaT
+                values = (~mask).all(axis=1, keepdims=True).astype(np.int8)
+                is_numeric = True
+            else:
+                values = values.view("int64")  # Handle other cases appropriately
 
         elif dtype.kind == "b":
             values = values.view("uint8")
         if values.dtype == "float16":
             values = values.astype(np.float32)
-
-        if self.how in ["any", "all"]:
-            if mask is None:
-                mask = isna(values)
-            if dtype == object:
-                if kwargs["skipna"]:
-                    # GH#37501: don't raise on pd.NA when skipna=True
-                    if mask.any():
-                        # mask on original values computed separately
-                        values = values.copy()
-                        values[mask] = True
-            values = values.astype(bool, copy=False).view(np.int8)
-            is_numeric = True
 
         values = values.T
         if mask is not None:
