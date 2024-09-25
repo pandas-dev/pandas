@@ -188,15 +188,6 @@ def eval(
     """
     Evaluate a Python expression as a string using various backends.
 
-    The following arithmetic operations are supported: ``+``, ``-``, ``*``,
-    ``/``, ``**``, ``%``, ``//`` (python engine only) along with the following
-    boolean operations: ``|`` (or), ``&`` (and), and ``~`` (not).
-    Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
-    :keyword:`or`, and :keyword:`not` with the same semantics as the
-    corresponding bitwise operators.  :class:`~pandas.Series` and
-    :class:`~pandas.DataFrame` objects are supported and behave as they would
-    with plain ol' Python evaluation.
-
     .. warning::
 
         ``eval`` can run arbitrary code which can make you vulnerable to code
@@ -210,6 +201,34 @@ def eval(
         <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
         only Python `expressions
         <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__.
+
+        By default, with the numexpr engine, the following operations are supported:
+
+        - Arthimetic operations: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``
+        - Boolean operations: ``|`` (or), ``&`` (and), and ``~`` (not)
+        - Comparison operators: ``<``, ``<=``, ``==``, ``!=``, ``>=``, ``>``
+
+        Furthermore, the following mathematical functions are supported:
+
+        - Trigonometric: ``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, \
+            ``arctan``, ``arctan2``, ``sinh``, ``cosh``, ``tanh``, ``arcsinh``, \
+            ``arccosh`` and ``arctanh``
+        - Logarithms: ``log`` natural, ``log10`` base 10, ``log1p`` log(1+x)
+        - Absolute Value ``abs``
+        - Square root ``sqrt``
+        - Exponential ``exp`` and Exponential minus one ``expm1``
+
+        See the numexpr engine `documentation
+        <https://numexpr.readthedocs.io/en/latest/user_guide.html#supported-functions>`__
+        for further function support details.
+
+        Using the ``'python'`` engine allows the use of native Python operators
+        such as floor division ``//``, in addition to built-in and user-defined
+        Python functions.
+
+        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
+        :keyword:`or`, and :keyword:`not` with the same semantics as the
+        corresponding bitwise operators.
     parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard

@@ -4479,20 +4479,11 @@ class DataFrame(NDFrame, OpsMixin):
         expr : str
             The query string to evaluate.
 
-            You can refer to variables
-            in the environment by prefixing them with an '@' character like
-            ``@a + b``.
+            See the documentation for :func:`eval` for details of
+            supported operations and functions in the query string.
 
-            You can refer to column names that are not valid Python variable names
-            by surrounding them in backticks. Thus, column names containing spaces
-            or punctuation (besides underscores) or starting with digits must be
-            surrounded by backticks. (For example, a column named "Area (cm^2)" would
-            be referenced as ```Area (cm^2)```). Column names which are Python keywords
-            (like "if", "for", "import", etc) cannot be used.
-
-            For example, if one of your columns is called ``a a`` and you want
-            to sum it with ``b``, your query should be ```a a` + b``.
-
+            See the documentation for :meth:`DataFrame.eval` for details on
+            referring to column names and variables in the query string.
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
         **kwargs
@@ -4651,8 +4642,18 @@ class DataFrame(NDFrame, OpsMixin):
             in the environment by prefixing them with an '@' character like
             ``@a + b``.
 
-            You can refer to column names that are not valid Python variable
-            names by surrounding them with backticks `````.
+            You can refer to column names that are not valid Python variable names
+            by surrounding them in backticks. Thus, column names containing spaces
+            or punctuation (besides underscores) or starting with digits must be
+            surrounded by backticks. (For example, a column named "Area (cm^2)" would
+            be referenced as ```Area (cm^2)```). Column names which are Python keywords
+            (like "if", "for", "import", etc) cannot be used.
+
+            For example, if one of your columns is called ``a a`` and you want
+            to sum it with ``b``, your query should be ```a a` + b``.
+
+            See the documentation for :func:`eval` for full details of
+            supported operations and functions in the expression string.
         inplace : bool, default False
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
@@ -4660,7 +4661,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
-            :meth:`~pandas.DataFrame.query`.
+            :meth:`~pandas.DataFrame.eval`.
 
         Returns
         -------
