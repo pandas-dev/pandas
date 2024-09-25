@@ -12,6 +12,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import (
     Interval,
     Period,
@@ -1470,7 +1472,15 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     elif isinstance(dtype, np.dtype):
         return False
     else:
-        return registry.find(dtype) is not None
+        try:
+            with warnings.catch_warnings():
+                # pandas_dtype(..) can raise UserWarning for class input
+                warnings.simplefilter("ignore", UserWarning)
+                dtype = pandas_dtype(dtype)
+        except (TypeError, ValueError):
+            # np.dtype(..) can raise ValueError
+            return False
+        return isinstance(dtype, ExtensionDtype)
 
 
 def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
@@ -1772,6 +1782,12 @@ def pandas_dtype(dtype) -> DtypeObj:
         return dtype.dtype
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         return dtype
+
+    # builtin aliases
+    if dtype is str and using_string_dtype():
+        from pandas.core.arrays.string_ import StringDtype
+
+        return StringDtype(na_value=np.nan)
 
     # registered extension types
     result = registry.find(dtype)
