@@ -6262,7 +6262,11 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
         dtype = _unpack_nested_dtype(other)
-        return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
+        return (
+            self._is_comparable_dtype(dtype)
+            or is_object_dtype(dtype)
+            or is_string_dtype(dtype)
+        )
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """

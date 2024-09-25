@@ -81,8 +81,8 @@ class TestAstype:
             ),
             (
                 SparseArray([0, 1, 10]),
-                str,
-                SparseArray(["0", "1", "10"], dtype=SparseDtype(str, "0")),
+                np.str_,
+                SparseArray(["0", "1", "10"], dtype=SparseDtype(np.str_, "0")),
             ),
             (SparseArray(["10", "20"]), float, SparseArray([10.0, 20.0])),
             (

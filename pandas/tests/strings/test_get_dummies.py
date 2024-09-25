@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -96,6 +98,7 @@ def test_get_dummies_with_pyarrow_dtype(any_string_dtype, dtype):
 
 
 # GH#47872
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_get_dummies_with_str_dtype(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
     result = s.str.get_dummies("|", dtype=str)

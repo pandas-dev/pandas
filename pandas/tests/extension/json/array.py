@@ -208,9 +208,8 @@ class JSONArray(ExtensionArray):
                 return self.copy()
             return self
         elif isinstance(dtype, StringDtype):
-            value = self.astype(str)  # numpy doesn't like nested dicts
             arr_cls = dtype.construct_array_type()
-            return arr_cls._from_sequence(value, dtype=dtype, copy=False)
+            return arr_cls._from_sequence(self, dtype=dtype, copy=False)
         elif not copy:
             return np.asarray([dict(x) for x in self], dtype=dtype)
         else:
