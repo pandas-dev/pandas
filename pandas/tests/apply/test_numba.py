@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -20,7 +18,6 @@ def apply_axis(request):
     return request.param
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_numba_vs_python_noop(float_frame, apply_axis):
     func = lambda x: x
     result = float_frame.apply(func, engine="numba", axis=apply_axis)
@@ -43,7 +40,6 @@ def test_numba_vs_python_string_index():
     )
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_numba_vs_python_indexing():
     frame = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7.0, 8.0, 9.0]},
