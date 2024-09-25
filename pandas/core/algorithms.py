@@ -99,6 +99,7 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.arrays import (
+        ArrowExtensionArray,
         BaseMaskedArray,
         ExtensionArray,
     )
@@ -1734,35 +1735,33 @@ def _build_map_infer_methods_params(arr: ArrayLike):
         Values to be processed by lib.map_infer and lib.map_infer_mask
 
     """
-    na_value = np.nan
+    na_value = None
     mask = isna(arr)
     storage = None
+    if (
+        isinstance(arr.dtype, (BaseMaskedDtype, ExtensionDtype))
+        and hasattr(arr, "_hasna")
+        and arr._hasna
+    ):
+        na_value = arr.dtype.na_value
+
     if isinstance(arr.dtype, BaseMaskedDtype):
         arr = cast("BaseMaskedArray", arr)
         values = np.fromiter(arr._data, dtype="O")
-        if arr._hasna:
-            na_value = arr.dtype.na_value
 
     elif isinstance(arr.dtype, ExtensionDtype):
-        from pandas.core.arrays.string_ import StringDtype
-
         arr = cast("ExtensionArray", arr)
-        arr_dtype = arr.dtype.__repr__()
-        if (
-            isinstance(arr.dtype, StringDtype) and arr.dtype.storage == "pyarrow"
-        ) or "pyarrow" in arr_dtype:
-            storage = "pyarrow"
+        if hasattr(arr.dtype, "storage"):
+            storage = arr.dtype.storage
+
+        if storage == "pyarrow":
+            arr = cast("ArrowExtensionArray", arr)
             values = np.fromiter(arr._pa_array, dtype="O")
         else:
             values = np.asarray(arr)
-        if (
-            isinstance(arr.dtype, StringDtype) and arr.dtype.storage == "python"
-        ) or "python" in arr_dtype:
-            storage = "python"
-        if arr._hasna:
-            na_value = arr.dtype.na_value
 
     else:
         # we must convert to python types
         values = arr.astype(object, copy=False)
+        na_value = np.nan
     return mask, na_value, storage, values
