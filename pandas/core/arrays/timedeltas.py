@@ -798,7 +798,6 @@ class TimedeltaArray(dtl.TimelikeOps):
         to_timedelta : Convert argument to timedelta format.
         Timedelta : Represents a duration between two dates or times.
         DatetimeIndex: Index of datetime64 data.
-        TimedeltaIndex.total_seconds : Return total duration expressed in seconds.
         Timedelta.components : Return a components namedtuple-like
                                of a single timedelta.
 
