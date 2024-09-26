@@ -3443,10 +3443,10 @@ class StringMethods(NoNewAttributesMixin):
     Series or Index of bool
         Series or Index of boolean values with the same length as the original
         Series/Index.
-
+    """
+    _shared_docs["isalpha"] = """
     See Also
     --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
     Series.str.isnumeric : Check whether all characters are numeric.
     Series.str.isalnum : Check whether all characters are alphanumeric.
     Series.str.isdigit : Check whether all characters are digits.
@@ -3455,11 +3455,8 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.islower : Check whether all characters are lowercase.
     Series.str.isupper : Check whether all characters are uppercase.
     Series.str.istitle : Check whether all characters are titlecase.
-    """
-    _shared_docs["isalpha"] = """
-    Checks for Alphabetic Characters (only letters).
 
-    Example
+    Examples
     --------
 
     >>> s1 = pd.Series(['one', 'one1', '1', ''])
@@ -3471,10 +3468,23 @@ class StringMethods(NoNewAttributesMixin):
     dtype: bool
     """
     _shared_docs["isnumeric"] = """
-    Checks whether all characters in each string are numeric (represent numbers).
-
-    Example
+    See Also
     --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isdecimal : Check whether all characters are decimal.
+    Series.str.isspace : Check whether all characters are whitespace.
+    Series.str.islower : Check whether all characters are lowercase.
+    Series.str.isupper : Check whether all characters are uppercase.
+    Series.str.istitle : Check whether all characters are titlecase.
+
+    Examples
+    --------
+    The ``s.str.isnumeric`` method is the same as ``s3.str.isdigit`` but
+    also includes other characters that can represent quantities such as
+    unicode fractions.
+
     >>> s1 = pd.Series(['one', 'one1', '1', ''])
     >>> s1.str.isnumeric()
     0    False
@@ -3484,9 +3494,18 @@ class StringMethods(NoNewAttributesMixin):
     dtype: bool
     """
     _shared_docs["isalnum"] = """
-    Checks whether all characters in each string are alphanumeric (letters and numbers).
+    See Also
+    --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isnumeric : Check whether all characters are numeric.
+    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isdecimal : Check whether all characters are decimal.
+    Series.str.isspace : Check whether all characters are whitespace.
+    Series.str.islower : Check whether all characters are lowercase.
+    Series.str.isupper : Check whether all characters are uppercase.
+    Series.str.istitle : Check whether all characters are titlecase.
 
-    Example
+    Examples
     --------
     >>> s1 = pd.Series(['one', 'one1', '1', ''])
     >>> s1.str.isalnum()
@@ -3507,10 +3526,21 @@ class StringMethods(NoNewAttributesMixin):
     dtype: bool
     """
     _shared_docs["isdecimal"] = """
-    Checks for characters used to form numbers in base 10.
-
-    Example
+    See Also
     --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isnumeric : Check whether all characters are numeric.
+    Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isspace : Check whether all characters are whitespace.
+    Series.str.islower : Check whether all characters are lowercase.
+    Series.str.isupper : Check whether all characters are uppercase.
+    Series.str.istitle : Check whether all characters are titlecase.
+
+    Examples
+    --------
+    The ``s3.str.isdecimal`` method checks for characters used to form
+    numbers in base 10.
 
     >>> s3 = pd.Series(['23', '³', '⅕', ''])
     >>> s3.str.isdecimal()
@@ -3521,11 +3551,24 @@ class StringMethods(NoNewAttributesMixin):
     dtype: bool
     """
     _shared_docs["isdigit"] = """
-    Similar to ``str.isdecimal`` but also includes special digits, like superscripted and subscripted digits in
-    unicode.
-
-    Example
+    See Also
     --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isnumeric : Check whether all characters are numeric.
+    Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isdecimal : Check whether all characters are decimal.
+    Series.str.isspace : Check whether all characters are whitespace.
+    Series.str.islower : Check whether all characters are lowercase.
+    Series.str.isupper : Check whether all characters are uppercase.
+    Series.str.istitle : Check whether all characters are titlecase.
+
+    Similar to ``str.isdecimal`` but also includes special digits, like
+    superscripted and subscripted digits in unicode.
+
+    Examples
+    --------
+    Similar to ``str.isdecimal`` but also includes special digits, like
+    superscripted and subscripted digits in unicode.
 
     >>> s3 = pd.Series(['23', '³', '⅕', ''])
     >>> s3.str.isdigit()
@@ -3535,25 +3578,20 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
     """
-    _shared_docs["isnumeric"] = """
-    Similar to ``str.isdigit`` but also includes other characters that can represent quantities such as unicode
-    fractions.
 
-    Example
-    ---------
-
-    >>> s3 = pd.Series(['23', '³', '⅕', ''])
-    >>> s3.str.isnumeric()
-    0     True
-    1     True
-    2     True
-    3    False
-    dtype: bool
-    """
     _shared_docs["isspace"] = """
-    Checks for whitespaces.
+    See Also
+    --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isnumeric : Check whether all characters are numeric.
+    Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isdecimal : Check whether all characters are decimal.
+    Series.str.islower : Check whether all characters are lowercase.
+    Series.str.isupper : Check whether all characters are uppercase.
+    Series.str.istitle : Check whether all characters are titlecase.
 
-    Example
+    Examples
     --------
 
     >>> s4 = pd.Series([' ', '\\t\\r\\n ', ''])
@@ -3564,9 +3602,18 @@ class StringMethods(NoNewAttributesMixin):
     dtype: bool
     """
     _shared_docs["islower"] = """
-    Checks for lower character case
+    See Also
+    --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isnumeric : Check whether all characters are numeric.
+    Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isdecimal : Check whether all characters are decimal.
+    Series.str.isspace : Check whether all characters are whitespace.
+    Series.str.isupper : Check whether all characters are uppercase.
+    Series.str.istitle : Check whether all characters are titlecase.
 
-    Example
+    Examples
     --------
 
     >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
@@ -3579,9 +3626,18 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     _shared_docs["isupper"] = """
-    Checks for upper character case
+    See Also
+    --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isnumeric : Check whether all characters are numeric.
+    Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isdecimal : Check whether all characters are decimal.
+    Series.str.isspace : Check whether all characters are whitespace.
+    Series.str.islower : Check whether all characters are lowercase.
+    Series.str.istitle : Check whether all characters are titlecase.
 
-    Example
+    Examples
     --------
 
     >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
@@ -3593,13 +3649,23 @@ class StringMethods(NoNewAttributesMixin):
     dtype: bool
     """
     _shared_docs["istitle"] = """
+    See Also
+    --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isnumeric : Check whether all characters are numeric.
+    Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isdecimal : Check whether all characters are decimal.
+    Series.str.isspace : Check whether all characters are whitespace.
+    Series.str.islower : Check whether all characters are lowercase.
+    Series.str.isupper : Check whether all characters are uppercase.
+
+    Examples
+    ------------
     The ``s5.str.istitle`` method checks for whether all words are in title
     case (whether only the first letter of each word is capitalized). Words are
     assumed to be as any sequence of non-numeric characters separated by
     whitespace characters.
-
-    Example
-    ------------
 
     >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
     >>> s5.str.istitle()
@@ -3622,48 +3688,48 @@ class StringMethods(NoNewAttributesMixin):
 
     isalnum = _map_and_wrap(
         "isalnum",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["isalnum"])
-        % _doc_args["isalnum"],
+        docstring=_shared_docs["ismethods"] % _doc_args["isalnum"]
+        + _shared_docs["isalnum"],
     )
     isalpha = _map_and_wrap(
         "isalpha",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["isalpha"])
-        % _doc_args["isalpha"],
+        docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
+        + _shared_docs["isalpha"],
     )
     isdigit = _map_and_wrap(
         "isdigit",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["isdigit"])
-        % _doc_args["isdigit"],
+        docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
+        + _shared_docs["isdigit"],
     )
     isspace = _map_and_wrap(
         "isspace",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["isspace"])
-        % _doc_args["isspace"],
+        docstring=_shared_docs["ismethods"] % _doc_args["isspace"]
+        + _shared_docs["isspace"],
     )
     islower = _map_and_wrap(
         "islower",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["islower"])
-        % _doc_args["islower"],
+        docstring=_shared_docs["ismethods"] % _doc_args["islower"]
+        + _shared_docs["islower"],
     )
     isupper = _map_and_wrap(
         "isupper",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["isupper"])
-        % _doc_args["isupper"],
+        docstring=_shared_docs["ismethods"] % _doc_args["isupper"]
+        + _shared_docs["isupper"],
     )
     istitle = _map_and_wrap(
         "istitle",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["istitle"])
-        % _doc_args["istitle"],
+        docstring=_shared_docs["ismethods"] % _doc_args["istitle"]
+        + _shared_docs["istitle"],
     )
     isnumeric = _map_and_wrap(
         "isnumeric",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["isnumeric"])
-        % _doc_args["isnumeric"],
+        docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"]
+        + _shared_docs["isnumeric"],
     )
     isdecimal = _map_and_wrap(
         "isdecimal",
-        docstring=(_shared_docs["ismethods"] + _shared_docs["isdecimal"])
-        % _doc_args["isdecimal"],
+        docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"]
+        + _shared_docs["isdecimal"],
     )
 
 
