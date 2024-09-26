@@ -1366,6 +1366,10 @@ class StringMethods(NoNewAttributesMixin):
         """
         Determine if each string starts with a match of a regular expression.
 
+        This method checks if each string in the Series starts with a substring
+        that matches the given regular expression pattern. It returns a boolean
+        Series indicating whether each string meets the condition.
+
         Parameters
         ----------
         pat : str
@@ -1402,6 +1406,7 @@ class StringMethods(NoNewAttributesMixin):
         2   False
         dtype: bool
         """
+
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 

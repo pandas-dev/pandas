@@ -112,11 +112,9 @@ def grouped_min_max(
             continue
 
         if is_max:
-            if val > output[lab]:
-                output[lab] = val
+            output[lab] = max(val, output[lab])
         else:
-            if val < output[lab]:
-                output[lab] = val
+            output[lab] = min(val, output[lab])
 
     # Set labels that don't satisfy min_periods as np.nan
     for lab, count in enumerate(nobs):
