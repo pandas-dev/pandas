@@ -30,7 +30,6 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_new_Index",
     "_new_PeriodIndex",
     "_agg_template_series",
-    "_agg_template_frame",
     "_pipe_template",
     "_apply_groupings_depr",
     "__main__",
