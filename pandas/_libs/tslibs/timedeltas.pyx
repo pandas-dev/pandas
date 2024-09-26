@@ -1189,14 +1189,6 @@ cdef class _Timedelta(timedelta):
         """
         Total seconds in the duration.
 
-        This method calculates the total duration in seconds by combining
-        the days, seconds, and microseconds of the `Timedelta` object.
-
-        See Also
-        --------
-        to_timedelta : Convert argument to timedelta.
-        Timedelta : Represents a duration, the difference between two dates or times.
-
         Examples
         --------
         >>> td = pd.Timedelta('1min')
@@ -1409,15 +1401,7 @@ cdef class _Timedelta(timedelta):
 
     def to_timedelta64(self) -> np.timedelta64:
         """
-        Return a numpy.timedelta64 object with ``ns`` (nanosecond) precision.
-
-        See Also
-        --------
-        to_timedelta : Convert argument to timedelta format.
-        DatetimeIndex: Index of datetime64 data.
-        TimedeltaIndex : Index of timedelta64 data, representing durations.
-        Timedelta.components : Return a components namedtuple-like
-                               of a single timedelta.
+        Return a numpy.timedelta64 object with 'ns' precision.
 
         Examples
         --------
@@ -1508,17 +1492,6 @@ cdef class _Timedelta(timedelta):
     def components(self):
         """
         Return a components namedtuple-like.
-
-        Each component represents a different time unit, allowing you to access the
-        breakdown of the total duration in terms of days, hours, minutes, seconds,
-        milliseconds, microseconds, and nanoseconds.
-
-        See Also
-        --------
-        Timedelta.total_seconds : Returns the total duration of the Timedelta in
-            seconds.
-        to_timedelta : Convert argument to Timedelta.
-        Timedelta : Represents a duration, the difference between two dates or times.
 
         Examples
         --------

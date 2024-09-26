@@ -70,8 +70,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
+        -i "pandas.NA SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
+        -i "pandas.PeriodDtype.freq SA01" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
@@ -101,9 +103,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.from_coo PR07,SA01" \
         -i "pandas.Series.sparse.npoints SA01" \
         -i "pandas.Series.sparse.sp_values SA01" \
+        -i "pandas.Timedelta.components SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
+        -i "pandas.Timedelta.to_timedelta64 SA01" \
+        -i "pandas.Timedelta.total_seconds SA01" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.nanosecond GL08" \
@@ -111,12 +116,14 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.types.is_dict_like PR07,SA01" \
+        -i "pandas.api.types.is_extension_array_dtype SA01" \
         -i "pandas.api.types.is_file_like PR07,SA01" \
         -i "pandas.api.types.is_float PR01,SA01" \
         -i "pandas.api.types.is_float_dtype SA01" \
         -i "pandas.api.types.is_hashable PR01,RT03,SA01" \
         -i "pandas.api.types.is_int64_dtype SA01" \
         -i "pandas.api.types.is_integer PR01,SA01" \
+        -i "pandas.api.types.is_integer_dtype SA01" \
         -i "pandas.api.types.is_interval_dtype SA01" \
         -i "pandas.api.types.is_iterator PR07,SA01" \
         -i "pandas.api.types.is_list_like SA01" \
@@ -128,6 +135,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
         -i "pandas.arrays.BooleanArray SA01" \
         -i "pandas.arrays.DatetimeArray SA01" \
+        -i "pandas.arrays.FloatingArray SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
         -i "pandas.arrays.IntervalArray.left SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
@@ -142,12 +150,16 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.groups SA01" \
+        -i "pandas.core.groupby.DataFrameGroupBy.hist RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.indices SA01" \
+        -i "pandas.core.groupby.DataFrameGroupBy.max SA01" \
+        -i "pandas.core.groupby.DataFrameGroupBy.min SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.nth PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.ohlc SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
+        -i "pandas.core.groupby.DataFrameGroupBy.sum SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.__iter__ RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.agg RT03" \
         -i "pandas.core.groupby.SeriesGroupBy.aggregate RT03" \
@@ -156,10 +168,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.indices SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.is_monotonic_decreasing SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.is_monotonic_increasing SA01" \
+        -i "pandas.core.groupby.SeriesGroupBy.max SA01" \
+        -i "pandas.core.groupby.SeriesGroupBy.min SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.nth PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.ohlc SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.sem SA01" \
+        -i "pandas.core.groupby.SeriesGroupBy.sum SA01" \
         -i "pandas.core.resample.Resampler.__iter__ RT03,SA01" \
         -i "pandas.core.resample.Resampler.ffill RT03" \
         -i "pandas.core.resample.Resampler.get_group RT03,SA01" \
@@ -188,6 +203,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.IntCastingNaNError SA01" \
         -i "pandas.errors.InvalidIndexError SA01" \
         -i "pandas.errors.InvalidVersion SA01" \
+        -i "pandas.errors.MergeError SA01" \
         -i "pandas.errors.NullFrequencyError SA01" \
         -i "pandas.errors.NumExprClobberingError SA01" \
         -i "pandas.errors.NumbaUtilError SA01" \
@@ -380,6 +396,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Week.n GL08" \
         -i "pandas.tseries.offsets.Week.normalize GL08" \
         -i "pandas.tseries.offsets.Week.weekday GL08" \
+        -i "pandas.tseries.offsets.WeekOfMonth SA01" \
         -i "pandas.tseries.offsets.WeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.n GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.normalize GL08" \
