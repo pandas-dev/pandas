@@ -23,7 +23,7 @@ jobs:
         run: echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
 
       - name: ACR bot
-        uses: AutoCodeRoverSG/code-rover-bot@v2.0.0
+        uses: AutoCodeRoverSG/code-rover-bot@v1.1.0
         env:
           TARGET_REPO_PATH: ${{ steps.set-var.outputs.GITHUB_WORKSPACE }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
