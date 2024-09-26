@@ -716,7 +716,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         See Also
         --------
         Series.sparse.to_dense : Convert a Series from sparse values to dense.
-        Series.sparse.fill_value : Elements in `data` that are `fill_value` are
+        Series.sparse.fill_value : Elements in ``data`` that are ``fill_value`` are
             not stored.
         Series.sparse.density : The percent of non- ``fill_value`` points, as decimal.
 
