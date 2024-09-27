@@ -48,6 +48,7 @@ from pandas._libs.tslibs.dtypes import (
 from pandas._libs.tslibs.offsets import BDay
 from pandas.compat import pa_version_under10p1
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
@@ -155,6 +156,7 @@ class CategoricalDtypeType(type):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness.
