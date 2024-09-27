@@ -7,9 +7,9 @@ dependencies:
   - pip
 
   # build dependencies
-  - versioneer[toml]
+  - versioneer
   - cython~=3.0.5
-  - meson[ninja]=1.2.1
+  - meson=1.2.1
   - meson-python=0.13.1
 
   # test dependencies
