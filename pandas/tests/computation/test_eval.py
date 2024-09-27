@@ -1998,3 +1998,10 @@ def test_validate_bool_args(value):
     msg = 'For argument "inplace" expected type bool, received type'
     with pytest.raises(ValueError, match=msg):
         pd.eval("2+2", inplace=value)
+
+
+def test_eval_float_div_numexpr():
+    # GH59736
+    result = pd.eval("1 / 2", engine="numexpr")
+    expected = 0.5
+    assert result == expected
