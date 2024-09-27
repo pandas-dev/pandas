@@ -401,3 +401,7 @@ class TestTesting(Base):
 def test_set_module():
     assert pd.DataFrame.__module__ == "pandas"
     assert pd.CategoricalDtype.__module__ == "pandas"
+    assert pd.PeriodDtype.__module__ == "pandas"
+    assert pd.IntervalDtype.__module__ == "pandas"
+    assert pd.SparseDtype.__module__ == "pandas"
+    assert pd.ArrowDtype.__module__ == "pandas"
