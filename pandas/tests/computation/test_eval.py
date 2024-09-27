@@ -2000,6 +2000,7 @@ def test_validate_bool_args(value):
         pd.eval("2+2", inplace=value)
 
 
+@td.skip_if_no("numexpr")
 def test_eval_float_div_numexpr():
     # GH59736
     result = pd.eval("1 / 2", engine="numexpr")
