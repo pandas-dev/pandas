@@ -305,15 +305,15 @@ It is important to periodically update your local ``main`` branch with updates f
 branch and update your development environment to reflect any changes to the various packages that
 are used during development.
 
-If using :ref:`mamba <contributing.mamba>`, run:
+If using :ref:`conda <contributing.conda>`, run:
 
 .. code-block:: shell
 
     git checkout main
     git fetch upstream
     git merge upstream/main
-    mamba activate pandas-dev
-    mamba env update -f environment.yml --prune
+    conda activate pandas-dev
+    conda env update -f environment.yml --prune
 
 If using :ref:`pip <contributing.pip>` , do:
 

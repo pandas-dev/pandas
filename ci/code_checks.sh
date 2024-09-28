@@ -97,7 +97,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.unit GL08" \
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.sparse.from_coo PR07,SA01" \
-        -i "pandas.Series.sparse.npoints SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
@@ -128,8 +127,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.SparseArray PR07,SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.__iter__ RT03,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.agg RT03" \
-        -i "pandas.core.groupby.DataFrameGroupBy.aggregate RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.groups SA01" \
