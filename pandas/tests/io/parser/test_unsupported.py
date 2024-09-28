@@ -13,7 +13,14 @@ from pathlib import Path
 
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under13p0
+from pandas.compat.pyarrow import (
+    pa_version_under11p0,
+    pa_version_under13p0,
+    pa_version_under14p0,
+    pa_version_under15p0,
+    pa_version_under17p0,
+    pa_version_under18p0,
+)
 from pandas.errors import ParserError
 
 import pandas._testing as tm
@@ -163,6 +170,10 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         rows = [{"text": "ab\ncd", "idx": idx} for idx in range(1_000_000)]
         df = DataFrame(rows)
         df.to_csv("test.csv", index=False)
+        print(f"11={pa_version_under11p0}, 13={pa_version_under13p0}")
+        print(f"14={pa_version_under14p0}, 15={pa_version_under15p0}")
+        print(f"17={pa_version_under17p0}, 18={pa_version_under18p0}")
+
         with pytest.raises(ParserError, match=msg):
             read_csv("test.csv", engine="pyarrow")
         os.unlink("test.csv")
