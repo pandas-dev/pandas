@@ -3562,9 +3562,6 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.isupper : Check whether all characters are uppercase.
     Series.str.istitle : Check whether all characters are titlecase.
 
-    Similar to ``str.isdecimal`` but also includes special digits, like
-    superscripted and subscripted digits in unicode.
-
     Examples
     --------
     Similar to ``str.isdecimal`` but also includes special digits, like
