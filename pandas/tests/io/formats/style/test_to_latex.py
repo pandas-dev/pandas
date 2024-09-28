@@ -1096,11 +1096,11 @@ def test_clines_multiindex(clines, expected, env):
             """
             ),
         ),
-    ]
+    ],
 )
 @pytest.mark.parametrize("env", ["table"])
 def test_clines_hiddenindex(clines, expected, env):
-    # Make sure that \clines are correctly hidden or shown with all indixes hideen
+    # Make sure that \clines are correctly hidden or shown with all indixes hidden
     midx = MultiIndex.from_product([["A", "-", "B"], ["X", "Y"]])
     df = DataFrame([[1], [2], [99], [99], [3], [4]], index=midx)
     styler = df.style
@@ -1108,7 +1108,6 @@ def test_clines_hiddenindex(clines, expected, env):
     styler.hide(axis=0)
     result = styler.to_latex(clines=clines, environment=env)
     assert expected in result
-
 
 
 def test_col_format_len(styler):
