@@ -137,8 +137,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.__iter__ RT03,SA01" \
-        -i "pandas.core.groupby.SeriesGroupBy.agg RT03" \
-        -i "pandas.core.groupby.SeriesGroupBy.aggregate RT03" \
         -i "pandas.core.groupby.SeriesGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.groups SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.indices SA01" \
