@@ -896,8 +896,12 @@ def test_clines_validation(clines, styler):
     [
         ("all;index", "\n\\cline{1-1}"),
         ("all;data", "\n\\cline{1-2}"),
+        ("all-invisible;index", "\n\\cline{1-1}"),
+        ("all-invisible;data", "\n\\cline{1-2}"),
         ("skip-last;index", ""),
         ("skip-last;data", ""),
+        ("skip-last-invisible;index", ""),
+        ("skip-last-invisible;data", ""),
         (None, ""),
     ],
 )
@@ -984,6 +988,62 @@ def test_clines_index(clines, exp, env):
             """
             ),
         ),
+        (
+            "skip-last-invisible;index",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-2} \\cline{2-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-2} \\cline{2-2}
+            """
+            ),
+        ),
+        (
+            "skip-last-invisible;data",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-3} \\cline{2-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-3} \\cline{2-3}
+            """
+            ),
+        ),
+        (
+            "all-invisible;index",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-2}
+             & Y & 2 \\\\
+            \\cline{1-2} \\cline{2-2} \\cline{2-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-2}
+             & Y & 4 \\\\
+            \\cline{1-2} \\cline{2-2} \\cline{2-2}
+            """
+            ),
+        ),
+        (
+            "all-invisible;data",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-3}
+             & Y & 2 \\\\
+            \\cline{1-3} \\cline{2-3} \\cline{2-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-3}
+             & Y & 4 \\\\
+            \\cline{1-3} \\cline{2-3} \\cline{2-3}
+            """
+            ),
+        ),
     ],
 )
 @pytest.mark.parametrize("env", ["table"])
@@ -996,6 +1056,59 @@ def test_clines_multiindex(clines, expected, env):
     styler.hide(level=1)
     result = styler.to_latex(clines=clines, environment=env)
     assert expected in result
+
+
+@pytest.mark.parametrize(
+    "clines, expected",
+    [
+        (None, "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("all;data", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("all;index", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("skip-last;data", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("skip-last;index", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("all-invisible;index", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("skip-last-invisible;index", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        (
+            "all-invisible;data",
+            dedent(
+                """\
+            1 \\\\
+            \\cline{1-1}
+            2 \\\\
+            \\cline{1-1} \\cline{1-1}
+            3 \\\\
+            \\cline{1-1}
+            4 \\\\
+            \\cline{1-1} \\cline{1-1}
+            """
+            ),
+        ),
+        (
+            "skip-last-invisible;data",
+            dedent(
+                """\
+            1 \\\\
+            2 \\\\
+            \\cline{1-1}
+            3 \\\\
+            4 \\\\
+            \\cline{1-1}
+            """
+            ),
+        ),
+    ]
+)
+@pytest.mark.parametrize("env", ["table"])
+def test_clines_hiddenindex(clines, expected, env):
+    # Make sure that \clines are correctly hidden or shown with all indixes hideen
+    midx = MultiIndex.from_product([["A", "-", "B"], ["X", "Y"]])
+    df = DataFrame([[1], [2], [99], [99], [3], [4]], index=midx)
+    styler = df.style
+    styler.hide([("-", "X"), ("-", "Y")])
+    styler.hide(axis=0)
+    result = styler.to_latex(clines=clines, environment=env)
+    assert expected in result
+
 
 
 def test_col_format_len(styler):

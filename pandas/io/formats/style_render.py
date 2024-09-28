@@ -930,12 +930,18 @@ class StylerRenderer:
             None,
             "all;data",
             "all;index",
+            "all-invisible;data",
+            "all-invisible;index",
             "skip-last;data",
             "skip-last;index",
+            "skip-last-invisible;data",
+            "skip-last-invisible;index",
         ]:
             raise ValueError(
                 f"`clines` value of {clines} is invalid. Should either be None or one "
-                f"of 'all;data', 'all;index', 'skip-last;data', 'skip-last;index'."
+                f"of 'all;data', 'all;index', 'all-invisible;data', "
+                f"'all-invisible;index', 'skip-last;data', 'skip-last;index', "
+                f"'skip-last-invisible;data', 'skip-last-invisible;index'."
             )
         if clines is not None:
             data_len = len(row_body_cells) if "data" in clines and d["body"] else 0
@@ -947,15 +953,25 @@ class StylerRenderer:
             visible_index_levels: list[int] = [
                 i for i in range(index_levels) if not self.hide_index_[i]
             ]
+            target_index_levels: list[int] = [
+                i for i in range(index_levels)
+                if "invisible" in clines or not self.hide_index_[i]
+            ]
             for rn, r in enumerate(visible_row_indexes):
-                for lvln, lvl in enumerate(visible_index_levels):
+                lvln = 0
+                for lvl in target_index_levels:
                     if lvl == index_levels - 1 and "skip-last" in clines:
                         continue
                     idx_len = d["index_lengths"].get((lvl, r), None)
                     if idx_len is not None:  # i.e. not a sparsified entry
-                        d["clines"][rn + idx_len].append(
-                            f"\\cline{{{lvln+1}-{len(visible_index_levels)+data_len}}}"
-                        )
+                        cline_start_col = lvln + 1
+                        cline_end_col = len(visible_index_levels) + data_len
+                        if cline_end_col >= cline_start_col:
+                            d["clines"][rn + idx_len].append(
+                                f"\\cline{{{cline_start_col}-{cline_end_col}}}"
+                            )
+                    if lvl in visible_index_levels:
+                        lvln += 1
 
     def format(
         self,
