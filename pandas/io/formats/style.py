@@ -716,15 +716,25 @@ class Styler(StylerRenderer):
             Possible values are:
 
               - `None`: no cline commands are added (default).
-              - `"all;data"`: a cline is added for every index value extending the
-                width of the table, including data entries.
+              - `"all;data"`: a cline is added for every visible index value extending
+                the width of the table, including data entries.
               - `"all;index"`: as above with lines extending only the width of the
                 index entries.
-              - `"skip-last;data"`: a cline is added for each index value except the
-                last level (which is never sparsified), extending the widtn of the
+              - `"all-invisible;data"`: a cline is added for every index value,
+                including hidden indexes, extending the full width of the table,
+                including data entries.
+              - `"all-invisible;index"`: as above with lines extending only the width
+                of the index entries.
+              - `"skip-last;data"`: a cline is added for each visible index value except
+                the last level (which is never sparsified), extending the widtn of the
                 table.
               - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
+              - `"skip-last-invisible;data"`: a cline is added for each index value,
+                including hidden index levels, but excluding the last (which is never
+                sparsified), extending the width of the table.
+              - `"skip-last-invisible;index"`: as above with lines extending only the
+                width of the index entries.
 
             .. versionadded:: 1.4.0
         label : str, optional
