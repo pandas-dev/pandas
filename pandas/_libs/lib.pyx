@@ -754,7 +754,14 @@ cpdef ndarray[object] ensure_string_array(
 
     if hasattr(arr, "to_numpy"):
 
-        if hasattr(arr, "dtype") and arr.dtype.kind in "mM":
+        if (
+            hasattr(arr, "dtype")
+            and arr.dtype.kind in "mM"
+            # TODO: we should add a custom ArrowExtensionArray.astype implementation
+            # that handles astype(str) specifically, avoiding ending up here and
+            # then we can remove the below check for `_pa_array` (for ArrowEA)
+            and not hasattr(arr, "_pa_array")
+        ):
             # dtype check to exclude DataFrame
             # GH#41409 TODO: not a great place for this
             out = arr.astype(str).astype(object)
@@ -1212,6 +1219,12 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     -------
     bool
         Whether `obj` has list-like properties.
+
+    See Also
+    --------
+    Series : One-dimensional ndarray with axis labels (including time series).
+    Index : Immutable sequence used for indexing and alignment.
+    numpy.ndarray : Array object from NumPy, which is considered list-like.
 
     Examples
     --------
