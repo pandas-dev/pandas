@@ -3690,7 +3690,7 @@ class StringMethods(NoNewAttributesMixin):
     )
     isalpha = _map_and_wrap(
         "isalpha",
-        docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
+        docstring=_shared_docs["ismethods"] % _doc_args["isalpha"]
         + _shared_docs["isalpha"],
     )
     isdigit = _map_and_wrap(
