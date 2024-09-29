@@ -273,14 +273,24 @@ def is_dict_like(obj: object) -> bool:
     """
     Check if the object is dict-like.
 
+    This function checks if the input object has dictionary-like behavior,
+    specifically if it implements methods like ``__getitem__``, ``keys``, and
+    ``__contains__``.
+
     Parameters
     ----------
-    obj : The object to check
+    obj : object
+        The object to check for dict-like behavior.
 
     Returns
     -------
     bool
-        Whether `obj` has dict-like properties.
+        Whether ``obj`` has dict-like properties.
+
+    See Also
+    --------
+    api.types.is_list_like : Check if the object is list-like.
+    api.types.is_scalar : Return True if given object is scalar.
 
     Examples
     --------
