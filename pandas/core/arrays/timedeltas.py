@@ -789,7 +789,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         Returns
         -------
-        **numpy.ndarray**
+        numpy.ndarray
             A NumPy ``timedelta64`` object representing the same duration as the
             original pandas ``Timedelta`` object. The precision of the resulting
             object is in nanoseconds, which is the default
