@@ -252,7 +252,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessHour.normalize GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.start GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.weekmask GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthBegin PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.holidays GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.is_on_offset SA01" \
