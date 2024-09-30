@@ -160,7 +160,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.CSSWarning SA01" \
         -i "pandas.errors.CategoricalConversionWarning SA01" \
         -i "pandas.errors.ChainedAssignmentError SA01" \
-        -i "pandas.errors.ClosedFileError SA01" \
         -i "pandas.errors.DataError SA01" \
         -i "pandas.errors.DuplicateLabelError SA01" \
         -i "pandas.errors.IntCastingNaNError SA01" \
