@@ -351,6 +351,15 @@ class RangeIndex(Index):
         """
         The value of the `step` parameter (``1`` if this was not supplied).
 
+        The ``step`` parameter determines the increment (or decrement in the case
+        of negative values) between consecutive elements in the ``RangeIndex``.
+
+        See Also
+        --------
+        RangeIndex : Immutable index implementing a range-based index.
+        RangeIndex.stop : Returns the stop value of the RangeIndex.
+        RangeIndex.start : Returns the start value of the RangeIndex.
+
         Examples
         --------
         >>> idx = pd.RangeIndex(5)
