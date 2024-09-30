@@ -24,7 +24,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
 
@@ -82,7 +81,7 @@ class TestDataFrameConstructors:
         #  with an array of strings each of which is e.g. "[0 1 2]"
         arr = np.arange(12).reshape(4, 3)
         df = DataFrame(arr, dtype=str)
-        expected = DataFrame(arr.astype(str), dtype=object)
+        expected = DataFrame(arr.astype(str), dtype="str")
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_from_2d_datetimearray(self):
@@ -300,18 +299,38 @@ class TestDataFrameConstructors:
         df2 = DataFrame(df.values, dtype=df[0].dtype)
         assert df2._mgr.blocks[0].values.flags.c_contiguous
 
-    @pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="conversion copies")
-    def test_1d_object_array_does_not_copy(self):
+    def test_1d_object_array_does_not_copy(self, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")
         df = DataFrame(arr, copy=False)
+        if using_infer_string:
+            if df[0].dtype.storage == "pyarrow":
+                # object dtype strings are converted to arrow memory,
+                # no numpy arrays to compare
+                pass
+            else:
+                assert np.shares_memory(df[0].to_numpy(), arr)
+        else:
+            assert np.shares_memory(df.values, arr)
+
+        df = DataFrame(arr, dtype=object, copy=False)
         assert np.shares_memory(df.values, arr)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="conversion copies")
-    def test_2d_object_array_does_not_copy(self):
+    def test_2d_object_array_does_not_copy(self, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array([["a", "b"], ["c", "d"]], dtype="object")
         df = DataFrame(arr, copy=False)
+        if using_infer_string:
+            if df[0].dtype.storage == "pyarrow":
+                # object dtype strings are converted to arrow memory,
+                # no numpy arrays to compare
+                pass
+            else:
+                assert np.shares_memory(df[0].to_numpy(), arr)
+        else:
+            assert np.shares_memory(df.values, arr)
+
+        df = DataFrame(arr, dtype=object, copy=False)
         assert np.shares_memory(df.values, arr)
 
     def test_constructor_dtype_list_data(self):
@@ -1766,12 +1785,18 @@ class TestDataFrameConstructors:
 
         tm.assert_frame_equal(idf, edf)
 
-    def test_constructor_empty_with_string_dtype(self):
+    def test_constructor_empty_with_string_dtype(self, using_infer_string):
         # GH 9428
         expected = DataFrame(index=[0, 1], columns=[0, 1], dtype=object)
+        expected_str = DataFrame(
+            index=[0, 1], columns=[0, 1], dtype=pd.StringDtype(na_value=np.nan)
+        )
 
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype=str)
-        tm.assert_frame_equal(df, expected)
+        if using_infer_string:
+            tm.assert_frame_equal(df, expected_str)
+        else:
+            tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.str_)
         tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")

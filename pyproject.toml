@@ -156,8 +156,7 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 free-threaded-support = true
-before-build = "bash {package}/scripts/cibw_before_build.sh"
-before-test = "bash {package}/scripts/cibw_before_test.sh"
+before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build.sh"
@@ -173,7 +172,7 @@ test-command = """
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-before-test = "apk update && apk add musl-locales && bash {package}/scripts/cibw_before_test.sh"
+before-test = "apk update && apk add musl-locales"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win*"
