@@ -1183,25 +1183,14 @@ def test_grouping_by_key_is_in_axis():
 
 
 def test_groupby_any_with_timedelta():
-    # Create a DataFrame with Timedelta and NaT values
-    df = DataFrame(
-        {
-            "A": ["foo", "foo", "bar", "bar"],
-            "B": [pd.Timedelta(1, unit="D"), pd.NaT, pd.Timedelta(2, unit="D"), pd.NaT],
-        }
-    )
+    # Create a DataFrame with a single column containing a Timedelta and NaT
+    df = DataFrame({"value": [pd.Timedelta(1), pd.NaT]})
 
-    # Group by column A with sorting enabled and check if any Timedelta exists
-    result = df.groupby("A", sort=True)["B"].any()
+    # Perform groupby().any() operation
+    result = df.groupby(np.array([0, 1]))["value"].any()
 
-    # Corrected expected result: groups with only NaT should return False, else True
-    expected = Series([True, True], index=["foo", "bar"], name="B")
+    # Expected result: group with NaT should return False
+    expected = Series({0: True, 1: False}, name="value")
 
-    # Set the expected index name to match the result
-    expected.index.name = "A"
-
-    # Sort the expected result to match the order of result
-    expected = expected.sort_index()
-
-    # Assert that the result matches the expected output
+    # Check if the result matches the expected output
     tm.assert_series_equal(result, expected)
