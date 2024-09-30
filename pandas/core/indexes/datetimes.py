@@ -875,6 +875,7 @@ def date_range(
     Returns
     -------
     DatetimeIndex
+        A DatetimeIndex object of the generated dates.
 
     See Also
     --------

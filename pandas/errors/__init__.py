@@ -205,6 +205,17 @@ class EmptyDataError(ValueError):
     """
     Exception raised in ``pd.read_csv`` when empty data or header is encountered.
 
+    This error is typically encountered when attempting to read an empty file or
+    an invalid file where no data or headers are present.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (CSV) file into DataFrame.
+    errors.ParserError : Exception that is raised by an error encountered in parsing
+        file contents.
+    errors.DtypeWarning : Warning raised when reading different dtypes in a column
+        from a file.
+
     Examples
     --------
     >>> from io import StringIO
@@ -260,6 +271,11 @@ class MergeError(ValueError):
     Exception raised when merging data.
 
     Subclass of ``ValueError``.
+
+    See Also
+    --------
+    DataFrame.join : For joining DataFrames on their indexes.
+    merge : For merging two DataFrames on a common set of keys.
 
     Examples
     --------

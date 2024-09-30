@@ -1999,7 +1999,7 @@ class ArrowExtensionArray(
         """
         See Series.rank.__doc__.
         """
-        return self._convert_int_result(
+        return self._convert_rank_result(
             self._rank_calc(
                 axis=axis,
                 method=method,
@@ -2300,7 +2300,13 @@ class ArrowExtensionArray(
         )
         if isinstance(result, np.ndarray):
             return result
-        return type(self)._from_sequence(result, copy=False)
+        elif isinstance(result, BaseMaskedArray):
+            pa_result = result.__arrow_array__()
+            return type(self)(pa_result)
+        else:
+            # DatetimeArray, TimedeltaArray
+            pa_result = pa.array(result, from_pandas=True)
+            return type(self)(pa_result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         """Apply a callable to each element while maintaining the chunking structure."""
@@ -2316,6 +2322,9 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _convert_int_result(self, result):
+        return type(self)(result)
+
+    def _convert_rank_result(self, result):
         return type(self)(result)
 
     def _str_count(self, pat: str, flags: int = 0) -> Self:
