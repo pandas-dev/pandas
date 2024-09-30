@@ -38,8 +38,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 // Licence at LICENSES/ULTRAJSON_LICENSE
 
-#define PY_SSIZE_T_CLEAN
 // clang-format off
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include "pandas/vendored/ujson/lib/ultrajson.h"
 // clang-format on
