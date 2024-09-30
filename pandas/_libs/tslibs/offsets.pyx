@@ -4713,7 +4713,7 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
 
     Increments between beginning of month dates.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
