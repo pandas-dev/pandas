@@ -945,6 +945,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                     fields = [
                         (field, pandas_dtype(dtype).pyarrow_dtype)
                         for field, dtype in self.dtype.items()
+                        if isinstance(pandas_dtype(dtype), ArrowDtype)
                     ]
                     schema = pa.schema(fields)
                     pa_table = pyarrow_json.read_json(
