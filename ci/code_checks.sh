@@ -168,7 +168,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.NumExprClobberingError SA01" \
         -i "pandas.errors.NumbaUtilError SA01" \
         -i "pandas.errors.OptionError SA01" \
-        -i "pandas.errors.OutOfBoundsDatetime SA01" \
         -i "pandas.errors.OutOfBoundsTimedelta SA01" \
         -i "pandas.errors.PerformanceWarning SA01" \
         -i "pandas.errors.PossibleDataLossError SA01" \
