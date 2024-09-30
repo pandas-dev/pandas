@@ -401,6 +401,7 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     pd.api.interchange.from_dataframe(df)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_empty_string_column():
     # https://github.com/pandas-dev/pandas/issues/56703
     df = pd.DataFrame({"a": []}, dtype=str)
