@@ -371,6 +371,10 @@ class WrappedCythonOp:
 
         is_datetimelike = dtype.kind in "mM"
 
+        if self.how in ["any", "all"]:
+            if mask is None:
+                mask = isna(values)
+
         if is_datetimelike:
             values = values.view("int64")
             is_numeric = True
@@ -379,24 +383,22 @@ class WrappedCythonOp:
         if values.dtype == "float16":
             values = values.astype(np.float32)
 
-        values = values.T
-        if mask is not None:
-            mask = mask.T
-            if result_mask is not None:
-                result_mask = result_mask.T
-
         if self.how in ["any", "all"]:
-            if mask is None:
-                mask = isna(values)
             if dtype == object:
                 if kwargs["skipna"]:
                     # GH#37501: don't raise on pd.NA when skipna=True
-                    if mask.any():
+                    if mask is not None and mask.any():
                         # mask on original values computed separately
                         values = values.copy()
                         values[mask] = True
             values = values.astype(bool, copy=False).view(np.int8)
             is_numeric = True
+
+        values = values.T
+        if mask is not None:
+            mask = mask.T
+            if result_mask is not None:
+                result_mask = result_mask.T
 
         out_shape = self._get_output_shape(ngroups, values)
         func = self._get_cython_function(self.kind, self.how, values.dtype, is_numeric)
