@@ -1187,10 +1187,11 @@ def test_groupby_any_with_timedelta():
     df = DataFrame({"value": [pd.Timedelta(1), pd.NaT]})
 
     # Perform groupby().any() operation
-    result = df.groupby([0, 1])["value"].any()
+    result = df.groupby(np.array([0, 1], dtype=np.int64))["value"].any()
 
     # Expected result: group with NaT should return False
-    expected = Series({0: True, 1: False}, name="value")
+    expected = Series({0: True, 1: False}, name="value", dtype=bool)
+    expected.index = expected.index.astype(np.int64)
 
     # Check if the result matches the expected output
     tm.assert_series_equal(result, expected)
