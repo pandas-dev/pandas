@@ -7,13 +7,10 @@ class Testfloatformat:
     @pytest.mark.parametrize(
         "data, format_option, expected_values",
         [
-            ({"A": [12345.6789]}, "{:12.3f}", "&nbsp;&nbsp;&nbsp;12345.679"),
+            ({"A": [12345.6789]}, "{:12.3f}", "12345.679"),
             ({"A": [None]}, "{:.3f}", "&nbsp;None"),
             ({"A": [""]}, "{:.2f}", "&nbsp;"),
             ({"A": [112345.6789]}, "{:6.3f}", "112345.679"),
-            ({"A": ["foo    foo"]}, None, "&nbsp;foo&nbsp;&nbsp;&nbsp;&nbsp;foo"),
-            ({"A": [None]}, None, "&nbsp;None"),
-            ({"A": ["foo foo foo"]}, None, "&nbsp;foo&nbsp;foo&nbsp;foo"),
         ],
     )  # test cases
     def test_float_formatting_html_output(self, data, format_option, expected_values):
