@@ -190,7 +190,7 @@ class HTMLFormatter:
 
         if self.escape:
             # escape & first to prevent double escaping of &
-            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}
+            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"," ":"&nbsp;"}
         else:
             esc = {}
 
