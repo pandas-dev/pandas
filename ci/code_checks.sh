@@ -100,7 +100,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
-        -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.nanosecond GL08" \
@@ -160,7 +159,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.CSSWarning SA01" \
         -i "pandas.errors.CategoricalConversionWarning SA01" \
         -i "pandas.errors.ChainedAssignmentError SA01" \
-        -i "pandas.errors.ClosedFileError SA01" \
         -i "pandas.errors.DataError SA01" \
         -i "pandas.errors.DuplicateLabelError SA01" \
         -i "pandas.errors.IntCastingNaNError SA01" \
@@ -170,7 +168,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.NumExprClobberingError SA01" \
         -i "pandas.errors.NumbaUtilError SA01" \
         -i "pandas.errors.OptionError SA01" \
-        -i "pandas.errors.OutOfBoundsDatetime SA01" \
         -i "pandas.errors.OutOfBoundsTimedelta SA01" \
         -i "pandas.errors.PerformanceWarning SA01" \
         -i "pandas.errors.PossibleDataLossError SA01" \

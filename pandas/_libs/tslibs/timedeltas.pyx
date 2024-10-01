@@ -1196,6 +1196,8 @@ cdef class _Timedelta(timedelta):
         --------
         to_timedelta : Convert argument to timedelta.
         Timedelta : Represents a duration, the difference between two dates or times.
+        Timedelta.seconds : Returns the seconds component of the timedelta.
+        Timedelta.microseconds : Returns the microseconds component of the timedelta.
 
         Examples
         --------
@@ -1493,6 +1495,7 @@ cdef class _Timedelta(timedelta):
 
         See Also
         --------
+        Timedelta.asm8 : Return a numpy timedelta64 array scalar view.
         numpy.ndarray.view : Returns a view of an array with the same data.
         Timedelta.to_numpy : Converts the Timedelta to a NumPy timedelta64.
         Timedelta.total_seconds : Returns the total duration of the Timedelta
