@@ -636,6 +636,8 @@ I/O
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
 - Bug in :meth:`read_stata` where extreme value integers were incorrectly interpreted as missing for format versions 111 and prior (:issue:`58130`)
 - Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
+- Bug in :meth:`DataFrame._repr_html_` pass :func:`get_option("display.float_format")` to :class:`DataFrameFormatter`, such that HTML output respects the configured float formatting (:issue:`59876`)
+- Bug in :class:`HTMLFormatter._write_cell` to escape regular spaces as `&nbsp;`, ensuring multiple spaces are preserved in the HTML output (:issue:`59876`).
 
 Period
 ^^^^^^
