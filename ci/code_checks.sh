@@ -86,7 +86,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.ceil PR01,PR02" \
         -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.floor PR01,PR02" \
-        -i "pandas.Series.dt.freq GL08" \
         -i "pandas.Series.dt.month_name PR01,PR02" \
         -i "pandas.Series.dt.normalize PR01" \
         -i "pandas.Series.dt.round PR01,PR02" \
