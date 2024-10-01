@@ -619,9 +619,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping`` elements. (:issue:`57915`)
-- Bug in :class:`HTMLFormatter._write_cell` to escape regular spaces as ``&nbsp;`` ensuring multiple spaces are preserved in the HTML output. (:issue:`59876`)
 - Bug in :meth:`.DataFrame.to_json` when ``"index"`` was a value in the :attr:`DataFrame.column` and :attr:`Index.name` was ``None``. Now, this will fail with a ``ValueError`` (:issue:`58925`)
-- Bug in :meth:`DataFrame._repr_html_` pass :func: ``get_option("display.float_format")`` to :class:`DataFrameFormatter`, such that HTML output respects the configured float formatting. (:issue:`59876`)
 - Bug in :meth:`DataFrame.from_records` where ``columns`` parameter with numpy structured array was not reordering and filtering out the columns (:issue:`59717`)
 - Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
 - Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
@@ -638,6 +636,8 @@ I/O
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
 - Bug in :meth:`read_stata` where extreme value integers were incorrectly interpreted as missing for format versions 111 and prior (:issue:`58130`)
 - Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
+- Bug in :meth:`DataFrame._repr_html_` pass :func:`get_option("display.float_format")` to :class:`DataFrameFormatter`, such that HTML output respects the configured float formatting (:issue:`59876`)
+- Bug in :class:`HTMLFormatter._write_cell` to escape regular spaces as `&nbsp;`, ensuring multiple spaces are preserved in the HTML output (:issue:`59876`).
 
 Period
 ^^^^^^
