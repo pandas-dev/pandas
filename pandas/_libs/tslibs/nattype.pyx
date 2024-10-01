@@ -500,6 +500,8 @@ class NaTType(_NaT):
         --------
         to_timedelta : Convert argument to timedelta.
         Timedelta : Represents a duration, the difference between two dates or times.
+        Timedelta.seconds : Returns the seconds component of the timedelta.
+        Timedelta.microseconds : Returns the microseconds component of the timedelta.
 
         Examples
         --------
