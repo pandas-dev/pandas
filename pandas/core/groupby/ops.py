@@ -379,6 +379,12 @@ class WrappedCythonOp:
         if values.dtype == "float16":
             values = values.astype(np.float32)
 
+        values = values.T
+        if mask is not None:
+            mask = mask.T
+            if result_mask is not None:
+                result_mask = result_mask.T
+
         if self.how in ["any", "all"]:
             if mask is None:
                 mask = isna(values)
@@ -391,12 +397,6 @@ class WrappedCythonOp:
                         values[mask] = True
             values = values.astype(bool, copy=False).view(np.int8)
             is_numeric = True
-
-        values = values.T
-        if mask is not None:
-            mask = mask.T
-            if result_mask is not None:
-                result_mask = result_mask.T
 
         out_shape = self._get_output_shape(ngroups, values)
         func = self._get_cython_function(self.kind, self.how, values.dtype, is_numeric)
