@@ -1469,10 +1469,7 @@ class SeriesApply(NDFrameApply):
         # row-wise access
         # apply doesn't have a `na_action` keyword and for backward compat reasons
         # we need to give `na_action="ignore"` for categorical data.
-        # TODO: remove the `na_action="ignore"` when that default has been changed in
-        #  Categorical (GH51645).
-        action = "ignore" if isinstance(obj.dtype, CategoricalDtype) else None
-        mapped = obj._map_values(mapper=curried, na_action=action)
+        mapped = obj._map_values(mapper=curried)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested
