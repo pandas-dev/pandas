@@ -65,9 +65,9 @@ align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
-        with rows drawn alternately from self and other.
+      with rows drawn alternately from self and other.
     * 1, or 'columns' : Resulting differences are aligned horizontally
-        with columns drawn alternately from self and other.
+      with columns drawn alternately from self and other.
 
 keep_shape : bool, default False
     If true, all rows and columns are kept.
