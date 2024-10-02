@@ -297,3 +297,16 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.Series([None, None], dtype=pd.ArrowDtype(pa.null()))
         tm.assert_series_equal(result, expected)
+    
+    def test_convert_empty_categorical_to_pyarrow(self):
+        ser = pd.Series(pd.Series(pd.Categorical([None] * 5)))
+        
+        converted = ser.convert_dtypes(dtype_backend="pyarrow")
+        expected = ser
+        tm.assert_series_equal(converted, expected)
+        
+        assert ser.dtype == "category", "Series dtype is not 'category'"
+        assert ser.cat.categories.empty, "Series categories are not empty"
+        
+        ser2 = pd.Series(pd.Series(pd.Categorical([None] * 5, categories=["S1", "S2"])))
+        assert (ser2.cat.categories == ["S1", "S2"]).all(), "Series categories are not empty"
