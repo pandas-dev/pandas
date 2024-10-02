@@ -360,7 +360,7 @@ class TestSeriesGetitemListLike:
         # GH#33462 we expect the same behavior for list/ndarray/Index/Series
         ser = Series(["A", "B"])
 
-        key = Series(["C"], dtype=object)
+        key = Series(["C"])
         key = box(key)
 
         msg = r"None of \[Index\(\['C'\], dtype='object|str'\)\] are in the \[index\]"
