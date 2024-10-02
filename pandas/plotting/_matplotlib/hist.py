@@ -447,6 +447,13 @@ def hist_series(
             ax = fig.gca()
         elif ax.get_figure() != fig:
             raise AssertionError("passed axis not bound to passed figure")
+
+        ## inferring xlabel from the Series 
+        if hasattr(self,'name'):
+            xlabel=self.name
+        else:
+            xlabel=None
+            
         values = self.dropna().values
         if legend:
             kwds["label"] = self.name
@@ -454,6 +461,12 @@ def hist_series(
         if legend:
             ax.legend()
         ax.grid(grid)
+        
+        ## setting xlabel
+        ax.set(
+            xlabel=xlabel
+        )
+        
         axes = np.array([ax])
 
         set_ticks_props(
