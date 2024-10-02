@@ -31,13 +31,9 @@ from pandas._testing._hypothesis import DATETIME_NO_TZ
 )
 def test_parsing_tzlocal_deprecated():
     # GH#50791
-    msg = "|".join(
-        [
-            r"Parsing 'EST' as tzlocal \(dependent on system timezone\) "
-            r"is no longer supported\. "
-            "Pass the 'tz' keyword or call tz_localize after construction instead",
-            ".*included an un-recognized timezone",
-        ]
+    msg = (
+        "Parsing 'EST' as tzlocal.*"
+        "Pass the 'tz' keyword or call tz_localize after construction instead"
     )
     dtstr = "Jan 15 2004 03:00 EST"
 
