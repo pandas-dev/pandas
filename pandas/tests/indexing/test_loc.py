@@ -1443,6 +1443,9 @@ class TestLocBaseIndependent:
 
         tm.assert_frame_equal(expected, df)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_loc_setitem_categorical_values_partial_column_slice(self):
         # Assigning a Category to parts of a int/... column uses the values of
         # the Categorical
