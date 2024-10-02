@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -238,6 +240,8 @@ class TestEmptyConcat:
         assert result["b"].dtype == np.float64
         assert result["c"].dtype == np.float64
 
+    # triggers warning about empty entries
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_concat_inner_join_empty(self):
         # GH 15328
         df_empty = DataFrame()
