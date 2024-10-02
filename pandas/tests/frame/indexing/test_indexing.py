@@ -906,6 +906,8 @@ class TestDataFrameIndexing:
         expected = piece.values
         tm.assert_almost_equal(result, expected)
 
+    # dtype inference
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_frame_mixed(self, float_string_frame):
         # GH 3216
 
@@ -918,6 +920,8 @@ class TestDataFrameIndexing:
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
+    # dtype inference
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_frame_mixed_rows_unaligned(self, float_string_frame):
         # GH#3216 rows unaligned
         f = float_string_frame.copy()
@@ -932,6 +936,8 @@ class TestDataFrameIndexing:
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
         )
 
+    # dtype inference
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_frame_mixed_key_unaligned(self, float_string_frame):
         # GH#3216 key is unaligned with values
         f = float_string_frame.copy()
