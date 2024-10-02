@@ -452,7 +452,7 @@ class TestDataFrameReplace:
                 )
             with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
                 result = obj.replace(to_replace, regex=True)
-                dtype = "string[pyarrow_numpy]"
+                dtype = "str"
         else:
             result = obj.replace(to_replace, regex=True)
         expected = frame_or_series(expected, dtype=dtype)
