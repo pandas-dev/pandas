@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_sequence,
 )
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
