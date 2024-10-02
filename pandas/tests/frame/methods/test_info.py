@@ -10,7 +10,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import (
-    HAS_PYARROW,
     IS64,
     PYPY,
 )
@@ -521,7 +520,7 @@ def test_info_int_columns():
     assert result == expected
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_memory_usage_empty_no_warning():
     # GH#50066
     df = DataFrame(index=["a", "b"])

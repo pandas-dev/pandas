@@ -368,7 +368,9 @@ class TestSeriesLogicalOps:
         result = op(ser, idx)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_logical_ops_label_based(self, using_infer_string):
         # GH#4947
         # logical ops should be label based
