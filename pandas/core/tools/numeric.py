@@ -42,11 +42,23 @@ if TYPE_CHECKING:
     )
 
 
+def parse_numeric(value):
+    if isinstance(value, str):
+        try:
+            return int(value, 0)  # Automatically detect radix
+        except ValueError:
+            try:
+                return float(value)
+            except ValueError:
+                return libmissing.NA
+    return value
+
+
 def to_numeric(
-    arg,
-    errors: DateTimeErrorChoices = "raise",
-    downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
-    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+        arg,
+        errors: DateTimeErrorChoices = "raise",
+        downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ):
     """
     Convert argument to a numeric type.
@@ -214,25 +226,33 @@ def to_numeric(
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
-        coerce_numeric = errors != "raise"
-        values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
-            values,
-            set(),
-            coerce_numeric=coerce_numeric,
-            convert_to_masked_nullable=dtype_backend is not lib.no_default
-            or isinstance(values_dtype, StringDtype)
-            and values_dtype.na_value is libmissing.NA,
-        )
+        parsed_values = []
+        new_mask = []
+        for idx, x in enumerate(values):
+            parsed_value = parse_numeric(x)
+            if libmissing.checknull(parsed_values):
+                if errors == 'raise':
+                    raise ValueError(f"Unable to parse string '{x}' at position{idx}")
+                elif errors == 'coerce':
+                    parsed_values.append(libmissing.NA)
+                    new_mask.append(True)
+                    continue
+            else:
+                parsed_values.append(parsed_value)
+                new_mask.append(False)
+
+        values = np.array(parsed_values, dtype=object)
+        new_mask = np.array(new_mask, dtype=bool)
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
     elif (
-        dtype_backend is not lib.no_default
-        and new_mask is None
-        or isinstance(values_dtype, StringDtype)
-        and values_dtype.na_value is libmissing.NA
+            dtype_backend is not lib.no_default
+            and new_mask is None
+            or isinstance(values_dtype, StringDtype)
+            and values_dtype.na_value is libmissing.NA
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 
@@ -309,3 +329,12 @@ def to_numeric(
         return values[0]
     else:
         return values
+
+
+if __name__ == "__main__":
+    import numpy as np
+
+    test_data = ['0x1A', '0b1010', '0o17', '25', '3.14', 'invalid']
+    result = to_numeric(test_data, errors='coerce')
+    print("Inputs:", test_data)
+    print("ParseResult:", result)
