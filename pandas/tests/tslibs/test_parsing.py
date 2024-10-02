@@ -34,6 +34,7 @@ def test_parsing_tzlocal_deprecated():
     msg = (
         "Parsing 'EST' as tzlocal.*"
         "Pass the 'tz' keyword or call tz_localize after construction instead"
+        "|Parsed string"
     )
     dtstr = "Jan 15 2004 03:00 EST"
 
