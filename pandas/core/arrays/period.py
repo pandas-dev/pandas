@@ -822,7 +822,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         new_parr = self.asfreq(freq, how=how)
 
-        new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
+        is_start = how == "S"
+        if is_start:
+            new_data = np.asarray(
+                [getattr(period, "start_time", period) for period in new_parr]
+            )
+        else:
+            new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
+
         dta = DatetimeArray._from_sequence(new_data, dtype=np.dtype("M8[ns]"))
 
         if self.freq.name == "B":
