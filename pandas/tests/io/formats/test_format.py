@@ -377,8 +377,10 @@ class TestDataFrameFormatting:
             ({"A": [""]}, "{:.2f}", ""),
             ({"A": [112345.6789]}, "{:6.3f}", "112345.679"),
         ],
-    )  
-    def test_repr_float_formatting_html_output(self, data, format_option, expected_values):
+    )
+    def test_repr_float_formatting_html_output(
+        self, data, format_option, expected_values
+    ):
         if format_option is not None:
             set_option("display.float_format", format_option.format)
 
