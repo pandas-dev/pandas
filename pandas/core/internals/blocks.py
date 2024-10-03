@@ -1208,6 +1208,7 @@ class Block(PandasObject, libinternals.Block):
                 value,
                 inplace=inplace,
                 mask=mask,
+                using_cow=using_cow,
             )
         else:
             if value is None:
