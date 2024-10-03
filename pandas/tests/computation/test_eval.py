@@ -2002,7 +2002,7 @@ def test_validate_bool_args(value):
 
 @td.skip_if_no("numexpr")
 def test_eval_float_div_numexpr():
-    # GH59736
+    # GH 59736
     result = pd.eval("1 / 2", engine="numexpr")
     expected = 0.5
     assert result == expected
