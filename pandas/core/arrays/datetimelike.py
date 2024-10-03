@@ -18,7 +18,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import pandas
 
 from pandas._config import using_string_dtype
 from pandas._config.config import get_option
@@ -1490,9 +1489,11 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         # We get here with e.g. datetime objects
         datetime_result = self - other
-        if isinstance(datetime_result, pandas.core.arrays.datetimes.DatetimeArray):
-            raise TypeError("TypeError: unsupported operand type(s) for -: "
-                            f"'{type(self).__name__}' and '{type(other).__name__}'")
+        if isinstance(datetime_result, DatetimeArray):
+            raise TypeError(
+                "TypeError: unsupported operand type(s) for -: "
+                f"'{type(self).__name__}' and '{type(other).__name__}'"
+            )
         return -(datetime_result)
 
     def __iadd__(self, other) -> Self:
