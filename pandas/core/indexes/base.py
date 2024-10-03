@@ -4153,7 +4153,8 @@ class Index(IndexOpsMixin, PandasObject):
         preserve_names = not hasattr(target, "name")
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
-        target = ensure_has_len(target)  # target may be an iterator
+        if is_iterator(target):
+            target = list(target)
 
         if not isinstance(target, Index) and len(target) == 0:
             if level is not None and self._is_multi:
@@ -7568,21 +7569,9 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
         return Index(index_like, copy=copy)
 
 
-def ensure_has_len(seq):
-    """
-    If seq is an iterator, put its values into a list.
-    """
-    try:
-        len(seq)
-    except TypeError:
-        return list(seq)
-    else:
-        return seq
-
-
 def trim_front(strings: list[str]) -> list[str]:
     """
-    Trims zeros and decimal points.
+    Trims leading spaces evenly among all strings.
 
     Examples
     --------
@@ -7594,8 +7583,9 @@ def trim_front(strings: list[str]) -> list[str]:
     """
     if not strings:
         return strings
-    while all(strings) and all(x[0] == " " for x in strings):
-        strings = [x[1:] for x in strings]
+    smallest_leading_space = min(len(x) - len(x.lstrip()) for x in strings)
+    if smallest_leading_space > 0:
+        strings = [x[smallest_leading_space:] for x in strings]
     return strings
 
 
