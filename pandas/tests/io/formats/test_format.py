@@ -380,11 +380,10 @@ class TestDataFrameFormatting:
     def test_repr_float_formatting_html_output(
         self, data, format_option, expected_values
     ):
-        if format_option is not None:
-            with option_context("display.float_format", format_option.format):
-                df = DataFrame(data)
-                html_output = df._repr_html_()
-                assert expected_values in html_output
+        with option_context("display.float_format", format_option.format):
+            df = DataFrame(data)
+            html_output = df._repr_html_()
+            assert expected_values in html_output
 
     def test_str_max_colwidth(self):
         # GH 7856
