@@ -1192,6 +1192,7 @@ class DataFrame(NDFrame, OpsMixin):
             min_rows = get_option("display.min_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
+            show_floats = get_option("display.float_format")
 
             formatter = fmt.DataFrameFormatter(
                 self,
@@ -1199,7 +1200,7 @@ class DataFrame(NDFrame, OpsMixin):
                 col_space=None,
                 na_rep="NaN",
                 formatters=None,
-                float_format=None,
+                float_format=show_floats,
                 sparsify=None,
                 justify=None,
                 index_names=True,
