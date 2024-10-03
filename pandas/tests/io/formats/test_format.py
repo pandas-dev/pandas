@@ -26,7 +26,6 @@ from pandas import (
     option_context,
     read_csv,
     reset_option,
-    set_option,
 )
 
 from pandas.io.formats import printing
@@ -382,15 +381,10 @@ class TestDataFrameFormatting:
         self, data, format_option, expected_values
     ):
         if format_option is not None:
-            set_option("display.float_format", format_option.format)
-
-            df = DataFrame(data)
-            html_output = df._repr_html_()
-            assert expected_values in html_output
-
-            # reset option
-            if format_option is not None:
-                reset_option("display.float_format")
+            with option_context("display.float_format", format_option.format):
+                df = DataFrame(data)
+                html_output = df._repr_html_()
+                assert expected_values in html_output
 
     def test_str_max_colwidth(self):
         # GH 7856
