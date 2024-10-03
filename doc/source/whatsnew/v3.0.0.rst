@@ -745,6 +745,7 @@ I/O
 
 Period
 ^^^^^^
+- Bug in :meth:`PeriodIndex.to_timestamp` casting to a DatetimeIndex of timestamps at the end of the period, instead of at the beginning of the period. (:issue:`59371`)
 - Fixed error message when passing invalid period alias to :meth:`PeriodIndex.to_timestamp` (:issue:`58974`)
 -
 
