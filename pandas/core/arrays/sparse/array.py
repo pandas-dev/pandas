@@ -708,6 +708,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         The number of non- ``fill_value`` points.
 
+        This property returns the number of elements in the sparse series that are
+        not equal to the ``fill_value``. Sparse data structures store only the
+        non-``fill_value`` elements, reducing memory usage when the majority of
+        values are the same.
+
+        See Also
+        --------
+        Series.sparse.to_dense : Convert a Series from sparse values to dense.
+        Series.sparse.fill_value : Elements in ``data`` that are ``fill_value`` are
+            not stored.
+        Series.sparse.density : The percent of non- ``fill_value`` points, as decimal.
+
         Examples
         --------
         >>> from pandas.arrays import SparseArray
