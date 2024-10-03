@@ -26,6 +26,7 @@ from pandas import (
     option_context,
     read_csv,
     reset_option,
+    set_option,
 )
 
 from pandas.io.formats import printing
@@ -367,6 +368,27 @@ class TestDataFrameFormatting:
             # max_rows of None -> never truncate
             assert ".." not in repr(df)
             assert ".." not in df._repr_html_()
+
+    @pytest.mark.parametrize(
+        "data, format_option, expected_values",
+        [
+            ({"A": [12345.6789]}, "{:12.3f}", "12345.679"),
+            ({"A": [None]}, "{:.3f}", "None"),
+            ({"A": [""]}, "{:.2f}", ""),
+            ({"A": [112345.6789]}, "{:6.3f}", "112345.679"),
+        ],
+    )  
+    def test_repr_float_formatting_html_output(self, data, format_option, expected_values):
+        if format_option is not None:
+            set_option("display.float_format", format_option.format)
+
+            df = DataFrame(data)
+            html_output = df._repr_html_()
+            assert expected_values in html_output
+
+            # reset option
+            if format_option is not None:
+                reset_option("display.float_format")
 
     def test_str_max_colwidth(self):
         # GH 7856
