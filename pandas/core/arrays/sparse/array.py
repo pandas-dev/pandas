@@ -623,6 +623,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         For memory savings, this should be the most common value in the array.
 
+        See Also
+        --------
+        Series.sparse : Accessor for handling sparse data.
+        Series.sparse.npoints : The number of non- ``fill_value`` points.
+        Series.sparse.sp_values : An ndarray containing the non- ``fill_value`` values.
+
         Examples
         --------
         >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")

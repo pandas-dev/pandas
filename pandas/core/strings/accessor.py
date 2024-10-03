@@ -1363,6 +1363,14 @@ class StringMethods(NoNewAttributesMixin):
         """
         Determine if each string starts with a match of a regular expression.
 
+        This method checks if the start of each string in the Series or
+        Index matches the specified regular expression (Regex) pattern,
+        allowing for complex string matching rules.
+
+        Additionally, case sensitivity can be specified, Regex module flags can
+        be used to modify matching behavior, and a fill value for missing values
+        can be provided.
+
         Parameters
         ----------
         pat : str
