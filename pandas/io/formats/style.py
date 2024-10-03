@@ -736,7 +736,7 @@ class Styler(StylerRenderer):
               - `"skip-last-invisible;index"`: as above with lines extending only the
                 width of the index entries.
 
-            .. versionadded:: 1.4.0
+            .. versionchanged:: 3.0.0
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
