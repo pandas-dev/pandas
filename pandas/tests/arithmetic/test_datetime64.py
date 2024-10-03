@@ -15,6 +15,7 @@ import operator
 
 import numpy as np
 import pytest
+import re
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
@@ -1273,8 +1274,10 @@ class TestDatetime64DateOffsetArithmetic:
 
         result2 = -pd.offsets.Second(5) + ser
         tm.assert_equal(result2, expected)
-        msg = "(bad|unsupported) operand type for unary"
-        with pytest.raises(TypeError, match=msg):
+        msg = (
+            "TypeError: unsupported operand type(s) for -: 'DatetimeArray' and 'Second'"
+        )
+        with pytest.raises(TypeError, match=re.escape(msg)):
             pd.offsets.Second(5) - ser
 
     @pytest.mark.parametrize(
@@ -1318,10 +1321,8 @@ class TestDatetime64DateOffsetArithmetic:
             roundtrip = offset - scalar
             tm.assert_equal(roundtrip, dates)
 
-            msg = "|".join(
-                ["bad operand type for unary -", "cannot subtract DatetimeArray"]
-            )
-            with pytest.raises(TypeError, match=msg):
+            msg = f"TypeError: unsupported operand type(s) for -: 'DatetimeArray' and '{type(scalar).__name__}'"
+            with pytest.raises(TypeError, match=re.escape(msg)):
                 scalar - dates
 
     # -------------------------------------------------------------
