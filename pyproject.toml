@@ -476,7 +476,11 @@ disable = [
   "unnecessary-lambda",
   "unused-argument",
   "unused-variable",
-  "using-constant-test"
+  "using-constant-test",
+
+  # disabled on 2.3.x branch
+  "consider-using-in",
+  "simplifiable-if-expression",
 ]
 
 [tool.pytest.ini_options]
