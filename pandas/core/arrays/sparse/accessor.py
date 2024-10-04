@@ -371,7 +371,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         data = {k: v.array.to_dense() for k, v in self._parent.items()}
         return self._parent._constructor(
-            data, index=self._parent.index, columns=self._parent.columns)
+            data, index=self._parent.index, columns=self._parent.columns
+        )
 
     def to_coo(self) -> spmatrix:
         """
