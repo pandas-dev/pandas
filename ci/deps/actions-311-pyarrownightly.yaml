@@ -22,6 +22,7 @@ dependencies:
   - pip
 
   - pip:
+    - git+https://github.com/WillAyd/pandas-bitmask.git
     - "tzdata>=2022.7"
     - "--extra-index-url https://pypi.fury.io/arrow-nightlies/"
     - "--prefer-binary"

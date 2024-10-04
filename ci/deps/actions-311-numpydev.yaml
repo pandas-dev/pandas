@@ -21,6 +21,7 @@ dependencies:
   - pip
 
   - pip:
+    - git+https://github.com/WillAyd/pandas-bitmask.git
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--pre"
     - "numpy"

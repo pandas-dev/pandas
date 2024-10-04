@@ -72,6 +72,7 @@ dependencies:
   - pyyaml
   - py
   - pip:
+    - git+https://github.com/WillAyd/pandas-bitmask.git
     - adbc-driver-postgresql>=0.10.0
     - adbc-driver-sqlite>=0.8.0
     - tzdata>=2022.7

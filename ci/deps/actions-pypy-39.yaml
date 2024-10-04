@@ -23,4 +23,5 @@ dependencies:
   - numpy
   - python-dateutil
   - pip:
+    - git+https://github.com/WillAyd/pandas-bitmask.git
     - tzdata>=2022.7

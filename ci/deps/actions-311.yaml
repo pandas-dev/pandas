@@ -58,5 +58,6 @@ dependencies:
   - zstandard>=0.19.0
 
   - pip:
+    - git+https://github.com/WillAyd/pandas-bitmask.git
     - adbc-driver-postgresql>=0.10.0
     - adbc-driver-sqlite>=0.8.0
