@@ -257,7 +257,8 @@ class SharedTests:
         if self.array_cls is PeriodArray:
             arr = self.array_cls(data, dtype="period[D]")
         else:
-            arr = self.array_cls._from_sequence(data)
+            dtype = "M8[ns]" if self.array_cls is DatetimeArray else "m8[ns]"
+            arr = self.array_cls._from_sequence(data, dtype=np.dtype(dtype))
         arr[4] = NaT
 
         fill_value = arr[3] if method == "pad" else arr[5]
@@ -273,7 +274,8 @@ class SharedTests:
         if self.array_cls is PeriodArray:
             arr = self.array_cls(data, dtype="period[D]")
         else:
-            arr = self.array_cls._from_sequence(data)
+            dtype = "M8[ns]" if self.array_cls is DatetimeArray else "m8[ns]"
+            arr = self.array_cls._from_sequence(data, dtype=np.dtype(dtype))
 
         # scalar
         result = arr.searchsorted(arr[1])
@@ -739,10 +741,10 @@ class TestDatetimeArray(SharedTests):
     def test_from_array_keeps_base(self):
         # Ensure that DatetimeArray._ndarray.base isn't lost.
         arr = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
-        dta = DatetimeArray._from_sequence(arr)
+        dta = DatetimeArray._from_sequence(arr, dtype=arr.dtype)
 
         assert dta._ndarray is arr
-        dta = DatetimeArray._from_sequence(arr[:0])
+        dta = DatetimeArray._from_sequence(arr[:0], dtype=arr.dtype)
         assert dta._ndarray.base is arr
 
     def test_from_dti(self, arr1d):
