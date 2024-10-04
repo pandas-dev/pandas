@@ -544,7 +544,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-- Removed support for ``action="ignore"`` for :class:`SeriesApply` in :meth:`SeriesApply.apply_standard`, categorical NA value now returns ``False`` (:issue:`59938`)
+- Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
 -
 
 Datetimelike
