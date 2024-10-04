@@ -236,10 +236,10 @@ def test_apply_categorical_with_nan_values(series, by_row):
         with pytest.raises(AttributeError, match=msg):
             s.apply(lambda x: x.split("-")[0], by_row=by_row)
         return
-
-    result = s.apply(lambda x: x.split("-")[0], by_row=by_row)
+    # NaN for cat dtype fixed in (GH 59966)
+    result = s.apply(lambda x: x.split("-")[0] if pd.notna(x) else False, by_row=by_row)
     result = result.astype(object)
-    expected = Series(["1", "1", np.nan], dtype="category")
+    expected = Series(["1", "1", False], dtype="category")
     expected = expected.astype(object)
     tm.assert_series_equal(result, expected)
 
