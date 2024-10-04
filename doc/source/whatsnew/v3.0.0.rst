@@ -544,7 +544,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :func:`convert_dtypes` with ``dtype_backend='pyarrow'`` parameter where empty categorical series raise error or get converted to null[pyarrow] (:issue:`59934`)
 -
 
 Datetimelike

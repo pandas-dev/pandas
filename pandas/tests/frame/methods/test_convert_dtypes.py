@@ -34,22 +34,27 @@ class TestConvertDtypes:
         # Empty DataFrame can pass convert_dtypes, see GH#40393
         empty_df = pd.DataFrame()
         tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
-    
+
     def test_convert_empty_categorical_to_pyarrow(self):
+        # GH#59934
         df = pd.DataFrame(
             {
-                "A": pd.Series(pd.Categorical([None] * 5)),
-                "B": pd.Series(pd.Categorical([None] * 5, categories=["B1", "B2"])),
-             }
+                "A": pd.Categorical([None] * 5),
+                "B": pd.Categorical([None] * 5, categories=["B1", "B2"]),
+            }
         )
         converted = df.convert_dtypes(dtype_backend="pyarrow")
         expected = df
         tm.assert_frame_equal(converted, expected)
-        
-        assert df.A.dtype == "category", "Dtype in column A is not 'category'"
-        assert df.B.dtype == "category", "Dtype in column B is not 'category'"
-        assert df.A.cat.categories.empty, "Categories in column A are not empty"
-        assert (df.B.cat.categories == ["B1", "B2"]).all(), "Categories in column A are not empty"
+
+        assert converted.A.dtype == "category", "Dtype in column A is not 'category'"
+        assert converted.B.dtype == "category", "Dtype in column B is not 'category'"
+        assert converted.A.cat.categories.empty, "Categories in column A are not empty"
+        assert converted.B.cat.categories.__contains__(
+            "B1"
+        ) and converted.B.cat.categories.__contains__(
+            "B2"
+        ), "Categories in column B doesn't contain adequate categories"
 
     def test_convert_dtypes_retain_column_names(self):
         # GH#41435
