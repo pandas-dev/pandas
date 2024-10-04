@@ -2300,7 +2300,13 @@ class ArrowExtensionArray(
         )
         if isinstance(result, np.ndarray):
             return result
-        return type(self)._from_sequence(result, copy=False)
+        elif isinstance(result, BaseMaskedArray):
+            pa_result = result.__arrow_array__()
+            return type(self)(pa_result)
+        else:
+            # DatetimeArray, TimedeltaArray
+            pa_result = pa.array(result, from_pandas=True)
+            return type(self)(pa_result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         """Apply a callable to each element while maintaining the chunking structure."""

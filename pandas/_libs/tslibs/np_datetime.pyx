@@ -176,6 +176,15 @@ class OutOfBoundsDatetime(ValueError):
     """
     Raised when the datetime is outside the range that can be represented.
 
+    This error occurs when attempting to convert or parse a datetime value
+    that exceeds the bounds supported by pandas' internal datetime
+    representation.
+
+    See Also
+    --------
+    to_datetime : Convert argument to datetime.
+    Timestamp : Pandas replacement for python ``datetime.datetime`` object.
+
     Examples
     --------
     >>> pd.to_datetime("08335394550")
