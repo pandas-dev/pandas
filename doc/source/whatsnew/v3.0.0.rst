@@ -544,7 +544,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
 -
 
 Datetimelike
