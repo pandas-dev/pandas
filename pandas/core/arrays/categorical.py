@@ -549,7 +549,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @overload
     def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
-    def astype(self, dtype: AstypeArg, copy: bool = True, errors: str = "raise") -> ArrayLike:
+    def astype(
+        self, dtype: AstypeArg, copy: bool = True, errors: str = "raise"
+    ) -> ArrayLike:
         """
         Coerce this type to another dtype
 
@@ -609,7 +611,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 raise ValueError(msg) from err
 
             if errors == "raise" and not np.all(np.isin(self.codes, new_cats)):
-                raise ValueError("Cannot convert to CategoricalDtype with undefined values")
+                raise ValueError(
+                    "Cannot convert to CategoricalDtype with undefined values"
+                )
 
             result = take_nd(
                 new_cats, ensure_platform_int(self._codes), fill_value=fill_value
