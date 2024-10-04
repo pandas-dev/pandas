@@ -189,8 +189,6 @@ def to_numeric(
             return float(arg)
         if is_number(arg):
             return arg
-        if isinstance(arg, Timedelta):  # Handle Timedelta
-            return arg.value
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:
