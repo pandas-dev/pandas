@@ -1143,14 +1143,15 @@ def convert_dtypes(
                 base_dtype.kind == "O"  # type: ignore[union-attr]
                 and input_array.size > 0
                 and isna(input_array).all()
+                and not isinstance(input_array.dtype, CategoricalDtype)
             ):
                 import pyarrow as pa
-                
+
                 pa_type = pa.null()
             else:
                 pa_type = to_pyarrow_type(base_dtype)
             if pa_type is not None:
-                if isna(input_array).all() and hasattr(input_array, 'categories'):
+                if isna(input_array).all() and hasattr(input_array, "categories"):
                     inferred_dtype = input_array.dtype
                 else:
                     inferred_dtype = ArrowDtype(pa_type)
