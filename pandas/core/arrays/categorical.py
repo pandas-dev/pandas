@@ -549,7 +549,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @overload
     def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True, errors: str = "raise") -> ArrayLike:
         """
         Coerce this type to another dtype
 
@@ -560,6 +560,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             By default, astype always returns a newly allocated object.
             If copy is set to False and dtype is categorical, the original
             object is returned.
+        errors : {'raise', 'ignore'}, default 'raise'
+            Control raising of exceptions on invalid data for provided dtype.
+
+            - 'raise' : allow exceptions to be raised
+            - 'ignore' : suppress exceptions. On error return original object
         """
         dtype = pandas_dtype(dtype)
         result: Categorical | np.ndarray
@@ -602,6 +607,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             ) as err:
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg) from err
+
+            if errors == "raise" and not np.all(np.isin(self.codes, new_cats)):
+                raise ValueError("Cannot convert to CategoricalDtype with undefined values")
 
             result = take_nd(
                 new_cats, ensure_platform_int(self._codes), fill_value=fill_value
