@@ -1462,10 +1462,6 @@ class SeriesApply(NDFrameApply):
 
         else:
             curried = func
-
-        #  remove the `na_action="ignore"` as default has been changed in
-        #  Categorical (GH 51645).
-        # Reference for below fix (GH 59966)
         mapped = obj._map_values(mapper=curried)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
