@@ -388,7 +388,7 @@ class TestDataFrameFormatting:
                 "foo foo&nbsp;&nbsp;&nbsp;&nbsp;foo",
             ),  # even no.of spaces
         ],
-    )  # test float formatting and nbsp in strings
+    )
     def test_repr_float_formatting_html_output(
         self, data, format_option, expected_values
     ):
