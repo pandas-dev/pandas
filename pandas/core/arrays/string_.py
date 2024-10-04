@@ -46,6 +46,7 @@ from pandas.core import (
     nanops,
     ops,
 )
+from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import (
@@ -65,6 +66,7 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         Dtype,
         DtypeObj,
@@ -171,9 +173,9 @@ class StringDtype(StorageExtensionDtype):
             # a consistent NaN value (and we can use `dtype.na_value is np.nan`)
             na_value = np.nan
         elif na_value is not libmissing.NA:
-            raise ValueError("'na_value' must be np.nan or pd.NA, got {na_value}")
+            raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
-        self.storage = storage
+        self.storage = cast(str, storage)
         self._na_value = na_value
 
     def __repr__(self) -> str:
@@ -283,6 +285,34 @@ class StringDtype(StorageExtensionDtype):
             return StringArrayNumpySemantics
         else:
             return ArrowStringArrayNumpySemantics
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        storages = set()
+        na_values = set()
+
+        for dtype in dtypes:
+            if isinstance(dtype, StringDtype):
+                storages.add(dtype.storage)
+                na_values.add(dtype.na_value)
+            elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "T"):
+                continue
+            else:
+                return None
+
+        if len(storages) == 2:
+            # if both python and pyarrow storage -> priority to pyarrow
+            storage = "pyarrow"
+        else:
+            storage = next(iter(storages))  # type: ignore[assignment]
+
+        na_value: libmissing.NAType | float
+        if len(na_values) == 2:
+            # if both NaN and NA -> priority to NA
+            na_value = libmissing.NA
+        else:
+            na_value = next(iter(na_values))
+
+        return StringDtype(storage=storage, na_value=na_value)
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
@@ -687,6 +717,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         else:
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
+            else:
+                # cast categories and friends to arrays to see if values are
+                # compatible, compatibility with arrow backed strings
+                value = np.asarray(value)
             if len(value) and not lib.is_string_array(value, skipna=True):
                 raise TypeError("Must provide strings.")
 
@@ -702,6 +736,24 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # np.putmask which doesn't properly handle None/pd.NA, so using the
         # base class implementation that uses __setitem__
         ExtensionArray._putmask(self, mask, value)
+
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
+        if isinstance(values, BaseStringArray) or (
+            isinstance(values, ExtensionArray) and is_string_dtype(values.dtype)
+        ):
+            values = values.astype(self.dtype, copy=False)
+        else:
+            if not lib.is_string_array(np.asarray(values), skipna=True):
+                values = np.array(
+                    [val for val in values if isinstance(val, str) or isna(val)],
+                    dtype=object,
+                )
+                if not len(values):
+                    return np.zeros(self.shape, dtype=bool)
+
+            values = self._from_sequence(values, dtype=self.dtype)
+
+        return isin(np.asarray(self), np.asarray(values))
 
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
