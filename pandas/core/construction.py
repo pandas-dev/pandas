@@ -358,7 +358,8 @@ def array(
             return cls._from_sequence(data, dtype=dtype, copy=copy)
 
         elif data.dtype.kind in "iu":
-            return IntegerArray._from_sequence(data, copy=copy)
+            dtype = IntegerArray._dtype_cls._get_dtype_mapping()[data.dtype]
+            return IntegerArray._from_sequence(data, dtype=dtype, copy=copy)
         elif data.dtype.kind == "f":
             # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
             #  we will fall back to NumpyExtensionArray.
@@ -366,7 +367,8 @@ def array(
                 return NumpyExtensionArray._from_sequence(
                     data, dtype=data.dtype, copy=copy
                 )
-            return FloatingArray._from_sequence(data, copy=copy)
+            dtype = FloatingArray._dtype_cls._get_dtype_mapping()[data.dtype]
+            return FloatingArray._from_sequence(data, dtype=dtype, copy=copy)
 
         elif data.dtype.kind == "b":
             return BooleanArray._from_sequence(data, dtype="boolean", copy=copy)

@@ -667,7 +667,6 @@ def test_inf_na_values_with_int_index(all_parsers):
     tm.assert_frame_equal(out, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @xfail_pyarrow  # mismatched shape
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
@@ -719,7 +718,6 @@ def test_cast_NA_to_bool_raises_error(all_parsers, data, na_values):
 # TODO: this test isn't about the na_values keyword, it is about the empty entries
 #  being returned with NaN entries, whereas the pyarrow engine returns "nan"
 @xfail_pyarrow  # mismatched shapes
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_str_nan_dropped(all_parsers):
     # see gh-21131
     parser = all_parsers
@@ -811,4 +809,22 @@ False
 """
     result = parser.read_csv(StringIO(data), dtype="float")
     expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+@pytest.mark.parametrize(
+    "na_values",
+    [[-99.0, -99], [-99, -99.0]],
+)
+def test_na_values_dict_without_dtype(all_parsers, na_values):
+    parser = all_parsers
+    data = """A
+-99
+-99
+-99.0
+-99.0"""
+
+    result = parser.read_csv(StringIO(data), na_values=na_values)
+    expected = DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]})
     tm.assert_frame_equal(result, expected)
