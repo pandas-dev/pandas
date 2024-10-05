@@ -49,6 +49,7 @@ Conversion
    Series.copy
    Series.to_numpy
    Series.to_period
+   Series.to_timestamp
    Series.to_list
    Series.__array__
 
@@ -344,7 +345,6 @@ Datetime methods
 
    Series.dt.isocalendar
    Series.dt.to_period
-   Series.dt.to_timestamp
    Series.dt.to_pydatetime
    Series.dt.tz_localize
    Series.dt.tz_convert
