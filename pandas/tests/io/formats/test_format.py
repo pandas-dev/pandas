@@ -368,6 +368,40 @@ class TestDataFrameFormatting:
             assert ".." not in repr(df)
             assert ".." not in df._repr_html_()
 
+    @pytest.mark.parametrize(
+        "data, format_option, expected_values",
+        [
+            (12345.6789, "{:12.3f}", "12345.679"),
+            (None, "{:.3f}", "None"),
+            ("", "{:.2f}", ""),
+            (112345.6789, "{:6.3f}", "112345.679"),
+            ("foo      foo", None, "foo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foo"),
+            (" foo", None, "foo"),
+            (
+                "foo foo       foo",
+                None,
+                "foo foo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; foo",
+            ),  # odd no.of spaces
+            (
+                "foo foo    foo",
+                None,
+                "foo foo&nbsp;&nbsp;&nbsp;&nbsp;foo",
+            ),  # even no.of spaces
+        ],
+    )
+    def test_repr_float_formatting_html_output(
+        self, data, format_option, expected_values
+    ):
+        if format_option is not None:
+            with option_context("display.float_format", format_option.format):
+                df = DataFrame({"A": [data]})
+                html_output = df._repr_html_()
+                assert expected_values in html_output
+        else:
+            df = DataFrame({"A": [data]})
+            html_output = df._repr_html_()
+            assert expected_values in html_output
+
     def test_str_max_colwidth(self):
         # GH 7856
         df = DataFrame(
