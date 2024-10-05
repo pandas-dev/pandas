@@ -544,7 +544,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
 -
 
 Datetimelike
@@ -682,6 +682,7 @@ Sparse
 ^^^^^^
 - Bug in :class:`SparseDtype` for equal comparison with na fill value. (:issue:`54770`)
 - Bug in :meth:`DataFrame.sparse.from_spmatrix` which hard coded an invalid ``fill_value`` for certain subtypes. (:issue:`59063`)
+- Bug in :meth:`DataFrame.sparse.to_dense` which ignored subclassing and always returned an instance of :class:`DataFrame` (:issue:`59913`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
@@ -700,6 +701,7 @@ Other
 - Bug in :func:`eval` on :class:`ExtensionArray` on including division ``/`` failed with a ``TypeError``. (:issue:`58748`)
 - Bug in :func:`eval` where the names of the :class:`Series` were not preserved when using ``engine="numexpr"``. (:issue:`10239`)
 - Bug in :func:`eval` with ``engine="numexpr"`` returning unexpected result for float division. (:issue:`59736`)
+- Bug in :func:`to_numeric` raising ``TypeError`` when ``arg`` is a :class:`Timedelta` or :class:`Timestamp` scalar. (:issue:`59944`)
 - Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
 - Bug in :meth:`DataFrame.apply` where passing ``engine="numba"`` ignored ``args`` passed to the applied function (:issue:`58712`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)

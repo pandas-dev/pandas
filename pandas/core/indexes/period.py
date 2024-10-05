@@ -563,6 +563,14 @@ def period_range(
     Returns
     -------
     PeriodIndex
+        A PeriodIndex of fixed frequency periods.
+
+    See Also
+    --------
+    date_range : Returns a fixed frequency DatetimeIndex.
+    Period : Represents a period of time.
+    PeriodIndex : Immutable ndarray holding ordinal values indicating regular periods
+        in time.
 
     Notes
     -----
