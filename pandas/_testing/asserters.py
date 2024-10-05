@@ -701,6 +701,10 @@ def assert_extension_array_equal(
     """
     Check that left and right ExtensionArrays are equal.
 
+    This method compares two ``ExtensionArray`` instances for equality,
+    including checks for missing values, the dtype of the arrays, and
+    the exactness of the comparison (or tolerance when comparing floats).
+
     Parameters
     ----------
     left, right : ExtensionArray
@@ -725,6 +729,12 @@ def assert_extension_array_equal(
         assertion message.
 
         .. versionadded:: 2.0.0
+
+    See Also
+    --------
+    testing.assert_series_equal : Check that left and right ``Series`` are equal.
+    testing.assert_frame_equal : Check that left and right ``DataFrame`` are equal.
+    testing.assert_index_equal : Check that left and right ``Index`` are equal.
 
     Notes
     -----
