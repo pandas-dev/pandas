@@ -7,6 +7,7 @@ that can be mixed into or pinned onto other pandas classes.
 
 from __future__ import annotations
 
+import functools as ft
 from typing import (
     TYPE_CHECKING,
     final,
@@ -115,8 +116,6 @@ class PandasDelegate:
                 fset=_setter,
                 doc=getattr(delegate, accessor_mapping(name)).__doc__,
             )
-
-        import functools as ft
 
         def _create_delegator_method(name: str):
             method = getattr(delegate, accessor_mapping(name))
