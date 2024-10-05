@@ -741,8 +741,9 @@ def test_apply_category_equalness(val):
 
     result = df.a.apply(lambda x: x == val)
     expected = Series(
-        [np.nan if pd.isnull(x) else x == val for x in df_values], name="a"
+        [False if pd.isnull(x) else x == val for x in df_values], name="a"
     )
+    # False since behavior of NaN for categorical dtype has been changed (GH 59966)
     tm.assert_series_equal(result, expected)
 
 
