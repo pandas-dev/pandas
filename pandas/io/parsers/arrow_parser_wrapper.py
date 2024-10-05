@@ -306,4 +306,25 @@ class ArrowParserWrapper(ParserBase):
 
             else:
                 frame = table.to_pandas()
+
+            self._set_date_column_dtype(frame, date_columns=["date_column1", "date_column2"], dtype="timestamp[ns][pyarrow]")
+        
         return self._finalize_pandas_output(frame)
+
+
+    def _set_date_column_dtype(self, frame: DataFrame, date_columns: list, dtype: str):
+        """
+        Sets the dtype for specified date columns in the DataFrame.
+        
+        Parameters
+        ----------
+        frame : DataFrame
+            The DataFrame to modify.
+        date_columns : list
+            List of column names that are date columns.
+        dtype : str
+            The dtype to apply to these columns, e.g., 'datetime64[ns]'.
+        """
+        for col in date_columns:
+            if col in frame.columns:
+                frame[col] = frame[col].astype(dtype)
