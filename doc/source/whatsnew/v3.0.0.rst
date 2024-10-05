@@ -544,7 +544,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
 -
 
 Datetimelike
@@ -682,6 +682,7 @@ Sparse
 ^^^^^^
 - Bug in :class:`SparseDtype` for equal comparison with na fill value. (:issue:`54770`)
 - Bug in :meth:`DataFrame.sparse.from_spmatrix` which hard coded an invalid ``fill_value`` for certain subtypes. (:issue:`59063`)
+- Bug in :meth:`DataFrame.sparse.to_dense` which ignored subclassing and always returned an instance of :class:`DataFrame` (:issue:`59913`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
