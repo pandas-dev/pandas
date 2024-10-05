@@ -217,6 +217,9 @@ class ArrowParserWrapper(ParserBase):
             except TypeError as err:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(str(err)) from err
+            
+        self._set_date_column_dtype(frame, date_columns=["date_column1", "date_column2"], dtype="timestamp[ns][pyarrow]")
+
         return frame
 
     def _validate_usecols(self, usecols) -> None:
@@ -306,8 +309,6 @@ class ArrowParserWrapper(ParserBase):
 
             else:
                 frame = table.to_pandas()
-
-            self._set_date_column_dtype(frame, date_columns=["date_column1", "date_column2"], dtype="timestamp[ns][pyarrow]")
         
         return self._finalize_pandas_output(frame)
 
