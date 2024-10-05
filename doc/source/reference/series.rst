@@ -49,7 +49,6 @@ Conversion
    Series.copy
    Series.to_numpy
    Series.to_period
-   Series.to_timestamp
    Series.to_list
    Series.__array__
 

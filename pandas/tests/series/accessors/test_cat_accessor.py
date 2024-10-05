@@ -177,7 +177,7 @@ class TestCatAccessor:
 
         _special_func_names = [f[0] for f in special_func_defs]
 
-        _ignore_names = ["components", "to_timestamp", "tz_localize", "tz_convert"]
+        _ignore_names = ["components", "tz_localize", "tz_convert"]
 
         func_names = [
             fname

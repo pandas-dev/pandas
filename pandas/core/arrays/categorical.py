@@ -1377,8 +1377,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Remove the specified categories.
 
-        ``removals`` must be included in the old categories,
-        values which were in the removed categories will be set to NaN
+        The ``removals`` argument must be a subset of the current categories.
+        Any values that were part of the removed categories will be set to NaN.
 
         Parameters
         ----------
