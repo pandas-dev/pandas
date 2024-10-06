@@ -203,6 +203,67 @@ In cases with mixed-resolution inputs, the highest resolution is used:
     In [2]: pd.to_datetime([pd.Timestamp("2024-03-22 11:43:01"), "2024-03-22 11:43:01.002"]).dtype
     Out[2]: dtype('<M8[ns]')
 
+.. _whatsnew_300.api_breaking.value_counts_sorting:
+
+Changed behavior in :meth:`DataFrame.value_counts` and :meth:`DataFrameGroupBy.value_counts` when ``sort=False``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, :meth:`DataFrame.value_counts` with ``sort=False`` would sort the result by row labels (as was documented). This was nonintuitive and inconsistent with :meth:`Series.value_counts` which would maintain the order of the input. Now :meth:`DataFrame.value_counts` will maintain the order of the input.
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {
+            "a": [2, 2, 2, 2, 1, 1, 1, 1],
+            "b": [2, 1, 3, 1, 2, 3, 1, 1],
+        }
+    )
+    df
+
+*Old behavior*
+
+.. code-block:: ipython
+
+    In [3]: df.value_counts(sort=False)
+    Out[3]:
+    a  b
+    1  1    2
+       2    1
+       3    1
+    2  1    2
+       2    1
+       3    1
+    Name: count, dtype: int64
+
+*New behavior*
+
+.. ipython:: python
+
+    df.value_counts(sort=False)
+
+This change also applies to :meth:`.DataFrameGroupBy.value_counts`. Here, there are two options for sorting: one ``sort`` passed to :meth:`DataFrame.groupby` and one passed directly to :meth:`.DataFrameGroupBy.value_counts`. The former will determine whether to sort the groups, the latter whether to sort the counts. All non-grouping columns will maintain the order of the input *within groups*.
+
+*Old behavior*
+
+.. code-block:: ipython
+
+    In [5]: df.groupby("a", sort=True).value_counts(sort=False)
+    Out[5]:
+    a  b
+    1  1    2
+       2    1
+       3    1
+    2  1    2
+       2    1
+       3    1
+    dtype: int64
+
+*New behavior*
+
+.. ipython:: python
+
+    df.groupby("a", sort=True).value_counts(sort=False)
+
 .. _whatsnew_300.api_breaking.deps:
 
 Increased minimum version for Python
