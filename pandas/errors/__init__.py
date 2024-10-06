@@ -444,6 +444,11 @@ class SpecificationError(Exception):
     The second way is calling ``agg`` on a Dataframe with duplicated functions
     names without assigning column name.
 
+    See Also
+    --------
+    DataFrame.agg : Aggregate using one or more operations over the specified axis.
+    Series.agg : Aggregate using one or more operations over the specified axis.
+
     Examples
     --------
     >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)})
