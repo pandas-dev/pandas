@@ -814,7 +814,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         is_start = how == "S"
         if is_start:
             new_data = np.asarray(
-                [getattr(period, "start_time", period) for period in new_parr]
+                [(NaT if period is NaT else period.start_time) for period in new_parr]
             )
         else:
             new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
