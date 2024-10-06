@@ -114,6 +114,14 @@ class InvalidVersion(ValueError):
     """
     An invalid version was found, users should refer to PEP 440.
 
+    The ``InvalidVersion`` exception is raised when a version string is
+    improperly formatted. Pandas uses this exception to ensure that all
+    version strings are PEP 440 compliant.
+
+    See Also
+    --------
+    util.version.Version : Class for handling and parsing version strings.
+
     Examples
     --------
     >>> pd.util.version.Version("1.")
