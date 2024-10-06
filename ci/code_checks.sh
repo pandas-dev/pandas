@@ -105,7 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.year GL08" \
-        -i "pandas.api.types.is_float PR01,SA01" \
         -i "pandas.api.types.is_integer PR01,SA01" \
         -i "pandas.api.types.is_iterator PR07,SA01" \
         -i "pandas.api.types.is_re_compilable PR07,SA01" \
