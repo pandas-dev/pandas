@@ -9,13 +9,16 @@ from typing import (
     cast,
 )
 import unicodedata
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
@@ -142,14 +145,38 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             else:
                 upper_pat = pat.upper()
                 f = lambda x: upper_pat in x.upper()
+        if not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                "Allowing a non-bool 'na' in obj.str.contains is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._str_map(f, na, dtype=np.dtype("bool"))
 
     def _str_startswith(self, pat, na=None):
         f = lambda x: x.startswith(pat)
+        if not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                "Allowing a non-bool 'na' in obj.str.startswith is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_endswith(self, pat, na=None):
         f = lambda x: x.endswith(pat)
+        if not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                "Allowing a non-bool 'na' in obj.str.endswith is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_replace(
@@ -372,9 +399,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         from pandas import Series
 
+        if dtype is None:
+            dtype = np.int64
         arr = Series(self).fillna("")
         try:
             arr = sep + arr + sep
@@ -386,7 +415,13 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 
-        dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
+        _dtype = pandas_dtype(dtype)
+        dummies_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummies_dtype = _dtype
+        else:
+            dummies_dtype = np.bool_
+        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype)
 
         def _isin(test_elements: str, element: str) -> bool:
             return element in test_elements

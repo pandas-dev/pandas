@@ -205,6 +205,17 @@ class EmptyDataError(ValueError):
     """
     Exception raised in ``pd.read_csv`` when empty data or header is encountered.
 
+    This error is typically encountered when attempting to read an empty file or
+    an invalid file where no data or headers are present.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (CSV) file into DataFrame.
+    errors.ParserError : Exception that is raised by an error encountered in parsing
+        file contents.
+    errors.DtypeWarning : Warning raised when reading different dtypes in a column
+        from a file.
+
     Examples
     --------
     >>> from io import StringIO
@@ -261,6 +272,11 @@ class MergeError(ValueError):
 
     Subclass of ``ValueError``.
 
+    See Also
+    --------
+    DataFrame.join : For joining DataFrames on their indexes.
+    merge : For merging two DataFrames on a common set of keys.
+
     Examples
     --------
     >>> left = pd.DataFrame(
@@ -284,6 +300,30 @@ class MergeError(ValueError):
 class AbstractMethodError(NotImplementedError):
     """
     Raise this error instead of NotImplementedError for abstract methods.
+
+    The `AbstractMethodError` is designed for use in classes that follow an abstract
+    base class pattern. By raising this error in the method, it ensures that a subclass
+    must implement the method to provide specific functionality. This is useful in a
+    framework or library where certain methods must be implemented by the user to
+    ensure correct behavior.
+
+    Parameters
+    ----------
+    class_instance : object
+        The instance of the class where the abstract method is being called.
+    methodtype : str, default "method"
+        A string indicating the type of method that is abstract.
+        Must be one of {"method", "classmethod", "staticmethod", "property"}.
+
+    See Also
+    --------
+    api.extensions.ExtensionArray
+        An example of a pandas extension mechanism that requires implementing
+        specific abstract methods.
+    NotImplementedError
+        A built-in exception that can also be used for abstract methods but lacks
+        the specificity of `AbstractMethodError` in indicating the need for subclass
+        implementation.
 
     Examples
     --------
@@ -378,7 +418,7 @@ class InvalidIndexError(Exception):
 
 class DataError(Exception):
     """
-    Exceptionn raised when performing an operation on non-numerical data.
+    Exception raised when performing an operation on non-numerical data.
 
     For example, calling ``ohlc`` on a non-numerical column or a function
     on a rolling window.
@@ -574,6 +614,16 @@ class PossibleDataLossError(Exception):
 class ClosedFileError(Exception):
     """
     Exception is raised when trying to perform an operation on a closed HDFStore file.
+
+    ``ClosedFileError`` is specific to operations on ``HDFStore`` objects. Once an
+    HDFStore is closed, its resources are no longer available, and any further attempt
+    to access data or perform file operations will raise this exception.
+
+    See Also
+    --------
+    HDFStore.close : Closes the PyTables file handle.
+    HDFStore.open : Opens the file in the specified mode.
+    HDFStore.is_open : Returns a boolean indicating whether the file is open.
 
     Examples
     --------

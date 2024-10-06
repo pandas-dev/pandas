@@ -455,7 +455,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 # Because left and right have the same length and are unique,
                 #  `indexer` not having any -1s implies that there is a
                 #  bijection between `left` and `right`.
-                return (indexer != -1).all()
+                return bool((indexer != -1).all())
 
             # With object-dtype we need a comparison that identifies
             #  e.g. int(2) as distinct from float(2)
@@ -513,7 +513,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
             )
         else:
-            cat_array = np.array([cat_array])
+            cat_array = cat_array.reshape(1, len(cat_array))
         combined_hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
         return np.bitwise_xor.reduce(combined_hashed)
 
@@ -611,6 +611,13 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             dtype = cast(CategoricalDtype, dtype)
 
         # update categories/ordered unless they've been explicitly passed as None
+        if (
+            isinstance(dtype, CategoricalDtype)
+            and dtype.categories is not None
+            and dtype.ordered is not None
+        ):
+            # Avoid re-validation in CategoricalDtype constructor
+            return dtype
         new_categories = (
             dtype.categories if dtype.categories is not None else self.categories
         )
@@ -986,6 +993,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    Period : Represents a single time period.
+    PeriodIndex : Immutable index for period data.
+    date_range : Return a fixed frequency DatetimeIndex.
+    Series : One-dimensional array with axis labels.
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
     Examples
     --------
     >>> pd.PeriodDtype(freq="D")
@@ -1049,6 +1064,20 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     def freq(self) -> BaseOffset:
         """
         The frequency object of this PeriodDtype.
+
+        The `freq` property returns the `BaseOffset` object that represents the
+        frequency of the PeriodDtype. This frequency specifies the interval (e.g.,
+        daily, monthly, yearly) associated with the Period type. It is essential
+        for operations that depend on time-based calculations within a period index
+        or series.
+
+        See Also
+        --------
+        Period : Represents a period of time.
+        PeriodIndex : Immutable ndarray holding ordinal values indicating
+            regular periods.
+        PeriodDtype : An ExtensionDtype for Period data.
+        date_range : Return a fixed frequency range of dates.
 
         Examples
         --------

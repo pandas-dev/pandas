@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -681,7 +682,12 @@ class ArrowExtensionArray(
             return type(self)(pc.invert(self._pa_array))
 
     def __neg__(self) -> Self:
-        return type(self)(pc.negate_checked(self._pa_array))
+        try:
+            return type(self)(pc.negate_checked(self._pa_array))
+        except pa.ArrowNotImplementedError as err:
+            raise TypeError(
+                f"unary '-' not supported for dtype '{self.dtype}'"
+            ) from err
 
     def __pos__(self) -> Self:
         return type(self)(self._pa_array)
@@ -736,8 +742,19 @@ class ArrowExtensionArray(
             )
         return ArrowExtensionArray(result)
 
+    def _op_method_error_message(self, other, op) -> str:
+        if hasattr(other, "dtype"):
+            other_type = f"dtype '{other.dtype}'"
+        else:
+            other_type = f"object of type {type(other)}"
+        return (
+            f"operation '{op.__name__}' not supported for "
+            f"dtype '{self.dtype}' with {other_type}"
+        )
+
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
+        other_original = other
         other = self._box_pa(other)
 
         if (
@@ -747,10 +764,15 @@ class ArrowExtensionArray(
         ):
             if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
-                if op is operator.add:
-                    result = pc.binary_join_element_wise(self._pa_array, other, sep)
-                elif op is roperator.radd:
-                    result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                try:
+                    if op is operator.add:
+                        result = pc.binary_join_element_wise(self._pa_array, other, sep)
+                    elif op is roperator.radd:
+                        result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                except pa.ArrowNotImplementedError as err:
+                    raise TypeError(
+                        self._op_method_error_message(other_original, op)
+                    ) from err
                 return type(self)(result)
             elif op in [operator.mul, roperator.rmul]:
                 binary = self._pa_array
@@ -782,9 +804,14 @@ class ArrowExtensionArray(
 
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
+            if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
+                raise TypeError(self._op_method_error_message(other_original, op))
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
-        result = pc_func(self._pa_array, other)
+        try:
+            result = pc_func(self._pa_array, other)
+        except pa.ArrowNotImplementedError as err:
+            raise TypeError(self._op_method_error_message(other_original, op)) from err
         return type(self)(result)
 
     def _logical_method(self, other, op) -> Self:
@@ -1972,7 +1999,7 @@ class ArrowExtensionArray(
         """
         See Series.rank.__doc__.
         """
-        return type(self)(
+        return self._convert_rank_result(
             self._rank_calc(
                 axis=axis,
                 method=method,
@@ -2273,7 +2300,13 @@ class ArrowExtensionArray(
         )
         if isinstance(result, np.ndarray):
             return result
-        return type(self)._from_sequence(result, copy=False)
+        elif isinstance(result, BaseMaskedArray):
+            pa_result = result.__arrow_array__()
+            return type(self)(pa_result)
+        else:
+            # DatetimeArray, TimedeltaArray
+            pa_result = pa.array(result, from_pandas=True)
+            return type(self)(pa_result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         """Apply a callable to each element while maintaining the chunking structure."""
@@ -2285,86 +2318,19 @@ class ArrowExtensionArray(
             for chunk in self._pa_array.iterchunks()
         ]
 
+    def _convert_bool_result(self, result):
+        return type(self)(result)
+
+    def _convert_int_result(self, result):
+        return type(self)(result)
+
+    def _convert_rank_result(self, result):
+        return type(self)(result)
+
     def _str_count(self, pat: str, flags: int = 0) -> Self:
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
         return type(self)(pc.count_substring_regex(self._pa_array, pat))
-
-    def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
-    ) -> Self:
-        if flags:
-            raise NotImplementedError(f"contains not implemented with {flags=}")
-
-        if regex:
-            pa_contains = pc.match_substring_regex
-        else:
-            pa_contains = pc.match_substring
-        result = pa_contains(self._pa_array, pat, ignore_case=not case)
-        if not isna(na):
-            result = result.fill_null(na)
-        return type(self)(result)
-
-    def _str_startswith(self, pat: str | tuple[str, ...], na=None) -> Self:
-        if isinstance(pat, str):
-            result = pc.starts_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # For empty tuple, pd.StringDtype() returns null for missing values
-                # and false for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return type(self)(result)
-
-    def _str_endswith(self, pat: str | tuple[str, ...], na=None) -> Self:
-        if isinstance(pat, str):
-            result = pc.ends_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # For empty tuple, pd.StringDtype() returns null for missing values
-                # and false for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return type(self)(result)
-
-    def _str_replace(
-        self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
-        n: int = -1,
-        case: bool = True,
-        flags: int = 0,
-        regex: bool = True,
-    ) -> Self:
-        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
-            raise NotImplementedError(
-                "replace is not supported with a re.Pattern, callable repl, "
-                "case=False, or flags!=0"
-            )
-
-        func = pc.replace_substring_regex if regex else pc.replace_substring
-        # https://github.com/apache/arrow/issues/39149
-        # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
-        pa_max_replacements = None if n < 0 else n
-        result = func(
-            self._pa_array,
-            pattern=pat,
-            replacement=repl,
-            max_replacements=pa_max_replacements,
-        )
-        return type(self)(result)
 
     def _str_repeat(self, repeats: int | Sequence[int]) -> Self:
         if not isinstance(repeats, int):
@@ -2372,43 +2338,6 @@ class ArrowExtensionArray(
                 f"repeat is not implemented when repeats is {type(repeats).__name__}"
             )
         return type(self)(pc.binary_repeat(self._pa_array, repeats))
-
-    def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
-    ) -> Self:
-        if not pat.startswith("^"):
-            pat = f"^{pat}"
-        return self._str_contains(pat, case, flags, na, regex=True)
-
-    def _str_fullmatch(
-        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
-    ) -> Self:
-        if not pat.endswith("$") or pat.endswith("\\$"):
-            pat = f"{pat}$"
-        return self._str_match(pat, case, flags, na)
-
-    def _str_find(self, sub: str, start: int = 0, end: int | None = None) -> Self:
-        if (start == 0 or start is None) and end is None:
-            result = pc.find_substring(self._pa_array, sub)
-        else:
-            if sub == "":
-                # GH 56792
-                result = self._apply_elementwise(lambda val: val.find(sub, start, end))
-                return type(self)(pa.chunked_array(result))
-            if start is None:
-                start_offset = 0
-                start = 0
-            elif start < 0:
-                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
-                start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
-            else:
-                start_offset = start
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
-            offset_result = pc.add(result, start_offset)
-            result = pc.if_else(found, offset_result, -1)
-        return type(self)(result)
 
     def _str_join(self, sep: str) -> Self:
         if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
@@ -2427,84 +2356,6 @@ class ArrowExtensionArray(
 
     def _str_rpartition(self, sep: str, expand: bool) -> Self:
         predicate = lambda val: val.rpartition(sep)
-        result = self._apply_elementwise(predicate)
-        return type(self)(pa.chunked_array(result))
-
-    def _str_slice(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ) -> Self:
-        if start is None:
-            start = 0
-        if step is None:
-            step = 1
-        return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
-        )
-
-    def _str_isalnum(self) -> Self:
-        return type(self)(pc.utf8_is_alnum(self._pa_array))
-
-    def _str_isalpha(self) -> Self:
-        return type(self)(pc.utf8_is_alpha(self._pa_array))
-
-    def _str_isdecimal(self) -> Self:
-        return type(self)(pc.utf8_is_decimal(self._pa_array))
-
-    def _str_isdigit(self) -> Self:
-        return type(self)(pc.utf8_is_digit(self._pa_array))
-
-    def _str_islower(self) -> Self:
-        return type(self)(pc.utf8_is_lower(self._pa_array))
-
-    def _str_isnumeric(self) -> Self:
-        return type(self)(pc.utf8_is_numeric(self._pa_array))
-
-    def _str_isspace(self) -> Self:
-        return type(self)(pc.utf8_is_space(self._pa_array))
-
-    def _str_istitle(self) -> Self:
-        return type(self)(pc.utf8_is_title(self._pa_array))
-
-    def _str_isupper(self) -> Self:
-        return type(self)(pc.utf8_is_upper(self._pa_array))
-
-    def _str_len(self) -> Self:
-        return type(self)(pc.utf8_length(self._pa_array))
-
-    def _str_lower(self) -> Self:
-        return type(self)(pc.utf8_lower(self._pa_array))
-
-    def _str_upper(self) -> Self:
-        return type(self)(pc.utf8_upper(self._pa_array))
-
-    def _str_strip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_trim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_trim(self._pa_array, characters=to_strip)
-        return type(self)(result)
-
-    def _str_lstrip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_ltrim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
-        return type(self)(result)
-
-    def _str_rstrip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_rtrim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
-        return type(self)(result)
-
-    def _str_removeprefix(self, prefix: str):
-        if not pa_version_under13p0:
-            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
-            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
-            result = pc.if_else(starts_with, removed, self._pa_array)
-            return type(self)(result)
-        predicate = lambda val: val.removeprefix(prefix)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
@@ -2539,7 +2390,9 @@ class ArrowExtensionArray(
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
+        if dtype is None:
+            dtype = np.bool_
         split = pc.split_pattern(self._pa_array, sep)
         flattened_values = pc.list_flatten(split)
         uniques = flattened_values.unique()
@@ -2549,7 +2402,15 @@ class ArrowExtensionArray(
         n_cols = len(uniques)
         indices = pc.index_in(flattened_values, uniques_sorted).to_numpy()
         indices = indices + np.arange(n_rows).repeat(lengths) * n_cols
-        dummies = np.zeros(n_rows * n_cols, dtype=np.bool_)
+        _dtype = pandas_dtype(dtype)
+        dummies_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummies_dtype = _dtype
+        else:
+            dummies_dtype = np.bool_
+        dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
+        if dtype == str:
+            dummies[:] = False
         dummies[indices] = True
         dummies = dummies.reshape((n_rows, n_cols))
         result = type(self)(pa.array(list(dummies)))

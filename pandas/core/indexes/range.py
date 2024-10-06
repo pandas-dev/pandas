@@ -90,7 +90,9 @@ class RangeIndex(Index):
     start : int (default: 0), range, or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
+        The end value of the range (exclusive).
     step : int (default: 1)
+        The step size of the range.
     dtype : np.int64
         Unused, accepted for homogeneity with other index types.
     copy : bool, default False
@@ -293,6 +295,16 @@ class RangeIndex(Index):
         """
         The value of the `start` parameter (``0`` if this was not supplied).
 
+        This property returns the starting value of the `RangeIndex`. If the `start`
+        value is not explicitly provided during the creation of the `RangeIndex`,
+        it defaults to 0.
+
+        See Also
+        --------
+        RangeIndex : Immutable index implementing a range-based index.
+        RangeIndex.stop : Returns the stop value of the `RangeIndex`.
+        RangeIndex.step : Returns the step value of the `RangeIndex`.
+
         Examples
         --------
         >>> idx = pd.RangeIndex(5)
@@ -311,6 +323,17 @@ class RangeIndex(Index):
         """
         The value of the `stop` parameter.
 
+        This property returns the `stop` value of the RangeIndex, which defines the
+        upper (or lower, in case of negative steps) bound of the index range. The
+        `stop` value is exclusive, meaning the RangeIndex includes values up to but
+        not including this value.
+
+        See Also
+        --------
+        RangeIndex : Immutable index representing a range of integers.
+        RangeIndex.start : The start value of the RangeIndex.
+        RangeIndex.step : The step size between elements in the RangeIndex.
+
         Examples
         --------
         >>> idx = pd.RangeIndex(5)
@@ -327,6 +350,15 @@ class RangeIndex(Index):
     def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
+
+        The ``step`` parameter determines the increment (or decrement in the case
+        of negative values) between consecutive elements in the ``RangeIndex``.
+
+        See Also
+        --------
+        RangeIndex : Immutable index implementing a range-based index.
+        RangeIndex.stop : Returns the stop value of the RangeIndex.
+        RangeIndex.start : Returns the start value of the RangeIndex.
 
         Examples
         --------

@@ -83,7 +83,7 @@ class TestSeriesConstructors:
     def test_unparsable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
-        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
+        msg = "^Unknown datetime string format, unable to parse: aa$"
         with pytest.raises(ValueError, match=msg):
             Series(vals, dtype="datetime64[ns]")
 
@@ -229,7 +229,7 @@ class TestSeriesConstructors:
             # GH 19853 : with empty string, index and dtype str
             empty = Series("", dtype=str, index=range(3))
             if using_infer_string:
-                empty2 = Series("", index=range(3), dtype=object)
+                empty2 = Series("", index=range(3), dtype="str")
             else:
                 empty2 = Series("", index=range(3))
             tm.assert_series_equal(empty, empty2)
