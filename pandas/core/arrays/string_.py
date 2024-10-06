@@ -46,6 +46,7 @@ from pandas.core import (
     nanops,
     ops,
 )
+from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import (
@@ -65,6 +66,7 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         Dtype,
         DtypeObj,
@@ -715,6 +717,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         else:
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
+            else:
+                # cast categories and friends to arrays to see if values are
+                # compatible, compatibility with arrow backed strings
+                value = np.asarray(value)
             if len(value) and not lib.is_string_array(value, skipna=True):
                 raise TypeError("Must provide strings.")
 
@@ -730,6 +736,24 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # np.putmask which doesn't properly handle None/pd.NA, so using the
         # base class implementation that uses __setitem__
         ExtensionArray._putmask(self, mask, value)
+
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
+        if isinstance(values, BaseStringArray) or (
+            isinstance(values, ExtensionArray) and is_string_dtype(values.dtype)
+        ):
+            values = values.astype(self.dtype, copy=False)
+        else:
+            if not lib.is_string_array(np.asarray(values), skipna=True):
+                values = np.array(
+                    [val for val in values if isinstance(val, str) or isna(val)],
+                    dtype=object,
+                )
+                if not len(values):
+                    return np.zeros(self.shape, dtype=bool)
+
+            values = self._from_sequence(values, dtype=self.dtype)
+
+        return isin(np.asarray(self), np.asarray(values))
 
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
