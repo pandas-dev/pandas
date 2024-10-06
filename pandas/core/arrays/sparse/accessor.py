@@ -88,9 +88,17 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         """
         Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
+        This method takes a ``scipy.sparse.coo_matrix`` (coordinate format) as input and
+        returns a pandas ``Series`` where the non-zero elements are represented as
+        sparse values. The index of the Series can either include only the coordinates
+        of non-zero elements (default behavior) or the full sorted set of coordinates
+        from the matrix if ``dense_index`` is set to `True`.
+
         Parameters
         ----------
         A : scipy.sparse.coo_matrix
+            The sparse matrix in coordinate format from which the sparse Series
+            will be created.
         dense_index : bool, default False
             If False (default), the index consists of only the
             coords of the non-null entries of the original coo_matrix.
@@ -101,6 +109,12 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         -------
         s : Series
             A Series with sparse values.
+
+        See Also
+        --------
+        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a scipy sparse
+            matrix.
+        scipy.sparse.coo_matrix : A sparse matrix in COOrdinate format.
 
         Examples
         --------
