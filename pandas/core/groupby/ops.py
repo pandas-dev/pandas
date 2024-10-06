@@ -755,6 +755,7 @@ class BaseGrouper:
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
         ]
+        sorts = [ping._sort for ping in self.groupings]
         # When passed a categorical grouping, keep all categories
         for k, (ping, level) in enumerate(zip(self.groupings, levels)):
             if ping._passed_categorical:
@@ -765,7 +766,9 @@ class BaseGrouper:
             result_index.name = self.names[0]
             ids = ensure_platform_int(self.codes[0])
         elif all(obs):
-            result_index, ids = self._ob_index_and_ids(levels, self.codes, self.names)
+            result_index, ids = self._ob_index_and_ids(
+                levels, self.codes, self.names, sorts
+            )
         elif not any(obs):
             result_index, ids = self._unob_index_and_ids(levels, self.codes, self.names)
         else:
@@ -778,6 +781,7 @@ class BaseGrouper:
                 levels=[levels[idx] for idx in ob_indices],
                 codes=[codes[idx] for idx in ob_indices],
                 names=[names[idx] for idx in ob_indices],
+                sorts=[sorts[idx] for idx in ob_indices],
             )
             unob_index, unob_ids = self._unob_index_and_ids(
                 levels=[levels[idx] for idx in unob_indices],
@@ -800,9 +804,18 @@ class BaseGrouper:
             ).reorder_levels(index)
             ids = len(unob_index) * ob_ids + unob_ids
 
-            if self._sort:
+            if any(sorts):
                 # Sort result_index and recode ids using the new order
-                sorter = result_index.argsort()
+                n_levels = len(sorts)
+                drop_levels = [
+                    n_levels - idx
+                    for idx, sort in enumerate(reversed(sorts), 1)
+                    if not sort
+                ]
+                if len(drop_levels) > 0:
+                    sorter = result_index._drop_level_numbers(drop_levels).argsort()
+                else:
+                    sorter = result_index.argsort()
                 result_index = result_index.take(sorter)
                 _, index = np.unique(sorter, return_index=True)
                 ids = ensure_platform_int(ids)
@@ -837,10 +850,13 @@ class BaseGrouper:
         levels: list[Index],
         codes: list[npt.NDArray[np.intp]],
         names: list[Hashable],
+        sorts: list[bool],
     ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
+        consistent_sorting = all(sorts[0] == sort for sort in sorts[1:])
+        sort_in_compress = sorts[0] if consistent_sorting else False
         shape = tuple(len(level) for level in levels)
         group_index = get_group_index(codes, shape, sort=True, xnull=True)
-        ob_ids, obs_group_ids = compress_group_index(group_index, sort=self._sort)
+        ob_ids, obs_group_ids = compress_group_index(group_index, sort=sort_in_compress)
         ob_ids = ensure_platform_int(ob_ids)
         ob_index_codes = decons_obs_group_ids(
             ob_ids, obs_group_ids, shape, codes, xnull=True
@@ -851,6 +867,21 @@ class BaseGrouper:
             names=names,
             verify_integrity=False,
         )
+        if not consistent_sorting:
+            # Sort by the levels where the corresponding sort argument is True
+            n_levels = len(sorts)
+            drop_levels = [
+                n_levels - idx
+                for idx, sort in enumerate(reversed(sorts), 1)
+                if not sort
+            ]
+            if len(drop_levels) > 0:
+                sorter = ob_index._drop_level_numbers(drop_levels).argsort()
+            else:
+                sorter = ob_index.argsort()
+            ob_index = ob_index.take(sorter)
+            _, index = np.unique(sorter, return_index=True)
+            ob_ids = np.where(ob_ids == -1, -1, index.take(ob_ids))
         ob_ids = ensure_platform_int(ob_ids)
         return ob_index, ob_ids
 

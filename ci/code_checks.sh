@@ -76,7 +76,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.freq GL08" \
         -i "pandas.Series.dt.unit GL08" \
         -i "pandas.Series.pad PR01,SA01" \
-        -i "pandas.Series.sparse.from_coo PR07,SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
@@ -86,13 +85,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.year GL08" \
-        -i "pandas.api.types.is_float PR01,SA01" \
         -i "pandas.api.types.is_integer PR01,SA01" \
         -i "pandas.api.types.is_iterator PR07,SA01" \
         -i "pandas.api.types.is_re_compilable PR07,SA01" \
         -i "pandas.api.types.pandas_dtype PR07,RT03,SA01" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
-        -i "pandas.arrays.DatetimeArray SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
         -i "pandas.arrays.IntervalArray.left SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
@@ -143,7 +140,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.DuplicateLabelError SA01" \
         -i "pandas.errors.IntCastingNaNError SA01" \
         -i "pandas.errors.InvalidIndexError SA01" \
-        -i "pandas.errors.InvalidVersion SA01" \
         -i "pandas.errors.NullFrequencyError SA01" \
         -i "pandas.errors.NumExprClobberingError SA01" \
         -i "pandas.errors.NumbaUtilError SA01" \
@@ -152,7 +148,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.PerformanceWarning SA01" \
         -i "pandas.errors.PossibleDataLossError SA01" \
         -i "pandas.errors.PossiblePrecisionLoss SA01" \
-        -i "pandas.errors.SpecificationError SA01" \
         -i "pandas.errors.UndefinedVariableError PR01,SA01" \
         -i "pandas.errors.UnsortedIndexError SA01" \
         -i "pandas.errors.UnsupportedFunctionCall SA01" \
