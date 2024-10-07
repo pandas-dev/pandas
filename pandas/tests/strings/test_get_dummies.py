@@ -11,11 +11,6 @@ from pandas import (
     _testing as tm,
 )
 
-try:
-    import pyarrow as pa
-except ImportError:
-    pa = None
-
 
 def test_get_dummies(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
