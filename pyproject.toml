@@ -341,8 +341,10 @@ ignore = [
   "RUF012",
   # type-comparison
   "E721",
-
-  # Additional pylint rules
+  # repeated-equality-comparison
+  "PLR1714",
+  # self-or-cls-assignment
+  "PLW0642",
   # literal-membership
   "PLR6201", # 847 errors
   # Method could be a function, class method, or static method
