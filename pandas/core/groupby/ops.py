@@ -867,7 +867,7 @@ class BaseGrouper:
             names=names,
             verify_integrity=False,
         )
-        if not consistent_sorting:
+        if not consistent_sorting and len(ob_index) > 0:
             # Sort by the levels where the corresponding sort argument is True
             n_levels = len(sorts)
             drop_levels = [
@@ -881,9 +881,7 @@ class BaseGrouper:
                 sorter = ob_index.argsort()
             ob_index = ob_index.take(sorter)
             _, index = np.unique(sorter, return_index=True)
-            na_ids = ob_ids == -1
-            if not na_ids.all():
-                ob_ids = np.where(na_ids, -1, index.take(ob_ids))
+            ob_ids = np.where(ob_ids == -1, -1, index.take(ob_ids))
         ob_ids = ensure_platform_int(ob_ids)
         return ob_index, ob_ids
 
