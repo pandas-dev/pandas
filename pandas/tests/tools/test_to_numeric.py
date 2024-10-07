@@ -384,6 +384,21 @@ def test_timedelta(transform_assert_equal):
     assert_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "scalar",
+    [
+        pd.Timedelta(1, "D"),
+        pd.Timestamp("2017-01-01T12"),
+        pd.Timestamp("2017-01-01T12", tz="US/Pacific"),
+    ],
+)
+def test_timedelta_timestamp_scalar(scalar):
+    # GH#59944
+    result = to_numeric(scalar)
+    expected = to_numeric(Series(scalar))[0]
+    assert result == expected
+
+
 def test_period(request, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
 
