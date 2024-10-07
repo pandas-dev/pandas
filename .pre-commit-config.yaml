@@ -2,9 +2,9 @@ minimum_pre_commit_version: 2.15.0
 exclude: ^LICENSES/|\.(html|csv|svg)$
 # reserve "manual" for relatively slow hooks which we still want to run in CI
 default_stages: [
-    Nonepre-commitNone,
-    Nonepre-merge-commitNone,
-    Nonepre-pushNone,
+    commit,
+    merge-commit,
+    push,
     prepare-commit-msg,
     commit-msg,
     post-checkout,
