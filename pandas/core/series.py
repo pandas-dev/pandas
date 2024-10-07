@@ -3223,14 +3223,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         from pandas.core.reshape.concat import concat
-	    
-        # Change None values to NaN for both Series
+
         def replace_none_with_nan(series):
             series.fillna(value=np.nan, inplace=True)
 
-        # Apply the function to both Series
+        """Apply the function to both Series"""
         replace_none_with_nan(self)
-        replace_none_with_nan(other)  # Removed the extra parenthesis here
+        replace_none_with_nan(other)
 
         if self.dtype == other.dtype:
             if self.index.equals(other.index):
