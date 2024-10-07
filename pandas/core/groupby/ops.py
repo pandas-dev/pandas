@@ -867,7 +867,7 @@ class BaseGrouper:
             names=names,
             verify_integrity=False,
         )
-        if not consistent_sorting:
+        if not consistent_sorting and len(ob_index) > 0:
             # Sort by the levels where the corresponding sort argument is True
             n_levels = len(sorts)
             drop_levels = [
