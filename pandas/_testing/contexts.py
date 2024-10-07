@@ -78,14 +78,15 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     import time
 
     def setTZ(tz) -> None:
-        if tz is None:
-            try:
-                del os.environ["TZ"]
-            except KeyError:
-                pass
-        else:
-            os.environ["TZ"] = tz
-            time.tzset()
+        if hasattr(time, "tzset"):
+            if tz is None:
+                try:
+                    del os.environ["TZ"]
+                except KeyError:
+                    pass
+            else:
+                os.environ["TZ"] = tz
+                time.tzset()
 
     orig_tz = os.environ.get("TZ")
     setTZ(tz)

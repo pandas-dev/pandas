@@ -622,6 +622,7 @@ class TestTimedeltaMultiplicationDivision:
             [
                 r"Invalid dtype datetime64\[D\] for __floordiv__",
                 "'dtype' is an invalid keyword argument for this function",
+                "this function got an unexpected keyword argument 'dtype'",
                 r"ufunc '?floor_divide'? cannot use operands with types",
             ]
         )

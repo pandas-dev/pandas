@@ -36,7 +36,7 @@ CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
 SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
-EXCLUDE_DEPS = {"tzdata", "blosc", "c-blosc2", "pandas-gbq", "pyqt", "pyqt5"}
+EXCLUDE_DEPS = {"tzdata", "blosc", "pandas-gbq", "pyqt", "pyqt5"}
 EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]"])
 # pandas package is not available
 # in pre-commit environment
@@ -225,9 +225,6 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
             seen_required = True
         elif "# optional dependencies" in line:
             seen_optional = True
-        elif "#" in line:
-            # just a comment
-            continue
         elif "- pip:" in line:
             continue
         elif seen_required and line.strip():

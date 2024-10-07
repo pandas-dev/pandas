@@ -331,7 +331,7 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    format: str | None=None,
+    str format=None,
     bint exact=True,
 ) except? -1:
     cdef:

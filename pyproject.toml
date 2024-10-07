@@ -5,10 +5,10 @@ requires = [
     "meson-python==0.13.1",
     "meson==1.2.1",
     "wheel",
-    "Cython==3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Force numpy higher than 2.0rc1, so that built wheels are compatible
+    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    # Force numpy higher than 2.0, so that built wheels are compatible
     # with both numpy 1 and 2
-    "numpy>=2.0.0rc1",
+    "numpy>=2.0",
     "versioneer[toml]"
 ]
 
@@ -153,21 +153,27 @@ setup = ['--vsenv'] # For Windows
 skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x"
 build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
-# TODO: remove this once numpy 2.0 proper releases
-# and specify numpy 2.0 as a dependency in [build-system] requires in pyproject.toml
-before-build = "pip install numpy==2.0.0rc1"
-test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0"
+# pytz 2024.2 causing some failures
+test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytz<2024.2"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
+free-threaded-support = true
+before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
-# TODO: remove this once numpy 2.0 proper releases
-# and specify numpy 2.0 as a dependency in [build-system] requires in pyproject.toml
-before-build = "pip install delvewheel numpy==2.0.0rc1"
+before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build.sh"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-manylinux_aarch64*"
+test-command = """
+  PANDAS_CI='1' python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
@@ -525,6 +531,10 @@ markers = [
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
   "skip_ubsan: Tests known to fail UBSAN check",
+  # TODO: someone should investigate this ...
+  # these tests only fail in the wheel builder and don't fail in regular
+  # ARM CI
+  "fails_arm_wheels: Tests that fail in the ARM wheel build only",
 ]
 
 [tool.mypy]

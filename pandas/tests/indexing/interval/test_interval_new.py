@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
 from pandas import (
     Index,
     Interval,
@@ -211,7 +209,6 @@ class TestIntervalIndex:
             obj.loc[[4, 5, 6]]
 
 
-@pytest.mark.xfail(not IS64, reason="GH 23440")
 @pytest.mark.parametrize(
     "intervals",
     [

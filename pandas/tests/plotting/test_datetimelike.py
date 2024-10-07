@@ -1451,13 +1451,19 @@ class TestTSPlot:
         values1 = np.arange(10.0, 11.0, 0.5)
         values2 = np.arange(11.0, 12.0, 0.5)
 
-        kw = {"fmt": "-", "lw": 4}
-
         _, ax = mpl.pyplot.subplots()
-        ax.plot_date([x.toordinal() for x in dates], values1, **kw)
-        ax.plot_date([x.toordinal() for x in dates], values2, **kw)
-
-        line1, line2 = ax.get_lines()
+        (
+            line1,
+            line2,
+        ) = ax.plot(
+            [x.toordinal() for x in dates],
+            values1,
+            "-",
+            [x.toordinal() for x in dates],
+            values2,
+            "-",
+            linewidth=4,
+        )
 
         exp = np.array([x.toordinal() for x in dates], dtype=np.float64)
         tm.assert_numpy_array_equal(line1.get_xydata()[:, 0], exp)

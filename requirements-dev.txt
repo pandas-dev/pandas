@@ -63,7 +63,6 @@ natsort
 numpydoc
 pydata-sphinx-theme==0.14
 pytest-cython
-docutils < 0.21
 sphinx
 sphinx-design
 sphinx-copybutton

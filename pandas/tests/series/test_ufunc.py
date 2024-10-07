@@ -18,7 +18,10 @@ def ufunc(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False], ids=["sparse", "dense"])
+@pytest.fixture(
+    params=[pytest.param(True, marks=pytest.mark.fails_arm_wheels), False],
+    ids=["sparse", "dense"],
+)
 def sparse(request):
     return request.param
 

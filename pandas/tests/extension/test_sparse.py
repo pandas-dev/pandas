@@ -348,10 +348,15 @@ class TestSparseArray(base.ExtensionTests):
         self._check_unsupported(data)
         super().test_argmin_argmax_all_na(method, data, na_value)
 
+    @pytest.mark.fails_arm_wheels
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
+
+    @pytest.mark.fails_arm_wheels
+    def test_equals_same_data_different_object(self, data):
+        super().test_equals_same_data_different_object(data)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",

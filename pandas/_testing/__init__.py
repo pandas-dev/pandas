@@ -111,6 +111,7 @@ ALL_FLOAT_DTYPES: list[Dtype] = [*FLOAT_NUMPY_DTYPES, *FLOAT_EA_DTYPES]
 
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: list[Dtype] = [str, "str", "U"]
+COMPLEX_FLOAT_DTYPES: list[Dtype] = [*COMPLEX_DTYPES, *FLOAT_NUMPY_DTYPES]
 
 DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES: list[Dtype] = ["timedelta64[ns]", "m8[ns]"]

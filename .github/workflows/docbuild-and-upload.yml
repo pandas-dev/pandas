@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
 
 env:
   ENV_FILE: environment.yml

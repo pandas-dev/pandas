@@ -101,13 +101,14 @@ well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
 ``p.loc['a', :]``.
 
-.. csv-table::
-    :header: "Object Type", "Indexers"
-    :widths: 30, 50
-    :delim: ;
 
-    Series; ``s.loc[indexer]``
-    DataFrame; ``df.loc[row_indexer,column_indexer]``
+.. ipython:: python
+
+   ser = pd.Series(range(5), index=list("abcde"))
+   ser.loc[["a", "c", "e"]]
+
+   df = pd.DataFrame(np.arange(25).reshape(5, 5), index=list("abcde"), columns=list("abcde"))
+   df.loc[["a", "c", "e"], ["b", "d"]]
 
 .. _indexing.basics:
 
@@ -123,10 +124,9 @@ indexing pandas objects with ``[]``:
 .. csv-table::
     :header: "Object Type", "Selection", "Return Value Type"
     :widths: 30, 30, 60
-    :delim: ;
 
-    Series; ``series[label]``; scalar value
-    DataFrame; ``frame[colname]``; ``Series`` corresponding to colname
+    Series, ``series[label]``, scalar value
+    DataFrame, ``frame[colname]``, ``Series`` corresponding to colname
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:

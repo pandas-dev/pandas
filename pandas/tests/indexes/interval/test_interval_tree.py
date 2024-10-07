@@ -190,7 +190,6 @@ class TestIntervalTree:
         expected = (50 + np.iinfo(np.int64).max) / 2
         assert result == expected
 
-    @pytest.mark.xfail(not IS64, reason="GH 23440")
     @pytest.mark.parametrize(
         "left, right, expected",
         [

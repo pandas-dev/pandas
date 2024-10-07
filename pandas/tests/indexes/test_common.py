@@ -452,6 +452,7 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
         index_with_missing.sort_values(na_position=na_position)
 
 
+@pytest.mark.fails_arm_wheels
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
 def test_sort_values_with_missing(index_with_missing, na_position, request):

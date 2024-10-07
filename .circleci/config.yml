@@ -14,10 +14,10 @@ jobs:
     steps:
       - checkout
       - run: .circleci/setup_env.sh
-      - run: >
-          PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
-          LD_PRELOAD=$HOME/miniconda3/envs/pandas-dev/lib/libgomp.so.1:$LD_PRELOAD
+      - run: |
           sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+          PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH \
+          LD_PRELOAD=$HOME/miniconda3/envs/pandas-dev/lib/libgomp.so.1:$LD_PRELOAD \
           ci/run_tests.sh
   linux-musl:
     docker:
@@ -35,7 +35,7 @@ jobs:
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil "pytz<2024.2" pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
       - run: |
@@ -72,8 +72,14 @@ jobs:
           name: Build aarch64 wheels
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
-            pip3 install cibuildwheel==2.15.0
-            cibuildwheel --prerelease-pythons --output-dir wheelhouse
+            pip3 install cibuildwheel==2.20.0
+            if [[ $CIBW_BUILD == cp313t* ]]; then
+              # TODO: temporarily run 3.13 free threaded builds without build isolation
+              # since we need pre-release cython
+              CIBW_BUILD_FRONTEND="pip; args: --no-build-isolation" cibuildwheel --prerelease-pythons --output-dir wheelhouse
+            else
+              cibuildwheel --prerelease-pythons --output-dir wheelhouse
+            fi
 
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
@@ -128,7 +134,11 @@ workflows:
                            "cp310-manylinux_aarch64",
                            "cp311-manylinux_aarch64",
                            "cp312-manylinux_aarch64",
+                           "cp313-manylinux_aarch64",
+                           "cp313t-manylinux_aarch64",
                            "cp39-musllinux_aarch64",
                            "cp310-musllinux_aarch64",
                            "cp311-musllinux_aarch64",
-                           "cp312-musllinux_aarch64",]
+                           "cp312-musllinux_aarch64",
+                           "cp313-musllinux_aarch64",
+                           "cp313t-musllinux_aarch64"]
