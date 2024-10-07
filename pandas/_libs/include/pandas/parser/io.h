@@ -10,8 +10,9 @@ The full license is in the LICENSE file, distributed with this software.
 #pragma once
 
 #define PY_SSIZE_T_CLEAN
-#include "tokenizer.h"
 #include <Python.h>
+
+#include "tokenizer.h"
 
 #define FS(source) ((file_source *)source)
 

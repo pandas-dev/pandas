@@ -754,7 +754,14 @@ cpdef ndarray[object] ensure_string_array(
 
     if hasattr(arr, "to_numpy"):
 
-        if hasattr(arr, "dtype") and arr.dtype.kind in "mM":
+        if (
+            hasattr(arr, "dtype")
+            and arr.dtype.kind in "mM"
+            # TODO: we should add a custom ArrowExtensionArray.astype implementation
+            # that handles astype(str) specifically, avoiding ending up here and
+            # then we can remove the below check for `_pa_array` (for ArrowEA)
+            and not hasattr(arr, "_pa_array")
+        ):
             # dtype check to exclude DataFrame
             # GH#41409 TODO: not a great place for this
             out = arr.astype(str).astype(object)
@@ -1082,9 +1089,23 @@ def is_float(obj: object) -> bool:
     """
     Return True if given object is float.
 
+    This method checks whether the passed object is a float type. It
+    returns `True` if the object is a float, and `False` otherwise.
+
+    Parameters
+    ----------
+    obj : object
+        The object to check for float type.
+
     Returns
     -------
     bool
+        `True` if the object is of float type, otherwise `False`.
+
+    See Also
+    --------
+    api.types.is_integer : Check if an object is of integer type.
+    api.types.is_numeric_dtype : Check if an object is of numeric type.
 
     Examples
     --------
@@ -1212,6 +1233,12 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     -------
     bool
         Whether `obj` has list-like properties.
+
+    See Also
+    --------
+    Series : One-dimensional ndarray with axis labels (including time series).
+    Index : Immutable sequence used for indexing and alignment.
+    numpy.ndarray : Array object from NumPy, which is considered list-like.
 
     Examples
     --------
