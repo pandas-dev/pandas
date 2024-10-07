@@ -142,8 +142,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
                         empty_cells = 0
                         table_row.extend([value] * column_repeat)
 
-            if max_row_len < len(table_row):
-                max_row_len = len(table_row)
+            max_row_len = max(max_row_len, len(table_row))
 
             row_repeat = self._get_row_repeat(sheet_row)
             if len(table_row) == 0:

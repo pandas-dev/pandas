@@ -274,9 +274,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         expected = TimedeltaIndex(["3 Days", "36 Hours"])
         if isinstance(three_days, np.timedelta64):
             dtype = three_days.dtype
-            if dtype < np.dtype("m8[s]"):
-                # i.e. resolution is lower -> use lowest supported resolution
-                dtype = np.dtype("m8[s]")
+            dtype = max(dtype, np.dtype("m8[s]"))
             expected = expected.astype(dtype)
         elif type(three_days) is timedelta:
             expected = expected.astype("m8[us]")
