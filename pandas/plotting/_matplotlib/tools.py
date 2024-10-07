@@ -442,7 +442,7 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Axes | Iterable[Axes]) -> Generator[Axes]:
+def flatten_axes(axes: Axes | Iterable[Axes]) -> Generator[Axes, None, None]:
     if not is_list_like(axes):
         yield axes  # type: ignore[misc]
     elif isinstance(axes, (np.ndarray, ABCIndex)):

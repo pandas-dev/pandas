@@ -2918,7 +2918,7 @@ def _generate_range(
     offset: BaseOffset,
     *,
     unit: str,
-) -> Generator[Timestamp]:
+) -> Generator[Timestamp, None, None]:
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset

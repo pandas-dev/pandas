@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 @contextmanager
 def decompress_file(
     path: FilePath | BaseBuffer, compression: CompressionOptions
-) -> Generator[IO[bytes]]:
+) -> Generator[IO[bytes], None, None]:
     """
     Open a compressed file and return a file object.
 
@@ -50,7 +50,7 @@ def decompress_file(
 
 
 @contextmanager
-def set_timezone(tz: str) -> Generator[None]:
+def set_timezone(tz: str) -> Generator[None, None, None]:
     """
     Context manager for temporarily setting a timezone.
 
@@ -92,7 +92,7 @@ def set_timezone(tz: str) -> Generator[None]:
 
 
 @contextmanager
-def ensure_clean(filename=None) -> Generator[Any]:
+def ensure_clean(filename=None) -> Generator[Any, None, None]:
     """
     Gets a temporary path and agrees to remove on close.
 
@@ -124,7 +124,7 @@ def ensure_clean(filename=None) -> Generator[Any]:
 
 
 @contextmanager
-def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
+def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
