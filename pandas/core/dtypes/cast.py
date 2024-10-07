@@ -1152,7 +1152,6 @@ def convert_dtypes(
                 pa_type = to_pyarrow_type(base_dtype)
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
-
     elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
         # GH 53648
         inferred_dtype = _arrow_dtype_mapping()[inferred_dtype.pyarrow_dtype]
