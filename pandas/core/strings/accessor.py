@@ -2482,11 +2482,9 @@ class StringMethods(NoNewAttributesMixin):
         1   False  False   False
         2   True   False   True
         """
-        from pandas.core.dtypes.common import is_string_dtype
-
         from pandas.core.frame import DataFrame
 
-        if is_string_dtype(dtype):
+        if dtype in (str, "str[pyarrow]"):
             raise ValueError("string dtype not supported, please use a numeric dtype")
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
