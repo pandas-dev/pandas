@@ -683,7 +683,9 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
 
         elif dtype.kind == "f":
             mst = np.min_scalar_type(fill_value)
-            dtype = max(mst, dtype)
+            if mst > dtype:
+                # e.g. mst is np.float64 and dtype is np.float32
+                dtype = mst
 
         elif dtype.kind == "c":
             mst = np.min_scalar_type(fill_value)
@@ -716,7 +718,9 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
 
         elif dtype.kind == "c":
             mst = np.min_scalar_type(fill_value)
-            dtype = max(mst, dtype)
+            if mst > dtype:
+                # e.g. mst is np.complex128 and dtype is np.complex64
+                dtype = mst
 
     else:
         dtype = np.dtype(np.object_)
