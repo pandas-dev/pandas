@@ -881,7 +881,9 @@ class BaseGrouper:
                 sorter = ob_index.argsort()
             ob_index = ob_index.take(sorter)
             _, index = np.unique(sorter, return_index=True)
-            ob_ids = np.where(ob_ids == -1, -1, index.take(ob_ids))
+            na_ids = ob_ids == -1
+            if not na_ids.all():
+                ob_ids = np.where(na_ids, -1, index.take(ob_ids))
         ob_ids = ensure_platform_int(ob_ids)
         return ob_index, ob_ids
 
