@@ -1119,7 +1119,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set."""
         has_read_data = False
         with exit_stack:
@@ -1732,7 +1732,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set"""
         has_read_data = False
         with exit_stack:
@@ -2682,7 +2682,7 @@ class SQLiteDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set"""
         has_read_data = False
         while True:
