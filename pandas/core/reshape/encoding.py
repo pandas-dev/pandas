@@ -68,7 +68,8 @@ def get_dummies(
         If appending prefix, separator/delimiter to use. Or pass a
         list or dictionary as with `prefix`.
     dummy_na : bool, default False
-        Add a column to indicate NaNs, if False NaNs are ignored.
+        If True, a NaN indicator column will be added even if no NaN values are present.
+        If False, NA values are encoded as all zero.
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
