@@ -28,7 +28,6 @@ nat_strings: set[str]
 _TimeLike: TypeAlias = datetime | timedelta | Period | np.datetime64 | np.timedelta64
 _TimeDelta: TypeAlias = timedelta | np.timedelta64
 
-
 class NaTType:
     _value: np.int64
     @property
