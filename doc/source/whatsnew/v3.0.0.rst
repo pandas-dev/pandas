@@ -778,6 +778,8 @@ Other
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
+- Bug in :meth:`write_table` not disabling the pandas option display.html.use_mathjax has issues with processing elements in this method. (:issue:`59884`)
+
 
 .. ***DO NOT USE THIS SECTION***
 
