@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
+    rev: v0.6.9
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -34,7 +34,7 @@ repos:
     -   id: ruff-format
         exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.11'
+    rev: 'v2.13'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -52,7 +52,7 @@ repos:
     -   id: cython-lint
     -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
     -   id: check-case-conflict
     -   id: check-toml
@@ -90,12 +90,12 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.9.1
+    rev: v1.0.0
     hooks:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v18.1.8
+    rev: v19.1.1
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
