@@ -603,9 +603,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtypes = self.dtypes
         return {
             clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=dtypes[k]
+                v, copy=False, index=self.index, name=k, dtype=dtype
             ).__finalize__(self)
-            for k, v in zip(self.columns, self._iter_column_arrays())
+            for k, v, dtype in zip(self.columns, self._iter_column_arrays(), dtypes)
             if not isinstance(k, int)
         }
 
