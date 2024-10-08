@@ -1155,6 +1155,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Rename categories.
 
+        This method is commonly used to re-label or adjust the
+        category names in categorical data without changing the
+        underlying data. It is useful in situations where you want
+        to modify the labels used for clarity, consistency,
+        or readability.
+
         Parameters
         ----------
         new_categories : list-like, dict-like or callable
@@ -1371,8 +1377,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Remove the specified categories.
 
-        `removals` must be included in the old categories. Values which were in
-        the removed categories will be set to NaN
+        The ``removals`` argument must be a subset of the current categories.
+        Any values that were part of the removed categories will be set to NaN.
 
         Parameters
         ----------
@@ -1430,6 +1436,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def remove_unused_categories(self) -> Self:
         """
         Remove categories which are not used.
+
+        This method is useful when working with datasets
+        that undergo dynamic changes where categories may no longer be
+        relevant, allowing to maintain a clean, efficient data structure.
 
         Returns
         -------
