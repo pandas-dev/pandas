@@ -222,7 +222,7 @@ class Styler(StylerRenderer):
       * ``level<k>`` where `k` is the level in a MultiIndex
 
     * Column label cells include
-    
+
       * ``col_heading``
       * ``col<n>`` where `n` is the numeric position of the column
       * ``level<k>`` where `k` is the level in a MultiIndex
