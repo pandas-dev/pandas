@@ -69,8 +69,7 @@ def get_dummies(
         list or dictionary as with `prefix`.
     dummy_na : bool, default False
         If True, a NaN indicator column will be added even if no NaN values are present.
-        This behavior is intentional and by design. If False, NA values are encoded
-        as all zero.
+        If False, NA values are encoded as all zero.
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
