@@ -8,11 +8,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import HAS_PYARROW
 from pandas.errors import SpecificationError
 import pandas.util._test_decorators as td
-
-from pandas.core.dtypes.common import is_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -1408,23 +1405,15 @@ def test_handle_dict_return_value(df):
     tm.assert_series_equal(result, expected)
 
 
-# TODO harmonize error messages
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
-)
 @pytest.mark.parametrize("grouper", ["A", ["A", "B"]])
-def test_set_group_name(df, grouper, using_infer_string):
+def test_set_group_name(df, grouper):
     def f(group):
         assert group.name is not None
         return group
 
     def freduce(group):
         assert group.name is not None
-        if using_infer_string and grouper == "A" and is_string_dtype(group.dtype):
-            with pytest.raises(TypeError, match="does not support"):
-                group.sum()
-        else:
-            return group.sum()
+        return group.sum()
 
     def freducex(x):
         return freduce(x)

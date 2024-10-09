@@ -461,10 +461,11 @@ class TestArrowArray(base.ExtensionTests):
                 pass
             else:
                 return False
+        elif pa.types.is_binary(pa_dtype) and op_name == "sum":
+            return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
         ) and op_name in [
-            "sum",
             "mean",
             "median",
             "prod",
@@ -563,6 +564,8 @@ class TestArrowArray(base.ExtensionTests):
             cmp_dtype = "float64[pyarrow]"
         elif op_name in ["sum", "prod"] and pa.types.is_boolean(pa_type):
             cmp_dtype = "uint64[pyarrow]"
+        elif op_name == "sum" and pa.types.is_string(pa_type):
+            cmp_dtype = arr.dtype
         else:
             cmp_dtype = {
                 "i": "int64[pyarrow]",
@@ -593,26 +596,6 @@ class TestArrowArray(base.ExtensionTests):
         # GH 52679
         result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
         assert result == 1.5
-
-    def test_in_numeric_groupby(self, data_for_grouping):
-        dtype = data_for_grouping.dtype
-        if is_string_dtype(dtype):
-            df = pd.DataFrame(
-                {
-                    "A": [1, 1, 2, 2, 3, 3, 1, 4],
-                    "B": data_for_grouping,
-                    "C": [1, 1, 1, 1, 1, 1, 1, 1],
-                }
-            )
-
-            expected = pd.Index(["C"])
-            msg = re.escape(f"agg function failed [how->sum,dtype->{dtype}")
-            with pytest.raises(TypeError, match=msg):
-                df.groupby("A").sum()
-            result = df.groupby("A").sum(numeric_only=True).columns
-            tm.assert_index_equal(result, expected)
-        else:
-            super().test_in_numeric_groupby(data_for_grouping)
 
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype

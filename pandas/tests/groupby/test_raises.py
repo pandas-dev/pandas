@@ -208,7 +208,6 @@ def test_groupby_raises_string_udf(how, by, groupby_series, df_with_string_col):
         getattr(gb, how)(func)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
 def test_groupby_raises_string_np(
@@ -225,7 +224,8 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            "Could not convert string .* to numeric",
+            "Could not convert string .* to numeric|"
+            "Cannot perform reduction 'mean' with string dtype",
         ),
     }[groupby_func_np]
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())

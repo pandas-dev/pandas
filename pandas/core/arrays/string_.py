@@ -803,8 +803,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             else:
                 return nanops.nanall(self._ndarray, skipna=skipna)
 
-        if name in ["min", "max"]:
-            result = getattr(self, name)(skipna=skipna, axis=axis)
+        if name in ["min", "max", "sum"]:
+            result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
             if keepdims:
                 return self._from_sequence([result], dtype=self.dtype)
             return result
@@ -828,6 +828,20 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
+    ) -> Scalar:
+        nv.validate_sum((), kwargs)
+        result = masked_reductions.sum(
+            values=self._ndarray, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
