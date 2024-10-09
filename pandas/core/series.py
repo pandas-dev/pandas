@@ -813,7 +813,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _references(self) -> BlockValuesRefs:
         return self._mgr._block.refs
 
-    @Appender(base.IndexOpsMixin.array.__doc__)
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr.array_values()
