@@ -233,7 +233,7 @@ def _wrap_result_adbc(
 
 
 @overload
-def read_sql_table(
+def read_sql_table(  # pyright: ignore[reportOverlappingOverload]
     table_name: str,
     con,
     schema=...,
@@ -364,7 +364,7 @@ def read_sql_table(
 
 
 @overload
-def read_sql_query(
+def read_sql_query(  # pyright: ignore[reportOverlappingOverload]
     sql,
     con,
     index_col: str | list[str] | None = ...,
@@ -500,7 +500,7 @@ def read_sql_query(
 
 
 @overload
-def read_sql(
+def read_sql(  # pyright: ignore[reportOverlappingOverload]
     sql,
     con,
     index_col: str | list[str] | None = ...,

@@ -4,7 +4,10 @@ import contextlib
 import inspect
 import os
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 if TYPE_CHECKING:
@@ -24,7 +27,7 @@ def rewrite_exception(old_name: str, new_name: str) -> Generator[None]:
             raise
         msg = str(err.args[0])
         msg = msg.replace(old_name, new_name)
-        args: tuple[str, ...] = (msg,)
+        args: tuple[Any, ...] = (msg,)
         if len(err.args) > 1:
             args = args + err.args[1:]
         err.args = args
