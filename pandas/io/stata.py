@@ -2004,6 +2004,16 @@ The repeated labels are:
         """
         Return data label of Stata file.
 
+        The data label is a descriptive string associated with the dataset
+        stored in the Stata file. This property provides access to that
+        label, if one is present.
+
+        See Also
+        --------
+        io.stata.StataReader.variable_labels : Return a dict associating each variable
+            name with corresponding label.
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
         Examples
         --------
         >>> df = pd.DataFrame([(1,)], columns=["variable"])
@@ -2066,9 +2076,19 @@ The repeated labels are:
         """
         Return a nested dict associating each variable name to its value and label.
 
+        This method retrieves the value labels from a Stata file. Value labels are
+        mappings between the coded values and their corresponding descriptive labels
+        in a Stata dataset.
+
         Returns
         -------
         dict
+            A python dictionary.
+
+        See Also
+        --------
+        read_stata : Read Stata file into DataFrame.
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
 
         Examples
         --------

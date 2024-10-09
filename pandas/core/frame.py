@@ -7266,7 +7266,11 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Sort by DataFrame column values when False.
+            Sort by frequencies when True. Preserve the order of the data when False.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, ``sort=False`` would sort by the columns values.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -7372,7 +7376,9 @@ class DataFrame(NDFrame, OpsMixin):
             subset = self.columns.tolist()
 
         name = "proportion" if normalize else "count"
-        counts = self.groupby(subset, dropna=dropna, observed=False)._grouper.size()
+        counts = self.groupby(
+            subset, sort=False, dropna=dropna, observed=False
+        )._grouper.size()
         counts.name = name
 
         if sort:

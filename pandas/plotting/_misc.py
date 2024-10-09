@@ -39,7 +39,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     **kwargs
         Keyword arguments to be passed to matplotlib.table.table.
         If `rowLabels` or `colLabels` is not specified, data index or column
-        name will be used.
+        names will be used.
 
     Returns
     -------
@@ -59,11 +59,11 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
 
             >>> import matplotlib.pyplot as plt
             >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
-            >>> fix, ax = plt.subplots()
+            >>> fig, ax = plt.subplots()
             >>> ax.axis("off")
             (0.0, 1.0, 0.0, 1.0)
             >>> table = pd.plotting.table(
-            ...     ax, df, loc="center", cellLoc="center", colWidths=list([0.2, 0.2])
+            ...     ax, df, loc="center", cellLoc="center", colWidths=[0.2, 0.2]
             ... )
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -549,6 +549,10 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     """
     Lag plot for time series.
 
+    A lag plot is a scatter plot of a time series against a lag of itself. It helps
+    in visualizing the temporal dependence between observations by plotting the values
+    at time `t` on the x-axis and the values at time `t + lag` on the y-axis.
+
     Parameters
     ----------
     series : Series
@@ -563,6 +567,13 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib Axes object containing the lag plot.
+
+    See Also
+    --------
+    plotting.autocorrelation_plot : Autocorrelation plot for time series.
+    matplotlib.pyplot.scatter : A scatter plot of y vs. x with varying marker size
+        and/or color in Matplotlib.
 
     Examples
     --------

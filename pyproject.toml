@@ -324,7 +324,8 @@ ignore = [
   "PT019",
   # The following rules may cause conflicts when used with the formatter:
   "ISC001",
-
+  # if-stmt-min-max
+  "PLR1730",
 
   ### TODO: Enable gradually
   # Useless statement
@@ -341,8 +342,10 @@ ignore = [
   "RUF012",
   # type-comparison
   "E721",
-
-  # Additional pylint rules
+  # repeated-equality-comparison
+  "PLR1714",
+  # self-or-cls-assignment
+  "PLW0642",
   # literal-membership
   "PLR6201", # 847 errors
   # Method could be a function, class method, or static method
