@@ -790,6 +790,19 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         numpy.ndarray
+            A NumPy ``timedelta64`` object representing the same duration as the
+            original pandas ``Timedelta`` object. The precision of the resulting
+            object is in nanoseconds, which is the default
+            time resolution used by pandas for ``Timedelta`` objects, ensuring
+            high precision for time-based calculations.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta format.
+        Timedelta : Represents a duration between two dates or times.
+        DatetimeIndex: Index of datetime64 data.
+        Timedelta.components : Return a components namedtuple-like
+                               of a single timedelta.
 
         Examples
         --------
@@ -800,6 +813,14 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> tdelta_idx.to_pytimedelta()
         array([datetime.timedelta(days=1), datetime.timedelta(days=2),
                datetime.timedelta(days=3)], dtype=object)
+
+        >>> tidx = pd.TimedeltaIndex(data=["1 days 02:30:45", "3 days 04:15:10"])
+        >>> tidx
+        TimedeltaIndex(['1 days 02:30:45', '3 days 04:15:10'],
+               dtype='timedelta64[ns]', freq=None)
+        >>> tidx.to_pytimedelta()
+        array([datetime.timedelta(days=1, seconds=9045),
+                datetime.timedelta(days=3, seconds=15310)], dtype=object)
         """
         return ints_to_pytimedelta(self._ndarray)
 
