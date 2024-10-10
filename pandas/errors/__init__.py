@@ -731,6 +731,15 @@ class CategoricalConversionWarning(Warning):
     """
     Warning is raised when reading a partial labeled Stata file using a iterator.
 
+    This warning helps ensure data integrity and alerts users to potential issues
+    during the incremental reading of Stata files with labeled data, allowing for
+    additional checks and adjustments as necessary.
+
+    See Also
+    --------
+    read_stata : Read a Stata file into a DataFrame.
+    Categorical : Represents a categorical variable in pandas.
+
     Examples
     --------
     >>> from pandas.io.stata import StataReader
