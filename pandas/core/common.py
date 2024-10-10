@@ -560,9 +560,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(
-    obj, attr: str, value, condition: bool = True
-) -> Generator[None, None, None]:
+def temp_setattr(obj, attr: str, value, condition: bool = True) -> Generator[None]:
     """
     Temporarily set attribute on an object.
 

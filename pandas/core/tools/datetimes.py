@@ -1000,7 +1000,7 @@ def to_datetime(
         dayfirst=dayfirst,
         yearfirst=yearfirst,
         errors=errors,
-        exact=exact,
+        exact=exact,  # type: ignore[arg-type]
     )
     result: Timestamp | NaTType | Series | Index
 

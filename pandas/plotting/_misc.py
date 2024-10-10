@@ -715,7 +715,7 @@ class _Options(dict):
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value) -> Generator[_Options, None, None]:
+    def use(self, key, value) -> Generator[_Options]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.

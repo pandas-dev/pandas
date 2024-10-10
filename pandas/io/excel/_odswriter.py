@@ -34,7 +34,7 @@ class ODSWriter(ExcelWriter):
     _engine = "odf"
     _supported_extensions = (".ods",)
 
-    def __init__(
+    def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,

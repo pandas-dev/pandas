@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 def create_data_for_split(
     df: DataFrame, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
-) -> Generator[list, None, None]:
+) -> Generator[list]:
     """
     Simple helper method to create data for to ``to_dict(orient="split")``
     to create the main output data

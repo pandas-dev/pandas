@@ -2428,7 +2428,7 @@ class ArrowExtensionArray(
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
-    def _str_normalize(self, form: str) -> Self:
+    def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
         predicate = lambda val: unicodedata.normalize(form, val)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
