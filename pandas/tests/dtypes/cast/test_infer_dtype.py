@@ -23,7 +23,33 @@ from pandas import (
     Timestamp,
     date_range,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 
+
+class MockScalar:
+    pass
+
+@register_extension_dtype
+class MockDtype(ExtensionDtype):
+    @property
+    def name(self):
+        return "MockDtype"
+    def is_unambiguous_scalar(scalar):
+        if isinstance(scalar, MockScalar):
+            return True
+        return False
+
+    @classmethod
+    def construct_from_string(cls, string: str):
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+
+        if string == cls.__name__:
+            return cls()
+        else:
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
 def test_infer_dtype_from_int_scalar(any_int_numpy_dtype):
     # Test that infer_dtype_from_scalar is
@@ -157,6 +183,7 @@ def test_infer_dtype_from_scalar_errors():
         (np.datetime64("2016-01-01"), np.dtype("M8[s]")),
         (Timestamp("20160101"), np.dtype("M8[s]")),
         (Timestamp("20160101", tz="UTC"), "datetime64[s, UTC]"),
+        (MockScalar(), MockDtype())
     ],
 )
 def test_infer_dtype_from_scalar(value, expected, using_infer_string):
@@ -189,6 +216,7 @@ def test_infer_dtype_from_scalar(value, expected, using_infer_string):
             Series(date_range("20160101", periods=3, tz="US/Eastern")),
             "datetime64[ns, US/Eastern]",
         ),
+        ([MockScalar()], MockDtype())
     ],
 )
 def test_infer_dtype_from_array(arr, expected, using_infer_string):
