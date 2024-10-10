@@ -74,6 +74,10 @@ def map_infer(
     *,
     convert: Literal[False],
     ignore_na: bool = ...,
+    mask: npt.NDArray[np.bool_] | None = ...,
+    na_value: Any = ...,
+    convert_to_nullable_dtype: Literal[False] = ...,
+    storage: str | None = ...,
 ) -> np.ndarray: ...
 @overload
 def map_infer(
@@ -82,6 +86,10 @@ def map_infer(
     *,
     convert: bool = ...,
     ignore_na: bool = ...,
+    mask: npt.NDArray[np.bool_] | None = ...,
+    na_value: Any = ...,
+    convert_to_nullable_dtype: Literal[False] = ...,
+    storage: str | None = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
@@ -93,6 +101,8 @@ def maybe_convert_objects(
     convert_non_numeric: Literal[False] = ...,
     convert_to_nullable_dtype: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
+    storage: str | None = ...,
+    na_value: Any = ...,
 ) -> npt.NDArray[np.object_ | np.number]: ...
 @overload
 def maybe_convert_objects(
@@ -104,6 +114,8 @@ def maybe_convert_objects(
     convert_non_numeric: bool = ...,
     convert_to_nullable_dtype: Literal[True] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
+    storage: str | None = ...,
+    na_value: Any = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
@@ -115,6 +127,8 @@ def maybe_convert_objects(
     convert_non_numeric: bool = ...,
     convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
+    storage: str | None = ...,
+    na_value: Any = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_numeric(
@@ -178,6 +192,9 @@ def map_infer_mask(
     convert: Literal[False],
     na_value: Any = ...,
     dtype: np.dtype = ...,
+    convert_to_nullable_dtype: bool = ...,
+    convert_non_numeric: bool = ...,
+    storage: str | None = ...,
 ) -> np.ndarray: ...
 @overload
 def map_infer_mask(
@@ -188,6 +205,9 @@ def map_infer_mask(
     convert: bool = ...,
     na_value: Any = ...,
     dtype: np.dtype = ...,
+    convert_to_nullable_dtype: bool = ...,
+    convert_non_numeric: bool = ...,
+    storage: str | None = ...,
 ) -> ArrayLike: ...
 def indices_fast(
     index: npt.NDArray[np.intp],
