@@ -1791,7 +1791,7 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def _is_numeric(self) -> bool:
-        return not self.subtype == object
+        return self.subtype != object
 
     @property
     def _is_boolean(self) -> bool:

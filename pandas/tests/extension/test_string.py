@@ -212,9 +212,6 @@ class TestStringArray(base.ExtensionTests):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, "abc")
 
-    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
-
     def test_combine_add(self, data_repeated, using_infer_string, request):
         dtype = next(data_repeated(1)).dtype
         if using_infer_string and (
