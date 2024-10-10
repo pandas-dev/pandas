@@ -86,7 +86,7 @@ def _astype_nansafe(
         res = arr.astype(dtype, copy=copy)
         return np.asarray(res)
 
-    if issubclass(dtype.type, str):
+    if dtype.kind == "U":
         shape = arr.shape
         if arr.ndim > 1:
             arr = arr.ravel()
@@ -97,9 +97,14 @@ def _astype_nansafe(
     elif np.issubdtype(arr.dtype, np.floating) and dtype.kind in "iu":
         return _astype_float_to_int_nansafe(arr, dtype, copy)
 
-    elif arr.dtype == object:
+    elif arr.dtype == object or arr.dtype.kind == "T":
         # if we have a datetime/timedelta array of objects
         # then coerce to datetime64[ns] and use DatetimeArray.astype
+
+        # array_to_timedelta64 doesn't support numpy stringdtype yet
+        # TODO: fix?
+        if arr.dtype.kind == "T":
+            arr = arr.astype(object)
 
         if lib.is_np_dtype(dtype, "M"):
             from pandas.core.arrays import DatetimeArray
@@ -178,8 +183,8 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
     else:
         values = _astype_nansafe(values, dtype, copy=copy)
 
-    # in pandas we don't store numpy str dtypes, so convert to object
-    if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
+    # in pandas we don't store the numpy.str_ dtype, so convert to object
+    if isinstance(dtype, np.dtype) and values.dtype.kind == "U":
         values = np.array(values, dtype=object)
 
     return values

@@ -201,10 +201,10 @@ def test_mean_dont_convert_j_to_complex():
     with pytest.raises(TypeError, match=msg):
         df.agg("mean")
 
-    msg = "Could not convert string 'J' to numeric|does not support"
+    msg = "Could not convert string 'J' to numeric|does not support|Cannot pass"
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
-    msg = "Could not convert string 'J' to numeric|ufunc 'divide'"
+    msg = "Could not convert string 'J' to numeric|ufunc 'divide'|Cannot pass"
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 

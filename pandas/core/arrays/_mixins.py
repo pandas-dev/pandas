@@ -11,7 +11,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
@@ -42,6 +45,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PeriodDtype,
 )
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
@@ -407,7 +411,19 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         """
         value = self._validate_setitem_value(value)
 
-        res_values = np.where(mask, self._ndarray, value)
+        if self._ndarray.dtype.kind == "T":
+            # Handling non-string values and numpy StringDtype
+            # explicitly since we don't want to end up with object
+            # and lose the string dtype
+            if value is np.nan:
+                value = libmissing.NA
+                res_values = self._ndarray.copy()
+                res_values[~mask] = value
+            elif is_array_like(value):
+                value = np.asarray(value, dtype=self._ndarray.dtype)
+                res_values = np.where(mask, self._ndarray, value)
+        else:
+            res_values = np.where(mask, self._ndarray, value)
         if res_values.dtype != self._ndarray.dtype:
             raise AssertionError(
                 # GH#56410

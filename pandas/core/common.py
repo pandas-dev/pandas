@@ -255,7 +255,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         # has incompatible type "Iterable[Any]"; expected "Sized"
         return construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
 
-    if issubclass(result.dtype.type, str):
+    if result.dtype.kind == "U":
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
