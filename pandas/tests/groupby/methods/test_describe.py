@@ -71,7 +71,7 @@ def test_series_describe_as_index(as_index, keys):
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_describe_multikey(tsframe):
+def test_frame_describe_multikey(tsframe, using_infer_string):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
     desc_groups = []
@@ -86,6 +86,10 @@ def test_frame_describe_multikey(tsframe):
         desc_groups.append(group)
     expected = pd.concat(desc_groups, axis=1)
     tm.assert_frame_equal(result, expected)
+
+    # remainder of the tests fails with string dtype but is testing deprecated behaviour
+    if using_infer_string:
+        return
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):

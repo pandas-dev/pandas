@@ -1221,7 +1221,9 @@ class TestiLocBaseIndependent:
         df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
 
         if using_infer_string:
-            with pytest.raises(TypeError, match="Invalid value"):
+            with tm.assert_produces_warning(
+                FutureWarning, match="Setting an item of incompatible dtype"
+            ):
                 df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
         else:
             df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
