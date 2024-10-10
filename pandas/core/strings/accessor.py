@@ -2490,12 +2490,16 @@ class StringMethods(NoNewAttributesMixin):
         1   False  False   False
         2   True   False   True
         """
+        from pandas.core.dtypes.common import is_string_dtype
+
         from pandas.core.frame import DataFrame
 
+        if is_string_dtype(dtype):
+            raise ValueError("string dtype not supported, please use a numeric dtype")
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
         result, name = self._data.array._str_get_dummies(sep, dtype)
-        if is_extension_array_dtype(dtype) or isinstance(dtype, ArrowDtype):
+        if is_extension_array_dtype(dtype):
             return self._wrap_result(
                 DataFrame(result, columns=name, dtype=dtype),
                 name=name,
