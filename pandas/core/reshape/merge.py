@@ -347,6 +347,51 @@ def merge(
     2   bar      7
     3   bar      8
     """
+    return merge_pick_index(
+        left,
+        right,
+        how,
+        on,
+        left_on,
+        right_on,
+        left_index,
+        right_index,
+        sort,
+        suffixes,
+        copy,
+        indicator,
+        validate,
+    )
+
+
+def merge_pick_index(
+    left: DataFrame | Series,
+    right: DataFrame | Series,
+    how: MergeHow = "inner",
+    on: IndexLabel | AnyArrayLike | None = None,
+    left_on: IndexLabel | AnyArrayLike | None = None,
+    right_on: IndexLabel | AnyArrayLike | None = None,
+    left_index: bool = False,
+    right_index: bool = False,
+    sort: bool = False,
+    suffixes: Suffixes = ("_x", "_y"),
+    copy: bool | lib.NoDefault = lib.no_default,
+    indicator: str | bool = False,
+    validate: str | None = None,
+    index: Literal["left", "right", "reset"] | None = None,
+) -> DataFrame:
+    """A helper function for merge that returns a specified index.
+
+    If index is "left" or "right" then the returned DataFrame will
+    use the index from the left or right DataFrames respectively.
+
+    If index is "reset" then the DataFrame will have the default
+    index: zero for the first row, one for the second, etc.
+
+    If index is None then the value will be inferred based on the
+    merge. If merging on both indexes then None is the only accepted
+    value.
+    """
     left_df = _validate_operand(left)
     left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
@@ -378,6 +423,7 @@ def merge(
             suffixes=suffixes,
             indicator=indicator,
             validate=validate,
+            index=index,
         )
         return op.get_result()
 
@@ -932,6 +978,7 @@ class _MergeOperation:
     join_names: list[Hashable]
     right_join_keys: list[ArrayLike]
     left_join_keys: list[ArrayLike]
+    index: Literal["left", "right", "reset"] | None
 
     def __init__(
         self,
@@ -947,6 +994,7 @@ class _MergeOperation:
         suffixes: Suffixes = ("_x", "_y"),
         indicator: str | bool = False,
         validate: str | None = None,
+        index: Literal["left", "right", "reset"] | None = None,
     ) -> None:
         _left = _validate_operand(left)
         _right = _validate_operand(right)
@@ -963,6 +1011,23 @@ class _MergeOperation:
         self.right_index = right_index
 
         self.indicator = indicator
+
+        # Identify which index will be used for the output
+        if self.left_index and self.right_index and self.how != "asof":
+            if index is not None:
+                raise ValueError(
+                    f'Index "{index}" is not supported for merges on both indexes.'
+                )
+        elif index is not None:
+            pass
+        elif self.right_index:
+            index = "right"
+        elif self.left_index:
+            index = "left"
+        else:
+            index = "reset"
+
+        self.index = index
 
         if not is_bool(left_index):
             raise ValueError(
@@ -1341,53 +1406,32 @@ class _MergeOperation:
             )
 
         elif self.right_index and self.how == "left":
-            join_index, left_indexer, right_indexer = _left_join_on_index(
+            left_indexer, right_indexer = _left_join_on_index(
                 left_ax, right_ax, self.left_join_keys, sort=self.sort
             )
 
         elif self.left_index and self.how == "right":
-            join_index, right_indexer, left_indexer = _left_join_on_index(
+            right_indexer, left_indexer = _left_join_on_index(
                 right_ax, left_ax, self.right_join_keys, sort=self.sort
             )
         else:
-            (left_indexer, right_indexer) = self._get_join_indexers()
+            left_indexer, right_indexer = self._get_join_indexers()
 
-            if self.right_index:
-                if len(self.left) > 0:
-                    join_index = self._create_join_index(
-                        left_ax,
-                        right_ax,
-                        left_indexer,
-                        how="right",
-                    )
-                elif right_indexer is None:
-                    join_index = right_ax.copy()
-                else:
-                    join_index = right_ax.take(right_indexer)
-            elif self.left_index:
-                if self.how == "asof":
-                    # GH#33463 asof should always behave like a left merge
-                    join_index = self._create_join_index(
-                        left_ax,
-                        right_ax,
-                        left_indexer,
-                        how="left",
-                    )
-
-                elif len(self.right) > 0:
-                    join_index = self._create_join_index(
-                        right_ax,
-                        left_ax,
-                        right_indexer,
-                        how="left",
-                    )
-                elif left_indexer is None:
-                    join_index = left_ax.copy()
-                else:
-                    join_index = left_ax.take(left_indexer)
-            else:
-                n = len(left_ax) if left_indexer is None else len(left_indexer)
-                join_index = default_index(n)
+        if self.index == "left":
+            join_index = self._create_join_index(
+                left_ax,
+                right_ax,
+                left_indexer,
+            )
+        elif self.index == "right":
+            join_index = self._create_join_index(
+                right_ax,
+                left_ax,
+                right_indexer,
+            )
+        elif self.index == "reset":
+            n = len(left_ax) if left_indexer is None else len(left_indexer)
+            join_index = default_index(n)
 
         return join_index, left_indexer, right_indexer
 
@@ -1397,7 +1441,6 @@ class _MergeOperation:
         index: Index,
         other_index: Index,
         indexer: npt.NDArray[np.intp] | None,
-        how: JoinHow = "left",
     ) -> Index:
         """
         Create a join index by rearranging one index to match another
@@ -1407,17 +1450,15 @@ class _MergeOperation:
         index : Index
             index being rearranged
         other_index : Index
-            used to supply values not found in index
+            do not fill with nulls if the other_index is a MultiIndex
         indexer : np.ndarray[np.intp] or None
             how to rearrange index
-        how : str
-            Replacement is only necessary if indexer based on other_index.
 
         Returns
         -------
         Index
         """
-        if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
+        if not isinstance(other_index, MultiIndex):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
             # to take the final value in target index. So, we set the last
@@ -2125,6 +2166,7 @@ class _OrderedMerge(_MergeOperation):
             how=how,
             suffixes=suffixes,
             sort=True,  # factorize sorts
+            index="left" if left_index or right_index else "reset",
         )
 
     def get_result(self) -> DataFrame:
@@ -2574,7 +2616,7 @@ def _get_no_sort_one_missing_indexer(
 
 def _left_join_on_index(
     left_ax: Index, right_ax: Index, join_keys: list[ArrayLike], sort: bool = False
-) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp]]:
+) -> tuple[npt.NDArray[np.intp] | None, npt.NDArray[np.intp]]:
     if isinstance(right_ax, MultiIndex):
         lkey, rkey = _get_multiindex_indexer(join_keys, right_ax, sort=sort)
     else:
@@ -2593,11 +2635,10 @@ def _left_join_on_index(
 
     if sort or len(left_ax) != len(left_indexer):
         # if asked to sort or there are 1-to-many matches
-        join_index = left_ax.take(left_indexer)
-        return join_index, left_indexer, right_indexer
+        return left_indexer, right_indexer
 
     # left frame preserves order & length of its index
-    return left_ax, None, right_indexer
+    return None, right_indexer
 
 
 def _factorize_keys(
