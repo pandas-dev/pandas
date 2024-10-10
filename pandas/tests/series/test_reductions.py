@@ -223,3 +223,11 @@ def test_median_with_convertible_string_raises():
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):
         df.median()
+
+
+def test_mean_with_skipna():
+    # GH#59965 skipna=True operations don't skip NaN in FloatingArrays
+    series1 = Series({"a": 0.0, "b": 1, "c": 1})
+    series2 = Series({"a": 0.0, "b": 2, "c": 2})
+    result = series1.convert_dtypes() / series2.convert_dtypes()
+    assert pd.notna(result.mean(skipna=True))
