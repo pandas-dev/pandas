@@ -10,14 +10,13 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.compat import (
     pa_version_under10p1,
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under17p0,
 )
-
-from pandas.core.dtypes.missing import isna
 
 if not pa_version_under10p1:
     import pyarrow as pa
@@ -38,7 +37,7 @@ class ArrowStringArrayMixin:
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
-    def _convert_bool_result(self, result):
+    def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
         # Convert a bool-dtype result to the appropriate result type
         raise NotImplementedError
 
@@ -212,7 +211,9 @@ class ArrowStringArrayMixin:
         result = pc.if_else(ends_with, removed, self._pa_array)
         return type(self)(result)
 
-    def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+    def _str_startswith(
+        self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
+    ):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
         else:
@@ -225,11 +226,11 @@ class ArrowStringArrayMixin:
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
+        return self._convert_bool_result(result, na=na, method_name="startswith")
 
-    def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+    def _str_endswith(
+        self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
+    ):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
         else:
@@ -242,9 +243,7 @@ class ArrowStringArrayMixin:
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
+        return self._convert_bool_result(result, na=na, method_name="endswith")
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._pa_array)
@@ -283,7 +282,12 @@ class ArrowStringArrayMixin:
         return self._convert_bool_result(result)
 
     def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+        regex: bool = True,
     ):
         if flags:
             raise NotImplementedError(f"contains not implemented with {flags=}")
@@ -293,19 +297,25 @@ class ArrowStringArrayMixin:
         else:
             pa_contains = pc.match_substring
         result = pa_contains(self._pa_array, pat, ignore_case=not case)
-        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
+        return self._convert_bool_result(result, na=na, method_name="contains")
 
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
+        self,
+        pat: str,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not pat.startswith("^"):
             pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
-        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
