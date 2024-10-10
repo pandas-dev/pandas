@@ -114,6 +114,7 @@ from pandas._libs.tslibs.offsets import (
     INVALID_FREQ_ERR_MSG,
     BDay,
 )
+from pandas.util._decorators import set_module
 
 cdef:
     enum:
@@ -2830,6 +2831,7 @@ cdef class _Period(PeriodMixin):
         return period_format(self.ordinal, base, fmt)
 
 
+@set_module("pandas")
 class Period(_Period):
     """
     Represents a period of time.
