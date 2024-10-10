@@ -2001,6 +2001,12 @@ cdef class _Period(PeriodMixin):
         -------
         Timestamp
 
+        See Also
+        --------
+        Timestamp : A class representing a single point in time.
+        Period : Represents a span of time with a fixed frequency.
+        PeriodIndex.to_timestamp : Convert a `PeriodIndex` to a `DatetimeIndex`.
+
         Examples
         --------
         >>> period = pd.Period('2023-1-1', freq='D')

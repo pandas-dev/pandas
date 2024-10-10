@@ -44,7 +44,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
 
-    def test_astype(self):
+    def test_astype(self, using_infer_string):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, "NaT", NaT, np.nan], name="idx")
 
@@ -61,7 +61,12 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(str)
-        expected = Index([str(x) for x in idx], name="idx", dtype=object)
+        if using_infer_string:
+            expected = Index(
+                [str(x) if x is not NaT else None for x in idx], name="idx", dtype="str"
+            )
+        else:
+            expected = Index([str(x) for x in idx], name="idx", dtype=object)
         tm.assert_index_equal(result, expected)
 
         rng = timedelta_range("1 days", periods=10)
