@@ -183,6 +183,10 @@ class TestArithmetic:
                 "unsupported operand type",
                 "must be str",
                 "has no kernel",
+                "operation 'add' not supported",
+                "operation 'radd' not supported",
+                "operation 'sub' not supported",
+                "operation 'rsub' not supported",
             ]
         )
         with pytest.raises(Exception, match=msg):

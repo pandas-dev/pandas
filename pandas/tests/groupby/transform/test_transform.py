@@ -513,7 +513,7 @@ def test_transform_nuisance_raises(df, using_infer_string):
     msg = "Could not convert"
     if using_infer_string:
         if df.columns.dtype.storage == "pyarrow":
-            msg = "with dtype str does not support operation 'mean'"
+            msg = "with dtype str does not support reduction 'mean'"
         else:
             msg = "Cannot perform reduction 'mean' with string dtype"
     with pytest.raises(TypeError, match=msg):
@@ -621,7 +621,7 @@ def test_groupby_transform_with_int(using_infer_string):
     msg = "Could not convert"
     if using_infer_string:
         if HAS_PYARROW:
-            msg = "with dtype str does not support operation 'mean'"
+            msg = "with dtype str does not support reduction 'mean'"
         else:
             msg = "Cannot perform reduction 'mean' with string dtype"
     with np.errstate(all="ignore"):

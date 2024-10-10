@@ -1199,7 +1199,10 @@ class TestWideToLong:
         ):
             df.melt(id_vars="value", value_name="value")
 
-    def test_missing_stubname(self, any_string_dtype):
+    def test_missing_stubname(self, request, any_string_dtype, using_infer_string):
+        if using_infer_string and any_string_dtype == "object":
+            # triggers object dtype inference warning of dtype=object
+            request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
         # GH46044
         df = DataFrame({"id": ["1", "2"], "a-1": [100, 200], "a-2": [300, 400]})
         df = df.astype({"id": any_string_dtype})

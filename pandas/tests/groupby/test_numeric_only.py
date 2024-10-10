@@ -273,6 +273,7 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only, using_infer_str
             # cumsum, diff, pct_change
             "unsupported operand type",
             "has no kernel",
+            "operation 'sub' not supported for dtype 'str' with dtype 'float64'",
         )
         if using_infer_string:
             pa = pytest.importorskip("pyarrow")

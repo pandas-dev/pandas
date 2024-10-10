@@ -16,7 +16,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import index as libindex
-from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
@@ -1459,9 +1458,6 @@ class TestLocBaseIndependent:
 
         tm.assert_frame_equal(expected, df)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_loc_setitem_categorical_values_partial_column_slice(self):
         # Assigning a Category to parts of a int/... column uses the values of
         # the Categorical
