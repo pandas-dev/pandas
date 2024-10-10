@@ -72,10 +72,10 @@ def test_deferred_with_groupby():
         return x.set_index("date").resample("D").asfreq()
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         expected = df.groupby("id").apply(f_0)
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.set_index("date").groupby("id").resample("D").asfreq()
     tm.assert_frame_equal(result, expected)
 
@@ -91,10 +91,10 @@ def test_deferred_with_groupby():
         return x.resample("1D").ffill()
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         expected = df.groupby("group").apply(f_1)
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("group").resample("1D").ffill()
     tm.assert_frame_equal(result, expected)
 
@@ -111,7 +111,7 @@ def test_getitem(test_frame):
     tm.assert_series_equal(result, expected)
 
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = g.resample("2s").mean().B
     tm.assert_series_equal(result, expected)
 
@@ -237,10 +237,10 @@ def test_methods(f, test_frame):
     r = g.resample("2s")
 
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = getattr(r, f)()
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
     tm.assert_equal(result, expected)
 
@@ -259,10 +259,10 @@ def test_methods_std_var(f, test_frame):
     g = test_frame.groupby("A")
     r = g.resample("2s")
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = getattr(r, f)(ddof=1)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         expected = g.apply(lambda x: getattr(x.resample("2s"), f)(ddof=1))
     tm.assert_frame_equal(result, expected)
 
@@ -273,14 +273,14 @@ def test_apply(test_frame):
 
     # reduction
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         expected = g.resample("2s").sum()
 
     def f_0(x):
         return x.resample("2s").sum()
 
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = r.apply(f_0)
     tm.assert_frame_equal(result, expected)
 
@@ -288,7 +288,7 @@ def test_apply(test_frame):
         return x.resample("2s").apply(lambda y: y.sum())
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = g.apply(f_1)
     # y.sum() results in int64 instead of int32 on 32-bit architectures
     expected = expected.astype("int64")
@@ -358,7 +358,7 @@ def test_resample_groupby_with_label(unit):
     index = date_range("2000-01-01", freq="2D", periods=5, unit=unit)
     df = DataFrame(index=index, data={"col0": [0, 0, 1, 1, 2], "col1": [1, 1, 1, 1, 1]})
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("col0").resample("1W", label="left").sum()
 
     mi = [
@@ -381,7 +381,7 @@ def test_consistency_with_window(test_frame):
     df = test_frame
     expected = Index([1, 2, 3], name="A")
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("A").resample("2s").mean()
     assert result.index.nlevels == 2
     tm.assert_index_equal(result.index.levels[0], expected)
@@ -481,7 +481,7 @@ def test_empty(keys):
     # GH 26411
     df = DataFrame([], columns=["a", "b"], index=TimedeltaIndex([]))
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
     expected = (
         DataFrame(columns=["a", "b"])
@@ -507,7 +507,7 @@ def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
         df = df._consolidate()
 
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby(["key"]).resample("W", on="date").min()
     idx = pd.MultiIndex.from_arrays(
         [
@@ -559,7 +559,7 @@ def test_resample_no_index(keys):
     df["date"] = pd.to_datetime(df["date"])
     df = df.set_index("date")
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
     expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
     expected["date"] = pd.to_datetime(expected["date"])
@@ -608,7 +608,7 @@ def test_groupby_resample_size_all_index_same():
         index=date_range("31/12/2000 18:00", freq="h", periods=12),
     )
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("A").resample("D").size()
 
     mi_exp = pd.MultiIndex.from_arrays(
