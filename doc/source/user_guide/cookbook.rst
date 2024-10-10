@@ -35,7 +35,7 @@ These are some neat pandas ``idioms``
    )
    df
 
-if-then...
+If-then...
 **********
 
 An if-then on one column
@@ -176,7 +176,7 @@ One could hard code:
 Selection
 ---------
 
-Dataframes
+DataFrames
 **********
 
 The :ref:`indexing <indexing>` docs.
@@ -1489,7 +1489,7 @@ of the data values:
    )
    df
 
-Constant series
+Constant Series
 ---------------
 
 To assess if a series has a constant value, we can check if ``series.nunique() <= 1``.
