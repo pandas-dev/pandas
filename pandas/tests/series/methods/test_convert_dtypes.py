@@ -298,6 +298,7 @@ class TestSeriesConvertDtypes:
         expected = pd.Series([None, None], dtype=pd.ArrowDtype(pa.null()))
         tm.assert_series_equal(result, expected)
 
+    @tm.skip_if_no("pyarrow")
     def test_convert_empty_categorical_to_pyarrow(self):
         # GH#59934
         ser1 = pd.Series(pd.Categorical([None] * 5))

@@ -35,6 +35,7 @@ class TestConvertDtypes:
         empty_df = pd.DataFrame()
         tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
 
+    @tm.skip_if_no("pyarrow")
     def test_convert_empty_categorical_to_pyarrow(self):
         # GH#59934
         df = pd.DataFrame(
