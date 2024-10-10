@@ -31,6 +31,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 import pandas.core.common as com
 
 pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
@@ -2483,9 +2484,14 @@ def test_by_column_values_with_same_starting_value(any_string_dtype):
             "Mood": [["happy", "sad"], "happy"],
             "Credit": [2500, 900],
             "Name": ["Thomas", "Thomas John"],
-        }
+        },
     ).set_index("Name")
+    if dtype == "string[pyarrow_numpy]":
+        import pyarrow as pa
 
+        mood_values = ArrowStringArrayNumpySemantics(pa.array(["happy", "sad"]))
+        expected_result["Mood"] = [mood_values, "happy"]
+        expected_result["Mood"] = expected_result["Mood"].astype(dtype)
     tm.assert_frame_equal(result, expected_result)
 
 
