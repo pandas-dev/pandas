@@ -2166,6 +2166,15 @@ def test_json_pos_args_deprecation():
         buf = BytesIO()
         df.to_json(buf, "split")
 
+def test_json_datetetime_deprecation_ignore():
+    with pytest.warns(None) as record:
+        df = pd.read_json(
+            StringIO('{"A":{"0":"X","Y":"Y"}}'),
+            typ='frame',
+            orient='records'
+        )
+    assert len(record) == 0
+
 
 @td.skip_if_no("pyarrow")
 def test_to_json_ea_null():
