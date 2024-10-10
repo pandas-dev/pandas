@@ -261,7 +261,11 @@ class TestSeriesRank:
 
     def test_rank_tie_methods(self, ser, results, dtype, using_infer_string):
         method, exp = results
-        if dtype == "int64" or (not using_infer_string and dtype == "str"):
+        if (
+            dtype == "int64"
+            or dtype == "Int64"
+            or (not using_infer_string and dtype == "str")
+        ):
             pytest.skip("int64/str does not support NaN")
 
         ser = ser if dtype is None else ser.astype(dtype)
