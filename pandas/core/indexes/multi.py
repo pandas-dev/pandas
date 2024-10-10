@@ -2664,7 +2664,7 @@ class MultiIndex(Index):
 
     def _recode_for_new_levels(
         self, new_levels, copy: bool = True
-    ) -> Generator[np.ndarray, None, None]:
+    ) -> Generator[np.ndarray]:
         if len(new_levels) > self.nlevels:
             raise AssertionError(
                 f"Length of new_levels ({len(new_levels)}) "

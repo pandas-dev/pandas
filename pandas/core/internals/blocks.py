@@ -388,7 +388,7 @@ class Block(PandasObject, libinternals.Block):
         return [nb]
 
     @final
-    def _split(self) -> Generator[Block, None, None]:
+    def _split(self) -> Generator[Block]:
         """
         Split a block into a list of single-column blocks.
         """

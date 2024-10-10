@@ -991,7 +991,7 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _intersection(self, other, sort):
+    def _intersection(self, other, sort: bool = False):
         """
         intersection specialized to the case with matching dtypes.
         """
@@ -1006,7 +1006,7 @@ class IntervalIndex(ExtensionIndex):
             # duplicates
             taken = self._intersection_non_unique(other)
 
-        if sort is None:
+        if sort:
             taken = taken.sort_values()
 
         return taken

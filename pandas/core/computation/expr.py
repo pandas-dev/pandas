@@ -168,7 +168,7 @@ def _preparse(
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), "f must be callable"
-    return tokenize.untokenize(f(x) for x in tokenize_string(source))
+    return tokenize.untokenize(f(x) for x in tokenize_string(source))  # pyright: ignore[reportArgumentType]
 
 
 def _is_type(t):

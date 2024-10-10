@@ -233,7 +233,7 @@ def _wrap_result_adbc(
 
 
 @overload
-def read_sql_table(
+def read_sql_table(  # pyright: ignore[reportOverlappingOverload]
     table_name: str,
     con,
     schema=...,
@@ -364,7 +364,7 @@ def read_sql_table(
 
 
 @overload
-def read_sql_query(
+def read_sql_query(  # pyright: ignore[reportOverlappingOverload]
     sql,
     con,
     index_col: str | list[str] | None = ...,
@@ -500,7 +500,7 @@ def read_sql_query(
 
 
 @overload
-def read_sql(
+def read_sql(  # pyright: ignore[reportOverlappingOverload]
     sql,
     con,
     index_col: str | list[str] | None = ...,
@@ -1119,7 +1119,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set."""
         has_read_data = False
         with exit_stack:
@@ -1732,7 +1732,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set"""
         has_read_data = False
         with exit_stack:
@@ -2682,7 +2682,7 @@ class SQLiteDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set"""
         has_read_data = False
         while True:

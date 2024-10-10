@@ -404,7 +404,7 @@ class Resampler(BaseGroupBy, PandasObject):
             arg, *args, **kwargs
         )
 
-    def _downsample(self, f, **kwargs):
+    def _downsample(self, how, **kwargs):
         raise AbstractMethodError(self)
 
     def _upsample(self, f, limit: int | None = None, fill_value=None):
