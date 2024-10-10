@@ -38,7 +38,7 @@ def test_string_array(nullable_string_dtype, any_string_method):
             expected.values, skipna=True
         ):
             assert result.dtype == "boolean"
-            result = result.astype(object)
+            expected = expected.astype("boolean")
 
         elif expected.dtype == "bool":
             assert result.dtype == "boolean"

@@ -381,7 +381,11 @@ class BaseStringArray(ExtensionArray):
         return cls._from_sequence(scalars, dtype=dtype)
 
     def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+        self,
+        f,
+        na_value=lib.no_default,
+        dtype: Dtype | None = None,
+        convert: bool = True,
     ):
         if self.dtype.na_value is np.nan:
             return self._str_map_nan_semantics(f, na_value=na_value, dtype=dtype)
@@ -390,7 +394,7 @@ class BaseStringArray(ExtensionArray):
 
         if dtype is None:
             dtype = self.dtype
-        if na_value is None:
+        if na_value is lib.no_default:
             na_value = self.dtype.na_value
 
         mask = isna(self)
@@ -459,11 +463,17 @@ class BaseStringArray(ExtensionArray):
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
-    def _str_map_nan_semantics(self, f, na_value=None, dtype: Dtype | None = None):
+    def _str_map_nan_semantics(
+        self, f, na_value=lib.no_default, dtype: Dtype | None = None
+    ):
         if dtype is None:
             dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
+        if na_value is lib.no_default:
+            if is_bool_dtype(dtype):
+                # NaN propagates as False
+                na_value = False
+            else:
+                na_value = self.dtype.na_value
 
         mask = isna(self)
         arr = np.asarray(self)
@@ -474,7 +484,8 @@ class BaseStringArray(ExtensionArray):
                 if is_integer_dtype(dtype):
                     na_value = 0
                 else:
-                    na_value = True
+                    # NaN propagates as False
+                    na_value = False
 
             result = lib.map_infer_mask(
                 arr,
@@ -484,15 +495,13 @@ class BaseStringArray(ExtensionArray):
                 na_value=na_value,
                 dtype=np.dtype(cast(type, dtype)),
             )
-            if na_value_is_na and mask.any():
+            if na_value_is_na and is_integer_dtype(dtype) and mask.any():
                 # TODO: we could alternatively do this check before map_infer_mask
                 #  and adjust the dtype/na_value we pass there. Which is more
                 #  performant?
-                if is_integer_dtype(dtype):
-                    result = result.astype("float64")
-                else:
-                    result = result.astype("object")
+                result = result.astype("float64")
                 result[mask] = np.nan
+
             return result
 
         else:
