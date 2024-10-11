@@ -1203,7 +1203,7 @@ class PythonParser(ParserBase):
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            content.append(new_l)
+                            content.append(new_l)  # pyright: ignore[reportArgumentType]
                     elif self.on_bad_lines in (
                         self.BadLineHandleMethod.ERROR,
                         self.BadLineHandleMethod.WARN,

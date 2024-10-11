@@ -229,7 +229,7 @@ class TestSeriesConstructors:
             # GH 19853 : with empty string, index and dtype str
             empty = Series("", dtype=str, index=range(3))
             if using_infer_string:
-                empty2 = Series("", index=range(3), dtype=object)
+                empty2 = Series("", index=range(3), dtype="str")
             else:
                 empty2 = Series("", index=range(3))
             tm.assert_series_equal(empty, empty2)
