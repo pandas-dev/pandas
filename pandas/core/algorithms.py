@@ -1738,10 +1738,8 @@ def _build_map_infer_methods_params(arr: ArrayLike):
     na_value = None
     mask = isna(arr)
     storage = None
-    if (
-        isinstance(arr.dtype, (BaseMaskedDtype, ExtensionDtype))
-        and hasattr(arr, "_hasna")
-        and arr._hasna
+    if isinstance(arr.dtype, (BaseMaskedDtype, ExtensionDtype)) and hasattr(
+        arr, "_hasna"
     ):
         na_value = arr.dtype.na_value
 
