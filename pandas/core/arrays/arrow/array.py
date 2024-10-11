@@ -343,6 +343,7 @@ class ArrowExtensionArray(
             if isinstance(strings, ExtensionArray) and isinstance(
                 strings.dtype, ArrowDtype
             ):
+                strings = cast("ArrowExtensionArray", strings)
                 scalars = to_datetime(strings._pa_array, errors="raise").date
             else:
                 scalars = to_datetime(strings, errors="raise").date
