@@ -295,7 +295,10 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
-            elif index.dtype in ("string[pyarrow]", "string[pyarrow_numpy]"):
+            elif (
+                isinstance(index.dtype, StringDtype)
+                and index.dtype.storage == "pyarrow"
+            ):
                 assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)
@@ -452,7 +455,7 @@ class TestBase:
             msg = "slice indices must be integers or None or have an __index__ method"
 
         if using_infer_string and (
-            index.dtype == "string" or index.dtype == "category"  # noqa: PLR1714
+            index.dtype == "string" or index.dtype == "category"
         ):
             msg = "loc must be an integer between"
 

@@ -20,8 +20,8 @@ class TestABCClasses:
     df = pd.DataFrame({"names": ["a", "b", "c"]}, index=multi_index)
     sparse_array = pd.arrays.SparseArray(np.random.default_rng(2).standard_normal(10))
 
-    datetime_array = pd.core.arrays.DatetimeArray._from_sequence(datetime_index)
-    timedelta_array = pd.core.arrays.TimedeltaArray._from_sequence(timedelta_index)
+    datetime_array = datetime_index.array
+    timedelta_array = timedelta_index.array
 
     abc_pairs = [
         ("ABCMultiIndex", multi_index),

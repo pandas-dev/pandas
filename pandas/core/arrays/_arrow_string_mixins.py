@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -9,23 +10,20 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.compat import (
     pa_version_under10p1,
+    pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under17p0,
 )
-
-from pandas.core.dtypes.missing import isna
 
 if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Sized,
-    )
+    from collections.abc import Callable
 
     from pandas._typing import (
         Scalar,
@@ -34,12 +32,12 @@ if TYPE_CHECKING:
 
 
 class ArrowStringArrayMixin:
-    _pa_array: Sized
+    _pa_array: pa.ChunkedArray
 
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
-    def _convert_bool_result(self, result):
+    def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
         # Convert a bool-dtype result to the appropriate result type
         raise NotImplementedError
 
@@ -49,6 +47,37 @@ class ArrowStringArrayMixin:
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
+
+    def _str_len(self):
+        result = pc.utf8_length(self._pa_array)
+        return self._convert_int_result(result)
+
+    def _str_lower(self) -> Self:
+        return type(self)(pc.utf8_lower(self._pa_array))
+
+    def _str_upper(self) -> Self:
+        return type(self)(pc.utf8_upper(self._pa_array))
+
+    def _str_strip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_trim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_trim(self._pa_array, characters=to_strip)
+        return type(self)(result)
+
+    def _str_lstrip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_ltrim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
+        return type(self)(result)
+
+    def _str_rstrip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_rtrim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
+        return type(self)(result)
 
     def _str_pad(
         self,
@@ -96,12 +125,28 @@ class ArrowStringArrayMixin:
         selected = pc.utf8_slice_codeunits(
             self._pa_array, start=start, stop=stop, step=step
         )
-        null_value = pa.scalar(
-            None,
-            type=self._pa_array.type,  # type: ignore[attr-defined]
-        )
+        null_value = pa.scalar(None, type=self._pa_array.type)
         result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ) -> Self:
+        if pa_version_under11p0:
+            # GH#59724
+            result = self._apply_elementwise(lambda val: val[start:stop:step])
+            return type(self)(pa.chunked_array(result, type=self._pa_array.type))
+        if start is None:
+            if step is not None and step < 0:
+                # GH#59710
+                start = -1
+            else:
+                start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+        )
 
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None
@@ -114,6 +159,33 @@ class ArrowStringArrayMixin:
             stop = np.iinfo(np.int64).max
         return type(self)(pc.utf8_replace_slice(self._pa_array, start, stop, repl))
 
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ) -> Self:
+        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+            raise NotImplementedError(
+                "replace is not supported with a re.Pattern, callable repl, "
+                "case=False, or flags!=0"
+            )
+
+        func = pc.replace_substring_regex if regex else pc.replace_substring
+        # https://github.com/apache/arrow/issues/39149
+        # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
+        pa_max_replacements = None if n < 0 else n
+        result = func(
+            self._pa_array,
+            pattern=pat,
+            replacement=repl,
+            max_replacements=pa_max_replacements,
+        )
+        return type(self)(result)
+
     def _str_capitalize(self) -> Self:
         return type(self)(pc.utf8_capitalize(self._pa_array))
 
@@ -123,13 +195,25 @@ class ArrowStringArrayMixin:
     def _str_swapcase(self) -> Self:
         return type(self)(pc.utf8_swapcase(self._pa_array))
 
+    def _str_removeprefix(self, prefix: str):
+        if not pa_version_under13p0:
+            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
+            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
+            result = pc.if_else(starts_with, removed, self._pa_array)
+            return type(self)(result)
+        predicate = lambda val: val.removeprefix(prefix)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
+
     def _str_removesuffix(self, suffix: str):
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
         removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
         result = pc.if_else(ends_with, removed, self._pa_array)
         return type(self)(result)
 
-    def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+    def _str_startswith(
+        self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
+    ):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
         else:
@@ -142,11 +226,11 @@ class ArrowStringArrayMixin:
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
+        return self._convert_bool_result(result, na=na, method_name="startswith")
 
-    def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+    def _str_endswith(
+        self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
+    ):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
         else:
@@ -159,9 +243,7 @@ class ArrowStringArrayMixin:
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
+        return self._convert_bool_result(result, na=na, method_name="endswith")
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._pa_array)
@@ -200,7 +282,12 @@ class ArrowStringArrayMixin:
         return self._convert_bool_result(result)
 
     def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+        regex: bool = True,
     ):
         if flags:
             raise NotImplementedError(f"contains not implemented with {flags=}")
@@ -210,9 +297,29 @@ class ArrowStringArrayMixin:
         else:
             pa_contains = pc.match_substring
         result = pa_contains(self._pa_array, pat, ignore_case=not case)
-        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
+        return self._convert_bool_result(result, na=na, method_name="contains")
+
+    def _str_match(
+        self,
+        pat: str,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+    ):
+        if not pat.startswith("^"):
+            pat = f"^{pat}"
+        return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+    ):
+        if not pat.endswith("$") or pat.endswith("\\$"):
+            pat = f"{pat}$"
+        return self._str_match(pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if (

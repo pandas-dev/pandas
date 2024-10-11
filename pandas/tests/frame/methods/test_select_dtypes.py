@@ -99,6 +99,9 @@ class TestSelectDtypes:
             ei = df[["a"]]
             tm.assert_frame_equal(ri, ei)
 
+            ri = df.select_dtypes(include=[str])
+            tm.assert_frame_equal(ri, ei)
+
     def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame(
             {
@@ -358,7 +361,7 @@ class TestSelectDtypes:
     @pytest.mark.parametrize("dtype", [str, "str", np.bytes_, "S1", np.str_, "U1"])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg, using_infer_string):
-        if using_infer_string and dtype == "str":
+        if using_infer_string and (dtype == "str" or dtype is str):
             # this is tested below
             pytest.skip("Selecting string columns works with future strings")
         df = DataFrame(
