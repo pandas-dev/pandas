@@ -38,10 +38,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_sequence,
 )
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -249,12 +246,8 @@ class Apply(metaclass=abc.ABCMeta):
             and not obj.empty
         ):
             raise ValueError("Transform function failed")
-        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
-        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
-        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
-        # Series]"
         if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-            obj.index  # type: ignore[arg-type]
+            obj.index
         ):
             raise ValueError("Function did not transform")
 
@@ -806,7 +799,7 @@ class FrameApply(NDFrameApply):
 
     @property
     @abc.abstractmethod
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         pass
 
     @staticmethod
@@ -1131,7 +1124,7 @@ class FrameRowApply(FrameApply):
     axis: AxisInt = 0
 
     @property
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @staticmethod
@@ -1238,7 +1231,7 @@ class FrameColumnApply(FrameApply):
         return result.T
 
     @property
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         values = self.values
         values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0
@@ -1465,14 +1458,7 @@ class SeriesApply(NDFrameApply):
 
         else:
             curried = func
-
-        # row-wise access
-        # apply doesn't have a `na_action` keyword and for backward compat reasons
-        # we need to give `na_action="ignore"` for categorical data.
-        # TODO: remove the `na_action="ignore"` when that default has been changed in
-        #  Categorical (GH51645).
-        action = "ignore" if isinstance(obj.dtype, CategoricalDtype) else None
-        mapped = obj._map_values(mapper=curried, na_action=action)
+        mapped = obj._map_values(mapper=curried)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested
