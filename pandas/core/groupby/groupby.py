@@ -3833,7 +3833,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         3  1.0  3.0  NaN  NaN
         4  1.0  1.0  NaN  NaN
 
-        Only replace the first NaN element within a group along rows.
+        Only replace the first NaN element within a group along columns.
 
         >>> df.groupby("key").ffill(limit=1)
              A    B    C
