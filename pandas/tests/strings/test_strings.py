@@ -261,6 +261,7 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     assert list(result) == expected
 
 
+@pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
 @pytest.mark.parametrize(
     "method, expected",
     [

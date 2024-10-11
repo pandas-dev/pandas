@@ -327,6 +327,7 @@ def test_startswith_endswith_validate_na(request, any_string_dtype):
             ser.str.endswith("kapow", na="baz")
 
 
+@pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
 @pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
 @pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
@@ -398,6 +399,7 @@ def test_startswith_string_dtype(any_string_dtype, na):
 # --------------------------------------------------------------------------------------
 
 
+@pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
 @pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
 @pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
