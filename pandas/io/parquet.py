@@ -245,18 +245,19 @@ class PyArrowImpl(BaseImpl):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        to_pandas_kwargs = {}
+        to_pandas_kwargs = {} if to_pandas_kwargs is None else to_pandas_kwargs
         if dtype_backend == "numpy_nullable":
             from pandas.io._util import _arrow_dtype_mapping
 
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype
         elif using_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
