@@ -657,8 +657,13 @@ class Block(PandasObject, libinternals.Block):
             convert_non_numeric=True,
         )
         refs = None
-        if copy and res_values is values:
-            res_values = values.copy()
+        if (
+            copy
+            and res_values is values
+            or isinstance(res_values, NumpyExtensionArray)
+            and res_values._ndarray is values
+        ):
+            res_values = res_values.copy()
         elif res_values is values:
             refs = self.refs
 
@@ -1203,6 +1208,7 @@ class Block(PandasObject, libinternals.Block):
                 value,
                 inplace=inplace,
                 mask=mask,
+                using_cow=using_cow,
             )
         else:
             if value is None:
@@ -1218,7 +1224,7 @@ class Block(PandasObject, libinternals.Block):
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 if using_cow:
-                    return [self]
+                    return [self.copy(deep=False)]
                 return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace,

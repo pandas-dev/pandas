@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
@@ -218,10 +220,42 @@ def test_dt64_array(dtype_unit):
         ),
         (
             ["a", None],
+            "str",
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype(na_value=np.nan))
+            if using_string_dtype()
+            else NumpyExtensionArray(np.array(["a", "None"])),
+        ),
+        (
+            ["a", None],
             pd.StringDtype(),
             pd.StringDtype()
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
+        ),
+        (
+            ["a", None],
+            pd.StringDtype(na_value=np.nan),
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype(na_value=np.nan)),
+        ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            pd.StringDtype(),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
+        ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            pd.StringDtype(na_value=np.nan),
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
         ),
         # Boolean
         (
@@ -366,6 +400,13 @@ cet = pytz.timezone("CET")
             pd.StringDtype()
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
+        ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
         ),
         # Boolean
         ([True, False], BooleanArray._from_sequence([True, False], dtype="boolean")),

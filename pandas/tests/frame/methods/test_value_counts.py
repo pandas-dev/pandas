@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -132,6 +136,9 @@ def test_data_frame_value_counts_dropna_true(nulls_fixture):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 def test_data_frame_value_counts_dropna_false(nulls_fixture):
     # GH 41334
     df = pd.DataFrame(

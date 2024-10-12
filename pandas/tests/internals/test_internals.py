@@ -626,7 +626,7 @@ class TestBlockManager:
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
         new_mgr = mgr.convert(copy=True)
-        dtype = "string[pyarrow_numpy]" if using_infer_string else np.object_
+        dtype = "str" if using_infer_string else np.object_
         assert new_mgr.iget(0).dtype == dtype
         assert new_mgr.iget(1).dtype == dtype
         assert new_mgr.iget(2).dtype == dtype

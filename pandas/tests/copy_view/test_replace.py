@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -10,6 +14,7 @@ import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "replace_kwargs",
     [
@@ -63,6 +68,7 @@ def test_replace_regex_inplace_refs(using_copy_on_write, warn_copy_on_write):
         assert np.shares_memory(arr, get_array(df, "a"))
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_replace_regex_inplace(using_copy_on_write):
     df = DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")
@@ -350,6 +356,7 @@ def test_replace_empty_list(using_copy_on_write):
         assert not df2._mgr._has_no_reference(0)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(using_copy_on_write, value):
     df = DataFrame({"a": ["a", "b", "c"]})
@@ -383,6 +390,15 @@ def test_replace_list_none(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    # replace multiple values that don't actually replace anything with None
+    # https://github.com/pandas-dev/pandas/issues/59770
+    df3 = df.replace(["d", "e", "f"], value=None)
+    tm.assert_frame_equal(df3, df_orig)
+    if using_copy_on_write:
+        assert tm.shares_memory(get_array(df, "a"), get_array(df3, "a"))
+    else:
+        assert not tm.shares_memory(get_array(df, "a"), get_array(df3, "a"))
 
 
 def test_replace_list_none_inplace_refs(using_copy_on_write, warn_copy_on_write):

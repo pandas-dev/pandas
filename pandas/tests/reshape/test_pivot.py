@@ -9,7 +9,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.errors import PerformanceWarning
 
@@ -1090,7 +1090,7 @@ class TestPivotTable:
         expected = DataFrame(
             [[4.0, 5.0, 6.0]],
             columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-            index=Index(["v"], dtype=object),
+            index=Index(["v"], dtype="str" if cols == ("a", "b") else "object"),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -2524,12 +2524,16 @@ class TestPivot:
         expected = DataFrame(index=[], columns=[])
         tm.assert_frame_equal(result, expected, check_names=False)
 
-    @pytest.mark.parametrize("dtype", [object, "string"])
-    def test_pivot_integer_bug(self, dtype):
-        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=dtype)
+    def test_pivot_integer_bug(self, any_string_dtype):
+        df = DataFrame(
+            data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=any_string_dtype
+        )
 
         result = df.pivot(index=1, columns=0, values=2)
-        tm.assert_index_equal(result.columns, Index(["A", "B"], name=0, dtype=dtype))
+        expected_columns = Index(["A", "B"], name=0, dtype=any_string_dtype)
+        if any_string_dtype == "object":
+            expected_columns = expected_columns.astype("str")
+        tm.assert_index_equal(result.columns, expected_columns)
 
     def test_pivot_index_none(self):
         # GH#3962
@@ -2611,7 +2615,9 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()  # pylint: disable=missing-kwoa
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_columns_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2627,7 +2633,9 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_index_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2641,7 +2649,9 @@ class TestPivot:
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})

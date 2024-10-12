@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -20,6 +24,7 @@ from pandas.core.arrays import (
     SparseArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringArrayNumpySemantics
 from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 
@@ -218,7 +223,9 @@ class TestToIterable:
 )
 def test_values_consistent(arr, expected_type, dtype, using_infer_string):
     if using_infer_string and dtype == "object":
-        expected_type = ArrowStringArrayNumpySemantics
+        expected_type = (
+            ArrowStringArrayNumpySemantics if HAS_PYARROW else StringArrayNumpySemantics
+        )
     l_values = Series(arr)._values
     r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
@@ -355,6 +362,9 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize("as_series", [True, False])
 @pytest.mark.parametrize(
     "arr", [np.array([1, 2, 3], dtype="int64"), np.array(["a", "b", "c"], dtype=object)]
