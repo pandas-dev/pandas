@@ -3121,7 +3121,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
             {"a": ["a", "b", "c"], "b": [1.0, 2.0, 3.0], "c": ["d", "e", "f"]},
         ],
     )
-    def test_np_string_array_object_cast(self, data):
+    def test_np_string_array(self, data):
         from numpy.dtypes import StringDType
 
         data["a"] = np.array(data["a"], dtype=StringDType())

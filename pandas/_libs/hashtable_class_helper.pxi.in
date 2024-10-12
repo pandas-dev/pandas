@@ -5,6 +5,17 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 from cpython.unicode cimport PyUnicode_AsUTF8
 
+from numpy cimport (
+    flatiter,
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+)
+
+
+from libc.string cimport strdup
+
 {{py:
 
 # name
@@ -970,7 +981,12 @@ cdef class StringHashTable(HashTable):
         kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
+        cdef:
+            khiter_t k
         if self.table is not NULL:
+            for k in range(kh_end(self.table)):
+                if kh_exist(self.table, k):
+                    free(<char*>kh_key(self.table, k))
             kh_destroy_str(self.table)
             self.table = NULL
 
@@ -1013,6 +1029,8 @@ cdef class StringHashTable(HashTable):
 
         v = PyUnicode_AsUTF8(key)
 
+        v = strdup(v)
+
         k = kh_put_str(self.table, v, &ret)
         if kh_exist_str(self.table, k):
             self.table.vals[k] = val
@@ -1051,7 +1069,7 @@ cdef class StringHashTable(HashTable):
         return labels
 
     @cython.boundscheck(False)
-    def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
+    def lookup(self, ndarray values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
         # mask not yet implemented
         cdef:
@@ -1061,13 +1079,14 @@ cdef class StringHashTable(HashTable):
             const char *v
             khiter_t k
             intp_t[::1] locs = np.empty(n, dtype=np.intp)
+            flatiter it = PyArray_IterNew(values)
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
-            val = values[i]
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
 
             if isinstance(val, str):
                 # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
@@ -1075,7 +1094,18 @@ cdef class StringHashTable(HashTable):
                 v = PyUnicode_AsUTF8(<str>val)
             else:
                 v = PyUnicode_AsUTF8(self.na_string_sentinel)
+
+            # Need to copy result from PyUnicode_AsUTF8 when we have
+            # numpy strings
+            # Since numpy strings aren't backed by object arrays
+            # the buffer returned by PyUnicode_AsUTF8 will get freed
+            # in the next iteration when the created str object is GC'ed,
+            # clobbering the value of v
+            v = strdup(v)
+
             vecs[i] = v
+
+            PyArray_ITER_NEXT(it)
 
         with nogil:
             for i in range(n):
@@ -1086,11 +1116,16 @@ cdef class StringHashTable(HashTable):
                 else:
                     locs[i] = -1
 
+        if values.dtype.kind == "T":
+            # free copied strings
+            for i in range(n):
+                free(vecs[i])
+
         free(vecs)
         return np.asarray(locs)
 
     @cython.boundscheck(False)
-    def map_locations(self, ndarray[object] values, object mask = None) -> None:
+    def map_locations(self, ndarray values, object mask = None) -> None:
         # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
@@ -1099,13 +1134,14 @@ cdef class StringHashTable(HashTable):
             const char *v
             const char **vecs
             khiter_t k
+            flatiter it = PyArray_IterNew(values)
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
-            val = values[i]
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
 
             if isinstance(val, str):
                 # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
@@ -1113,18 +1149,30 @@ cdef class StringHashTable(HashTable):
                 v = PyUnicode_AsUTF8(<str>val)
             else:
                 v = PyUnicode_AsUTF8(self.na_string_sentinel)
+
+            # Need to copy result from PyUnicode_AsUTF8 when we have
+            # numpy strings
+            # Since numpy strings aren't backed by object arrays
+            # the buffer returned by PyUnicode_AsUTF8 will get freed
+            # in the next iteration when the created str object is GC'ed,
+            # clobbering the value of v
+            v = strdup(v)
+
             vecs[i] = v
+
+            PyArray_ITER_NEXT(it)
 
         with nogil:
             for i in range(n):
                 v = vecs[i]
                 k = kh_put_str(self.table, v, &ret)
                 self.table.vals[k] = i
+
         free(vecs)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique(self, ndarray[object] values, ObjectVector uniques,
+    def _unique(self, ndarray values, ObjectVector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                 object na_value=None, bint ignore_na=False,
                 bint return_inverse=False):
@@ -1171,11 +1219,13 @@ cdef class StringHashTable(HashTable):
             const char **vecs
             khiter_t k
             bint use_na_value
+            flatiter it = PyArray_IterNew(values)
             bint non_null_na_value
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
         uindexer = np.empty(n, dtype=np.int64)
+
         use_na_value = na_value is not None
         non_null_na_value = not checknull(na_value)
 
@@ -1184,7 +1234,7 @@ cdef class StringHashTable(HashTable):
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
-            val = values[i]
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
 
             if (ignore_na
                 and (not isinstance(val, str)
@@ -1202,9 +1252,21 @@ cdef class StringHashTable(HashTable):
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 try:
                     v = PyUnicode_AsUTF8(<str>val)
-                except UnicodeEncodeError:
+                except (UnicodeEncodeError,TypeError):
+                    # pd.NA will raise TypeError
                     v = PyUnicode_AsUTF8(<str>repr(val))
+
+                # Need to copy result from PyUnicode_AsUTF8 when we have
+                # numpy strings
+                # Since numpy strings aren't backed by object arrays
+                # the buffer returned by PyUnicode_AsUTF8 will get freed
+                # in the next iteration when the created str object is GC'ed,
+                # clobbering the value of v
+                v = strdup(v)
+
                 vecs[i] = v
+
+            PyArray_ITER_NEXT(it)
 
         # compute
         with nogil:
@@ -1239,7 +1301,7 @@ cdef class StringHashTable(HashTable):
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
-    def unique(self, ndarray[object] values, *, bint return_inverse=False, object mask=None):
+    def unique(self, ndarray values, *, bint return_inverse=False, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1264,7 +1326,7 @@ cdef class StringHashTable(HashTable):
         return self._unique(values, uniques, ignore_na=False,
                             return_inverse=return_inverse)
 
-    def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
+    def factorize(self, ndarray values, Py_ssize_t na_sentinel=-1,
                   object na_value=None, object mask=None, ignore_na=True):
         """
         Calculate unique values and labels (no sorting!)

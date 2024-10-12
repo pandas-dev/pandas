@@ -9,7 +9,10 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import is_supported_dtype
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+    np_version_gt2,
+)
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -26,7 +29,10 @@ from pandas.core import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.strings.object_array import ObjectStringArrayMixin
+from pandas.core.strings.object_array import (
+    NumpyStringArrayMixin,
+    ObjectStringArrayMixin,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -43,12 +49,18 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
+if np_version_gt2:
+    str_mixin = NumpyStringArrayMixin
+else:
+    str_mixin = ObjectStringArrayMixin
+
+
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class NumpyExtensionArray(  # type: ignore[misc]
     OpsMixin,
     NDArrayBackedExtensionArray,
-    ObjectStringArrayMixin,
+    str_mixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
@@ -150,7 +162,12 @@ class NumpyExtensionArray(  # type: ignore[misc]
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
-        return np.asarray(self._ndarray, dtype=dtype)
+        array = self._ndarray
+        # np.array on StringArray backed by StringDType should still return object dtype
+        # for backwards compat
+        if self._ndarray.dtype.kind == "T":
+            array = array.astype(object)
+        return np.asarray(array, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
@@ -493,8 +510,13 @@ class NumpyExtensionArray(  # type: ignore[misc]
         na_value: object = lib.no_default,
     ) -> np.ndarray:
         mask = self.isna()
+        # to_numpy on StringArray backed by StringDType should still return object dtype
+        # for backwards compat
+        array = self._ndarray
+        if self._ndarray.dtype.kind == "T":
+            array = array.astype(object)
         if na_value is not lib.no_default and mask.any():
-            result = self._ndarray.copy()
+            result = array.copy()
             result[mask] = na_value
         else:
             result = self._ndarray

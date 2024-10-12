@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 from pandas import (
     DataFrame,
     Series,
@@ -120,7 +122,11 @@ def test_dataframe_array_ea_dtypes():
 def test_dataframe_array_string_dtype():
     df = DataFrame({"a": ["a", "b"]}, dtype="string")
     arr = np.asarray(df)
-    assert np.shares_memory(arr, get_array(df, "a"))
+    if not np_version_gt2:
+        # Numpy 2.0 will return an object array in __array__
+        # despite there actually being a StringArray backing the df
+        # for backwards compatibility reasons
+        assert np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is False
 
 
