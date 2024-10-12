@@ -1630,3 +1630,23 @@ class TestReadHtml:
         result = flavor_read_html(StringIO(data))[0]
         expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
+
+    def test_strip_whitespace(self, flavor_read_html):
+        # GH 24766
+        data = """
+        <table>
+            <tr>
+                <td>Field 1
+Field 2</td>
+                <td>Value 1
+Value 2</td>
+            </tr>
+        </table>
+        """
+        result_strip = flavor_read_html(StringIO(data))[0]
+        expected_strip = DataFrame([["Field 1 Field 2", "Value 1 Value 2"]])
+        tm.assert_frame_equal(result_strip, expected_strip)
+
+        result_nostrip = flavor_read_html(StringIO(data), strip_whitespace=False)[0]
+        expected_nostrip = DataFrame([["Field 1\nField 2", "Value 1\nValue 2"]])
+        tm.assert_frame_equal(result_nostrip, expected_nostrip)
