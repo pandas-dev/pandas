@@ -247,7 +247,11 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
     .. versionadded:: 1.4.0
 
         The 'pyarrow' engine was added as an *experimental* engine, and some features
-        are unsupported, or may not work correctly, with this engine.
+        are unsupported, or may not work correctly, with this engine. For example,
+        the newlines_in_values in the ParseOptions of the pyarrow allows handling the
+        newline characters within values when parsing csv files. However, this is not
+        currently supported by Pandas. In this case, the 'csv' module in the pyarrow
+        should be used instead. For more information, refer to the example.
 converters : dict of {{Hashable : Callable}}, optional
     Functions for converting values in specified columns. Keys can either
     be column labels or column indices.
@@ -545,12 +549,26 @@ Specific columns can be parsed as dates by using the `parse_dates` and
 ...     parse_dates=[1, 2],
 ...     date_format={{'col 2': '%d/%m/%Y', 'col 3': '%a %d %b %Y'}},
 ... )  # doctest: +SKIP
-
 >>> df.dtypes  # doctest: +SKIP
 col 1             int64
 col 2    datetime64[ns]
 col 3    datetime64[ns]
 dtype: object
+
+The csv in the pyarrow must be used if the values in the file have
+new line characters.
+
+>>> from pyarrow import csv  # doctest: +SKIP
+>>> parse_options = csv.ParseOptions(newlines_in_values=True)  # doctest: +SKIP
+>>> table = csv.read_csv("example.csv", parse_options=parse_options)  # doctest: +SKIP
+>>> df = table.to_pandas()  # doctest: +SKIP
+>>> df.head()  # doctest: +SKIP
+     text  idx
+0  ab\ncd  0
+1  ab\ncd  1
+2  ab\ncd  2
+3  ab\ncd  3
+4  ab\ncd  4
 """  # noqa: E501
 
 
