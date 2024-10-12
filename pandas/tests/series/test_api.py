@@ -164,6 +164,15 @@ class TestSeriesMisc:
         result = s + 1
         assert result.attrs == {"version": 1}
 
+    def test_attrs_binary_operations(self, all_binary_operators):
+        # GH 51607
+        s1 = Series([1])
+        s2 = Series([2])
+        attrs = {"info": "Series"}
+        s1.attrs = attrs
+        assert all_binary_operators(s1, s2).attrs == attrs
+        assert all_binary_operators(s2, s1).attrs == attrs
+
     @pytest.mark.xfail(
         using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
     )
