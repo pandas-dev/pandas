@@ -1810,3 +1810,89 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
         index=Index(["level1.1", "level1.2"]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "input_dtype, output_dtype",
+    [
+        ("float[pyarrow]", "double[pyarrow]"),
+        ("int64[pyarrow]", "int64[pyarrow]"),
+        ("uint64[pyarrow]", "int64[pyarrow]"),
+        ("bool[pyarrow]", "bool[pyarrow]"),
+    ],
+)
+def test_agg_lambda_pyarrow_dtype_conversion(input_dtype, output_dtype):
+    # GH#53030
+    # test numpy dtype conversion back to pyarrow dtype
+    # complexes, floats, ints, uints, object
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3", "c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255, 0, 199, 40392], dtype=input_dtype),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.min())
+
+    expected = DataFrame(
+        {"B": pd.array([0, 199, 255], dtype=output_dtype)},
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_lambda_complex128_dtype_conversion():
+    # GH#53030
+    df = DataFrame(
+        {"A": ["c1", "c2", "c3"], "B": pd.array([100, 200, 255], "int64[pyarrow]")}
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: complex(x.sum(), x.count()))
+
+    expected = DataFrame(
+        {
+            "B": pd.array(
+                [complex(100, 1), complex(200, 1), complex(255, 1)], dtype="complex128"
+            ),
+        },
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
+    # GH#53030
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255], dtype="uint64[pyarrow]"),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: np.uint64(x.sum()))
+
+    expected = DataFrame(
+        {
+            "B": pd.array([100, 200, 255], dtype="uint64[pyarrow]"),
+        },
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_lambda_pyarrow_struct_to_object_dtype_conversion():
+    # GH#53030
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255], dtype="int64[pyarrow]"),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: {"number": 1})
+
+    expected = DataFrame(
+        {"B": pd.array([{"number": 1}, {"number": 1}, {"number": 1}], dtype="object")},
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
