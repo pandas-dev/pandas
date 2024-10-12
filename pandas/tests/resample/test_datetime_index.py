@@ -637,7 +637,7 @@ def test_resample_reresample(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8h").mean()
-    assert len(result) == 25
+    assert len(result) == 22
     assert isinstance(result.index.freq, offsets.DateOffset)
     assert result.index.freq == offsets.Hour(8)
 
@@ -2121,8 +2121,8 @@ def test_resample_c_b_closed_right(freq: str, unit):
 
 def test_resample_b_55282(unit):
     # https://github.com/pandas-dev/pandas/issues/55282
-    dti = date_range("2023-09-26", periods=6, freq="12h", unit=unit)
-    ser = Series([1, 2, 3, 4, 5, 6], index=dti)
+    dti = date_range("2023-09-26", periods=5, freq="12h", unit=unit)
+    ser = Series([1, 2, 3, 4, 5], index=dti)
     result = ser.resample("B", closed="right", label="right").mean()
 
     exp_dti = DatetimeIndex(
@@ -2130,12 +2130,11 @@ def test_resample_b_55282(unit):
             datetime(2023, 9, 26),
             datetime(2023, 9, 27),
             datetime(2023, 9, 28),
-            datetime(2023, 9, 29),
         ],
         freq="B",
     ).as_unit(unit)
     expected = Series(
-        [1.0, 2.5, 4.5, 6.0],
+        [1.0, 2.5, 4.5],
         index=exp_dti,
     )
     tm.assert_series_equal(result, expected)
@@ -2172,3 +2171,25 @@ def test_resample_A_raises(freq):
     s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+def test_resample_b_59495():
+    # GH#59495
+    dti = date_range("8Aug2024", "13Aug2024", freq="D")
+    ser = Series(range(len(dti)), dti) + 1
+    result = ser.resample("B", closed="right", label="right").sum()
+
+    exp_dti = DatetimeIndex(
+        [
+            datetime(2024, 8, 8),
+            datetime(2024, 8, 9),
+            datetime(2024, 8, 12),
+            datetime(2024, 8, 13),
+        ],
+        freq="B",
+    ).as_unit("ns")
+    expected = Series(
+        [1, 2, 12, 6],
+        index=exp_dti,
+    )
+    tm.assert_series_equal(result, expected)
