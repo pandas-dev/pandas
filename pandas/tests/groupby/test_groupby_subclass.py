@@ -109,7 +109,7 @@ def test_groupby_resample_preserves_subclass(obj):
 
     df = obj(
         {
-            "Buyer": "Carl Carl Carl Carl Joe Carl".split(),
+            "Buyer": Series("Carl Carl Carl Carl Joe Carl".split(), dtype=object),
             "Quantity": [18, 3, 5, 1, 9, 3],
             "Date": [
                 datetime(2013, 9, 1, 13, 0),
