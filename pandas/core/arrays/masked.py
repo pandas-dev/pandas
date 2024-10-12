@@ -10,6 +10,7 @@ from typing import (
 import warnings
 
 import numpy as np
+from pandas_mask import PandasMaskArray
 
 from pandas._libs import (
     lib,
@@ -112,20 +113,23 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
-    _mask: npt.NDArray[np.bool_]
+    _mask: PandasMaskArray
 
     @classmethod
     def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
         result = BaseMaskedArray.__new__(cls)
         result._data = values
-        result._mask = mask
+        result._mask = PandasMaskArray(mask)
         return result
 
     def __init__(
         self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
     ) -> None:
         # values is supposed to already be validated in the subclass
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+        if not (
+            (isinstance(mask, np.ndarray) and mask.dtype == np.bool_)
+            or isinstance(mask, PandasMaskArray)
+        ):
             raise TypeError(
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
@@ -668,7 +672,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         import pyarrow as pa
 
-        return pa.array(self._data, mask=self._mask, type=type)
+        return pa.array(self._data, mask=np.asarray(self._mask), type=type)
 
     @property
     def _hasna(self) -> bool:
