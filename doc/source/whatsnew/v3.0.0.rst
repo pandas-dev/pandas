@@ -269,7 +269,7 @@ This change also applies to :meth:`.DataFrameGroupBy.value_counts`. Here, there 
 Increased minimum version for Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas 3.0.0 supports Python 3.10 and higher.
+pandas 3.0.0 supports Python 3.10 and higher.
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -305,7 +305,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 ``pytz`` now an optional dependency
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas now uses :py:mod:`zoneinfo` from the standard library as the default timezone implementation when passing a timezone
+pandas now uses :py:mod:`zoneinfo` from the standard library as the default timezone implementation when passing a timezone
 string to various methods. (:issue:`34916`)
 
 *Old behavior:*

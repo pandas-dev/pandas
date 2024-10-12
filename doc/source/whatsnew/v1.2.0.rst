@@ -64,7 +64,7 @@ By default, duplicates continue to be allowed.
     label
     a        [0, 1]
 
-Pandas will propagate the ``allows_duplicate_labels`` property through many operations.
+pandas will propagate the ``allows_duplicate_labels`` property through many operations.
 
 .. code-block:: ipython
 
