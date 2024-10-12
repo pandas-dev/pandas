@@ -44,6 +44,7 @@ from pandas.errors import (
     LossySetitemError,
 )
 
+from pandas.core.dtypes.base import _registry
 from pandas.core.dtypes.common import (
     ensure_int8,
     ensure_int16,
@@ -857,6 +858,10 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         subtype = infer_dtype_from_scalar(val.left)[0]
         dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 
+    reg_dtype = _registry.match_scalar(val)
+    if reg_dtype:
+        dtype = reg_dtype
+
     return dtype, val
 
 
@@ -913,6 +918,12 @@ def infer_dtype_from_array(arr) -> tuple[DtypeObj, ArrayLike]:
     inferred = lib.infer_dtype(arr, skipna=False)
     if inferred in ["string", "bytes", "mixed", "mixed-integer"]:
         return (np.dtype(np.object_), arr)
+    elif inferred in ["empty", "integer", "floating", "integer-na", "mixed-integer-float", "datetime", "period", "timedelta", "time", "date"]:
+        pass
+    else:
+        arr_dtype = pandas_dtype_func(inferred)
+        if isinstance(arr_dtype, ExtensionDtype):
+            return arr_dtype, arr
 
     arr = np.asarray(arr)
     return arr.dtype, arr
