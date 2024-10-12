@@ -162,8 +162,10 @@ class TestMerge:
             {
                 "key": ["a", "b", "c", "d", "e", "e", "a"],
                 "v1": np.random.default_rng(2).standard_normal(7),
+                "left_index": range(7),
             }
         )
+
         right = DataFrame(
             {"v2": np.random.default_rng(2).standard_normal(4)},
             index=["d", "b", "c", "a"],
@@ -171,12 +173,17 @@ class TestMerge:
 
         # inner join
         result = merge(left, right, left_on="key", right_index=True, how="inner")
-        expected = left.join(right, on="key").loc[result.index]
-        tm.assert_frame_equal(result, expected)
+        expected = left.join(right, on="key").loc[result["left_index"]]
+        tm.assert_frame_equal(
+            result.reset_index(drop=True), expected.reset_index(drop=True)
+        )
 
         result = merge(right, left, right_on="key", left_index=True, how="inner")
-        expected = left.join(right, on="key").loc[result.index]
-        tm.assert_frame_equal(result, expected.loc[:, result.columns])
+        expected = left.join(right, on="key").loc[result["left_index"]]
+        tm.assert_frame_equal(
+            result.reset_index(drop=True),
+            expected.loc[:, result.columns].reset_index(drop=True),
+        )
 
     def test_merge_misspecified(self, df, df2, left):
         right = DataFrame(
@@ -349,8 +356,9 @@ class TestMerge:
         right = DataFrame({"rvalue": np.arange(6)})
 
         key = np.array([0, 1, 1, 2, 2, 3], dtype=np.int64)
+        index = np.array([0, 1, 1, 2, 2, np.nan], dtype=np.float64)
         merged = merge(left, right, left_index=True, right_on=key, how="outer")
-        tm.assert_series_equal(merged["key_0"], Series(key, name="key_0"))
+        tm.assert_series_equal(merged["key_0"], Series(key, index=index, name="key_0"))
 
     def test_no_overlap_more_informative_error(self):
         dt = datetime.now()
@@ -453,6 +461,9 @@ class TestMerge:
         )
         exp_in = exp_out[0:0]  # make empty DataFrame keeping dtype
 
+        exp_nan = exp_out.copy()
+        exp_nan.index = [np.nan] * 3
+
         def check1(exp, kwarg):
             result = merge(left, right, how="inner", **kwarg)
             tm.assert_frame_equal(result, exp)
@@ -465,12 +476,13 @@ class TestMerge:
             result = merge(left, right, how="outer", **kwarg)
             tm.assert_frame_equal(result, exp)
 
-        for kwarg in [
-            {"left_index": True, "right_index": True},
-            {"left_index": True, "right_on": "x"},
-        ]:
-            check1(exp_in, kwarg)
-            check2(exp_out, kwarg)
+        kwarg = {"left_index": True, "right_on": "x"}
+        check1(exp_in, kwarg)
+        check2(exp_nan, kwarg)
+
+        kwarg = {"left_index": True, "right_index": True}
+        check1(exp_in, kwarg)
+        check2(exp_out, kwarg)
 
         kwarg = {"left_on": "a", "right_index": True}
         check1(exp_in, kwarg)
@@ -762,6 +774,7 @@ class TestMerge:
                 "days": days,
             },
             columns=["entity_id", "days"],
+            index=[101, 102],
         )
         assert exp["days"].dtype == exp_dtype
         tm.assert_frame_equal(result, exp)
@@ -789,6 +802,7 @@ class TestMerge:
         exp = DataFrame(
             {"entity_id": [101, 102], "days": np.array(["nat", "nat"], dtype=dtype)},
             columns=["entity_id", "days"],
+            index=[101, 102],
         )
         tm.assert_frame_equal(result, exp)
 
@@ -1190,7 +1204,7 @@ class TestMerge:
                 "c": ["meow", "bark", "um... weasel noise?", "nay"],
             },
             columns=["b", "a", "c"],
-            index=range(4),
+            index=Index(["a", "b", "c", "d"], name="a"),
         )
 
         left_index_reset = left.set_index("a")
@@ -1331,48 +1345,17 @@ class TestMerge:
 
     @pytest.mark.parametrize("how", ["right", "outer"])
     @pytest.mark.parametrize(
-        "index,expected_index",
+        "index",
         [
-            (
-                CategoricalIndex([1, 2, 4]),
-                CategoricalIndex([1, 2, 4, None, None, None]),
-            ),
-            (
-                DatetimeIndex(
-                    ["2001-01-01", "2002-02-02", "2003-03-03"], dtype="M8[ns]"
-                ),
-                DatetimeIndex(
-                    ["2001-01-01", "2002-02-02", "2003-03-03", pd.NaT, pd.NaT, pd.NaT],
-                    dtype="M8[ns]",
-                ),
-            ),
-            *[
-                (
-                    Index([1, 2, 3], dtype=dtyp),
-                    Index([1, 2, 3, None, None, None], dtype=np.float64),
-                )
-                for dtyp in tm.ALL_REAL_NUMPY_DTYPES
-            ],
-            (
-                IntervalIndex.from_tuples([(1, 2), (2, 3), (3, 4)]),
-                IntervalIndex.from_tuples(
-                    [(1, 2), (2, 3), (3, 4), np.nan, np.nan, np.nan]
-                ),
-            ),
-            (
-                PeriodIndex(["2001-01-01", "2001-01-02", "2001-01-03"], freq="D"),
-                PeriodIndex(
-                    ["2001-01-01", "2001-01-02", "2001-01-03", pd.NaT, pd.NaT, pd.NaT],
-                    freq="D",
-                ),
-            ),
-            (
-                TimedeltaIndex(["1D", "2D", "3D"]),
-                TimedeltaIndex(["1D", "2D", "3D", pd.NaT, pd.NaT, pd.NaT]),
-            ),
+            CategoricalIndex([1, 2, 4]),
+            DatetimeIndex(["2001-01-01", "2002-02-02", "2003-03-03"], dtype="M8[ns]"),
+            *[Index([1, 2, 3], dtype=dtyp) for dtyp in tm.ALL_REAL_NUMPY_DTYPES],
+            IntervalIndex.from_tuples([(1, 2), (2, 3), (3, 4)]),
+            PeriodIndex(["2001-01-01", "2001-01-02", "2001-01-03"], freq="D"),
+            TimedeltaIndex(["1D", "2D", "3D"]),
         ],
     )
-    def test_merge_on_index_with_more_values(self, how, index, expected_index):
+    def test_merge_on_index_with_more_values(self, how, index):
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
@@ -1390,20 +1373,17 @@ class TestMerge:
             ],
             columns=["a", "key", "b"],
         )
-        expected.set_index(expected_index, inplace=True)
         tm.assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):
-        # Note: the expected output here is probably incorrect.
-        # See https://github.com/pandas-dev/pandas/issues/17257 for more.
-        # We include this as a regression test for GH-24897.
+        # Regression test for GH-24897.
         left = DataFrame({"a": [1, 2, 3], "key": [0, 1, 1]})
         right = DataFrame({"b": [1, 2, 3]})
 
         expected = DataFrame(
             {"a": [1, 2, 3, None], "key": [0, 1, 1, 2], "b": [1, 2, 2, 3]},
             columns=["a", "key", "b"],
-            index=[0, 1, 2, np.nan],
+            index=[0, 1, 1, 2],
         )
         result = left.merge(right, left_on="key", right_index=True, how="right")
         tm.assert_frame_equal(result, expected)
@@ -1436,7 +1416,7 @@ class TestMerge:
                 "key": Categorical(["a", "a", "b", "c"]),
                 "b": [1, 1, 2, 3],
             },
-            index=[0, 1, 2, np.nan],
+            index=Categorical(["a", "a", "b", "c"], categories=list("abc")),
         )
         expected = expected.reindex(columns=["a", "key", "b"])
         tm.assert_frame_equal(result, expected)
@@ -2661,7 +2641,8 @@ def test_merge_right_left_index():
             "z_x": ["foo", "foo"],
             "x_y": [1, 1],
             "z_y": ["foo", "foo"],
-        }
+        },
+        index=[1, 1],
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2670,7 +2651,7 @@ def test_merge_result_empty_index_and_on():
     # GH#33814
     df1 = DataFrame({"a": [1], "b": [2]}).set_index(["a", "b"])
     df2 = DataFrame({"b": [1]}).set_index(["b"])
-    expected = DataFrame({"a": [], "b": []}, dtype=np.int64).set_index(["a", "b"])
+    expected = DataFrame({"b": []}, dtype=np.int64).set_index(["b"])
     result = merge(df1, df2, left_on=["b"], right_index=True)
     tm.assert_frame_equal(result, expected)
 
@@ -2850,7 +2831,9 @@ def test_merge_multiindex_single_level():
         data={"b": [100]},
         index=MultiIndex.from_tuples([("A",), ("C",)], names=["col"]),
     )
-    expected = DataFrame({"col": ["A", "B"], "b": [100, np.nan]})
+    expected = DataFrame(
+        {"col": ["A", "B"], "b": [100, np.nan]}, index=Index([("A",), np.nan])
+    )
 
     result = df.merge(df2, left_on=["col"], right_index=True, how="left")
     tm.assert_frame_equal(result, expected)
@@ -2957,6 +2940,9 @@ def test_merge_ea_int_and_float_numpy():
     tm.assert_frame_equal(result, expected.astype("float64"))
 
 
+from pandas.core.dtypes.missing import na_value_for_dtype
+
+
 def test_merge_arrow_string_index(any_string_dtype):
     # GH#54894
     pytest.importorskip("pyarrow")
@@ -2964,7 +2950,10 @@ def test_merge_arrow_string_index(any_string_dtype):
     right = DataFrame({"b": 1}, index=Index(["a", "c"], dtype=any_string_dtype))
     result = left.merge(right, left_on="a", right_index=True, how="left")
     expected = DataFrame(
-        {"a": Series(["a", "b"], dtype=any_string_dtype), "b": [1, np.nan]}
+        {"a": Series(["a", "b"], dtype=any_string_dtype), "b": [1.0, np.nan]},
+    )
+    expected.index = Index(["a"], dtype=any_string_dtype).append(
+        Index([na_value_for_dtype(any_string_dtype)])
     )
     tm.assert_frame_equal(result, expected)
 
@@ -3022,3 +3011,12 @@ def test_merge_on_all_nan_column():
         {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "z": [4, 5, 6], "zz": [4, 5, 6]}
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_index():
+    # GH 57291
+    dfa = DataFrame(range(10), columns=["a"])
+    dfb = DataFrame({"b": range(5), "key": [5 + x for x in range(5)]})
+
+    result = dfa.merge(dfb, left_index=True, right_on="key", how="left")
+    tm.assert_index_equal(result.index, dfa.index)
