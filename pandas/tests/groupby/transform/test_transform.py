@@ -683,7 +683,7 @@ def test_transform_mixed_type():
 
     grouped = df.groupby("c")
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
@@ -841,7 +841,7 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         if op != "shift" or not isinstance(gb_target.get("by"), (str, list)):
             warn = None
         else:
-            warn = DeprecationWarning
+            warn = FutureWarning
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(warn, match=msg):
             expected = gb.apply(targop)
