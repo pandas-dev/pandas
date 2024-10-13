@@ -245,6 +245,7 @@ ul.task-bullet > li > p:first-child {
   justify-content: flex-start;
   align-items: center;
   font-size: 1.3rem;
+  color: rgb(0, 179, 255);
 }
 
 .tutorial-card .card-header {
