@@ -300,7 +300,7 @@ use cases and writing corresponding tests.
 
 We use `code coverage <https://en.wikipedia.org/wiki/Code_coverage>`_ to help understand
 the amount of code which is covered by a test. We recommend striving to ensure code
-you add or change within Pandas is covered by a test. Please see our 
+you add or change within Pandas is covered by a test. Please see our
 `code coverage dashboard through Codecov <https://app.codecov.io/github/pandas-dev/pandas>`_
 for more information.
 
