@@ -58,7 +58,8 @@ def _reductions(
         else:
             return func(values, axis=axis, **kwargs)
     else:
-        mask |= isna(values)
+        if values.dtype == np.float64:
+            mask |= isna(values)
 
         if check_below_min_count(values.shape, mask, min_count) and (
             axis is None or values.ndim == 1
