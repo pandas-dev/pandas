@@ -933,10 +933,10 @@ class TestReprHTML:
 
     def test_repr_html_mathjax(self):
         df = DataFrame([[1, 2], [3, 4]])
-        assert "tex2jax_ignore" not in df._repr_html_()
+        assert "tex2jax_ignore" and "mathjax_ignore" not in df._repr_html_()
 
         with option_context("display.html.use_mathjax", False):
-            assert "tex2jax_ignore" in df._repr_html_()
+            assert "tex2jax_ignore" and "mathjax_ignore" in df._repr_html_()
 
     def test_repr_html_wide(self):
         max_cols = 20
