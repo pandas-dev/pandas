@@ -1021,6 +1021,10 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute sum of group values.
 
+        This method provides a simple way to compute the sum of values within each
+        resampled group, particularly useful for aggregating time-based data into
+        daily, monthly, or yearly sums.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1038,6 +1042,14 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         Series or DataFrame
             Computed sum of values within each group.
+
+        See Also
+        --------
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
+        core.resample.Resampler.count : Compute count of group, excluding missing
+            values.
+        DataFrame.resample : Resample time-series data.
+        Series.sum : Return the sum of the values over the requested axis.
 
         Examples
         --------
