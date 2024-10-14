@@ -1143,6 +1143,7 @@ def convert_dtypes(
                 base_dtype.kind == "O"  # type: ignore[union-attr]
                 and input_array.size > 0
                 and isna(input_array).all()
+                and not isinstance(input_array.dtype, CategoricalDtype)
             ):
                 import pyarrow as pa
 
