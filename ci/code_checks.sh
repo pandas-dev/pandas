@@ -133,7 +133,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.var SA01" \
         -i "pandas.errors.AttributeConflictWarning SA01" \
-        -i "pandas.errors.CSSWarning SA01" \
         -i "pandas.errors.ChainedAssignmentError SA01" \
         -i "pandas.errors.DataError SA01" \
         -i "pandas.errors.DuplicateLabelError SA01" \
