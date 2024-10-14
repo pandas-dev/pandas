@@ -279,6 +279,10 @@ def json_normalize(
     """
     Normalize semi-structured JSON data into a flat table.
 
+    This method is designed to transform semi-structured JSON data, such as nested
+    dictionaries or lists, into a flat table. This is particularly useful when
+    handling JSON-like data structures that contain deeply nested fields.
+
     Parameters
     ----------
     data : dict, list of dicts, or Series of dicts
@@ -310,8 +314,13 @@ def json_normalize(
 
     Returns
     -------
-    frame : DataFrame
-    Normalize semi-structured JSON data into a flat table.
+    DataFrame
+        The normalized data, represented as a pandas DataFrame.
+
+    See Also
+    --------
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+    Series : One-dimensional ndarray with axis labels (including time series).
 
     Examples
     --------
