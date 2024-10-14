@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -50,11 +52,9 @@ class TestConvertDtypes:
         assert converted.A.dtype == "category", "Dtype in column A is not 'category'"
         assert converted.B.dtype == "category", "Dtype in column B is not 'category'"
         assert converted.A.cat.categories.empty, "Categories in column A are not empty"
-        assert converted.B.cat.categories.__contains__(
-            "B1"
-        ) and converted.B.cat.categories.__contains__(
-            "B2"
-        ), "Categories in column B doesn't contain adequate categories"
+        assert converted.B.cat.categories.isin(
+            ["B1", "B2"]
+        ).all(), "Categories in column B doesn't contain adequate categories"
 
     def test_convert_dtypes_retain_column_names(self):
         # GH#41435
