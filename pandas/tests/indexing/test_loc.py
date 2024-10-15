@@ -3297,3 +3297,36 @@ class TestLocSeries:
         df.loc[Series([False] * 4, index=df.index, name=0), 0] = df[0]
         expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_set_series_to_multiple_columns(self):
+        # GH 59933
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=list("ABC"))
+        df.loc[0:3, ["A", "B", "C"]] = Series([10, 20, 30])
+        expected = DataFrame([[10, 10, 10], [20, 20, 20]], columns=list("ABC"))
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=list("ABC"))
+        df.loc[:, ["A", "B", "C"]] = Series([10, 20, 30])
+        expected = DataFrame([[10, 10, 10], [20, 20, 20]], columns=list("ABC"))
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC"))
+        df.loc[df["A"] > 0, ["A", "B", "C"]] = Series([10, 20, 30])
+        expected = DataFrame(
+            [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC"))
+        df.loc[:, ["A", "B", "C"]] = Series([10, 20, 30])
+        expected = DataFrame(
+            [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC"))
+        df.loc[0:4, ["A", "B", "C"]] = Series([10, 20, 30])
+        expected = DataFrame(
+            [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
+        )
+        tm.assert_frame_equal(df, expected)
