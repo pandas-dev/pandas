@@ -1779,7 +1779,7 @@ _round_doc = """
     Parameters
     ----------
     freq : str or Offset
-        The frequency level to {op} the index to. Must be a fixed
+        The frequency level to {op} the index to must be a fixed
         frequency like 's' (second) not 'ME' (month end). See
         :ref:`frequency aliases <timeseries.offset_aliases>` for
         a list of possible `freq` values.
