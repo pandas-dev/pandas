@@ -579,10 +579,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError("Cannot convert float NaN to integer")
 
         elif len(self.codes) == 0 or len(self.categories) == 0:
-            result = np.array(
+            # For NumPy 1.x compatibility we cannot use copy=None.  And
+            # `copy=False` has the meaning of `copy=None` here:
+            asarray_func = np.array if copy else np.asarray
+            result = asarray_func(
                 self,
                 dtype=dtype,
-                copy=copy,
             )
 
         else:
