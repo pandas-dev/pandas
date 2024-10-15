@@ -1393,7 +1393,7 @@ class MultiIndex(Index):
         """the array interface, return my values"""
         if copy is True:
             # Note: branch avoids `copy=None` for NumPy 1.x support
-            return np.asarray(self.values, dtype=dtype, copy=copy)
+            return np.array(self.values, dtype=dtype, copy=copy)
         return self.values
 
     def view(self, cls=None) -> Self:

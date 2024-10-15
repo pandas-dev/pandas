@@ -883,7 +883,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # Note: branch avoids `copy=None` for NumPy 1.x support
             arr = np.asarray(values, dtype=dtype)
         else:
-            arr = np.asarray(values, dtype=dtype, copy=copy)
+            arr = np.array(values, dtype=dtype, copy=copy)
 
         if copy is True:
             return arr

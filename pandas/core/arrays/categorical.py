@@ -581,11 +581,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif len(self.codes) == 0 or len(self.categories) == 0:
             # For NumPy 1.x compatibility we cannot use copy=None.  And
             # `copy=False` has the meaning of `copy=None` here:
-            asarray_func = np.array if copy else np.asarray
-            result = asarray_func(
-                self,
-                dtype=dtype,
-            )
+            if not copy:
+                result = np.asarray(self, dtype=dtype)
+            else:
+                result = np.array(self, dtype=dtype)
 
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
@@ -1693,16 +1692,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Unable to avoid copy while creating an array as requested."
             )
 
-        # TODO: using asarray_func because NumPy 1.x doesn't support copy=None
-        asarray_func = np.asarray if copy is None else np.array
-
         ret = take_nd(self.categories._values, self._codes)
-        if dtype and np.dtype(dtype) != self.categories.dtype:
-            return asarray_func(ret, dtype)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
         # ndarray.
-        return asarray_func(ret)
+
+        if copy is None:
+            # Branch required since copy=None is not defined on 1.x
+            return np.asarray(ret, dtype=dtype)
+        return np.array(ret, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
