@@ -2176,8 +2176,10 @@ class Timedelta(_Timedelta):
         Parameters
         ----------
         freq : str
-            Frequency string indicating the ceiling resolution.
-            It uses the same units as class constructor :class:`~pandas.Timedelta`.
+            The frequency level to ceil the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
 
         Returns
         -------
