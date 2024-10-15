@@ -547,6 +547,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
