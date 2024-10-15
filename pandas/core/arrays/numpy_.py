@@ -152,7 +152,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
     ) -> np.ndarray:
         if copy is not None:
             # Note: branch avoids `copy=None` for NumPy 1.x support
-            return np.asarray(self._ndarray, dtype=dtype, copy=copy)
+            return np.array(self._ndarray, dtype=dtype, copy=copy)
         return np.asarray(self._ndarray, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):

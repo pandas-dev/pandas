@@ -912,7 +912,7 @@ class Index(IndexOpsMixin, PandasObject):
             # Note, that the if branch exists for NumPy 1.x support
             return np.asarray(self._data, dtype=dtype)
 
-        return np.asarray(self._data, dtype=dtype, copy=copy)
+        return np.array(self._data, dtype=dtype, copy=copy)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str_t, *inputs, **kwargs):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
