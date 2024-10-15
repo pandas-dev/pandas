@@ -1663,7 +1663,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             Specifies the the dtype for the array.
 
         copy : bool or None, optional
-            Unused.
+            See :func:`numpy.asarray`.
 
         Returns
         -------
@@ -1686,13 +1686,21 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> np.asarray(cat)
         array(['a', 'b'], dtype=object)
         """
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        # TODO: using asarray_func because NumPy 1.x doesn't support copy=None
+        asarray_func = np.asarray if copy is None else np.array
+
         ret = take_nd(self.categories._values, self._codes)
         if dtype and np.dtype(dtype) != self.categories.dtype:
-            return np.asarray(ret, dtype)
+            return asarray_func(ret, dtype)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
         # ndarray.
-        return np.asarray(ret)
+        return asarray_func(ret)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods

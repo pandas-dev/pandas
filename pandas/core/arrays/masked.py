@@ -581,7 +581,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        return self.to_numpy(dtype=dtype)
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        if copy is None:
+            copy = False  # The NumPy copy=False meaning is different here.
+        return self.to_numpy(dtype=dtype, copy=copy)
 
     _HANDLED_TYPES: tuple[type, ...]
 

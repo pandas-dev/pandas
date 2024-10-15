@@ -1391,6 +1391,9 @@ class MultiIndex(Index):
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
+        if copy is True:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            return np.asarray(self.values, dtype=dtype, copy=copy)
         return self.values
 
     def view(self, cls=None) -> Self:
