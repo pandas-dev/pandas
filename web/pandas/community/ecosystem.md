@@ -239,6 +239,17 @@ Console](https://docs.spyder-ide.org/current/panes/ipythonconsole.html), and Spy
 render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
 
+### [marimo](https://marimo.io)
+
+marimo is a reactive notebook for Python and SQL that enhances productivity when working with dataframes. It provides several features to make data manipulation and visualization more interactive and fun:
+
+1. Rich, interactive displays: marimo can display pandas dataframes in interactive tables or charts with filtering and sorting capabilities.
+2. Data selection: Users can select data in tables or pandas-backed plots, and the selections are automatically sent to Python as pandas dataframes.
+3. No-code transformations: Users can interactively transform pandas dataframes using a GUI, without writing code. The generated code can be copied and pasted into the notebook.
+4. Custom filters: marimo allows the creation of pandas-backed filters using UI elements like sliders and dropdowns.
+5. Dataset explorer: marimo automatically discovers and displays all dataframes in the notebook, allowing users to explore and visualize data interactively.
+6. SQL integration: marimo allows users to write SQL queries against any pandas dataframes existing in memory.
+
 ## API
 
 ### [pandas-datareader](https://github.com/pydata/pandas-datareader)
