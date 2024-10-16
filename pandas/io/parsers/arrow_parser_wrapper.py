@@ -274,6 +274,18 @@ class ArrowParserWrapper(ParserBase):
 
         dtype_backend = self.kwds["dtype_backend"]
 
+        # Handle missing date values by checking for timestamp columns
+        for i, field in enumerate(table.schema):
+            if pa.types.is_timestamp(field.type):  # Check if the column is a timestamp
+                # Convert to a Pandas Series
+                column = table.column(i).to_pandas()
+
+                # Replace missing values with NaT
+                column.fillna(pd.NaT, inplace=True)
+
+                # Update the column back to the table
+                table = table.set_column(i, field.name, pa.array(column))
+
         # Convert all pa.null() cols -> float64 (non nullable)
         # else Int64 (nullable case, see below)
         if dtype_backend is lib.no_default:
