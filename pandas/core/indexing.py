@@ -2371,7 +2371,7 @@ class _iLocIndexer(_LocationIndexer):
 
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
-            if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
+            if all(is_sequence(_) or isinstance(_, slice) for _ in indexer):
                 ser_values = ser.reindex(obj.axes[0][indexer[0]])._values
 
                 # single indexer
