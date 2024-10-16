@@ -278,7 +278,6 @@ class ArrowParserWrapper(ParserBase):
         for i, field in enumerate(table.schema):
             if pa.types.is_timestamp(field.type):
                 column = table.column(i).to_pandas()
-
                 column.fillna(pd.NaT, inplace=True)
 
                 table = table.set_column(i, field.name, pa.array(column))
