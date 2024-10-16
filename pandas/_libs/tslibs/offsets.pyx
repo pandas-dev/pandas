@@ -3380,6 +3380,13 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     day_of_month : int, {1, 3,...,27}, default 15
         A specific integer for the day of the month.
 
+    See Also
+    --------
+    tseries.offsets.SemiMonthEnd : Two DateOffset's per month repeating on the last day
+        of the month & day_of_month.
+    tseries.offsets.MonthEnd : Offset to the last calendar day of the month.
+    tseries.offsets.MonthBegin : Offset to the first calendar day of the month.
+
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
