@@ -2353,6 +2353,7 @@ class _iLocIndexer(_LocationIndexer):
                 return i.ravel() if isinstance(i, np.ndarray) else i
 
             indexer = tuple(map(ravel, indexer))
+
             aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
@@ -2370,9 +2371,7 @@ class _iLocIndexer(_LocationIndexer):
 
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
-            if len(indexer) == self.ndim and all(
-                is_sequence(_) or isinstance(_, slice) for _ in indexer
-            ):
+            if all(is_sequence(_) or isinstance(_, slice) for _ in indexer):
                 ser_values = ser.reindex(obj.axes[0][indexer[0]])._values
 
                 # single indexer
@@ -2400,6 +2399,7 @@ class _iLocIndexer(_LocationIndexer):
                         if using_cow:
                             return ser
                         return ser._values.copy()
+
                     return ser.reindex(new_ix)._values
 
                 # 2 dims
