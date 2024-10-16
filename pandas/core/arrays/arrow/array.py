@@ -2318,7 +2318,9 @@ class ArrowExtensionArray(
             for chunk in self._pa_array.iterchunks()
         ]
 
-    def _convert_bool_result(self, result):
+    def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
+        if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+            result = result.fill_null(na)
         return type(self)(result)
 
     def _convert_int_result(self, result):
@@ -2426,7 +2428,7 @@ class ArrowExtensionArray(
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
-    def _str_normalize(self, form: str) -> Self:
+    def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
         predicate = lambda val: unicodedata.normalize(form, val)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
