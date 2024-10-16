@@ -2045,9 +2045,19 @@ The repeated labels are:
         """
         Return a dict associating each variable name with corresponding label.
 
+        This method retrieves variable labels from a Stata file. Variable labels are
+        mappings between variable names and their corresponding descriptive labels
+        in a Stata dataset.
+
         Returns
         -------
         dict
+            A python dictionary.
+
+        See Also
+        --------
+        read_stata : Read Stata file into DataFrame.
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
 
         Examples
         --------
@@ -2076,9 +2086,19 @@ The repeated labels are:
         """
         Return a nested dict associating each variable name to its value and label.
 
+        This method retrieves the value labels from a Stata file. Value labels are
+        mappings between the coded values and their corresponding descriptive labels
+        in a Stata dataset.
+
         Returns
         -------
         dict
+            A python dictionary.
+
+        See Also
+        --------
+        read_stata : Read Stata file into DataFrame.
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
 
         Examples
         --------
