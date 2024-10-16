@@ -1868,7 +1868,8 @@ class Timedelta(_Timedelta):
         Input value.
     unit : str, default 'ns'
         If input is an integer, denote the unit of the input.
-        If input is a float, denote the unit of the integer part and proportionally convert the decimal part.(If unit=None, ignore the decimal part.)
+        If input is a float, denote the unit of integer parts.
+        (If unit = None, ignore decimal parts. Otherwise proportionally convert them.)
 
         Possible values:
 
