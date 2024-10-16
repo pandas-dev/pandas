@@ -2109,6 +2109,11 @@ class Timedelta(_Timedelta):
         """
         Round the Timedelta to the specified resolution.
 
+        This method rounds the Timedelta to the nearest specified frequency.
+        It is useful for aligning time durations to regular intervals,
+        such as seconds, minutes, or hours, ensuring that the resulting
+        Timedelta is expressed in fixed units.
+
         Parameters
         ----------
         freq : str
@@ -2143,6 +2148,11 @@ class Timedelta(_Timedelta):
         """
         Return a new Timedelta floored to this resolution.
 
+        This method truncates the Timedelta to the nearest specified frequency,
+        effectively rounding down the duration to the nearest interval defined
+        by the provided frequency string. This is useful for situations where
+        you want to ensure that the Timedelta does not exceed a certain duration.
+
         Parameters
         ----------
         freq : str
@@ -2173,11 +2183,17 @@ class Timedelta(_Timedelta):
         """
         Return a new Timedelta ceiled to this resolution.
 
+        This method rounds up the Timedelta to the nearest specified frequency,
+        ensuring that the result represents a valid time duration aligned with
+        the given frequency.
+
         Parameters
         ----------
         freq : str
-            Frequency string indicating the ceiling resolution.
-            It uses the same units as class constructor :class:`~pandas.Timedelta`.
+            The frequency level to ceil the index to. Must be a fixed
+            frequency like ‘S’ (second) not ‘ME’ (month end).
+            See :ref:`frequency aliases <timeseries.offset_aliases>`
+            for a list of possible `freq` values.
 
         Returns
         -------
