@@ -848,6 +848,34 @@ def test_parse_dates_arrow_engine(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_parse_dates_arrow_dtype_as_index(all_parsers):
+    # GH#57930
+    parser = all_parsers
+    data = """a,b
+2000-01-01 00:00:00,1
+2000-01-01 00:00:01,1"""
+
+    result = parser.read_csv(
+        StringIO(data),
+        parse_dates=["a"],
+        index_col="a",
+        dtype_backend="pyarrow",
+    )
+    expected = pd.Series(
+        [1, 1],
+        name="b",
+        dtype="int64[pyarrow]",
+        index=pd.Index(
+            [
+                Timestamp("2000-01-01 00:00:00"),
+                Timestamp("2000-01-01 00:00:01"),
+            ],
+            name="a",
+        ),
+    ).to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
 @xfail_pyarrow  # object dtype index
 def test_from_csv_with_mixed_offsets(all_parsers):
     parser = all_parsers
