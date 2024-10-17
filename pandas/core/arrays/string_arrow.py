@@ -219,9 +219,27 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    def _convert_bool_result(self, values):
+    def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
+        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            na = bool(na)
+
         if self.dtype.na_value is np.nan:
-            return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
+            if na is lib.no_default or isna(na):
+                # NaN propagates as False
+                values = values.fill_null(False)
+            else:
+                values = values.fill_null(na)
+            return values.to_numpy()
+        else:
+            if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+                values = values.fill_null(na)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
@@ -306,21 +324,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_slice = ArrowStringArrayMixin._str_slice
 
     def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na=lib.no_default,
+        regex: bool = True,
     ):
         if flags:
             return super()._str_contains(pat, case, flags, na, regex)
-
-        if not isna(na):
-            if not isinstance(na, bool):
-                # GH#59561
-                warnings.warn(
-                    "Allowing a non-bool 'na' in obj.str.contains is deprecated "
-                    "and will raise in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                na = bool(na)
 
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
@@ -415,9 +427,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 arr = pc.or_kleene(nas, pc.not_equal(self._pa_array, ""))
             else:
                 arr = pc.not_equal(self._pa_array, "")
-            return ArrowExtensionArray(arr)._reduce(
+            result = ArrowExtensionArray(arr)._reduce(
                 name, skipna=skipna, keepdims=keepdims, **kwargs
             )
+            if keepdims:
+                # ArrowExtensionArray will return a length-1 bool[pyarrow] array
+                return result.astype(np.bool_)
+            return result
 
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):

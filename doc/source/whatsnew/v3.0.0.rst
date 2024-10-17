@@ -16,12 +16,12 @@ Enhancements
 
 .. _whatsnew_300.enhancements.enhancement1:
 
-enhancement1
+Enhancement1
 ^^^^^^^^^^^^
 
 .. _whatsnew_300.enhancements.enhancement2:
 
-enhancement2
+Enhancement2
 ^^^^^^^^^^^^
 
 .. _whatsnew_300.enhancements.other:
