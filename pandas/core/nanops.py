@@ -1001,16 +1001,30 @@ def nanvar(
         values = values.copy()
         np.putmask(values, mask, 0)
 
-    # xref GH10242
-    # Compute variance via two-pass algorithm, which is stable against
-    # cancellation errors and relatively accurate for small numbers of
-    # observations.
-    #
-    # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
-    if axis is not None:
-        avg = np.expand_dims(avg, axis)
-    sqr = _ensure_numeric((avg - values) ** 2)
+    if values.dtype.kind == "c":
+        # xref GH10242
+        # Compute variance via two-pass algorithm, which is stable against
+        # cancellation errors and relatively accurate for small numbers of
+        # observations.
+        #
+        # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance...
+        # ...but also,
+        # see https://numpy.org/doc/stable/reference/generated/numpy.nanvar.html#numpy-nanvar
+        # which explains why computing the variance of complex numbers
+        # requires first normalizing the complex differences to magnitudes
+        avg = _ensure_numeric(values.sum(axis=axis, dtype=values.dtype)) / count
+        if axis is not None:
+            avg = np.expand_dims(avg, axis)
+        deltas = _ensure_numeric(avg - values)
+        avg_re = np.real(deltas)
+        avg_im = np.imag(deltas)
+        sqr = avg_re**2 + avg_im**2
+    else:
+        avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
+        if axis is not None:
+            avg = np.expand_dims(avg, axis)
+        sqr = _ensure_numeric((avg - values) ** 2)
+
     if mask is not None:
         np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d

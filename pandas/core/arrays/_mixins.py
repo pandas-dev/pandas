@@ -260,7 +260,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
+        try:
+            self._ndarray[key] = value
+        except TypeError as exc:
+            # Note: when `self._ndarray.dtype.kind == "c"`, Numpy incorrectly complains
+            # that `must be real number, not ...` when in reality
+            # a complex argument is more likely what's expected
+            raise ValueError(exc.args) from exc
 
     def _validate_setitem_value(self, value):
         return value
