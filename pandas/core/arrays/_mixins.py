@@ -93,6 +93,17 @@ def ravel_compat(meth: F) -> F:
 class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignore[misc]
     """
     ExtensionArray that is backed by a single NumPy ndarray.
+
+    Notes
+    -----
+        This class is part of the public API, but may be adjusted in non-user-facing
+        ways more aggressively than the regular API.
+
+    Examples
+    --------
+    Please see the following:
+
+    https://pandas.pydata.org/docs/development/extending.html#NDArrayBackedExtensionArray
     """
 
     _ndarray: np.ndarray
@@ -115,6 +126,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
 
     # ------------------------------------------------------------------------
 
+    @doc(ExtensionArray.view)
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         # We handle datetime64, datetime64tz, timedelta64, and period
         #  dtypes here. Everything else we pass through to the underlying
@@ -155,6 +167,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
         return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
+    @doc(ExtensionArray.view)
     def take(
         self,
         indices: TakeIndexer,
@@ -419,20 +432,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
     # ------------------------------------------------------------------------
     # Index compat methods
 
+    @doc(ExtensionArray.insert)
     def insert(self, loc: int, item) -> Self:
-        """
-        Make new ExtensionArray inserting new item at location. Follows
-        Python list.append semantics for negative values.
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        type(self)
-        """
         loc = validate_insert_loc(loc, len(self))
 
         code = self._validate_scalar(item)
@@ -453,16 +454,24 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
-        Return a Series containing counts of unique values.
+        Return a Series containing counts of each unique value.
 
         Parameters
         ----------
         dropna : bool, default True
-            Don't include counts of NA values.
+            Don't include counts of missing values.
 
         Returns
         -------
         Series
+
+        Examples
+        --------
+        >>> arr = pd.array([4, 5])
+        >>> arr.value_counts()
+        4    1
+        5    1
+        Name: count, dtype: Int64
         """
         if self.ndim != 1:
             raise NotImplementedError
