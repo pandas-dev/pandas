@@ -303,7 +303,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Second.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Second.n GL08" \
         -i "pandas.tseries.offsets.Second.normalize GL08" \
-        -i "pandas.tseries.offsets.SemiMonthBegin SA01" \
         -i "pandas.tseries.offsets.SemiMonthBegin.day_of_month GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.n GL08" \
