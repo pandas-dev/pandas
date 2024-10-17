@@ -3371,6 +3371,10 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first day of the month & day_of_month.
 
+    This offset moves dates to the first day of the month and an additional specified
+    day (typically the 15th by default), useful in scenarios where bi-monthly processing
+    occurs on set days.
+
     Attributes
     ----------
     n : int, default 1
