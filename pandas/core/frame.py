@@ -738,10 +738,10 @@ class DataFrame(NDFrame, OpsMixin):
         original_dtype = dtype
 
         # GH47215
-        if isinstance(index, set):
-            raise ValueError("index cannot be a set")
-        if isinstance(columns, set):
-            raise ValueError("columns cannot be a set")
+        # if isinstance(index, set):
+        #     raise ValueError("index cannot be a set")
+        # if isinstance(columns, set):
+        #     raise ValueError("columns cannot be a set")
 
         if copy is None:
             if isinstance(data, dict):
