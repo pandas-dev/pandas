@@ -10823,7 +10823,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, decimals: int | dict[IndexLabel, int] | Series = 0, *args, **kwargs
     ) -> DataFrame:
         """
-        Round a DataFrame to a variable number of decimal places.
+        Round a numeric column in DataFrame to a variable number of decimal places.
 
         Parameters
         ----------
