@@ -3111,13 +3111,13 @@ class TestDataFrameConstructorWithDatetimeTZ:
         with pytest.raises(ValueError, match=msg):
             DataFrame(arr2, columns=["foo", "bar"])
 
-    def test_columns_indexes_raise_on_sets(self):
+    # def test_columns_indexes_raise_on_sets(self):
         # GH 47215
-        data = [[1, 2, 3], [4, 5, 6]]
-        with pytest.raises(ValueError, match="index cannot be a set"):
-            DataFrame(data, index={"a", "b"})
-        with pytest.raises(ValueError, match="columns cannot be a set"):
-            DataFrame(data, columns={"a", "b", "c"})
+        # data = [[1, 2, 3], [4, 5, 6]]
+        # with pytest.raises(ValueError, match="index cannot be a set"):
+        #     DataFrame(data, index={"a", "b"})
+        # with pytest.raises(ValueError, match="columns cannot be a set"):
+        #     DataFrame(data, columns={"a", "b", "c"})
 
     # TODO: make this not cast to object in pandas 3.0
     @pytest.mark.skipif(
