@@ -371,6 +371,30 @@ class TestToLatexHeader:
         with pytest.raises(ValueError, match=msg):
             df.to_latex(header=header)
 
+    def test_to_latex_with_latex_header(self):
+        df = DataFrame({"a": [1, 2]})
+        result = df.to_latex(header=[r"$\bar{y}$"], index=False, column_format="l")
+        expected = r"""
+        \begin{tabular}{l}
+        \toprule
+        $\bar{y}$ \\
+        \midrule
+        1 \\
+        2 \\
+        \bottomrule
+        \end{tabular}
+        """
+
+        # Function to remove leading spaces from each line
+        def remove_leading_spaces(s):
+            return "\n".join(line.lstrip() for line in s.strip().split("\n"))
+
+        # Normalize both result and expected strings
+        result_clean = remove_leading_spaces(result)
+        expected_clean = remove_leading_spaces(expected)
+
+        assert result_clean == expected_clean
+
     def test_to_latex_decimal(self):
         # GH 12031
         df = DataFrame({"a": [1.0, 2.1], "b": ["b1", "b2"]})

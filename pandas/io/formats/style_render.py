@@ -1564,7 +1564,12 @@ class StylerRenderer:
         levels_ = refactor_levels(level, obj)
 
         def alias_(x, value):
+            """
+            Checks and returns formatted values based on specific conditions.
+            """
             if isinstance(value, str):
+                if value.startswith("$") and value.endswith("$"):
+                    return value
                 return value.format(x)
             return value
 
