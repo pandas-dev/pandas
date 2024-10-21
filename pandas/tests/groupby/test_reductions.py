@@ -68,10 +68,15 @@ def test_basic_aggregations(dtype):
         grouped.aggregate({"one": np.mean, "two": np.std})
 
     # corner cases
-    msg = "Must produce aggregated value"
-    # exception raised is type Exception
-    with pytest.raises(Exception, match=msg):
-        grouped.aggregate(lambda x: x * 2)
+    result = grouped.aggregate(lambda x: x * 2)
+    expected = Series(
+        {
+            0: data[data.index // 3 == 0] * 2,
+            1: data[data.index // 3 == 1] * 2,
+            2: data[data.index // 3 == 2] * 2,
+        },
+    )
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
