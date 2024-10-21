@@ -28,7 +28,7 @@ class TestNumericOnly:
                 "group": [1, 1, 2],
                 "int": [1, 2, 3],
                 "float": [4.0, 5.0, 6.0],
-                "string": list("abc"),
+                "string": Series(["a", "b", "c"], dtype=object),
                 "category_string": Series(list("abc")).astype("category"),
                 "category_int": [7, 8, 9],
                 "datetime": date_range("20130101", periods=3),
@@ -180,7 +180,7 @@ class TestNumericOnly:
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
-                    re.escape(f"agg function failed [how->{method},dtype->str]"),
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -198,7 +198,7 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
-                    re.escape(f"agg function failed [how->{method},dtype->str]"),
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -299,7 +299,9 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
-        if kernel == "idxmin":
+        if kernel == "quantile":
+            msg = "dtype 'object' does not support operation 'quantile'"
+        elif kernel == "idxmin":
             msg = "'<' not supported between instances of 'type' and 'type'"
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
@@ -379,7 +381,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # that succeed should not be allowed to fail (without deprecation, at least)
     if groupby_func in fails_on_numeric_object and dtype is object:
         if groupby_func == "quantile":
-            msg = "cannot be performed against 'object' dtypes"
+            msg = "dtype 'object' does not support operation 'quantile'"
         else:
             msg = "is not supported for object dtype"
         with pytest.raises(TypeError, match=msg):
