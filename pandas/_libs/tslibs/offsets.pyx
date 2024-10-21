@@ -3371,6 +3371,10 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first day of the month & day_of_month.
 
+    This offset moves dates to the first day of the month and an additional specified
+    day (typically the 15th by default), useful in scenarios where bi-monthly processing
+    occurs on set days.
+
     Attributes
     ----------
     n : int, default 1
@@ -3379,6 +3383,13 @@ cdef class SemiMonthBegin(SemiMonthOffset):
         Normalize start/end dates to midnight before generating date range.
     day_of_month : int, {1, 3,...,27}, default 15
         A specific integer for the day of the month.
+
+    See Also
+    --------
+    tseries.offsets.SemiMonthEnd : Two DateOffset's per month repeating on the last day
+        of the month & day_of_month.
+    tseries.offsets.MonthEnd : Offset to the last calendar day of the month.
+    tseries.offsets.MonthBegin : Offset to the first calendar day of the month.
 
     Examples
     --------
