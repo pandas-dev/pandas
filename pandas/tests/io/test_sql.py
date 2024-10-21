@@ -1063,12 +1063,27 @@ def test_to_sql(conn, method, test_frame1, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
-@pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
+@pytest.mark.parametrize(
+    "mode, num_row_coef", [("replace", 1), ("append", 2), ("truncate", 1)]
+)
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
+    connections_without_truncate = sqlite_connectable + [
+        "sqlite_buildin",
+        "sqlite_adbc_conn",
+    ]
+    if conn in connections_without_truncate and mode == "truncate":
+        context = pytest.raises(
+            NotImplementedError,
+            match="'TRUNCATE TABLE' is not supported by this database.",
+        )
+    else:
+        context = contextlib.nullcontext()
     conn = request.getfixturevalue(conn)
+
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
-        pandasSQL.to_sql(test_frame1, "test_frame", if_exists=mode)
+        with context:
+            pandasSQL.to_sql(test_frame1, "test_frame", if_exists=mode)
         assert pandasSQL.has_table("test_frame")
     assert count_rows(conn, "test_frame") == num_row_coef * len(test_frame1)
 
@@ -2691,6 +2706,47 @@ def test_drop_table(conn, request):
         except AttributeError:
             pass
         assert not insp.has_table("temp_frame")
+
+
+@pytest.mark.parametrize("conn", mysql_connectable + postgresql_connectable)
+def test_truncate_table_success(conn, test_frame1, request):
+    table_name = "temp_frame"
+    conn = request.getfixturevalue(conn)
+
+    with sql.SQLDatabase(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(test_frame1, table_name, if_exists="replace") == 4
+
+        with pandasSQL.run_transaction():
+            pandasSQL.truncate_table(table_name)
+        assert count_rows(conn, table_name) == 0
+
+
+@pytest.mark.parametrize("conn", sqlite_connectable)
+def test_truncate_table_not_supported(conn, test_frame1, request):
+    table_name = "temp_frame"
+    conn = request.getfixturevalue(conn)
+
+    with sql.SQLDatabase(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(test_frame1, table_name, if_exists="replace") == 4
+
+        with pandasSQL.run_transaction():
+            with pytest.raises(
+                NotImplementedError,
+                match="'TRUNCATE TABLE' is not supported by this database.",
+            ):
+                pandasSQL.truncate_table(table_name)
+        assert count_rows(conn, table_name) == len(test_frame1)
+
+
+def test_truncate_table_sqlite_not_implemented(sqlite_buildin):
+    with sql.SQLiteDatabase(sqlite_buildin) as pandasSQL:
+        with pytest.raises(
+            NotImplementedError,
+            match="'TRUNCATE TABLE' is not supported by this database.",
+        ):
+            pandasSQL.truncate_table("table")
 
 
 @pytest.mark.parametrize("conn", all_connectable)
