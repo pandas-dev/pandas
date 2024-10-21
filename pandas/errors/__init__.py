@@ -76,6 +76,12 @@ class UnsupportedFunctionCall(ValueError):
 
     For example, ``np.cumsum(groupby_object)``.
 
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+    Series.groupby : Group Series using a mapper or by a Series of columns.
+    core.groupby.GroupBy.cumsum : Compute cumulative sum for each group.
+
     Examples
     --------
     >>> df = pd.DataFrame(
