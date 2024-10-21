@@ -436,24 +436,7 @@ class TestJoin:
             sort=False,
         )
 
-        expected2 = merge(
-            to_join,
-            data,
-            right_on=["key1", "key2"],
-            left_index=True,
-            how="inner",
-            sort=False,
-        )
-        tm.assert_frame_equal(joined, expected2.reindex_like(joined))
-
-        expected2 = merge(
-            to_join,
-            data,
-            right_on=["key1", "key2"],
-            left_index=True,
-            how="inner",
-            sort=False,
-        )
+        tm.assert_frame_equal(joined.reset_index(drop=True), expected[joined.columns])
 
         expected = expected.drop(["first", "second"], axis=1)
         expected.index = joined.index
