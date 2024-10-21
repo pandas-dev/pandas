@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -297,3 +298,20 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.Series([None, None], dtype=pd.ArrowDtype(pa.null()))
         tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_convert_empty_categorical_to_pyarrow(self):
+        # GH#59934
+        ser1 = pd.Series(pd.Categorical([None] * 5))
+        converted1 = ser1.convert_dtypes(dtype_backend="pyarrow")
+        expected = ser1
+
+        tm.assert_series_equal(converted1, expected)
+        assert converted1.dtype == "category", "Series dtype is not 'category'"
+        assert converted1.cat.categories.empty, "Series categories are not empty"
+
+        ser2 = pd.Series(pd.Categorical([None] * 5, categories=["S1", "S2"]))
+        converted2 = ser2.convert_dtypes(dtype_backend="pyarrow")
+        assert converted2.cat.categories.isin(
+            ["S1", "S2"]
+        ).all(), "Categories in ser2 doesn't contain adequate categories"
