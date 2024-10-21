@@ -159,6 +159,25 @@ class TestDataFrameEval:
         with pytest.raises(ValueError, match=msg):
             df.query("")
 
+    def test_query_duplicate_column_name(self, engine, parser):
+        df = DataFrame(
+            {
+                "A": range(3),
+                "B": range(3),
+                "C": range(3)
+            }
+        ).rename(columns={"B": "A"})
+
+        res = df.query('C == 1', engine=engine, parser=parser)
+
+        expect = DataFrame(
+            [[1, 1, 1]],
+            columns=["A", "A", "C"],
+            index=[1]
+        )
+
+        tm.assert_frame_equal(res, expect)
+
     def test_eval_resolvers_as_list(self):
         # GH 14095
         df = DataFrame(
