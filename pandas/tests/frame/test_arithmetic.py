@@ -1038,9 +1038,9 @@ class TestFrameArithmetic:
         [
             (1, "i8"),
             (1.0, "f8"),
-            (2**63, "f8"),
+            (2 ** 63, "f8"),
             (1j, "complex128"),
-            (2**63, "complex128"),
+            (2 ** 63, "complex128"),
             (True, "bool"),
             (np.timedelta64(20, "ns"), "<m8[ns]"),
             (np.datetime64(20, "ns"), "<M8[ns]"),
@@ -1145,6 +1145,33 @@ class TestFrameArithmetic:
         right = DataFrame([[1, 2], [3, 4]], columns=midx2)
         result = left - right
         expected = DataFrame([[-1, 1], [-1, 1]], columns=midx)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason="NaT op NaT results in datetime instead of timedelta")
+    def test_arithmetic_datetime_df_series(self):
+        # GH#59529
+        df_datetime = DataFrame([[1, 2], [3, 4]]).astype("datetime64[ns]")
+        ser_datetime = Series([5, 6, 7]).astype("datetime64[ns]")
+        result = df_datetime - ser_datetime
+        expected = DataFrame(
+            [
+                [pd.Timedelta(-4), pd.Timedelta(-4), pd.Timedelta(pd.NaT)],
+                [pd.Timedelta(-2), pd.Timedelta(-2), pd.Timedelta(pd.NaT)],
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason="NaT op NaT results in datetime instead of timedelta")
+    def test_arithmetic_timestamp_timedelta(self):
+        # GH#59529
+        df_timestamp = DataFrame([pd.Timestamp(1)])
+        ser_timedelta = Series([pd.Timedelta(2), pd.Timedelta(3)])
+        result = df_timestamp - ser_timedelta
+        expected = DataFrame(
+            [
+                [pd.Timestamp(-1), pd.NaT],
+            ]
+        )
         tm.assert_frame_equal(result, expected)
 
 
@@ -1913,7 +1940,7 @@ def test_pow_with_realignment():
     left = DataFrame({"A": [0, 1, 2]})
     right = DataFrame(index=[0, 1, 2])
 
-    result = left**right
+    result = left ** right
     expected = DataFrame({"A": [np.nan, 1.0, np.nan]})
     tm.assert_frame_equal(result, expected)
 

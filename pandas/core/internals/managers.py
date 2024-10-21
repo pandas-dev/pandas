@@ -997,6 +997,8 @@ class BaseBlockManager(PandasObject):
             dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
             if dtype is not None and np.issubdtype(dtype.type, np.floating):
                 fill_value = dtype.type(fill_value)
+            if dtype is not None and np.issubdtype(dtype.type, np.datetime64):
+                fill_value = np.datetime64("NaT")
 
         shape = (len(placement), self.shape[1])
 
