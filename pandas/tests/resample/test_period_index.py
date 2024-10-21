@@ -127,20 +127,30 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize("month", MONTHS)
     @pytest.mark.parametrize("meth", ["ffill", "bfill"])
-    @pytest.mark.parametrize("conv", ["start", "end"])
     @pytest.mark.parametrize(
-        ("offset", "period"), [("D", "D"), ("B", "B"), ("ME", "M"), ("QE", "Q")]
+        ("offset", "period", "conv"),
+        [
+            ("D", "D", "start"),
+            ("D", "D", "end"),
+            ("B", "B", "start"),
+            ("B", "B", "end"),
+            ("MS", "M", "start"),
+            ("ME", "M", "end"),
+            ("QS", "Q", "start"),
+            ("QE", "Q", "end"),
+        ],
     )
     def test_annual_upsample_cases(
         self, offset, period, conv, meth, month, simple_period_range_series
     ):
         ts = simple_period_range_series("1/1/1990", "12/31/1991", freq=f"Y-{month}")
-        warn = FutureWarning if period == "B" else None
-        msg = r"PeriodDtype\[B\] is deprecated"
-        if warn is None:
-            msg = "Resampling with a PeriodIndex is deprecated"
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match=msg):
+
+        msg = (
+            r"PeriodDtype\[B\] is deprecated"
+            if period == "B"
+            else "Resampling with a PeriodIndex is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = getattr(ts.resample(period, convention=conv), meth)()
             expected = result.to_timestamp(period, how=conv)
             expected = expected.asfreq(offset, meth).to_period()
@@ -217,21 +227,29 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("month", MONTHS)
-    @pytest.mark.parametrize("convention", ["start", "end"])
     @pytest.mark.parametrize(
-        ("offset", "period"), [("D", "D"), ("B", "B"), ("ME", "M")]
+        ("offset", "period", "convention"),
+        [
+            ("D", "D", "start"),
+            ("D", "D", "end"),
+            ("B", "B", "start"),
+            ("B", "B", "end"),
+            ("MS", "M", "start"),
+            ("ME", "M", "end"),
+        ],
     )
     def test_quarterly_upsample(
         self, month, offset, period, convention, simple_period_range_series
     ):
         freq = f"Q-{month}"
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
-        warn = FutureWarning if period == "B" else None
-        msg = r"PeriodDtype\[B\] is deprecated"
-        if warn is None:
-            msg = "Resampling with a PeriodIndex is deprecated"
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match=msg):
+
+        msg = (
+            r"PeriodDtype\[B\] is deprecated"
+            if period == "B"
+            else "Resampling with a PeriodIndex is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ts.resample(period, convention=convention).ffill()
             expected = result.to_timestamp(period, how=convention)
             expected = expected.asfreq(offset, "ffill").to_period()
@@ -242,12 +260,12 @@ class TestPeriodIndex:
     def test_monthly_upsample(self, target, convention, simple_period_range_series):
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq="M")
 
-        warn = None if target == "D" else FutureWarning
-        msg = r"PeriodDtype\[B\] is deprecated"
-        if warn is None:
-            msg = "Resampling with a PeriodIndex is deprecated"
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match=msg):
+        msg = (
+            "Resampling with a PeriodIndex is deprecated"
+            if target == "D"
+            else r"PeriodDtype\[B\] is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ts.resample(target, convention=convention).ffill()
             expected = result.to_timestamp(target, how=convention)
             expected = expected.asfreq(target, "ffill").to_period()
@@ -923,7 +941,7 @@ class TestPeriodIndex:
             rs = ser.resample("M", offset="3h")
         result = rs.mean()
         result = result.to_timestamp("M")
-        expected = ser.to_timestamp().resample("ME", offset="3h").mean()
+        expected = ser.to_timestamp().resample("MS", offset="3h").mean()
         # TODO: is non-tick the relevant characteristic? (GH 33815)
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
