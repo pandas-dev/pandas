@@ -19,6 +19,7 @@ from pandas._libs import (
     Period,
     algos,
     lib,
+    missing as libmissing,
 )
 from pandas._libs.tslibs import conversion
 from pandas.util._exceptions import find_stack_level
@@ -594,7 +595,33 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     """
     Faster alternative to is_string_dtype, assumes we have a np.dtype object.
     """
-    return dtype == object or dtype.kind in "SU"
+    return dtype == object or dtype.kind in "SUT"
+
+
+def get_numpy_string_dtype_instance(
+    na_object=libmissing.NA, coerce=False, possible_dtype=None
+):
+    """Get a reference to a ``numpy.dtypes.StringDType`` instance.
+
+    This is a convenience wrapper around the StringDType initializer
+    with convenient defaults chosen for use with Pandas.
+
+    Parameters
+    ----------
+    na_object : object
+       A missing data sentinel object.
+    coerce : bool
+       Whether or not non-strings entries in arrays should be converted
+       to strings.
+    possible_dtype : numpy.dtype
+       Returned as the result if the dtype matches the provided settings
+    """
+    if possible_dtype is not None:
+        possible_coerce = getattr(possible_dtype, "coerce", True)
+        possible_na = getattr(possible_dtype, "na_object", None)
+        if possible_coerce == coerce and possible_na is libmissing.NA:
+            return possible_dtype
+    return np.dtypes.StringDType(na_object=na_object, coerce=coerce)
 
 
 def is_string_dtype(arr_or_dtype) -> bool:
@@ -1166,6 +1193,10 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
         or (is_a_numeric_array and is_b_string_array)
         or (is_b_numeric_array and is_a_string_array)
     )
+
+
+def needs_object_conversion(dtype: DtypeObj | None) -> bool:
+    return dtype.char == "T"
 
 
 def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
@@ -1933,6 +1964,7 @@ __all__ = [
     "is_timedelta64_ns_dtype",
     "is_unsigned_integer_dtype",
     "needs_i8_conversion",
+    "needs_object_conversion",
     "pandas_dtype",
     "TD64NS_DTYPE",
     "validate_all_hashable",

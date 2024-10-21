@@ -154,8 +154,10 @@ class bottleneck_switch:
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
-    # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
-    if dtype != object and not needs_i8_conversion(dtype):
+    if isinstance(dtype, type):
+        dtype = np.dtype(dtype)
+    # Bottleneck chokes on datetime64, numpy strings, PeriodDtype (or and EA)
+    if dtype != object and dtype.kind != "T" and not needs_i8_conversion(dtype):
         # GH 42878
         # Bottleneck uses naive summation leading to O(n) loss of precision
         # unlike numpy which implements pairwise summation, which has O(log(n)) loss
@@ -1007,6 +1009,7 @@ def nanvar(
     # observations.
     #
     # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+
     avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)

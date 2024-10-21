@@ -316,6 +316,8 @@ def _hash_ndarray(
         # With repeated values, its MUCH faster to categorize object dtypes,
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
+        if not vals.dtype.char == "O":
+            vals = vals.astype("object")
         if categorize:
             from pandas import (
                 Categorical,
@@ -337,6 +339,9 @@ def _hash_ndarray(
             vals = hash_object_array(
                 vals.astype(str).astype(object), hash_key, encoding
             )
+        except ValueError:
+            # the dtype doesn't support the buffer protocol (e.g. StringDType)
+            vals = hash_object_array(vals.astype(object), hash_key, encoding)
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
     vals ^= vals >> 30

@@ -339,7 +339,9 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#36377 going through the numexpr path would incorrectly raise
         return invalid_comparison(lvalues, rvalues, op)
 
-    elif lvalues.dtype == object or isinstance(rvalues, str):
+    elif lvalues.dtype == object or (
+        lvalues.dtype.kind != "T" and isinstance(rvalues, str)
+    ):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
