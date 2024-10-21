@@ -41,6 +41,8 @@ from pandas._libs.tslibs.util cimport (
     is_integer_object,
 )
 
+from pandas.util._decorators import set_module
+
 VALID_CLOSED = frozenset(["left", "right", "both", "neither"])
 
 

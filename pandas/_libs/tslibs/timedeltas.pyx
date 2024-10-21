@@ -2,6 +2,7 @@ import collections
 import warnings
 
 from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import set_module
 
 cimport cython
 from cpython.object cimport (
@@ -1855,6 +1856,7 @@ cdef class _Timedelta(timedelta):
 # Python front end to C extension type _Timedelta
 # This serves as the box for timedelta64
 
+@set_module("pandas")
 class Timedelta(_Timedelta):
     """
     Represents a duration, the difference between two dates or times.
