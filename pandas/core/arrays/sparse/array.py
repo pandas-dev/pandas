@@ -637,6 +637,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         See Also
         --------
+        Series.sparse : Accessor for handling sparse data.
+        Series.sparse.npoints : The number of non- ``fill_value`` points.
+        Series.sparse.sp_values : An ndarray containing the non- ``fill_value`` values.
         SparseDtype : Dtype for data stored in :class:`SparseArray`.
         Series.value_counts : Return a Series containing counts of unique values.
         Series.fillna : Fill NA/NaN in a Series with a specified value.
