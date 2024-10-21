@@ -130,7 +130,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- ``pyarrow`` engine for :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas`. This enables passing in ``maps_as_pydicts`` to read parquet map datatypes as python dictionaries. (:issue:`56842`)
 -
 
 Period
