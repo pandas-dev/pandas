@@ -75,6 +75,7 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -2025,3 +2026,19 @@ def test_find_result_type_int_int(right, result):
 def test_find_result_type_floats(right, result):
     left_dtype = np.dtype("float16")
     assert find_result_type(left_dtype, right) == result
+
+def test_infer_dtype_extensiondtype():
+    class MockScalar:
+        pass
+
+    @register_extension_dtype
+    class MockDtype(ExtensionDtype):
+        @property
+        def name(self):
+            return "MockDtype"
+        def is_unambiguous_scalar(scalar):
+            if isinstance(scalar, MockScalar):
+                return True
+            return False
+    arr = [MockScalar()]
+    assert lib.infer_dtype(arr, skipna=True) == "MockDtype"

@@ -444,6 +444,18 @@ class ExtensionDtype:
         """
         return False
 
+    @classmethod
+    def is_unambiguous_scalar(cls, scalar):
+        return False
+
+    @classmethod
+    def construct_from_scalar(cls, scalar):
+        return cls()
+    
+    @property
+    def is_external_dtype(self) -> bool:
+        return self.__module__[:8] == "pandas.c"
+
 
 class StorageExtensionDtype(ExtensionDtype):
     """ExtensionDtype that may be backed by more than one implementation."""
@@ -580,6 +592,14 @@ class Registry:
             except TypeError:
                 pass
 
+        return None
+
+    def match_scalar(
+        self, scalar: Any
+    ) -> type_t[ExtensionDtype] | ExtensionDtype | None:
+        for dtype in self.dtypes:
+            if dtype.is_unambiguous_scalar(scalar):
+                return dtype.construct_from_scalar(scalar)
         return None
 
 
