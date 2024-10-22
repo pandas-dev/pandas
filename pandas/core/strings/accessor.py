@@ -256,7 +256,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if inferred_dtype not in allowed_types:
             raise AttributeError(
-                f"Can only use .str accessor with string values!, not {inferred_dtype}"
+                f"Can only use .str accessor with string values, not {inferred_dtype}"
             )
         return inferred_dtype
 
