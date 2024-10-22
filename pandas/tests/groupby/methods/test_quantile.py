@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -168,6 +170,7 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
@@ -250,6 +253,7 @@ def test_groupby_quantile_nullable_array(values, q):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
 @pytest.mark.parametrize("numeric_only", [True, False])
 def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):

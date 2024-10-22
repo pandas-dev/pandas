@@ -470,14 +470,10 @@ class TestRank:
             ("top", False, [2.0, 3.0, 1.0, 4.0]),
         ],
     )
-    def test_rank_object_first(
-        self, frame_or_series, na_option, ascending, expected, using_infer_string
-    ):
+    def test_rank_object_first(self, frame_or_series, na_option, ascending, expected):
         obj = frame_or_series(["foo", "foo", None, "foo"])
         result = obj.rank(method="first", na_option=na_option, ascending=ascending)
         expected = frame_or_series(expected)
-        if using_infer_string and isinstance(obj, Series):
-            expected = expected.astype("uint64")
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -497,14 +493,15 @@ class TestRank:
         result = df.rank(numeric_only=True)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype, exp_dtype",
-        [("string[pyarrow]", "Int64"), ("string[pyarrow_numpy]", "float64")],
-    )
-    def test_rank_string_dtype(self, dtype, exp_dtype):
+    def test_rank_string_dtype(self, string_dtype_no_object):
         # GH#55362
-        pytest.importorskip("pyarrow")
-        obj = Series(["foo", "foo", None, "foo"], dtype=dtype)
+        obj = Series(["foo", "foo", None, "foo"], dtype=string_dtype_no_object)
         result = obj.rank(method="first")
+        exp_dtype = (
+            "Float64" if string_dtype_no_object == "string[pyarrow]" else "float64"
+        )
+        if string_dtype_no_object.storage == "python":
+            # TODO nullable string[python] should also return nullable Int64
+            exp_dtype = "float64"
         expected = Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)

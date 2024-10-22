@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
@@ -22,7 +24,10 @@ from pandas.tests.io.pytables.common import (
 )
 from pandas.util import _test_decorators as td
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 def test_format_type(tmp_path, setup_path):

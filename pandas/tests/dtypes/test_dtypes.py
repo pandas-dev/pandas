@@ -1059,7 +1059,7 @@ class TestCategoricalDtypeParametrized:
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
-        dtype = "string" if using_infer_string else "object"
+        dtype = "str" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
             rf"categories_dtype={dtype}\)"

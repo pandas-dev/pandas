@@ -452,9 +452,7 @@ class TestMultiIndexConcat:
         s1 = Series(["a", "b", "c"])
         s2 = Series(["a", "b"])
         s3 = Series(["a", "b", "c", "d"])
-        s4 = Series(
-            [], dtype=object if not using_infer_string else "string[pyarrow_numpy]"
-        )
+        s4 = Series([], dtype=object if not using_infer_string else "str")
         result = concat(
             [s1, s2, s3, s4], sort=False, join="outer", ignore_index=False, axis=1
         )
@@ -465,7 +463,7 @@ class TestMultiIndexConcat:
                 ["c", np.nan] * 2,
                 [np.nan] * 2 + ["d"] + [np.nan],
             ],
-            dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+            dtype=object if not using_infer_string else "str",
         )
         tm.assert_frame_equal(
             result, expected, check_index_type=True, check_column_type=True

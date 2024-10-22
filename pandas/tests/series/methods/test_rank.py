@@ -33,7 +33,8 @@ def ser():
         ["max", np.array([2, 6, 7, 4, np.nan, 4, 2, 8, np.nan, 6])],
         ["first", np.array([1, 5, 7, 3, np.nan, 4, 2, 8, np.nan, 6])],
         ["dense", np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])],
-    ]
+    ],
+    ids=lambda x: x[0],
 )
 def results(request):
     return request.param
@@ -48,10 +49,27 @@ def results(request):
         "Int64",
         pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
         pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        "string[python]",
+        "str",
     ]
 )
 def dtype(request):
     return request.param
+
+
+def expected_dtype(dtype, method, pct=False):
+    exp_dtype = "float64"
+    # elif dtype in ["Int64", "Float64", "string[pyarrow]", "string[python]"]:
+    if dtype in ["string[pyarrow]"]:
+        exp_dtype = "Float64"
+    elif dtype in ["float64[pyarrow]", "int64[pyarrow]"]:
+        if method == "average" or pct:
+            exp_dtype = "double[pyarrow]"
+        else:
+            exp_dtype = "uint64[pyarrow]"
+
+    return exp_dtype
 
 
 class TestSeriesRank:
@@ -241,12 +259,18 @@ class TestSeriesRank:
         with pytest.raises(ValueError, match=msg):
             s.rank("average")
 
-    @pytest.mark.parametrize("dtype", [None, object])
-    def test_rank_tie_methods(self, ser, results, dtype):
+    def test_rank_tie_methods(self, ser, results, dtype, using_infer_string):
         method, exp = results
+        if (
+            dtype == "int64"
+            or dtype == "Int64"
+            or (not using_infer_string and dtype == "str")
+        ):
+            pytest.skip("int64/str does not support NaN")
+
         ser = ser if dtype is None else ser.astype(dtype)
         result = ser.rank(method=method)
-        tm.assert_series_equal(result, Series(exp))
+        tm.assert_series_equal(result, Series(exp, dtype=expected_dtype(dtype, method)))
 
     @pytest.mark.parametrize("ascending", [True, False])
     @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
@@ -346,25 +370,35 @@ class TestSeriesRank:
         ],
     )
     def test_rank_dense_method(self, dtype, ser, exp):
+        if ser[0] < 0 and dtype.startswith("str"):
+            exp = exp[::-1]
         s = Series(ser).astype(dtype)
         result = s.rank(method="dense")
-        expected = Series(exp).astype(result.dtype)
+        expected = Series(exp).astype(expected_dtype(dtype, "dense"))
         tm.assert_series_equal(result, expected)
 
-    def test_rank_descending(self, ser, results, dtype):
+    def test_rank_descending(self, ser, results, dtype, using_infer_string):
         method, _ = results
-        if "i" in dtype:
+        if dtype == "int64" or (not using_infer_string and dtype == "str"):
             s = ser.dropna()
         else:
             s = ser.astype(dtype)
 
         res = s.rank(ascending=False)
-        expected = (s.max() - s).rank()
-        tm.assert_series_equal(res, expected)
+        if dtype.startswith("str"):
+            expected = (s.astype("float64").max() - s.astype("float64")).rank()
+        else:
+            expected = (s.max() - s).rank()
+        tm.assert_series_equal(res, expected.astype(expected_dtype(dtype, "average")))
 
-        expected = (s.max() - s).rank(method=method)
+        if dtype.startswith("str"):
+            expected = (s.astype("float64").max() - s.astype("float64")).rank(
+                method=method
+            )
+        else:
+            expected = (s.max() - s).rank(method=method)
         res2 = s.rank(method=method, ascending=False)
-        tm.assert_series_equal(res2, expected)
+        tm.assert_series_equal(res2, expected.astype(expected_dtype(dtype, method)))
 
     def test_rank_int(self, ser, results):
         method, exp = results
@@ -421,9 +455,11 @@ class TestSeriesRank:
     ],
 )
 def test_rank_dense_pct(dtype, ser, exp):
+    if ser[0] < 0 and dtype.startswith("str"):
+        exp = exp[::-1]
     s = Series(ser).astype(dtype)
     result = s.rank(method="dense", pct=True)
-    expected = Series(exp).astype(result.dtype)
+    expected = Series(exp).astype(expected_dtype(dtype, "dense", pct=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -442,9 +478,11 @@ def test_rank_dense_pct(dtype, ser, exp):
     ],
 )
 def test_rank_min_pct(dtype, ser, exp):
+    if ser[0] < 0 and dtype.startswith("str"):
+        exp = exp[::-1]
     s = Series(ser).astype(dtype)
     result = s.rank(method="min", pct=True)
-    expected = Series(exp).astype(result.dtype)
+    expected = Series(exp).astype(expected_dtype(dtype, "min", pct=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -463,9 +501,11 @@ def test_rank_min_pct(dtype, ser, exp):
     ],
 )
 def test_rank_max_pct(dtype, ser, exp):
+    if ser[0] < 0 and dtype.startswith("str"):
+        exp = exp[::-1]
     s = Series(ser).astype(dtype)
     result = s.rank(method="max", pct=True)
-    expected = Series(exp).astype(result.dtype)
+    expected = Series(exp).astype(expected_dtype(dtype, "max", pct=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -484,9 +524,11 @@ def test_rank_max_pct(dtype, ser, exp):
     ],
 )
 def test_rank_average_pct(dtype, ser, exp):
+    if ser[0] < 0 and dtype.startswith("str"):
+        exp = exp[::-1]
     s = Series(ser).astype(dtype)
     result = s.rank(method="average", pct=True)
-    expected = Series(exp).astype(result.dtype)
+    expected = Series(exp).astype(expected_dtype(dtype, "average", pct=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -505,9 +547,11 @@ def test_rank_average_pct(dtype, ser, exp):
     ],
 )
 def test_rank_first_pct(dtype, ser, exp):
+    if ser[0] < 0 and dtype.startswith("str"):
+        exp = exp[::-1]
     s = Series(ser).astype(dtype)
     result = s.rank(method="first", pct=True)
-    expected = Series(exp).astype(result.dtype)
+    expected = Series(exp).astype(expected_dtype(dtype, "first", pct=True))
     tm.assert_series_equal(result, expected)
 
 

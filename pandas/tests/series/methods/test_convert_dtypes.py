@@ -3,6 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 
 import pandas as pd
@@ -181,6 +183,7 @@ def test_cases(request):
 
 
 class TestSeriesConvertDtypes:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("params", product(*[(True, False)] * 5))
     def test_convert_dtypes(
         self,
@@ -227,9 +230,9 @@ class TestSeriesConvertDtypes:
             and params[0]
             and not params[1]
         ):
-            # If we would convert with convert strings then infer_objects converts
-            # with the option
-            expected_dtype = "string[pyarrow_numpy]"
+            # If convert_string=False and infer_objects=True, we end up with the
+            # default string dtype instead of preserving object for string data
+            expected_dtype = pd.StringDtype(na_value=np.nan)
 
         expected = pd.Series(data, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)

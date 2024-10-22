@@ -6,7 +6,7 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -145,7 +145,7 @@ class TestSeriesRepr:
         assert "Name: 0" in rep_str
 
     @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="TODO: investigate why this is failing"
+        using_string_dtype(), reason="TODO(infer_string): investigate failure"
     )
     def test_newline(self):
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
@@ -323,7 +323,7 @@ class TestCategoricalRepr:
                 "0     a\n1     b\n"
                 "     ..\n"
                 "48    a\n49    b\n"
-                "Length: 50, dtype: category\nCategories (2, string): [a, b]"
+                "Length: 50, dtype: category\nCategories (2, str): [a, b]"
             )
         else:
             exp = (
@@ -341,7 +341,7 @@ class TestCategoricalRepr:
             exp = (
                 "0    a\n1    b\n"
                 "dtype: category\n"
-                "Categories (26, string): [a < b < c < d ... w < x < y < z]"
+                "Categories (26, str): [a < b < c < d ... w < x < y < z]"
             )
         else:
             exp = (

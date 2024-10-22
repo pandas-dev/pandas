@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.core.dtypes.common import is_integer
 
@@ -232,7 +232,7 @@ def test_where_ndframe_align():
     tm.assert_series_equal(out, expected)
 
 
-@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set ints into string")
+@pytest.mark.xfail(using_string_dtype(), reason="can't set ints into string")
 def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment

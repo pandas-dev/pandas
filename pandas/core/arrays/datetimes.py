@@ -14,6 +14,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import (
     lib,
     tslib,
@@ -1306,6 +1308,13 @@ default 'raise'
             values, "month_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
+        if using_string_dtype():
+            from pandas import (
+                StringDtype,
+                array as pd_array,
+            )
+
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
@@ -1363,6 +1372,14 @@ default 'raise'
             values, "day_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
+        if using_string_dtype():
+            # TODO: no tests that check for dtype of result as of 2024-08-15
+            from pandas import (
+                StringDtype,
+                array as pd_array,
+            )
+
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
     @property

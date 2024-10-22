@@ -296,7 +296,7 @@ class TestCategoricalAnalytics:
         exp = 3 + 3 * 8  # 3 int8s for values + 3 int64s for categories
         assert cat.nbytes == exp
 
-    def test_memory_usage(self):
+    def test_memory_usage(self, using_infer_string):
         cat = Categorical([1, 2, 3])
 
         # .categories is an index, so we include the hashtable
@@ -304,7 +304,13 @@ class TestCategoricalAnalytics:
         assert 0 < cat.nbytes <= cat.memory_usage(deep=True)
 
         cat = Categorical(["foo", "foo", "bar"])
-        assert cat.memory_usage(deep=True) > cat.nbytes
+        if using_infer_string:
+            if cat.categories.dtype.storage == "python":
+                assert cat.memory_usage(deep=True) > cat.nbytes
+            else:
+                assert cat.memory_usage(deep=True) >= cat.nbytes
+        else:
+            assert cat.memory_usage(deep=True) > cat.nbytes
 
         if not PYPY:
             # sys.getsizeof will call the .memory_usage with

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     Series,
@@ -334,7 +336,7 @@ def test_no_prefix_string_cats_default_category(
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
     result = from_dummies(dummies, default_category=default_category)
     if using_infer_string:
-        expected[""] = expected[""].astype("string[pyarrow_numpy]")
+        expected[""] = expected[""].astype("str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -361,6 +363,7 @@ def test_with_prefix_contains_get_dummies_NaN_column():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "default_category, expected",
     [

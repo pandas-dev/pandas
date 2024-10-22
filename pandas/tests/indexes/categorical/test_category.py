@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import index as libindex
 from pandas._libs.arrays import NDArrayBacked
@@ -196,7 +196,7 @@ class TestCategoricalIndex:
         expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr doesn't roundtrip")
+    @pytest.mark.xfail(using_string_dtype(), reason="repr doesn't roundtrip")
     def test_repr_roundtrip(self):
         ci = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         str(ci)

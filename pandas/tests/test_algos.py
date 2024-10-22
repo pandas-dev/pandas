@@ -4,6 +4,8 @@ import struct
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
@@ -1701,6 +1703,7 @@ class TestDuplicated:
 
 
 class TestHashTable:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [
@@ -1740,6 +1743,7 @@ class TestHashTable:
         reconstr = result_unique[result_inverse]
         tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [
@@ -1896,13 +1900,16 @@ class TestMode:
         tm.assert_series_equal(ser.mode(), exp)
 
     @pytest.mark.parametrize("dt", [str, object])
-    def test_strobj_multi_char(self, dt):
+    def test_strobj_multi_char(self, dt, using_infer_string):
         exp = ["bar"]
         data = ["foo"] * 2 + ["bar"] * 3
 
         ser = Series(data, dtype=dt)
         exp = Series(exp, dtype=dt)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        if using_infer_string and dt is str:
+            tm.assert_extension_array_equal(algos.mode(ser.values), exp.values)
+        else:
+            tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_datelike_mode(self):

@@ -1216,21 +1216,27 @@ class TestiLocBaseIndependent:
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
 
-    def test_iloc_setitem_multicolumn_to_datetime(self):
+    def test_iloc_setitem_multicolumn_to_datetime(self, using_infer_string):
         # GH#20511
         df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
 
-        df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
-        expected = DataFrame(
-            {
-                "A": [
-                    Timestamp("2021-01-01 00:00:00"),
-                    Timestamp("2022-01-01 00:00:00"),
-                ],
-                "B": ["2021", "2022"],
-            }
-        )
-        tm.assert_frame_equal(df, expected, check_dtype=False)
+        if using_infer_string:
+            with tm.assert_produces_warning(
+                FutureWarning, match="Setting an item of incompatible dtype"
+            ):
+                df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
+        else:
+            df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
+            expected = DataFrame(
+                {
+                    "A": [
+                        Timestamp("2021-01-01 00:00:00"),
+                        Timestamp("2022-01-01 00:00:00"),
+                    ],
+                    "B": ["2021", "2022"],
+                }
+            )
+            tm.assert_frame_equal(df, expected, check_dtype=False)
 
 
 class TestILocErrors:

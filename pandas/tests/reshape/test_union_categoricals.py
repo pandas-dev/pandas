@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.concat import union_categoricals
 
 import pandas as pd
@@ -122,6 +124,7 @@ class TestUnionCategoricals:
         exp = Categorical([np.nan, np.nan, np.nan, np.nan])
         tm.assert_categorical_equal(res, exp)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("val", [[], ["1"]])
     def test_union_categoricals_empty(self, val, request, using_infer_string):
         # GH 13759

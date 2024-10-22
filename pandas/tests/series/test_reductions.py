@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -163,6 +167,9 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_mean_with_convertible_string_raises(using_array_manager, using_infer_string):
     # GH#44008
     ser = Series(["1", "2"])
@@ -183,6 +190,9 @@ def test_mean_with_convertible_string_raises(using_array_manager, using_infer_st
         df.mean()
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_mean_dont_convert_j_to_complex(using_array_manager):
     # GH#36703
     df = pd.DataFrame([{"db": "J", "numeric": 123}])
@@ -204,6 +214,9 @@ def test_mean_dont_convert_j_to_complex(using_array_manager):
         np.mean(df["db"].astype("string").array)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_median_with_convertible_string_raises(using_array_manager):
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
     msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support"

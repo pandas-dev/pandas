@@ -9,7 +9,7 @@ from typing import (
     Literal,
 )
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -127,7 +127,7 @@ def read_orc(
             df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
-        if using_pyarrow_string_dtype():
+        if using_string_dtype():
             types_mapper = arrow_string_types_mapper()
         else:
             types_mapper = None

@@ -3,6 +3,8 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 
 import pandas as pd
@@ -492,6 +494,7 @@ def test_empty(keys):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("consolidate", [True, False])
 def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     # https://github.com/pandas-dev/pandas/issues/39329

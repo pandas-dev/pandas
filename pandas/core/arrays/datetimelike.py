@@ -20,6 +20,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import (
     algos,
     lib,
@@ -470,10 +472,16 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
 
+        elif is_string_dtype(dtype):
+            if isinstance(dtype, ExtensionDtype):
+                arr_object = self._format_native_types(na_rep=dtype.na_value)  # type: ignore[arg-type]
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(arr_object, dtype=dtype, copy=False)
+            else:
+                return self._format_native_types()
+
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
-        elif is_string_dtype(dtype):
-            return self._format_native_types()
         elif dtype.kind in "iu":
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
@@ -1789,6 +1797,10 @@ class DatelikeOps(DatetimeLikeArrayMixin):
               dtype='object')
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
+        if using_string_dtype():
+            from pandas import StringDtype
+
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result.astype(object, copy=False)
 
 

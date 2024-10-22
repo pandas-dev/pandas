@@ -12,7 +12,7 @@ from typing import (
 import warnings
 from warnings import catch_warnings
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 from pandas._config.config import _get_option
 
 from pandas._libs import lib
@@ -257,7 +257,7 @@ class PyArrowImpl(BaseImpl):
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
             to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
-        elif using_pyarrow_string_dtype():
+        elif using_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
         manager = _get_option("mode.data_manager", silent=True)

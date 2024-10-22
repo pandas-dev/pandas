@@ -515,17 +515,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         fill_value = self._internal_fill_value
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-
-        res_values = self._cast_quantile_result(res_values)
-        return self._from_backing_data(res_values)
-
-    # TODO: see if we can share this with other dispatch-wrapping methods
-    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
-        """
-        Cast the result of quantile_with_mask to an appropriate dtype
-        to pass to _from_backing_data in _quantile.
-        """
-        return res_values
+        if res_values.dtype == self._ndarray.dtype:
+            return self._from_backing_data(res_values)
+        else:
+            # e.g. test_quantile_empty we are empty integer dtype and res_values
+            #  has floating dtype
+            # TODO: technically __init__ isn't defined here.
+            #  Should we raise NotImplementedError and handle this on NumpyEA?
+            return type(self)(res_values)  # type: ignore[call-arg]
 
     # ------------------------------------------------------------------------
     # numpy-like methods

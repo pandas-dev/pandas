@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -566,14 +566,10 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
-        if (
-            isinstance(data, str)
-            and using_pyarrow_string_dtype()
-            and original_dtype is None
-        ):
+        if isinstance(data, str) and using_string_dtype() and original_dtype is None:
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype("pyarrow_numpy")
+            dtype = StringDtype(na_value=np.nan)
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
         return data
@@ -604,20 +600,19 @@ def sanitize_array(
             subarr = data
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
-                if (
-                    object_index
-                    and using_pyarrow_string_dtype()
-                    and is_string_dtype(subarr)
-                ):
+                if object_index and using_string_dtype() and is_string_dtype(subarr):
                     # Avoid inference when string option is set
                     subarr = data
-            elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
+            elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
-                dtype = StringDtype(storage="pyarrow_numpy")
+                dtype = StringDtype(na_value=np.nan)
                 subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
-            if subarr is data and copy:
+            if (
+                subarr is data
+                or (subarr.dtype == "str" and subarr.dtype.storage == "python")  # type: ignore[union-attr]
+            ) and copy:
                 subarr = subarr.copy()
 
         else:

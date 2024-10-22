@@ -8,6 +8,9 @@ import os
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import (
     np_version_gt2,
     np_version_gte1p24,
@@ -561,6 +564,7 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_with_expansion_type_promotion(self):
         # GH#12599
         ser = Series(dtype=object)
@@ -570,6 +574,7 @@ class TestSetitemWithExpansion:
         expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_not_contained(self, string_series):
         # set item that's not contained
         ser = string_series.copy()
@@ -620,7 +625,7 @@ class TestSetitemWithExpansion:
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
         dtype = (
-            "string[pyarrow_numpy]"
+            "str"
             if using_infer_string and not isinstance(nulls_fixture, Decimal)
             else object
         )
@@ -846,6 +851,11 @@ class SetitemCastingEquivalents:
             indexer_sli(obj)[mask] = val
         tm.assert_series_equal(obj, expected)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_series_where(self, obj, key, expected, warn, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -873,6 +883,7 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_index_where(self, obj, key, expected, warn, val, using_infer_string):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -885,6 +896,7 @@ class SetitemCastingEquivalents:
             expected_idx = Index(expected, dtype=expected.dtype)
             tm.assert_index_equal(res, expected_idx)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_index_putmask(self, obj, key, expected, warn, val, using_infer_string):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True

@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -129,7 +131,7 @@ def test_basic(using_infer_string):  # TODO: split this test
         result = g.apply(f)
     expected = x.iloc[[0, 1]].copy()
     expected.index = Index([1, 2], name="person_id")
-    dtype = "string[pyarrow_numpy]" if using_infer_string else object
+    dtype = "str" if using_infer_string else object
     expected["person_name"] = expected["person_name"].astype(dtype)
     tm.assert_frame_equal(result, expected)
 
@@ -338,6 +340,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper

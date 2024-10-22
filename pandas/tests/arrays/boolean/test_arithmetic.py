@@ -90,16 +90,8 @@ def test_op_int8(left_array, right_array, opname):
 # -----------------------------------------------------------------------------
 
 
-def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string):
+def test_error_invalid_values(data, all_arithmetic_operators):
     # invalid ops
-
-    if using_infer_string:
-        import pyarrow as pa
-
-        err = (TypeError, pa.lib.ArrowNotImplementedError, NotImplementedError)
-    else:
-        err = TypeError
-
     op = all_arithmetic_operators
     s = pd.Series(data)
     ops = getattr(s, op)
@@ -109,7 +101,8 @@ def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string
         "did not contain a loop with signature matching types|"
         "BooleanArray cannot perform the operation|"
         "not supported for the input types, and the inputs could not be safely coerced "
-        "to any supported types according to the casting rule ''safe''"
+        "to any supported types according to the casting rule ''safe''|"
+        "not supported for dtype"
     )
     with pytest.raises(TypeError, match=msg):
         ops("foo")
@@ -118,9 +111,10 @@ def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string
             r"unsupported operand type\(s\) for",
             "Concatenation operation is not implemented for NumPy arrays",
             "has no kernel",
+            "not supported for dtype",
         ]
     )
-    with pytest.raises(err, match=msg):
+    with pytest.raises(TypeError, match=msg):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
@@ -133,7 +127,8 @@ def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string
                 "not all arguments converted during string formatting",
                 "has no kernel",
                 "not implemented",
+                "not supported for dtype",
             ]
         )
-        with pytest.raises(err, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ops(pd.Series("foo", index=s.index))

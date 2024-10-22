@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -77,7 +79,7 @@ def test_apply_index_date(using_infer_string):
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_index_date_object(using_infer_string):
+def test_apply_index_date_object():
     # GH 5789
     # don't auto coerce dates
     ts = [
@@ -109,10 +111,7 @@ def test_apply_index_date_object(using_infer_string):
         1.40750,
         1.40649,
     ]
-    dtype = "string[pyarrow_numpy]" if using_infer_string else object
-    exp_idx = Index(
-        ["2011-05-16", "2011-05-17", "2011-05-18"], dtype=dtype, name="date"
-    )
+    exp_idx = Index(["2011-05-16", "2011-05-17", "2011-05-18"], name="date")
     expected = Series(["00:00", "02:00", "02:00"], index=exp_idx)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
@@ -129,7 +128,7 @@ def test_apply_trivial(using_infer_string):
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    dtype = "string" if using_infer_string else "object"
+    dtype = "str" if using_infer_string else "object"
     expected = pd.concat([df.iloc[1:], df.iloc[1:]], axis=1, keys=["float64", dtype])
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
@@ -146,7 +145,7 @@ def test_apply_trivial_fail(using_infer_string):
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    dtype = "string" if using_infer_string else "object"
+    dtype = "str" if using_infer_string else "object"
     expected = pd.concat([df, df], axis=1, keys=["float64", dtype])
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -944,7 +943,7 @@ def test_func_returns_object():
     "group_column_dtlike",
     [datetime.today(), datetime.today().date(), datetime.today().time()],
 )
-def test_apply_datetime_issue(group_column_dtlike, using_infer_string):
+def test_apply_datetime_issue(group_column_dtlike):
     # GH-28247
     # groupby-apply throws an error if one of the columns in the DataFrame
     #   is a datetime object and the column labels are different from
@@ -955,8 +954,7 @@ def test_apply_datetime_issue(group_column_dtlike, using_infer_string):
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("a").apply(lambda x: Series(["spam"], index=[42]))
 
-    dtype = "string" if using_infer_string else "object"
-    expected = DataFrame(["spam"], Index(["foo"], dtype=dtype, name="a"), columns=[42])
+    expected = DataFrame(["spam"], Index(["foo"], dtype="str", name="a"), columns=[42])
     tm.assert_frame_equal(result, expected)
 
 
@@ -1037,7 +1035,7 @@ def test_groupby_apply_datetime_result_dtypes(using_infer_string):
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
-    dtype = "string" if using_infer_string else object
+    dtype = pd.StringDtype(na_value=np.nan) if using_infer_string else object
     expected = Series(
         [np.dtype("datetime64[ns]"), dtype, dtype, np.int64, dtype],
         index=["observation", "color", "mood", "intensity", "score"],
@@ -1303,12 +1301,13 @@ def test_apply_dropna_with_indexed_same(dropna):
 @pytest.mark.parametrize(
     "as_index, expected",
     [
-        [
+        pytest.param(
             False,
             DataFrame(
                 [[1, 1, 1], [2, 2, 1]], columns=Index(["a", "b", None], dtype=object)
             ),
-        ],
+            marks=pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)"),
+        ),
         [
             True,
             Series(

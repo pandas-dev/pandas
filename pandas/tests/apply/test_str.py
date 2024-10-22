@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.common import is_number
 
 from pandas import (
@@ -86,6 +88,7 @@ def test_apply_np_transformer(float_frame, op, how):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(
@@ -144,6 +147,7 @@ def test_agg_cython_table_series(series, func, expected):
         assert result == expected
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(

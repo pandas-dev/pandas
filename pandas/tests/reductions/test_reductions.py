@@ -7,6 +7,10 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1089,25 +1093,62 @@ class TestSeriesReductions:
         assert df.any().all()
         assert not df.all().any()
 
-    def test_any_all_pyarrow_string(self):
+    def test_any_all_string_dtype(self, any_string_dtype):
         # GH#54591
-        pytest.importorskip("pyarrow")
-        ser = Series(["", "a"], dtype="string[pyarrow_numpy]")
+        if (
+            isinstance(any_string_dtype, pd.StringDtype)
+            and any_string_dtype.na_value is pd.NA
+        ):
+            # the nullable string dtype currently still raise an error
+            # https://github.com/pandas-dev/pandas/issues/51939
+            ser = Series(["a", "b"], dtype=any_string_dtype)
+            with pytest.raises(TypeError):
+                ser.any()
+            with pytest.raises(TypeError):
+                ser.all()
+            return
+
+        ser = Series(["", "a"], dtype=any_string_dtype)
         assert ser.any()
         assert not ser.all()
-
-        ser = Series([None, "a"], dtype="string[pyarrow_numpy]")
-        assert ser.any()
-        assert ser.all()
+        assert ser.any(skipna=False)
         assert not ser.all(skipna=False)
 
-        ser = Series([None, ""], dtype="string[pyarrow_numpy]")
-        assert not ser.any()
-        assert not ser.all()
-
-        ser = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        ser = Series([np.nan, "a"], dtype=any_string_dtype)
         assert ser.any()
         assert ser.all()
+        assert ser.any(skipna=False)
+        assert ser.all(skipna=False)  # NaN is considered truthy
+
+        ser = Series([np.nan, ""], dtype=any_string_dtype)
+        assert not ser.any()
+        assert not ser.all()
+        assert ser.any(skipna=False)  # NaN is considered truthy
+        assert not ser.all(skipna=False)
+
+        ser = Series(["a", "b"], dtype=any_string_dtype)
+        assert ser.any()
+        assert ser.all()
+        assert ser.any(skipna=False)
+        assert ser.all(skipna=False)
+
+        ser = Series([], dtype=any_string_dtype)
+        assert not ser.any()
+        assert ser.all()
+        assert not ser.any(skipna=False)
+        assert ser.all(skipna=False)
+
+        ser = Series([""], dtype=any_string_dtype)
+        assert not ser.any()
+        assert not ser.all()
+        assert not ser.any(skipna=False)
+        assert not ser.all(skipna=False)
+
+        ser = Series([np.nan], dtype=any_string_dtype)
+        assert not ser.any()
+        assert ser.all()
+        assert ser.any(skipna=False)  # NaN is considered truthy
+        assert ser.all(skipna=False)  # NaN is considered truthy
 
     def test_timedelta64_analytics(self):
         # index min/max
@@ -1205,6 +1246,9 @@ class TestSeriesReductions:
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmin(skipna=False)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_idxminmax_object_frame(self):
         # GH#4279
         df = DataFrame([["zimm", 2.5], ["biff", 1.0], ["bid", 12.0]])
@@ -1441,6 +1485,7 @@ class TestSeriesMode:
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dropna, expected1, expected2, expected3",
         [(True, ["b"], ["bar"], ["nan"]), (False, ["b"], [np.nan], ["nan"])],
@@ -1468,6 +1513,7 @@ class TestSeriesMode:
         expected3 = Series(expected3)
         tm.assert_series_equal(result, expected3)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dropna, expected1, expected2",
         [(True, ["foo"], ["foo"]), (False, ["foo"], [np.nan])],
@@ -1605,6 +1651,7 @@ class TestSeriesMode:
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted

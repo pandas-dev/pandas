@@ -8,8 +8,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -185,6 +183,10 @@ class TestArithmetic:
                 "unsupported operand type",
                 "must be str",
                 "has no kernel",
+                "operation 'add' not supported",
+                "operation 'radd' not supported",
+                "operation 'sub' not supported",
+                "operation 'rsub' not supported",
             ]
         )
         with pytest.raises(Exception, match=msg):
@@ -303,7 +305,6 @@ class TestArithmetic:
         index += "_x"
         assert "a_x" in index
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="add doesn't work")
     def test_add(self):
         index = pd.Index([str(i) for i in range(10)])
         expected = pd.Index(index.values * 2)
@@ -318,24 +319,17 @@ class TestArithmetic:
         expected = pd.Index(["1a", "1b", "1c"])
         tm.assert_index_equal("1" + index, expected)
 
-    def test_sub_fail(self, using_infer_string):
+    def test_sub_fail(self):
         index = pd.Index([str(i) for i in range(10)])
 
-        if using_infer_string:
-            import pyarrow as pa
-
-            err = pa.lib.ArrowNotImplementedError
-            msg = "has no kernel"
-        else:
-            err = TypeError
-            msg = "unsupported operand type|Cannot broadcast"
-        with pytest.raises(err, match=msg):
+        msg = "unsupported operand type|Cannot broadcast|sub' not supported"
+        with pytest.raises(TypeError, match=msg):
             index - "a"
-        with pytest.raises(err, match=msg):
+        with pytest.raises(TypeError, match=msg):
             index - index
-        with pytest.raises(err, match=msg):
+        with pytest.raises(TypeError, match=msg):
             index - index.tolist()
-        with pytest.raises(err, match=msg):
+        with pytest.raises(TypeError, match=msg):
             index.tolist() - index
 
     def test_sub_object(self):

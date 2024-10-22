@@ -593,13 +593,19 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif isinstance(left, (CategoricalDtype, NumpyEADtype, StringDtype)):
+    elif isinstance(left, (CategoricalDtype, NumpyEADtype)):
         left = repr(left)
+    elif isinstance(left, StringDtype):
+        # TODO(infer_string) this special case could be avoided if we have
+        # a more informative repr https://github.com/pandas-dev/pandas/issues/59342
+        left = f"StringDtype(storage={left.storage}, na_value={left.na_value})"
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif isinstance(right, (CategoricalDtype, NumpyEADtype, StringDtype)):
+    elif isinstance(right, (CategoricalDtype, NumpyEADtype)):
         right = repr(right)
+    elif isinstance(right, StringDtype):
+        right = f"StringDtype(storage={right.storage}, na_value={right.na_value})"
 
     msg += f"""
 [left]:  {left}
@@ -804,6 +810,24 @@ def assert_extension_array_equal(
     assert_numpy_array_equal(
         left_na, right_na, obj=f"{obj} NA mask", index_values=index_values
     )
+
+    # Specifically for StringArrayNumpySemantics, validate here we have a valid array
+    if (
+        isinstance(left.dtype, StringDtype)
+        and left.dtype.storage == "python"
+        and left.dtype.na_value is np.nan
+    ):
+        assert np.all(
+            [np.isnan(val) for val in left._ndarray[left_na]]  # type: ignore[attr-defined]
+        ), "wrong missing value sentinels"
+    if (
+        isinstance(right.dtype, StringDtype)
+        and right.dtype.storage == "python"
+        and right.dtype.na_value is np.nan
+    ):
+        assert np.all(
+            [np.isnan(val) for val in right._ndarray[right_na]]  # type: ignore[attr-defined]
+        ), "wrong missing value sentinels"
 
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)

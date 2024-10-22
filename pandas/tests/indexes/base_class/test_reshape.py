@@ -4,6 +4,7 @@ Tests for ndarray-like method on the base Index class
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import Index
 import pandas._testing as tm
 
@@ -35,7 +36,9 @@ class TestReshape:
         null_index = Index([])
         tm.assert_index_equal(Index(["a"], dtype=object), null_index.insert(0, "a"))
 
-    def test_insert_missing(self, nulls_fixture, using_infer_string):
+    def test_insert_missing(self, request, nulls_fixture, using_infer_string):
+        if using_infer_string and nulls_fixture is pd.NA:
+            request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
         # GH#22295
         # test there is no mangling of NA values
         expected = Index(["a", nulls_fixture, "b", "c"], dtype=object)
@@ -56,12 +59,11 @@ class TestReshape:
         tm.assert_index_equal(result, expected)
         assert type(expected[2]) is type(val)
 
-    def test_insert_none_into_string_numpy(self):
+    def test_insert_none_into_string_numpy(self, string_dtype_no_object):
         # GH#55365
-        pytest.importorskip("pyarrow")
-        index = Index(["a", "b", "c"], dtype="string[pyarrow_numpy]")
+        index = Index(["a", "b", "c"], dtype=string_dtype_no_object)
         result = index.insert(-1, None)
-        expected = Index(["a", "b", None, "c"], dtype="string[pyarrow_numpy]")
+        expected = Index(["a", "b", None, "c"], dtype=string_dtype_no_object)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(

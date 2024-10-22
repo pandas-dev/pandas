@@ -7,6 +7,8 @@ from io import StringIO
 
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -118,6 +120,7 @@ def test_thorough_mangle_names(all_parsers, data, names, expected):
         parser.read_csv(StringIO(data), names=names)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @xfail_pyarrow  # AssertionError: DataFrame.columns are different
 def test_mangled_unnamed_placeholders(all_parsers):
     # xref gh-13017

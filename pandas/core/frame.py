@@ -4979,7 +4979,9 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         * To select all *numeric* types, use ``np.number`` or ``'number'``
         * To select strings you must use the ``object`` dtype, but note that
-          this will return *all* object dtype columns
+          this will return *all* object dtype columns. With
+          ``pd.options.future.infer_string`` enabled, using ``"str"`` will
+          work to select all string columns.
         * See the `numpy dtype hierarchy
           <https://numpy.org/doc/stable/reference/arrays.scalars.html>`__
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or

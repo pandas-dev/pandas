@@ -20,6 +20,8 @@ import numpy as np
 
 from pandas.errors import UndefinedVariableError
 
+from pandas.core.dtypes.common import is_string_dtype
+
 import pandas.core.common as com
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
@@ -520,10 +522,12 @@ class BaseExprVisitor(ast.NodeVisitor):
         elif self.engine != "pytables":
             if (
                 getattr(lhs, "return_type", None) == object
+                or is_string_dtype(getattr(lhs, "return_type", None))
                 or getattr(rhs, "return_type", None) == object
+                or is_string_dtype(getattr(rhs, "return_type", None))
             ):
                 # evaluate "==" and "!=" in python if either of our operands
-                # has an object return type
+                # has an object or string return type
                 return self._maybe_eval(res, eval_in_python + maybe_eval_in_python)
         return res
 

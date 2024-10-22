@@ -221,9 +221,9 @@ def test_series_equal_categorical_values_mismatch(rtol, using_infer_string):
 Series values are different \\(66\\.66667 %\\)
 \\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\['a', 'b', 'c'\\]
-Categories \\(3, string\\): \\[a, b, c\\]
+Categories \\(3, str\\): \\[a, b, c\\]
 \\[right\\]: \\['a', 'c', 'b'\\]
-Categories \\(3, string\\): \\[a, b, c\\]"""
+Categories \\(3, str\\): \\[a, b, c\\]"""
     else:
         msg = """Series are different
 
@@ -258,7 +258,7 @@ Series values are different \\(100.0 %\\)
 
 def test_series_equal_categorical_mismatch(check_categorical, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""Attributes of Series are different

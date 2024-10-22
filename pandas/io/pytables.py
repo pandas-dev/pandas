@@ -31,7 +31,7 @@ from pandas._config import (
     config,
     get_option,
     using_copy_on_write,
-    using_pyarrow_string_dtype,
+    using_string_dtype,
 )
 
 from pandas._libs import (
@@ -76,6 +76,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     concat,
     isna,
@@ -3224,8 +3225,8 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-            result = result.astype("string[pyarrow_numpy]")
+        if using_string_dtype() and is_string_array(values, skipna=True):
+            result = result.astype(StringDtype(na_value=np.nan))
         return result
 
     def write(self, obj, **kwargs) -> None:
@@ -3293,8 +3294,8 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-                df = df.astype("string[pyarrow_numpy]")
+            if using_string_dtype() and is_string_array(values, skipna=True):
+                df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -4679,13 +4680,13 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            if not (using_pyarrow_string_dtype() and values.dtype.kind == "O"):
+            if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_pyarrow_string_dtype() and is_string_array(
+            if using_string_dtype() and is_string_array(
                 values,  # type: ignore[arg-type]
                 skipna=True,
             ):
-                df = df.astype("string[pyarrow_numpy]")
+                df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
 
         if len(frames) == 1:

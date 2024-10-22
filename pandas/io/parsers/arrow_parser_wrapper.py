@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import warnings
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -295,7 +295,7 @@ class ArrowParserWrapper(ParserBase):
             dtype_mapping = _arrow_dtype_mapping()
             dtype_mapping[pa.null()] = pd.Int64Dtype()
             frame = table.to_pandas(types_mapper=dtype_mapping.get)
-        elif using_pyarrow_string_dtype():
+        elif using_string_dtype():
             frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
 
         else:

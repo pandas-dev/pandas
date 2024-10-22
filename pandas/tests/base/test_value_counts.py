@@ -127,7 +127,7 @@ def test_value_counts_inferred(index_or_series, using_infer_string):
     else:
         exp = np.unique(np.array(s_values, dtype=np.object_))
         if using_infer_string:
-            exp = array(exp)
+            exp = array(exp, dtype="str")
         tm.assert_equal(s.unique(), exp)
 
     assert s.nunique() == 4
@@ -205,7 +205,7 @@ def test_value_counts_bins(index_or_series, using_infer_string):
     else:
         exp = np.array(["a", "b", np.nan, "d"], dtype=object)
         if using_infer_string:
-            exp = array(exp)
+            exp = array(exp, dtype="str")
         tm.assert_equal(s.unique(), exp)
     assert s.nunique() == 3
 

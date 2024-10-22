@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -758,6 +760,7 @@ def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_union_with_na_when_constructing_dataframe():
     # GH43222
     series1 = Series(

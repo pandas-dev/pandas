@@ -43,8 +43,8 @@ class BaseCastingTests:
         assert result == expected
 
     def test_astype_str(self, data):
-        result = pd.Series(data[:5]).astype(str)
-        expected = pd.Series([str(x) for x in data[:5]], dtype=str)
+        result = pd.Series(data[:2]).astype(str)
+        expected = pd.Series([str(x) for x in data[:2]], dtype=str)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

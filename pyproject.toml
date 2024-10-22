@@ -48,6 +48,7 @@ classifiers = [
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     'Topic :: Scientific/Engineering'
 ]
 
@@ -476,7 +477,11 @@ disable = [
   "unnecessary-lambda",
   "unused-argument",
   "unused-variable",
-  "using-constant-test"
+  "using-constant-test",
+
+  # disabled on 2.3.x branch
+  "consider-using-in",
+  "simplifiable-if-expression",
 ]
 
 [tool.pytest.ini_options]

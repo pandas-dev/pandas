@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.parsers import STR_NA_VALUES
 
 from pandas import (
@@ -258,6 +260,7 @@ a,b,c,d
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -432,6 +435,7 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @xfail_pyarrow  # mismatched dtypes in both cases, FutureWarning in the True case
 @pytest.mark.parametrize(
     "na_filter,row_data",

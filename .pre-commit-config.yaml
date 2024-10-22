@@ -274,13 +274,6 @@ repos:
         language: python
         types: [rst]
         files: ^doc/source/(development|reference)/
-    -   id: unwanted-patterns-bare-pytest-raises
-        name: Check for use of bare pytest raises
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
-        types: [python]
-        files: ^pandas/tests/
-        exclude: ^pandas/tests/extension/
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python

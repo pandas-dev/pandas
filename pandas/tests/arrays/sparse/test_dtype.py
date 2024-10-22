@@ -177,7 +177,7 @@ def test_construct_from_string_fill_value_raises(string):
     [
         (SparseDtype(int, 0), float, SparseDtype(float, 0.0)),
         (SparseDtype(int, 1), float, SparseDtype(float, 1.0)),
-        (SparseDtype(int, 1), str, SparseDtype(object, "1")),
+        (SparseDtype(int, 1), np.str_, SparseDtype(object, "1")),
         (SparseDtype(float, 1.5), int, SparseDtype(int, 1)),
     ],
 )

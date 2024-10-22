@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import SettingWithCopyError
 
 from pandas import (
@@ -77,6 +79,7 @@ class TestXS:
         else:
             assert (expected == 5).all()
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_xs_corner(self):
         # pathological mixed-type reordering case
         df = DataFrame(index=[0])

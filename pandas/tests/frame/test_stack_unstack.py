@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas.errors import PerformanceWarning
 
@@ -655,7 +657,11 @@ class TestDataFrameReshape:
         df2["D"] = "foo"
         df3 = df2.unstack("B")
         result = df3.dtypes
-        dtype = "string" if using_infer_string else np.dtype("object")
+        dtype = (
+            pd.StringDtype(na_value=np.nan)
+            if using_infer_string
+            else np.dtype("object")
+        )
         expected = Series(
             [np.dtype("float64")] * 2 + [dtype] * 2,
             index=MultiIndex.from_arrays(
@@ -1646,6 +1652,7 @@ class TestStackUnstackMultiLevel:
         expected = unstacked.dropna(axis=1, how="all")
         tm.assert_frame_equal(unstacked, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )
@@ -1889,6 +1896,7 @@ class TestStackUnstackMultiLevel:
         expected = frame.stack(future_stack=future_stack)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )

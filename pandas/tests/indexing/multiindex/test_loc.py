@@ -588,7 +588,7 @@ def test_loc_nan_multiindex(using_infer_string):
         np.ones((1, 4)),
         index=Index(
             [np.nan],
-            dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
+            dtype="object" if not using_infer_string else "str",
             name="u3",
         ),
         columns=Index(["d1", "d2", "d3", "d4"]),

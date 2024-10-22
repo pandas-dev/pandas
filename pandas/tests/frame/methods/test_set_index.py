@@ -158,8 +158,8 @@ class TestSetIndex:
     def test_set_index_names(self):
         df = DataFrame(
             np.ones((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(10)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(10)]),
         )
         df.index.name = "name"
 

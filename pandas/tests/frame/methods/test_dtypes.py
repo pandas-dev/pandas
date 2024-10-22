@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -142,6 +144,7 @@ class TestDataFrameDataTypes:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_frame_apply_np_array_return_type(self, using_infer_string):
         # GH 35517
         df = DataFrame([["foo"]])

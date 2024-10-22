@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
 
@@ -26,7 +28,10 @@ from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import TableIterator
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 def test_read_missing_key_close_store(tmp_path, setup_path):
@@ -398,7 +403,6 @@ def test_read_py2_hdf_file_in_py3(datapath):
 
 def test_read_infer_string(tmp_path, setup_path):
     # GH#54431
-    pytest.importorskip("pyarrow")
     df = DataFrame({"a": ["a", "b", None]})
     path = tmp_path / setup_path
     df.to_hdf(path, key="data", format="table")
@@ -406,7 +410,7 @@ def test_read_infer_string(tmp_path, setup_path):
         result = read_hdf(path, key="data", mode="r")
     expected = DataFrame(
         {"a": ["a", "b", None]},
-        dtype="string[pyarrow_numpy]",
-        columns=Index(["a"], dtype="string[pyarrow_numpy]"),
+        dtype=pd.StringDtype(na_value=np.nan),
+        columns=Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)

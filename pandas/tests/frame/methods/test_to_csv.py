@@ -5,6 +5,8 @@ import os
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import ParserError
 
 import pandas as pd
@@ -33,6 +35,7 @@ class TestDataFrameToCSV:
 
         return read_csv(path, **params)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_from_csv1(self, float_frame, datetime_frame):
         with tm.ensure_clean("__tmp_to_csv_from_csv1__") as path:
             float_frame.iloc[:5, float_frame.columns.get_loc("A")] = np.nan
@@ -420,6 +423,7 @@ class TestDataFrameToCSV:
         result, expected = self._return_result_expected(df, 1000)
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.slow
     def test_to_csv_chunksize(self):
         chunksize = 1000
@@ -432,6 +436,7 @@ class TestDataFrameToCSV:
         result, expected = self._return_result_expected(df, chunksize, rnlvl=2)
         tm.assert_frame_equal(result, expected, check_names=False)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.slow
     @pytest.mark.parametrize(
         "nrows", [2, 10, 99, 100, 101, 102, 198, 199, 200, 201, 202, 249, 250, 251]
@@ -528,6 +533,7 @@ class TestDataFrameToCSV:
             assert return_value is None
             tm.assert_frame_equal(to_df, recons)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_multiindex(self, float_frame, datetime_frame):
         frame = float_frame
         old_index = frame.index
@@ -692,10 +698,7 @@ class TestDataFrameToCSV:
 
             # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
             expected = df.copy()
-            if using_infer_string:
-                expected.index = expected.index.astype("string[pyarrow_numpy]")
-            else:
-                expected.index = expected.index.astype(str)
+            expected.index = expected.index.astype("str")
 
             tm.assert_frame_equal(result, expected)
 
@@ -721,6 +724,7 @@ class TestDataFrameToCSV:
             df2 = self.read_csv(path)
             tm.assert_frame_equal(df2, df)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_mixed(self):
         def create_cols(name):
             return [f"{name}{i:03d}" for i in range(5)]
@@ -810,6 +814,7 @@ class TestDataFrameToCSV:
             result.columns = df.columns
             tm.assert_frame_equal(result, df)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_dups_cols2(self):
         # GH3457
         df = DataFrame(

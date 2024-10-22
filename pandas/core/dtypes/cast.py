@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import (
     Interval,
@@ -798,10 +798,10 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
-        if using_pyarrow_string_dtype():
+        if using_string_dtype():
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(storage="pyarrow_numpy")
+            dtype = StringDtype(na_value=np.nan)
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
@@ -1025,6 +1025,8 @@ def convert_dtypes(
     -------
     np.dtype, or ExtensionDtype
     """
+    from pandas.core.arrays.string_ import StringDtype
+
     inferred_dtype: str | DtypeObj
 
     if (
@@ -1103,12 +1105,18 @@ def convert_dtypes(
             # If we couldn't do anything else, then we retain the dtype
             inferred_dtype = input_array.dtype
 
+    elif (
+        convert_string
+        and isinstance(input_array.dtype, StringDtype)
+        and input_array.dtype.na_value is np.nan
+    ):
+        inferred_dtype = pandas_dtype_func("string")
+
     else:
         inferred_dtype = input_array.dtype
 
     if dtype_backend == "pyarrow":
         from pandas.core.arrays.arrow.array import to_pyarrow_type
-        from pandas.core.arrays.string_ import StringDtype
 
         assert not isinstance(inferred_dtype, str)
 

@@ -19,7 +19,7 @@ import pandas._testing as tm
 def df():
     res = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     res["id1"] = (res["A"] > 0).astype(np.int64)
@@ -364,6 +364,8 @@ class TestMelt:
         expected = DataFrame(
             {0: ["foo"] * 2, "a": ["bar"] * 2, "variable": list("bd"), "value": [1, 2]}
         )
+        # the df's columns are mixed type and thus object -> preserves object dtype
+        expected["variable"] = expected["variable"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_melt_mixed_int_str_value_vars(self):
@@ -1197,11 +1199,13 @@ class TestWideToLong:
         ):
             df.melt(id_vars="value", value_name="value")
 
-    @pytest.mark.parametrize("dtype", ["O", "string"])
-    def test_missing_stubname(self, dtype):
+    def test_missing_stubname(self, request, any_string_dtype, using_infer_string):
+        if using_infer_string and any_string_dtype == "object":
+            # triggers object dtype inference warning of dtype=object
+            request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
         # GH46044
         df = DataFrame({"id": ["1", "2"], "a-1": [100, 200], "a-2": [300, 400]})
-        df = df.astype({"id": dtype})
+        df = df.astype({"id": any_string_dtype})
         result = wide_to_long(
             df,
             stubnames=["a", "b"],
@@ -1217,14 +1221,16 @@ class TestWideToLong:
             {"a": [100, 200, 300, 400], "b": [np.nan] * 4},
             index=index,
         )
-        new_level = expected.index.levels[0].astype(dtype)
+        new_level = expected.index.levels[0].astype(any_string_dtype)
+        if any_string_dtype == "object":
+            new_level = expected.index.levels[0].astype("str")
         expected.index = expected.index.set_levels(new_level, level=0)
         tm.assert_frame_equal(result, expected)
 
 
-def test_wide_to_long_pyarrow_string_columns():
+def test_wide_to_long_string_columns(string_storage):
     # GH 57066
-    pytest.importorskip("pyarrow")
+    string_dtype = pd.StringDtype(string_storage, na_value=np.nan)
     df = DataFrame(
         {
             "ID": {0: 1},
@@ -1234,17 +1240,17 @@ def test_wide_to_long_pyarrow_string_columns():
             "D": {0: 1},
         }
     )
-    df.columns = df.columns.astype("string[pyarrow_numpy]")
+    df.columns = df.columns.astype(string_dtype)
     result = wide_to_long(
         df, stubnames="R", i="ID", j="UNPIVOTED", sep="_", suffix=".*"
     )
     expected = DataFrame(
         [[1, 1], [1, 1], [1, 2]],
-        columns=Index(["D", "R"], dtype=object),
+        columns=Index(["D", "R"]),
         index=pd.MultiIndex.from_arrays(
             [
                 [1, 1, 1],
-                Index(["test1", "test2", "test3"], dtype="string[pyarrow_numpy]"),
+                Index(["test1", "test2", "test3"], dtype=string_dtype),
             ],
             names=["ID", "UNPIVOTED"],
         ),
