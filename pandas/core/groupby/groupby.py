@@ -3238,6 +3238,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame
             Open, high, low and close values within each group.
 
+        See Also
+        --------
+        DataFrame.agg : Aggregate using one or more operations over the specified axis.
+        DataFrame.resample : Resample time-series data.
+        DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+
         Examples
         --------
 
