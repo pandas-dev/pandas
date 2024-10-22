@@ -1111,7 +1111,7 @@ def sequence_to_td64ns(
         else:
             mask = np.isnan(data)
 
-        data = cast_from_unit_vectorized(data, unit or "ns")
+        data = cast_from_unit_vectorized(data.ravel(), unit or "ns").reshape(data.shape)
         data[mask] = iNaT
         data = data.view("m8[ns]")
         copy = False
