@@ -169,7 +169,7 @@ dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFram
   implementation when "numpy_nullable" is set, pyarrow is used for all
   dtypes if "pyarrow" is set.
 
-  The dtype_backends are still experimential.
+  The dtype_backends are still experimental.
 
   .. versionadded:: 2.0
 
@@ -2161,7 +2161,7 @@ a JSON string with two fields, ``schema`` and ``data``.
        {
            "A": [1, 2, 3],
            "B": ["a", "b", "c"],
-           "C": pd.date_range("2016-01-01", freq="d", periods=3),
+           "C": pd.date_range("2016-01-01", freq="D", periods=3),
        },
        index=pd.Index(range(3), name="idx"),
    )
@@ -2270,7 +2270,7 @@ round-trippable manner.
        {
            "foo": [1, 2, 3, 4],
            "bar": ["a", "b", "c", "d"],
-           "baz": pd.date_range("2018-01-01", freq="d", periods=4),
+           "baz": pd.date_range("2018-01-01", freq="D", periods=4),
            "qux": pd.Categorical(["a", "b", "c", "c"]),
        },
        index=pd.Index(range(4), name="idx"),
@@ -2893,7 +2893,7 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
    df
 
 Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
-Biomedical and Life Science Jorurnals:
+Biomedical and Life Science Journals:
 
 .. code-block:: python
 
@@ -3003,7 +3003,7 @@ However, if XPath does not reference node names such as default, ``/*``, then
 .. note::
 
    Since ``xpath`` identifies the parent of content to be parsed, only immediate
-   desendants which include child nodes or current attributes are parsed.
+   descendants which include child nodes or current attributes are parsed.
    Therefore, ``read_xml`` will not parse the text of grandchildren or other
    descendants and will not parse attributes of any descendant. To retrieve
    lower level content, adjust xpath to lower level. For example,
@@ -3535,7 +3535,7 @@ For example, to read in a ``MultiIndex`` index without names:
    df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
    df
 
-If the index has level names, they will parsed as well, using the same
+If the index has level names, they will be parsed as well, using the same
 parameters.
 
 .. ipython:: python
@@ -4990,7 +4990,7 @@ Caveats
   convenience you can use ``store.flush(fsync=True)`` to do this for you.
 * Once a ``table`` is created columns (DataFrame)
   are fixed; only exactly the same columns can be appended
-* Be aware that timezones (e.g., ``pytz.timezone('US/Eastern')``)
+* Be aware that timezones (e.g., ``zoneinfo.ZoneInfo('US/Eastern')``)
   are not necessarily equal across timezone versions.  So if data is
   localized to a specific timezone in the HDFStore using one version
   of a timezone library and that data is updated with another version, the data
@@ -5169,6 +5169,8 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 .. ipython:: python
 
+   import pytz
+
    df = pd.DataFrame(
        {
            "a": list("abc"),
@@ -5178,7 +5180,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
            "e": [True, False, True],
            "f": pd.Categorical(list("abc")),
            "g": pd.date_range("20130101", periods=3),
-           "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+           "h": pd.date_range("20130101", periods=3, tz=pytz.timezone("US/Eastern")),
            "i": pd.date_range("20130101", periods=3, freq="ns"),
        }
    )
@@ -5847,10 +5849,10 @@ You can check if a table exists using :func:`~pandas.io.sql.has_table`
 Schema support
 ''''''''''''''
 
-Reading from and writing to different schema's is supported through the ``schema``
+Reading from and writing to different schemas is supported through the ``schema``
 keyword in the :func:`~pandas.read_sql_table` and :func:`~pandas.DataFrame.to_sql`
 functions. Note however that this depends on the database flavor (sqlite does not
-have schema's). For example:
+have schemas). For example:
 
 .. code-block:: python
 

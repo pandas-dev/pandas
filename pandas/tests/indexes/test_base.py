@@ -8,7 +8,12 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas._config import using_string_dtype
+
+from pandas.compat import (
+    HAS_PYARROW,
+    IS64,
+)
 from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
@@ -79,7 +84,7 @@ class TestIndex:
         assert new_index.name == "name"
         if using_infer_string:
             tm.assert_extension_array_equal(
-                new_index.values, pd.array(arr, dtype="string[pyarrow_numpy]")
+                new_index.values, pd.array(arr, dtype="str")
             )
         else:
             tm.assert_numpy_array_equal(arr, new_index.values)
@@ -157,7 +162,7 @@ class TestIndex:
         df = DataFrame(np.random.default_rng(2).random((5, 3)))
         df["date"] = dts
         result = DatetimeIndex(df["date"], freq="MS")
-        dtype = object if not using_infer_string else "string"
+        dtype = object if not using_infer_string else "str"
         assert df["date"].dtype == dtype
         expected.name = "date"
         tm.assert_index_equal(result, expected)
@@ -351,7 +356,8 @@ class TestIndex:
             msg = "When changing to a larger dtype"
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
-        elif index.dtype == "string":
+        elif index.dtype == "str" and not index.dtype.storage == "python":
+            # TODO(infer_string): Make the errors consistent
             with pytest.raises(NotImplementedError, match="i8"):
                 index.view("i8")
         else:
@@ -817,6 +823,11 @@ class TestIndex:
         expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_isin_nan_common_object(
         self, nulls_fixture, nulls_fixture2, using_infer_string
     ):
@@ -922,10 +933,9 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
-    @td.skip_if_no("pyarrow")
-    def test_isin_arrow_string_null(self):
+    def test_isin_string_null(self, string_dtype_no_object):
         # GH#55821
-        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        index = Index(["a", "b"], dtype=string_dtype_no_object)
         result = index.isin([None])
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -960,6 +970,31 @@ class TestIndex:
     def test_slice_keep_name(self):
         index = Index(["a", "b"], name="asdf")
         assert index.name == index[1:].name
+
+    def test_slice_is_unique(self):
+        # GH 57911
+        index = Index([1, 1, 2, 3, 4])
+        assert not index.is_unique
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_unique
+
+    def test_slice_is_montonic(self):
+        """Test that is_monotonic_decreasing is correct on slices."""
+        # GH 57911
+        index = Index([1, 2, 3, 3])
+        assert not index.is_monotonic_decreasing
+
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[1:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
 
     @pytest.mark.parametrize(
         "index",
@@ -1558,7 +1593,7 @@ class TestIndexUtils:
 
     def test_get_combined_index(self):
         result = _get_combined_index([])
-        expected = Index([])
+        expected = RangeIndex(0)
         tm.assert_index_equal(result, expected)
 
 
@@ -1600,7 +1635,7 @@ def test_generated_op_names(opname, index):
         partial(DatetimeIndex, data=["2020-01-01"]),
         partial(PeriodIndex, data=["2020-01-01"]),
         partial(TimedeltaIndex, data=["1 day"]),
-        partial(RangeIndex, data=range(1)),
+        partial(RangeIndex, start=range(1)),
         partial(IntervalIndex, data=[pd.Interval(0, 1)]),
         partial(Index, data=["a"], dtype=object),
         partial(MultiIndex, levels=[1], codes=[0]),

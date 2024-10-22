@@ -436,7 +436,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
     empty_series_dti = Series([], index, dtype)
     with tm.assert_produces_warning(warn, match=msg):
-        rs = empty_series_dti.resample("d", group_keys=False)
+        rs = empty_series_dti.resample("D", group_keys=False)
     try:
         getattr(rs, resample_method)()
     except DataError:

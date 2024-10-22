@@ -13,7 +13,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
@@ -91,6 +90,7 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from collections.abc import (
         Hashable,
         Iterator,
@@ -1187,7 +1187,7 @@ class Window(BaseWindow):
                 return values.copy()
 
             def calc(x):
-                additional_nans = np.array([np.nan] * offset)
+                additional_nans = np.full(offset, np.nan)
                 x = np.concatenate((x, additional_nans))
                 return func(
                     x,
@@ -1351,6 +1351,13 @@ class Window(BaseWindow):
     @doc(
         template_header,
         create_section_header("Parameters"),
+        dedent(
+            """
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+        """
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         kwargs_scipy,
         create_section_header("Returns"),
@@ -1393,6 +1400,13 @@ class Window(BaseWindow):
     @doc(
         template_header,
         create_section_header("Parameters"),
+        dedent(
+            """
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+        """
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         kwargs_scipy,
         create_section_header("Returns"),
@@ -1494,7 +1508,7 @@ class RollingAndExpandingMixin(BaseWindow):
             window_aggregations.roll_apply,
             args=args,
             kwargs=kwargs,
-            raw=raw,
+            raw=bool(raw),
             function=function,
         )
 
@@ -2100,7 +2114,19 @@ class Rolling(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         kwargs_numeric_only,
+        dedent(
+            """
+            *args : iterable, optional
+                Positional arguments passed into ``func``.\n
+            """
+        ).replace("\n", "", 1),
         window_agg_numba_parameters(),
+        dedent(
+            """
+            **kwargs : mapping, optional
+                A dictionary of keyword arguments passed into ``func``.\n
+            """
+        ).replace("\n", "", 1),
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),

@@ -10,7 +10,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -87,7 +86,10 @@ from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
     from enum import Enum
 
     class ellipsis(Enum):
@@ -601,6 +603,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         An ndarray containing the non- ``fill_value`` values.
 
+        This property returns the actual data values stored in the sparse
+        representation, excluding the values that are equal to the ``fill_value``.
+        The result is an ndarray of the underlying values, preserving the sparse
+        structure by omitting the default ``fill_value`` entries.
+
+        See Also
+        --------
+        Series.sparse.to_dense : Convert a Series from sparse values to dense.
+        Series.sparse.fill_value : Elements in `data` that are `fill_value` are
+            not stored.
+        Series.sparse.density : The percent of non- ``fill_value`` points, as decimal.
+
         Examples
         --------
         >>> from pandas.arrays import SparseArray
@@ -620,6 +634,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Elements in `data` that are `fill_value` are not stored.
 
         For memory savings, this should be the most common value in the array.
+
+        See Also
+        --------
+        SparseDtype : Dtype for data stored in :class:`SparseArray`.
+        Series.value_counts : Return a Series containing counts of unique values.
+        Series.fillna : Fill NA/NaN in a Series with a specified value.
 
         Examples
         --------
@@ -669,6 +689,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         The percent of non- ``fill_value`` points, as decimal.
 
+        See Also
+        --------
+        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
+            scipy sparse matrix.
+
         Examples
         --------
         >>> from pandas.arrays import SparseArray
@@ -682,6 +707,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def npoints(self) -> int:
         """
         The number of non- ``fill_value`` points.
+
+        This property returns the number of elements in the sparse series that are
+        not equal to the ``fill_value``. Sparse data structures store only the
+        non-``fill_value`` elements, reducing memory usage when the majority of
+        values are the same.
+
+        See Also
+        --------
+        Series.sparse.to_dense : Convert a Series from sparse values to dense.
+        Series.sparse.fill_value : Elements in ``data`` that are ``fill_value`` are
+            not stored.
+        Series.sparse.density : The percent of non- ``fill_value`` points, as decimal.
 
         Examples
         --------

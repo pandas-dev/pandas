@@ -3,7 +3,6 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
 )
@@ -32,11 +31,13 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
 )
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Callable,
+        Hashable,
+    )
 
     from pandas._typing import (
         AggFuncType,
@@ -90,7 +91,7 @@ def pivot_table(
         hierarchical columns whose top level are the function names
         (inferred from the function objects themselves).
         If a dict is passed, the key is column to aggregate and the value is
-        function or list of functions. If ``margin=True``, aggfunc will be
+        function or list of functions. If ``margins=True``, aggfunc will be
         used to calculate the partial aggregates.
     fill_value : scalar, default None
         Value to replace missing values with (in the resulting pivot table,
@@ -356,15 +357,11 @@ def __internal_pivot_table(
 
     if not dropna:
         if isinstance(table.index, MultiIndex):
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.index.levels), names=table.index.names
-            )
+            m = MultiIndex.from_product(table.index.levels, names=table.index.names)
             table = table.reindex(m, axis=0, fill_value=fill_value)
 
         if isinstance(table.columns, MultiIndex):
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.columns.levels), names=table.columns.names
-            )
+            m = MultiIndex.from_product(table.columns.levels, names=table.columns.names)
             table = table.reindex(m, axis=1, fill_value=fill_value)
 
     if sort is True and isinstance(table, ABCDataFrame):
@@ -555,14 +552,17 @@ def _generate_marginal_results(
                 piece = piece.T
                 all_key = _all_key(key)
 
-                # we are going to mutate this, so need to copy!
-                piece = piece.copy()
                 piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
         else:
-            from pandas import DataFrame
+            margin = (
+                data[cols[:1] + values]
+                .groupby(cols[:1], observed=observed)
+                .agg(aggfunc, **kwargs)
+                .T
+            )
 
             cat_axis = 0
             for key, piece in table.groupby(level=0, observed=observed):
@@ -571,9 +571,7 @@ def _generate_marginal_results(
                 else:
                     all_key = margins_name
                 table_pieces.append(piece)
-                # GH31016 this is to calculate margin for each group, and assign
-                # corresponded key as index
-                transformed_piece = DataFrame(piece.apply(aggfunc, **kwargs)).T
+                transformed_piece = margin[key].to_frame().T
                 if isinstance(piece.index, MultiIndex):
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
@@ -840,11 +838,11 @@ def pivot(
     # If columns is None we will create a MultiIndex level with None as name
     # which might cause duplicated names because None is the default for
     # level names
-    data = data.copy(deep=False)
-    data.index = data.index.copy()
-    data.index.names = [
-        name if name is not None else lib.no_default for name in data.index.names
-    ]
+    if any(name is None for name in data.index.names):
+        data = data.copy(deep=False)
+        data.index.names = [
+            name if name is not None else lib.no_default for name in data.index.names
+        ]
 
     indexed: DataFrame | Series
     if values is lib.no_default:

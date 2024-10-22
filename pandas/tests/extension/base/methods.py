@@ -66,14 +66,14 @@ class BaseMethodsTests:
             expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
 
-        if getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
+        if isinstance(data.dtype, pd.StringDtype) and data.dtype.na_value is np.nan:
+            # TODO: avoid special-casing
+            expected = expected.astype("float64")
+        elif getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
             data.dtype, pd.ArrowDtype
         ):
             # TODO: avoid special-casing
             expected = expected.astype("double[pyarrow]")
-        elif getattr(data.dtype, "storage", "") == "pyarrow_numpy":
-            # TODO: avoid special-casing
-            expected = expected.astype("float64")
         elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
@@ -116,10 +116,8 @@ class BaseMethodsTests:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
-        msg = "The behavior of Series.argsort in the presence of NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
+        result = pd.Series(data_missing_for_sorting).argsort()
+        expected = pd.Series(np.array([2, 0, 1], dtype=np.intp))
         tm.assert_series_equal(result, expected)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
@@ -551,7 +549,7 @@ class BaseMethodsTests:
         dtype = data_for_sorting.dtype
         data_for_sorting = pd.array([True, False], dtype=dtype)
         b, a = data_for_sorting
-        arr = type(data_for_sorting)._from_sequence([a, b])
+        arr = type(data_for_sorting)._from_sequence([a, b], dtype=dtype)
 
         if as_series:
             arr = pd.Series(arr)

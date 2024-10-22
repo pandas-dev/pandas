@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import (
+    Callable,
+    Sequence,
+)
 from functools import partial
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     DefaultDict,
     Optional,
     TypedDict,
@@ -904,9 +906,9 @@ class StylerRenderer:
                 row_body_headers = [
                     {
                         **col,
-                        "display_value": col["display_value"]
-                        if col["is_visible"]
-                        else "",
+                        "display_value": (
+                            col["display_value"] if col["is_visible"] else ""
+                        ),
                         "cellstyle": self.ctx_index[r, c],
                     }
                     for c, col in enumerate(row[:index_levels])
@@ -1050,7 +1052,7 @@ class StylerRenderer:
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
-        When instantiating a Styler, default formatting can be applied be setting the
+        When instantiating a Styler, default formatting can be applied by setting the
         ``pandas.options``:
 
           - ``styler.format.formatter``: default None.
@@ -1062,7 +1064,7 @@ class StylerRenderer:
 
         .. warning::
            `Styler.format` is ignored when using the output format `Styler.to_excel`,
-           since Excel and Python have inherrently different formatting structures.
+           since Excel and Python have inherently different formatting structures.
            However, it is possible to use the `number-format` pseudo CSS attribute
            to force Excel permissible formatting. See examples.
 
@@ -1310,7 +1312,7 @@ class StylerRenderer:
 
         .. warning::
            `Styler.format_index` is ignored when using the output format
-           `Styler.to_excel`, since Excel and Python have inherrently different
+           `Styler.to_excel`, since Excel and Python have inherently different
            formatting structures.
            However, it is possible to use the `number-format` pseudo CSS attribute
            to force Excel permissible formatting. See documentation for `Styler.format`.
@@ -1647,7 +1649,7 @@ class StylerRenderer:
 
         .. warning::
             `Styler.format_index_names` is ignored when using the output format
-            `Styler.to_excel`, since Excel and Python have inherrently different
+            `Styler.to_excel`, since Excel and Python have inherently different
             formatting structures.
 
         Examples
@@ -2067,18 +2069,18 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                                              ('border','1px solid red')]
     """
     if isinstance(style, str):
-        s = style.split(";")
-        try:
-            return [
-                (x.split(":")[0].strip(), x.split(":")[1].strip())
-                for x in s
-                if x.strip() != ""
-            ]
-        except IndexError as err:
+        if style and ":" not in style:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
-            ) from err
+            )
+        s = style.split(";")
+        return [
+            (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
+            for x in s
+            if x.strip() != ""
+        ]
+
     return style
 
 
@@ -2408,7 +2410,7 @@ def _parse_latex_header_span(
     r"""
     Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
 
-    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    'rowspan' and 'colspan' do not occur simultaneously. If they are detected then
     the `display_value` is altered to a LaTeX `multirow` or `multicol` command
     respectively, with the appropriate cell-span.
 

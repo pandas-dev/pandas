@@ -6,6 +6,7 @@ and latex files. This module also applies to display formatting.
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Generator,
     Hashable,
     Mapping,
@@ -22,7 +23,6 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     cast,
 )
@@ -1024,7 +1024,7 @@ def save_to_buffer(
 @contextmanager
 def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
+) -> Generator[WriteBuffer[str]] | Generator[StringIO]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.

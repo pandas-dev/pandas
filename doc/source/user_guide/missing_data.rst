@@ -60,7 +60,7 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 
 .. warning::
 
-   Equality compaisons between ``np.nan``, :class:`NaT`, and :class:`NA`
+   Equality comparisons between ``np.nan``, :class:`NaT`, and :class:`NA`
    do not act like ``None``
 
    .. ipython:: python
@@ -319,7 +319,7 @@ Missing values propagate through arithmetic operations between pandas objects.
 
 The descriptive statistics and computational methods discussed in the
 :ref:`data structure overview <basics.stats>` (and listed :ref:`here
-<api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all
+<api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
 When summing data, NA values or empty data will be treated as zero.

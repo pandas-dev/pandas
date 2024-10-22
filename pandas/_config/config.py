@@ -55,7 +55,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     NamedTuple,
     cast,
 )
@@ -66,6 +65,7 @@ from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Sequence,
     )
@@ -411,7 +411,7 @@ options = DictWrapper(_global_config)
 
 
 @contextmanager
-def option_context(*args) -> Generator[None, None, None]:
+def option_context(*args) -> Generator[None]:
     """
     Context manager to temporarily set options in a ``with`` statement.
 
@@ -425,6 +425,11 @@ def option_context(*args) -> Generator[None, None, None]:
     -------
     None
         No return value.
+
+    Yields
+    ------
+    None
+        No yield value.
 
     See Also
     --------
@@ -713,7 +718,7 @@ def _build_option_description(k: str) -> str:
 
 
 @contextmanager
-def config_prefix(prefix: str) -> Generator[None, None, None]:
+def config_prefix(prefix: str) -> Generator[None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

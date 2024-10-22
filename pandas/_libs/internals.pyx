@@ -1,9 +1,13 @@
 from collections import defaultdict
-import weakref
 
 cimport cython
+from cpython.object cimport PyObject
 from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
+from cpython.weakref cimport (
+    PyWeakref_GetObject,
+    PyWeakref_NewRef,
+)
 from cython cimport Py_ssize_t
 
 import numpy as np
@@ -24,6 +28,10 @@ from pandas._libs.util cimport (
     is_array,
     is_integer_object,
 )
+
+
+cdef extern from "Python.h":
+    PyObject* Py_None
 
 
 @cython.final
@@ -746,7 +754,7 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Block Placement
 
-    def _rebuild_blknos_and_blklocs(self) -> None:
+    cpdef _rebuild_blknos_and_blklocs(self):
         """
         Update mgr._blknos / mgr._blklocs.
         """
@@ -890,19 +898,20 @@ cdef class BlockValuesRefs:
 
     def __cinit__(self, blk: Block | None = None) -> None:
         if blk is not None:
-            self.referenced_blocks = [weakref.ref(blk)]
+            self.referenced_blocks = [PyWeakref_NewRef(blk, None)]
         else:
             self.referenced_blocks = []
         self.clear_counter = 500  # set reasonably high
 
-    def _clear_dead_references(self, force=False) -> None:
+    cdef _clear_dead_references(self, bint force=False):
         # Use exponential backoff to decide when we want to clear references
         # if force=False. Clearing for every insertion causes slowdowns if
         # all these objects stay alive, e.g. df.items() for wide DataFrames
         # see GH#55245 and GH#55008
         if force or len(self.referenced_blocks) > self.clear_counter:
             self.referenced_blocks = [
-                ref for ref in self.referenced_blocks if ref() is not None
+                ref for ref in self.referenced_blocks
+                if PyWeakref_GetObject(ref) != Py_None
             ]
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
@@ -910,7 +919,7 @@ cdef class BlockValuesRefs:
             elif nr_of_refs > self.clear_counter:
                 self.clear_counter = max(self.clear_counter * 2, nr_of_refs)
 
-    def add_reference(self, blk: Block) -> None:
+    cpdef add_reference(self, Block blk):
         """Adds a new reference to our reference collection.
 
         Parameters
@@ -919,7 +928,7 @@ cdef class BlockValuesRefs:
             The block that the new references should point to.
         """
         self._clear_dead_references()
-        self.referenced_blocks.append(weakref.ref(blk))
+        self.referenced_blocks.append(PyWeakref_NewRef(blk, None))
 
     def add_index_reference(self, index: object) -> None:
         """Adds a new reference to our reference collection when creating an index.
@@ -930,7 +939,7 @@ cdef class BlockValuesRefs:
             The index that the new reference should point to.
         """
         self._clear_dead_references()
-        self.referenced_blocks.append(weakref.ref(index))
+        self.referenced_blocks.append(PyWeakref_NewRef(index, None))
 
     def has_reference(self) -> bool:
         """Checks if block has foreign references.

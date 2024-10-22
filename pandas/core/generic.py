@@ -13,7 +13,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
     Literal,
     NoReturn,
@@ -158,7 +157,6 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     PeriodIndex,
-    RangeIndex,
     default_index,
     ensure_index,
 )
@@ -186,6 +184,7 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from collections.abc import (
         Hashable,
         Iterator,
@@ -601,9 +600,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
+        dtypes = self.dtypes
         return {
             clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=self.dtypes[k]
+                v, copy=False, index=self.index, name=k, dtype=dtypes[k]
             ).__finalize__(self)
             for k, v in zip(self.columns, self._iter_column_arrays())
             if not isinstance(k, int)
@@ -1492,13 +1492,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return res.__finalize__(self, method="__invert__")
 
     @final
-    def __nonzero__(self) -> NoReturn:
+    def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
         )
-
-    __bool__ = __nonzero__
 
     @final
     def abs(self) -> Self:
@@ -1852,7 +1850,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 else:
                     # Drop the last level of Index by replacing with
                     # a RangeIndex
-                    dropped.columns = RangeIndex(dropped.columns.size)
+                    dropped.columns = default_index(dropped.columns.size)
 
             # Handle dropping index labels
             if labels_to_drop:
@@ -2125,11 +2123,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         klass="object",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.2.0",
+        encoding_parameter="",
+        verbose_parameter="",
         extra_parameters=textwrap.dedent(
             """\
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
-    """
+        """
         ),
     )
     def to_excel(
@@ -2198,9 +2198,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
+        {encoding_parameter}
         inf_rep : str, default 'inf'
             Representation for infinity (there is no native representation for
             infinity in Excel).
+        {verbose_parameter}
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
@@ -2388,7 +2390,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index : bool or None, default None
             The index is only used when 'orient' is 'split', 'index', 'column',
             or 'table'. Of these, 'index' and 'column' do not support
-            `index=False`.
+            `index=False`. The string 'index' as a column name with empty :class:`Index`
+            or if it is 'index' will raise a ``ValueError``.
 
         indent : int, optional
            Length of whitespace used to indent each record.
@@ -2780,7 +2783,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         name : str
             Name of SQL table.
-        con : sqlalchemy.engine.(Engine or Connection) or sqlite3.Connection
+        con : ADBC connection, sqlalchemy.engine.(Engine or Connection) or sqlite3.Connection
+            ADBC provides high performance I/O with native type support, where available.
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. Legacy support is provided for sqlite3.Connection objects. The user
             is responsible for engine disposal and connection closure for the SQLAlchemy
@@ -2808,8 +2812,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         chunksize : int, optional
-            Specify the number of rows in each batch to be written at a time.
-            By default, all rows will be written at once.
+            Specify the number of rows in each batch to be written to the database connection at a time.
+            By default, all rows will be written at once. Also see the method keyword.
         dtype : dict or scalar, optional
             Specifying the datatype for columns. If a dictionary is used, the
             keys should be the column names and the values should be the
@@ -2967,6 +2971,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> with engine.connect() as conn:
         ...     conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
+
+        .. versionadded:: 2.2.0
+
+           pandas now supports writing via ADBC drivers
+
+        >>> df = pd.DataFrame({'name' : ['User 10', 'User 11', 'User 12']})
+        >>> df
+              name
+        0  User 10
+        1  User 11
+        2  User 12
+
+        >>> from adbc_driver_sqlite import dbapi  # doctest:+SKIP
+        >>> with dbapi.connect("sqlite://") as conn:  # doctest:+SKIP
+        ...     df.to_sql(name="users", con=conn)
+        3
         """  # noqa: E501
         from pandas.io import sql
 
@@ -5732,7 +5752,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         replace : bool, default False
             Allow or disallow sampling of the same row more than once.
         weights : str or ndarray-like, optional
-            Default 'None' results in equal probability weighting.
+            Default ``None`` results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
             values in weights not found in sampled object will be ignored and
             index values in sampled object not in weights will be assigned
@@ -5747,6 +5767,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
             If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState or np.random.Generator, use as given.
+            Default ``None`` results in sampling with the current state of np.random.
 
             .. versionchanged:: 1.4.0
 
@@ -6017,17 +6038,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
+            objs = other.objs
             # propagate attrs only if all concat arguments have the same attrs
-            if all(bool(obj.attrs) for obj in other.objs):
+            if all(bool(obj.attrs) for obj in objs):
                 # all concatenate arguments have non-empty attrs
-                attrs = other.objs[0].attrs
-                have_same_attrs = all(obj.attrs == attrs for obj in other.objs[1:])
+                attrs = objs[0].attrs
+                have_same_attrs = all(obj.attrs == attrs for obj in objs[1:])
                 if have_same_attrs:
                     self.attrs = deepcopy(attrs)
 
-            allows_duplicate_labels = all(
-                x.flags.allows_duplicate_labels for x in other.objs
-            )
+            allows_duplicate_labels = all(x.flags.allows_duplicate_labels for x in objs)
             self.flags.allows_duplicate_labels = allows_duplicate_labels
 
         return self
@@ -6655,10 +6675,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Back-end data type applied to the resultant :class:`DataFrame` or
             :class:`Series` (still experimental). Behaviour is as follows:
 
-            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              or :class:`Series` (default).
+            * ``"numpy_nullable"``: returns nullable-dtype-backed
+              :class:`DataFrame` or :class:`Serires`.
             * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame or Series.
+              :class:`DataFrame` or :class:`Series`.
 
             .. versionadded:: 2.0
 
@@ -6974,7 +6994,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f'you passed a "{type(value).__name__}"'
             )
 
-        # set the default here, so functions examining the signaure
+        # set the default here, so functions examining the signature
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
             axis = 0
@@ -7031,7 +7051,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         # see test_fillna_dict_inplace_nonunique_columns
                         locs = result.columns.get_loc(k)
                         if isinstance(locs, slice):
-                            locs = np.arange(self.shape[1])[locs]
+                            locs = range(self.shape[1])[locs]
                         elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
                             locs = locs.nonzero()[0]
                         elif not (
@@ -7471,9 +7491,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if inplace:
                     return None
                 return self.copy(deep=False)
-
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
+                    if isinstance(self, ABCSeries):
+                        raise ValueError(
+                            "to_replace and value cannot be dict-like for "
+                            "Series.replace"
+                        )
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
@@ -8432,8 +8456,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         will map one-to-one to the new index).
 
         Otherwise, the new index will be equivalent to ``pd.date_range(start, end,
-        freq=freq)`` where ``start`` and ``end`` are, respectively, the first and
-        last entries in the original index (see :func:`pandas.date_range`). The
+        freq=freq)`` where ``start`` and ``end`` are, respectively, the min and
+        max entries in the original index (see :func:`pandas.date_range`). The
         values corresponding to any timesteps in the new index which were not present
         in the original index will be null (``NaN``), unless a method for filling
         such unknowns is provided (see the ``method`` parameter below).
@@ -8451,7 +8475,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             does not fill NaNs that already were present):
 
             * 'pad' / 'ffill': propagate last valid observation forward to next
-              valid
+              valid based on the order of the index
             * 'backfill' / 'bfill': use NEXT valid observation to fill.
         how : {{'start', 'end'}}, default end
             For PeriodIndex only (see PeriodIndex.asfreq).
@@ -9271,7 +9295,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # reorder axis to keep things organized
         indices = (
-            np.arange(diff.shape[axis]).reshape([2, diff.shape[axis] // 2]).T.flatten()
+            np.arange(diff.shape[axis])
+            .reshape([2, diff.shape[axis] // 2])
+            .T.reshape(-1)
         )
         diff = diff.take(indices, axis=axis)
 
@@ -10553,7 +10579,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
-            - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+            - 'raise' will raise a ValueError if there are ambiguous
               times.
         nonexistent : str, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -10565,7 +10591,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               closest existing time
             - 'NaT' will return NaT where there are nonexistent times
             - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
+            - 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Returns
@@ -11758,6 +11784,8 @@ numeric_only : bool, default False
 Returns
 -------
 {name1} or scalar\
+
+    Value containing the calculation referenced in the description.\
 {see_also}\
 {examples}
 """
@@ -11791,6 +11819,8 @@ numeric_only : bool, default False
 Returns
 -------
 {name1} or scalar\
+
+    Value containing the calculation referenced in the description.\
 {see_also}\
 {examples}
 """
@@ -11817,13 +11847,43 @@ ddof : int, default 1
     where N represents the number of elements.
 numeric_only : bool, default False
     Include only float, int, boolean columns. Not implemented for Series.
+**kwargs :
+    Additional keywords have no effect but might be accepted
+    for compatibility with NumPy.
 
 Returns
 -------
-{name1} or {name2} (if level specified) \
+{name1} or {name2} (if level specified)
+    {return_desc}
+
+See Also
+--------
+{see_also}\
 {notes}\
 {examples}
 """
+
+_sem_see_also = """\
+scipy.stats.sem : Compute standard error of the mean.
+{name2}.std : Return sample standard deviation over requested axis.
+{name2}.var : Return unbiased variance over requested axis.
+{name2}.mean : Return the mean of the values over the requested axis.
+{name2}.median : Return the median of the values over the requested axis.
+{name2}.mode : Return the mode(s) of the Series."""
+
+_sem_return_desc = """\
+Unbiased standard error of the mean over requested axis."""
+
+_std_see_also = """\
+numpy.std : Compute the standard deviation along the specified axis.
+{name2}.var : Return unbiased variance over requested axis.
+{name2}.sem : Return unbiased standard error of the mean over requested axis.
+{name2}.mean : Return the mean of the values over the requested axis.
+{name2}.median : Return the median of the values over the requested axis.
+{name2}.mode : Return the mode(s) of the Series."""
+
+_std_return_desc = """\
+Standard deviation over requested axis."""
 
 _std_notes = """
 
@@ -12460,6 +12520,14 @@ _min_examples: str = _shared_docs["stat_func_example"].format(
     stat_func="min", verb="Min", default_output=0, level_output_0=2, level_output_1=0
 )
 
+_skew_see_also = """
+
+See Also
+--------
+Series.skew : Return unbiased skew over requested axis.
+Series.var : Return unbiased variance over requested axis.
+Series.std : Return unbiased standard deviation over requested axis."""
+
 _stat_func_see_also = """
 
 See Also
@@ -12668,8 +12736,8 @@ def make_doc(name: str, ndim: int) -> str:
             "ddof argument."
         )
         examples = _std_examples
-        see_also = ""
-        kwargs = {"notes": _std_notes}
+        see_also = _std_see_also.format(name2=name2)
+        kwargs = {"notes": "", "return_desc": _std_return_desc}
 
     elif name == "sem":
         base_doc = _num_ddof_doc
@@ -12713,13 +12781,13 @@ def make_doc(name: str, ndim: int) -> str:
             >>> df.sem(numeric_only=True)
             a   0.5
             dtype: float64"""
-        see_also = ""
-        kwargs = {"notes": ""}
+        see_also = _sem_see_also.format(name2=name2)
+        kwargs = {"notes": "", "return_desc": _sem_return_desc}
 
     elif name == "skew":
         base_doc = _num_doc
         desc = "Return unbiased skew over requested axis.\n\nNormalized by N-1."
-        see_also = ""
+        see_also = _skew_see_also
         examples = """
 
             Examples

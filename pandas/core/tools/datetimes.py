@@ -6,7 +6,6 @@ from functools import partial
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
-    Callable,
     TypedDict,
     Union,
     cast,
@@ -77,7 +76,10 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Callable,
+        Hashable,
+    )
 
     from pandas._libs.tslibs.nattype import NaTType
     from pandas._libs.tslibs.timedeltas import UnitChoices
@@ -127,7 +129,7 @@ start_caching_at = 50
 def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
     # Try to guess the format based on the first non-NaN element, return None if can't
     if (first_non_null := tslib.first_non_null(arr)) != -1:
-        if type(first_non_nan_element := arr[first_non_null]) is str:  # noqa: E721
+        if type(first_non_nan_element := arr[first_non_null]) is str:
             # GH#32264 np.str_ object
             guessed_format = guess_datetime_format(
                 first_non_nan_element, dayfirst=dayfirst
@@ -416,7 +418,7 @@ def _convert_listlike_datetimes(
         arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))
     except TypeError:
         if errors == "coerce":
-            npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
+            npvalues = np.full(len(arg), np.datetime64("NaT", "ns"))
             return DatetimeIndex(npvalues, name=name)
         raise
 
@@ -998,7 +1000,7 @@ def to_datetime(
         dayfirst=dayfirst,
         yearfirst=yearfirst,
         errors=errors,
-        exact=exact,
+        exact=exact,  # type: ignore[arg-type]
     )
     result: Timestamp | NaTType | Series | Index
 

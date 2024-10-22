@@ -55,7 +55,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
 from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
@@ -94,6 +93,7 @@ if TYPE_CHECKING:
     )
 
     from pandas import (
+        DataFrame,
         Index,
         Series,
     )
@@ -183,7 +183,7 @@ class MPLPlot(ABC):
         # Assign the rest of columns into self.columns if by is explicitly defined
         # while column is not, only need `columns` in hist/box plot when it's DF
         # TODO: Might deprecate `column` argument in future PR (#28373)
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if column:
                 self.columns = com.maybe_make_list(column)
             elif self.by is None:
@@ -451,7 +451,9 @@ class MPLPlot(ABC):
             )
 
         if self.style is not None:
-            if is_list_like(self.style):
+            if isinstance(self.style, dict):
+                styles = [self.style[col] for col in self.columns if col in self.style]
+            elif is_list_like(self.style):
                 styles = self.style
             else:
                 styles = [self.style]
@@ -546,7 +548,7 @@ class MPLPlot(ABC):
                 new_ax.set_yscale("log")
             elif self.logy == "sym" or self.loglog == "sym":
                 new_ax.set_yscale("symlog")
-            return new_ax  # type: ignore[return-value]
+            return new_ax
 
     @final
     @cache_readonly
@@ -586,7 +588,7 @@ class MPLPlot(ABC):
                 fig.set_size_inches(self.figsize)
             axes = self.ax
 
-        axes = flatten_axes(axes)
+        axes = np.fromiter(flatten_axes(axes), dtype=object)
 
         if self.logx is True or self.loglog is True:
             [a.set_xscale("log") for a in axes]
@@ -893,7 +895,13 @@ class MPLPlot(ABC):
         elif self.subplots and self.legend:
             for ax in self.axes:
                 if ax.get_visible():
-                    ax.legend(loc="best")
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            "No artists with labels found to put in legend.",
+                            UserWarning,
+                        )
+                        ax.legend(loc="best")
 
     @final
     @staticmethod
@@ -1335,6 +1343,22 @@ class ScatterPlot(PlanePlot):
             label = self.label
         else:
             label = None
+
+        # if a list of non color strings is passed in as c, color points
+        # by uniqueness of the strings, such same strings get same color
+        create_colors = not self._are_valid_colors(c_values)
+        if create_colors:
+            color_mapping = self._get_color_mapping(c_values)
+            c_values = [color_mapping[s] for s in c_values]
+
+            # build legend for labeling custom colors
+            ax.legend(
+                handles=[
+                    mpl.patches.Circle((0, 0), facecolor=c, label=s)
+                    for s, c in color_mapping.items()
+                ]
+            )
+
         scatter = ax.scatter(
             data[x].values,
             data[y].values,
@@ -1345,6 +1369,7 @@ class ScatterPlot(PlanePlot):
             s=self.s,
             **self.kwds,
         )
+
         if cb:
             cbar_label = c if c_is_column else ""
             cbar = self._plot_colorbar(ax, fig=fig, label=cbar_label)
@@ -1383,6 +1408,30 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
         return c_values
+
+    def _are_valid_colors(self, c_values: Series) -> bool:
+        # check if c_values contains strings and if these strings are valid mpl colors.
+        # no need to check numerics as these (and mpl colors) will be validated for us
+        # in .Axes.scatter._parse_scatter_color_args(...)
+        unique = np.unique(c_values)
+        try:
+            if len(c_values) and all(isinstance(c, str) for c in unique):
+                mpl.colors.to_rgba_array(unique)
+
+            return True
+
+        except (TypeError, ValueError) as _:
+            return False
+
+    def _get_color_mapping(self, c_values: Series) -> dict[str, np.ndarray]:
+        unique = np.unique(c_values)
+        n_colors = len(unique)
+
+        # passing `None` here will default to :rc:`image.cmap`
+        cmap = mpl.colormaps.get_cmap(self.colormap)
+        colors = cmap(np.linspace(0, 1, n_colors))  # RGB tuples
+
+        return dict(zip(unique, colors))
 
     def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
         c = self.c
@@ -2029,9 +2078,12 @@ class PiePlot(MPLPlot):
 
     _layout_type = "horizontal"
 
-    def __init__(self, data, kind=None, **kwargs) -> None:
+    def __init__(self, data: Series | DataFrame, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
-        if (data < 0).any().any():
+        lt_zero = data < 0
+        if isinstance(data, ABCDataFrame) and lt_zero.any().any():
+            raise ValueError(f"{self._kind} plot doesn't allow negative values")
+        elif isinstance(data, ABCSeries) and lt_zero.any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 

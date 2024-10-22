@@ -87,7 +87,7 @@ class NumericEngineIndexing:
                 arr = np.array([1, 2, 3], dtype=dtype).repeat(N)
 
         self.data = engine(arr)
-        # code belows avoids populating the mapping etc. while timing.
+        # code below avoids populating the mapping etc. while timing.
         self.data.get_loc(2)
 
         self.key_middle = arr[len(arr) // 2]
@@ -140,7 +140,7 @@ class MaskedNumericEngineIndexing:
             mask[-1] = True
 
         self.data = engine(BaseMaskedArray(arr, mask))
-        # code belows avoids populating the mapping etc. while timing.
+        # code below avoids populating the mapping etc. while timing.
         self.data.get_loc(2)
 
         self.key_middle = arr[len(arr) // 2]
@@ -169,7 +169,7 @@ class ObjectEngineIndexing:
         }[index_type]
 
         self.data = libindex.ObjectEngine(arr)
-        # code belows avoids populating the mapping etc. while timing.
+        # code below avoids populating the mapping etc. while timing.
         self.data.get_loc("b")
 
     def time_get_loc(self, index_type):
