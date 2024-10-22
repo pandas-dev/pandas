@@ -444,6 +444,11 @@ class SpecificationError(Exception):
     The second way is calling ``agg`` on a Dataframe with duplicated functions
     names without assigning column name.
 
+    See Also
+    --------
+    DataFrame.agg : Aggregate using one or more operations over the specified axis.
+    Series.agg : Aggregate using one or more operations over the specified axis.
+
     Examples
     --------
     >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)})
@@ -615,6 +620,16 @@ class ClosedFileError(Exception):
     """
     Exception is raised when trying to perform an operation on a closed HDFStore file.
 
+    ``ClosedFileError`` is specific to operations on ``HDFStore`` objects. Once an
+    HDFStore is closed, its resources are no longer available, and any further attempt
+    to access data or perform file operations will raise this exception.
+
+    See Also
+    --------
+    HDFStore.close : Closes the PyTables file handle.
+    HDFStore.open : Opens the file in the specified mode.
+    HDFStore.is_open : Returns a boolean indicating whether the file is open.
+
     Examples
     --------
     >>> store = pd.HDFStore("my-store", "a")  # doctest: +SKIP
@@ -715,6 +730,15 @@ class InvalidColumnName(Warning):
 class CategoricalConversionWarning(Warning):
     """
     Warning is raised when reading a partial labeled Stata file using a iterator.
+
+    This warning helps ensure data integrity and alerts users to potential issues
+    during the incremental reading of Stata files with labeled data, allowing for
+    additional checks and adjustments as necessary.
+
+    See Also
+    --------
+    read_stata : Read a Stata file into a DataFrame.
+    Categorical : Represents a categorical variable in pandas.
 
     Examples
     --------
