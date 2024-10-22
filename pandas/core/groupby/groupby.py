@@ -767,10 +767,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Groupby iterator.
 
-        This method provides an iterator over the groups created by the resampling
-        operation on the object. The method yields tuples where the first element
-        is the label (group key) corresponding to each resampled bin, and the second
-        element is the subset of the data that falls within that bin.
+        This method provides an iterator over the groups created by the ``resample``
+        or ``groupby`` operation on the object. The method yields tuples where
+        the first element is the label (group key) corresponding to each resampled
+        bin, and the second element is the subset of the data that falls within that
+        bin.
 
         Returns
         -------
