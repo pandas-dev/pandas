@@ -2376,7 +2376,10 @@ class _iLocIndexer(_LocationIndexer):
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
-                    len_indexer = len(indexer[1])
+                    if isinstance(indexer[1], slice):
+                        len_indexer = len(obj.loc[indexer[1]].axes[1])
+                    else:
+                        len_indexer = len(indexer[1])
                     ser_values = (
                         np.tile(ser_values, len_indexer).reshape(len_indexer, -1).T
                     )

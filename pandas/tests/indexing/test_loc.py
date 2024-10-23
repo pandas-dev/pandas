@@ -3330,3 +3330,10 @@ class TestLocSeries:
             [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
         )
         tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC"))
+        df.loc[:, "A":"C"] = Series([10, 20, 30])
+        expected = DataFrame(
+            [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
+        )
+        tm.assert_frame_equal(df, expected)
