@@ -367,10 +367,10 @@ class StylerRenderer:
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace(
-                    'class="', 'class="tex2jax_ignore mathjax_ignore"'
+                    'class="', 'class="tex2jax_ignore mathjax_ignore '
                 )
             else:
-                table_attr += ' class="tex2jax_ignore mathjax_ignore"'
+                table_attr += 'class="tex2jax_ignore mathjax_ignore"'
         d.update({"table_attributes": table_attr})
 
         if self.tooltips:
