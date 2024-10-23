@@ -994,6 +994,7 @@ class FrameApply(NDFrameApply):
                 self.func,  # type: ignore[arg-type]
                 self.args,
                 self.kwargs,
+                num_required_args=1,
             )
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
@@ -1001,7 +1002,7 @@ class FrameApply(NDFrameApply):
             # list[Callable[..., Any] | str]]"; expected "Hashable"
             nb_looper = generate_apply_looper(
                 self.func,  # type: ignore[arg-type]
-                **get_jit_arguments(engine_kwargs, kwargs),
+                **get_jit_arguments(engine_kwargs),
             )
             result = nb_looper(self.values, self.axis, *args)
             # If we made the result 2-D, squeeze it back to 1-D
@@ -1158,9 +1159,11 @@ class FrameRowApply(FrameApply):
 
     def apply_with_numba(self) -> dict[int, Any]:
         func = cast(Callable, self.func)
-        args, kwargs = prepare_function_arguments(func, self.args, self.kwargs)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
-            func, **get_jit_arguments(self.engine_kwargs, kwargs)
+            func, **get_jit_arguments(self.engine_kwargs)
         )
         from pandas.core._numba.extensions import set_numba_data
 
@@ -1298,9 +1301,11 @@ class FrameColumnApply(FrameApply):
 
     def apply_with_numba(self) -> dict[int, Any]:
         func = cast(Callable, self.func)
-        args, kwargs = prepare_function_arguments(func, self.args, self.kwargs)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
-            func, **get_jit_arguments(self.engine_kwargs, kwargs)
+            func, **get_jit_arguments(self.engine_kwargs)
         )
 
         from pandas.core._numba.extensions import set_numba_data
