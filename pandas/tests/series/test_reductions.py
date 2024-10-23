@@ -6,10 +6,7 @@ from pandas._config import using_string_dtype
 from pandas.compat import HAS_PYARROW
 
 import pandas as pd
-from pandas import (
-    Series,
-    notna,
-)
+from pandas import Series
 import pandas._testing as tm
 
 
@@ -230,7 +227,7 @@ def test_median_with_convertible_string_raises():
 
 def test_mean_with_skipna():
     # GH#59965 skipna=True operations don't skip NaN in FloatingArrays
-    series1 = Series({"a": 0.0, "b": 1, "c": 1})
-    series2 = Series({"a": 0.0, "b": 2, "c": 2})
-    result = series1.convert_dtypes() / series2.convert_dtypes()
-    assert notna(result.mean(skipna=True))
+    series1 = Series({"a": 0.0, "b": 1, "c": 1}, dtype="Float64")
+    series2 = Series({"a": 0.0, "b": 2, "c": 2}, dtype="Float64")
+    result = series1 / series2
+    assert pd.notna(result.mean(skipna=True))

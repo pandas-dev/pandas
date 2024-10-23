@@ -12,6 +12,8 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 
+from pandas.core.dtypes.common import is_float_dtype
+
 from pandas.core.missing import isna
 from pandas.core.nanops import check_below_min_count
 
@@ -58,7 +60,7 @@ def _reductions(
         else:
             return func(values, axis=axis, **kwargs)
     else:
-        if values.dtype == np.float64:
+        if is_float_dtype(values):
             mask |= isna(values)
 
         if check_below_min_count(values.shape, mask, min_count) and (
