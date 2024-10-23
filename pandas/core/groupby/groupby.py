@@ -1276,7 +1276,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
-        args, kwargs = prepare_function_arguments(func, args, kwargs, 2)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=2
+        )
         numba_transform_func = numba_.generate_numba_transform_func(
             func, **get_jit_arguments(engine_kwargs)
         )
@@ -1313,7 +1315,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
-        args, kwargs = prepare_function_arguments(func, args, kwargs, 2)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=2
+        )
         numba_agg_func = numba_.generate_numba_agg_func(
             func, **get_jit_arguments(engine_kwargs)
         )

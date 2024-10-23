@@ -1473,7 +1473,9 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            numba_args, kwargs = prepare_function_arguments(func, args, kwargs, 1)
+            numba_args, kwargs = prepare_function_arguments(
+                func, args, kwargs, num_required_args=1
+            )
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
                     func, **get_jit_arguments(engine_kwargs)

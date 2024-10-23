@@ -95,7 +95,7 @@ _sentinel = object()
 
 
 def prepare_function_arguments(
-    func: Callable, args: tuple, kwargs: dict, num_required_args: int
+    func: Callable, args: tuple, kwargs: dict, *, num_required_args: int
 ) -> tuple[tuple, dict]:
     """
     Prepare arguments for jitted function. As numba functions do not support kwargs,
@@ -104,13 +104,17 @@ def prepare_function_arguments(
     Parameters
     ----------
     func : function
-        user defined function
+        User defined function
     args : tuple
-        user input positional arguments
+        User input positional arguments
     kwargs : dict
-        user input keyword arguments
+        User input keyword arguments
     num_required_args : int
-        the number of required leading positional arguments for udf.
+        The number of leading positional arguments we will pass to udf.
+        These are not supplied by the user.
+        e.g. for groupby we require "values", "index" as the first two arguments:
+        `numba_func(group, group_index, *args)`, in this case num_required_args=2.
+        See :func:`pandas.core.groupby.numba_.generate_numba_agg_func`
 
     Returns
     -------

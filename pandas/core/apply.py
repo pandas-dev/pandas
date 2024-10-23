@@ -994,7 +994,7 @@ class FrameApply(NDFrameApply):
                 self.func,  # type: ignore[arg-type]
                 self.args,
                 self.kwargs,
-                1,
+                num_required_args=1,
             )
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
@@ -1159,7 +1159,9 @@ class FrameRowApply(FrameApply):
 
     def apply_with_numba(self) -> dict[int, Any]:
         func = cast(Callable, self.func)
-        args, kwargs = prepare_function_arguments(func, self.args, self.kwargs, 1)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
             func, **get_jit_arguments(self.engine_kwargs)
         )
@@ -1299,7 +1301,9 @@ class FrameColumnApply(FrameApply):
 
     def apply_with_numba(self) -> dict[int, Any]:
         func = cast(Callable, self.func)
-        args, kwargs = prepare_function_arguments(func, self.args, self.kwargs, 1)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
             func, **get_jit_arguments(self.engine_kwargs)
         )
