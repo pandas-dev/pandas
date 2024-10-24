@@ -867,7 +867,7 @@ class BaseGrouper:
             names=names,
             verify_integrity=False,
         )
-        if not consistent_sorting:
+        if not consistent_sorting and len(ob_index) > 0:
             # Sort by the levels where the corresponding sort argument is True
             n_levels = len(sorts)
             drop_levels = [
@@ -898,7 +898,7 @@ class BaseGrouper:
         return unob_index, unob_ids
 
     @final
-    def get_group_levels(self) -> Generator[Index, None, None]:
+    def get_group_levels(self) -> Generator[Index]:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         result_index = self.result_index
