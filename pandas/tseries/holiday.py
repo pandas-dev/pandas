@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 def next_monday(dt: datetime) -> datetime:
     """
     If holiday falls on Saturday, use following Monday instead;
-    if holiday falls on Sunday, use Monday instead
+    if holiday falls on Sunday, use Monday instead.
     """
     if dt.weekday() == 5:
         return dt + timedelta(2)
@@ -55,7 +55,7 @@ def next_monday_or_tuesday(dt: datetime) -> datetime:
     """
     For second holiday of two adjacent ones!
     If holiday falls on Saturday, use following Monday instead;
-    if holiday falls on Sunday or Monday, use following Tuesday instead
+    if holiday falls on Sunday or Monday, use following Tuesday instead.
     (because Monday is already taken by adjacent holiday on the day before)
     """
     dow = dt.weekday()
@@ -113,7 +113,7 @@ def nearest_workday(dt: datetime) -> datetime:
 
 def next_workday(dt: datetime) -> datetime:
     """
-    returns next workday used for observances
+    Returns next workday used for observances
     """
     dt += timedelta(days=1)
     while dt.weekday() > 4:
@@ -124,7 +124,7 @@ def next_workday(dt: datetime) -> datetime:
 
 def previous_workday(dt: datetime) -> datetime:
     """
-    returns previous workday used for observances
+    Returns previous workday used for observances
     """
     dt -= timedelta(days=1)
     while dt.weekday() > 4:
@@ -135,15 +135,15 @@ def previous_workday(dt: datetime) -> datetime:
 
 def before_nearest_workday(dt: datetime) -> datetime:
     """
-    returns previous workday before nearest workday
+    Returns previous workday before nearest workday
     """
     return previous_workday(nearest_workday(dt))
 
 
 def after_nearest_workday(dt: datetime) -> datetime:
     """
-    returns next workday after nearest workday
-    needed for Boxing day or multiple holidays in a series
+    Returns next workday after nearest workday
+    Needed for Boxing day or multiple holidays in a series
     """
     return next_workday(nearest_workday(dt))
 
