@@ -255,7 +255,9 @@ class StringMethods(NoNewAttributesMixin):
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
         if inferred_dtype not in allowed_types:
-            raise AttributeError("Can only use .str accessor with string values!")
+            raise AttributeError(
+                f"Can only use .str accessor with string values, not {inferred_dtype}"
+            )
         return inferred_dtype
 
     def __getitem__(self, key):
