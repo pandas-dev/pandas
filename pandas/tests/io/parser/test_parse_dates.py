@@ -13,9 +13,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
+import pandas._testing as tm
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -24,10 +23,9 @@ from pandas import (
     Series,
     Timestamp,
 )
-import pandas._testing as tm
+from pandas._config import using_string_dtype
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.tools.datetimes import start_caching_at
-
 from pandas.io.parsers import read_csv
 
 pytestmark = pytest.mark.filterwarnings(
@@ -861,11 +859,11 @@ def test_parse_dates_arrow_dtype_as_index(all_parsers):
         index_col="a",
         dtype_backend="pyarrow",
     )
-    expected = pd.Series(
+    expected = Series(
         [1, 1],
         name="b",
         dtype="int64[pyarrow]",
-        index=pd.Index(
+        index=Index(
             [
                 Timestamp("2000-01-01 00:00:00"),
                 Timestamp("2000-01-01 00:00:01"),
