@@ -4355,6 +4355,7 @@ def test_xsqlite_if_exists(sqlite_buildin):
 
 
 def test_bytes_column(sqlite_buildin):
+    pytest.importorskip("pyarrow")
     """
     Regression test for (#59242)
     Bytes being returned in a column that could not be converted
