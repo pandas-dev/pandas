@@ -970,7 +970,17 @@ def convert_object_array(
                     if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
                         new_dtype = StringDtype()
                         arr_cls = new_dtype.construct_array_type()
-                        arr = arr_cls._from_sequence(arr, dtype=new_dtype)
+                        try:
+                            # Addressing (#59242)
+                            # Byte data that could not be decoded into
+                            # a string would throw a UnicodeDecodeError exception
+
+                            # Try and greedily convert to string
+                            # Will fail if the object is bytes
+                            arr = arr_cls._from_sequence(arr, dtype=new_dtype)
+                        except UnicodeDecodeError:
+                            pass
+
                 elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
                     if arr.dtype.kind in "iufb":
                         arr = pd_array(arr, copy=False)
