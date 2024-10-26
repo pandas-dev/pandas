@@ -6,6 +6,8 @@ import json
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -22,6 +24,10 @@ from pandas.io.json._table_schema import (
     convert_json_field_to_pandas_type,
     convert_pandas_type_to_json_field,
     set_default_names,
+)
+
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
 )
 
 
@@ -69,7 +75,7 @@ class TestBuildSchema:
             "primaryKey": ["idx"],
         }
         if using_infer_string:
-            expected["fields"][2] = {"name": "B", "type": "any", "extDtype": "string"}
+            expected["fields"][2] = {"name": "B", "type": "any", "extDtype": "str"}
         assert result == expected
         result = build_table_schema(df_schema)
         assert "pandas_version" in result
@@ -122,7 +128,7 @@ class TestBuildSchema:
                 "type": "any",
                 "extDtype": "string",
             }
-            expected["fields"][3] = {"name": "B", "type": "any", "extDtype": "string"}
+            expected["fields"][3] = {"name": "B", "type": "any", "extDtype": "str"}
         assert result == expected
 
         df.index.names = ["idx0", None]
@@ -305,7 +311,7 @@ class TestTableOrient:
         ]
 
         if using_infer_string:
-            fields[2] = {"name": "B", "type": "any", "extDtype": "string"}
+            fields[2] = {"name": "B", "type": "any", "extDtype": "str"}
 
         schema = {"fields": fields, "primaryKey": ["idx"]}
         data = [

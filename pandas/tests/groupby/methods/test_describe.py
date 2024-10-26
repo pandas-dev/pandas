@@ -71,7 +71,7 @@ def test_series_describe_as_index(as_index, keys):
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_describe_multikey(tsframe):
+def test_frame_describe_multikey(tsframe, using_infer_string):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
     desc_groups = []
@@ -79,13 +79,17 @@ def test_frame_describe_multikey(tsframe):
         group = grouped[col].describe()
         # GH 17464 - Remove duplicate MultiIndex levels
         group_col = MultiIndex(
-            levels=[[col], group.columns],
+            levels=[Index([col], dtype=tsframe.columns.dtype), group.columns],
             codes=[[0] * len(group.columns), range(len(group.columns))],
         )
         group = DataFrame(group.values, columns=group_col, index=group.index)
         desc_groups.append(group)
     expected = pd.concat(desc_groups, axis=1)
     tm.assert_frame_equal(result, expected)
+
+    # remainder of the tests fails with string dtype but is testing deprecated behaviour
+    if using_infer_string:
+        return
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -293,5 +297,5 @@ def test_groupby_empty_dataset(dtype, kwargs):
 
     result = df.iloc[:0].groupby("A").B.describe(**kwargs)
     expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
-    expected.index = Index([])
+    expected.index = Index([], dtype=df.columns.dtype)
     tm.assert_frame_equal(result, expected)

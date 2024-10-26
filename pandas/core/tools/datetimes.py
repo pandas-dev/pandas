@@ -16,6 +16,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import (
     lib,
     tslib,
@@ -476,6 +478,9 @@ def _array_strptime_with_fallback(
         unit = np.datetime_data(result.dtype)[0]
         res = Index(result, dtype=f"M8[{unit}, UTC]", name=name)
         return res
+    elif using_string_dtype() and result.dtype == object:
+        if lib.is_string_array(result):
+            return Index(result, dtype="str", name=name)
     return Index(result, dtype=result.dtype, name=name)
 
 

@@ -606,11 +606,10 @@ class TestEval:
         )
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("expr", ["x < -0.1", "-5 > x"])
-    def test_float_comparison_bin_op(self, dtype, expr):
+    def test_float_comparison_bin_op(self, float_numpy_dtype, expr):
         # GH 16363
-        df = DataFrame({"x": np.array([0], dtype=dtype)})
+        df = DataFrame({"x": np.array([0], dtype=float_numpy_dtype)})
         res = df.eval(expr)
         assert res.values == np.array([False])
 
@@ -747,16 +746,26 @@ class TestTypeCasting:
     @pytest.mark.parametrize("op", ["+", "-", "*", "**", "/"])
     # maybe someday... numexpr has too many upcasting rules now
     # chain(*(np.core.sctypes[x] for x in ['uint', 'int', 'float']))
-    @pytest.mark.parametrize("dt", [np.float32, np.float64])
     @pytest.mark.parametrize("left_right", [("df", "3"), ("3", "df")])
-    def test_binop_typecasting(self, engine, parser, op, dt, left_right):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), dtype=dt)
+    def test_binop_typecasting(
+        self, engine, parser, op, complex_or_float_dtype, left_right, request
+    ):
+        # GH#21374
+        dtype = complex_or_float_dtype
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), dtype=dtype)
         left, right = left_right
         s = f"{left} {op} {right}"
         res = pd.eval(s, engine=engine, parser=parser)
-        assert df.values.dtype == dt
-        assert res.values.dtype == dt
-        tm.assert_frame_equal(res, eval(s))
+        if dtype == "complex64" and engine == "numexpr":
+            mark = pytest.mark.xfail(
+                reason="numexpr issue with complex that are upcast "
+                "to complex 128 "
+                "https://github.com/pydata/numexpr/issues/492"
+            )
+            request.applymarker(mark)
+        assert df.values.dtype == dtype
+        assert res.values.dtype == dtype
+        tm.assert_frame_equal(res, eval(s), check_exact=False)
 
 
 # -------------------------------------

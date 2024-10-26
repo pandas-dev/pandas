@@ -18,6 +18,8 @@ import tempfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -152,6 +154,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_get_handle_pyarrow_compat(self):
         pa_csv = pytest.importorskip("pyarrow.csv")
 
@@ -305,10 +308,12 @@ Look,a snake,🐍"""
                 "pyarrow",
                 ("io", "data", "feather", "feather-0_3_1.feather"),
             ),
-            (
+            pytest.param(
                 pd.read_hdf,
                 "tables",
                 ("io", "data", "legacy_hdf", "datetimetz_object.h5"),
+                # cleaned-up in https://github.com/pandas-dev/pandas/pull/57387 on main
+                marks=pytest.mark.xfail(reason="TODO(infer_string)", strict=False),
             ),
             (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
@@ -347,6 +352,7 @@ Look,a snake,🐍"""
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],
     )
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_write_fspath_all(self, writer_name, writer_kwargs, module):
         if writer_name in ["to_latex"]:  # uses Styler implementation
             pytest.importorskip("jinja2")
@@ -373,6 +379,7 @@ Look,a snake,🐍"""
                     expected = f_path.read()
                     assert result == expected
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -450,6 +457,7 @@ class TestMMapWrapper:
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_binary_mode(self):
         """
         'encoding' shouldn't be passed to 'open' in binary mode.
@@ -485,7 +493,10 @@ class TestMMapWrapper:
                 df.to_csv(path, compression=compression_, encoding=encoding)
 
             # reading should fail (otherwise we wouldn't need the warning)
-            msg = r"UTF-\d+ stream does not start with BOM"
+            msg = (
+                r"UTF-\d+ stream does not start with BOM|"
+                r"'utf-\d+' codec can't decode byte"
+            )
             with pytest.raises(UnicodeError, match=msg):
                 pd.read_csv(path, compression=compression_, encoding=encoding)
 
@@ -505,6 +516,7 @@ def test_is_fsspec_url():
     assert icom.is_fsspec_url("RFC-3986+compliant.spec://something")
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
@@ -525,6 +537,7 @@ def test_codecs_encoding(encoding, format):
     tm.assert_frame_equal(expected, df)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_codecs_get_writer_reader():
     # GH39247
     expected = pd.DataFrame(

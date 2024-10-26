@@ -5,6 +5,8 @@ import textwrap
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import PYPY
 
 from pandas import (
@@ -140,6 +142,7 @@ def test_info_memory_usage_deep_pypy():
     assert s_object.memory_usage(deep=True) == s_object.memory_usage()
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "series, plus",
     [

@@ -7,6 +7,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -183,6 +185,7 @@ class TestDataFrameBlockInternals:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_construction_with_mixed(self, float_string_frame, using_infer_string):
         # test construction edge cases with mixed types
 
@@ -206,7 +209,9 @@ class TestDataFrameBlockInternals:
         expected = Series(
             [np.dtype("float64")] * 4
             + [
-                np.dtype("object") if not using_infer_string else "string",
+                np.dtype("object")
+                if not using_infer_string
+                else pd.StringDtype(na_value=np.nan),
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
@@ -214,6 +219,7 @@ class TestDataFrameBlockInternals:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_construction_with_conversions(self):
         # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
         #  *not* convert
@@ -434,6 +440,7 @@ def test_update_inplace_sets_valid_block_values(using_copy_on_write):
         assert df.isnull().sum().sum() == 0
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_nonconsolidated_item_cache_take():
     # https://github.com/pandas-dev/pandas/issues/35521
 

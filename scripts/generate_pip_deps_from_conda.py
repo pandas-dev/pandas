@@ -23,7 +23,7 @@ else:
     import tomli as tomllib
 import yaml
 
-EXCLUDE = {"python", "c-compiler", "cxx-compiler", "c-blosc2"}
+EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
 REMAP_VERSION = {"tzdata": "2022.7"}
 CONDA_TO_PIP = {
     "pytables": "tables",

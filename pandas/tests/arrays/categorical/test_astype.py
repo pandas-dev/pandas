@@ -89,7 +89,7 @@ class TestAstype:
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
 
-        msg = r"Cannot cast object|string dtype to float64"
+        msg = r"Cannot cast object|str dtype to float64"
         with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 

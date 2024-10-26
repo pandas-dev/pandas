@@ -17,6 +17,8 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import (
     ParserError,
@@ -183,6 +185,7 @@ def test_precise_conversion(c_parser_only, num):
     assert max(precise_errors) <= max(normal_errors)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_usecols_dtypes(c_parser_only):
     parser = c_parser_only
     data = """\

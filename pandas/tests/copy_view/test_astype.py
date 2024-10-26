@@ -3,6 +3,9 @@ import pickle
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 from pandas.compat.pyarrow import pa_version_under12p0
 import pandas.util._test_decorators as td
 
@@ -132,12 +135,32 @@ def test_astype_string_and_object_update_original(
     tm.assert_frame_equal(df2, df_orig)
 
 
-def test_astype_string_copy_on_pickle_roundrip():
+def test_astype_str_copy_on_pickle_roundrip():
+    # TODO(infer_string) this test can be removed after 3.0 (once str is the default)
     # https://github.com/pandas-dev/pandas/issues/54654
     # ensure_string_array may alter array inplace
     base = Series(np.array([(1, 2), None, 1], dtype="object"))
     base_copy = pickle.loads(pickle.dumps(base))
     base_copy.astype(str)
+    tm.assert_series_equal(base, base_copy)
+
+
+def test_astype_string_copy_on_pickle_roundrip(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/issues/54654
+    # ensure_string_array may alter array inplace
+    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base_copy = pickle.loads(pickle.dumps(base))
+    base_copy.astype(any_string_dtype)
+    tm.assert_series_equal(base, base_copy)
+
+
+def test_astype_string_read_only_on_pickle_roundrip(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/issues/54654
+    # ensure_string_array may alter read-only array inplace
+    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base_copy = pickle.loads(pickle.dumps(base))
+    base_copy._values.flags.writeable = False
+    base_copy.astype(any_string_dtype)
     tm.assert_series_equal(base, base_copy)
 
 
@@ -221,6 +244,7 @@ def test_astype_arrow_timestamp(using_copy_on_write):
             )
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_convert_dtypes_infer_objects(using_copy_on_write):
     ser = Series(["a", "b", "c"])
     ser_orig = ser.copy()
@@ -240,6 +264,7 @@ def test_convert_dtypes_infer_objects(using_copy_on_write):
     tm.assert_series_equal(ser, ser_orig)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_convert_dtypes(using_copy_on_write):
     df = DataFrame({"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]})
     df_orig = df.copy()

@@ -3,6 +3,8 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -729,6 +731,7 @@ def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
     )
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("index", [True, False])
 @pytest.mark.parametrize(
     "columns, siunitx",

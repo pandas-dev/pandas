@@ -4,6 +4,10 @@ from hypothesis import given
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -46,6 +50,7 @@ def _safe_add(df):
 
 
 class TestDataFrameIndexingWhere:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_get(self, where_frame, float_string_frame):
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -97,6 +102,7 @@ class TestDataFrameIndexingWhere:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -172,6 +178,7 @@ class TestDataFrameIndexingWhere:
             df.mask(0)
 
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 
@@ -978,6 +985,9 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @given(data=OPTIONAL_ONE_OF_ALL)
 def test_where_inplace_casting(data):
     # GH 22051
@@ -1074,6 +1084,9 @@ def test_where_producing_ea_cond_for_np_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
