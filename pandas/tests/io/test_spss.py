@@ -180,4 +180,3 @@ def test_spss_metadata(datapath):
     if Version(pyreadstat.__version__) >= Version("1.2.8"):
         metadata["mr_sets"] = {}
     tm.assert_dict_equal(df.attrs, metadata)
-    assert df.attrs == metadata
