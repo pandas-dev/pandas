@@ -3316,6 +3316,11 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the last day of the month & day_of_month.
 
+    This offset allows for flexibility in generating date ranges or adjusting dates
+    to the end of a month or a specific day in the month, such as the 15th or the last
+    day of the month. It is useful for financial or scheduling applications where
+    events occur bi-monthly.
+
     Attributes
     ----------
     n : int, default 1
@@ -3324,6 +3329,13 @@ cdef class SemiMonthEnd(SemiMonthOffset):
         Normalize start/end dates to midnight before generating date range.
     day_of_month : int, {1, 3,...,27}, default 15
         A specific integer for the day of the month.
+
+    See Also
+    --------
+    tseries.offsets.SemiMonthBegin : Offset for semi-monthly frequencies, starting at
+        the beginning of the month.
+    tseries.offsets.MonthEnd : Offset to the last calendar day of the month.
+    tseries.offsets.MonthBegin : Offset to the first calendar day of the month.
 
     Examples
     --------
@@ -3582,6 +3594,11 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
+    This offset allows for generating or adjusting dates by specifying
+    a particular week and weekday within a month. The week is zero-indexed,
+    where 0 corresponds to the first week of the month, and weekday follows
+    a Monday=0 convention.
+
     Attributes
     ----------
     n : int, default 1
@@ -3601,6 +3618,12 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         - 4 is Friday
         - 5 is Saturday
         - 6 is Sunday.
+
+    See Also
+    --------
+    offsets.Week : Describes weekly frequency adjustments.
+    offsets.MonthEnd : Describes month-end frequency adjustments.
+    date_range : Generates a range of dates based on a specific frequency.
 
     Examples
     --------

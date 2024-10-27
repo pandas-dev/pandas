@@ -32,8 +32,6 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
@@ -45,7 +43,6 @@ from pandas.compat import (
     pa_version_under13p0,
     pa_version_under14p0,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -294,7 +291,7 @@ class TestArrowArray(base.ExtensionTests):
                 expected = data_missing.to_numpy()
             tm.assert_numpy_array_equal(result, expected)
 
-    def test_astype_str(self, data, request):
+    def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_binary(pa_dtype):
             request.applymarker(
@@ -302,34 +299,16 @@ class TestArrowArray(base.ExtensionTests):
                     reason=f"For {pa_dtype} .astype(str) decodes.",
                 )
             )
-        elif (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ) or pa.types.is_duration(pa_dtype):
+        elif not using_infer_string and (
+            (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+            or pa.types.is_duration(pa_dtype)
+        ):
             request.applymarker(
                 pytest.mark.xfail(
                     reason="pd.Timestamp/pd.Timedelta repr different from numpy repr",
                 )
             )
         super().test_astype_str(data)
-
-    @pytest.mark.parametrize(
-        "nullable_string_dtype",
-        [
-            "string[python]",
-            pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        ],
-    )
-    def test_astype_string(self, data, nullable_string_dtype, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ) or pa.types.is_duration(pa_dtype):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="pd.Timestamp/pd.Timedelta repr different from numpy repr",
-                )
-            )
-        super().test_astype_string(data, nullable_string_dtype)
 
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1947,14 +1926,9 @@ def test_str_find_negative_start():
 
 def test_str_find_no_end():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    if pa_version_under13p0:
-        # https://github.com/apache/arrow/issues/36311
-        with pytest.raises(pa.lib.ArrowInvalid, match="Negative buffer resize"):
-            ser.str.find("ab", start=1)
-    else:
-        result = ser.str.find("ab", start=1)
-        expected = pd.Series([-1, None], dtype="int64[pyarrow]")
-        tm.assert_series_equal(result, expected)
+    result = ser.str.find("ab", start=1)
+    expected = pd.Series([-1, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
 
 
 def test_str_find_negative_start_negative_end():
@@ -1968,17 +1942,11 @@ def test_str_find_negative_start_negative_end():
 def test_str_find_large_start():
     # GH 56791
     ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
-    if pa_version_under13p0:
-        # https://github.com/apache/arrow/issues/36311
-        with pytest.raises(pa.lib.ArrowInvalid, match="Negative buffer resize"):
-            ser.str.find(sub="d", start=16)
-    else:
-        result = ser.str.find(sub="d", start=16)
-        expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
-        tm.assert_series_equal(result, expected)
+    result = ser.str.find(sub="d", start=16)
+    expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.skipif(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )
@@ -1990,10 +1958,14 @@ def test_str_find_e2e(start, end, sub):
         ["abcaadef", "abc", "abcdeddefgj8292", "ab", "a", ""],
         dtype=ArrowDtype(pa.string()),
     )
-    object_series = s.astype(pd.StringDtype())
+    object_series = s.astype(pd.StringDtype(storage="python"))
     result = s.str.find(sub, start, end)
     expected = object_series.str.find(sub, start, end).astype(result.dtype)
     tm.assert_series_equal(result, expected)
+
+    arrow_str_series = s.astype(pd.StringDtype(storage="pyarrow"))
+    result2 = arrow_str_series.str.find(sub, start, end).astype(result.dtype)
+    tm.assert_series_equal(result2, expected)
 
 
 def test_str_find_negative_start_negative_end_no_match():
@@ -2045,6 +2017,7 @@ def test_str_join_string_type():
         [None, 2, None, ["ab", None]],
         [None, 2, 1, ["ab", None]],
         [1, 3, 1, ["bc", None]],
+        (None, None, -1, ["dcba", None]),
     ],
 )
 def test_str_slice(start, stop, step, exp):
