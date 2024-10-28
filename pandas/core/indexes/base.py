@@ -875,8 +875,7 @@ class Index(IndexOpsMixin, PandasObject):
             # error: Item "ExtensionArray" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
             target_values = self._data._ndarray  # type: ignore[union-attr]
-        elif is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
-            return libindex.StringEngine(target_values)
+        # TODO re-enable StringEngine for string dtype
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
