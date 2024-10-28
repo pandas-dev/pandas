@@ -158,12 +158,7 @@ def test_interval_dtype(left, right):
         # i.e. numeric
         if right.subtype.kind in ["i", "u", "f"]:
             # both numeric -> common numeric subtype
-            if (
-                left.subtype.kind == "i"
-                and right.subtype.kind == "u"
-                or left.subtype.kind == "u"
-                and right.subtype.kind == "i"
-            ):
+            if (left.subtype.kind, right.subtype.kind) in [("i", "u"), ("u", "i")]:
                 assert result == object
             else:
                 expected = IntervalDtype(np.float64, "right")
