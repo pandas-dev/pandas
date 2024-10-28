@@ -1410,7 +1410,11 @@ def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
     """
     try:
         common_dtype = np.result_type(*dtypes)
-        if common_dtype.kind in "mMSU" or common_dtype not in dtypes:
+        # GH 59609
+        # Float point precision error when converting int64 and uint64
+        if common_dtype.kind in "mMSU" or common_dtype.kind not in [
+            dtype.kind for dtype in dtypes
+        ]:
             # NumPy promotion currently (1.25) misbehaves for for times and strings,
             # so fall back to object (find_common_dtype did unless there
             # was only one dtype)

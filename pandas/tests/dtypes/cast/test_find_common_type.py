@@ -31,13 +31,15 @@ from pandas import (
         ((np.float16, np.float32), np.float32),
         ((np.float16, np.int16), np.float32),
         ((np.float32, np.int16), np.float32),
-        ((np.uint64, np.int64), np.float64),
         ((np.int16, np.float64), np.float64),
         ((np.float16, np.int64), np.float64),
         # Into others.
         ((np.complex128, np.int32), np.complex128),
         ((object, np.float32), object),
         ((object, np.int16), object),
+        # GH 59609
+        # Float point precision error when converting int64 and uint64
+        ((np.uint64, np.int64), object),
         # Bool with int.
         ((np.dtype("bool"), np.int64), object),
         ((np.dtype("bool"), np.int32), object),
@@ -156,8 +158,17 @@ def test_interval_dtype(left, right):
         # i.e. numeric
         if right.subtype.kind in ["i", "u", "f"]:
             # both numeric -> common numeric subtype
-            expected = IntervalDtype(np.float64, "right")
-            assert result == expected
+            if (
+                left.subtype.kind == "i"
+                and right.subtype.kind == "u"
+                or left.subtype.kind == "u"
+                and right.subtype.kind == "i"
+            ):
+                assert result == object
+            else:
+                expected = IntervalDtype(np.float64, "right")
+                assert result == expected
+
         else:
             assert result == object
 
