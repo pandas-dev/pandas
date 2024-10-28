@@ -5,6 +5,7 @@ Expressions
 Offer fast expression evaluation through numexpr
 
 """
+
 from __future__ import annotations
 
 import operator
@@ -214,9 +215,9 @@ def _bool_arith_fallback(op_str, a, b) -> bool:
     if _has_bool_dtype(a) and _has_bool_dtype(b):
         if op_str in _BOOL_OP_UNSUPPORTED:
             warnings.warn(
-                f"evaluating in Python space because the {repr(op_str)} "
+                f"evaluating in Python space because the {op_str!r} "
                 "operator is not supported by numexpr for the bool dtype, "
-                f"use {repr(_BOOL_OP_UNSUPPORTED[op_str])} instead.",
+                f"use {_BOOL_OP_UNSUPPORTED[op_str]!r} instead.",
                 stacklevel=find_stack_level(),
             )
             return True

@@ -2,6 +2,7 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -11,7 +12,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
-import warnings
 
 import numpy as np
 
@@ -24,13 +24,10 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
-    get_supported_reso,
-    get_unit_from_dtype,
-    is_supported_unit,
+    get_supported_dtype,
+    is_supported_dtype,
     is_unitless,
-    npy_unit_to_abbrev,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -132,7 +129,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     return result.reshape(x.shape)
 
 
-def _masked_arith_op(x: np.ndarray, y, op):
+def _masked_arith_op(x: np.ndarray, y, op) -> np.ndarray:
     """
     If the given arithmetic operation fails, attempt it again on
     only the non-null elements of the input array(s).
@@ -425,15 +422,13 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     right = lib.item_from_zerodim(right)
     if is_list_like(right) and not hasattr(right, "dtype"):
         # e.g. list, tuple
-        warnings.warn(
+        raise TypeError(
+            # GH#52264
             "Logical ops (and, or, xor) between Pandas objects and dtype-less "
-            "sequences (e.g. list, tuple) are deprecated and will raise in a "
-            "future version. Wrap the object in a Series, Index, or np.array "
+            "sequences (e.g. list, tuple) are no longer supported. "
+            "Wrap the object in a Series, Index, or np.array "
             "before operating instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
         )
-        right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
     lvalues = ensure_wrapped_if_datetimelike(left)
@@ -543,12 +538,11 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             # GH 52295
             if is_unitless(obj.dtype):
                 obj = obj.astype("datetime64[ns]")
-            elif not is_supported_unit(get_unit_from_dtype(obj.dtype)):
-                unit = get_unit_from_dtype(obj.dtype)
-                closest_unit = npy_unit_to_abbrev(get_supported_reso(unit))
-                obj = obj.astype(f"datetime64[{closest_unit}]")
+            elif not is_supported_dtype(obj.dtype):
+                new_dtype = get_supported_dtype(obj.dtype)
+                obj = obj.astype(new_dtype)
             right = np.broadcast_to(obj, shape)
-            return DatetimeArray(right)
+            return DatetimeArray._simple_new(right, dtype=right.dtype)
 
         return Timestamp(obj)
 
@@ -562,17 +556,24 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             # GH 52295
             if is_unitless(obj.dtype):
                 obj = obj.astype("timedelta64[ns]")
-            elif not is_supported_unit(get_unit_from_dtype(obj.dtype)):
-                unit = get_unit_from_dtype(obj.dtype)
-                closest_unit = npy_unit_to_abbrev(get_supported_reso(unit))
-                obj = obj.astype(f"timedelta64[{closest_unit}]")
+            elif not is_supported_dtype(obj.dtype):
+                new_dtype = get_supported_dtype(obj.dtype)
+                obj = obj.astype(new_dtype)
             right = np.broadcast_to(obj, shape)
-            return TimedeltaArray(right)
+            return TimedeltaArray._simple_new(right, dtype=right.dtype)
 
         # In particular non-nanosecond timedelta64 needs to be cast to
         #  nanoseconds, or else we get undesired behavior like
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
+
+    # We want NumPy numeric scalars to behave like Python scalars
+    # post NEP 50
+    elif isinstance(obj, np.integer):
+        return int(obj)
+
+    elif isinstance(obj, np.floating):
+        return float(obj)
 
     return obj
 
@@ -587,7 +588,7 @@ _BOOL_OP_NOT_ALLOWED = {
 }
 
 
-def _bool_arith_check(op, a: np.ndarray, b):
+def _bool_arith_check(op, a: np.ndarray, b) -> None:
     """
     In contrast to numpy, pandas raises an error for certain operations
     with booleans.

@@ -4,8 +4,11 @@ Tests for values coercion in setitem-like operations on DataFrame.
 For the most part, these should be multi-column DataFrames, otherwise
 we would share the tests with Series.
 """
+
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -48,35 +51,19 @@ class TestDataFrameSetitemCoercion:
 def test_37477():
     # fixed by GH#45121
     orig = DataFrame({"A": [1, 2, 3], "B": [3, 4, 5]})
-    expected = DataFrame({"A": [1, 2, 3], "B": [3, 1.2, 5]})
 
     df = orig.copy()
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.at[1, "B"] = 1.2
-    tm.assert_frame_equal(df, expected)
 
-    df = orig.copy()
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.loc[1, "B"] = 1.2
-    tm.assert_frame_equal(df, expected)
 
-    df = orig.copy()
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.iat[1, 1] = 1.2
-    tm.assert_frame_equal(df, expected)
 
-    df = orig.copy()
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.iloc[1, 1] = 1.2
-    tm.assert_frame_equal(df, expected)
 
 
 def test_6942(indexer_al):
@@ -97,6 +84,7 @@ def test_6942(indexer_al):
     assert df.iloc[0, 0] == t2
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_26395(indexer_al):
     # .at case fixed by GH#45121 (best guess)
     df = DataFrame(index=["A", "B", "C"])
@@ -106,19 +94,11 @@ def test_26395(indexer_al):
     expected = DataFrame({"D": [0, 0, 2]}, index=["A", "B", "C"], dtype=np.int64)
     tm.assert_frame_equal(df, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
+    with pytest.raises(TypeError, match="Invalid value"):
         indexer_al(df)["C", "D"] = 44.5
-    expected = DataFrame({"D": [0, 0, 44.5]}, index=["A", "B", "C"], dtype=np.float64)
-    tm.assert_frame_equal(df, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
+    with pytest.raises(TypeError, match="Invalid value"):
         indexer_al(df)["C", "D"] = "hello"
-    expected = DataFrame({"D": [0, 0, "hello"]}, index=["A", "B", "C"], dtype=object)
-    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.xfail(reason="unwanted upcast")

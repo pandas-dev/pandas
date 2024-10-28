@@ -5,6 +5,7 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     NaT,
     Series,
@@ -13,8 +14,6 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-
-from .pandas_vb_common import tm
 
 
 class AsType:
@@ -160,12 +159,6 @@ class Iteration:
 
     def time_items(self):
         # (monitor no-copying behaviour)
-        if hasattr(self.df, "_item_cache"):
-            self.df._item_cache.clear()
-        for name, col in self.df.items():
-            pass
-
-    def time_items_cached(self):
         for name, col in self.df.items():
             pass
 
@@ -594,8 +587,6 @@ class Interpolate:
         N = 10000
         # this is the worst case, where every column has NaNs.
         arr = np.random.randn(N, 100)
-        # NB: we need to set values in array, not in df.values, otherwise
-        #  the benchmark will be misleading for ArrayManager
         arr[::2] = np.nan
 
         self.df = DataFrame(arr)
@@ -703,8 +694,12 @@ class SortMultiKey:
         K = 10
         df = DataFrame(
             {
-                "key1": tm.makeStringIndex(N).values.repeat(K),
-                "key2": tm.makeStringIndex(N).values.repeat(K),
+                "key1": Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(
+                    K
+                ),
+                "key2": Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(
+                    K
+                ),
                 "value": np.random.randn(N * K),
             }
         )
@@ -865,6 +860,30 @@ class FindValidIndex:
 
     def time_last_valid_index(self, dtype):
         self.df.last_valid_index()
+
+
+class Update:
+    def setup(self):
+        rng = np.random.default_rng()
+        self.df = DataFrame(rng.uniform(size=(1_000_000, 10)))
+
+        idx = rng.choice(range(1_000_000), size=1_000_000, replace=False)
+        self.df_random = DataFrame(self.df, index=idx)
+
+        idx = rng.choice(range(1_000_000), size=100_000, replace=False)
+        cols = rng.choice(range(10), size=2, replace=False)
+        self.df_sample = DataFrame(
+            rng.uniform(size=(100_000, 2)), index=idx, columns=cols
+        )
+
+    def time_to_update_big_frame_small_arg(self):
+        self.df.update(self.df_sample)
+
+    def time_to_update_random_indices(self):
+        self.df_random.update(self.df_sample)
+
+    def time_to_update_small_frame_big_arg(self):
+        self.df_sample.update(self.df)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

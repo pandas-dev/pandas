@@ -3,6 +3,7 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
+
 from __future__ import annotations
 
 import builtins
@@ -11,6 +12,7 @@ from collections import (
     defaultdict,
 )
 from collections.abc import (
+    Callable,
     Collection,
     Generator,
     Hashable,
@@ -23,7 +25,7 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
+    TypeVar,
     cast,
     overload,
 )
@@ -51,7 +53,9 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
+        Concatenate,
         NpDtype,
+        P,
         RandomState,
         T,
     )
@@ -141,7 +145,7 @@ def is_bool_indexer(key: Any) -> bool:
     elif isinstance(key, list):
         # check if np.array(key).dtype would be bool
         if len(key) > 0:
-            if type(key) is not list:  # noqa: E721
+            if type(key) is not list:
                 # GH#42461 cython will raise TypeError if we pass a subclass
                 key = list(key)
             return lib.is_bool_list(key)
@@ -224,14 +228,15 @@ def asarray_tuplesafe(
 
 
 @overload
-def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
-    ...
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike: ...
 
 
 def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
+        return values._values
+    elif isinstance(values, ABCSeries):
         return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
@@ -330,11 +335,12 @@ def is_empty_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line) -> list[bool]:
+def is_true_slices(line: abc.Iterable) -> abc.Generator[bool, None, None]:
     """
-    Find non-trivial slices in "line": return a list of booleans with same length.
+    Find non-trivial slices in "line": yields a bool.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
+    for k in line:
+        yield isinstance(k, slice) and not is_null_slice(k)
 
 
 # TODO: used only once in indexing; belongs elsewhere?
@@ -417,15 +423,13 @@ def standardize_mapping(into):
 
 
 @overload
-def random_state(state: np.random.Generator) -> np.random.Generator:
-    ...
+def random_state(state: np.random.Generator) -> np.random.Generator: ...
 
 
 @overload
 def random_state(
     state: int | np.ndarray | np.random.BitGenerator | np.random.RandomState | None,
-) -> np.random.RandomState:
-    ...
+) -> np.random.RandomState: ...
 
 
 def random_state(state: RandomState | None = None):
@@ -463,8 +467,32 @@ def random_state(state: RandomState | None = None):
         )
 
 
+_T = TypeVar("_T")  # Secondary TypeVar for use in pipe's type hints
+
+
+@overload
 def pipe(
-    obj, func: Callable[..., T] | tuple[Callable[..., T], str], *args, **kwargs
+    obj: _T,
+    func: Callable[Concatenate[_T, P], T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> T: ...
+
+
+@overload
+def pipe(
+    obj: Any,
+    func: tuple[Callable[..., T], str],
+    *args: Any,
+    **kwargs: Any,
+) -> T: ...
+
+
+def pipe(
+    obj: _T,
+    func: Callable[Concatenate[_T, P], T] | tuple[Callable[..., T], str],
+    *args: Any,
+    **kwargs: Any,
 ) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
@@ -490,12 +518,13 @@ def pipe(
     object : the return type of ``func``.
     """
     if isinstance(func, tuple):
-        func, target = func
+        # Assigning to func_ so pyright understands that it's a callable
+        func_, target = func
         if target in kwargs:
             msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
-        return func(*args, **kwargs)
+        return func_(*args, **kwargs)
     else:
         return func(obj, *args, **kwargs)
 
@@ -531,9 +560,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(
-    obj, attr: str, value, condition: bool = True
-) -> Generator[None, None, None]:
+def temp_setattr(obj, attr: str, value, condition: bool = True) -> Generator[None]:
     """
     Temporarily set attribute on an object.
 
@@ -576,22 +603,6 @@ def require_length_match(data, index: Index) -> None:
         )
 
 
-# the ufuncs np.maximum.reduce and np.minimum.reduce default to axis=0,
-#  whereas np.min and np.max (which directly call obj.min and obj.max)
-#  default to axis=None.
-_builtin_table = {
-    builtins.sum: np.sum,
-    builtins.max: np.maximum.reduce,
-    builtins.min: np.minimum.reduce,
-}
-
-# GH#53425: Only for deprecation
-_builtin_table_alias = {
-    builtins.sum: "np.sum",
-    builtins.max: "np.maximum.reduce",
-    builtins.min: "np.minimum.reduce",
-}
-
 _cython_table = {
     builtins.sum: "sum",
     builtins.max: "max",
@@ -626,14 +637,6 @@ def get_cython_func(arg: Callable) -> str | None:
     if we define an internal function for this argument, return it
     """
     return _cython_table.get(arg)
-
-
-def is_builtin_func(arg):
-    """
-    if we define a builtin function for this argument, return it,
-    otherwise return the arg
-    """
-    return _builtin_table.get(arg, arg)
 
 
 def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:

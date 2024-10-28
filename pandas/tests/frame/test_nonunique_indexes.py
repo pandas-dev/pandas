@@ -284,7 +284,7 @@ class TestDataFrameNonuniqueIndexes:
         expected = DataFrame([[1, 2, "foo", "bar"]], columns=["a", "a.1", "a.2", "a.3"])
         tm.assert_frame_equal(df, expected)
 
-    def test_dups_across_blocks(self, using_array_manager):
+    def test_dups_across_blocks(self):
         # dups across blocks
         df_float = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), dtype="float64"
@@ -299,9 +299,8 @@ class TestDataFrameNonuniqueIndexes:
         )
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
-        if not using_array_manager:
-            assert len(df._mgr.blknos) == len(df.columns)
-            assert len(df._mgr.blklocs) == len(df.columns)
+        assert len(df._mgr.blknos) == len(df.columns)
+        assert len(df._mgr.blklocs) == len(df.columns)
 
         # testing iloc
         for i in range(len(df.columns)):

@@ -1,10 +1,3 @@
-from contextlib import nullcontext
-from datetime import (
-    datetime,
-    time,
-)
-import locale
-
 import numpy as np
 import pytest
 
@@ -14,13 +7,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-
-
-def get_local_am_pm():
-    """Return the AM and PM strings returned by strftime in current locale."""
-    am_local = time(1).strftime("%p")
-    pm_local = time(13).strftime("%p")
-    return am_local, pm_local
 
 
 def test_get_values_for_csv():
@@ -56,15 +42,6 @@ def test_get_values_for_csv():
 
 
 class TestPeriodIndexRendering:
-    def test_format_empty(self):
-        # GH#35712
-        empty_idx = PeriodIndex([], freq="Y")
-        msg = r"PeriodIndex\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format() == []
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format(name=True) == [""]
-
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_representation(self, method):
         # GH#7601
@@ -215,136 +192,3 @@ Freq: Q-DEC"""
         ):
             result = idx._summary()
             assert result == expected
-
-
-class TestPeriodIndexFormat:
-    def test_period_format_and_strftime_default(self):
-        per = PeriodIndex([datetime(2003, 1, 1, 12), None], freq="h")
-
-        # Default formatting
-        msg = "PeriodIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = per.format()
-        assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
-        assert formatted[1] == "NaT"
-        # format is equivalent to strftime(None)...
-        assert formatted[0] == per.strftime(None)[0]
-        assert per.strftime(None)[1] is np.nan  # ...except for NaTs
-
-        # Same test with nanoseconds freq
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = per.format()
-        assert (formatted == per.strftime(None)).all()
-        assert formatted[0] == "2003-01-01 12:01:01.123456789"
-        assert formatted[1] == "2003-01-01 12:01:01.123456790"
-
-    def test_period_custom(self):
-        # GH#46252 custom formatting directives %l (ms) and %u (us)
-        msg = "PeriodIndex.format is deprecated"
-
-        # 3 digits
-        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="ms")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
-        assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
-        assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
-
-        # 6 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="us")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
-        assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
-        assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
-
-        # 9 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
-        assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
-        assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
-
-    def test_period_tz(self):
-        # Formatting periods created from a datetime with timezone.
-        msg = r"PeriodIndex\.format is deprecated"
-        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
-        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
-
-        # Converting to a period looses the timezone information
-        # Since tz is currently set as utc, we'll see 2012
-        with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
-            per = dt.to_period(freq="h")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert per.format()[0] == "2012-12-31 23:00"
-
-        # If tz is currently set as paris before conversion, we'll see 2013
-        dt = dt.tz_convert("Europe/Paris")
-        with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
-            per = dt.to_period(freq="h")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert per.format()[0] == "2013-01-01 00:00"
-
-    @pytest.mark.parametrize(
-        "locale_str",
-        [
-            pytest.param(None, id=str(locale.getlocale())),
-            "it_IT.utf8",
-            "it_IT",  # Note: encoding will be 'ISO8859-1'
-            "zh_CN.utf8",
-            "zh_CN",  # Note: encoding will be 'gb2312'
-        ],
-    )
-    def test_period_non_ascii_fmt(self, locale_str):
-        # GH#46468 non-ascii char in input format string leads to wrong output
-
-        # Skip if locale cannot be set
-        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
-            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
-
-        # Change locale temporarily for this test.
-        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
-            # Scalar
-            per = pd.Period("2018-03-11 13:00", freq="h")
-            assert per.strftime("%y é") == "18 é"
-
-            # Index
-            per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
-            msg = "PeriodIndex.format is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                formatted = per.format(date_format="%y é")
-            assert formatted[0] == "03 é"
-            assert formatted[1] == "03 é"
-
-    @pytest.mark.parametrize(
-        "locale_str",
-        [
-            pytest.param(None, id=str(locale.getlocale())),
-            "it_IT.utf8",
-            "it_IT",  # Note: encoding will be 'ISO8859-1'
-            "zh_CN.utf8",
-            "zh_CN",  # Note: encoding will be 'gb2312'
-        ],
-    )
-    def test_period_custom_locale_directive(self, locale_str):
-        # GH#46319 locale-specific directive leads to non-utf8 c strftime char* result
-
-        # Skip if locale cannot be set
-        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
-            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
-
-        # Change locale temporarily for this test.
-        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
-            # Get locale-specific reference
-            am_local, pm_local = get_local_am_pm()
-
-            # Scalar
-            per = pd.Period("2018-03-11 13:00", freq="h")
-            assert per.strftime("%p") == pm_local
-
-            # Index
-            per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
-            msg = "PeriodIndex.format is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                formatted = per.format(date_format="%y %I:%M:%S%p")
-            assert formatted[0] == f"03 01:00:00{am_local}"
-            assert formatted[1] == f"03 01:00:00{pm_local}"

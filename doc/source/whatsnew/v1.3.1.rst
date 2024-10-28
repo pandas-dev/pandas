@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Pandas could not be built on PyPy (:issue:`42355`)
+- pandas could not be built on PyPy (:issue:`42355`)
 - :class:`DataFrame` constructed with an older version of pandas could not be unpickled (:issue:`42345`)
 - Performance regression in constructing a :class:`DataFrame` from a dictionary of dictionaries (:issue:`42248`)
 - Fixed regression in :meth:`DataFrame.agg` dropping values when the DataFrame had an Extension Array dtype, a duplicate index, and ``axis=1`` (:issue:`42380`)

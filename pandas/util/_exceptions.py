@@ -4,15 +4,19 @@ import contextlib
 import inspect
 import os
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from types import FrameType
 
 
 @contextlib.contextmanager
-def rewrite_exception(old_name: str, new_name: str) -> Generator[None, None, None]:
+def rewrite_exception(old_name: str, new_name: str) -> Generator[None]:
     """
     Rewrite the message of an exception.
     """
@@ -23,7 +27,7 @@ def rewrite_exception(old_name: str, new_name: str) -> Generator[None, None, Non
             raise
         msg = str(err.args[0])
         msg = msg.replace(old_name, new_name)
-        args: tuple[str, ...] = (msg,)
+        args: tuple[Any, ...] = (msg,)
         if len(err.args) > 1:
             args = args + err.args[1:]
         err.args = args
@@ -42,15 +46,20 @@ def find_stack_level() -> int:
     test_dir = os.path.join(pkg_dir, "tests")
 
     # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
-    frame = inspect.currentframe()
-    n = 0
-    while frame:
-        fname = inspect.getfile(frame)
-        if fname.startswith(pkg_dir) and not fname.startswith(test_dir):
-            frame = frame.f_back
-            n += 1
-        else:
-            break
+    frame: FrameType | None = inspect.currentframe()
+    try:
+        n = 0
+        while frame:
+            filename = inspect.getfile(frame)
+            if filename.startswith(pkg_dir) and not filename.startswith(test_dir):
+                frame = frame.f_back
+                n += 1
+            else:
+                break
+    finally:
+        # See note in
+        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
+        del frame
     return n
 
 
@@ -60,7 +69,7 @@ def rewrite_warning(
     target_category: type[Warning],
     new_message: str,
     new_category: type[Warning] | None = None,
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     """
     Rewrite the message of a warning.
 

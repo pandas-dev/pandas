@@ -3,6 +3,7 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+
 from datetime import datetime
 import warnings
 
@@ -21,8 +22,6 @@ from pandas import (
     option_context,
     period_range,
 )
-
-from .pandas_vb_common import tm
 
 
 class NumericSeriesIndexing:
@@ -86,9 +85,7 @@ class NumericSeriesIndexing:
 
 class NumericMaskedIndexing:
     monotonic_list = list(range(10**6))
-    non_monotonic_list = (
-        list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
-    )
+    non_monotonic_list = list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
 
     params = [
         ("Int64", "UInt64", "Float64"),
@@ -124,7 +121,7 @@ class NonNumericSeriesIndexing:
     def setup(self, index, index_structure):
         N = 10**6
         if index == "string":
-            index = tm.makeStringIndex(N)
+            index = Index([f"i-{i}" for i in range(N)], dtype=object)
         elif index == "datetime":
             index = date_range("1900", periods=N, freq="s")
         elif index == "period":
@@ -156,8 +153,8 @@ class NonNumericSeriesIndexing:
 
 class DataFrameStringIndexing:
     def setup(self):
-        index = tm.makeStringIndex(1000)
-        columns = tm.makeStringIndex(30)
+        index = Index([f"i-{i}" for i in range(1000)], dtype=object)
+        columns = Index([f"i-{i}" for i in range(30)], dtype=object)
         with warnings.catch_warnings(record=True):
             self.df = DataFrame(np.random.randn(1000, 30), index=index, columns=columns)
         self.idx_scalar = index[100]
@@ -549,24 +546,17 @@ class ChainIndexing:
 
 
 class Block:
-    params = [
-        (True, "True"),
-        (np.array(True), "np.array(True)"),
-    ]
-
-    def setup(self, true_value, mode):
+    def setup(self):
         self.df = DataFrame(
             False,
             columns=np.arange(500).astype(str),
             index=date_range("2010-01-01", "2011-01-01"),
         )
 
-        self.true_value = true_value
-
-    def time_test(self, true_value, mode):
+    def time_test(self):
         start = datetime(2010, 5, 1)
         end = datetime(2010, 9, 1)
-        self.df.loc[start:end, :] = true_value
+        self.df.loc[start:end, :] = True
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

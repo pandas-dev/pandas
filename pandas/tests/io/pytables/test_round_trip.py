@@ -4,16 +4,20 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     Series,
     _testing as tm,
     bdate_range,
+    date_range,
     read_hdf,
 )
 from pandas.tests.io.pytables.common import (
@@ -22,7 +26,10 @@ from pandas.tests.io.pytables.common import (
 )
 from pandas.util import _test_decorators as td
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 def test_conv_read_write():
@@ -32,13 +39,19 @@ def test_conv_read_write():
             obj.to_hdf(path, key=key, **kwargs)
             return read_hdf(path, key)
 
-        o = tm.makeTimeSeries()
+        o = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         tm.assert_series_equal(o, roundtrip("series", o))
 
-        o = tm.makeStringSeries()
+        o = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
         tm.assert_series_equal(o, roundtrip("string_series", o))
 
-        o = tm.makeDataFrame()
+        o = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         tm.assert_frame_equal(o, roundtrip("frame", o))
 
         # table
@@ -50,7 +63,8 @@ def test_conv_read_write():
 
 def test_long_strings(setup_path):
     # GH6166
-    df = DataFrame({"a": tm.makeStringIndex(10)}, index=tm.makeStringIndex(10))
+    data = ["a" * 50] * 10
+    df = DataFrame({"a": data}, index=data)
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df, data_columns=["a"])
@@ -64,7 +78,7 @@ def test_api(tmp_path, setup_path):
     # API issue when to_hdf doesn't accept append AND format args
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(range(20))
     df.iloc[:10].to_hdf(path, key="df", append=True, format="table")
     df.iloc[10:].to_hdf(path, key="df", append=True, format="table")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
@@ -78,7 +92,7 @@ def test_api(tmp_path, setup_path):
 def test_api_append(tmp_path, setup_path):
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(range(20))
     df.iloc[:10].to_hdf(path, key="df", append=True)
     df.iloc[10:].to_hdf(path, key="df", append=True, format="table")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
@@ -92,7 +106,7 @@ def test_api_append(tmp_path, setup_path):
 def test_api_2(tmp_path, setup_path):
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(range(20))
     df.to_hdf(path, key="df", append=False, format="fixed")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
@@ -106,7 +120,7 @@ def test_api_2(tmp_path, setup_path):
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeDataFrame()
+        df = DataFrame(range(20))
 
         _maybe_remove(store, "df")
         store.append("df", df.iloc[:10], append=True, format="table")
@@ -134,7 +148,11 @@ def test_api_2(tmp_path, setup_path):
 def test_api_invalid(tmp_path, setup_path):
     path = tmp_path / setup_path
     # Invalid.
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     msg = "Can only append to Tables"
 
@@ -162,7 +180,9 @@ def test_api_invalid(tmp_path, setup_path):
 
 def test_get(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         left = store.get("a")
         right = store["a"]
         tm.assert_series_equal(left, right)
@@ -221,8 +241,10 @@ def test_table_values_dtypes_roundtrip(setup_path):
         df1["float322"] = 1.0
         df1["float322"] = df1["float322"].astype("float32")
         df1["bool"] = df1["float32"] > 0
-        df1["time1"] = Timestamp("20130101")
-        df1["time2"] = Timestamp("20130102")
+        df1["time_s_1"] = Timestamp("20130101")
+        df1["time_s_2"] = Timestamp("20130101 00:00:00")
+        df1["time_ms"] = Timestamp("20130101 00:00:00.000")
+        df1["time_ns"] = Timestamp("20130102 00:00:00.000000000")
 
         store.append("df_mixed_dtypes1", df1)
         result = store.select("df_mixed_dtypes1").dtypes.value_counts()
@@ -237,7 +259,9 @@ def test_table_values_dtypes_roundtrip(setup_path):
                 "int8": 1,
                 "int64": 1,
                 "object": 1,
-                "datetime64[ns]": 2,
+                "datetime64[s]": 2,
+                "datetime64[ms]": 1,
+                "datetime64[ns]": 1,
             },
             name="count",
         )
@@ -248,10 +272,12 @@ def test_table_values_dtypes_roundtrip(setup_path):
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_series(setup_path):
-    s = tm.makeStringSeries()
+    s = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
 
     ts2 = Series(ts.index, Index(ts.index, dtype=object))
@@ -270,14 +296,14 @@ def test_float_index(setup_path):
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 
-def test_tuple_index(setup_path):
+def test_tuple_index(setup_path, performance_warning):
     # GH #492
     col = np.arange(10)
     idx = [(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)]
     data = np.random.default_rng(2).standard_normal(30).reshape((3, 10))
     DF = DataFrame(data, index=idx, columns=col)
 
-    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+    with tm.assert_produces_warning(performance_warning):
         _check_roundtrip(DF, tm.assert_frame_equal, path=setup_path)
 
 
@@ -320,7 +346,11 @@ def test_index_types(setup_path):
     ser = Series(values, [1, 5])
     _check_roundtrip(ser, func, path=setup_path)
 
-    ser = Series(values, [datetime.datetime(2012, 1, 1), datetime.datetime(2012, 1, 2)])
+    dti = DatetimeIndex(["2012-01-01", "2012-01-02"], dtype="M8[ns]")
+    ser = Series(values, index=dti)
+    _check_roundtrip(ser, func, path=setup_path)
+
+    ser.index = ser.index.as_unit("s")
     _check_roundtrip(ser, func, path=setup_path)
 
 
@@ -341,7 +371,11 @@ def test_timeseries_preepoch(setup_path, request):
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
 def test_frame(compression, setup_path):
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # put in some random NAs
     df.iloc[0, 0] = np.nan
@@ -354,7 +388,11 @@ def test_frame(compression, setup_path):
         df, tm.assert_frame_equal, path=setup_path, compression=compression
     )
 
-    tdf = tm.makeTimeDataFrame()
+    tdf = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     _check_roundtrip(
         tdf, tm.assert_frame_equal, path=setup_path, compression=compression
     )
@@ -418,7 +456,11 @@ def test_store_hierarchical(setup_path, multiindex_dataframe_random_data):
 )
 def test_store_mixed(compression, setup_path):
     def _make_one():
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df["obj1"] = "foo"
         df["obj2"] = "bar"
         df["bool1"] = df["A"] > 0
@@ -511,7 +553,9 @@ def test_unicode_longer_encoded(setup_path):
 
 def test_store_datetime_mixed(setup_path):
     df = DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["a", "b", "c"]})
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     df["d"] = ts.index[:3]
     _check_roundtrip(df, tm.assert_frame_equal, path=setup_path)
 
@@ -526,3 +570,18 @@ def test_round_trip_equals(tmp_path, setup_path):
     tm.assert_frame_equal(df, other)
     assert df.equals(other)
     assert other.equals(df)
+
+
+def test_infer_string_columns(tmp_path, setup_path):
+    # GH#
+    pytest.importorskip("pyarrow")
+    path = tmp_path / setup_path
+    with pd.option_context("future.infer_string", True):
+        df = DataFrame(1, columns=list("ABCD"), index=list(range(10))).set_index(
+            ["A", "B"]
+        )
+        expected = df.copy()
+        df.to_hdf(path, key="df", format="table")
+
+        result = read_hdf(path, "df")
+        tm.assert_frame_equal(result, expected)

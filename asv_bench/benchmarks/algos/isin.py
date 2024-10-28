@@ -8,8 +8,6 @@ from pandas import (
     date_range,
 )
 
-from ..pandas_vb_common import tm
-
 
 class IsIn:
     params = [
@@ -60,9 +58,12 @@ class IsIn:
 
         elif dtype in ["str", "string[python]", "string[pyarrow]"]:
             try:
-                self.series = Series(tm.makeStringIndex(N), dtype=dtype)
-            except ImportError:
-                raise NotImplementedError
+                self.series = Series(
+                    Index([f"i-{i}" for i in range(N)], dtype=object)._values,
+                    dtype=dtype,
+                )
+            except ImportError as err:
+                raise NotImplementedError from err
             self.values = list(self.series[:2])
 
         else:

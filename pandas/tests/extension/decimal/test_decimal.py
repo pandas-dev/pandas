@@ -68,10 +68,12 @@ def data_for_grouping():
 class TestDecimalArray(base.ExtensionTests):
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if op_name in ["kurt", "sem"]:
+            return False
         return True
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
@@ -137,65 +139,6 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_frame(data_missing)
 
-    def test_fillna_limit_pad(self, data_missing):
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
-        with tm.assert_produces_warning(
-            DeprecationWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_pad(data_missing)
-
-        msg = "The 'method' keyword in DecimalArray.fillna is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_pad(data_missing)
-
-    def test_fillna_limit_backfill(self, data_missing):
-        msg = "Series.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_backfill(data_missing)
-
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
-        with tm.assert_produces_warning(
-            DeprecationWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_backfill(data_missing)
-
-        msg = "The 'method' keyword in DecimalArray.fillna is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_backfill(data_missing)
-
-    def test_fillna_no_op_returns_copy(self, data):
-        msg = "|".join(
-            [
-                "ExtensionArray.fillna 'method' keyword is deprecated",
-                "The 'method' keyword in DecimalArray.fillna is deprecated",
-            ]
-        )
-        with tm.assert_produces_warning(
-            (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
-        ):
-            super().test_fillna_no_op_returns_copy(data)
-
     def test_fillna_series(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
@@ -203,32 +146,32 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_series(data_missing)
 
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        msg = "|".join(
-            [
-                "ExtensionArray.fillna 'method' keyword is deprecated",
-                "The 'method' keyword in DecimalArray.fillna is deprecated",
-            ]
-        )
+    def test_fillna_with_none(self, data_missing):
+        # GH#57723
+        # EAs that don't have special logic for None will raise, unlike pandas'
+        # which interpret None as the NA value for the dtype.
+        msg = "conversion from NoneType to Decimal is not supported"
+        with pytest.raises(TypeError, match=msg):
+            super().test_fillna_with_none(data_missing)
+
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
-            (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
+            DeprecationWarning, match=msg, check_stacklevel=False
         ):
-            super().test_fillna_series_method(data_missing, fillna_method)
+            super().test_fillna_limit_frame(data_missing)
 
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
-        warn = DeprecationWarning if not using_copy_on_write else None
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
         msg = "ExtensionArray.fillna added a 'copy' keyword"
-        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-            super().test_fillna_copy_frame(data_missing)
-
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
-        warn = DeprecationWarning if not using_copy_on_write else None
-        msg = "ExtensionArray.fillna added a 'copy' keyword"
-        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-            super().test_fillna_copy_series(data_missing)
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_limit_series(data_missing)
 
     @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna, request):
+    def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
             other = np.array(all_data[~all_data.isna()])
@@ -303,8 +246,7 @@ def test_dataframe_constructor_with_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("frame", [True, False])
-def test_astype_dispatches(frame):
+def test_astype_dispatches(frame_or_series):
     # This is a dtype-specific test that ensures Series[decimal].astype
     # gets all the way through to ExtensionArray.astype
     # Designing a reliable smoke test that works for arbitrary data types
@@ -313,12 +255,11 @@ def test_astype_dispatches(frame):
     ctx = decimal.Context()
     ctx.prec = 5
 
-    if frame:
-        data = data.to_frame()
+    data = frame_or_series(data)
 
     result = data.astype(DecimalDtype(ctx))
 
-    if frame:
+    if frame_or_series is pd.DataFrame:
         result = result["a"]
 
     assert result.dtype.context.prec == ctx.prec
@@ -328,7 +269,7 @@ class DecimalArrayWithoutFromSequence(DecimalArray):
     """Helper class for testing error handling in _from_sequence."""
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         raise KeyError("For the test")
 
 
@@ -526,12 +467,11 @@ def test_to_numpy_keyword():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_array_copy_on_write(using_copy_on_write):
+def test_array_copy_on_write():
     df = pd.DataFrame({"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype="object")
     df2 = df.astype(DecimalDtype())
     df.iloc[0, 0] = 0
-    if using_copy_on_write:
-        expected = pd.DataFrame(
-            {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
-        )
-        tm.assert_equal(df2.values, expected.values)
+    expected = pd.DataFrame(
+        {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
+    )
+    tm.assert_equal(df2.values, expected.values)

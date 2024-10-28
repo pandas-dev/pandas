@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import (
     datetime,
     time,
@@ -9,10 +11,13 @@ from pathlib import Path
 import platform
 import re
 from urllib.error import URLError
+import uuid
 from zipfile import BadZipFile
 
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -25,10 +30,6 @@ from pandas import (
     read_csv,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -119,6 +120,13 @@ def read_ext(engine_and_read_ext):
 
 
 @pytest.fixture
+def tmp_excel(read_ext, tmp_path):
+    tmp = tmp_path / f"{uuid.uuid4()}{read_ext}"
+    tmp.touch()
+    return str(tmp)
+
+
+@pytest.fixture
 def df_ref(datapath):
     """
     Obtain the reference data from read_csv with the Python engine.
@@ -128,8 +136,18 @@ def df_ref(datapath):
     return df_ref
 
 
-def adjust_expected(expected: DataFrame, read_ext: str) -> None:
+def get_exp_unit(read_ext: str, engine: str | None) -> str:
+    unit = "us"
+    if (read_ext == ".ods") ^ (engine == "calamine"):
+        unit = "s"
+    return unit
+
+
+def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:
     expected.index.name = None
+    unit = get_exp_unit(read_ext, engine)
+    # error: "Index" has no attribute "as_unit"
+    expected.index = expected.index.as_unit(unit)  # type: ignore[attr-defined]
 
 
 def xfail_datetimes_with_pyxlsb(engine, request):
@@ -142,6 +160,36 @@ def xfail_datetimes_with_pyxlsb(engine, request):
 
 
 class TestReaders:
+    @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
+    def test_read_excel_type_check(self, col, tmp_excel, read_ext):
+        # GH 58159
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+        df = DataFrame({"bool_column": col}, dtype="boolean")
+        df.to_excel(tmp_excel, index=False)
+        df2 = pd.read_excel(tmp_excel, dtype={"bool_column": "boolean"})
+        tm.assert_frame_equal(df, df2)
+
+    def test_pass_none_type(self, datapath):
+        # GH 58159
+        f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
+
+        with pd.ExcelFile(f_path) as excel:
+            parsed = pd.read_excel(
+                excel,
+                sheet_name="Sheet1",
+                keep_default_na=True,
+                na_values=["nan", "None", "abcd"],
+                dtype="boolean",
+                engine="openpyxl",
+            )
+        expected = DataFrame(
+            {"Test": [True, None, False, None, False, None, True]},
+            dtype="boolean",
+        )
+
+        tm.assert_frame_equal(parsed, expected)
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
@@ -223,7 +271,7 @@ class TestReaders:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         expected = df_ref[["B", "C"]]
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         df1 = pd.read_excel(
             "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols=[0, 2, 3]
@@ -244,7 +292,7 @@ class TestReaders:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         expected = df_ref[["A", "B", "C"]]
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         df2 = pd.read_excel(
             "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols="A:D"
@@ -262,7 +310,7 @@ class TestReaders:
         tm.assert_frame_equal(df3, expected)
 
         expected = df_ref[["B", "C"]]
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         df2 = pd.read_excel(
             "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols="A,C,D"
@@ -300,7 +348,7 @@ class TestReaders:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         expected = df_ref[["A", "C"]]
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         result = pd.read_excel(
             "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols=usecols
@@ -319,7 +367,7 @@ class TestReaders:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         expected = df_ref
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         result = pd.read_excel("test1" + read_ext, sheet_name="Sheet1", index_col=0)
         tm.assert_frame_equal(result, expected)
@@ -328,7 +376,7 @@ class TestReaders:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         expected = df_ref[["C", "D"]]
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         result = pd.read_excel(
             "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols="A,D:E"
@@ -426,7 +474,7 @@ class TestReaders:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         expected = df_ref
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         df1 = pd.read_excel("test1" + read_ext, sheet_name="Sheet1", index_col=0)
         df2 = pd.read_excel(
@@ -444,6 +492,7 @@ class TestReaders:
     def test_reader_special_dtypes(self, request, engine, read_ext):
         xfail_datetimes_with_pyxlsb(engine, request)
 
+        unit = get_exp_unit(read_ext, engine)
         expected = DataFrame.from_dict(
             {
                 "IntCol": [1, 2, -3, 4, 0],
@@ -451,13 +500,16 @@ class TestReaders:
                 "BoolCol": [True, False, True, True, False],
                 "StrCol": [1, 2, 3, 4, 5],
                 "Str2Col": ["a", 3, "c", "d", "e"],
-                "DateCol": [
-                    datetime(2013, 10, 30),
-                    datetime(2013, 10, 31),
-                    datetime(1905, 1, 1),
-                    datetime(2013, 12, 14),
-                    datetime(2015, 3, 14),
-                ],
+                "DateCol": Index(
+                    [
+                        datetime(2013, 10, 30),
+                        datetime(2013, 10, 31),
+                        datetime(1905, 1, 1),
+                        datetime(2013, 12, 14),
+                        datetime(2015, 3, 14),
+                    ],
+                    dtype=f"M8[{unit}]",
+                ),
             },
         )
         basename = "test_types"
@@ -535,7 +587,7 @@ class TestReaders:
 
         expected["a"] = expected["a"].astype("float64")
         expected["b"] = expected["b"].astype("float32")
-        expected["c"] = ["001", "002", "003", "004"]
+        expected["c"] = Series(["001", "002", "003", "004"], dtype="str")
         tm.assert_frame_equal(actual, expected)
 
         msg = "Unable to convert column d to type int64"
@@ -547,25 +599,21 @@ class TestReaders:
         [
             (
                 None,
-                DataFrame(
-                    {
-                        "a": [1, 2, 3, 4],
-                        "b": [2.5, 3.5, 4.5, 5.5],
-                        "c": [1, 2, 3, 4],
-                        "d": [1.0, 2.0, np.nan, 4.0],
-                    }
-                ),
+                {
+                    "a": [1, 2, 3, 4],
+                    "b": [2.5, 3.5, 4.5, 5.5],
+                    "c": [1, 2, 3, 4],
+                    "d": [1.0, 2.0, np.nan, 4.0],
+                },
             ),
             (
                 {"a": "float64", "b": "float32", "c": str, "d": str},
-                DataFrame(
-                    {
-                        "a": Series([1, 2, 3, 4], dtype="float64"),
-                        "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
-                        "c": ["001", "002", "003", "004"],
-                        "d": ["1", "2", np.nan, "4"],
-                    }
-                ),
+                {
+                    "a": Series([1, 2, 3, 4], dtype="float64"),
+                    "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
+                    "c": Series(["001", "002", "003", "004"], dtype="str"),
+                    "d": Series(["1", "2", np.nan, "4"], dtype="str"),
+                },
             ),
         ],
     )
@@ -574,9 +622,11 @@ class TestReaders:
         basename = "testdtype"
 
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
+        expected = DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
-    def test_dtype_backend(self, read_ext, dtype_backend):
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+    def test_dtype_backend(self, read_ext, dtype_backend, engine, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -595,11 +645,10 @@ class TestReaders:
                 "j": Series([pd.NA, pd.NA], dtype="Int64"),
             }
         )
-        with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, sheet_name="test", index=False)
-            result = pd.read_excel(
-                file_path, sheet_name="test", dtype_backend=dtype_backend
-            )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend=dtype_backend
+        )
         if dtype_backend == "pyarrow":
             import pyarrow as pa
 
@@ -619,69 +668,68 @@ class TestReaders:
             expected["j"] = ArrowExtensionArray(pa.array([None, None]))
         else:
             expected = df
+            unit = get_exp_unit(read_ext, engine)
+            expected["i"] = expected["i"].astype(f"M8[{unit}]")
+
         tm.assert_frame_equal(result, expected)
 
-    def test_dtype_backend_and_dtype(self, read_ext):
+    def test_dtype_backend_and_dtype(self, read_ext, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
-        with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, sheet_name="test", index=False)
-            result = pd.read_excel(
-                file_path,
-                sheet_name="test",
-                dtype_backend="numpy_nullable",
-                dtype="float64",
-            )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(
+            tmp_excel,
+            sheet_name="test",
+            dtype_backend="numpy_nullable",
+            dtype="float64",
+        )
         tm.assert_frame_equal(result, df)
 
-    def test_dtype_backend_string(self, read_ext, string_storage):
+    def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "a": np.array(["a", "b"], dtype=np.object_),
+                "b": np.array(["x", pd.NA], dtype=np.object_),
+            }
+        )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
 
         with pd.option_context("mode.string_storage", string_storage):
-            df = DataFrame(
-                {
-                    "a": np.array(["a", "b"], dtype=np.object_),
-                    "b": np.array(["x", pd.NA], dtype=np.object_),
-                }
+            result = pd.read_excel(
+                tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
             )
-            with tm.ensure_clean(read_ext) as file_path:
-                df.to_excel(file_path, sheet_name="test", index=False)
-                result = pd.read_excel(
-                    file_path, sheet_name="test", dtype_backend="numpy_nullable"
-                )
 
-            if string_storage == "python":
-                expected = DataFrame(
-                    {
-                        "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
-                        "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
-                    }
-                )
-            else:
-                expected = DataFrame(
-                    {
-                        "a": ArrowStringArray(pa.array(["a", "b"])),
-                        "b": ArrowStringArray(pa.array(["x", None])),
-                    }
-                )
-            tm.assert_frame_equal(result, expected)
+        expected = DataFrame(
+            {
+                "a": Series(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                "b": Series(["x", None], dtype=pd.StringDtype(string_storage)),
+            }
+        )
+        # the storage of the str columns' Index is also affected by the
+        # string_storage setting -> ignore that for checking the result
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
-    @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
+    @pytest.mark.parametrize("dtypes, exp_value", [({}, 1), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
         # GH#35211
         basename = "df_mangle_dup_col_dtypes"
-        dtype_dict = {"a": str, **dtypes}
+        dtype_dict = {"a": object, **dtypes}
         dtype_dict_copy = dtype_dict.copy()
         # GH#42462
         result = pd.read_excel(basename + read_ext, dtype=dtype_dict)
-        expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+        expected = DataFrame(
+            {
+                "a": Series([1], dtype=object),
+                "a.1": Series([exp_value], dtype=object if not dtypes else None),
+            }
+        )
         assert dtype_dict == dtype_dict_copy, "dtype dict changed"
         tm.assert_frame_equal(result, expected)
 
@@ -807,7 +855,7 @@ class TestReaders:
         sheet_name = "Sheet1"
 
         expected = df_ref
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         df1 = pd.read_excel(
             filename + read_ext, sheet_name=sheet_name, index_col=0
@@ -943,19 +991,6 @@ class TestReaders:
 
         tm.assert_frame_equal(expected, actual)
 
-    @td.skip_if_no("py.path")
-    def test_read_from_py_localpath(self, read_ext):
-        # GH12655
-        from py.path import local as LocalPath
-
-        str_path = os.path.join("test1" + read_ext)
-        expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)
-
-        path_obj = LocalPath().join("test1" + read_ext)
-        actual = pd.read_excel(path_obj, sheet_name="Sheet1", index_col=0)
-
-        tm.assert_frame_equal(expected, actual)
-
     def test_close_from_py_localpath(self, read_ext):
         # GH31467
         str_path = os.path.join("test1" + read_ext)
@@ -1005,9 +1040,7 @@ class TestReaders:
         # see gh-4679
         xfail_datetimes_with_pyxlsb(engine, request)
 
-        # https://github.com/tafia/calamine/issues/354
-        if engine == "calamine" and read_ext == ".ods":
-            request.applymarker(pytest.mark.xfail(reason="Last test fails in calamine"))
+        unit = get_exp_unit(read_ext, engine)
 
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
         mi_file = "testmultiindex" + read_ext
@@ -1022,6 +1055,7 @@ class TestReaders:
             ],
             columns=mi,
         )
+        expected[mi[2]] = expected[mi[2]].astype(f"M8[{unit}]")
 
         actual = pd.read_excel(
             mi_file, sheet_name="mi_column", header=[0, 1], index_col=0
@@ -1051,7 +1085,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
         # "mi_column_name" sheet
-        expected.index = list(range(4))
+        expected.index = range(4)
         expected.columns = mi.set_names(["c1", "c2"])
         actual = pd.read_excel(
             mi_file, sheet_name="mi_column_name", header=[0, 1], index_col=0
@@ -1101,6 +1135,8 @@ class TestReaders:
 
         mi_file = "testmultiindex" + read_ext
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
+
+        unit = get_exp_unit(read_ext, engine)
         expected = DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
@@ -1114,6 +1150,7 @@ class TestReaders:
                 names=["ilvl1", "ilvl2"],
             ),
         )
+        expected[mi[2]] = expected[mi[2]].astype(f"M8[{unit}]")
         result = pd.read_excel(
             mi_file,
             sheet_name=sheet_name,
@@ -1217,6 +1254,8 @@ class TestReaders:
         # GH 4903
         xfail_datetimes_with_pyxlsb(engine, request)
 
+        unit = get_exp_unit(read_ext, engine)
+
         actual = pd.read_excel(
             "testskiprows" + read_ext, sheet_name="skiprows_list", skiprows=[0, 2]
         )
@@ -1229,6 +1268,7 @@ class TestReaders:
             ],
             columns=["a", "b", "c", "d"],
         )
+        expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
         actual = pd.read_excel(
@@ -1261,11 +1301,13 @@ class TestReaders:
             ],
             columns=["a", "b", "c", "d"],
         )
+        expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_skiprows_callable_not_in(self, request, engine, read_ext):
         # GH 4903
         xfail_datetimes_with_pyxlsb(engine, request)
+        unit = get_exp_unit(read_ext, engine)
 
         actual = pd.read_excel(
             "testskiprows" + read_ext,
@@ -1281,6 +1323,7 @@ class TestReaders:
             ],
             columns=["a", "b", "c", "d"],
         )
+        expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_nrows(self, read_ext):
@@ -1429,15 +1472,10 @@ class TestReaders:
 
 
 class TestExcelFileRead:
-    def test_deprecate_bytes_input(self, engine, read_ext):
+    def test_raises_bytes_input(self, engine, read_ext):
         # GH 53830
-        msg = (
-            "Passing bytes to 'read_excel' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "byte string, wrap it in a `BytesIO` object."
-        )
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Expected file path name or file-like object"
+        with pytest.raises(TypeError, match=msg):
             with open("test1" + read_ext, "rb") as f:
                 pd.read_excel(f.read(), engine=engine)
 
@@ -1535,7 +1573,7 @@ class TestExcelFileRead:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         expected = df_ref
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             df1 = pd.read_excel(excel, sheet_name=0, index_col=0)
@@ -1562,7 +1600,7 @@ class TestExcelFileRead:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         expected = df_ref
-        adjust_expected(expected, read_ext)
+        adjust_expected(expected, read_ext, engine)
 
         filename = "test1"
         sheet_name = "Sheet1"
@@ -1654,11 +1692,15 @@ class TestExcelFileRead:
         f = "test_datetime_mi" + read_ext
         with pd.ExcelFile(f) as excel:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
-        expected_column_index = MultiIndex.from_tuples(
-            [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
+
+        unit = get_exp_unit(read_ext, engine)
+
+        dti = pd.DatetimeIndex(["2020-02-29", "2020-03-01"], dtype=f"M8[{unit}]")
+        expected_column_index = MultiIndex.from_arrays(
+            [dti[:1], dti[1:]],
             names=[
-                pd.to_datetime("02/29/2020").to_pydatetime(),
-                pd.to_datetime("03/01/2020").to_pydatetime(),
+                dti[0].to_pydatetime(),
+                dti[1].to_pydatetime(),
             ],
         )
         expected = DataFrame([], index=[], columns=expected_column_index)
@@ -1684,7 +1726,7 @@ class TestExcelFileRead:
         with pd.ExcelFile("chartsheet" + read_ext) as excel:
             assert excel.sheet_names == ["Sheet1"]
 
-    def test_corrupt_files_closed(self, engine, read_ext):
+    def test_corrupt_files_closed(self, engine, tmp_excel):
         # GH41778
         errors = (BadZipFile,)
         if engine is None:
@@ -1698,10 +1740,9 @@ class TestExcelFileRead:
 
             errors = (CalamineError,)
 
-        with tm.ensure_clean(f"corrupt{read_ext}") as file:
-            Path(file).write_text("corrupt", encoding="utf-8")
-            with tm.assert_produces_warning(False):
-                try:
-                    pd.ExcelFile(file, engine=engine)
-                except errors:
-                    pass
+        Path(tmp_excel).write_text("corrupt", encoding="utf-8")
+        with tm.assert_produces_warning(False):
+            try:
+                pd.ExcelFile(tmp_excel, engine=engine)
+            except errors:
+                pass

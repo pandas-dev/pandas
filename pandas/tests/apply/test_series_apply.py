@@ -8,6 +8,7 @@ from pandas import (
     MultiIndex,
     Series,
     concat,
+    date_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -74,17 +75,6 @@ def test_apply_map_same_length_inference_bug():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("convert_dtype", [True, False])
-def test_apply_convert_dtype_deprecated(convert_dtype):
-    ser = Series(np.random.default_rng(2).standard_normal(10))
-
-    def func(x):
-        return x if x > 0 else np.nan
-
-    with tm.assert_produces_warning(FutureWarning):
-        ser.apply(func, convert_dtype=convert_dtype, by_row="compat")
-
-
 def test_apply_args():
     s = Series(["foo,bar"])
 
@@ -103,12 +93,7 @@ def test_agg_args(args, kwargs, increment):
         return x + a + 10 * b + 100 * c
 
     s = Series([1, 2])
-    msg = (
-        "in Series.agg cannot aggregate and has been deprecated. "
-        "Use Series.transform to keep behavior unchanged."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.agg(f, 0, *args, **kwargs)
+    result = s.agg(f, 0, *args, **kwargs)
     expected = s + increment
     tm.assert_series_equal(result, expected)
 
@@ -123,18 +108,14 @@ def test_agg_mapping_func_deprecated():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = "using .+ in Series.agg cannot aggregate and"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg(foo1, 0, 3, c=4)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg([foo1, foo2], 0, 3, c=4)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
+    s.agg(foo1, 0, 3, c=4)
+    s.agg([foo1, foo2], 0, 3, c=4)
+    s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
 
 
 def test_series_apply_map_box_timestamps(by_row):
     # GH#2689, GH#2627
-    ser = Series(pd.date_range("1/1/2000", periods=10))
+    ser = Series(date_range("1/1/2000", periods=10))
 
     def func(x):
         return (x.hour, x.day, x.month)
@@ -194,13 +175,11 @@ def test_apply_box_period():
 
 
 def test_apply_datetimetz(by_row):
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="h").tz_localize(
-        "Asia/Tokyo"
-    )
+    values = date_range("2011-01-01", "2011-01-02", freq="h").tz_localize("Asia/Tokyo")
     s = Series(values, name="XX")
 
     result = s.apply(lambda x: x + pd.offsets.Day(), by_row=by_row)
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
+    exp_values = date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")
@@ -222,7 +201,7 @@ def test_apply_datetimetz(by_row):
         assert result == "Asia/Tokyo"
 
 
-def test_apply_categorical(by_row):
+def test_apply_categorical(by_row, using_infer_string):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     ser = Series(values, name="XX", index=list("abcdefg"))
 
@@ -245,7 +224,7 @@ def test_apply_categorical(by_row):
     result = ser.apply(lambda x: "A")
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object
+    assert result.dtype == object if not using_infer_string else "str"
 
 
 @pytest.mark.parametrize("series", [["1-1", "1-1", np.nan], ["1-1", "1-2", np.nan]])
@@ -257,17 +236,17 @@ def test_apply_categorical_with_nan_values(series, by_row):
         with pytest.raises(AttributeError, match=msg):
             s.apply(lambda x: x.split("-")[0], by_row=by_row)
         return
-
-    result = s.apply(lambda x: x.split("-")[0], by_row=by_row)
+    # NaN for cat dtype fixed in (GH 59966)
+    result = s.apply(lambda x: x.split("-")[0] if pd.notna(x) else False, by_row=by_row)
     result = result.astype(object)
-    expected = Series(["1", "1", np.nan], dtype="category")
+    expected = Series(["1", "1", False], dtype="category")
     expected = expected.astype(object)
     tm.assert_series_equal(result, expected)
 
 
 def test_apply_empty_integer_series_with_datetime_index(by_row):
     # GH 21245
-    s = Series([], index=pd.date_range(start="2018-01-01", periods=0), dtype=int)
+    s = Series([], index=date_range(start="2018-01-01", periods=0), dtype=int)
     result = s.apply(lambda x: x, by_row=by_row)
     tm.assert_series_equal(result, s)
 
@@ -326,7 +305,7 @@ def test_transform(string_series, by_row):
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_partial_failure(op, request):
     # GH 35964
-    if op in ("ffill", "bfill", "pad", "backfill", "shift"):
+    if op in ("ffill", "bfill", "shift"):
         request.applymarker(
             pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
@@ -411,34 +390,26 @@ def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
 
 def test_agg_evaluate_lambdas(string_series):
     # GH53325
-    # in the future, the result will be a Series class.
+    result = string_series.agg(lambda x: type(x))
+    assert result is Series
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = string_series.agg(lambda x: type(x))
-    assert isinstance(result, Series) and len(result) == len(string_series)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = string_series.agg(type)
-    assert isinstance(result, Series) and len(result) == len(string_series)
+    result = string_series.agg(type)
+    assert result is Series
 
 
 @pytest.mark.parametrize("op_name", ["agg", "apply"])
 def test_with_nested_series(datetime_series, op_name):
-    # GH 2316
+    # GH 2316 & GH52123
     # .agg with a reducer and a transform, what to do
-    msg = "cannot aggregate"
-    warning = FutureWarning if op_name == "agg" else None
-    with tm.assert_produces_warning(warning, match=msg):
-        # GH52123
-        result = getattr(datetime_series, op_name)(
-            lambda x: Series([x, x**2], index=["x", "x^2"])
-        )
-    expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
-    tm.assert_frame_equal(result, expected)
+    result = getattr(datetime_series, op_name)(
+        lambda x: Series([x, x**2], index=["x", "x^2"])
+    )
+    if op_name == "apply":
+        expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
+        tm.assert_frame_equal(result, expected)
+    else:
+        expected = Series([datetime_series, datetime_series**2], index=["x", "x^2"])
+        tm.assert_series_equal(result, expected)
 
 
 def test_replicate_describe(string_series):
@@ -510,8 +481,12 @@ def test_series_apply_no_suffix_index(by_row):
             DataFrame(np.repeat([[1, 2]], 2, axis=0), dtype="int64"),
         ),
         (
-            tm.makeTimeSeries(nper=30),
-            DataFrame(np.repeat([[1, 2]], 30, axis=0), dtype="int64"),
+            Series(
+                np.arange(10, dtype=np.float64),
+                index=date_range("2020-01-01", periods=10),
+                name="ts",
+            ),
+            DataFrame(np.repeat([[1, 2]], 10, axis=0), dtype="int64"),
         ),
     ],
 )
@@ -528,12 +503,15 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
 
 
 @pytest.mark.parametrize(
-    "by_row, expected", [("compat", Series(np.ones(30), dtype="int64")), (False, 1)]
+    "by_row, expected", [("compat", Series(np.ones(10), dtype="int64")), (False, 1)]
 )
 def test_apply_scalar_on_date_time_index_aware_series(by_row, expected):
     # GH 25959
     # Calling apply on a localized time series should not cause an error
-    series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
+    series = Series(
+        np.arange(10, dtype=np.float64),
+        index=date_range("2020-01-01", periods=10, tz="UTC"),
+    )
     result = Series(series.index).apply(lambda x: 1, by_row=by_row)
     tm.assert_equal(result, expected)
 
@@ -569,10 +547,7 @@ def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in zip(names, ops)})
     expected.name = "series"
-    warn = FutureWarning if how == "agg" else None
-    msg = f"using Series.[{'|'.join(names)}]"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(string_series, how)(ops, **kwargs)
+    result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 
@@ -593,10 +568,7 @@ def test_apply_dictlike_reducer(string_series, ops, how, kwargs, by_row):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in ops.items()})
     expected.name = string_series.name
-    warn = FutureWarning if how == "agg" else None
-    msg = "using Series.[sum|mean]"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(string_series, how)(ops, **kwargs)
+    result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 

@@ -38,7 +38,6 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`.DataFrameGroupBy` reductions not preserving object dtype when ``infer_string`` is set (:issue:`55620`)
-- Fixed bug in :meth:`.DataFrameGroupBy.min()` and :meth:`.DataFrameGroupBy.max()` not preserving extension dtype for empty object (:issue:`55619`)
 - Fixed bug in :meth:`.SeriesGroupBy.value_counts` returning incorrect dtype for string columns (:issue:`55627`)
 - Fixed bug in :meth:`Categorical.equals` if other has arrow backed string dtype (:issue:`55364`)
 - Fixed bug in :meth:`DataFrame.__setitem__` not inferring string dtype for zero-dimensional array with ``infer_string=True`` (:issue:`55366`)

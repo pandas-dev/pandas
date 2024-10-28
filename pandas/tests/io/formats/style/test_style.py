@@ -77,6 +77,8 @@ def mi_styler_comp(mi_styler):
             columns=mi_styler.columns,
         )
     )
+    mi_styler.format_index_names(escape="html", axis=0)
+    mi_styler.format_index_names(escape="html", axis=1)
     return mi_styler
 
 
@@ -884,8 +886,19 @@ class TestStyler:
         expected = []
         assert maybe_convert_css_to_tuples("") == expected
 
+        # issue #59623
+        expected = [("a", "b"), ("c", "url('data:123')")]
+        assert maybe_convert_css_to_tuples("a:b;c: url('data:123');") == expected
+
+        # if no value, return attr and empty string
+        expected = [("a", ""), ("c", "")]
+        assert maybe_convert_css_to_tuples("a:;c: ") == expected
+
     def test_maybe_convert_css_to_tuples_err(self):
-        msg = "Styles supplied as string must follow CSS rule formats"
+        msg = (
+            "Styles supplied as string must follow CSS rule formats, "
+            "for example 'attr: val;'. 'err' was given."
+        )
         with pytest.raises(ValueError, match=msg):
             maybe_convert_css_to_tuples("err")
 

@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -30,14 +32,15 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-    def test_combine_first(self, float_frame):
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    def test_combine_first(self, float_frame, using_infer_string):
         # disjoint
         head, tail = float_frame[:5], float_frame[5:]
 
         combined = head.combine_first(tail)
         reordered_frame = float_frame.reindex(combined.index)
         tm.assert_frame_equal(combined, reordered_frame)
-        assert tm.equalContents(combined.columns, float_frame.columns)
+        tm.assert_index_equal(combined.columns, float_frame.columns)
         tm.assert_series_equal(combined["A"], reordered_frame["A"])
 
         # same index
@@ -76,11 +79,13 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(combined["A"].reindex(g.index), g["A"])
 
         # corner cases
-        comb = float_frame.combine_first(DataFrame())
+        warning = FutureWarning if using_infer_string else None
+        with tm.assert_produces_warning(warning, match="empty entries"):
+            comb = float_frame.combine_first(DataFrame())
         tm.assert_frame_equal(comb, float_frame)
 
         comb = DataFrame().combine_first(float_frame)
-        tm.assert_frame_equal(comb, float_frame)
+        tm.assert_frame_equal(comb, float_frame.sort_index())
 
         comb = float_frame.combine_first(DataFrame(index=["faz", "boo"]))
         assert "faz" in comb.index
@@ -197,7 +202,7 @@ class TestDataFrameCombineFirst:
         # GH 7509 (not fixed)
         dfa = DataFrame([[pd.Timestamp("2011-01-01"), 2]], columns=["a", "b"])
         dfb = DataFrame([[4], [5]], columns=["b"])
-        assert dfa["a"].dtype == "datetime64[ns]"
+        assert dfa["a"].dtype == "datetime64[s]"
         assert dfa["b"].dtype == "int64"
 
         res = dfa.combine_first(dfb)
@@ -206,7 +211,7 @@ class TestDataFrameCombineFirst:
             columns=["a", "b"],
         )
         tm.assert_frame_equal(res, exp)
-        assert res["a"].dtype == "datetime64[ns]"
+        assert res["a"].dtype == "datetime64[s]"
         # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
@@ -224,13 +229,13 @@ class TestDataFrameCombineFirst:
         df1 = DataFrame(
             columns=["UTCdatetime", "abc"],
             data=data1,
-            index=pd.date_range("20140627", periods=1),
+            index=pd.date_range("20140627", periods=1, unit=unit),
         )
         data2 = pd.to_datetime("20121212 12:12").tz_localize("UTC").as_unit(unit)
         df2 = DataFrame(
             columns=["UTCdatetime", "xyz"],
             data=data2,
-            index=pd.date_range("20140628", periods=1),
+            index=pd.date_range("20140628", periods=1, unit=unit),
         )
         res = df2[["UTCdatetime"]].combine_first(df1)
         exp = DataFrame(
@@ -242,7 +247,7 @@ class TestDataFrameCombineFirst:
                 "abc": [pd.Timestamp("2010-01-01 01:01:00", tz="UTC"), pd.NaT],
             },
             columns=["UTCdatetime", "abc"],
-            index=pd.date_range("20140627", periods=2, freq="D"),
+            index=pd.date_range("20140627", periods=2, freq="D", unit=unit),
             dtype=f"datetime64[{unit}, UTC]",
         )
         assert res["UTCdatetime"].dtype == f"datetime64[{unit}, UTC]"
@@ -286,18 +291,17 @@ class TestDataFrameCombineFirst:
         exp = DataFrame({"DATE": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
 
-    # FIXME: parametrizing over unit breaks on non-nano
-    def test_combine_first_timezone4(self):
+    def test_combine_first_timezone4(self, unit):
         # different tz
-        dts1 = pd.date_range("2015-01-01", "2015-01-05", tz="US/Eastern")
+        dts1 = pd.date_range("2015-01-01", "2015-01-05", tz="US/Eastern", unit=unit)
         df1 = DataFrame({"DATE": dts1})
-        dts2 = pd.date_range("2015-01-03", "2015-01-05")
+        dts2 = pd.date_range("2015-01-03", "2015-01-05", unit=unit)
         df2 = DataFrame({"DATE": dts2})
 
         # if df1 doesn't have NaN, keep its dtype
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
-        assert res["DATE"].dtype == "datetime64[ns, US/Eastern]"
+        assert res["DATE"].dtype == f"datetime64[{unit}, US/Eastern]"
 
     def test_combine_first_timezone5(self, unit):
         dts1 = pd.date_range("2015-01-01", "2015-01-02", tz="US/Eastern", unit=unit)
@@ -418,7 +422,11 @@ def test_combine_first_timestamp_bug(scalar1, scalar2, nulls_fixture):
 
     common_dtype = find_common_type([frame.dtypes["b"], other.dtypes["b"]])
 
-    if is_dtype_equal(common_dtype, "object") or frame.dtypes["b"] == other.dtypes["b"]:
+    if (
+        is_dtype_equal(common_dtype, "object")
+        or frame.dtypes["b"] == other.dtypes["b"]
+        or frame.dtypes["b"].kind == frame.dtypes["b"].kind == "M"
+    ):
         val = scalar1
     else:
         val = na_value

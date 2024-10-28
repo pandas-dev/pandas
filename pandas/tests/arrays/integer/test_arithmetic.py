@@ -188,6 +188,10 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             "ufunc '.*' not supported for the input types, and the inputs could not",
             "ufunc '.*' did not contain a loop with signature matching types",
             "Addition/subtraction of integers and integer-arrays with Timestamp",
+            "has no kernel",
+            "not implemented",
+            "The 'out' kwarg is necessary. Use numpy.strings.multiply without it.",
+            "not supported for dtype",
         ]
     )
     with pytest.raises(TypeError, match=msg):
@@ -223,6 +227,9 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             r"can only concatenate str \(not \"int\"\) to str",
             "not all arguments converted during string",
             "cannot subtract DatetimeArray from ndarray",
+            "has no kernel",
+            "not implemented",
+            "not supported for dtype",
         ]
     )
     with pytest.raises(TypeError, match=msg):

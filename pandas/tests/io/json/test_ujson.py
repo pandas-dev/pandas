@@ -10,7 +10,6 @@ import time
 import dateutil
 import numpy as np
 import pytest
-import pytz
 
 import pandas._libs.json as ujson
 from pandas.compat import IS64
@@ -177,9 +176,7 @@ class TestUltraJSONTests:
         unicode_dict = {unicode_key: "value1"}
         assert unicode_dict == ujson.ujson_loads(ujson.ujson_dumps(unicode_dict))
 
-    @pytest.mark.parametrize(
-        "double_input", [math.pi, -math.pi]  # Should work with negatives too.
-    )
+    @pytest.mark.parametrize("double_input", [math.pi, -math.pi])
     def test_encode_double_conversion(self, double_input):
         output = ujson.ujson_dumps(double_input)
         assert round(double_input, 5) == round(json.loads(output), 5)
@@ -372,6 +369,7 @@ class TestUltraJSONTests:
 
     def test_encode_time_conversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
+        pytz = pytest.importorskip("pytz")
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.ujson_dumps(test)
         expected = f'"{test.isoformat()}"'
@@ -519,9 +517,7 @@ class TestUltraJSONTests:
         with pytest.raises(ValueError, match=msg):
             ujson.ujson_loads(invalid_dict)
 
-    @pytest.mark.parametrize(
-        "numeric_int_as_str", ["31337", "-31337"]  # Should work with negatives.
-    )
+    @pytest.mark.parametrize("numeric_int_as_str", ["31337", "-31337"])
     def test_decode_numeric_int(self, numeric_int_as_str):
         assert int(numeric_int_as_str) == ujson.ujson_loads(numeric_int_as_str)
 
@@ -585,7 +581,7 @@ class TestUltraJSONTests:
         assert ujson.ujson_loads(int_exp) == json.loads(int_exp)
 
     def test_loads_non_str_bytes_raises(self):
-        msg = "Expected 'str' or 'bytes'"
+        msg = "a bytes-like object is required, not 'NoneType'"
         with pytest.raises(TypeError, match=msg):
             ujson.ujson_loads(None)
 
@@ -1040,11 +1036,7 @@ class TestPandasJSONTests:
         )
 
     def test_encode_big_set(self):
-        s = set()
-
-        for x in range(100000):
-            s.add(x)
-
+        s = set(range(100000))
         # Make sure no Exception is raised.
         ujson.ujson_dumps(s)
 

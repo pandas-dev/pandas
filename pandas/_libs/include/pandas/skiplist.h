@@ -15,13 +15,12 @@ Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 
 #pragma once
 
-#include "pandas/inline_helper.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-PANDAS_INLINE float __skiplist_nanf(void) {
+static inline float __skiplist_nanf(void) {
   const union {
     int __i;
     float __f;
@@ -30,7 +29,7 @@ PANDAS_INLINE float __skiplist_nanf(void) {
 }
 #define PANDAS_NAN ((double)__skiplist_nanf())
 
-PANDAS_INLINE double Log2(double val) { return log(val) / log(2.); }
+static inline double Log2(double val) { return log(val) / log(2.); }
 
 typedef struct node_t node_t;
 
@@ -51,13 +50,13 @@ typedef struct {
   int maxlevels;
 } skiplist_t;
 
-PANDAS_INLINE double urand(void) {
+static inline double urand(void) {
   return ((double)rand() + 1) / ((double)RAND_MAX + 2);
 }
 
-PANDAS_INLINE int int_min(int a, int b) { return a < b ? a : b; }
+static inline int int_min(int a, int b) { return a < b ? a : b; }
 
-PANDAS_INLINE node_t *node_init(double value, int levels) {
+static inline node_t *node_init(double value, int levels) {
   node_t *result;
   result = (node_t *)malloc(sizeof(node_t));
   if (result) {
@@ -78,9 +77,9 @@ PANDAS_INLINE node_t *node_init(double value, int levels) {
 }
 
 // do this ourselves
-PANDAS_INLINE void node_incref(node_t *node) { ++(node->ref_count); }
+static inline void node_incref(node_t *node) { ++(node->ref_count); }
 
-PANDAS_INLINE void node_decref(node_t *node) { --(node->ref_count); }
+static inline void node_decref(node_t *node) { --(node->ref_count); }
 
 static void node_destroy(node_t *node) {
   int i;
@@ -100,7 +99,7 @@ static void node_destroy(node_t *node) {
   }
 }
 
-PANDAS_INLINE void skiplist_destroy(skiplist_t *skp) {
+static inline void skiplist_destroy(skiplist_t *skp) {
   if (skp) {
     node_destroy(skp->head);
     free(skp->tmp_steps);
@@ -109,7 +108,7 @@ PANDAS_INLINE void skiplist_destroy(skiplist_t *skp) {
   }
 }
 
-PANDAS_INLINE skiplist_t *skiplist_init(int expected_size) {
+static inline skiplist_t *skiplist_init(int expected_size) {
   skiplist_t *result;
   node_t *NIL, *head;
   int maxlevels, i;
@@ -147,7 +146,7 @@ PANDAS_INLINE skiplist_t *skiplist_init(int expected_size) {
 }
 
 // 1 if left < right, 0 if left == right, -1 if left > right
-PANDAS_INLINE int _node_cmp(node_t *node, double value) {
+static inline int _node_cmp(node_t *node, double value) {
   if (node->is_nil || node->value > value) {
     return -1;
   } else if (node->value < value) {
@@ -157,7 +156,7 @@ PANDAS_INLINE int _node_cmp(node_t *node, double value) {
   }
 }
 
-PANDAS_INLINE double skiplist_get(skiplist_t *skp, int i, int *ret) {
+static inline double skiplist_get(skiplist_t *skp, int i, int *ret) {
   node_t *node;
   int level;
 
@@ -181,7 +180,7 @@ PANDAS_INLINE double skiplist_get(skiplist_t *skp, int i, int *ret) {
 
 // Returns the lowest rank of all elements with value `value`, as opposed to the
 // highest rank returned by `skiplist_insert`.
-PANDAS_INLINE int skiplist_min_rank(skiplist_t *skp, double value) {
+static inline int skiplist_min_rank(skiplist_t *skp, double value) {
   node_t *node;
   int level, rank = 0;
 
@@ -199,7 +198,7 @@ PANDAS_INLINE int skiplist_min_rank(skiplist_t *skp, double value) {
 // Returns the rank of the inserted element. When there are duplicates,
 // `rank` is the highest of the group, i.e. the 'max' method of
 // https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.rank.html
-PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
+static inline int skiplist_insert(skiplist_t *skp, double value) {
   node_t *node, *prevnode, *newnode, *next_at_level;
   int *steps_at_level;
   int size, steps, level, rank = 0;
@@ -253,7 +252,7 @@ PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
   return rank + 1;
 }
 
-PANDAS_INLINE int skiplist_remove(skiplist_t *skp, double value) {
+static inline int skiplist_remove(skiplist_t *skp, double value) {
   int level, size;
   node_t *node, *prevnode, *tmpnode, *next_at_level;
   node_t **chain;

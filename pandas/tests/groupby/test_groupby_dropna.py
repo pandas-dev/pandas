@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.pyarrow import pa_version_under10p1
 
 from pandas.core.dtypes.missing import na_value_for_dtype
@@ -97,6 +99,7 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
     tm.assert_frame_equal(grouped, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "dropna, idx, outputs",
     [
@@ -167,12 +170,11 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", (False, True))
 def test_grouper_dropna_propagation(dropna):
     # GH 36604
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
     gb = df.groupby("A", dropna=dropna)
-    assert gb.grouper.dropna == dropna
+    assert gb._grouper.dropna == dropna
 
 
 @pytest.mark.parametrize(
@@ -325,7 +327,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
     df = pd.DataFrame(data)
     gb = df.groupby("groups", dropna=dropna)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
 
     mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
@@ -411,7 +413,6 @@ def test_groupby_drop_nan_with_multi_index():
         "UInt64",
         "Int64",
         "Float32",
-        "Int64",
         "Float64",
         "category",
         "string",
@@ -422,7 +423,7 @@ def test_groupby_drop_nan_with_multi_index():
             ),
         ),
         "datetime64[ns]",
-        "period[d]",
+        "period[D]",
         "Sparse[float]",
     ],
 )
@@ -439,7 +440,7 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
     # Unique values to use for grouper, depends on dtype
     if dtype in ("string", "string[pyarrow]"):
         uniques = {"x": "x", "y": "y", "z": pd.NA}
-    elif dtype in ("datetime64[ns]", "period[d]"):
+    elif dtype in ("datetime64[ns]", "period[D]"):
         uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
     else:
         uniques = {"x": 1, "y": 2, "z": np.nan}
@@ -545,20 +546,22 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         return
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
-    expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
-    expected["x"] = expected["x"].replace(4, None)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
+    expected["x"] = expected["x"].cat.remove_categories([4])
     if index_kind == "multi":
-        expected["x2"] = expected["x2"].replace(4, None)
+        expected["x2"] = expected["x2"].cat.remove_categories([4])
     if as_index:
         if index_kind == "multi":
             expected = expected.set_index(["x", "x2"])
         else:
             expected = expected.set_index("x")
-    elif index_kind != "range" and reduction_func != "size":
-        # size, unlike other methods, has the desired behavior in GH#49519
-        expected = expected.drop(columns="x")
-        if index_kind == "multi":
-            expected = expected.drop(columns="x2")
     if reduction_func in ("idxmax", "idxmin") and index_kind != "range":
         # expected was computed with a RangeIndex; need to translate to index values
         values = expected["y"].values.tolist()
@@ -574,11 +577,12 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         if as_index:
             expected = expected["size"].rename(None)
 
-    if as_index or index_kind == "range" or reduction_func == "size":
-        warn = None
-    else:
+    if reduction_func == "corrwith":
         warn = FutureWarning
-    msg = "A grouping .* was excluded from the result"
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
     with tm.assert_produces_warning(warn, match=msg):
         result = getattr(gb_keepna, reduction_func)(*args)
 
@@ -586,14 +590,8 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
     tm.assert_equal(result, expected)
 
 
-def test_categorical_transformers(
-    request, transformation_func, observed, sort, as_index
-):
+def test_categorical_transformers(transformation_func, observed, sort, as_index):
     # GH#36327
-    if transformation_func == "fillna":
-        msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
-        request.applymarker(pytest.mark.xfail(reason=msg, strict=False))
-
     values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
@@ -623,12 +621,7 @@ def test_categorical_transformers(
     )
     gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
 
-    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = getattr(gb_keepna, "pct_change")(*args)
-    else:
-        result = getattr(gb_keepna, transformation_func)(*args)
+    result = getattr(gb_keepna, transformation_func)(*args)
     expected = getattr(gb_dropna, transformation_func)(*args)
 
     for iloc, value in zip(

@@ -19,7 +19,7 @@ jobs:
       issues: write
     runs-on: ubuntu-22.04
     env:
-      DEPRECATION_TRACKER_ISSUE: 50578
+      DEPRECATION_TRACKER_ISSUE: 56596
     steps:
     - uses: actions/github-script@v7
       id: update-deprecation-issue

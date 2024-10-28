@@ -1,5 +1,6 @@
 # Note! This file is aimed specifically at pandas.io.formats.printing utility
 # functions, not the general printing of pandas objects.
+from collections.abc import Mapping
 import string
 
 import pandas._config.config as cf
@@ -14,6 +15,17 @@ def test_adjoin():
     adjoined = printing.adjoin(2, *data)
 
     assert adjoined == expected
+
+
+class MyMapping(Mapping):
+    def __getitem__(self, key):
+        return 4
+
+    def __iter__(self):
+        return iter(["a", "b"])
+
+    def __len__(self):
+        return 2
 
 
 class TestPPrintThing:
@@ -41,6 +53,12 @@ class TestPPrintThing:
 
     def test_repr_set(self):
         assert printing.pprint_thing({1}) == "{1}"
+
+    def test_repr_dict(self):
+        assert printing.pprint_thing({"a": 4, "b": 4}) == "{'a': 4, 'b': 4}"
+
+    def test_repr_mapping(self):
+        assert printing.pprint_thing(MyMapping()) == "{'a': 4, 'b': 4}"
 
 
 class TestFormatBase:

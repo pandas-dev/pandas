@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     NA,
     Categorical,
@@ -24,8 +26,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.io.formats.format as fmt
-
 
 class TestDataFrameRepr:
     def test_repr_should_return_str(self):
@@ -38,10 +38,10 @@ class TestDataFrameRepr:
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
-        assert type(df.__repr__()) is str  # noqa: E721
+        assert type(df.__repr__()) is str
 
         ser = df[cols[0]]
-        assert type(ser.__repr__()) is str  # noqa: E721
+        assert type(ser.__repr__()) is str
 
     def test_repr_bytes_61_lines(self):
         # GH#12857
@@ -167,7 +167,7 @@ NaT   4"""
         biggie = DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": tm.makeStringIndex(200),
+                "B": [str(i) for i in range(200)],
             },
             index=range(200),
         )
@@ -176,6 +176,7 @@ NaT   4"""
 
         repr(biggie)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="/r in")
     def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
@@ -220,16 +221,14 @@ NaT   4"""
     def test_repr_float_frame_options(self, float_frame):
         repr(float_frame)
 
-        fmt.set_option("display.precision", 3)
-        repr(float_frame)
+        with option_context("display.precision", 3):
+            repr(float_frame)
 
-        fmt.set_option("display.max_rows", 10, "display.max_columns", 2)
-        repr(float_frame)
+        with option_context("display.max_rows", 10, "display.max_columns", 2):
+            repr(float_frame)
 
-        fmt.set_option("display.max_rows", 1000, "display.max_columns", 1000)
-        repr(float_frame)
-
-        tm.reset_display_options()
+        with option_context("display.max_rows", 1000, "display.max_columns", 1000):
+            repr(float_frame)
 
     def test_repr_unicode(self):
         uval = "\u03c3\u03c3\u03c3\u03c3"
@@ -426,38 +425,32 @@ NaT   4"""
         result = repr(df)
         assert result == expected
 
-    def test_to_records_with_inf_as_na_record(self):
-        # GH 48526
-        expected = """   NaN  inf         record
-0  inf    b    [0, inf, b]
-1  NaN  NaN  [1, nan, nan]
-2    e    f      [2, e, f]"""
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with option_context("use_inf_as_na", True):
-                df = DataFrame(
-                    [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]],
-                    columns=[np.nan, np.inf],
-                )
-                df["record"] = df[[np.nan, np.inf]].to_records()
-                result = repr(df)
-        assert result == expected
-
     def test_to_records_with_inf_record(self):
         # GH 48526
         expected = """   NaN  inf         record
 0  inf    b    [0, inf, b]
 1  NaN  NaN  [1, nan, nan]
 2    e    f      [2, e, f]"""
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with option_context("use_inf_as_na", False):
-                df = DataFrame(
-                    [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]],
-                    columns=[np.nan, np.inf],
-                )
-                df["record"] = df[[np.nan, np.inf]].to_records()
-                result = repr(df)
+        df = DataFrame(
+            [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]],
+            columns=[np.nan, np.inf],
+        )
+        df["record"] = df[[np.nan, np.inf]].to_records()
+        result = repr(df)
+        assert result == expected
+
+    def test_masked_ea_with_formatter(self):
+        # GH#39336
+        df = DataFrame(
+            {
+                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
+                "b": Series([1, 2], dtype="Int64"),
+            }
+        )
+        result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
+        expected = """      a     b
+0  0.12  1.00
+1  1.12  2.00"""
         assert result == expected
 
     def test_repr_ea_columns(self, any_string_dtype):
@@ -505,4 +498,4 @@ def test_repr_with_complex_nans(data, output, as_frame):
     else:
         reprs = [f"{i}   {val}" for i, val in enumerate(output)]
         expected = "\n".join(reprs) + "\ndtype: complex128"
-    assert str(obj) == expected, f"\n{str(obj)}\n\n{expected}"
+    assert str(obj) == expected, f"\n{obj!s}\n\n{expected}"

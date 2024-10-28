@@ -155,13 +155,13 @@ class TestDataFrameClip:
         # GH#19992 and adjusted in GH#40420
         df = DataFrame({"col_0": [1, 2, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]})
 
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        # TODO: avoid this warning here?  seems like we should never be upcasting
-        #  in the first place?
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.clip(lower=[4, 5, np.nan], axis=0)
+        result = df.clip(lower=[4, 5, np.nan], axis=0)
         expected = DataFrame(
-            {"col_0": [4, 5, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]}
+            {
+                "col_0": Series([4, 5, 3], dtype="float"),
+                "col_1": [4, 5, 6],
+                "col_2": [7, 8, 9],
+            }
         )
         tm.assert_frame_equal(result, expected)
 
@@ -175,9 +175,10 @@ class TestDataFrameClip:
         data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
         df = DataFrame(data)
         t = Series([2, -4, np.nan, 6, 3])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.clip(lower=t, axis=0)
-        expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
+        result = df.clip(lower=t, axis=0)
+        expected = DataFrame(
+            {"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]}, dtype="float"
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_clip_int_data_with_float_bound(self):

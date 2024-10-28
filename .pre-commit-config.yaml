@@ -2,9 +2,9 @@ minimum_pre_commit_version: 2.15.0
 exclude: ^LICENSES/|\.(html|csv|svg)$
 # reserve "manual" for relatively slow hooks which we still want to run in CI
 default_stages: [
-    commit,
-    merge-commit,
-    push,
+    pre-commit,
+    pre-merge-commit,
+    pre-push,
     prepare-commit-msg,
     commit-msg,
     post-checkout,
@@ -16,51 +16,49 @@ ci:
     autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
-    skip: [pylint, pyright, mypy]
+    skip: [pyright, mypy]
 repos:
--   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
-    # black compiled with mypyc
-    rev: 23.10.1
-    hooks:
-      - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.4
+    rev: v0.6.9
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
+        exclude: ^pandas/tests/frame/test_query_eval.py
     -   id: ruff
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
-        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
+        files: ^pandas
+        exclude: ^pandas/tests
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
+    -   id: ruff-format
+        exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.10'
+    rev: 'v2.13'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.15.0
+    rev: v0.16.2
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
-    -   id: check-ast
     -   id: check-case-conflict
     -   id: check-toml
     -   id: check-xml
     -   id: check-yaml
         exclude: ^ci/meta.yaml$
-    -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
     -   id: mixed-line-ending
@@ -70,52 +68,34 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
--   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.1
-    hooks:
-    -   id: pylint
-        stages: [manual]
-        args: [--load-plugins=pylint.extensions.redefined_loop_name]
-    -   id: pylint
-        alias: redefined-outer-name
-        name: Redefining name from outer scope
-        files: ^pandas/
-        exclude: |
-            (?x)
-            ^pandas/tests  # keep excluded
-            |/_testing/  # keep excluded
-            |^pandas/util/_test_decorators\.py  # keep excluded
-            |^pandas/_version\.py  # keep excluded
-            |^pandas/conftest\.py  # keep excluded
-        args: [--disable=all, --enable=redefined-outer-name]
-        stages: [manual]
+        args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.17.0
     hooks:
     -   id: pyupgrade
-        args: [--py39-plus]
+        args: [--py310-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
-      - id: python-check-blanket-noqa
-      - id: python-check-blanket-type-ignore
       - id: rst-backticks
       - id: rst-directive-colons
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
       - id: rst-inline-touching-normal
+        exclude: ^pandas/tests/frame/test_query_eval.py
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.8.1
+    rev: v1.0.0
     hooks:
     - id: sphinx-lint
+      args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v17.0.4
+    rev: v19.1.1
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
@@ -132,11 +112,11 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.318
+        - pyright@1.1.383
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
+        entry: pyright -p pyright_reportGeneralTypeIssues.json --level warning
         language: node
         pass_filenames: false
         types: [python]
@@ -190,9 +170,6 @@ repos:
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
 
-            # {foo!r} instead of {repr(foo)}
-            |!r}
-
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]
@@ -214,16 +191,9 @@ repos:
         language: pygrep
         entry: |
             (?x)
-            # pytest.xfail instead of pytest.mark.xfail
-            pytest\.xfail
-
             # imports from pandas._testing instead of `import pandas._testing as tm`
-            |from\ pandas\._testing\ import
+            from\ pandas\._testing\ import
             |from\ pandas\ import\ _testing\ as\ tm
-
-            # No direct imports from conftest
-            |conftest\ import
-            |import\ conftest
 
             # pandas.testing instead of tm
             |pd\.testing\.
@@ -231,20 +201,11 @@ repos:
             # pd.api.types instead of from pandas.api.types import ...
             |(pd|pandas)\.api\.types\.
 
-            # np.testing, np.array_equal
-            |(numpy|np)(\.testing|\.array_equal)
-
-            # unittest.mock (use pytest builtin monkeypatch fixture instead)
-            |(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)
+            # np.array_equal
+            |(numpy|np)\.array_equal
 
             # pytest raises without context
             |\s\ pytest.raises
-
-            # pytest.warns (use tm.assert_produces_warning instead)
-            |pytest\.warns
-
-            # os.remove
-            |os\.remove
 
             # Unseeded numpy default_rng
             |default_rng\(\)
@@ -271,13 +232,6 @@ repos:
         language: python
         types: [rst]
         files: ^doc/source/(development|reference)/
-    -   id: unwanted-patterns-bare-pytest-raises
-        name: Check for use of bare pytest raises
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
-        types: [python]
-        files: ^pandas/tests/
-        exclude: ^pandas/tests/extension/
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python
@@ -303,25 +257,6 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
         types: [python]
-    -   id: use-pd_array-in-core
-        name: Import pandas.array as pd_array in core
-        language: python
-        entry: python scripts/use_pd_array_in_core.py
-        files: ^pandas/core/
-        exclude: ^pandas/core/api\.py$
-        types: [python]
-    -   id: use-io-common-urlopen
-        name: Use pandas.io.common.urlopen instead of urllib.request.urlopen
-        language: python
-        entry: python scripts/use_io_common_urlopen.py
-        files: ^pandas/
-        exclude: ^pandas/tests/
-        types: [python]
-    -   id: no-bool-in-core-generic
-        name: Use bool_t instead of bool in pandas/core/generic.py
-        entry: python scripts/no_bool_in_generic.py
-        language: python
-        files: ^pandas/core/generic\.py$
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep
@@ -355,18 +290,6 @@ repos:
         files: ^pandas/
         exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
         types: [python]
-    -   id: future-annotations
-        name: import annotations from __future__
-        entry: 'from __future__ import annotations'
-        language: pygrep
-        args: [--negate]
-        files: ^pandas/
-        types: [python]
-        exclude: |
-            (?x)
-            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
-            |/tests/
-            |/_testing/
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

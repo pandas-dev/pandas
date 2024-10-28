@@ -122,7 +122,7 @@ def any_string_method(request):
     Examples
     --------
     >>> def test_something(any_string_method):
-    ...     s = Series(['a', 'b', np.nan, 'd'])
+    ...     s = Series(["a", "b", np.nan, "d"])
     ...
     ...     method_name, args, kwargs = any_string_method
     ...     method = getattr(s.str, method_name)

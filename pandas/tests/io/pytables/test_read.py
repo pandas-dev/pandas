@@ -5,7 +5,8 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Timestamp
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 
 import pandas as pd
@@ -15,17 +16,20 @@ from pandas import (
     Index,
     Series,
     _testing as tm,
+    date_range,
     read_hdf,
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
 )
-from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import TableIterator
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 def test_read_missing_key_close_store(tmp_path, setup_path):
@@ -72,7 +76,11 @@ def test_read_missing_key_opened_store(tmp_path, setup_path):
 
 
 def test_read_column(setup_path):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")
@@ -154,7 +162,7 @@ def test_pytables_native_read(datapath):
         datapath("io", "data", "legacy_hdf/pytables_native.h5"), mode="r"
     ) as store:
         d2 = store["detector/readout"]
-        assert isinstance(d2, DataFrame)
+    assert isinstance(d2, DataFrame)
 
 
 @pytest.mark.skipif(is_platform_windows(), reason="native2 read fails oddly on windows")
@@ -164,50 +172,7 @@ def test_pytables_native2_read(datapath):
     ) as store:
         str(store)
         d1 = store["detector"]
-        assert isinstance(d1, DataFrame)
-
-
-def test_legacy_table_fixed_format_read_py2(datapath):
-    # GH 24510
-    # legacy table with fixed format written in Python 2
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "legacy_table_fixed_py2.h5"), mode="r"
-    ) as store:
-        result = store.select("df")
-        expected = DataFrame(
-            [[1, 2, 3, "D"]],
-            columns=["A", "B", "C", "D"],
-            index=Index(["ABC"], name="INDEX_NAME"),
-        )
-        tm.assert_frame_equal(expected, result)
-
-
-def test_legacy_table_fixed_format_read_datetime_py2(datapath):
-    # GH 31750
-    # legacy table with fixed format and datetime64 column written in Python 2
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "legacy_table_fixed_datetime_py2.h5"),
-        mode="r",
-    ) as store:
-        result = store.select("df")
-        expected = DataFrame(
-            [[Timestamp("2020-02-06T18:00")]],
-            columns=["A"],
-            index=Index(["date"]),
-        )
-        tm.assert_frame_equal(expected, result)
-
-
-def test_legacy_table_read_py2(datapath):
-    # issue: 24925
-    # legacy table written in Python 2
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "legacy_table_py2.h5"), mode="r"
-    ) as store:
-        result = store.select("table")
-
-    expected = DataFrame({"a": ["a", "b"], "b": [2, 3]})
-    tm.assert_frame_equal(expected, result)
+    assert isinstance(d1, DataFrame)
 
 
 def test_read_hdf_open_store(tmp_path, setup_path):
@@ -264,7 +229,7 @@ def test_read_hdf_iterator(tmp_path, setup_path):
     with closing(iterator.store):
         assert isinstance(iterator, TableIterator)
         indirect = next(iterator.__iter__())
-        tm.assert_frame_equal(direct, indirect)
+    tm.assert_frame_equal(direct, indirect)
 
 
 def test_read_nokey(tmp_path, setup_path):
@@ -331,68 +296,20 @@ def test_read_from_pathlib_path(tmp_path, setup_path):
     tm.assert_frame_equal(expected, actual)
 
 
-@td.skip_if_no("py.path")
-def test_read_from_py_localpath(tmp_path, setup_path):
-    # GH11773
-    from py.path import local as LocalPath
-
-    expected = DataFrame(
-        np.random.default_rng(2).random((4, 5)),
-        index=list("abcd"),
-        columns=list("ABCDE"),
-    )
-    filename = tmp_path / setup_path
-    path_obj = LocalPath(filename)
-
-    expected.to_hdf(path_obj, key="df", mode="a")
-    actual = read_hdf(path_obj, key="df")
-
-    tm.assert_frame_equal(expected, actual)
-
-
 @pytest.mark.parametrize("format", ["fixed", "table"])
 def test_read_hdf_series_mode_r(tmp_path, format, setup_path):
     # GH 16583
     # Tests that reading a Series saved to an HDF file
     # still works if a mode='r' argument is supplied
-    series = tm.makeFloatSeries()
+    series = Series(range(10), dtype=np.float64)
     path = tmp_path / setup_path
     series.to_hdf(path, key="data", format=format)
     result = read_hdf(path, key="data", mode="r")
     tm.assert_series_equal(result, series)
 
 
-@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_read_py2_hdf_file_in_py3(datapath):
-    # GH 16781
-
-    # tests reading a PeriodIndex DataFrame written in Python2 in Python3
-
-    # the file was generated in Python 2.7 like so:
-    #
-    # df = DataFrame([1.,2,3], index=pd.PeriodIndex(
-    #              ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
-    # df.to_hdf('periodindex_0.20.1_x86_64_darwin_2.7.13.h5', 'p')
-
-    expected = DataFrame(
-        [1.0, 2, 3],
-        index=pd.PeriodIndex(["2015-01-01", "2015-01-02", "2015-01-05"], freq="B"),
-    )
-
-    with ensure_clean_store(
-        datapath(
-            "io", "data", "legacy_hdf", "periodindex_0.20.1_x86_64_darwin_2.7.13.h5"
-        ),
-        mode="r",
-    ) as store:
-        result = store["p"]
-        tm.assert_frame_equal(result, expected)
-
-
 def test_read_infer_string(tmp_path, setup_path):
     # GH#54431
-    pytest.importorskip("pyarrow")
     df = DataFrame({"a": ["a", "b", None]})
     path = tmp_path / setup_path
     df.to_hdf(path, key="data", format="table")
@@ -400,7 +317,18 @@ def test_read_infer_string(tmp_path, setup_path):
         result = read_hdf(path, key="data", mode="r")
     expected = DataFrame(
         {"a": ["a", "b", None]},
-        dtype="string[pyarrow_numpy]",
-        columns=Index(["a"], dtype="string[pyarrow_numpy]"),
+        dtype=pd.StringDtype(na_value=np.nan),
+        columns=Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_hdfstore_read_datetime64_unit_s(tmp_path, setup_path):
+    # GH 59004
+    df_s = DataFrame(["2001-01-01", "2002-02-02"], dtype="datetime64[s]")
+    path = tmp_path / setup_path
+    with HDFStore(path, mode="w") as store:
+        store.put("df_s", df_s)
+    with HDFStore(path, mode="r") as store:
+        df_fromstore = store.get("df_s")
+    tm.assert_frame_equal(df_s, df_fromstore)

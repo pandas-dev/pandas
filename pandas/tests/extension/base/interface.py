@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -65,6 +66,9 @@ class BaseInterfaceTests:
 
         result = np.array(data, dtype=object)
         expected = np.array(list(data), dtype=object)
+        if expected.ndim > 1:
+            # nested data, explicitly construct as 1D
+            expected = construct_1d_object_array_from_listlike(list(data))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_is_extension_array_dtype(self, data):

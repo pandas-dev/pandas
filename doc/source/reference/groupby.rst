@@ -5,7 +5,7 @@
 =======
 GroupBy
 =======
-.. currentmodule:: pandas.api.typing
+.. currentmodule:: pandas.core.groupby
 
 :class:`pandas.api.typing.DataFrameGroupBy` and :class:`pandas.api.typing.SeriesGroupBy`
 instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and
@@ -40,7 +40,7 @@ Function application helper
 
    NamedAgg
 
-.. currentmodule:: pandas.api.typing
+.. currentmodule:: pandas.core.groupby
 
 Function application
 --------------------
@@ -80,7 +80,6 @@ Function application
    DataFrameGroupBy.describe
    DataFrameGroupBy.diff
    DataFrameGroupBy.ffill
-   DataFrameGroupBy.fillna
    DataFrameGroupBy.first
    DataFrameGroupBy.head
    DataFrameGroupBy.idxmax
@@ -131,7 +130,6 @@ Function application
    SeriesGroupBy.describe
    SeriesGroupBy.diff
    SeriesGroupBy.ffill
-   SeriesGroupBy.fillna
    SeriesGroupBy.first
    SeriesGroupBy.head
    SeriesGroupBy.last

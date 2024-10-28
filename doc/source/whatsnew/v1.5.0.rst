@@ -63,7 +63,7 @@ We recommend installing the latest version of PyArrow to access the most recentl
 DataFrame interchange protocol implementation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas now implement the DataFrame interchange API spec.
+pandas now implement the DataFrame interchange API spec.
 See the full details on the API at https://data-apis.org/dataframe-protocol/latest/index.html
 
 The protocol consists of two parts:
@@ -383,7 +383,7 @@ Other enhancements
 - Added ``validate`` argument to :meth:`DataFrame.join` (:issue:`46622`)
 - Added ``numeric_only`` argument to :meth:`.Resampler.sum`, :meth:`.Resampler.prod`, :meth:`.Resampler.min`, :meth:`.Resampler.max`, :meth:`.Resampler.first`, and :meth:`.Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
-- :class:`.DataError`, :class:`.SpecificationError`, :class:`.SettingWithCopyError`, :class:`.SettingWithCopyWarning`, :class:`.NumExprClobberingError`, :class:`.UndefinedVariableError`, :class:`.IndexingError`, :class:`.PyperclipException`, :class:`.PyperclipWindowsException`, :class:`.CSSWarning`, :class:`.PossibleDataLossError`, :class:`.ClosedFileError`, :class:`.IncompatibilityWarning`, :class:`.AttributeConflictWarning`, :class:`.DatabaseError`, :class:`.PossiblePrecisionLoss`, :class:`.ValueLabelTypeMismatch`, :class:`.InvalidColumnName`, and :class:`.CategoricalConversionWarning` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- :class:`.DataError`, :class:`.SpecificationError`, ``SettingWithCopyError``, ``SettingWithCopyWarning``, :class:`.NumExprClobberingError`, :class:`.UndefinedVariableError`, :class:`.IndexingError`, :class:`.PyperclipException`, :class:`.PyperclipWindowsException`, :class:`.CSSWarning`, :class:`.PossibleDataLossError`, :class:`.ClosedFileError`, :class:`.IncompatibilityWarning`, :class:`.AttributeConflictWarning`, :class:`.DatabaseError`, :class:`.PossiblePrecisionLoss`, :class:`.ValueLabelTypeMismatch`, :class:`.InvalidColumnName`, and :class:`.CategoricalConversionWarning` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
 - Add support for :meth:`.DataFrameGroupBy.ohlc` and :meth:`.SeriesGroupBy.ohlc` for extension array dtypes (:issue:`37493`)
 - Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)

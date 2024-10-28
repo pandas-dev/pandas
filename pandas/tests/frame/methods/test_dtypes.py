@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -10,7 +12,6 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
-    option_context,
 )
 import pandas._testing as tm
 
@@ -95,14 +96,6 @@ class TestDataFrameDataTypes:
         )
         tm.assert_series_equal(result, expected)
 
-        # compat, GH 8722
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with option_context("use_inf_as_na", True):
-                df = DataFrame([[1]])
-                result = df.dtypes
-                tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
-
     def test_dtypes_timedeltas(self):
         df = DataFrame(
             {
@@ -142,9 +135,13 @@ class TestDataFrameDataTypes:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_frame_apply_np_array_return_type(self):
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    def test_frame_apply_np_array_return_type(self, using_infer_string):
         # GH 35517
         df = DataFrame([["foo"]])
         result = df.apply(lambda col: np.array("bar"))
-        expected = Series(["bar"])
+        if using_infer_string:
+            expected = Series([np.array(["bar"])])
+        else:
+            expected = Series(["bar"])
         tm.assert_series_equal(result, expected)

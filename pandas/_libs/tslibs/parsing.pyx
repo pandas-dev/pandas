@@ -7,7 +7,6 @@ import warnings
 
 from pandas.util._exceptions import find_stack_level
 
-cimport cython
 from cpython.datetime cimport (
     datetime,
     datetime_new,
@@ -18,7 +17,7 @@ from cpython.datetime cimport (
 
 from datetime import timezone
 
-from cpython.object cimport PyObject_Str
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from cython cimport Py_ssize_t
 from libc.string cimport strchr
 
@@ -27,15 +26,7 @@ import_datetime()
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    PyArray_GETITEM,
-    PyArray_ITER_DATA,
-    PyArray_ITER_NEXT,
-    PyArray_IterNew,
-    flatiter,
-    float64_t,
-    int64_t,
-)
+from numpy cimport int64_t
 
 cnp.import_array()
 
@@ -45,7 +36,6 @@ from decimal import InvalidOperation
 
 from dateutil.parser import DEFAULTPARSER
 from dateutil.tz import (
-    tzlocal as _dateutil_tzlocal,
     tzoffset,
     tzutc as _dateutil_tzutc,
 )
@@ -74,11 +64,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime import array_strptime
-
-from pandas._libs.tslibs.util cimport (
-    get_c_string_buf_and_size,
-    is_array,
-)
 
 
 cdef extern from "pandas/portable.h":
@@ -176,7 +161,7 @@ cdef datetime _parse_delimited_date(
         int day = 1, month = 1, year
         bint can_swap = 0
 
-    buf = get_c_string_buf_and_size(date_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(date_string, &length)
     if length == 10 and _is_delimiter(buf[2]) and _is_delimiter(buf[5]):
         # parsing MM?DD?YYYY and DD?MM?YYYY dates
         month = _parse_2digit(buf)
@@ -252,7 +237,7 @@ cdef bint _does_string_look_like_time(str parse_string):
         Py_ssize_t length
         int hour = -1, minute = -1
 
-    buf = get_c_string_buf_and_size(parse_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(parse_string, &length)
     if length >= 4:
         if buf[1] == b":":
             # h:MM format
@@ -392,32 +377,33 @@ def parse_datetime_string_with_reso(
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     # Try iso8601 first, as it handles nanoseconds
-    string_to_dts_failed = string_to_dts(
-        date_string, &dts, &out_bestunit, &out_local,
-        &out_tzoffset, False
-    )
-    if not string_to_dts_failed:
-        # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
-        # The new resolution will just be nano
-        # GH#50417
-        if out_bestunit in _timestamp_units:
-            out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
+    if not dayfirst:  # GH 58859
+        string_to_dts_failed = string_to_dts(
+            date_string, &dts, &out_bestunit, &out_local,
+            &out_tzoffset, False
+        )
+        if not string_to_dts_failed:
+            # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
+            # The new resolution will just be nano
+            # GH#50417
+            if out_bestunit in _timestamp_units:
+                out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
 
-        if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns:
-            # TODO: avoid circular import
-            from pandas import Timestamp
-            parsed = Timestamp(date_string)
-        else:
-            if out_local:
-                tz = timezone(timedelta(minutes=out_tzoffset))
+            if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns:
+                # TODO: avoid circular import
+                from pandas import Timestamp
+                parsed = Timestamp(date_string)
             else:
-                tz = None
-            parsed = datetime_new(
-                dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us, tz
-            )
+                if out_local:
+                    tz = timezone(timedelta(minutes=out_tzoffset))
+                else:
+                    tz = None
+                parsed = datetime_new(
+                    dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us, tz
+                )
 
-        reso = npy_unit_to_attrname[out_bestunit]
-        return parsed, reso
+            reso = npy_unit_to_attrname[out_bestunit]
+            return parsed, reso
 
     parsed = _parse_delimited_date(date_string, dayfirst, &out_bestunit)
     if parsed is not None:
@@ -468,7 +454,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         char first
         int error = 0
 
-    buf = get_c_string_buf_and_size(py_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(py_string, &length)
     if length >= 1:
         first = buf[0]
         if first == b"0":
@@ -522,7 +508,7 @@ cdef datetime _parse_dateabbr_string(str date_string, datetime default,
             pass
 
     if 4 <= date_len <= 7:
-        buf = get_c_string_buf_and_size(date_string, &date_len)
+        buf = PyUnicode_AsUTF8AndSize(date_string, &date_len)
         try:
             i = date_string.index("Q", 1, 6)
             if i == 1:
@@ -703,17 +689,12 @@ cdef datetime dateutil_parse(
         if res.tzname and res.tzname in time.tzname:
             # GH#50791
             if res.tzname != "UTC":
-                # If the system is localized in UTC (as many CI runs are)
-                #  we get tzlocal, once the deprecation is enforced will get
-                #  timezone.utc, not raise.
-                warnings.warn(
+                raise ValueError(
                     f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
-                    "is deprecated and will raise in a future version. Pass the 'tz' "
+                    "is no longer supported. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level()
                 )
-            ret = ret.replace(tzinfo=_dateutil_tzlocal())
+            ret = ret.replace(tzinfo=timezone.utc)
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
@@ -733,15 +714,10 @@ cdef datetime dateutil_parse(
                 )
         elif res.tzname is not None:
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
-            # GH#18702
-            warnings.warn(
+            # GH#18702, # GH 50235 enforced in 3.0
+            raise ValueError(
                 f'Parsed string "{timestr}" included an un-recognized timezone '
-                f'"{res.tzname}". Dropping unrecognized timezones is deprecated; '
-                "in a future version this will raise. Instead pass the string "
-                "without the timezone, then use .tz_localize to convert to a "
-                "recognized timezone.",
-                FutureWarning,
-                stacklevel=find_stack_level()
+                f'"{res.tzname}".'
             )
 
     out_bestunit[0] = attrname_to_npy_unit[reso]
@@ -884,6 +860,10 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     """
     Guess the datetime format of a given datetime string.
 
+    This function attempts to deduce the format of a given datetime string. It is
+    useful for situations where the datetime format is unknown and needs to be
+    determined for proper parsing. The function is not guaranteed to return a format.
+
     Parameters
     ----------
     dt_str : str
@@ -900,6 +880,12 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     str or None : ret
         datetime format string (for `strftime` or `strptime`),
         or None if it can't be guessed.
+
+    See Also
+    --------
+    to_datetime : Convert argument to datetime.
+    Timestamp : Pandas replacement for python datetime.datetime object.
+    DatetimeIndex : Immutable ndarray-like of datetime64 data.
 
     Examples
     --------
@@ -920,8 +906,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (("year", "month", "day", "hour"), "%Y%m%d%H", 0),
         (("year", "month", "day"), "%Y%m%d", 0),
         (("hour", "minute", "second"), "%H%M%S", 0),
-        (("hour", "minute"), "%H%M", 0),
         (("year",), "%Y", 0),
+        (("hour", "minute"), "%H%M", 0),
         (("month",), "%B", 0),
         (("month",), "%b", 0),
         (("month",), "%m", 2),
@@ -941,8 +927,10 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime_attrs_to_format.remove(day_attribute_and_format)
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
-    # same default used by dateutil
-    default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Use this instead of the dateutil default of
+    # `datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)`
+    # as that causes issues on the 29th of February.
+    default = datetime(1970, 1, 1)
     try:
         parsed_datetime = dateutil_parse(
             dt_str,
@@ -1106,115 +1094,6 @@ cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst) noexcept:
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef object convert_to_unicode(object item, bint keep_trivial_numbers):
-    """
-    Convert `item` to str.
-
-    Parameters
-    ----------
-    item : object
-    keep_trivial_numbers : bool
-        if True, then conversion (to string from integer/float zero)
-        is not performed
-
-    Returns
-    -------
-    str or int or float
-    """
-    cdef:
-        float64_t float_item
-
-    if keep_trivial_numbers:
-        if isinstance(item, int):
-            if <int>item == 0:
-                return item
-        elif isinstance(item, float):
-            float_item = item
-            if float_item == 0.0 or float_item != float_item:
-                return item
-
-    if not isinstance(item, str):
-        item = PyObject_Str(item)
-
-    return item
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def concat_date_cols(tuple date_cols) -> np.ndarray:
-    """
-    Concatenates elements from numpy arrays in `date_cols` into strings.
-
-    Parameters
-    ----------
-    date_cols : tuple[ndarray]
-
-    Returns
-    -------
-    arr_of_rows : ndarray[object]
-
-    Examples
-    --------
-    >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
-    >>> times=np.array(['11:20', '10:45'], dtype=object)
-    >>> result = concat_date_cols((dates, times))
-    >>> result
-    array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
-    """
-    cdef:
-        Py_ssize_t rows_count = 0, col_count = len(date_cols)
-        Py_ssize_t col_idx, row_idx
-        list list_to_join
-        cnp.ndarray[object] iters
-        object[::1] iters_view
-        flatiter it
-        cnp.ndarray[object] result
-        object[::1] result_view
-
-    if col_count == 0:
-        return np.zeros(0, dtype=object)
-
-    if not all(is_array(array) for array in date_cols):
-        raise ValueError("not all elements from date_cols are numpy arrays")
-
-    rows_count = min(len(array) for array in date_cols)
-    result = np.zeros(rows_count, dtype=object)
-    result_view = result
-
-    if col_count == 1:
-        array = date_cols[0]
-        it = <flatiter>PyArray_IterNew(array)
-        for row_idx in range(rows_count):
-            item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-            result_view[row_idx] = convert_to_unicode(item, True)
-            PyArray_ITER_NEXT(it)
-    else:
-        # create fixed size list - more efficient memory allocation
-        list_to_join = [None] * col_count
-        iters = np.zeros(col_count, dtype=object)
-
-        # create memoryview of iters ndarray, that will contain some
-        # flatiter's for each array in `date_cols` - more efficient indexing
-        iters_view = iters
-        for col_idx, array in enumerate(date_cols):
-            iters_view[col_idx] = PyArray_IterNew(array)
-
-        # array elements that are on the same line are converted to one string
-        for row_idx in range(rows_count):
-            for col_idx, array in enumerate(date_cols):
-                # this cast is needed, because we did not find a way
-                # to efficiently store `flatiter` type objects in ndarray
-                it = <flatiter>iters_view[col_idx]
-                item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-                list_to_join[col_idx] = convert_to_unicode(item, False)
-                PyArray_ITER_NEXT(it)
-            result_view[row_idx] = " ".join(list_to_join)
-
-    return result
 
 
 cpdef str get_rule_month(str source):

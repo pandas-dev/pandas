@@ -133,9 +133,9 @@ API changes
     to be inserted if ``True``, default is ``False`` (same as prior to 0.12) (:issue:`3679`)
   - Implement ``__nonzero__`` for ``NDFrame`` objects (:issue:`3691`, :issue:`3696`)
 
-  - IO api
+  - IO API
 
-    - added top-level function ``read_excel`` to replace the following,
+    - Added top-level function ``read_excel`` to replace the following,
       The original API is deprecated and will be removed in a future version
 
       .. code-block:: python
@@ -153,7 +153,7 @@ API changes
 
          pd.read_excel("path_to_file.xls", "Sheet1", index_col=None, na_values=["NA"])
 
-    - added top-level function ``read_sql`` that is equivalent to the following
+    - Added top-level function ``read_sql`` that is equivalent to the following
 
       .. code-block:: python
 
@@ -201,12 +201,12 @@ IO enhancements
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
     .. ipython:: python
-       :okwarning:
 
+        import io
         df = pd.DataFrame({"a": range(3), "b": list("abc")})
         print(df)
         html = df.to_html()
-        alist = pd.read_html(html, index_col=0)
+        alist = pd.read_html(io.StringIO(html), index_col=0)
         print(df == alist[0])
 
     Note that ``alist`` here is a Python ``list`` so ``pd.read_html()`` and
@@ -250,9 +250,9 @@ IO enhancements
 
       .. ipython:: python
 
-         from pandas._testing import makeCustomDataframe as mkdf
-
-         df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
+         mi_idx = pd.MultiIndex.from_arrays([[1, 2, 3, 4], list("abcd")], names=list("ab"))
+         mi_col = pd.MultiIndex.from_arrays([[1, 2], list("ab")], names=list("cd"))
+         df = pd.DataFrame(np.ones((4, 2)), index=mi_idx, columns=mi_col)
          df.to_csv("mi.csv")
          print(open("mi.csv").read())
          pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])
@@ -482,11 +482,11 @@ Bug fixes
 
   - ``HDFStore``
 
-    - will retain index attributes (freq,tz,name) on recreation (:issue:`3499`)
-    - will warn with a ``AttributeConflictWarning`` if you are attempting to append
+    - Will retain index attributes (freq,tz,name) on recreation (:issue:`3499`)
+    - Will warn with a ``AttributeConflictWarning`` if you are attempting to append
       an index with a different frequency than the existing, or attempting
       to append an index with a different name than the existing
-    - support datelike columns with a timezone as data_columns (:issue:`2852`)
+    - Support datelike columns with a timezone as data_columns (:issue:`2852`)
 
   - Non-unique index support clarified (:issue:`3468`).
 

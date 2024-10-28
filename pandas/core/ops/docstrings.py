@@ -1,6 +1,7 @@
 """
 Templating for ops docstrings
 """
+
 from __future__ import annotations
 
 
@@ -375,7 +376,7 @@ _op_descriptions: dict[str, dict[str, str | None]] = {
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
-        "reverse": None,
+        "reverse": "eq",
         "series_examples": _ne_example_SERIES,
         "series_returns": _returns_series,
     },
@@ -396,14 +397,14 @@ _op_descriptions: dict[str, dict[str, str | None]] = {
     "gt": {
         "op": ">",
         "desc": "Greater than",
-        "reverse": None,
+        "reverse": "lt",
         "series_examples": _gt_example_SERIES,
         "series_returns": _returns_series,
     },
     "ge": {
         "op": ">=",
         "desc": "Greater than or equal to",
-        "reverse": None,
+        "reverse": "le",
         "series_examples": _ge_example_SERIES,
         "series_returns": _returns_series,
     },
@@ -419,12 +420,12 @@ for key in _op_names:
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
         _op_descriptions[reverse_op]["reverse"] = key
-        _op_descriptions[key][
-            "see_also_desc"
-        ] = f"Reverse of the {_op_descriptions[key]['desc']} operator, {_py_num_ref}"
-        _op_descriptions[reverse_op][
-            "see_also_desc"
-        ] = f"Element-wise {_op_descriptions[key]['desc']}, {_py_num_ref}"
+        _op_descriptions[key]["see_also_desc"] = (
+            f"Reverse of the {_op_descriptions[key]['desc']} operator, {_py_num_ref}"
+        )
+        _op_descriptions[reverse_op]["see_also_desc"] = (
+            f"Element-wise {_op_descriptions[key]['desc']}, {_py_num_ref}"
+        )
 
 _flex_doc_SERIES = """
 Return {desc} of series and other, element-wise (binary operator `{op_name}`).
@@ -435,6 +436,7 @@ missing data in either one of the inputs.
 Parameters
 ----------
 other : Series or scalar value
+    The second operand in this operation.
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.
@@ -623,6 +625,15 @@ A circle        NaN      1.0
 B square        0.0      0.0
   pentagon      0.0      0.0
   hexagon       0.0      0.0
+
+>>> df_pow = pd.DataFrame({{'A': [2, 3, 4, 5],
+...                        'B': [6, 7, 8, 9]}})
+>>> df_pow.pow(2)
+    A   B
+0   4  36
+1   9  49
+2  16  64
+3  25  81
 """
 
 _flex_comp_doc_FRAME = """

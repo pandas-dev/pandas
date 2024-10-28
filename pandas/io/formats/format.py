@@ -2,9 +2,11 @@
 Internal module for formatting output data in csv, html, xml,
 and latex files. This module also applies to display formatting.
 """
+
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Generator,
     Hashable,
     Mapping,
@@ -21,7 +23,6 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     cast,
 )
@@ -132,9 +133,6 @@ common_docstring: Final = """
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
             handled by ``na_rep``.
-
-            .. versionchanged:: 1.2.0
-
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -783,38 +781,20 @@ class DataFrameFormatter:
 
         if isinstance(columns, MultiIndex):
             fmt_columns = columns._format_multi(sparsify=False, include_names=False)
-            fmt_columns = list(zip(*fmt_columns))
-            dtypes = self.frame.dtypes._values
+            if self.sparsify and len(fmt_columns):
+                fmt_columns = sparsify_labels(fmt_columns)
 
-            # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(level.is_floating for level in columns.levels)
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-
-            def space_format(x, y):
-                if (
-                    y not in self.formatters
-                    and need_leadsp[x]
-                    and not restrict_formatting
-                ):
-                    return " " + y
-                return y
-
-            str_columns = list(
-                zip(*([space_format(x, y) for y in x] for x in fmt_columns))
-            )
-            if self.sparsify and len(str_columns):
-                str_columns = sparsify_labels(str_columns)
-
-            str_columns = [list(x) for x in zip(*str_columns)]
+            str_columns = [list(x) for x in zip(*fmt_columns)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
-            dtypes = self.frame.dtypes
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
-                [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
-                for i, x in enumerate(fmt_columns)
+                [
+                    " " + x
+                    if not self._get_formatter(i) and is_numeric_dtype(dtype)
+                    else x
+                ]
+                for i, (x, dtype) in enumerate(zip(fmt_columns, self.frame.dtypes))
             ]
-        # self.str_columns = str_columns
         return str_columns
 
     def _get_formatted_index(self, frame: DataFrame) -> list[str]:
@@ -875,7 +855,7 @@ class DataFrameRenderer:
         - to_csv
         - to_latex
 
-    Called in pandas.core.frame.DataFrame:
+    Called in pandas.DataFrame:
         - to_html
         - to_string
 
@@ -1044,7 +1024,7 @@ def save_to_buffer(
 @contextmanager
 def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
+) -> Generator[WriteBuffer[str]] | Generator[StringIO]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1226,10 +1206,6 @@ class _GenericArrayFormatter:
                     return "None"
                 elif x is NA:
                     return str(NA)
-                elif lib.is_float(x) and np.isinf(x):
-                    # TODO(3.0): this will be unreachable when use_inf_as_na
-                    #  deprecation is enforced
-                    return str(x)
                 elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
                     return "NaT"
                 return self.na_rep
@@ -1349,7 +1325,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         the parameters given at initialisation, as a numpy array
         """
 
-        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
+        def format_with_na_rep(
+            values: ArrayLike, formatter: Callable, na_rep: str
+        ) -> np.ndarray:
             mask = isna(values)
             formatted = np.array(
                 [
@@ -1361,7 +1339,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
         def format_complex_with_na_rep(
             values: ArrayLike, formatter: Callable, na_rep: str
-        ):
+        ) -> np.ndarray:
             real_values = np.real(values).ravel()  # type: ignore[arg-type]
             imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
             real_mask, imag_mask = isna(real_values), isna(imag_values)
@@ -1528,7 +1506,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         else:
-            array = np.asarray(values)
+            array = np.asarray(values, dtype=object)
 
         fmt_values = format_array(
             array,
@@ -1547,7 +1525,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
 
 
 def format_percentiles(
-    percentiles: (np.ndarray | Sequence[float]),
+    percentiles: np.ndarray | Sequence[float],
 ) -> list[str]:
     """
     Outputs rounded and formatted percentiles.

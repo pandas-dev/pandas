@@ -20,7 +20,7 @@ The full license is in the LICENSE file, distributed with this software.
  *
  * Mutates the provided value directly. Returns 0 on success, non-zero on error.
  */
-int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
+int scaleNanosecToUnit(int64_t *value, NPY_DATETIMEUNIT unit) {
   switch (unit) {
   case NPY_FR_ns:
     break;
@@ -67,11 +67,6 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
   // for ISO string conversion, not the actual size used
   *len = strlen(result);
   return result;
-}
-
-npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
-  scaleNanosecToUnit(&dt, base);
-  return dt;
 }
 
 /* Converts the int64_t representation of a duration to ISO; mutates len */

@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas._config import using_string_dtype
 
 from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import is_object_dtype
@@ -43,7 +43,7 @@ class TestDataFrameSetItem:
     def test_setitem_str_subclass(self):
         # GH#37366
         class mystring(str):
-            pass
+            __slots__ = ()
 
         data = ["2020-10-22 01:21:00+00:00"]
         index = DatetimeIndex(data)
@@ -93,6 +93,11 @@ class TestDataFrameSetItem:
         with pytest.raises(ValueError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
+        # GH 55956, specific message for zero columns
+        msg = "Cannot set a DataFrame without columns to the column gr"
+        with pytest.raises(ValueError, match=msg):
+            df["gr"] = DataFrame()
+
     def test_setitem_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
@@ -141,6 +146,7 @@ class TestDataFrameSetItem:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_empty_columns(self):
         # GH 13522
         df = DataFrame(index=["A", "B", "C"])
@@ -156,13 +162,14 @@ class TestDataFrameSetItem:
         df["A"] = rng
         assert df["A"].dtype == np.dtype("M8[ns]")
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
-        df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
+        df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
-            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
+            [[Timestamp("20130101", tz="UTC")]] * 3, index=range(3), columns=["now"]
         )
         tm.assert_frame_equal(df, expected)
 
@@ -195,6 +202,7 @@ class TestDataFrameSetItem:
         expected = Series(SparseArray([1, 0, 0]), name="new_column")
         tm.assert_series_equal(df["new_column"], expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_period_preserves_dtype(self):
         # GH: 26861
         data = [Period("2003-12", "D")]
@@ -321,7 +329,7 @@ class TestDataFrameSetItem:
         df["dates"] = vals
         assert (df["dates"].values == ex_vals).all()
 
-    def test_setitem_dt64tz(self, timezone_frame, using_copy_on_write):
+    def test_setitem_dt64tz(self, timezone_frame):
         df = timezone_frame
         idx = df["B"].rename("foo")
 
@@ -337,15 +345,12 @@ class TestDataFrameSetItem:
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
         # Note: This does not hold with Copy on Write (because of lazy copying)
-        v1 = df._mgr.arrays[1]
-        v2 = df._mgr.arrays[2]
+        v1 = df._mgr.blocks[1].values
+        v2 = df._mgr.blocks[2].values
         tm.assert_extension_array_equal(v1, v2)
         v1base = v1._ndarray.base
         v2base = v2._ndarray.base
-        if not using_copy_on_write:
-            assert v1base is None or (id(v1base) != id(v2base))
-        else:
-            assert id(v1base) == id(v2base)
+        assert id(v1base) == id(v2base)
 
         # with nan
         df2 = df.copy()
@@ -667,6 +672,7 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1, 2, 3], "b": [4, 1, 1]})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_dtypes_bytes_type_to_object(self):
         # GH 20734
         index = Series(name="id", dtype="S24")
@@ -699,8 +705,7 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1, 2]}, dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) set column with 2d column array, see #44788
-    @td.skip_array_manager_not_yet_implemented
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_npmatrix_2d(self):
         # GH#42376
         # for use-case df["x"] = sparse.random((10, 10)).mean(axis=1)
@@ -713,7 +718,10 @@ class TestDataFrameSetItem:
         df["np-array"] = a
 
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
-        with tm.assert_produces_warning(PendingDeprecationWarning):
+        with tm.assert_produces_warning(
+            PendingDeprecationWarning,
+            match="matrix subclass is not the recommended way to represent matrices",
+        ):
             df["np-matrix"] = np.matrix(a)
 
         tm.assert_frame_equal(df, expected)
@@ -781,6 +789,22 @@ class TestDataFrameSetItem:
         df.iloc[:, 0] = Series([11], dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_index_object_dtype_not_inferring(self):
+        # GH#56102
+        idx = Index([Timestamp("2019-12-31")], dtype=object)
+        df = DataFrame({"a": [1]})
+        df.loc[:, "b"] = idx
+        df["c"] = idx
+
+        expected = DataFrame(
+            {
+                "a": [1],
+                "b": idx,
+                "c": idx,
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -821,11 +845,12 @@ class TestSetitemTZAwareValues:
         # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
         result = df["B"]
+        expected = expected.dt.as_unit("us")
         tm.assert_series_equal(result, expected)
 
 
 class TestDataFrameSetItemWithExpansion:
-    def test_setitem_listlike_views(self, using_copy_on_write, warn_copy_on_write):
+    def test_setitem_listlike_views(self):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
 
@@ -836,13 +861,9 @@ class TestDataFrameSetItemWithExpansion:
         df[["c", "d"]] = np.array([[0.1, 0.2], [0.3, 0.4], [0.4, 0.5]])
 
         # edit in place the first column to check view semantics
-        with tm.assert_cow_warning(warn_copy_on_write):
-            df.iloc[0, 0] = 100
+        df.iloc[0, 0] = 100
 
-        if using_copy_on_write:
-            expected = Series([1, 2, 3], name="a")
-        else:
-            expected = Series([100, 2, 3], name="a")
+        expected = Series([1, 2, 3], name="a")
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_string_column_numpy_dtype_raising(self):
@@ -852,7 +873,7 @@ class TestDataFrameSetItemWithExpansion:
         expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_empty_df_duplicate_columns(self, using_copy_on_write):
+    def test_setitem_empty_df_duplicate_columns(self):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
         df.loc[:, "a"] = list(range(2))
@@ -906,6 +927,7 @@ class TestDataFrameSetItemWithExpansion:
         ser.name = "E"
         tm.assert_series_equal(result2.sort_index(), ser.sort_index())
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_scalars_no_index(self):
         # GH#16823 / GH#17894
         df = DataFrame()
@@ -981,13 +1003,12 @@ class TestDataFrameSetItemSlicing:
         expected = DataFrame(arr)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
     @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
     @pytest.mark.parametrize("n", [1, 2, 3])
-    def test_setitem_slice_indexer_broadcasting_rhs(self, n, box, indexer):
+    def test_setitem_slice_indexer_broadcasting_rhs(self, n, box, indexer_si):
         # GH#40440
         df = DataFrame([[1, 3, 5]] + [[2, 4, 6]] * n, columns=["a", "b", "c"])
-        indexer(df)[1:] = box([10, 11, 12])
+        indexer_si(df)[1:] = box([10, 11, 12])
         expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
         tm.assert_frame_equal(df, expected)
 
@@ -1000,15 +1021,14 @@ class TestDataFrameSetItemSlicing:
         expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
     @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
     @pytest.mark.parametrize("n", [1, 2, 3])
-    def test_setitem_slice_broadcasting_rhs_mixed_dtypes(self, n, box, indexer):
+    def test_setitem_slice_broadcasting_rhs_mixed_dtypes(self, n, box, indexer_si):
         # GH#40440
         df = DataFrame(
             [[1, 3, 5], ["x", "y", "z"]] + [[2, 4, 6]] * n, columns=["a", "b", "c"]
         )
-        indexer(df)[1:] = box([10, 11, 12])
+        indexer_si(df)[1:] = box([10, 11, 12])
         expected = DataFrame(
             [[1, 3, 5]] + [[10, 11, 12]] * (n + 1),
             columns=["a", "b", "c"],
@@ -1040,7 +1060,6 @@ class TestDataFrameSetItemCallable:
 
 
 class TestDataFrameSetItemBooleanMask:
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     @pytest.mark.parametrize(
         "mask_type",
         [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
@@ -1087,13 +1106,12 @@ class TestDataFrameSetItemBooleanMask:
         df.loc[indexer, ["b"]] = 9
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc])
-    def test_setitem_boolean_mask_aligning(self, indexer):
+    def test_setitem_boolean_mask_aligning(self, indexer_sl):
         # GH#39931
         df = DataFrame({"a": [1, 4, 2, 3], "b": [5, 6, 7, 8]})
         expected = df.copy()
         mask = df["a"] >= 3
-        indexer(df)[mask] = indexer(df)[mask].sort_values("a")
+        indexer_sl(df)[mask] = indexer_sl(df)[mask].sort_values("a")
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_mask_categorical(self):
@@ -1185,9 +1203,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])
-    def test_setitem_partial_column_inplace(
-        self, consolidate, using_array_manager, using_copy_on_write
-    ):
+    def test_setitem_partial_column_inplace(self, consolidate):
         # This setting should be in-place, regardless of whether frame is
         #  single-block or multi-block
         # GH#304 this used to be incorrectly not-inplace, in which case
@@ -1197,24 +1213,16 @@ class TestDataFrameSetitemCopyViewSemantics:
             {"x": [1.1, 2.1, 3.1, 4.1], "y": [5.1, 6.1, 7.1, 8.1]}, index=[0, 1, 2, 3]
         )
         df.insert(2, "z", np.nan)
-        if not using_array_manager:
-            if consolidate:
-                df._consolidate_inplace()
-                assert len(df._mgr.blocks) == 1
-            else:
-                assert len(df._mgr.blocks) == 2
-
-        zvals = df["z"]._values
+        if consolidate:
+            df._consolidate_inplace()
+            assert len(df._mgr.blocks) == 1
+        else:
+            assert len(df._mgr.blocks) == 2
 
         df.loc[2:, "z"] = 42
 
         expected = Series([np.nan, np.nan, 42, 42], index=df.index, name="z")
         tm.assert_series_equal(df["z"], expected)
-
-        # check setting occurred in-place
-        if not using_copy_on_write:
-            tm.assert_numpy_array_equal(zvals, expected.values)
-            assert np.shares_memory(zvals, df["z"]._values)
 
     def test_setitem_duplicate_columns_not_inplace(self):
         # GH#39510
@@ -1231,7 +1239,7 @@ class TestDataFrameSetitemCopyViewSemantics:
     @pytest.mark.parametrize(
         "value", [1, np.array([[1], [1]], dtype="int64"), [[1], [1]]]
     )
-    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager):
+    def test_setitem_same_dtype_not_inplace(self, value):
         # GH#39510
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)
@@ -1287,29 +1295,18 @@ class TestDataFrameSetitemCopyViewSemantics:
         df[indexer] = set_value
         tm.assert_frame_equal(view, expected)
 
-    @td.skip_array_manager_invalid_test
-    def test_setitem_column_update_inplace(
-        self, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_setitem_column_update_inplace(self):
         # https://github.com/pandas-dev/pandas/issues/47172
 
         labels = [f"c{i}" for i in range(10)]
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
-        if not using_copy_on_write:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                for label in df.columns:
-                    df[label][label] = 1
-
-            # diagonal values all updated
-            assert np.all(values[np.arange(10), np.arange(10)] == 1)
-        else:
-            with tm.raises_chained_assignment_error():
-                for label in df.columns:
-                    df[label][label] = 1
-            # original dataframe not updated
-            assert np.all(values[np.arange(10), np.arange(10)] == 0)
+        with tm.raises_chained_assignment_error():
+            for label in df.columns:
+                df[label][label] = 1
+        # original dataframe not updated
+        assert np.all(values[np.arange(10), np.arange(10)] == 0)
 
     def test_setitem_column_frame_as_category(self):
         # GH31581
@@ -1318,7 +1315,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         df["col2"] = Series([1, 2, 3], dtype="category")
 
         expected_types = Series(
-            ["int64", "category", "category"], index=[0, "col1", "col2"]
+            ["int64", "category", "category"], index=[0, "col1", "col2"], dtype=object
         )
         tm.assert_series_equal(df.dtypes, expected_types)
 
@@ -1349,7 +1346,8 @@ class TestDataFrameSetitemCopyViewSemantics:
 
     def test_frame_setitem_empty_dataframe(self):
         # GH#28871
-        df = DataFrame({"date": [datetime(2000, 1, 1)]}).set_index("date")
+        dti = DatetimeIndex(["2000-01-01"], dtype="M8[ns]", name="date")
+        df = DataFrame({"date": dti}).set_index("date")
         df = df[0:0].copy()
 
         df["3010"] = None
@@ -1358,6 +1356,36 @@ class TestDataFrameSetitemCopyViewSemantics:
         expected = DataFrame(
             [],
             columns=["3010", "2010"],
-            index=Index([], dtype="datetime64[ns]", name="date"),
+            index=dti[:0],
         )
         tm.assert_frame_equal(df, expected)
+
+
+def test_full_setter_loc_incompatible_dtype():
+    # https://github.com/pandas-dev/pandas/issues/55791
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(TypeError, match="Invalid value"):
+        df.loc[:, "a"] = True
+
+    with pytest.raises(TypeError, match="Invalid value"):
+        df.loc[:, "a"] = {0: 3.5, 1: 4.5}
+
+    df.loc[:, "a"] = {0: 3, 1: 4}
+    expected = DataFrame({"a": [3, 4]})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_setitem_partial_row_multiple_columns():
+    # https://github.com/pandas-dev/pandas/issues/56503
+    df = DataFrame({"A": [1, 2, 3], "B": [4.0, 5, 6]})
+    # should not warn
+    df.loc[df.index <= 1, ["F", "G"]] = (1, "abc")
+    expected = DataFrame(
+        {
+            "A": [1, 2, 3],
+            "B": [4.0, 5, 6],
+            "F": [1.0, 1, float("nan")],
+            "G": ["abc", "abc", float("nan")],
+        }
+    )
+    tm.assert_frame_equal(df, expected)

@@ -5,6 +5,10 @@ from typing import final
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas.core.dtypes.common import is_string_dtype
 
 import pandas as pd
@@ -20,20 +24,22 @@ class BaseOpsUtil:
 
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
         # Find the Exception, if any we expect to raise calling
         #  obj.__op_name__(other)
 
         # The self.obj_bar_exc pattern isn't great in part because it can depend
         #  on op_name or dtypes, but we use it here for backward-compatibility.
         if op_name in ["__divmod__", "__rdivmod__"]:
-            return self.divmod_exc
-        if isinstance(obj, pd.Series) and isinstance(other, pd.Series):
-            return self.series_array_exc
+            result = self.divmod_exc
+        elif isinstance(obj, pd.Series) and isinstance(other, pd.Series):
+            result = self.series_array_exc
         elif isinstance(obj, pd.Series):
-            return self.series_scalar_exc
+            result = self.series_scalar_exc
         else:
-            return self.frame_scalar_exc
+            result = self.frame_scalar_exc
+
+        return result
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         # In _check_op we check that the result of a pointwise operation
@@ -128,6 +134,12 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     series_array_exc: type[Exception] | None = TypeError
     divmod_exc: type[Exception] | None = TypeError
 
+    # TODO(infer_string) need to remove import of pyarrow
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
         if all_arithmetic_operators == "__rmod__" and is_string_dtype(data.dtype):
@@ -137,6 +149,11 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         ser = pd.Series(data)
         self.check_opname(ser, op_name, ser.iloc[0])
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         if all_arithmetic_operators == "__rmod__" and is_string_dtype(data.dtype):
@@ -146,12 +163,22 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         df = pd.DataFrame({"A": data})
         self.check_opname(df, op_name, data[0])
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
         self.check_opname(ser, op_name, pd.Series([ser.iloc[0]] * len(ser)))
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_divmod(self, data):
         ser = pd.Series(data)
         self._check_divmod_op(ser, divmod, 1)
@@ -167,6 +194,7 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         other = pd.Series(other)
         self._check_divmod_op(other, ops.rdivmod, ser)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_add_series_with_extension_array(self, data):
         # Check adding an ExtensionArray to a Series of the same dtype matches
         # the behavior of adding the arrays directly and then wrapping in a

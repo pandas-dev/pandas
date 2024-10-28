@@ -4,14 +4,10 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
-from pandas.util._decorators import (
-    deprecate_kwarg,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -35,8 +31,9 @@ from pandas.core.window.rolling import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
-        Axis,
         QuantileInterpolation,
         WindowingRankType,
     )
@@ -52,18 +49,14 @@ class Expanding(RollingAndExpandingMixin):
     """
     Provide expanding window calculations.
 
+    An expanding window yields the value of an aggregation statistic with all the data
+    available up to that point in time.
+
     Parameters
     ----------
     min_periods : int, default 1
         Minimum number of observations in window required to have a value;
         otherwise, result is ``np.nan``.
-
-    axis : int or str, default 0
-        If ``0`` or ``'index'``, roll across the rows.
-
-        If ``1`` or ``'columns'``, roll across the columns.
-
-        For `Series` this parameter is unused and defaults to 0.
 
     method : str {'single', 'table'}, default 'single'
         Execute the rolling operation per single column or row (``'single'``)
@@ -77,6 +70,8 @@ class Expanding(RollingAndExpandingMixin):
     Returns
     -------
     pandas.api.typing.Expanding
+        An instance of Expanding for further expanding window calculations,
+        e.g. using the ``sum`` method.
 
     See Also
     --------
@@ -119,20 +114,18 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
-    _attributes: list[str] = ["min_periods", "axis", "method"]
+    _attributes: list[str] = ["min_periods", "method"]
 
     def __init__(
         self,
         obj: NDFrame,
         min_periods: int = 1,
-        axis: Axis = 0,
         method: str = "single",
         selection=None,
     ) -> None:
         super().__init__(
             obj=obj,
             min_periods=min_periods,
-            axis=axis,
             method=method,
             selection=selection,
         )
@@ -149,8 +142,8 @@ class Expanding(RollingAndExpandingMixin):
             """
         See Also
         --------
-        pandas.DataFrame.aggregate : Similar DataFrame method.
-        pandas.Series.aggregate : Similar Series method.
+        DataFrame.aggregate : Similar DataFrame method.
+        Series.aggregate : Similar Series method.
         """
         ),
         examples=dedent(
@@ -181,6 +174,8 @@ class Expanding(RollingAndExpandingMixin):
 
     @doc(
         template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -674,11 +669,11 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        quantile : float
+        q : float
             Quantile to compute. 0 <= quantile <= 1.
 
             .. deprecated:: 2.1.0
-                This will be renamed to 'q' in a future version.
+                This was renamed from 'quantile' to 'q' in version 2.1.0.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -714,7 +709,6 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
-    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
         q: float,
@@ -873,6 +867,9 @@ class Expanding(RollingAndExpandingMixin):
             output will be a MultiIndexed DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,

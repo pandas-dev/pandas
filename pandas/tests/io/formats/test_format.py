@@ -2,14 +2,16 @@
 Tests for the file pandas.io.formats.format, *not* tests for general formatting
 of pandas objects.
 """
+
 from datetime import datetime
 from io import StringIO
-from pathlib import Path
 import re
 from shutil import get_terminal_size
 
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -25,59 +27,9 @@ from pandas import (
     read_csv,
     reset_option,
 )
-import pandas._testing as tm
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-
-
-@pytest.fixture(params=["string", "pathlike", "buffer"])
-def filepath_or_buffer_id(request):
-    """
-    A fixture yielding test ids for filepath_or_buffer testing.
-    """
-    return request.param
-
-
-@pytest.fixture
-def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
-    """
-    A fixture yielding a string representing a filepath, a path-like object
-    and a StringIO buffer. Also checks that buffer is not closed.
-    """
-    if filepath_or_buffer_id == "buffer":
-        buf = StringIO()
-        yield buf
-        assert not buf.closed
-    else:
-        assert isinstance(tmp_path, Path)
-        if filepath_or_buffer_id == "pathlike":
-            yield tmp_path / "foo"
-        else:
-            yield str(tmp_path / "foo")
-
-
-@pytest.fixture
-def assert_filepath_or_buffer_equals(
-    filepath_or_buffer, filepath_or_buffer_id, encoding
-):
-    """
-    Assertion helper for checking filepath_or_buffer.
-    """
-    if encoding is None:
-        encoding = "utf-8"
-
-    def _assert_filepath_or_buffer_equals(expected):
-        if filepath_or_buffer_id == "string":
-            with open(filepath_or_buffer, encoding=encoding) as f:
-                result = f.read()
-        elif filepath_or_buffer_id == "pathlike":
-            result = filepath_or_buffer.read_text(encoding=encoding)
-        elif filepath_or_buffer_id == "buffer":
-            result = filepath_or_buffer.getvalue()
-        assert result == expected
-
-    return _assert_filepath_or_buffer_equals
 
 
 def has_info_repr(df):
@@ -415,6 +367,40 @@ class TestDataFrameFormatting:
             # max_rows of None -> never truncate
             assert ".." not in repr(df)
             assert ".." not in df._repr_html_()
+
+    @pytest.mark.parametrize(
+        "data, format_option, expected_values",
+        [
+            (12345.6789, "{:12.3f}", "12345.679"),
+            (None, "{:.3f}", "None"),
+            ("", "{:.2f}", ""),
+            (112345.6789, "{:6.3f}", "112345.679"),
+            ("foo      foo", None, "foo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foo"),
+            (" foo", None, "foo"),
+            (
+                "foo foo       foo",
+                None,
+                "foo foo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; foo",
+            ),  # odd no.of spaces
+            (
+                "foo foo    foo",
+                None,
+                "foo foo&nbsp;&nbsp;&nbsp;&nbsp;foo",
+            ),  # even no.of spaces
+        ],
+    )
+    def test_repr_float_formatting_html_output(
+        self, data, format_option, expected_values
+    ):
+        if format_option is not None:
+            with option_context("display.float_format", format_option.format):
+                df = DataFrame({"A": [data]})
+                html_output = df._repr_html_()
+                assert expected_values in html_output
+        else:
+            df = DataFrame({"A": [data]})
+            html_output = df._repr_html_()
+            assert expected_values in html_output
 
     def test_str_max_colwidth(self):
         # GH 7856
@@ -834,19 +820,21 @@ class TestDataFrameFormatting:
         buf.getvalue()
 
     @pytest.mark.parametrize(
-        "index",
+        "index_scalar",
         [
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
+            "a" * 10,
+            1,
+            Timestamp(2020, 1, 1),
+            pd.Period("2020-01-01"),
         ],
     )
     @pytest.mark.parametrize("h", [10, 20])
     @pytest.mark.parametrize("w", [10, 20])
-    def test_to_string_truncate_indices(self, index, h, w):
+    def test_to_string_truncate_indices(self, index_scalar, h, w):
         with option_context("display.expand_frame_repr", False):
-            df = DataFrame(index=index(h), columns=tm.makeStringIndex(w))
+            df = DataFrame(
+                index=[index_scalar] * h, columns=[str(i) * 10 for i in range(w)]
+            )
             with option_context("display.max_rows", 15):
                 if h == 20:
                     assert has_vertically_truncated_repr(df)
@@ -872,24 +860,26 @@ class TestDataFrameFormatting:
         with option_context("display.max_rows", 7, "display.max_columns", 7):
             assert has_doubly_truncated_repr(df)
 
-    def test_truncate_with_different_dtypes(self):
+    @pytest.mark.parametrize("dtype", ["object", "datetime64[us]"])
+    def test_truncate_with_different_dtypes(self, dtype):
         # 11594, 12045
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        s = Series(
+        ser = Series(
             [datetime(2012, 1, 1)] * 10
             + [datetime(1012, 1, 2)]
-            + [datetime(2012, 1, 3)] * 10
+            + [datetime(2012, 1, 3)] * 10,
+            dtype=dtype,
         )
 
         with option_context("display.max_rows", 8):
-            result = str(s)
-            assert "object" in result
+            result = str(ser)
+        assert dtype in result
 
     def test_truncate_with_different_dtypes2(self):
         # 12045
-        df = DataFrame({"text": ["some words"] + [None] * 9})
+        df = DataFrame({"text": ["some words"] + [None] * 9}, dtype=object)
 
         with option_context("display.max_rows", 8, "display.max_columns", 3):
             result = str(df)
@@ -1292,9 +1282,9 @@ class TestDataFrameFormatting:
             ([3.50, None, "3.50"], "0     3.5\n1    None\n2    3.50\ndtype: object"),
         ],
     )
-    def test_repr_str_float_truncation(self, data, expected):
+    def test_repr_str_float_truncation(self, data, expected, using_infer_string):
         # GH#38708
-        series = Series(data)
+        series = Series(data, dtype=object if "3.50" in data else None)
         result = repr(series)
         assert result == expected
 
@@ -1391,6 +1381,7 @@ class TestSeriesFormatting:
         sf = fmt.SeriesFormatter(s, name="\u05e2\u05d1\u05e8\u05d9\u05ea")
         sf._get_footer()  # should not raise exception
 
+    @pytest.mark.xfail(using_string_dtype(), reason="Fixup when arrow is default")
     def test_east_asian_unicode_series(self):
         # not aligned properly because of east asian width
 
@@ -1759,15 +1750,13 @@ class TestSeriesFormatting:
         assert res == exp
 
     def chck_ncols(self, s):
-        with option_context("display.max_rows", 10):
-            res = repr(s)
-        lines = res.split("\n")
         lines = [
             line for line in repr(s).split("\n") if not re.match(r"[^\.]*\.+", line)
         ][:-1]
         ncolsizes = len({len(line.strip()) for line in lines})
         assert ncolsizes == 1
 
+    @pytest.mark.xfail(using_string_dtype(), reason="change when arrow is default")
     def test_format_explicit(self):
         test_sers = gen_series_formatting()
         with option_context("display.max_rows", 4, "display.show_dimensions", False):
@@ -1918,7 +1907,7 @@ class TestGenericArrayFormatter:
         series = Series(ExtTypeStub(), copy=False)
         res = repr(series)  # This line crashed before #33770 was fixed.
         expected = "\n".join(
-            ["0    [False  True]", "1    [ True False]", "dtype: DtypeStub"]
+            ["0    [False True]", "1    [True False]", "dtype: DtypeStub"]
         )
         assert res == expected
 
@@ -2250,14 +2239,21 @@ class TestFormatPercentiles:
     "encoding, data",
     [(None, "abc"), ("utf-8", "abc"), ("gbk", "造成输出中文显示乱码"), ("foo", "abc")],
 )
+@pytest.mark.parametrize("filepath_or_buffer_id", ["string", "pathlike", "buffer"])
 def test_filepath_or_buffer_arg(
     method,
-    filepath_or_buffer,
-    assert_filepath_or_buffer_equals,
+    tmp_path,
     encoding,
     data,
     filepath_or_buffer_id,
 ):
+    if filepath_or_buffer_id == "buffer":
+        filepath_or_buffer = StringIO()
+    elif filepath_or_buffer_id == "pathlike":
+        filepath_or_buffer = tmp_path / "foo"
+    else:
+        filepath_or_buffer = str(tmp_path / "foo")
+
     df = DataFrame([data])
     if method in ["to_latex"]:  # uses styler implementation
         pytest.importorskip("jinja2")
@@ -2273,7 +2269,17 @@ def test_filepath_or_buffer_arg(
     else:
         expected = getattr(df, method)()
         getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
-        assert_filepath_or_buffer_equals(expected)
+        encoding = encoding or "utf-8"
+        if filepath_or_buffer_id == "string":
+            with open(filepath_or_buffer, encoding=encoding) as f:
+                result = f.read()
+        elif filepath_or_buffer_id == "pathlike":
+            result = filepath_or_buffer.read_text(encoding=encoding)
+        elif filepath_or_buffer_id == "buffer":
+            result = filepath_or_buffer.getvalue()
+        assert result == expected
+    if filepath_or_buffer_id == "buffer":
+        assert not filepath_or_buffer.closed
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])

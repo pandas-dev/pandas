@@ -1,4 +1,4 @@
-""" test fancy indexing & misc """
+"""test fancy indexing & misc"""
 
 import array
 from datetime import datetime
@@ -75,9 +75,7 @@ class TestFancy:
         "ignore:Series.__getitem__ treating keys as positions is deprecated:"
         "FutureWarning"
     )
-    def test_getitem_ndarray_3d(
-        self, index, frame_or_series, indexer_sli, using_array_manager
-    ):
+    def test_getitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
@@ -86,12 +84,8 @@ class TestFancy:
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
             msgs.append(r"Wrong number of dimensions. values.ndim > ndim \[3 > 1\]")
-            if using_array_manager:
-                msgs.append("Passed array should be 1-dimensional")
         if frame_or_series is Series or indexer_sli is tm.iloc:
             msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
-            if using_array_manager:
-                msgs.append("indexer should be 1-dimensional")
         if indexer_sli is tm.loc or (
             frame_or_series is Series and indexer_sli is tm.setitem
         ):
@@ -184,14 +178,8 @@ class TestFancy:
         df["c"] = np.nan
         assert df["c"].dtype == np.float64
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[0, "c"] = "foo"
-        expected = DataFrame(
-            [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
-        )
-        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("val", [3.14, "wxyz"])
     def test_setitem_dtype_upcast2(self, val):
@@ -203,19 +191,8 @@ class TestFancy:
         )
 
         left = df.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             left.loc["a", "bar"] = val
-        right = DataFrame(
-            [[0, val, 2], [3, 4, 5]],
-            index=list("ab"),
-            columns=["foo", "bar", "baz"],
-        )
-
-        tm.assert_frame_equal(left, right)
-        assert is_integer_dtype(left["foo"])
-        assert is_integer_dtype(left["baz"])
 
     def test_setitem_dtype_upcast3(self):
         left = DataFrame(
@@ -223,26 +200,13 @@ class TestFancy:
             index=list("ab"),
             columns=["foo", "bar", "baz"],
         )
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             left.loc["a", "bar"] = "wxyz"
-
-        right = DataFrame(
-            [[0, "wxyz", 0.2], [0.3, 0.4, 0.5]],
-            index=list("ab"),
-            columns=["foo", "bar", "baz"],
-        )
-
-        tm.assert_frame_equal(left, right)
-        assert is_float_dtype(left["foo"])
-        assert is_float_dtype(left["baz"])
 
     def test_dups_fancy_indexing(self):
         # GH 3455
 
-        df = tm.makeCustomDataframe(10, 3)
-        df.columns = ["a", "a", "b"]
+        df = DataFrame(np.eye(3), columns=["a", "a", "b"])
         result = df[["b", "a"]].columns
         expected = Index(["b", "a", "a"])
         tm.assert_index_equal(result, expected)
@@ -284,18 +248,27 @@ class TestFancy:
         with pytest.raises(KeyError, match="not in index"):
             df.loc[rows]
 
-    def test_dups_fancy_indexing_only_missing_label(self):
+    def test_dups_fancy_indexing_only_missing_label(self, using_infer_string):
         # List containing only missing label
         dfnu = DataFrame(
             np.random.default_rng(2).standard_normal((5, 3)), index=list("AABCD")
         )
-        with pytest.raises(
-            KeyError,
-            match=re.escape(
-                "\"None of [Index(['E'], dtype='object')] are in the [index]\""
-            ),
-        ):
-            dfnu.loc[["E"]]
+        if using_infer_string:
+            with pytest.raises(
+                KeyError,
+                match=re.escape(
+                    "\"None of [Index(['E'], dtype='str')] are in the [index]\""
+                ),
+            ):
+                dfnu.loc[["E"]]
+        else:
+            with pytest.raises(
+                KeyError,
+                match=re.escape(
+                    "\"None of [Index(['E'], dtype='object')] are in the [index]\""
+                ),
+            ):
+                dfnu.loc[["E"]]
 
     @pytest.mark.parametrize("vals", [[0, 1, 2], list("abc")])
     def test_dups_fancy_indexing_missing_label(self, vals):
@@ -553,11 +526,12 @@ class TestFancy:
         with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
-    def test_astype_assignment(self):
+    def test_astype_assignment(self, using_infer_string):
         # GH4312 (iloc)
         df_orig = DataFrame(
             [["1", "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        df_orig[list("ABCDG")] = df_orig[list("ABCDG")].astype(object)
 
         df = df_orig.copy()
 
@@ -567,6 +541,7 @@ class TestFancy:
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        expected[list("CDG")] = expected[list("CDG")].astype(object)
         expected["A"] = expected["A"].astype(object)
         expected["B"] = expected["B"].astype(object)
         tm.assert_frame_equal(df, expected)
@@ -577,16 +552,16 @@ class TestFancy:
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        expected["A"] = expected["A"].astype(object)
+        expected[list("ABCDG")] = expected[list("ABCDG")].astype(object)
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
+
         df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        expected["B"] = expected["B"].astype(object)
-        expected["C"] = expected["C"].astype(object)
+        expected[list("ABCDG")] = expected[list("ABCDG")].astype(object)
         tm.assert_frame_equal(df, expected)
 
     def test_astype_assignment_full_replacements(self):
@@ -697,7 +672,7 @@ class TestMisc:
         cols = ["jim", "joe", "jolie", "joline"]
         df = DataFrame(xs, columns=cols, index=list("abcde"), dtype="int64")
 
-        # right hand side; permute the indices and multiplpy by -2
+        # right hand side; permute the indices and multiply by -2
         rhs = -2 * df.iloc[3:0:-1, 2:0:-1]
 
         # expected `right` result; just multiply by -2
@@ -717,7 +692,7 @@ class TestMisc:
             frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             run_tests(df, rhs, right_loc, right_iloc)
 
     @pytest.mark.parametrize(
@@ -769,10 +744,10 @@ class TestMisc:
         # GH 11652
         s = Series(index=range(size), dtype=np.float64)
         s.loc[range(1)] = 42
-        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
+        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=range(1)))
 
         s.loc[range(2)] = 43
-        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
+        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=range(2)))
 
     def test_partial_boolean_frame_indexing(self):
         # GH 17170

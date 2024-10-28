@@ -84,7 +84,7 @@ Here's a typical workflow for triaging a newly opened issue.
    example. See https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
    for a good explanation. If the example is not reproducible, or if it's
    *clearly* not minimal, feel free to ask the reporter if they can provide
-   and example or simplify the provided one. Do acknowledge that writing
+   an example or simplify the provided one. Do acknowledge that writing
    minimal reproducible examples is hard work. If the reporter is struggling,
    you can try to write one yourself and we'll edit the original post to include it.
 
@@ -92,6 +92,9 @@ Here's a typical workflow for triaging a newly opened issue.
 
    If a reproducible example is provided, but you see a simplification,
    edit the original post with your simpler reproducible example.
+
+   If this is a regression report, post the result of a ``git bisect`` run.
+   More info on this can be found in the :ref:`maintaining.regressions` section.
 
    Ensure the issue exists on the main branch and that it has the "Needs Triage" tag
    until all steps have been completed. Add a comment to the issue once you have
@@ -125,7 +128,10 @@ Here's a typical workflow for triaging a newly opened issue.
    If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
 
-   Once you have completed the above, make sure to remove the "needs triage" label.
+   If the issue is a regression report, add the "Regression" label and the next patch
+   release milestone.
+
+   Once you have completed the above, make sure to remove the "Needs Triage" label.
 
 .. _maintaining.regressions:
 
@@ -151,7 +157,7 @@ and then run::
     git bisect start
     git bisect good v1.4.0
     git bisect bad v1.5.0
-    git bisect run bash -c "python setup.py build_ext -j 4; python t.py"
+    git bisect run bash -c "python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true; python t.py"
 
 This finds the first commit that changed the behavior. The C extensions have to be
 rebuilt at every step, so the search can take a while.
@@ -159,7 +165,7 @@ rebuilt at every step, so the search can take a while.
 Exit bisect and rebuild the current version::
 
     git bisect reset
-    python setup.py build_ext -j 4
+    python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 
 Report your findings under the corresponding issue and ping the commit author to get
 their input.
@@ -326,34 +332,6 @@ a milestone before tagging, you can request the bot to backport it with:
    @Meeseeksdev backport <branch>
 
 
-.. _maintaining.asv-machine:
-
-Benchmark machine
------------------
-
-The team currently owns dedicated hardware for hosting a website for pandas' ASV performance benchmark. The results
-are published to https://asv-runner.github.io/asv-collection/pandas/
-
-Configuration
-`````````````
-
-The machine can be configured with the `Ansible <http://docs.ansible.com/ansible/latest/index.html>`_ playbook in https://github.com/tomaugspurger/asv-runner.
-
-Publishing
-``````````
-
-The results are published to another GitHub repository, https://github.com/tomaugspurger/asv-collection.
-Finally, we have a cron job on our docs server to pull from https://github.com/tomaugspurger/asv-collection, to serve them from ``/speed``.
-Ask Tom or Joris for access to the webserver.
-
-Debugging
-`````````
-
-The benchmarks are scheduled by Airflow. It has a dashboard for viewing and debugging the results. You'll need to setup an SSH tunnel to view them
-
-    ssh -L 8080:localhost:8080 pandas@panda.likescandy.com
-
-
 .. _maintaining.release:
 
 Release process
@@ -366,7 +344,7 @@ in the next places:
 - Git repo with a `new tag <https://github.com/pandas-dev/pandas/tags>`_
 - Source distribution in a `GitHub release <https://github.com/pandas-dev/pandas/releases>`_
 - Pip packages in the `PyPI <https://pypi.org/project/pandas/>`_
-- Conda/Mamba packages in `conda-forge <https://anaconda.org/conda-forge/pandas>`_
+- Conda packages in `conda-forge <https://anaconda.org/conda-forge/pandas>`_
 
 The process for releasing a new version of pandas is detailed next section.
 
@@ -430,7 +408,7 @@ Release
     git checkout <branch>
     git pull --ff-only upstream <branch>
     git clean -xdf
-    git commit --allow-empty --author="Pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
+    git commit --allow-empty --author="pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
     git tag -a v<version> -m "Version <version>"  # NOTE that the tag is v1.5.2 with "v" not 1.5.2
     git push upstream <branch> --follow-tags
 
@@ -449,36 +427,36 @@ which will be triggered when the tag is pushed.
     git tag -a v1.5.0.dev0 -m "DEV: Start 1.5.0"
     git push upstream main --follow-tags
 
-3. Build the source distribution (git must be in the tag commit)::
+3. Download the source distribution and wheels from the `wheel staging area <https://anaconda.org/scientific-python-nightly-wheels/pandas>`_.
+   Be careful to make sure that no wheels are missing (e.g. due to failed builds).
 
-    ./setup.py sdist --formats=gztar --quiet
+   Running scripts/download_wheels.sh with the version that you want to download wheels/the sdist for should do the trick.
+   This script will make a ``dist`` folder inside your clone of pandas and put the downloaded wheels and sdist there::
+
+    scripts/download_wheels.sh <VERSION>
 
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Tag: ``<version>``
-   - Title: ``Pandas <version>``
+   - Title: ``pandas <version>``
    - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
    - Files: ``pandas-<version>.tar.gz`` source distribution just generated
    - Set as a pre-release: Only check for a release candidate
    - Set as the latest release: Leave checked, unless releasing a patch release for an older version
      (e.g. releasing 1.4.5 after 1.5 has been released)
 
-5. The GitHub release will after some hours trigger an
+5. Upload wheels to PyPI::
+
+    twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
+
+6. The GitHub release will after some hours trigger an
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
+   (If you don't want to wait, you can open an issue titled ``@conda-forge-admin, please update version`` to trigger the bot.)
    Merge it once the CI is green, and it will generate the conda-forge packages.
+
    In case a manual PR needs to be done, the version, sha256 and build fields are the
    ones that usually need to be changed. If anything else in the recipe has changed since
    the last release, those changes should be available in ``ci/meta.yaml``.
-
-6. Packages for supported versions in PyPI are built automatically from our CI.
-   Once all packages are build download all wheels from the
-   `Anaconda repository <https://anaconda.org/multibuild-wheels-staging/pandas/files?version=\<version\>>`_
-   where our CI published them to the ``dist/`` directory in your local pandas copy.
-   You can use the script ``scripts/download_wheels.sh`` to download all wheels at once.
-
-7. Upload wheels to PyPI::
-
-    twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
 
 Post-Release
 ````````````
@@ -490,9 +468,9 @@ Post-Release
    the appropriate ones for the version you are releasing):
 
     - Log in to the server and use the correct user.
-    - `cd /var/www/html/pandas-docs/`
-    - `ln -sfn version/2.1 stable` (for a major or minor release)
-    - `ln -sfn version/2.0.3 version/2.0` (for a patch release)
+    - ``cd /var/www/html/pandas-docs/``
+    - ``ln -sfn version/2.1 stable`` (for a major or minor release)
+    - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation

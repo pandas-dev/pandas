@@ -4,6 +4,7 @@ Tests for the following offsets:
 - CustomBusinessMonthBegin
 - CustomBusinessMonthEnd
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -62,30 +63,18 @@ class TestCommonCBM:
 
 
 class TestCustomBusinessMonthBegin:
-    @pytest.fixture
-    def _offset(self):
-        return CBMonthBegin
-
-    @pytest.fixture
-    def offset(self):
-        return CBMonthBegin()
-
-    @pytest.fixture
-    def offset2(self):
-        return CBMonthBegin(2)
-
-    def test_different_normalize_equals(self, _offset):
+    def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
-        offset = _offset()
-        offset2 = _offset(normalize=True)
+        offset = CBMonthBegin()
+        offset2 = CBMonthBegin(normalize=True)
         assert offset != offset2
 
-    def test_repr(self, offset, offset2):
-        assert repr(offset) == "<CustomBusinessMonthBegin>"
-        assert repr(offset2) == "<2 * CustomBusinessMonthBegins>"
+    def test_repr(self):
+        assert repr(CBMonthBegin()) == "<CustomBusinessMonthBegin>"
+        assert repr(CBMonthBegin(2)) == "<2 * CustomBusinessMonthBegins>"
 
-    def test_add_datetime(self, dt, offset2):
-        assert offset2 + dt == datetime(2008, 3, 3)
+    def test_add_datetime(self, dt):
+        assert CBMonthBegin(2) + dt == datetime(2008, 3, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -252,30 +241,18 @@ class TestCustomBusinessMonthBegin:
 
 
 class TestCustomBusinessMonthEnd:
-    @pytest.fixture
-    def _offset(self):
-        return CBMonthEnd
-
-    @pytest.fixture
-    def offset(self):
-        return CBMonthEnd()
-
-    @pytest.fixture
-    def offset2(self):
-        return CBMonthEnd(2)
-
-    def test_different_normalize_equals(self, _offset):
+    def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
-        offset = _offset()
-        offset2 = _offset(normalize=True)
+        offset = CBMonthEnd()
+        offset2 = CBMonthEnd(normalize=True)
         assert offset != offset2
 
-    def test_repr(self, offset, offset2):
-        assert repr(offset) == "<CustomBusinessMonthEnd>"
-        assert repr(offset2) == "<2 * CustomBusinessMonthEnds>"
+    def test_repr(self):
+        assert repr(CBMonthEnd()) == "<CustomBusinessMonthEnd>"
+        assert repr(CBMonthEnd(2)) == "<2 * CustomBusinessMonthEnds>"
 
-    def test_add_datetime(self, dt, offset2):
-        assert offset2 + dt == datetime(2008, 2, 29)
+    def test_add_datetime(self, dt):
+        assert CBMonthEnd(2) + dt == datetime(2008, 2, 29)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)

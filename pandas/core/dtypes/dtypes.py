@@ -1,6 +1,7 @@
 """
 Define extension dtypes.
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -17,9 +18,11 @@ from typing import (
     cast,
 )
 import warnings
+import zoneinfo
 
 import numpy as np
-import pytz
+
+from pandas._config.config import get_option
 
 from pandas._libs import (
     lib,
@@ -62,8 +65,6 @@ from pandas.core.dtypes.inference import (
     is_list_like,
 )
 
-from pandas.util import capitalize_first_letter
-
 if not pa_version_under10p1:
     import pyarrow as pa
 
@@ -78,6 +79,7 @@ if TYPE_CHECKING:
         DtypeObj,
         IntervalClosedType,
         Ordered,
+        Scalar,
         Self,
         npt,
         type_t,
@@ -190,8 +192,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> t = pd.CategoricalDtype(categories=['b', 'a'], ordered=True)
-    >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
+    >>> t = pd.CategoricalDtype(categories=["b", "a"], ordered=True)
+    >>> pd.Series(["a", "b", "a", "c"], dtype=t)
     0      a
     1      b
     2      a
@@ -203,7 +205,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     by providing an empty index. As follows,
 
     >>> pd.CategoricalDtype(pd.DatetimeIndex([])).categories.dtype
-    dtype('<M8[ns]')
+    dtype('<M8[s]')
     """
 
     # TODO: Document public vs. private API
@@ -288,14 +290,14 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         >>> pd.CategoricalDtype._from_values_or_dtype()
         CategoricalDtype(categories=None, ordered=None, categories_dtype=None)
         >>> pd.CategoricalDtype._from_values_or_dtype(
-        ...     categories=['a', 'b'], ordered=True
+        ...     categories=["a", "b"], ordered=True
         ... )
         CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
-        >>> dtype1 = pd.CategoricalDtype(['a', 'b'], ordered=True)
-        >>> dtype2 = pd.CategoricalDtype(['x', 'y'], ordered=False)
+        >>> dtype1 = pd.CategoricalDtype(["a", "b"], ordered=True)
+        >>> dtype2 = pd.CategoricalDtype(["x", "y"], ordered=False)
         >>> c = pd.Categorical([0, 1], dtype=dtype1)
         >>> pd.CategoricalDtype._from_values_or_dtype(
-        ...     c, ['x', 'y'], ordered=True, dtype=dtype2
+        ...     c, ["x", "y"], ordered=True, dtype=dtype2
         ... )
         Traceback (most recent call last):
             ...
@@ -318,7 +320,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
                     dtype = CategoricalDtype(categories, ordered)
                 else:
-                    raise ValueError(f"Unknown dtype {repr(dtype)}")
+                    raise ValueError(f"Unknown dtype {dtype!r}")
             elif categories is not None or ordered is not None:
                 raise ValueError(
                     "Cannot specify `categories` or `ordered` together with `dtype`."
@@ -453,7 +455,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 # Because left and right have the same length and are unique,
                 #  `indexer` not having any -1s implies that there is a
                 #  bijection between `left` and `right`.
-                return (indexer != -1).all()
+                return bool((indexer != -1).all())
 
             # With object-dtype we need a comparison that identifies
             #  e.g. int(2) as distinct from float(2)
@@ -511,7 +513,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
             )
         else:
-            cat_array = np.array([cat_array])
+            cat_array = cat_array.reshape(1, len(cat_array))
         combined_hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
         return np.bitwise_xor.reduce(combined_hashed)
 
@@ -566,7 +568,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         if not fastpath and not is_list_like(categories):
             raise TypeError(
-                f"Parameter 'categories' must be list-like, was {repr(categories)}"
+                f"Parameter 'categories' must be list-like, was {categories!r}"
             )
         if not isinstance(categories, ABCIndex):
             categories = Index._with_infer(categories, tupleize_cols=False)
@@ -602,13 +604,20 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         elif not self.is_dtype(dtype):
             raise ValueError(
                 f"a CategoricalDtype must be passed to perform an update, "
-                f"got {repr(dtype)}"
+                f"got {dtype!r}"
             )
         else:
             # from here on, dtype is a CategoricalDtype
             dtype = cast(CategoricalDtype, dtype)
 
         # update categories/ordered unless they've been explicitly passed as None
+        if (
+            isinstance(dtype, CategoricalDtype)
+            and dtype.categories is not None
+            and dtype.ordered is not None
+        ):
+            # Avoid re-validation in CategoricalDtype constructor
+            return dtype
         new_categories = (
             dtype.categories if dtype.categories is not None else self.categories
         )
@@ -621,9 +630,13 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
 
+        See Also
+        --------
+        ordered : Whether the categories have an ordered relationship.
+
         Examples
         --------
-        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
         >>> cat_type.categories
         Index(['a', 'b'], dtype='object')
         """
@@ -634,13 +647,17 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         Whether the categories have an ordered relationship.
 
+        See Also
+        --------
+        categories : An Index containing the unique categories allowed.
+
         Examples
         --------
-        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
         >>> cat_type.ordered
         True
 
-        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=False)
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=False)
         >>> cat_type.ordered
         False
         """
@@ -670,10 +687,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return None
 
         # categorical is aware of Sparse -> extract sparse subdtypes
-        dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        subtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
         # extract the categories' dtype
         non_cat_dtypes = [
-            x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
+            x.categories.dtype if isinstance(x, CategoricalDtype) else x
+            for x in subtypes
         ]
         # TODO should categorical always give an answer?
         from pandas.core.dtypes.cast import find_common_type
@@ -697,8 +715,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
     Parameters
     ----------
     unit : str, default "ns"
-        The precision of the datetime data. Currently limited
-        to ``"ns"``.
+        The precision of the datetime data. Valid options are
+        ``"s"``, ``"ms"``, ``"us"``, ``"ns"``.
     tz : str, int, or datetime.tzinfo
         The timezone.
 
@@ -716,13 +734,18 @@ class DatetimeTZDtype(PandasExtensionDtype):
     ZoneInfoNotFoundError
         When the requested timezone cannot be found.
 
+    See Also
+    --------
+    numpy.datetime64 : Numpy data type for datetime.
+    datetime.datetime : Python datetime object.
+
     Examples
     --------
     >>> from zoneinfo import ZoneInfo
-    >>> pd.DatetimeTZDtype(tz=ZoneInfo('UTC'))
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo("UTC"))
     datetime64[ns, UTC]
 
-    >>> pd.DatetimeTZDtype(tz=ZoneInfo('Europe/Paris'))
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo("Europe/Paris"))
     datetime64[ns, Europe/Paris]
     """
 
@@ -773,7 +796,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             tz = timezones.maybe_get_tz(tz)
             tz = timezones.tz_standardize(tz)
         elif tz is not None:
-            raise pytz.UnknownTimeZoneError(tz)
+            raise zoneinfo.ZoneInfoNotFoundError(tz)
         if tz is None:
             raise TypeError("A 'tz' is required.")
 
@@ -792,10 +815,14 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        See Also
+        --------
+        DatetimeTZDtype.tz : Retrieves the timezone.
+
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
-        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo("America/Los_Angeles"))
         >>> dtype.unit
         'ns'
         """
@@ -806,10 +833,14 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The timezone.
 
+        See Also
+        --------
+        DatetimeTZDtype.unit : Retrieves precision of the datetime data.
+
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
-        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo("America/Los_Angeles"))
         >>> dtype.tz
         zoneinfo.ZoneInfo(key='America/Los_Angeles')
         """
@@ -842,7 +873,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         Examples
         --------
-        >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
+        >>> DatetimeTZDtype.construct_from_string("datetime64[ns, UTC]")
         datetime64[ns, UTC]
         """
         if not isinstance(string, str):
@@ -858,7 +889,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 return cls(unit=d["unit"], tz=d["tz"])
             except (KeyError, TypeError, ValueError) as err:
                 # KeyError if maybe_get_tz tries and fails to get a
-                #  pytz timezone (actually pytz.UnknownTimeZoneError).
+                #  zoneinfo timezone (actually zoneinfo.ZoneInfoNotFoundError).
                 # TypeError if we pass a nonsense tz;
                 # ValueError if we pass a unit other than "ns"
                 raise TypeError(msg) from err
@@ -919,7 +950,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         else:
             np_arr = array.to_numpy()
 
-        return DatetimeArray(np_arr, dtype=self, copy=False)
+        return DatetimeArray._simple_new(np_arr, dtype=self)
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
@@ -962,9 +993,17 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    Period : Represents a single time period.
+    PeriodIndex : Immutable index for period data.
+    date_range : Return a fixed frequency DatetimeIndex.
+    Series : One-dimensional array with axis labels.
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
     Examples
     --------
-    >>> pd.PeriodDtype(freq='D')
+    >>> pd.PeriodDtype(freq="D")
     period[D]
 
     >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
@@ -1026,9 +1065,23 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         The frequency object of this PeriodDtype.
 
+        The `freq` property returns the `BaseOffset` object that represents the
+        frequency of the PeriodDtype. This frequency specifies the interval (e.g.,
+        daily, monthly, yearly) associated with the Period type. It is essential
+        for operations that depend on time-based calculations within a period index
+        or series.
+
+        See Also
+        --------
+        Period : Represents a period of time.
+        PeriodIndex : Immutable ndarray holding ordinal values indicating
+            regular periods.
+        PeriodDtype : An ExtensionDtype for Period data.
+        date_range : Return a fixed frequency range of dates.
+
         Examples
         --------
-        >>> dtype = pd.PeriodDtype(freq='D')
+        >>> dtype = pd.PeriodDtype(freq="D")
         >>> dtype.freq
         <Day>
         """
@@ -1087,7 +1140,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return other in [self.name, capitalize_first_letter(self.name)]
+            return other[:1].lower() + other[1:] == self.name
 
         return super().__eq__(other)
 
@@ -1172,6 +1225,9 @@ class IntervalDtype(PandasExtensionDtype):
     ----------
     subtype : str, np.dtype
         The dtype of the Interval bounds.
+    closed : {'right', 'left', 'both', 'neither'}, default 'right'
+        Whether the interval is closed on the left-side, right-side, both or
+        neither. See the Notes for more detailed explanation.
 
     Attributes
     ----------
@@ -1181,9 +1237,13 @@ class IntervalDtype(PandasExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    PeriodDtype : An ExtensionDtype for Period data.
+
     Examples
     --------
-    >>> pd.IntervalDtype(subtype='int64', closed='both')
+    >>> pd.IntervalDtype(subtype="int64", closed="both")
     interval[int64, both]
     """
 
@@ -1281,9 +1341,13 @@ class IntervalDtype(PandasExtensionDtype):
         """
         The dtype of the Interval bounds.
 
+        See Also
+        --------
+        IntervalDtype: An ExtensionDtype for Interval data.
+
         Examples
         --------
-        >>> dtype = pd.IntervalDtype(subtype='int64', closed='both')
+        >>> dtype = pd.IntervalDtype(subtype="int64", closed="both")
         >>> dtype.subtype
         dtype('int64')
         """
@@ -1453,12 +1517,12 @@ class NumpyEADtype(ExtensionDtype):
 
     def __init__(self, dtype: npt.DTypeLike | NumpyEADtype | None) -> None:
         if isinstance(dtype, NumpyEADtype):
-            # make constructor univalent
+            # make constructor idempotent
             dtype = dtype.numpy_dtype
         self._dtype = np.dtype(dtype)
 
     def __repr__(self) -> str:
-        return f"NumpyEADtype({repr(self.name)})"
+        return f"NumpyEADtype({self.name!r})"
 
     @property
     def numpy_dtype(self) -> np.dtype:
@@ -1537,6 +1601,25 @@ class BaseMaskedDtype(ExtensionDtype):
 
     base = None
     type: type
+    _internal_fill_value: Scalar
+
+    @property
+    def _truthy_value(self):
+        # Fill values used for 'any'
+        if self.kind == "f":
+            return 1.0
+        if self.kind in "iu":
+            return 1
+        return True
+
+    @property
+    def _falsey_value(self):
+        # Fill values used for 'all'
+        if self.kind == "f":
+            return 0.0
+        if self.kind in "iu":
+            return 0
+        return False
 
     @property
     def na_value(self) -> libmissing.NAType:
@@ -1612,7 +1695,10 @@ class SparseDtype(ExtensionDtype):
     """
     Dtype for data stored in :class:`SparseArray`.
 
-    This dtype implements the pandas ExtensionDtype interface.
+    ``SparseDtype`` is used as the data type for :class:`SparseArray`, enabling
+    more efficient storage of data that contains a significant number of
+    repetitive values typically represented by a fill value. It supports any
+    scalar dtype as the underlying data type of the non-fill values.
 
     Parameters
     ----------
@@ -1620,19 +1706,20 @@ class SparseDtype(ExtensionDtype):
         The dtype of the underlying array storing the non-fill value values.
     fill_value : scalar, optional
         The scalar value not stored in the SparseArray. By default, this
-        depends on `dtype`.
+        depends on ``dtype``.
 
         =========== ==========
         dtype       na_value
         =========== ==========
         float       ``np.nan``
+        complex     ``np.nan``
         int         ``0``
         bool        ``False``
         datetime64  ``pd.NaT``
         timedelta64 ``pd.NaT``
         =========== ==========
 
-        The default value may be overridden by specifying a `fill_value`.
+        The default value may be overridden by specifying a ``fill_value``.
 
     Attributes
     ----------
@@ -1641,6 +1728,11 @@ class SparseDtype(ExtensionDtype):
     Methods
     -------
     None
+
+    See Also
+    --------
+    arrays.SparseArray : The array structure that uses SparseDtype
+        for data representation.
 
     Examples
     --------
@@ -1704,17 +1796,15 @@ class SparseDtype(ExtensionDtype):
 
         if isinstance(other, type(self)):
             subtype = self.subtype == other.subtype
-            if self._is_na_fill_value:
+            if self._is_na_fill_value or other._is_na_fill_value:
                 # this case is complicated by two things:
                 # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
                 # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
                 # i.e. we want to treat any floating-point NaN as equal, but
                 # not a floating-point NaN and a datetime NaT.
-                fill_value = (
-                    other._is_na_fill_value
-                    and isinstance(self.fill_value, type(other.fill_value))
-                    or isinstance(other.fill_value, type(self.fill_value))
-                )
+                fill_value = isinstance(
+                    self.fill_value, type(other.fill_value)
+                ) or isinstance(other.fill_value, type(self.fill_value))
             else:
                 with warnings.catch_warnings():
                     # Ignore spurious numpy warning
@@ -1763,24 +1853,18 @@ class SparseDtype(ExtensionDtype):
         val = self._fill_value
         if isna(val):
             if not is_valid_na_for_dtype(val, self.subtype):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    # GH#53043
+                    "fill_value must be a valid value for the SparseDtype.subtype"
                 )
         else:
             dummy = np.empty(0, dtype=self.subtype)
             dummy = ensure_wrapped_if_datetimelike(dummy)
 
             if not can_hold_element(dummy, val):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    # GH#53043
+                    "fill_value must be a valid value for the SparseDtype.subtype"
                 )
 
     @property
@@ -1814,7 +1898,7 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def name(self) -> str:
-        return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
+        return f"Sparse[{self.subtype.name}, {self.fill_value!r}]"
 
     def __repr__(self) -> str:
         return self.name
@@ -2001,7 +2085,7 @@ class SparseDtype(ExtensionDtype):
         >>> SparseDtype(object, 1)._subtype_with_str
         dtype('O')
 
-        >>> dtype = SparseDtype(str, '')
+        >>> dtype = SparseDtype(str, "")
         >>> dtype.subtype
         dtype('O')
 
@@ -2030,7 +2114,9 @@ class SparseDtype(ExtensionDtype):
 
         # np.nan isn't a singleton, so we may end up with multiple
         # NaNs here, so we ignore the all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
+        if get_option("performance_warnings") and (
+            not (len(set(fill_values)) == 1 or isna(fill_values).all())
+        ):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "
                 f"values: '{fill_values}'. Picking the first and "
@@ -2073,6 +2159,10 @@ class ArrowDtype(StorageExtensionDtype):
     Returns
     -------
     ArrowDtype
+
+    See Also
+    --------
+    DataFrame.convert_dtypes : Convert columns to the best possible dtypes.
 
     Examples
     --------
@@ -2173,7 +2263,7 @@ class ArrowDtype(StorageExtensionDtype):
         """
         A string identifying the data type.
         """
-        return f"{str(self.pyarrow_dtype)}[{self.storage}]"
+        return f"{self.pyarrow_dtype!s}[{self.storage}]"
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
@@ -2190,7 +2280,9 @@ class ArrowDtype(StorageExtensionDtype):
             # This can be removed if/when pyarrow addresses it:
             # https://github.com/apache/arrow/issues/34462
             return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
-        if pa.types.is_string(self.pyarrow_dtype):
+        if pa.types.is_string(self.pyarrow_dtype) or pa.types.is_large_string(
+            self.pyarrow_dtype
+        ):
             # pa.string().to_pandas_dtype() = object which we don't want
             return np.dtype(str)
         try:
@@ -2337,7 +2429,7 @@ class ArrowDtype(StorageExtensionDtype):
         except NotImplementedError:
             return None
 
-    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray):
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> ArrowExtensionArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """

@@ -9,7 +9,10 @@ import textwrap
 import time
 import zipfile
 
+import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_windows
 
@@ -132,17 +135,22 @@ def test_compression_warning(compression_only):
     )
     with tm.ensure_clean() as path:
         with icom.get_handle(path, "w", compression=compression_only) as handles:
-            with tm.assert_produces_warning(RuntimeWarning):
+            with tm.assert_produces_warning(RuntimeWarning, match="has no effect"):
                 df.to_csv(handles.handle, compression=compression_only)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_compression_binary(compression_only):
     """
     Binary file handles support compression.
 
     GH22555
     """
-    df = tm.makeDataFrame()
+    df = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # with a file
     with tm.ensure_clean() as path:
@@ -170,7 +178,11 @@ def test_gzip_reproducibility_file_name():
 
     GH 28103
     """
-    df = tm.makeDataFrame()
+    df = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     compression_options = {"method": "gzip", "mtime": 1}
 
     # test for filename
@@ -189,7 +201,11 @@ def test_gzip_reproducibility_file_object():
 
     GH 28103
     """
-    df = tm.makeDataFrame()
+    df = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     compression_options = {"method": "gzip", "mtime": 1}
 
     # test for file object
@@ -218,7 +234,7 @@ def test_with_missing_lzma():
 
 @pytest.mark.single_cpu
 def test_with_missing_lzma_runtime():
-    """Tests if RuntimeError is hit when calling lzma without
+    """Tests if ModuleNotFoundError is hit when calling lzma without
     having the module available.
     """
     code = textwrap.dedent(
@@ -228,7 +244,7 @@ def test_with_missing_lzma_runtime():
         sys.modules['lzma'] = None
         import pandas as pd
         df = pd.DataFrame()
-        with pytest.raises(RuntimeError, match='lzma module'):
+        with pytest.raises(ModuleNotFoundError, match='import of lzma'):
             df.to_csv('foo.csv', compression='xz')
         """
     )

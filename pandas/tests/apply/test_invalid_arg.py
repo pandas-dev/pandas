@@ -12,13 +12,15 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 from pandas.errors import SpecificationError
 
 from pandas import (
     DataFrame,
     Series,
     date_range,
-    notna,
 )
 import pandas._testing as tm
 
@@ -119,15 +121,15 @@ def test_dict_nested_renaming_depr(method):
 def test_missing_column(method, func):
     # GH 40004
     obj = DataFrame({"A": [1]})
-    match = re.escape("Column(s) ['B'] do not exist")
-    with pytest.raises(KeyError, match=match):
+    msg = r"Label\(s\) \['B'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
         getattr(obj, method)(func)
 
 
 def test_transform_mixed_column_name_dtypes():
     # GH39025
     df = DataFrame({"a": ["1"]})
-    msg = r"Column\(s\) \[1, 'b'\] do not exist"
+    msg = r"Label\(s\) \[1, 'b'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.transform({"a": int, 1: str, "b": int})
 
@@ -150,8 +152,6 @@ def test_transform_axis_1_raises():
         Series([1]).transform("sum", axis=1)
 
 
-# TODO(CoW-warn) should not need to warn
-@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_apply_modify_traceback():
     data = DataFrame(
         {
@@ -207,31 +207,39 @@ def test_apply_modify_traceback():
             row["D"] = 7
         return row
 
-    def transform2(row):
-        if notna(row["C"]) and row["C"].startswith("shin") and row["A"] == "foo":
-            row["D"] = 7
-        return row
-
     msg = "'float' object has no attribute 'startswith'"
     with pytest.raises(AttributeError, match=msg):
         data.apply(transform, axis=1)
 
 
+# we should raise a proper TypeError instead of propagating the pyarrow error
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @pytest.mark.parametrize(
     "df, func, expected",
     tm.get_cython_table_params(
         DataFrame([["a", "b"], ["b", "a"]]), [["cumprod", TypeError]]
     ),
 )
-def test_agg_cython_table_raises_frame(df, func, expected, axis):
+def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_string):
     # GH 21224
-    msg = "can't multiply sequence by non-int of type 'str'"
+    if using_infer_string:
+        import pyarrow as pa
+
+        expected = (expected, pa.lib.ArrowNotImplementedError)
+
+    msg = "can't multiply sequence by non-int of type 'str'|has no kernel"
     warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
         with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
             df.agg(func, axis=axis)
 
 
+# we should raise a proper TypeError instead of propagating the pyarrow error
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(
@@ -248,11 +256,18 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis):
         )
     ),
 )
-def test_agg_cython_table_raises_series(series, func, expected):
+def test_agg_cython_table_raises_series(series, func, expected, using_infer_string):
     # GH21224
     msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
     if func == "median" or func is np.nanmedian or func is np.median:
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
+
+    if using_infer_string:
+        import pyarrow as pa
+
+        expected = (expected, pa.lib.ArrowNotImplementedError)
+
+    msg = msg + "|does not support|has no kernel"
     warn = None if isinstance(func, str) else FutureWarning
 
     with pytest.raises(expected, match=msg):
@@ -338,11 +353,8 @@ def test_transform_wont_agg_series(string_series, func):
     # we are trying to transform with an aggregator
     msg = "Function did not transform"
 
-    warn = RuntimeWarning if func[0] == "sqrt" else None
-    warn_msg = "invalid value encountered in sqrt"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
-            string_series.transform(func)
+        string_series.transform(func)
 
 
 @pytest.mark.parametrize(
@@ -358,3 +370,15 @@ def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
         obj.transform(op)
+
+
+def test_transform_missing_labels_raises():
+    # GH 58474
+    df = DataFrame({"foo": [2, 4, 6], "bar": [1, 2, 3]}, index=["A", "B", "C"])
+    msg = r"Label\(s\) \['A', 'B'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
+        df.transform({"A": lambda x: x + 2, "B": lambda x: x * 2}, axis=0)
+
+    msg = r"Label\(s\) \['bar', 'foo'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
+        df.transform({"foo": lambda x: x + 2, "bar": lambda x: x * 2}, axis=1)

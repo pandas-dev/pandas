@@ -18,11 +18,7 @@ See LICENSE for the license
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
 
-#include "pandas/inline_helper.h"
-#include "pandas/portable.h"
 #include <stdint.h>
-
-#include "pandas/vendored/klib/khash.h"
 
 #define STREAM_INIT_SIZE 32
 
@@ -84,9 +80,9 @@ typedef enum {
 
 typedef enum { ERROR, WARN, SKIP } BadLineHandleMethod;
 
-typedef void *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
+typedef char *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                              int *status, const char *encoding_errors);
-typedef int (*io_cleanup)(void *src);
+typedef void (*io_cleanup)(void *src);
 
 typedef struct parser_t {
   void *source;
@@ -187,7 +183,7 @@ int parser_trim_buffers(parser_t *self);
 
 int parser_add_skiprow(parser_t *self, int64_t row);
 
-int parser_set_skipfirstnrows(parser_t *self, int64_t nrows);
+void parser_set_skipfirstnrows(parser_t *self, int64_t nrows);
 
 void parser_free(parser_t *self);
 

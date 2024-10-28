@@ -3,11 +3,14 @@ import os
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import (
     PY311,
     is_ci_environment,
     is_platform_linux,
     is_platform_little_endian,
+    is_platform_mac,
 )
 from pandas.errors import (
     ClosedFileError,
@@ -17,8 +20,10 @@ from pandas.errors import (
 from pandas import (
     DataFrame,
     HDFStore,
+    Index,
     Series,
     _testing as tm,
+    date_range,
     read_hdf,
 )
 from pandas.tests.io.pytables.common import (
@@ -30,12 +35,19 @@ from pandas.tests.io.pytables.common import (
 from pandas.io import pytables
 from pandas.io.pytables import Term
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
 def test_mode(setup_path, tmp_path, mode):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     msg = r"[\S]* does not exist"
     path = tmp_path / setup_path
 
@@ -84,7 +96,11 @@ def test_mode(setup_path, tmp_path, mode):
 
 def test_default_mode(tmp_path, setup_path):
     # read_hdf uses default mode
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", mode="w")
     result = read_hdf(path, "df")
@@ -95,7 +111,9 @@ def test_reopen_handle(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     store = HDFStore(path, mode="a")
-    store["a"] = tm.makeTimeSeries()
+    store["a"] = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
 
     msg = (
         r"Re-opening the file \[[\S]*\] with mode \[a\] will delete the "
@@ -116,7 +134,9 @@ def test_reopen_handle(tmp_path, setup_path):
     assert not store.is_open
 
     store = HDFStore(path, mode="a")
-    store["a"] = tm.makeTimeSeries()
+    store["a"] = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
 
     # reopen as read
     store.open("r")
@@ -145,7 +165,11 @@ def test_reopen_handle(tmp_path, setup_path):
 
 def test_open_args(setup_path):
     with tm.ensure_clean(setup_path) as path:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
         # create an in memory store
         store = HDFStore(
@@ -165,14 +189,18 @@ def test_open_args(setup_path):
 
 def test_flush(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(range(5))
         store.flush()
         store.flush(fsync=True)
 
 
 def test_complibs_default_settings(tmp_path, setup_path):
     # GH15943
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # Set complevel and check if complib is automatically set to
     # default value
@@ -211,7 +239,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
 
 def test_complibs_default_settings_override(tmp_path, setup_path):
     # Check if file-defaults can be overridden on a per table basis
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     tmpfile = tmp_path / setup_path
     store = HDFStore(tmpfile)
     store.append("dfc", df, complevel=9, complib="blosc")
@@ -232,7 +264,7 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 @pytest.mark.filterwarnings("ignore:object name is not a valid")
 @pytest.mark.skipif(
     not PY311 and is_ci_environment() and is_platform_linux(),
-    reason="Segfaulting in a CI environment"
+    reason="Segfaulting in a CI environment",
     # with xfail, would sometimes raise UnicodeDecodeError
     # invalid state byte
 )
@@ -261,12 +293,17 @@ def test_complibs(tmp_path, lvl, lib, request):
     result = read_hdf(tmpfile, gname)
     tm.assert_frame_equal(result, df)
 
+    is_mac = is_platform_mac()
+
     # Open file and check metadata for correct amount of compression
     with tables.open_file(tmpfile, mode="r") as h5table:
         for node in h5table.walk_nodes(where="/" + gname, classname="Leaf"):
             assert node.filters.complevel == lvl
             if lvl == 0:
                 assert node.filters.complib is None
+            elif is_mac and lib == "blosc2":
+                res = node.filters.complib
+                assert res in [lib, "blosc2:blosclz"], res
             else:
                 assert node.filters.complib == lib
 
@@ -315,7 +352,15 @@ def test_latin_encoding(tmp_path, setup_path, dtype, val):
     ser.to_hdf(store, key=key, format="table", encoding=enc, nan_rep=nan_rep)
     retr = read_hdf(store, key)
 
-    s_nan = ser.replace(nan_rep, np.nan)
+    # TODO:(3.0): once Categorical replace deprecation is enforced,
+    #  we may be able to re-simplify the construction of s_nan
+    if dtype == "category":
+        if nan_rep in ser.cat.categories:
+            s_nan = ser.cat.remove_categories([nan_rep])
+        else:
+            s_nan = ser
+    else:
+        s_nan = ser.replace(nan_rep, np.nan)
 
     tm.assert_series_equal(s_nan, retr)
 
@@ -325,7 +370,11 @@ def test_multiple_open_close(tmp_path, setup_path):
 
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df.to_hdf(path, key="df", mode="w", format="table")
 
     # single
@@ -402,7 +451,11 @@ def test_multiple_open_close(tmp_path, setup_path):
     # ops on a closed store
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df.to_hdf(path, key="df", mode="w", format="table")
 
     store = HDFStore(path)

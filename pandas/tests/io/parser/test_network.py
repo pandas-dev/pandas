@@ -2,6 +2,7 @@
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.
 """
+
 from io import BytesIO
 import logging
 import re
@@ -38,7 +39,7 @@ def test_compressed_urls(
     # test reading compressed urls with various engines and
     # extension inference
     if compression_only == "tar":
-        pytest.skip("TODO: Add tar salaraies.csv to pandas/io/parsers/data")
+        pytest.skip("TODO: Add tar salaries.csv to pandas/io/parsers/data")
 
     extension = compression_to_extension[compression_only]
     with open(datapath("io", "parser", "data", "salaries.csv" + extension), "rb") as f:
@@ -74,6 +75,7 @@ def tips_df(datapath):
 
 
 @pytest.mark.single_cpu
+@pytest.mark.network
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
 class TestS3:

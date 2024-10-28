@@ -7,8 +7,13 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat.pyarrow import pa_version_under17p0
+
 from pandas import (
     DataFrame,
+    Index,
     date_range,
     read_csv,
     read_excel,
@@ -51,7 +56,7 @@ def gcs_buffer():
 # Patches pyarrow; other processes should not pick up change
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
-def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
+def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
     """
     Test that many to/read functions support GCS.
 
@@ -77,7 +82,12 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
         df1.to_excel(path)
         df2 = read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":
-        df1.to_json(path)
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df1.to_json(path)
         df2 = read_json(path, convert_dates=["dt"])
     elif format == "parquet":
         pytest.importorskip("pyarrow")
@@ -90,6 +100,13 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
                 to_local = pathlib.Path(path.replace("gs://", "")).absolute().as_uri()
                 return pa_fs.LocalFileSystem(to_local)
 
+        request.applymarker(
+            pytest.mark.xfail(
+                not pa_version_under17p0,
+                raises=TypeError,
+                reason="pyarrow 17 broke the mocked filesystem",
+            )
+        )
         with monkeypatch.context() as m:
             m.setattr(pa_fs, "FileSystem", MockFileSystem)
             df1.to_parquet(path)
@@ -101,7 +118,11 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
         df1.to_markdown(path)
         df2 = df1
 
-    tm.assert_frame_equal(df1, df2)
+    expected = df1[:]
+    if format in ["csv", "excel"]:
+        expected["dt"] = expected["dt"].dt.as_unit("s")
+
+    tm.assert_frame_equal(df2, expected)
 
 
 def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
@@ -114,15 +135,17 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
     """
     if compression == "zip":
         # Only compare the CRC checksum of the file contents
-        with zipfile.ZipFile(BytesIO(result)) as exp, zipfile.ZipFile(
-            BytesIO(expected)
-        ) as res:
+        with (
+            zipfile.ZipFile(BytesIO(result)) as exp,
+            zipfile.ZipFile(BytesIO(expected)) as res,
+        ):
             for res_info, exp_info in zip(res.infolist(), exp.infolist()):
                 assert res_info.CRC == exp_info.CRC
     elif compression == "tar":
-        with tarfile.open(fileobj=BytesIO(result)) as tar_exp, tarfile.open(
-            fileobj=BytesIO(expected)
-        ) as tar_res:
+        with (
+            tarfile.open(fileobj=BytesIO(result)) as tar_exp,
+            tarfile.open(fileobj=BytesIO(expected)) as tar_res,
+        ):
             for tar_res_info, tar_exp_info in zip(
                 tar_res.getmembers(), tar_exp.getmembers()
             ):
@@ -135,6 +158,7 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
         assert result == expected
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("encoding", ["utf-8", "cp1251"])
 def test_to_csv_compression_encoding_gcs(
     gcs_buffer, compression_only, encoding, compression_to_extension
@@ -145,7 +169,11 @@ def test_to_csv_compression_encoding_gcs(
     GH 35677 (to_csv, compression), GH 26124 (to_csv, encoding), and
     GH 32392 (read_csv, encoding)
     """
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # reference of compressed and encoded file
     compression = {"method": compression_only}
@@ -180,6 +208,7 @@ def test_to_csv_compression_encoding_gcs(
     tm.assert_frame_equal(df, read_df)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")

@@ -13,6 +13,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -23,12 +24,8 @@ import pandas._testing as tm
 def test_at_timezone():
     # https://github.com/pandas-dev/pandas/issues/33544
     result = DataFrame({"foo": [datetime(2000, 1, 1)]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
-    expected = DataFrame(
-        {"foo": [datetime(2000, 1, 2, tzinfo=timezone.utc)]}, dtype=object
-    )
-    tm.assert_frame_equal(result, expected)
 
 
 def test_selection_methods_of_assigned_col():
@@ -70,7 +67,11 @@ class TestAtSetItem:
         df.at[0, "x"] = 4
         df.at[0, "cost"] = 789
 
-        expected = DataFrame({"x": [4], "cost": 789}, index=[0])
+        expected = DataFrame(
+            {"x": [4], "cost": 789},
+            index=[0],
+            columns=Index(["x", "cost"], dtype=object),
+        )
         tm.assert_frame_equal(df, expected)
 
         # And in particular, check that the _item_cache has updated correctly.
@@ -131,7 +132,11 @@ class TestAtSetItem:
 class TestAtSetItemWithExpansion:
     def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
         # GH#25506
-        ts = Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
+        ts = (
+            Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
+            if tz_naive_fixture is not None
+            else Timestamp("2017-08-05 00:00:00+0100")
+        )
         result = Series(ts)
         result.at[1] = ts
         expected = Series([ts, ts])

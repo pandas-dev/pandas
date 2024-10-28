@@ -7,6 +7,7 @@ import pytest
 from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
@@ -65,14 +66,14 @@ class BaseMethodsTests:
             expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
 
-        if getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
+        if isinstance(data.dtype, pd.StringDtype) and data.dtype.na_value is np.nan:
+            # TODO: avoid special-casing
+            expected = expected.astype("float64")
+        elif getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
             data.dtype, pd.ArrowDtype
         ):
             # TODO: avoid special-casing
             expected = expected.astype("double[pyarrow]")
-        elif getattr(data.dtype, "storage", "") == "pyarrow_numpy":
-            # TODO: avoid special-casing
-            expected = expected.astype("float64")
         elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
@@ -115,10 +116,8 @@ class BaseMethodsTests:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
-        msg = "The behavior of Series.argsort in the presence of NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
+        result = pd.Series(data_missing_for_sorting).argsort()
+        expected = pd.Series(np.array([2, 0, 1], dtype=np.intp))
         tm.assert_series_equal(result, expected)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
@@ -168,8 +167,8 @@ class BaseMethodsTests:
             ("idxmin", True, 2),
             ("argmax", True, 0),
             ("argmin", True, 2),
-            ("idxmax", False, np.nan),
-            ("idxmin", False, np.nan),
+            ("idxmax", False, -1),
+            ("idxmin", False, -1),
             ("argmax", False, -1),
             ("argmin", False, -1),
         ],
@@ -178,26 +177,22 @@ class BaseMethodsTests:
         self, data_missing_for_sorting, op_name, skipna, expected
     ):
         # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
-        warn = None
-        msg = "The behavior of Series.argmax/argmin"
-        if op_name.startswith("arg") and expected == -1:
-            warn = FutureWarning
-        if op_name.startswith("idx") and np.isnan(expected):
-            warn = FutureWarning
-            msg = f"The behavior of Series.{op_name}"
         ser = pd.Series(data_missing_for_sorting)
-        with tm.assert_produces_warning(warn, match=msg):
+        if expected == -1:
+            with pytest.raises(ValueError, match="Encountered an NA value"):
+                getattr(ser, op_name)(skipna=skipna)
+        else:
             result = getattr(ser, op_name)(skipna=skipna)
-        tm.assert_almost_equal(result, expected)
+            tm.assert_almost_equal(result, expected)
 
     def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
         # GH#38733
         data = data_missing_for_sorting
 
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             data.argmin(skipna=False)
 
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             data.argmax(skipna=False)
 
     @pytest.mark.parametrize(
@@ -262,7 +257,7 @@ class BaseMethodsTests:
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method):
-        duplicated = box(data._from_sequence([data[0], data[0]]))
+        duplicated = box(data._from_sequence([data[0], data[0]], dtype=data.dtype))
 
         result = method(duplicated)
 
@@ -302,6 +297,20 @@ class BaseMethodsTests:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_extension_array_equal(uniques, expected_uniques)
 
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        df = pd.DataFrame({"A": data_missing.take([0, 1, 0, 1])})
+        expected = pd.DataFrame({"A": data_missing.take([1, 1, 0, 1])})
+        result = df.fillna(value=data_missing[1], limit=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        ser = pd.Series(data_missing.take([0, 1, 0, 1]))
+        expected = pd.Series(data_missing.take([1, 1, 0, 1]))
+        result = ser.fillna(value=data_missing[1], limit=1)
+        tm.assert_series_equal(result, expected)
+
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
@@ -331,7 +340,7 @@ class BaseMethodsTests:
             data_missing.fillna(data_missing.take([1]))
 
     # Subclasses can override if we expect e.g Sparse[bool], boolean, pyarrow[bool]
-    _combine_le_expected_dtype: Dtype = np.dtype(bool)
+    _combine_le_expected_dtype: Dtype = NumpyEADtype("bool")
 
     def test_combine_le(self, data_repeated):
         # GH 20825
@@ -341,16 +350,20 @@ class BaseMethodsTests:
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
-            dtype=self._combine_le_expected_dtype,
+            pd.array(
+                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+                dtype=self._combine_le_expected_dtype,
+            )
         )
         tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            [a <= val for a in list(orig_data1)],
-            dtype=self._combine_le_expected_dtype,
+            pd.array(
+                [a <= val for a in list(orig_data1)],
+                dtype=self._combine_le_expected_dtype,
+            )
         )
         tm.assert_series_equal(result, expected)
 
@@ -536,7 +549,7 @@ class BaseMethodsTests:
         dtype = data_for_sorting.dtype
         data_for_sorting = pd.array([True, False], dtype=dtype)
         b, a = data_for_sorting
-        arr = type(data_for_sorting)._from_sequence([a, b])
+        arr = type(data_for_sorting)._from_sequence([a, b], dtype=dtype)
 
         if as_series:
             arr = pd.Series(arr)

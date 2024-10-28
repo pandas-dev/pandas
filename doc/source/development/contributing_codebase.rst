@@ -38,7 +38,7 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``ruff``,
+like ``ruff``,
 ``isort``, and ``clang-format`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
@@ -244,7 +244,7 @@ in your python environment.
 
 .. warning::
 
-    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.mamba>` or select a `recently succeeded workflow <https://github.com/pandas-dev/pandas/actions/workflows/code-checks.yml?query=branch%3Amain+is%3Asuccess>`_, select the "Docstring validation, typing, and other manual pre-commit hooks" job, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
+    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.conda>` or select a `recently succeeded workflow <https://github.com/pandas-dev/pandas/actions/workflows/code-checks.yml?query=branch%3Amain+is%3Asuccess>`_, select the "Docstring validation, typing, and other manual pre-commit hooks" job, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
 
 .. _contributing.ci:
 
@@ -253,7 +253,7 @@ Testing type hints in code using pandas
 
 .. warning::
 
-    * Pandas is not yet a py.typed library (:pep:`561`)!
+    * pandas is not yet a py.typed library (:pep:`561`)!
       The primary purpose of locally declaring pandas as a py.typed library is to test and
       improve the pandas-builtin type annotations.
 
@@ -557,11 +557,12 @@ is being raised, using ``pytest.raises`` instead.
 Testing a warning
 ^^^^^^^^^^^^^^^^^
 
-Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning.
+Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning
+and specify the warning message using the ``match`` argument.
 
 .. code-block:: python
 
-    with tm.assert_produces_warning(DeprecationWarning):
+    with tm.assert_produces_warning(DeprecationWarning, match="the warning message"):
         pd.deprecated_function()
 
 If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.
@@ -596,14 +597,15 @@ with the specific exception subclass (i.e. never use :py:class:`Exception`) and 
 Testing involving files
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``tm.ensure_clean`` context manager creates a temporary file for testing,
-with a generated filename (or your filename if provided), that is automatically
-deleted when the context block is exited.
+The ``temp_file`` pytest fixture creates a temporary file :py:class:`Pathlib` object for testing:
 
 .. code-block:: python
 
-    with tm.ensure_clean('my_file_path') as path:
-        # do something with the path
+    def test_something(temp_file):
+        pd.DataFrame([1]).to_csv(str(temp_file))
+
+Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#the-default-base-temporary-directory>`_
+for the file retention policy.
 
 Testing involving network connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -760,8 +762,7 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite (tip: you can use the `pandas-coverage app <https://pandas-coverage-12d2130077bc.herokuapp.com/>`_)
-to find out which tests hit the lines of code you've modified, and then run only those).
+entire suite.
 
 The easiest way to do this is with::
 

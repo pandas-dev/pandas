@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs.timezones import maybe_get_tz
 import pandas.util._test_decorators as td
 
@@ -21,6 +23,10 @@ import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
+)
+
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
 )
 
 
@@ -104,7 +110,7 @@ def test_append_with_timezones(setup_path, gettz):
 
         msg = (
             r"invalid info for \[values_block_1\] for \[tz\], "
-            r"existing_value \[(dateutil/.*)?US/Eastern\] "
+            r"existing_value \[(dateutil/.*)?(US/Eastern|America/New_York)\] "
             r"conflicts with new value \[(dateutil/.*)?EET\]"
         )
         with pytest.raises(ValueError, match=msg):
@@ -148,16 +154,20 @@ def test_append_with_timezones_as_index(setup_path, gettz):
         tm.assert_frame_equal(result, df)
 
 
-def test_roundtrip_tz_aware_index(setup_path):
+def test_roundtrip_tz_aware_index(setup_path, unit):
     # GH 17618
-    time = Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
-    df = DataFrame(data=[0], index=[time])
+    ts = Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
+    dti = DatetimeIndex([ts]).as_unit(unit)
+    df = DataFrame(data=[0], index=dti)
 
     with ensure_clean_store(setup_path) as store:
         store.put("frame", df, format="fixed")
         recons = store["frame"]
         tm.assert_frame_equal(recons, df)
-        assert recons.index[0]._value == 946706400000000000
+
+    value = recons.index[0]._value
+    denom = {"ns": 1, "us": 1000, "ms": 10**6, "s": 10**9}[unit]
+    assert value == 946706400000000000 // denom
 
 
 def test_store_index_name_with_tz(setup_path):
@@ -308,23 +318,6 @@ def test_store_timezone(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-def test_legacy_datetimetz_object(datapath):
-    # legacy from < 0.17.0
-    # 8260
-    expected = DataFrame(
-        {
-            "A": Timestamp("20130102", tz="US/Eastern").as_unit("ns"),
-            "B": Timestamp("20130603", tz="CET").as_unit("ns"),
-        },
-        index=range(5),
-    )
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "datetimetz_object.h5"), mode="r"
-    ) as store:
-        result = store["df"]
-        tm.assert_frame_equal(result, expected)
-
-
 def test_dst_transitions(setup_path):
     # make sure we are not failing on transitions
     with ensure_clean_store(setup_path) as store:
@@ -358,17 +351,3 @@ def test_read_with_where_tz_aware_index(tmp_path, setup_path):
         store.append(key, expected, format="table", append=True)
     result = pd.read_hdf(path, key, where="DATE > 20151130")
     tm.assert_frame_equal(result, expected)
-
-
-def test_py2_created_with_datetimez(datapath):
-    # The test HDF5 file was created in Python 2, but could not be read in
-    # Python 3.
-    #
-    # GH26443
-    index = [Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
-    expected = DataFrame({"data": 123}, index=index)
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"
-    ) as store:
-        result = store["key"]
-        tm.assert_frame_equal(result, expected)

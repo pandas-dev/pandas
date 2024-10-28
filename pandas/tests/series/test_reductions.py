@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -51,6 +55,16 @@ def test_mode_nullable_dtype(any_numeric_ea_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_mode_infer_string():
+    # GH#56183
+    pytest.importorskip("pyarrow")
+    ser = Series(["a", "b"], dtype=object)
+    with pd.option_context("future.infer_string", True):
+        result = ser.mode()
+    expected = Series(["a", "b"], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
 def test_reductions_td64_with_nat():
     # GH#8617
     ser = Series([0, pd.NaT], dtype="m8[ns]")
@@ -60,7 +74,6 @@ def test_reductions_td64_with_nat():
     assert ser.max() == exp
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 def test_td64_sum_empty(skipna):
     # GH#37151
     ser = Series([], dtype="timedelta64[ns]")
@@ -153,7 +166,10 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-def test_mean_with_convertible_string_raises(using_array_manager, using_infer_string):
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
+def test_mean_with_convertible_string_raises(using_infer_string):
     # GH#44008
     ser = Series(["1", "2"])
     if using_infer_string:
@@ -167,19 +183,18 @@ def test_mean_with_convertible_string_raises(using_array_manager, using_infer_st
         ser.mean()
 
     df = ser.to_frame()
-    if not using_array_manager:
-        msg = r"Could not convert \['12'\] to numeric|does not support"
+    msg = r"Could not convert \['12'\] to numeric|does not support"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
 
-def test_mean_dont_convert_j_to_complex(using_array_manager):
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
+def test_mean_dont_convert_j_to_complex():
     # GH#36703
     df = pd.DataFrame([{"db": "J", "numeric": 123}])
-    if using_array_manager:
-        msg = "Could not convert string 'J' to numeric"
-    else:
-        msg = r"Could not convert \['J'\] to numeric|does not support"
+    msg = r"Could not convert \['J'\] to numeric|does not support"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
@@ -194,15 +209,17 @@ def test_mean_dont_convert_j_to_complex(using_array_manager):
         np.mean(df["db"].astype("string").array)
 
 
-def test_median_with_convertible_string_raises(using_array_manager):
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
+def test_median_with_convertible_string_raises():
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
     msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support"
     ser = Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
-    if not using_array_manager:
-        msg = r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support"
+    msg = r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support"
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):
         df.median()

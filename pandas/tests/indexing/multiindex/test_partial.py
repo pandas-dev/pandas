@@ -1,13 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     MultiIndex,
     date_range,
-    to_datetime,
 )
 import pandas._testing as tm
 
@@ -95,7 +93,7 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(result, expected)
 
         ymd = multiindex_year_month_day_dataframe_random_data
-        result = ymd.loc[(2000, 2):(2000, 4)]
+        result = ymd.loc[(2000, 2) : (2000, 4)]
         lev = ymd.index.codes[1]
         expected = ymd[(lev >= 1) & (lev <= 3)]
         tm.assert_frame_equal(result, expected)
@@ -118,14 +116,9 @@ class TestMultiIndexPartial:
         with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
             df.loc[("a", "foo"), :]
 
-    # TODO(ArrayManager) rewrite test to not use .values
-    # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
-    @td.skip_array_manager_invalid_test
     def test_partial_set(
         self,
         multiindex_year_month_day_dataframe_random_data,
-        using_copy_on_write,
-        warn_copy_on_write,
     ):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -135,14 +128,9 @@ class TestMultiIndexPartial:
         exp.iloc[65:85] = 0
         tm.assert_frame_equal(df, exp)
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                df["A"].loc[2000, 4] = 1
-            df.loc[(2000, 4), "A"] = 1
-        else:
-            # TODO(CoW-warn) should raise custom warning message about chaining?
-            with tm.assert_cow_warning(warn_copy_on_write):
-                df["A"].loc[2000, 4] = 1
+        with tm.raises_chained_assignment_error():
+            df["A"].loc[2000, 4] = 1
+        df.loc[(2000, 4), "A"] = 1
         exp.iloc[65:85, 0] = 1
         tm.assert_frame_equal(df, exp)
 
@@ -151,15 +139,9 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(df, exp)
 
         # this works...for now
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                df["A"].iloc[14] = 5
-            df["A"].iloc[14] == exp["A"].iloc[14]
-        else:
-            # TODO(CoW-warn) should raise custom warning message about chaining?
-            with tm.assert_cow_warning(warn_copy_on_write):
-                df["A"].iloc[14] = 5
-            assert df["A"].iloc[14] == 5
+        with tm.raises_chained_assignment_error():
+            df["A"].iloc[14] = 5
+        assert df["A"].iloc[14] == exp["A"].iloc[14]
 
     @pytest.mark.parametrize("dtype", [int, float])
     def test_getitem_intkey_leading_level(
@@ -219,7 +201,11 @@ class TestMultiIndexPartial:
     @pytest.mark.parametrize(
         "indexer, exp_idx, exp_values",
         [
-            (slice("2019-2", None), [to_datetime("2019-02-01")], [2, 3]),
+            (
+                slice("2019-2", None),
+                DatetimeIndex(["2019-02-01"], dtype="M8[ns]"),
+                [2, 3],
+            ),
             (
                 slice(None, "2019-2"),
                 date_range("2019", periods=2, freq="MS"),

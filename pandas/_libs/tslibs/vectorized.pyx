@@ -234,7 +234,7 @@ def get_resolution(
 
     for i in range(n):
         # Analogous to: utc_val = stamps[i]
-        utc_val = cnp.PyArray_GETITEM(stamps, cnp.PyArray_ITER_DATA(it))
+        utc_val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
         if utc_val == NPY_NAT:
             pass
@@ -331,7 +331,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
 
     for i in range(n):
         # Analogous to: utc_val = stamps[i]
-        utc_val = cnp.PyArray_GETITEM(stamps, cnp.PyArray_ITER_DATA(it))
+        utc_val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
         local_val = info.utc_val_to_local_val(utc_val, &pos)
 

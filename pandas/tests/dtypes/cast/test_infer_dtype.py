@@ -159,8 +159,10 @@ def test_infer_dtype_from_scalar_errors():
         (Timestamp("20160101", tz="UTC"), "datetime64[s, UTC]"),
     ],
 )
-def test_infer_dtype_from_scalar(value, expected):
+def test_infer_dtype_from_scalar(value, expected, using_infer_string):
     dtype, _ = infer_dtype_from_scalar(value)
+    if using_infer_string and value == "foo":
+        expected = "string"
     assert is_dtype_equal(dtype, expected)
 
     with pytest.raises(TypeError, match="must be list-like"):
@@ -189,8 +191,14 @@ def test_infer_dtype_from_scalar(value, expected):
         ),
     ],
 )
-def test_infer_dtype_from_array(arr, expected):
+def test_infer_dtype_from_array(arr, expected, using_infer_string):
     dtype, _ = infer_dtype_from_array(arr)
+    if (
+        using_infer_string
+        and isinstance(arr, Series)
+        and arr.tolist() == ["a", "b", "c"]
+    ):
+        expected = "string"
     assert is_dtype_equal(dtype, expected)
 
 

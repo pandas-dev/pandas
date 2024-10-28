@@ -10,6 +10,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     concat,
     date_range,
     period_range,
@@ -17,10 +18,7 @@ from pandas import (
     to_datetime,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class ToCSV(BaseIO):
@@ -288,7 +286,7 @@ class ReadCSVSkipRows(BaseIO):
 
     def setup(self, skiprows, engine):
         N = 20000
-        index = tm.makeStringIndex(N)
+        index = Index([f"i-{i}" for i in range(N)], dtype=object)
         df = DataFrame(
             {
                 "float1": np.random.randn(N),
@@ -410,6 +408,9 @@ class ReadCSVEngine(StringIORewind):
     def time_read_bytescsv(self, engine):
         read_csv(self.data(self.BytesIO_input), engine=engine)
 
+    def peakmem_read_csv(self, engine):
+        read_csv(self.data(self.BytesIO_input), engine=engine)
+
 
 class ReadCSVCategorical(BaseIO):
     fname = "__test__.csv"
@@ -443,16 +444,6 @@ class ReadCSVParseDates(StringIORewind):
         two_cols = ["KORD,19990127"] * 5
         data = data.format(*two_cols)
         self.StringIO_input = StringIO(data)
-
-    def time_multiple_date(self, engine):
-        read_csv(
-            self.data(self.StringIO_input),
-            engine=engine,
-            sep=",",
-            header=None,
-            names=list(string.digits[:9]),
-            parse_dates=[[1, 2], [1, 3]],
-        )
 
     def time_baseline(self, engine):
         read_csv(

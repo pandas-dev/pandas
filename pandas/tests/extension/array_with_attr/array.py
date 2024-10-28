@@ -2,6 +2,7 @@
 Test extension array that has custom attribute information (not stored on the dtype).
 
 """
+
 from __future__ import annotations
 
 import numbers
@@ -48,8 +49,11 @@ class FloatAttrArray(ExtensionArray):
         self.attr = attr
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
-        data = np.array(scalars, dtype="float64", copy=copy)
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+        if not copy:
+            data = np.asarray(scalars, dtype="float64")
+        else:
+            data = np.array(scalars, dtype="float64", copy=copy)
         return cls(data)
 
     def __getitem__(self, item):

@@ -44,6 +44,7 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.hashtable.HashTable.set_na",
     "pandas._libs.hashtable.HashTable.sizeof",
     "pandas._libs.hashtable.HashTable.unique",
+    "pandas._libs.hashtable.HashTable.hash_inner_join",
     # stubtest might be too sensitive
     "pandas._libs.lib.NoDefault",
     "pandas._libs.lib._NoDefault.no_default",
@@ -69,7 +70,6 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.sparse.SparseIndex.to_block_index",
     "pandas._libs.sparse.SparseIndex.to_int_index",
     # TODO (decorator changes argument names)
-    "pandas._libs.tslibs.offsets.BaseOffset._apply_array",
     "pandas._libs.tslibs.offsets.BusinessHour.rollback",
     "pandas._libs.tslibs.offsets.BusinessHour.rollforward ",
     # type alias

@@ -28,16 +28,6 @@ class TestMultiLevel:
         expected = ymd["A"].groupby(level="month").transform("sum")
         tm.assert_series_equal(result, expected, check_names=False)
 
-        # axis=1
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            gb = ymd.T.groupby("month", axis=1)
-
-        month_sums = gb.sum()
-        result = month_sums.reindex(columns=ymd.index, level=1)
-        expected = ymd.groupby(level="month").transform("sum").T
-        tm.assert_frame_equal(result, expected)
-
     def test_reindex(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
 
@@ -46,26 +36,20 @@ class TestMultiLevel:
         tm.assert_frame_equal(reindexed, expected)
 
     def test_reindex_preserve_levels(
-        self, multiindex_year_month_day_dataframe_random_data, using_copy_on_write
+        self, multiindex_year_month_day_dataframe_random_data
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
 
         new_index = ymd.index[::10]
         chunk = ymd.reindex(new_index)
-        if using_copy_on_write:
-            assert chunk.index.is_(new_index)
-        else:
-            assert chunk.index is new_index
+        assert chunk.index.is_(new_index)
 
         chunk = ymd.loc[new_index]
         assert chunk.index.equals(new_index)
 
         ymdT = ymd.T
         chunk = ymdT.reindex(columns=new_index)
-        if using_copy_on_write:
-            assert chunk.columns.is_(new_index)
-        else:
-            assert chunk.columns is new_index
+        assert chunk.columns.is_(new_index)
 
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns.equals(new_index)
@@ -96,27 +80,6 @@ class TestMultiLevel:
         )
         # should work
         df.groupby(level="three")
-
-    def test_groupby_level_no_obs(self):
-        # #1697
-        midx = MultiIndex.from_tuples(
-            [
-                ("f1", "s1"),
-                ("f1", "s2"),
-                ("f2", "s1"),
-                ("f2", "s2"),
-                ("f3", "s1"),
-                ("f3", "s2"),
-            ]
-        )
-        df = DataFrame([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], columns=midx)
-        df1 = df.loc(axis=1)[df.columns.map(lambda u: u[0] in ["f2", "f3"])]
-
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouped = df1.groupby(axis=1, level=0)
-        result = grouped.sum()
-        assert (result.columns == ["f2", "f3"]).all()
 
     def test_setitem_with_expansion_multiindex_columns(
         self, multiindex_year_month_day_dataframe_random_data
@@ -158,8 +121,7 @@ class TestMultiLevel:
 
         expected = ymd.groupby([k1, k2]).mean()
 
-        # TODO groupby with level_values drops names
-        tm.assert_frame_equal(result, expected, check_names=False)
+        tm.assert_frame_equal(result, expected)
         assert result.index.names == ymd.index.names[:2]
 
         result2 = ymd.groupby(level=ymd.index.names[:2]).mean()
@@ -172,7 +134,7 @@ class TestMultiLevel:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)), index=index, columns=index
         )
-        df["Totals", ""] = df.sum(1)
+        df["Totals", ""] = df.sum(axis=1)
         df = df._consolidate()
 
     def test_level_with_tuples(self):
@@ -325,6 +287,13 @@ class TestMultiLevel:
         ).set_index(["pivot_0", "pivot_1"])
 
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("na", [None, np.nan])
+    def test_multiindex_insert_level_with_na(self, na):
+        # GH 59003
+        df = DataFrame([0], columns=[["A"], ["B"]])
+        df[na, "B"] = 1
+        tm.assert_frame_equal(df[na], DataFrame([1], columns=["B"]))
 
 
 class TestSorted:

@@ -1,23 +1,39 @@
+import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 from pandas import (
     DataFrame,
     HDFStore,
-    _testing as tm,
+    Index,
+    Series,
+    date_range,
 )
 from pandas.tests.io.pytables.common import (
     ensure_clean_store,
     tables,
 )
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 def test_keys(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
-        store["b"] = tm.makeStringSeries()
-        store["c"] = tm.makeDataFrame()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
+        store["b"] = Series(
+            range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
+        )
+        store["c"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
         assert len(store) == 3
         expected = {"/a", "/b", "/c"}

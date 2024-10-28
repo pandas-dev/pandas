@@ -86,9 +86,12 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            how = "last"
-            series = getattr(series.resample("D"), how)().dropna()
-            series = getattr(series.resample(ax_freq), how)().dropna()
+            # Resampling with PeriodDtype is deprecated, so we convert to
+            #  DatetimeIndex, resample, then convert back.
+            ser_ts = series.to_timestamp()
+            ser_d = ser_ts.resample("D").last().dropna()
+            ser_freq = ser_d.resample(ax_freq).last().dropna()
+            series = ser_freq.to_period(ax_freq)
             freq = ax_freq
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
@@ -111,8 +114,8 @@ def _is_sup(f1: str, f2: str) -> bool:
 
 def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
     legend = ax.get_legend()
-    lines, labels = _replot_ax(ax, freq, kwargs)
-    _replot_ax(ax, freq, kwargs)
+    lines, labels = _replot_ax(ax, freq)
+    _replot_ax(ax, freq)
 
     other_ax = None
     if hasattr(ax, "left_ax"):
@@ -121,7 +124,7 @@ def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None
         other_ax = ax.right_ax
 
     if other_ax is not None:
-        rlines, rlabels = _replot_ax(other_ax, freq, kwargs)
+        rlines, rlabels = _replot_ax(other_ax, freq)
         lines.extend(rlines)
         labels.extend(rlabels)
 
@@ -132,7 +135,7 @@ def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None
         ax.legend(lines, labels, loc="best", title=title)
 
 
-def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
+def _replot_ax(ax: Axes, freq: BaseOffset):
     data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
@@ -140,7 +143,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
     ax._plot_data = []  # type: ignore[attr-defined]
     ax.clear()
 
-    decorate_axes(ax, freq, kwargs)
+    decorate_axes(ax, freq)
 
     lines = []
     labels = []
@@ -164,7 +167,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
     return lines, labels
 
 
-def decorate_axes(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
+def decorate_axes(ax: Axes, freq: BaseOffset) -> None:
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
         # TODO #54485
@@ -175,15 +178,6 @@ def decorate_axes(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
     xaxis = ax.get_xaxis()
     # TODO #54485
     xaxis.freq = freq  # type: ignore[attr-defined]
-    if not hasattr(ax, "legendlabels"):
-        # TODO #54485
-        ax.legendlabels = [kwargs.get("label", None)]  # type: ignore[attr-defined]
-    else:
-        ax.legendlabels.append(kwargs.get("label", None))
-    # TODO #54485
-    ax.view_interval = None  # type: ignore[attr-defined]
-    # TODO #54485
-    ax.date_axis_info = None  # type: ignore[attr-defined]
 
 
 def _get_ax_freq(ax: Axes):
@@ -211,7 +205,10 @@ def _get_ax_freq(ax: Axes):
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
-    freqstr = to_offset(freq, is_period=True).rule_code
+    if isinstance(freq, BaseOffset):
+        freqstr = freq.name
+    else:
+        freqstr = to_offset(freq, is_period=True).rule_code
 
     return get_period_alias(freqstr)
 
@@ -256,9 +253,7 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
-        base = to_offset(
-            freq_str, is_period=True
-        )._period_dtype_code  # type: ignore[attr-defined]
+        base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
@@ -315,7 +310,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
             if isinstance(data.index, ABCDatetimeIndex):
                 data = data.tz_localize(None).to_period(freq=freq_str)
             elif isinstance(data.index, ABCPeriodIndex):
-                data.index = data.index.asfreq(freq=freq_str)
+                data.index = data.index.asfreq(freq=freq_str, how="start")
     return data
 
 
@@ -338,7 +333,7 @@ def format_dateaxis(
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
     """
-    from matplotlib import pylab
+    import matplotlib.pyplot as plt
 
     # handle index specific formatting
     # Note: DatetimeIndex does not use this
@@ -370,4 +365,4 @@ def format_dateaxis(
     else:
         raise TypeError("index type not supported")
 
-    pylab.draw_if_interactive()
+    plt.draw_if_interactive()

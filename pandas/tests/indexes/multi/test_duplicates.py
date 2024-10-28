@@ -243,13 +243,14 @@ def test_has_duplicates_overflow(nlevels, with_nulls):
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", np.array([False, False, False, True, True, False])),
-        ("last", np.array([False, True, True, False, False, False])),
-        (False, np.array([False, True, True, True, True, False])),
+        ("first", [False, False, False, True, True, False]),
+        ("last", [False, True, True, False, False, False]),
+        (False, [False, True, True, True, True, False]),
     ],
 )
 def test_duplicated(idx_dup, keep, expected):
     result = idx_dup.duplicated(keep=keep)
+    expected = np.array(expected)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -257,7 +258,7 @@ def test_duplicated(idx_dup, keep, expected):
 def test_duplicated_hashtable_impl(keep, monkeypatch):
     # GH 9125
     n, k = 6, 10
-    levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
+    levels = [np.arange(n), [str(i) for i in range(n)], 1000 + np.arange(n)]
     codes = [np.random.default_rng(2).choice(n, k * n) for _ in levels]
     with monkeypatch.context() as m:
         m.setattr(libindex, "_SIZE_CUTOFF", 50)
@@ -319,14 +320,7 @@ def test_duplicated_drop_duplicates():
     tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        np.complex64,
-        np.complex128,
-    ],
-)
-def test_duplicated_series_complex_numbers(dtype):
+def test_duplicated_series_complex_numbers(complex_dtype):
     # GH 17927
     expected = Series(
         [False, False, False, True, False, False, False, True, False, True],
@@ -345,7 +339,7 @@ def test_duplicated_series_complex_numbers(dtype):
             np.nan,
             np.nan + np.nan * 1j,
         ],
-        dtype=dtype,
+        dtype=complex_dtype,
     ).duplicated()
     tm.assert_series_equal(result, expected)
 

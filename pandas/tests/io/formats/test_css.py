@@ -38,30 +38,31 @@ def test_css_parse_normalisation(name, norm, abnorm):
 
 
 @pytest.mark.parametrize(
-    "invalid_css,remainder",
+    "invalid_css,remainder,msg",
     [
         # No colon
-        ("hello-world", ""),
-        ("border-style: solid; hello-world", "border-style: solid"),
+        ("hello-world", "", "expected a colon"),
+        ("border-style: solid; hello-world", "border-style: solid", "expected a colon"),
         (
             "border-style: solid; hello-world; font-weight: bold",
             "border-style: solid; font-weight: bold",
+            "expected a colon",
         ),
         # Unclosed string fail
         # Invalid size
-        ("font-size: blah", "font-size: 1em"),
-        ("font-size: 1a2b", "font-size: 1em"),
-        ("font-size: 1e5pt", "font-size: 1em"),
-        ("font-size: 1+6pt", "font-size: 1em"),
-        ("font-size: 1unknownunit", "font-size: 1em"),
-        ("font-size: 10", "font-size: 1em"),
-        ("font-size: 10 pt", "font-size: 1em"),
+        ("font-size: blah", "font-size: 1em", "Unhandled size"),
+        ("font-size: 1a2b", "font-size: 1em", "Unhandled size"),
+        ("font-size: 1e5pt", "font-size: 1em", "Unhandled size"),
+        ("font-size: 1+6pt", "font-size: 1em", "Unhandled size"),
+        ("font-size: 1unknownunit", "font-size: 1em", "Unhandled size"),
+        ("font-size: 10", "font-size: 1em", "Unhandled size"),
+        ("font-size: 10 pt", "font-size: 1em", "Unhandled size"),
         # Too many args
-        ("border-top: 1pt solid red green", "border-top: 1pt solid green"),
+        ("border-top: 1pt solid red green", "border-top: 1pt solid green", "Too many"),
     ],
 )
-def test_css_parse_invalid(invalid_css, remainder):
-    with tm.assert_produces_warning(CSSWarning):
+def test_css_parse_invalid(invalid_css, remainder, msg):
+    with tm.assert_produces_warning(CSSWarning, match=msg):
         assert_same_resolution(invalid_css, remainder)
 
 
@@ -120,7 +121,7 @@ def test_css_side_shorthands(shorthand, expansions):
         {top: "1pt", right: "4pt", bottom: "2pt", left: "0pt"},
     )
 
-    with tm.assert_produces_warning(CSSWarning):
+    with tm.assert_produces_warning(CSSWarning, match="Could not expand"):
         assert_resolves(f"{shorthand}: 1pt 1pt 1pt 1pt 1pt", {})
 
 
@@ -242,7 +243,6 @@ def test_css_none_absent(style, equiv):
         (".25in", "18pt"),
         ("02.54cm", "72pt"),
         ("25.4mm", "72pt"),
-        ("101.6q", "72pt"),
         ("101.6q", "72pt"),
     ],
 )

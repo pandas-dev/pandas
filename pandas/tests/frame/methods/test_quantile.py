@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -45,9 +47,7 @@ class TestDataFrameQuantile:
         expected = expected.astype("Sparse[float]")
         tm.assert_series_equal(result, expected)
 
-    def test_quantile(
-        self, datetime_frame, interp_method, using_array_manager, request
-    ):
+    def test_quantile(self, datetime_frame, interp_method, request):
         interpolation, method = interp_method
         df = datetime_frame
         result = df.quantile(
@@ -63,11 +63,6 @@ class TestDataFrameQuantile:
             tm.assert_series_equal(result, expected)
         else:
             tm.assert_index_equal(result.index, expected.index)
-            request.applymarker(
-                pytest.mark.xfail(
-                    using_array_manager, reason="Name set incorrectly for arraymanager"
-                )
-            )
             assert result.name == expected.name
 
         result = df.quantile(
@@ -83,11 +78,6 @@ class TestDataFrameQuantile:
             tm.assert_series_equal(result, expected)
         else:
             tm.assert_index_equal(result.index, expected.index)
-            request.applymarker(
-                pytest.mark.xfail(
-                    using_array_manager, reason="Name set incorrectly for arraymanager"
-                )
-            )
             assert result.name == expected.name
 
     def test_empty(self, interp_method):
@@ -97,7 +87,7 @@ class TestDataFrameQuantile:
         )
         assert np.isnan(q["x"]) and np.isnan(q["y"])
 
-    def test_non_numeric_exclusion(self, interp_method, request, using_array_manager):
+    def test_non_numeric_exclusion(self, interp_method, request):
         interpolation, method = interp_method
         df = DataFrame({"col1": ["A", "A", "B", "B"], "col2": [1, 2, 3, 4]})
         rs = df.quantile(
@@ -106,13 +96,9 @@ class TestDataFrameQuantile:
         xp = df.median(numeric_only=True).rename(0.5)
         if interpolation == "nearest":
             xp = (xp + 0.5).astype(np.int64)
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         tm.assert_series_equal(rs, xp)
 
-    # TODO(CoW-warn) should not need to warn
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-    def test_axis(self, interp_method, request, using_array_manager):
+    def test_axis(self, interp_method):
         # axis
         interpolation, method = interp_method
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
@@ -120,8 +106,6 @@ class TestDataFrameQuantile:
         expected = Series([1.5, 2.5, 3.5], index=[1, 2, 3], name=0.5)
         if interpolation == "nearest":
             expected = expected.astype(np.int64)
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         tm.assert_series_equal(result, expected)
 
         result = df.quantile(
@@ -136,7 +120,7 @@ class TestDataFrameQuantile:
             expected = expected.astype(np.int64)
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
-    def test_axis_numeric_only_true(self, interp_method, request, using_array_manager):
+    def test_axis_numeric_only_true(self, interp_method):
         # We may want to break API in the future to change this
         # so that we exclude non-numeric along the same axis
         # See GH #7312
@@ -145,14 +129,12 @@ class TestDataFrameQuantile:
         result = df.quantile(
             0.5, axis=1, numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = Series([3.0, 4.0], index=[0, 1], name=0.5)
+        expected = Series([3.0, 4.0], index=range(2), name=0.5)
         if interpolation == "nearest":
             expected = expected.astype(np.int64)
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         tm.assert_series_equal(result, expected)
 
-    def test_quantile_date_range(self, interp_method, request, using_array_manager):
+    def test_quantile_date_range(self, interp_method):
         # GH 2460
         interpolation, method = interp_method
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
@@ -165,12 +147,10 @@ class TestDataFrameQuantile:
         expected = Series(
             ["2016-01-02 00:00:00"], name=0.5, dtype="datetime64[ns, US/Pacific]"
         )
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
 
         tm.assert_series_equal(result, expected)
 
-    def test_quantile_axis_mixed(self, interp_method, request, using_array_manager):
+    def test_quantile_axis_mixed(self, interp_method):
         # mixed on axis=1
         interpolation, method = interp_method
         df = DataFrame(
@@ -187,8 +167,6 @@ class TestDataFrameQuantile:
         expected = Series([1.5, 2.5, 3.5], name=0.5)
         if interpolation == "nearest":
             expected -= 0.5
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         tm.assert_series_equal(result, expected)
 
         # must raise
@@ -196,11 +174,9 @@ class TestDataFrameQuantile:
         with pytest.raises(TypeError, match=msg):
             df.quantile(0.5, axis=1, numeric_only=False)
 
-    def test_quantile_axis_parameter(self, interp_method, request, using_array_manager):
+    def test_quantile_axis_parameter(self, interp_method):
         # GH 9543/9544
         interpolation, method = interp_method
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
 
         result = df.quantile(0.5, axis=0, interpolation=interpolation, method=method)
@@ -314,7 +290,7 @@ class TestDataFrameQuantile:
         assert q1["A"] == np.percentile(df["A"], 10)
         tm.assert_series_equal(q, q1)
 
-    def test_quantile_multi(self, interp_method, request, using_array_manager):
+    def test_quantile_multi(self, interp_method):
         interpolation, method = interp_method
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]], columns=["a", "b", "c"])
         result = df.quantile([0.25, 0.5], interpolation=interpolation, method=method)
@@ -325,11 +301,9 @@ class TestDataFrameQuantile:
         )
         if interpolation == "nearest":
             expected = expected.astype(np.int64)
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         tm.assert_frame_equal(result, expected)
 
-    def test_quantile_multi_axis_1(self, interp_method, request, using_array_manager):
+    def test_quantile_multi_axis_1(self, interp_method):
         interpolation, method = interp_method
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]], columns=["a", "b", "c"])
         result = df.quantile(
@@ -340,8 +314,6 @@ class TestDataFrameQuantile:
         )
         if interpolation == "nearest":
             expected = expected.astype(np.int64)
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         tm.assert_frame_equal(result, expected)
 
     def test_quantile_multi_empty(self, interp_method):
@@ -354,6 +326,7 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_quantile_datetime(self, unit):
         dti = pd.to_datetime(["2010", "2011"]).as_unit(unit)
         df = DataFrame({"a": dti, "b": [0, 5]})
@@ -407,6 +380,7 @@ class TestDataFrameQuantile:
         expected = DataFrame(index=[0.5], columns=[])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -445,10 +419,8 @@ class TestDataFrameQuantile:
         with pytest.raises(ValueError, match=msg):
             datetime_frame.quantile(invalid, interpolation=interpolation, method=method)
 
-    def test_quantile_box(self, interp_method, request, using_array_manager):
+    def test_quantile_box(self, interp_method):
         interpolation, method = interp_method
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         df = DataFrame(
             {
                 "A": [
@@ -576,10 +548,8 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-    def test_quantile_nan(self, interp_method, request, using_array_manager):
+    def test_quantile_nan(self, interp_method):
         interpolation, method = interp_method
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         # GH 14357 - float block where some cols have missing values
         df = DataFrame({"a": np.arange(1, 6.0), "b": np.arange(1, 6.0)})
         df.iloc[-1, 1] = np.nan
@@ -623,23 +593,21 @@ class TestDataFrameQuantile:
         exp = DataFrame({"a": [3.0, 4.0], "b": [np.nan, np.nan]}, index=[0.5, 0.75])
         tm.assert_frame_equal(res, exp)
 
-    def test_quantile_nat(self, interp_method, request, using_array_manager):
+    def test_quantile_nat(self, interp_method, unit):
         interpolation, method = interp_method
-        if method == "table" and using_array_manager:
-            request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         # full NaT column
-        df = DataFrame({"a": [pd.NaT, pd.NaT, pd.NaT]})
+        df = DataFrame({"a": [pd.NaT, pd.NaT, pd.NaT]}, dtype=f"M8[{unit}]")
 
         res = df.quantile(
             0.5, numeric_only=False, interpolation=interpolation, method=method
         )
-        exp = Series([pd.NaT], index=["a"], name=0.5)
+        exp = Series([pd.NaT], index=["a"], name=0.5, dtype=f"M8[{unit}]")
         tm.assert_series_equal(res, exp)
 
         res = df.quantile(
             [0.5], numeric_only=False, interpolation=interpolation, method=method
         )
-        exp = DataFrame({"a": [pd.NaT]}, index=[0.5])
+        exp = DataFrame({"a": [pd.NaT]}, index=[0.5], dtype=f"M8[{unit}]")
         tm.assert_frame_equal(res, exp)
 
         # mixed non-null / full null column
@@ -651,23 +619,33 @@ class TestDataFrameQuantile:
                     Timestamp("2012-01-03"),
                 ],
                 "b": [pd.NaT, pd.NaT, pd.NaT],
-            }
+            },
+            dtype=f"M8[{unit}]",
         )
 
         res = df.quantile(
             0.5, numeric_only=False, interpolation=interpolation, method=method
         )
-        exp = Series([Timestamp("2012-01-02"), pd.NaT], index=["a", "b"], name=0.5)
+        exp = Series(
+            [Timestamp("2012-01-02"), pd.NaT],
+            index=["a", "b"],
+            name=0.5,
+            dtype=f"M8[{unit}]",
+        )
         tm.assert_series_equal(res, exp)
 
         res = df.quantile(
             [0.5], numeric_only=False, interpolation=interpolation, method=method
         )
         exp = DataFrame(
-            [[Timestamp("2012-01-02"), pd.NaT]], index=[0.5], columns=["a", "b"]
+            [[Timestamp("2012-01-02"), pd.NaT]],
+            index=[0.5],
+            columns=["a", "b"],
+            dtype=f"M8[{unit}]",
         )
         tm.assert_frame_equal(res, exp)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_quantile_empty_no_rows_floats(self, interp_method):
         interpolation, method = interp_method
 
@@ -718,9 +696,7 @@ class TestDataFrameQuantile:
         exp = exp.astype(object)
         if interpolation == "nearest":
             # GH#18463 TODO: would we prefer NaTs here?
-            msg = "The 'downcast' keyword in fillna is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                exp = exp.fillna(np.nan, downcast=False)
+            exp = exp.fillna(np.nan)
         tm.assert_series_equal(res, exp)
 
         # both dt64tz
@@ -739,20 +715,18 @@ class TestDataFrameQuantile:
         result = df.quantile(
             0.5, numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = Series([], index=[], name=0.5, dtype=np.float64)
+        expected = Series([], name=0.5, dtype=np.float64)
         expected.index.name = "captain tightpants"
         tm.assert_series_equal(result, expected)
 
         result = df.quantile(
             [0.5], numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = DataFrame([], index=[0.5], columns=[])
+        expected = DataFrame([], index=[0.5])
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
 
-    def test_quantile_item_cache(
-        self, using_array_manager, interp_method, using_copy_on_write
-    ):
+    def test_quantile_item_cache(self, interp_method):
         # previous behavior incorrect retained an invalid _item_cache entry
         interpolation, method = interp_method
         df = DataFrame(
@@ -760,19 +734,13 @@ class TestDataFrameQuantile:
         )
         df["D"] = df["A"] * 2
         ser = df["A"]
-        if not using_array_manager:
-            assert len(df._mgr.blocks) == 2
+        assert len(df._mgr.blocks) == 2
 
         df.quantile(numeric_only=False, interpolation=interpolation, method=method)
 
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.iloc[0, 0] == df["A"][0]
-            assert df.iloc[0, 0] != 99
-        else:
-            ser.values[0] = 99
-            assert df.iloc[0, 0] == df["A"][0]
-            assert df.iloc[0, 0] == 99
+        ser.iloc[0] = 99
+        assert df.iloc[0, 0] == df["A"][0]
+        assert df.iloc[0, 0] != 99
 
     def test_invalid_method(self):
         with pytest.raises(ValueError, match="Invalid method: foo"):
@@ -906,6 +874,7 @@ class TestQuantileExtensionDtype:
         else:
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "dtype, expected_data, expected_index, axis",
         [
@@ -924,6 +893,7 @@ class TestQuantileExtensionDtype:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "dtype, expected_data, expected_index, axis, expected_dtype",
         [
@@ -942,6 +912,7 @@ class TestQuantileExtensionDtype:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "expected_data, expected_index, axis",
         [
@@ -963,3 +934,12 @@ class TestQuantileExtensionDtype:
             expected_data, name=0.5, index=Index(expected_index), dtype=np.float64
         )
         tm.assert_series_equal(result, expected)
+
+
+def test_multi_quantile_numeric_only_retains_columns():
+    df = DataFrame(list("abc"))
+    result = df.quantile([0.5, 0.7], numeric_only=True)
+    expected = DataFrame(index=[0.5, 0.7])
+    tm.assert_frame_equal(
+        result, expected, check_index_type=True, check_column_type=True
+    )

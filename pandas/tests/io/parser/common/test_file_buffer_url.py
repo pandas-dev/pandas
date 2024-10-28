@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from io import (
     BytesIO,
     StringIO,
@@ -11,15 +12,22 @@ import platform
 from urllib.error import URLError
 import uuid
 
+import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import WASM
 from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 pytestmark = pytest.mark.filterwarnings(
@@ -63,24 +71,20 @@ def test_local_file(all_parsers, csv_dir_path):
         pytest.skip("Failing on: " + " ".join(platform.uname()))
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @xfail_pyarrow  # AssertionError: DataFrame.index are different
 def test_path_path_lib(all_parsers):
     parser = all_parsers
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     result = tm.round_trip_pathlib(df.to_csv, lambda p: parser.read_csv(p, index_col=0))
     tm.assert_frame_equal(df, result)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame.index are different
-def test_path_local_path(all_parsers):
-    parser = all_parsers
-    df = tm.makeDataFrame()
-    result = tm.round_trip_localpath(
-        df.to_csv, lambda p: parser.read_csv(p, index_col=0)
-    )
-    tm.assert_frame_equal(df, result)
-
-
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
@@ -94,6 +98,7 @@ def test_nonexistent_path(all_parsers):
     assert path == e.value.filename
 
 
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 @td.skip_if_windows  # os.chmod does not work in windows
 def test_no_permission(all_parsers):
     # GH 23784
@@ -235,12 +240,12 @@ def test_eof_states(all_parsers, data, kwargs, expected, msg, request):
         tm.assert_frame_equal(result, expected)
 
 
-def test_temporary_file(all_parsers):
+def test_temporary_file(all_parsers, temp_file):
     # see gh-13398
     parser = all_parsers
     data = "0 0"
 
-    with tm.ensure_clean(mode="w+", return_filelike=True) as new_file:
+    with temp_file.open(mode="w+", encoding="utf-8") as new_file:
         new_file.write(data)
         new_file.flush()
         new_file.seek(0)
@@ -413,7 +418,7 @@ def test_context_manager(all_parsers, datapath):
     try:
         with reader:
             next(reader)
-            assert False
+            raise AssertionError
     except AssertionError:
         assert reader.handles.handle.closed
 
@@ -434,13 +439,13 @@ def test_context_manageri_user_provided(all_parsers, datapath):
         try:
             with reader:
                 next(reader)
-                assert False
+                raise AssertionError
         except AssertionError:
             assert not reader.handles.handle.closed
 
 
 @skip_pyarrow  # ParserError: Empty CSV file
-def test_file_descriptor_leak(all_parsers, using_copy_on_write):
+def test_file_descriptor_leak(all_parsers):
     # GH 31488
     parser = all_parsers
     with tm.ensure_clean() as path:

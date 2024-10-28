@@ -1,5 +1,5 @@
 # This file helps to compute a version number in source trees obtained from
-# git-archive tarball (such as those provided by githubs download-from-tag
+# git-archive tarball (such as those provided by github's download-from-tag
 # feature). Distribution tarballs (built by setup.py sdist) and build
 # directories (produced by setup.py build) will contain a much shorter file
 # that just contains the computed version number.
@@ -10,13 +10,13 @@
 
 """Git implementation of _version.py."""
 
+from collections.abc import Callable
 import errno
 import functools
 import os
 import re
 import subprocess
 import sys
-from typing import Callable
 
 
 def get_keywords():
@@ -141,7 +141,7 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
 
     if verbose:
         print(
-            f"Tried directories {str(rootdirs)} \
+            f"Tried directories {rootdirs!s} \
             but none started with prefix {parentdir_prefix}"
         )
     raise NotThisMethod("rootdir doesn't start with parentdir_prefix")
@@ -358,9 +358,9 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, runner=run_command):
             if verbose:
                 fmt = "tag '%s' doesn't start with prefix '%s'"
                 print(fmt % (full_tag, tag_prefix))
-            pieces[
-                "error"
-            ] = f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
+            pieces["error"] = (
+                f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
+            )
             return pieces
         pieces["closest-tag"] = full_tag[len(tag_prefix) :]
 
@@ -386,7 +386,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, runner=run_command):
     return pieces
 
 
-def plus_or_dot(pieces):
+def plus_or_dot(pieces) -> str:
     """Return a + if we don't already have one, else return a ."""
     if "+" in pieces.get("closest-tag", ""):
         return "."

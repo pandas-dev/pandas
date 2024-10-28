@@ -3,8 +3,6 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -100,23 +98,20 @@ class TestIndexConcat:
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
 
-    def test_concat_copy_index_series(self, axis, using_copy_on_write):
+    def test_concat_copy_index_series(self, axis):
         # GH 29879
         ser = Series([1, 2])
-        comb = concat([ser, ser], axis=axis, copy=True)
-        if not using_copy_on_write or axis in [0, "index"]:
+        comb = concat([ser, ser], axis=axis)
+        if axis in [0, "index"]:
             assert comb.index is not ser.index
         else:
             assert comb.index is ser.index
 
-    def test_concat_copy_index_frame(self, axis, using_copy_on_write):
+    def test_concat_copy_index_frame(self, axis):
         # GH 29879
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        comb = concat([df, df], axis=axis, copy=True)
-        if not using_copy_on_write:
-            assert not comb.index.is_(df.index)
-            assert not comb.columns.is_(df.columns)
-        elif axis in [0, "index"]:
+        comb = concat([df, df], axis=axis)
+        if axis in [0, "index"]:
             assert not comb.index.is_(df.index)
             assert comb.columns.is_(df.columns)
         elif axis in [1, "columns"]:
@@ -340,7 +335,7 @@ class TestMultiIndexConcat:
         )
         tm.assert_frame_equal(result_df, expected_df)
 
-    def test_concat_with_key_not_unique(self):
+    def test_concat_with_key_not_unique(self, performance_warning):
         # GitHub #46519
         df1 = DataFrame({"name": [1]})
         df2 = DataFrame({"name": [2]})
@@ -348,15 +343,17 @@ class TestMultiIndexConcat:
         df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
         # the warning is caused by indexing unsorted multi-index
         with tm.assert_produces_warning(
-            PerformanceWarning, match="indexing past lexsort depth"
+            performance_warning, match="indexing past lexsort depth"
         ):
             out_a = df_a.loc[("x", 0), :]
-
         df_b = DataFrame(
-            {"name": [1, 2, 3]}, index=Index([("x", 0), ("y", 0), ("x", 0)])
+            {"name": [1, 2, 3]},
+            index=MultiIndex(
+                levels=[["x", "y"], range(1)], codes=[[0, 1, 0], [0, 0, 0]]
+            ),
         )
         with tm.assert_produces_warning(
-            PerformanceWarning, match="indexing past lexsort depth"
+            performance_warning, match="indexing past lexsort depth"
         ):
             out_b = df_b.loc[("x", 0)]
 
@@ -367,7 +364,7 @@ class TestMultiIndexConcat:
         df3 = DataFrame({"name": ["c", "d"]})
         df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
         with tm.assert_produces_warning(
-            PerformanceWarning, match="indexing past lexsort depth"
+            performance_warning, match="indexing past lexsort depth"
         ):
             out_a = df_a.loc[("x", 0), :]
 
@@ -380,7 +377,7 @@ class TestMultiIndexConcat:
         ).set_index(["a", "b"])
         df_b.index.names = [None, None]
         with tm.assert_produces_warning(
-            PerformanceWarning, match="indexing past lexsort depth"
+            performance_warning, match="indexing past lexsort depth"
         ):
             out_b = df_b.loc[("x", 0), :]
 
@@ -447,12 +444,12 @@ class TestMultiIndexConcat:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_axis_1_sort_false_rangeindex(self):
+    def test_concat_axis_1_sort_false_rangeindex(self, using_infer_string):
         # GH 46675
         s1 = Series(["a", "b", "c"])
         s2 = Series(["a", "b"])
         s3 = Series(["a", "b", "c", "d"])
-        s4 = Series([], dtype=object)
+        s4 = Series([], dtype=object if not using_infer_string else "str")
         result = concat(
             [s1, s2, s3, s4], sort=False, join="outer", ignore_index=False, axis=1
         )
@@ -463,7 +460,7 @@ class TestMultiIndexConcat:
                 ["c", np.nan] * 2,
                 [np.nan] * 2 + ["d"] + [np.nan],
             ],
-            dtype=object,
+            dtype=object if not using_infer_string else "str",
         )
         tm.assert_frame_equal(
             result, expected, check_index_type=True, check_column_type=True

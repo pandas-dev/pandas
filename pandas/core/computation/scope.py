@@ -1,6 +1,7 @@
 """
 Module for scope operations
 """
+
 from __future__ import annotations
 
 from collections import ChainMap

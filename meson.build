@@ -7,7 +7,8 @@ project(
     meson_version: '>=1.2.1',
     default_options: [
         'buildtype=release',
-        'c_std=c11'
+        'c_std=c11',
+        'warning_level=2',
     ]
 )
 
@@ -41,6 +42,11 @@ else
         install_dir: py.get_install_dir() / 'pandas'
     )
     meson.add_dist_script(py, versioneer, '-o', '_version_meson.py')
+endif
+
+cy = meson.get_compiler('cython')
+if cy.version().version_compare('>=3.1.0')
+  add_project_arguments('-Xfreethreading_compatible=true', language : 'cython')
 endif
 
 # Needed by pandas.test() when it looks for the pytest ini options

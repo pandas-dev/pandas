@@ -10,6 +10,8 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -33,6 +35,16 @@ def _three_digit_exp():
 
 
 class TestDataFrameToStringFormatters:
+    def test_keyword_deprecation(self):
+        # GH 57280
+        msg = (
+            "Starting with pandas version 4.0 all arguments of to_string "
+            "except for the argument 'buf' will be keyword-only."
+        )
+        s = Series(["a", "b"])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s.to_string(None, "NaN")
+
     def test_to_string_masked_ea_with_formatter(self):
         # GH#39336
         df = DataFrame(
@@ -412,7 +424,6 @@ class TestToStringNumericFormatting:
 
     def test_to_string_format_inf(self):
         # GH#24861
-        tm.reset_display_options()
         df = DataFrame(
             {
                 "A": [-np.inf, np.inf, -1, -2.1234, 3, 4],
@@ -460,7 +471,6 @@ class TestToStringNumericFormatting:
         assert output == expected
 
     def test_to_string_float_formatting(self):
-        tm.reset_display_options()
         with option_context(
             "display.precision",
             5,
@@ -495,7 +505,6 @@ class TestToStringNumericFormatting:
             expected = "          x\n0  3234.000\n1     0.253"
             assert df_s == expected
 
-        tm.reset_display_options()
         assert get_option("display.precision") == 6
 
         df = DataFrame({"x": [1e9, 0.2512]})
@@ -516,14 +525,12 @@ class TestDataFrameToString:
         assert df.to_string(decimal=",") == expected
 
     def test_to_string_left_justify_cols(self):
-        tm.reset_display_options()
         df = DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string(justify="left")
         expected = "   x       \n0  3234.000\n1     0.253"
         assert df_s == expected
 
     def test_to_string_format_na(self):
-        tm.reset_display_options()
         df = DataFrame(
             {
                 "A": [np.nan, -1, -2.1234, 3, 4],
@@ -767,18 +774,6 @@ class TestDataFrameToString:
         )
         assert result == expected
 
-    def test_to_string_pos_args_deprecation(self):
-        # GH#54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            "Starting with pandas version 3.0 all arguments of to_string "
-            "except for the "
-            "argument 'buf' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            buf = StringIO()
-            df.to_string(buf, None, None, True, True)
-
     def test_to_string_utf8_columns(self):
         n = "\u05d0".encode()
         df = DataFrame([1, 2], columns=[n])
@@ -809,7 +804,7 @@ class TestDataFrameToString:
         biggie = DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": tm.makeStringIndex(200),
+                "B": Index([f"{i}?!" for i in range(200)]),
             },
         )
 
@@ -854,6 +849,7 @@ class TestDataFrameToString:
         frame.to_string()
 
     # TODO: split or simplify this test?
+    @pytest.mark.xfail(using_string_dtype(), reason="fix when arrow is default")
     def test_to_string_index_with_nan(self):
         # GH#2850
         df = DataFrame(
@@ -958,6 +954,13 @@ class TestDataFrameToString:
             repr(df)
         finally:
             sys.stdin = _stdin
+
+    def test_nested_dataframe(self):
+        df1 = DataFrame({"level1": [["row1"], ["row2"]]})
+        df2 = DataFrame({"level3": [{"level2": df1}]})
+        result = df2.to_string()
+        expected = "                   level3\n0  {'level2': ['level1']}"
+        assert result == expected
 
 
 class TestSeriesToString:
@@ -1080,7 +1083,10 @@ class TestSeriesToString:
         assert result == "0   1 days\n1   2 days\n2   3 days"
 
     def test_to_string(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10, freq="B"),
+        )
         buf = StringIO()
 
         s = ts.to_string()

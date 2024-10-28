@@ -58,12 +58,11 @@ class TestAttributes:
 
 
 class TestMethods:
-    @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
-    def test_set_closed(self, closed, new_closed):
+    def test_set_closed(self, closed, other_closed):
         # GH 21670
         array = IntervalArray.from_breaks(range(10), closed=closed)
-        result = array.set_closed(new_closed)
-        expected = IntervalArray.from_breaks(range(10), closed=new_closed)
+        result = array.set_closed(other_closed)
+        expected = IntervalArray.from_breaks(range(10), closed=other_closed)
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -223,9 +222,10 @@ class TestReductions:
         res = arr_na.max(skipna=False)
         assert np.isnan(res)
 
-        res = arr_na.min(skipna=True)
-        assert res == MIN
-        assert type(res) == type(MIN)
-        res = arr_na.max(skipna=True)
-        assert res == MAX
-        assert type(res) == type(MAX)
+        for kws in [{"skipna": True}, {}]:
+            res = arr_na.min(**kws)
+            assert res == MIN
+            assert type(res) == type(MIN)
+            res = arr_na.max(**kws)
+            assert res == MAX
+            assert type(res) == type(MAX)

@@ -6,7 +6,7 @@
 Debugging C extensions
 ======================
 
-Pandas uses Cython and C/C++ `extension modules <https://docs.python.org/3/extending/extending.html>`_ to optimize performance. Unfortunately, the standard Python debugger does not allow you to step into these extensions. Cython extensions can be debugged with the `Cython debugger <https://docs.cython.org/en/latest/src/userguide/debugging.html>`_ and C/C++ extensions can be debugged using the tools shipped with your platform's compiler.
+pandas uses Cython and C/C++ `extension modules <https://docs.python.org/3/extending/extending.html>`_ to optimize performance. Unfortunately, the standard Python debugger does not allow you to step into these extensions. Cython extensions can be debugged with the `Cython debugger <https://docs.cython.org/en/latest/src/userguide/debugging.html>`_ and C/C++ extensions can be debugged using the tools shipped with your platform's compiler.
 
 For Python developers with limited or no C/C++ experience this can seem a daunting task. Core developer Will Ayd has written a 3 part blog series to help guide you from the standard Python debugger into these other tools:
 
@@ -19,7 +19,7 @@ Debugging locally
 
 By default building pandas from source will generate a release build. To generate a development build you can type::
 
-    pip install -ve . --no-build-isolation --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
+    pip install -ve . --no-build-isolation -Cbuilddir="debug" -Csetup-args="-Dbuildtype=debug"
 
 .. note::
 
@@ -30,7 +30,7 @@ By specifying ``builddir="debug"`` all of the targets will be built and placed i
 Using Docker
 ------------
 
-To simplify the debugging process, pandas has created a Docker image with a debug build of Python and the gdb/Cython debuggers pre-installed. You may either ``docker pull pandas/pandas-debug`` to get access to this image or build it from the ``tooling/debug`` folder locallly.
+To simplify the debugging process, pandas has created a Docker image with a debug build of Python and the gdb/Cython debuggers pre-installed. You may either ``docker pull pandas/pandas-debug`` to get access to this image or build it from the ``tooling/debug`` folder locally.
 
 You can then mount your pandas repository into this image via:
 
@@ -42,7 +42,7 @@ Inside the image, you can use meson to build/install pandas and place the build 
 
 .. code-block:: sh
 
-    python -m pip install -ve . --no-build-isolation --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
+    python -m pip install -ve . --no-build-isolation -Cbuilddir="debug" -Csetup-args="-Dbuildtype=debug"
 
 If planning to use cygdb, the files required by that application are placed within the build folder. So you have to first ``cd`` to the build folder, then start that application.
 

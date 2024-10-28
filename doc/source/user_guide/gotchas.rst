@@ -315,19 +315,8 @@ Why not make NumPy like R?
 
 Many people have suggested that NumPy should simply emulate the ``NA`` support
 present in the more domain-specific statistical programming language `R
-<https://www.r-project.org/>`__. Part of the reason is the NumPy type hierarchy:
-
-.. csv-table::
-   :header: "Typeclass","Dtypes"
-   :widths: 30,70
-   :delim: |
-
-   ``numpy.floating`` | ``float16, float32, float64, float128``
-   ``numpy.integer`` | ``int8, int16, int32, int64``
-   ``numpy.unsignedinteger`` | ``uint8, uint16, uint32, uint64``
-   ``numpy.object_`` | ``object_``
-   ``numpy.bool_`` | ``bool_``
-   ``numpy.character`` | ``bytes_, str_``
+<https://www.r-project.org/>`__. Part of the reason is the
+`NumPy type hierarchy <https://numpy.org/doc/stable/user/basics.types.html>`__.
 
 The R language, by contrast, only has a handful of built-in data types:
 ``integer``, ``numeric`` (floating-point), ``character``, and

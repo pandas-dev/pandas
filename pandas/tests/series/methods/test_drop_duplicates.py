@@ -34,14 +34,14 @@ def test_drop_duplicates(any_numpy_dtype, keep, expected):
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", Series([False, False, True, True])),
-        ("last", Series([True, True, False, False])),
-        (False, Series([True, True, True, True])),
+        ("first", [False, False, True, True]),
+        ("last", [True, True, False, False]),
+        (False, [True, True, True, True]),
     ],
 )
 def test_drop_duplicates_bool(keep, expected):
     tc = Series([True, False, True, False])
-
+    expected = Series(expected)
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
     sc = tc.copy()
@@ -75,10 +75,16 @@ class TestSeriesDropDuplicates:
         params=["int_", "uint", "float64", "str_", "timedelta64[h]", "datetime64[D]"]
     )
     def dtype(self, request):
+        """
+        Fixture that provides different data types for testing.
+        """
         return request.param
 
     @pytest.fixture
     def cat_series_unused_category(self, dtype, ordered):
+        """
+        Fixture that creates a Categorical Series with some unused categories.
+        """
         # Test case 1
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
@@ -141,7 +147,9 @@ class TestSeriesDropDuplicates:
 
     @pytest.fixture
     def cat_series(self, dtype, ordered):
-        # no unused categories, unlike cat_series_unused_category
+        """
+        Fixture that creates a Categorical Series with no unused categories.
+        """
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
