@@ -6221,6 +6221,10 @@ class Index(IndexOpsMixin, PandasObject):
                 # let's instead try with a straight Index
                 self = Index(self._values)
 
+        # elif self.dtype == "string" and other.dtype == "object":
+        #   if lib.is_string_array(other._values, skipna=True): # type: ignore[arg-type]
+        #         return self, other.astype(self.dtype)
+
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
             other, self = other._maybe_downcast_for_indexing(self)
