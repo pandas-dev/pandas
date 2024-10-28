@@ -140,7 +140,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.OutOfBoundsTimedelta SA01" \
         -i "pandas.errors.PerformanceWarning SA01" \
         -i "pandas.errors.PossibleDataLossError SA01" \
-        -i "pandas.errors.PossiblePrecisionLoss SA01" \
         -i "pandas.errors.UndefinedVariableError PR01,SA01" \
         -i "pandas.errors.UnsortedIndexError SA01" \
         -i "pandas.errors.UnsupportedFunctionCall SA01" \

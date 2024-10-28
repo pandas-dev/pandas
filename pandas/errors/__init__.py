@@ -691,6 +691,10 @@ class PossiblePrecisionLoss(Warning):
     When the column value is outside or equal to the int64 value the column is
     converted to a float64 dtype.
 
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
     Examples
     --------
     >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
