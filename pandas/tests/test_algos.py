@@ -4,8 +4,6 @@ import struct
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
@@ -1684,7 +1682,6 @@ class TestDuplicated:
 
 
 class TestHashTable:
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [
@@ -1697,7 +1694,7 @@ class TestHashTable:
     )
     def test_hashtable_unique(self, htable, data, writable):
         # output of maker has guaranteed unique elements
-        s = Series(data)
+        s = Series(data, dtype=object if isinstance(data, list) else None)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1724,7 +1721,6 @@ class TestHashTable:
         reconstr = result_unique[result_inverse]
         tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [
@@ -1737,7 +1733,7 @@ class TestHashTable:
     )
     def test_hashtable_factorize(self, htable, writable, data):
         # output of maker has guaranteed unique elements
-        s = Series(data)
+        s = Series(data, dtype=object if isinstance(data, list) else None)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
