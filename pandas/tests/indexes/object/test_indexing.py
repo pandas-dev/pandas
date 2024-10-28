@@ -3,10 +3,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._libs.missing import (
-    NA,
-    is_matching_na,
-)
+from pandas._libs.missing import is_matching_na
 
 from pandas import Index
 import pandas._testing as tm
@@ -67,12 +64,8 @@ class TestGetIndexer:
 
 
 class TestGetIndexerNonUnique:
-    def test_get_indexer_non_unique_nas(
-        self, nulls_fixture, request, using_infer_string
-    ):
+    def test_get_indexer_non_unique_nas(self, nulls_fixture):
         # even though this isn't non-unique, this should still work
-        if using_infer_string and (nulls_fixture is None or nulls_fixture is NA):
-            request.applymarker(pytest.mark.xfail(reason="NAs are cast to NaN"))
         index = Index(["a", "b", nulls_fixture], dtype=object)
         indexer, missing = index.get_indexer_non_unique([nulls_fixture])
 
