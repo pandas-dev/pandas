@@ -230,4 +230,4 @@ def test_mean_with_skipna():
     series1 = Series({"a": 0.0, "b": 1, "c": 1}, dtype="Float64")
     series2 = Series({"a": 0.0, "b": 2, "c": 2}, dtype="Float64")
     result = series1 / series2
-    assert pd.notna(result.mean(skipna=True))
+    assert np.isclose(result.mean(skipna=True), 0.5)
