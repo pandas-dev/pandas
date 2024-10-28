@@ -1410,7 +1410,7 @@ def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
     """
     try:
         common_dtype = np.result_type(*dtypes)
-        if common_dtype.kind in "mMSU":
+        if common_dtype.kind in "mMSU" or common_dtype not in dtypes:
             # NumPy promotion currently (1.25) misbehaves for for times and strings,
             # so fall back to object (find_common_dtype did unless there
             # was only one dtype)
