@@ -641,6 +641,7 @@ def test_close_on_error():
             with icom.get_handle(buffer, "rb") as handles:
                 handles.created_handles.append(TestError())
 
+
 def test_read_csv_chained_url_no_error():
     tar_file = "pandas/tests/io/data/tar/test-csv.tar"
     try:
@@ -648,6 +649,7 @@ def test_read_csv_chained_url_no_error():
         pd.read_csv(f"tar://test.csv::file://{tar_file}", compression="infer")
     except Exception as e:
         pytest.fail(e)
+
 
 @pytest.mark.parametrize(
     "reader",
