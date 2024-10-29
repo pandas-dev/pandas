@@ -5706,7 +5706,12 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         if self.empty:
-            return self.copy()
+            self["__temp_column__"] = None
+            shifted_self = super().shift(
+                periods=periods, freq=freq, axis=axis, fill_value=fill_value
+            )
+            shifted_self.drop("__temp_column__", axis=1, inplace=True)
+            return shifted_self
 
         axis = self._get_axis_number(axis)
 
