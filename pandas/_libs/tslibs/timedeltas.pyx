@@ -1869,7 +1869,7 @@ class Timedelta(_Timedelta):
     unit : str, default 'ns'
         If input is an integer, denote the unit of the input.
         If input is a float, denote the unit of the integer parts.
-        The decimal parts with resolution lower than 1 nanosecond are ignored. 
+        The decimal parts with resolution lower than 1 nanosecond are ignored.
 
         Possible values:
 
