@@ -105,6 +105,10 @@ class OptionError(AttributeError, KeyError):
 
     Backwards compatible with KeyError checks.
 
+    See Also
+    --------
+    options : Access and modify global pandas settings.
+
     Examples
     --------
     >>> pd.options.context
