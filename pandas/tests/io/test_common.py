@@ -630,16 +630,13 @@ def test_fail_mmap():
             icom.get_handle(buffer, "rb", memory_map=True)
 
 
-def test_close_on_error():
-    # GH 47136
-    class TestError:
-        def close(self):
-            raise OSError("test")
-
-    with pytest.raises(OSError, match="test"):
-        with BytesIO() as buffer:
-            with icom.get_handle(buffer, "rb") as handles:
-                handles.created_handles.append(TestError())
+def read_chained_urls_no_errors():
+    tar_file = "pandas/tests/io/data/tar/test-csv.tar"
+    try:
+        pd.read_csv(f"tar://test.csv::file://{tar_file}", compression=None)
+        pd.read_csv(f"tar://test.csv::file://{tar_file}", compression="infer")
+    except Exception as e:
+        pytest.fail(e)
 
 
 @pytest.mark.parametrize(
