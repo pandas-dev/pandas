@@ -948,6 +948,10 @@ class SQLTable(PandasObject):
         self.keys = keys
         self.dtype = dtype
         self.prefixes = prefixes
+        # check if the table to be created is a temporary table
+        self.is_temporary = self.prefixes is not None and "TEMPORARY".casefold() in [
+            prefix.casefold() for prefix in self.prefixes
+        ]
 
         if frame is not None:
             # We want to initialize based on a dataframe
