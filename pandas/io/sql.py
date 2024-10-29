@@ -70,6 +70,7 @@ if TYPE_CHECKING:
         Generator,
         Iterator,
         Mapping,
+        Sequence,
     )
 
     from sqlalchemy import Table
@@ -742,6 +743,7 @@ def to_sql(
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
+    prefixes: Sequence[str] | None = None,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -789,6 +791,9 @@ def to_sql(
 
         Details and a sample callable implementation can be found in the
         section :ref:`insert method <io.sql.method>`.
+    prefixs : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
     engine : {'auto', 'sqlalchemy'}, default 'auto'
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -837,6 +842,7 @@ def to_sql(
             chunksize=chunksize,
             dtype=dtype,
             method=method,
+            prefixes=prefixes,
             engine=engine,
             **engine_kwargs,
         )
@@ -930,6 +936,7 @@ class SQLTable(PandasObject):
         schema=None,
         keys=None,
         dtype: DtypeArg | None = None,
+        prefixes: Sequence[str] | None = None,
     ) -> None:
         self.name = name
         self.pd_sql = pandas_sql_engine
@@ -940,6 +947,7 @@ class SQLTable(PandasObject):
         self.if_exists = if_exists
         self.keys = keys
         self.dtype = dtype
+        self.prefixes = prefixes
 
         if frame is not None:
             # We want to initialize based on a dataframe
@@ -1859,6 +1867,7 @@ class SQLDatabase(PandasSQL):
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
+        prefixes: Sequence[str] | None = None,
     ) -> SQLTable:
         """
         Prepares table in the database for data insertion. Creates it if needed, etc.
@@ -1894,6 +1903,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
+            prefixes=prefixes,
         )
         table.create()
         return table
@@ -1938,6 +1948,7 @@ class SQLDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1979,6 +1990,9 @@ class SQLDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        prefixs : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -1999,6 +2013,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
+            prefixes=prefixes,
         )
 
         total_inserted = sql_engine.insert_records(
