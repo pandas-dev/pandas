@@ -97,7 +97,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.NumpyExtensionArray SA01" \
         -i "pandas.arrays.SparseArray PR07,SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.__iter__ RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.groups SA01" \
@@ -106,7 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
-        -i "pandas.core.groupby.SeriesGroupBy.__iter__ RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.groups SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.indices SA01" \
@@ -115,7 +113,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.nth PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.sem SA01" \
-        -i "pandas.core.resample.Resampler.__iter__ RT03,SA01" \
         -i "pandas.core.resample.Resampler.get_group RT03,SA01" \
         -i "pandas.core.resample.Resampler.groups SA01" \
         -i "pandas.core.resample.Resampler.indices SA01" \
@@ -143,7 +140,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.OutOfBoundsTimedelta SA01" \
         -i "pandas.errors.PerformanceWarning SA01" \
         -i "pandas.errors.PossibleDataLossError SA01" \
-        -i "pandas.errors.PossiblePrecisionLoss SA01" \
         -i "pandas.errors.UndefinedVariableError PR01,SA01" \
         -i "pandas.errors.UnsortedIndexError SA01" \
         -i "pandas.errors.UnsupportedFunctionCall SA01" \
