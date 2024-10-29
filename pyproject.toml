@@ -2,8 +2,8 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python==0.13.1",
-    "meson==1.2.1",
+    "meson-python>=0.13.1",
+    "meson>=1.2.1,<2",
     "wheel",
     "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Force numpy higher than 2.0rc1, so that built wheels are compatible
