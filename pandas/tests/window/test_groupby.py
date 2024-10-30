@@ -1024,6 +1024,26 @@ class TestRolling:
         with pytest.raises(ValueError, match="Each group within B must be monotonic."):
             df.groupby("A").rolling("365D", on="B")
 
+    def test_groupby_rolling_apply_numba_with_kwargs(self, roll_frame):
+        def func(sr, a=0):
+            return sr.sum() + a
+
+        # 58995
+        result = (
+            roll_frame.groupby("A")
+            .rolling(5)
+            .apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        )
+        expected = roll_frame.groupby("A").rolling(5).sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = (
+            roll_frame.groupby("A")
+            .rolling(5)
+            .apply(func, engine="numba", raw=True, args=(1,))
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding:
     @pytest.fixture
@@ -1132,6 +1152,26 @@ class TestExpanding:
         # GH 39732
         expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_expanding_apply_numba_with_kwargs(self, roll_frame):
+        # 58995
+        def func(sr, a=0):
+            return sr.sum() + a
+
+        result = (
+            roll_frame.groupby("A")
+            .expanding()
+            .apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        )
+        expected = roll_frame.groupby("A").expanding().sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = (
+            roll_frame.groupby("A")
+            .expanding()
+            .apply(func, engine="numba", raw=True, args=(1,))
+        )
         tm.assert_frame_equal(result, expected)
 
 

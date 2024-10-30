@@ -316,3 +316,17 @@ def test_center_reindex_frame(raw):
     )
     frame_rs = frame.rolling(window=25, min_periods=minp, center=True).apply(f, raw=raw)
     tm.assert_frame_equal(frame_xp, frame_rs)
+
+def test_apply_numba_with_kwargs():
+    # 58995
+    def func(sr, a=0):
+        return sr.sum() + a
+
+    data = DataFrame(range(10))
+
+    result = data.rolling(5).apply(func, engine="numba", raw=True, kwargs={"a": 1})
+    expected = data.rolling(5).sum() + 1
+    tm.assert_frame_equal(result, expected)
+
+    result = data.rolling(5).apply(func, engine="numba", raw=True, args=(1,))
+    tm.assert_frame_equal(result, expected)
