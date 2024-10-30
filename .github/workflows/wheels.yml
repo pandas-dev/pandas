@@ -156,7 +156,7 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.20.0
+        uses: pypa/cibuildwheel@v2.21.0
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
@@ -165,7 +165,7 @@ jobs:
           CIBW_PLATFORM: ${{ matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide' || 'auto' }}
 
       - name: Set up Python
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: wheel-env
           # Use a fixed Python, since we might have an unreleased Python not

@@ -133,9 +133,9 @@ API changes
     to be inserted if ``True``, default is ``False`` (same as prior to 0.12) (:issue:`3679`)
   - Implement ``__nonzero__`` for ``NDFrame`` objects (:issue:`3691`, :issue:`3696`)
 
-  - IO api
+  - IO API
 
-    - added top-level function ``read_excel`` to replace the following,
+    - Added top-level function ``read_excel`` to replace the following,
       The original API is deprecated and will be removed in a future version
 
       .. code-block:: python
@@ -153,7 +153,7 @@ API changes
 
          pd.read_excel("path_to_file.xls", "Sheet1", index_col=None, na_values=["NA"])
 
-    - added top-level function ``read_sql`` that is equivalent to the following
+    - Added top-level function ``read_sql`` that is equivalent to the following
 
       .. code-block:: python
 
@@ -482,11 +482,11 @@ Bug fixes
 
   - ``HDFStore``
 
-    - will retain index attributes (freq,tz,name) on recreation (:issue:`3499`)
-    - will warn with a ``AttributeConflictWarning`` if you are attempting to append
+    - Will retain index attributes (freq,tz,name) on recreation (:issue:`3499`)
+    - Will warn with a ``AttributeConflictWarning`` if you are attempting to append
       an index with a different frequency than the existing, or attempting
       to append an index with a different name than the existing
-    - support datelike columns with a timezone as data_columns (:issue:`2852`)
+    - Support datelike columns with a timezone as data_columns (:issue:`2852`)
 
   - Non-unique index support clarified (:issue:`3468`).
 
