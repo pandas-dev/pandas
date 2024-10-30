@@ -1122,9 +1122,23 @@ def is_integer(obj: object) -> bool:
     """
     Return True if given object is integer.
 
+    This method checks whether the passed object is an integer type. It
+    returns `True` if the object is an integer, and `False` otherwise.
+
+    Parameters
+    ----------
+    obj : object
+        The object to check for integer type.
+
     Returns
     -------
     bool
+        `True` if the object is of integer type, otherwise `False`.
+
+    See Also
+    --------
+    api.types.is_float : Check if an object is of float type.
+    api.types.is_numeric_dtype : Check if an object is of numeric type.
 
     Examples
     --------
