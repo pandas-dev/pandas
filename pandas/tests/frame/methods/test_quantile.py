@@ -931,7 +931,7 @@ class TestQuantileExtensionDtype:
         expected = Series(
             expected_data,
             name=0.5,
-            index=Index(expected_index, dtype="str" if axis == 0 else int),
+            index=Index(expected_index, dtype="str" if axis == 0 else "int64"),
             dtype=np.float64,
         )
         tm.assert_series_equal(result, expected)
