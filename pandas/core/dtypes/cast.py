@@ -110,7 +110,6 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
@@ -1920,7 +1919,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 return element
             # GH 57338
             # Check boolean array set as object type
-            comp = [lib.is_bool(e) for e in element]
+            comp = [lib.is_bool(e) for e in np.array([element]).flatten()]
             if all(comp):
                 return element.astype("bool")
             raise LossySetitemError
