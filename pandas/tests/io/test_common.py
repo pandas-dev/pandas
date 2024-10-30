@@ -25,6 +25,7 @@ from pandas.compat import (
     WASM,
     is_platform_windows,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -642,6 +643,7 @@ def test_close_on_error():
                 handles.created_handles.append(TestError())
 
 
+@td.skip_if_no("fsspec")
 def test_read_csv_chained_url_no_error():
     tar_file = "pandas/tests/io/data/tar/test-csv.tar"
     try:
