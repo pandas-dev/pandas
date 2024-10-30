@@ -1919,7 +1919,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 return element
             # GH 57338
             # Check boolean array set as object type
-            comp = [lib.is_bool(e) for e in np.array([element]).flatten()]
+            comp = [lib.is_bool(e) for e in np.array([element]).ravel()]
             if all(comp):
                 return element.astype("bool")
             raise LossySetitemError
