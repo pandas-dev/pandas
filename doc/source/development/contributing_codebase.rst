@@ -298,6 +298,12 @@ So, before actually writing any code, you should write your tests.  Often the te
 taken from the original GitHub issue.  However, it is always worth considering additional
 use cases and writing corresponding tests.
 
+We use `code coverage <https://en.wikipedia.org/wiki/Code_coverage>`_ to help understand
+the amount of code which is covered by a test. We recommend striving to ensure code
+you add or change within Pandas is covered by a test. Please see our
+`code coverage dashboard through Codecov <https://app.codecov.io/github/pandas-dev/pandas>`_
+for more information.
+
 Adding tests is one of the most common requests after code is pushed to pandas.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
