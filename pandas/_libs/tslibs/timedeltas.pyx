@@ -1864,10 +1864,12 @@ class Timedelta(_Timedelta):
 
     Parameters
     ----------
-    value : Timedelta, timedelta, np.timedelta64, str, or int
+    value : Timedelta, timedelta, np.timedelta64, str, int or float
         Input value.
     unit : str, default 'ns'
-        Denote the unit of the input, if input is an integer.
+        If input is an integer, denote the unit of the input.
+        If input is a float, denote the unit of the integer parts.
+        The decimal parts with resolution lower than 1 nanosecond are ignored.
 
         Possible values:
 
