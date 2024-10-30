@@ -147,7 +147,7 @@ Reduction and groupby operations such as :meth:`~DataFrame.sum` work as well.
    df.sum()
    df.groupby("B").A.sum()
 
-Scalar NA Value
+Scalar NA value
 ---------------
 
 :class:`arrays.IntegerArray` uses :attr:`pandas.NA` as its scalar

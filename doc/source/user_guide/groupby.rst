@@ -618,7 +618,7 @@ this will make an extra copy.
 
 .. _groupby.aggregate.udf:
 
-Aggregation with User-Defined Functions
+Aggregation with user-defined functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Users can also provide their own User-Defined Functions (UDFs) for custom aggregations.
@@ -1261,7 +1261,7 @@ with
     df.groupby("A", group_keys=False).apply(lambda x: x, include_groups=False)
 
 
-Numba Accelerated Routines
+Numba accelerated routines
 --------------------------
 
 .. versionadded:: 1.1
@@ -1696,7 +1696,7 @@ introduction <categorical>` and the
 
     dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
 
-Groupby by indexer to 'resample' data
+GroupBy by indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.

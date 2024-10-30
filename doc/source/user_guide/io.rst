@@ -5996,7 +5996,7 @@ Full documentation can be found `here <https://pandas-gbq.readthedocs.io/en/late
 
 .. _io.stata:
 
-Stata format
+STATA format
 ------------
 
 .. _io.stata_writer:
