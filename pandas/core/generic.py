@@ -3339,7 +3339,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The subset of columns to write. Writes all columns by default.
         header : bool or list of str, default True
             Write out the column names. If a list of strings is given,
-            it is assumed to be aliases for the column names.
+            it is assumed to be aliases for the column names. Braces must be escaped.
         index : bool, default True
             Write row names (index).
         na_rep : str, default 'NaN'
