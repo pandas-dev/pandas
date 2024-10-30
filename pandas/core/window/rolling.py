@@ -1507,7 +1507,7 @@ class RollingAndExpandingMixin(BaseWindow):
             window_aggregations.roll_apply,
             args=args,
             kwargs=kwargs,
-            raw=raw,
+            raw=bool(raw),
             function=function,
         )
 

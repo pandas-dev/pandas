@@ -569,7 +569,11 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
             if getattr(data[col].dtype, "numpy_dtype", None) is not None:
                 data[col] = data[col].astype(data[col].dtype.numpy_dtype)
             elif is_string_dtype(data[col].dtype):
+                # TODO could avoid converting string dtype to object here,
+                # but handle string dtype in _encode_strings
                 data[col] = data[col].astype("object")
+                # generate_table checks for None values
+                data.loc[data[col].isna(), col] = None
 
         dtype = data[col].dtype
         empty_df = data.shape[0] == 0
@@ -2004,6 +2008,16 @@ The repeated labels are:
         """
         Return data label of Stata file.
 
+        The data label is a descriptive string associated with the dataset
+        stored in the Stata file. This property provides access to that
+        label, if one is present.
+
+        See Also
+        --------
+        io.stata.StataReader.variable_labels : Return a dict associating each variable
+            name with corresponding label.
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
         Examples
         --------
         >>> df = pd.DataFrame([(1,)], columns=["variable"])
@@ -2035,9 +2049,19 @@ The repeated labels are:
         """
         Return a dict associating each variable name with corresponding label.
 
+        This method retrieves variable labels from a Stata file. Variable labels are
+        mappings between variable names and their corresponding descriptive labels
+        in a Stata dataset.
+
         Returns
         -------
         dict
+            A python dictionary.
+
+        See Also
+        --------
+        read_stata : Read Stata file into DataFrame.
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
 
         Examples
         --------
@@ -2066,9 +2090,19 @@ The repeated labels are:
         """
         Return a nested dict associating each variable name to its value and label.
 
+        This method retrieves the value labels from a Stata file. Value labels are
+        mappings between the coded values and their corresponding descriptive labels
+        in a Stata dataset.
+
         Returns
         -------
         dict
+            A python dictionary.
+
+        See Also
+        --------
+        read_stata : Read Stata file into DataFrame.
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
 
         Examples
         --------
@@ -2695,6 +2729,7 @@ class StataWriter(StataParser):
                 continue
             column = self.data[col]
             dtype = column.dtype
+            # TODO could also handle string dtype here specifically
             if dtype.type is np.object_:
                 inferred_dtype = infer_dtype(column, skipna=True)
                 if not ((inferred_dtype == "string") or len(column) == 0):
