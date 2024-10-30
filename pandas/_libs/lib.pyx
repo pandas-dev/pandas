@@ -259,15 +259,23 @@ def is_iterator(obj: object) -> bool:
     Check if the object is an iterator.
 
     This is intended for generators, not list-like objects.
+    This method checks whether the passed object is an iterator. It
+    returns `True` if the object is an iterator, and `False` otherwise.
 
     Parameters
     ----------
     obj : The object to check
+        The object to check for iterator type.
 
     Returns
     -------
     is_iter : bool
         Whether `obj` is an iterator.
+        `True` if the object is of iterator type, otherwise `False`.
+
+    See Also
+    --------
+    api.types.is_list_like : Check if the input is list-like.
 
     Examples
     --------
