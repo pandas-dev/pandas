@@ -144,7 +144,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.io.stata.StataWriter.write_file SA01" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
-        -i "pandas.set_eng_float_format RT03,SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.n GL08" \
