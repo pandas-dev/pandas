@@ -615,7 +615,8 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "string": Index([f"pandas_{i}" for i in range(100)]),
+    "object": Index([f"pandas_{i}" for i in range(100)], dtype=object),
+    "string": Index([f"pandas_{i}" for i in range(100)], dtype="str"),
     "datetime": date_range("2020-01-01", periods=100),
     "datetime-tz": date_range("2020-01-01", periods=100, tz="US/Pacific"),
     "period": period_range("2020-01-01", periods=100, freq="D"),
