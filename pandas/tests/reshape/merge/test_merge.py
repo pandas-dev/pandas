@@ -1842,6 +1842,19 @@ class TestMergeDtypes:
             expected = expected.sort_values("A", ignore_index=True)
 
         tm.assert_frame_equal(result, expected)
+    
+    def test_merge_with_uintc_columns(dataframes_with_uintc):
+        """To test if pd.merge works with numpy.uintc on windows"""
+        
+        df1 = pd.DataFrame({'a': ['foo', 'bar'], 'b': np.array([1, 2], dtype=np.uintc)})
+        df2 = pd.DataFrame({'a': ['foo', 'baz'], 'b': np.array([3, 4], dtype=np.uintc)})
+        result = df1.merge(df2, how='outer')
+        expected = pd.DataFrame({
+            'a': ['bar', 'baz', 'foo','foo'],
+            'b': np.array([2,4,1,3],dtype=np.uintc)
+        })
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+    
 
 
 @pytest.fixture
