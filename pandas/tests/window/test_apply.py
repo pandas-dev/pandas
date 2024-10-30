@@ -317,6 +317,7 @@ def test_center_reindex_frame(raw):
     frame_rs = frame.rolling(window=25, min_periods=minp, center=True).apply(f, raw=raw)
     tm.assert_frame_equal(frame_xp, frame_rs)
 
+
 def test_apply_numba_with_kwargs():
     # 58995
     def func(sr, a=0):
