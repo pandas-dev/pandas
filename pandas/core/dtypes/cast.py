@@ -1918,7 +1918,17 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                         # i.e. there are pd.NA elements
                         raise LossySetitemError
                 return element
+            with np.errstate(invalid="ignore"):
+                # We check afterwards if cast was losslessly, so no need to show
+                # the warning
+                casted = element.astype(dtype)
+            comp = casted == element
+            if comp.all():
+                # Return the casted values bc they can be passed to
+                #  np.putmask, whereas the raw values cannot.
+                return casted
             raise LossySetitemError
+
         if lib.is_bool(element):
             return element
         raise LossySetitemError
