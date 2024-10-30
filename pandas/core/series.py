@@ -2462,7 +2462,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def round(self, decimals: int = 0, *args, **kwargs) -> Series:
         """
-        Round each value in a Series to the given number of decimals.
+        Round each numerical value in a Series to the given number of decimals.
 
         Parameters
         ----------
@@ -2482,6 +2482,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
+        Series.dt.round : Round datetimelike values of a Series.
 
         Notes
         -----
