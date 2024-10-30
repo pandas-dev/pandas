@@ -1,5 +1,6 @@
 """support numpy compatibility across versions"""
 
+import os
 import warnings
 
 import numpy as np
@@ -13,6 +14,10 @@ np_version_gte1p24 = _nlv >= Version("1.24")
 np_version_gte1p24p3 = _nlv >= Version("1.24.3")
 np_version_gte1p25 = _nlv >= Version("1.25")
 np_version_gt2 = _nlv >= Version("2.0.0")
+np_version_gt2_not_legacy = (
+    _nlv >= Version("2.0.0")
+    and os.environ.get("NPY_PROMOTION_STATE", "weak") != "legacy"
+)
 is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.23.5"
 

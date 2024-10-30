@@ -15,7 +15,10 @@ from pandas._libs import (
     lib,
 )
 from pandas.compat import HAS_PYARROW
-from pandas.compat.numpy import np_version_gt2
+from pandas.compat.numpy import (
+    np_version_gt2,
+    np_version_gt2_not_legacy,
+)
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -770,7 +773,7 @@ class TestSeriesConstructors:
 
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
-        if np_version_gt2:
+        if np_version_gt2_not_legacy:
             msg = "The elements provided in the data cannot all be casted to the dtype"
             err = OverflowError
         else:
@@ -803,7 +806,7 @@ class TestSeriesConstructors:
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
-        if np_version_gt2:
+        if np_version_gt2_not_legacy:
             msg = (
                 f"The elements provided in the data cannot "
                 f"all be casted to the dtype {any_unsigned_int_numpy_dtype}"
@@ -1939,7 +1942,7 @@ class TestSeriesConstructors:
 
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
         # GH#44923
-        if not np_version_gt2:
+        if not np_version_gt2_not_legacy:
             raises = pytest.raises(
                 ValueError, match="string values cannot be losslessly cast to int8"
             )

@@ -34,7 +34,7 @@ from pandas._libs import (
     missing as libmissing,
     ops as libops,
 )
-from pandas.compat.numpy import np_version_gt2
+from pandas.compat.numpy import np_version_gt2_not_legacy
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.cast import find_result_type
@@ -1989,7 +1989,7 @@ def test_ensure_int32():
         # find a smaller floating dtype
         (300.0, np.uint16),  # for integer floats, we convert them to ints
         (300.1, np.float64),
-        (np.int16(300), np.int16 if np_version_gt2 else np.uint16),
+        (np.int16(300), np.int16 if np_version_gt2_not_legacy else np.uint16),
     ],
 )
 def test_find_result_type_uint_int(right, result):
