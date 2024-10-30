@@ -1921,9 +1921,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             # GH 57338
             # Check boolean array set as object type
             with np.errstate(invalid="ignore"):
-                casted = element.astype(dtype)
-            comp = casted == element
-            if comp.all():
+                casted = element.astype(dtype).astype("object")
+                element_object = element.astype("object")
+            comp = [i is j for i, j in zip(element_object, casted)]
+            if all(comp):
                 return casted
             raise LossySetitemError
 
