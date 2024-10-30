@@ -2176,7 +2176,7 @@ class Timedelta(_Timedelta):
         Parameters
         ----------
         freq : str
-            The frequency level to ceil the index to. Must be a fixed
+            Frequency string indicating the ceiling resolution. Must be a fixed
             frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
