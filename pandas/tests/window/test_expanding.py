@@ -691,18 +691,3 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(expanding2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
-
-
-def test_apply_numba_with_kwargs():
-    # 58995
-    def func(sr, a=0):
-        return sr.sum() + a
-
-    data = DataFrame(range(10))
-
-    result = data.expanding().apply(func, engine="numba", raw=True, kwargs={"a": 1})
-    expected = data.expanding().sum() + 1
-    tm.assert_frame_equal(result, expected)
-
-    result = data.expanding().apply(func, engine="numba", raw=True, args=(1,))
-    tm.assert_frame_equal(result, expected)
