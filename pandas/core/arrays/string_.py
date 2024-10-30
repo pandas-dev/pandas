@@ -890,7 +890,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             if not is_array_like(other):
                 other = np.asarray(other)
             other = other[valid]
-            other = np.asarray(other)
+            # other = np.asarray(other)
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
