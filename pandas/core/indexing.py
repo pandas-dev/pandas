@@ -2377,7 +2377,7 @@ class _iLocIndexer(_LocationIndexer):
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
                     if isinstance(indexer[1], slice):
-                        len_indexer = len(obj.loc[indexer[1]].axes[1])
+                        len_indexer = len(obj.axes[1][indexer[1]])
                     else:
                         len_indexer = len(indexer[1])
                     ser_values = (
