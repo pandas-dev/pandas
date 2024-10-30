@@ -4,8 +4,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -63,7 +61,6 @@ def test_apply(float_frame, engine, request):
         assert result.index is float_frame.index
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
 @pytest.mark.parametrize("nopython", [True, False])
@@ -740,8 +737,9 @@ def test_apply_category_equalness(val):
 
     result = df.a.apply(lambda x: x == val)
     expected = Series(
-        [np.nan if pd.isnull(x) else x == val for x in df_values], name="a"
+        [False if pd.isnull(x) else x == val for x in df_values], name="a"
     )
+    # False since behavior of NaN for categorical dtype has been changed (GH 59966)
     tm.assert_series_equal(result, expected)
 
 

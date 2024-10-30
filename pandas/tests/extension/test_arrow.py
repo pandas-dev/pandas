@@ -43,7 +43,6 @@ from pandas.compat import (
     pa_version_under13p0,
     pa_version_under14p0,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -292,7 +291,7 @@ class TestArrowArray(base.ExtensionTests):
                 expected = data_missing.to_numpy()
             tm.assert_numpy_array_equal(result, expected)
 
-    def test_astype_str(self, data, request):
+    def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_binary(pa_dtype):
             request.applymarker(
@@ -300,34 +299,16 @@ class TestArrowArray(base.ExtensionTests):
                     reason=f"For {pa_dtype} .astype(str) decodes.",
                 )
             )
-        elif (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ) or pa.types.is_duration(pa_dtype):
+        elif not using_infer_string and (
+            (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+            or pa.types.is_duration(pa_dtype)
+        ):
             request.applymarker(
                 pytest.mark.xfail(
                     reason="pd.Timestamp/pd.Timedelta repr different from numpy repr",
                 )
             )
         super().test_astype_str(data)
-
-    @pytest.mark.parametrize(
-        "nullable_string_dtype",
-        [
-            "string[python]",
-            pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        ],
-    )
-    def test_astype_string(self, data, nullable_string_dtype, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ) or pa.types.is_duration(pa_dtype):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="pd.Timestamp/pd.Timedelta repr different from numpy repr",
-                )
-            )
-        super().test_astype_string(data, nullable_string_dtype)
 
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
