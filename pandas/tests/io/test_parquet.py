@@ -973,7 +973,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
-    def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
+    def test_timezone_aware_index(self, pa, timezone_aware_date_list):
         pytest.importorskip("pyarrow", "11.0.0")
 
         idx = 5 * [timezone_aware_date_list]
@@ -995,12 +995,15 @@ class TestParquetPyArrow(Base):
         if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
             # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
             # https://github.com/pandas-dev/pandas/issues/37286
-            import pytz
-
-            offset = df.index.tz.utcoffset(timezone_aware_date_list)
-            tz = pytz.FixedOffset(offset.total_seconds() / 60)
-            expected.index = expected.index.tz_convert(tz)
-            expected["index_as_col"] = expected["index_as_col"].dt.tz_convert(tz)
+            try:
+                import pytz
+            except ImportError:
+                pass
+            else:
+                offset = df.index.tz.utcoffset(timezone_aware_date_list)
+                tz = pytz.FixedOffset(offset.total_seconds() / 60)
+                expected.index = expected.index.tz_convert(tz)
+                expected["index_as_col"] = expected["index_as_col"].dt.tz_convert(tz)
         check_round_trip(df, pa, check_dtype=False, expected=expected)
 
     def test_filter_row_groups(self, pa):
