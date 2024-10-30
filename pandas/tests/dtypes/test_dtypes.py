@@ -1252,6 +1252,6 @@ def test_categorical_nan_no_dtype_conversion():
     expected = pd.DataFrame({"a": Categorical([1], [1]), "b": [1]})
     assert df["a"].dtype == "category"
 
-    df.loc[0, "a"] = 1
+    df.loc[0, "a"] = np.array([1])
     assert df["a"].dtype == "category"
     tm.assert_frame_equal(df, expected)
