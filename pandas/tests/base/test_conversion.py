@@ -363,10 +363,10 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
     result = np.asarray(thing)
     tm.assert_numpy_array_equal(result, expected)
 
-    # Additionally, we check the `copy=` semantics for asarray
+    # Additionally, we check the `copy=` semantics for array/asarray
     # (these are implemented by us via `__array__`).
-    result_cp1 = np.asarray(thing, copy=True)
-    result_cp2 = np.asarray(thing, copy=True)
+    result_cp1 = np.array(thing, copy=True)
+    result_cp2 = np.array(thing, copy=True)
     # When called with `copy=True` NumPy/we should ensure a copy was made
     assert not np.may_share_memory(result_cp1, result_cp2)
 
@@ -375,12 +375,12 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
         return
 
     try:
-        result_nocopy1 = np.asarray(thing, copy=False)
+        result_nocopy1 = np.array(thing, copy=False)
     except ValueError:
         # An error is always acceptable for `copy=False`
         return
 
-    result_nocopy2 = np.asarray(thing, copy=False)
+    result_nocopy2 = np.array(thing, copy=False)
     # If copy=False was given, these must share the same data
     assert np.may_share_memory(result_nocopy1, result_nocopy2)
 
