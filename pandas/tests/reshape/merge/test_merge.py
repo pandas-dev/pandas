@@ -1872,7 +1872,6 @@ class TestMergeDtypes:
         df_details = DataFrame(
             {"join_key": Series([0, 1, 2], dtype=np.intc), "value": ["a", "b", "c"]}
         )
-        # merged = pd.merge(df, df_details, on="join_key", how="left")
         merged = df.merge(df_details, on="join_key", how="left")
         expected = DataFrame(
             {"join_key": np.array([0, 2, 1], dtype=np.intc), "value": ["a", "c", "b"]}
