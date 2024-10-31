@@ -54,6 +54,7 @@ notable_bug_fix1
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated allowing non-``bool`` values for ``na`` in :meth:`.str.contains`, :meth:`.str.startswith`, and :meth:`.str.endswith` for dtypes that do not already disallow these (:issue:`59615`)
+- Deprecated the ``"pyarrow_numpy"`` storage option for :class:`StringDtype` (:issue:`60152`)
 - The deprecation of setting the argument ``include_groups`` to ``True`` in :meth:`DataFrameGroupBy.apply` has been promoted from a ``DeprecationWarning`` to ``FutureWarning``; only ``False`` will be allowed (:issue:`7155`)
 
 .. ---------------------------------------------------------------------------
