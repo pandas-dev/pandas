@@ -12,9 +12,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
 from pandas.errors import SpecificationError
 
 from pandas import (
@@ -212,10 +209,6 @@ def test_apply_modify_traceback():
         data.apply(transform, axis=1)
 
 
-# we should raise a proper TypeError instead of propagating the pyarrow error
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 @pytest.mark.parametrize(
     "df, func, expected",
     tm.get_cython_table_params(
@@ -225,21 +218,25 @@ def test_apply_modify_traceback():
 def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_string):
     # GH 21224
     if using_infer_string:
-        import pyarrow as pa
+        if df.dtypes.iloc[0].storage == "pyarrow":
+            import pyarrow as pa
 
-        expected = (expected, pa.lib.ArrowNotImplementedError)
+            # TODO(infer_string)
+            # should raise a proper TypeError instead of propagating the pyarrow error
 
-    msg = "can't multiply sequence by non-int of type 'str'|has no kernel"
+            expected = (expected, pa.lib.ArrowNotImplementedError)
+        else:
+            expected = (expected, NotImplementedError)
+
+    msg = (
+        "can't multiply sequence by non-int of type 'str'|has no kernel|cannot perform"
+    )
     warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
         with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
             df.agg(func, axis=axis)
 
 
-# we should raise a proper TypeError instead of propagating the pyarrow error
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(
@@ -263,11 +260,15 @@ def test_agg_cython_table_raises_series(series, func, expected, using_infer_stri
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
 
     if using_infer_string:
-        import pyarrow as pa
+        if series.dtype.storage == "pyarrow":
+            import pyarrow as pa
 
-        expected = (expected, pa.lib.ArrowNotImplementedError)
-
-    msg = msg + "|does not support|has no kernel"
+            # TODO(infer_string)
+            # should raise a proper TypeError instead of propagating the pyarrow error
+            expected = (expected, pa.lib.ArrowNotImplementedError)
+        else:
+            expected = (expected, NotImplementedError)
+    msg = msg + "|does not support|has no kernel|Cannot perform|cannot perform"
     warn = None if isinstance(func, str) else FutureWarning
 
     with pytest.raises(expected, match=msg):

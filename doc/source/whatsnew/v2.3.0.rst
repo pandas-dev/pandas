@@ -32,7 +32,7 @@ enhancement1
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
 -
 
 .. ---------------------------------------------------------------------------
