@@ -68,6 +68,7 @@ from pandas.core.indexers import (
     unpack_tuple_and_ellipses,
     validate_indices,
 )
+from pandas.core.nanops import check_below_min_count
 from pandas.core.strings.base import BaseStringArrayMethods
 
 from pandas.io._util import _arrow_dtype_mapping
@@ -1704,6 +1705,37 @@ class ArrowExtensionArray(
                 numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
                 denominator = pc.sqrt_checked(pc.count(self._pa_array))
                 return pc.divide_checked(numerator, denominator)
+
+        elif name == "sum" and (
+            pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
+        ):
+
+            def pyarrow_meth(data, skip_nulls, min_count=0):  # type: ignore[misc]
+                mask = pc.is_null(data) if data.null_count > 0 else None
+                if skip_nulls:
+                    if min_count > 0 and check_below_min_count(
+                        (len(data),),
+                        None if mask is None else mask.to_numpy(),
+                        min_count,
+                    ):
+                        return pa.scalar(None, type=data.type)
+                    if data.null_count > 0:
+                        # binary_join returns null if there is any null ->
+                        # have to filter out any nulls
+                        data = data.filter(pc.invert(mask))
+                else:
+                    if mask is not None or check_below_min_count(
+                        (len(data),), None, min_count
+                    ):
+                        return pa.scalar(None, type=data.type)
+
+                if pa.types.is_large_string(data.type):
+                    # binary_join only supports string, not large_string
+                    data = data.cast(pa.string())
+                data_list = pa.ListArray.from_arrays(
+                    [0, len(data)], data.combine_chunks()
+                )[0]
+                return pc.binary_join(data_list, "")
 
         else:
             pyarrow_name = {

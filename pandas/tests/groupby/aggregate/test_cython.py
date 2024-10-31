@@ -146,7 +146,6 @@ def test_cython_agg_return_dict():
     tm.assert_series_equal(ts, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_cython_fail_agg():
     dr = bdate_range("1/1/2000", periods=50)
     ts = Series(["A", "B", "C", "D", "E"] * 10, index=dr)

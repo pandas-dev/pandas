@@ -188,7 +188,7 @@ class TestStringArray(base.ExtensionTests):
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return (
-            op_name in ["min", "max"]
+            op_name in ["min", "max", "sum"]
             or ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )

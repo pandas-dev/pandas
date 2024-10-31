@@ -226,7 +226,6 @@ def float_frame_with_na():
 class TestDataFrameAnalytics:
     # ---------------------------------------------------------------------
     # Reductions
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize(
         "opname",
@@ -246,17 +245,11 @@ class TestDataFrameAnalytics:
             pytest.param("kurt", marks=td.skip_if_no("scipy")),
         ],
     )
-    def test_stat_op_api_float_string_frame(
-        self, float_string_frame, axis, opname, using_infer_string
-    ):
-        if (
-            (opname in ("sum", "min", "max") and axis == 0)
-            or opname
-            in (
-                "count",
-                "nunique",
-            )
-        ) and not (using_infer_string and opname == "sum"):
+    def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
+        if (opname in ("sum", "min", "max") and axis == 0) or opname in (
+            "count",
+            "nunique",
+        ):
             getattr(float_string_frame, opname)(axis=axis)
         else:
             if opname in ["var", "std", "sem", "skew", "kurt"]:
@@ -283,10 +276,11 @@ class TestDataFrameAnalytics:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
             elif opname == "median":
                 msg = re.compile(
-                    r"Cannot convert \[.*\] to numeric|does not support", flags=re.S
+                    r"Cannot convert \[.*\] to numeric|does not support|Cannot perform",
+                    flags=re.S,
                 )
             if not isinstance(msg, re.Pattern):
-                msg = msg + "|does not support"
+                msg = msg + "|does not support|Cannot perform reduction"
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -432,7 +426,6 @@ class TestDataFrameAnalytics:
             expected[expected.isna()] = None
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
     def test_mixed_ops(self, op):
         # GH#16116
@@ -449,26 +442,16 @@ class TestDataFrameAnalytics:
                 "could not convert",
                 "can't multiply sequence by non-int",
                 "does not support",
+                "Cannot perform",
             ]
         )
         with pytest.raises(TypeError, match=msg):
             getattr(df, op)()
 
         with pd.option_context("use_bottleneck", False):
-            msg = "|".join(
-                [
-                    "Could not convert",
-                    "could not convert",
-                    "can't multiply sequence by non-int",
-                    "does not support",
-                ]
-            )
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)()
 
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="sum doesn't work for arrow strings"
-    )
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame(
@@ -608,7 +591,6 @@ class TestDataFrameAnalytics:
             result = nanops.nansem(arr, axis=0)
             assert not (result < 0).any()
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "dropna, expected",
         [
@@ -630,7 +612,7 @@ class TestDataFrameAnalytics:
                     "A": [12],
                     "B": [10.0],
                     "C": [np.nan],
-                    "D": np.array([np.nan], dtype=object),
+                    "D": Series([np.nan], dtype="str"),
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
                     "G": to_timedelta([pd.NaT]),
@@ -672,7 +654,7 @@ class TestDataFrameAnalytics:
                 "A": [12, 12, 19, 11],
                 "B": [10, 10, np.nan, 3],
                 "C": [1, np.nan, np.nan, np.nan],
-                "D": Series([np.nan, np.nan, "a", np.nan], dtype=object),
+                "D": Series([np.nan, np.nan, "a", np.nan], dtype="str"),
                 "E": Categorical([np.nan, np.nan, "a", np.nan]),
                 "F": DatetimeIndex(["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"),
                 "G": to_timedelta(["1 days", "nan", "nan", "nan"]),
@@ -692,7 +674,6 @@ class TestDataFrameAnalytics:
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_mode_sortwarning(self, using_infer_string):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
@@ -700,7 +681,12 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
 
-        warning = None if using_infer_string else UserWarning
+        # TODO(infer_string) avoid this UserWarning for python storage
+        warning = (
+            None
+            if using_infer_string and df.A.dtype.storage == "pyarrow"
+            else UserWarning
+        )
         with tm.assert_produces_warning(warning, match="Unable to sort modes"):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
@@ -1354,11 +1340,8 @@ class TestDataFrameAnalytics:
         result = df[["C"]].all(axis=None).item()
         assert result is True
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("axis", [0, 1])
-    def test_any_all_object_dtype(
-        self, axis, all_boolean_reductions, skipna, using_infer_string
-    ):
+    def test_any_all_object_dtype(self, axis, all_boolean_reductions, skipna):
         # GH#35450
         df = DataFrame(
             data=[
@@ -1368,13 +1351,8 @@ class TestDataFrameAnalytics:
                 [np.nan, np.nan, "5", np.nan],
             ]
         )
-        if using_infer_string:
-            # na in object is True while in string pyarrow numpy it's false
-            val = not axis == 0 and not skipna and all_boolean_reductions == "all"
-        else:
-            val = True
         result = getattr(df, all_boolean_reductions)(axis=axis, skipna=skipna)
-        expected = Series([True, True, val, True])
+        expected = Series([True, True, True, True])
         tm.assert_series_equal(result, expected)
 
     def test_any_datetime(self):
@@ -1939,7 +1917,6 @@ def test_sum_timedelta64_skipna_false():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="sum doesn't work with arrow strings")
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))
