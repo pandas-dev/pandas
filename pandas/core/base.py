@@ -1294,7 +1294,12 @@ class IndexOpsMixin(OpsMixin):
         else:
             from pandas import Index
 
-            uniques = Index(uniques, dtype=self.dtype)
+            try:
+                uniques = Index(uniques, dtype=self.dtype)
+            except NotImplementedError:
+                # not all dtypes are supported in Index that are allowed for Series
+                # e.g. float16 or bytes
+                uniques = Index(uniques)
         return codes, uniques
 
     _shared_docs["searchsorted"] = """
