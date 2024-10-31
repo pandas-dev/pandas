@@ -444,14 +444,12 @@ def test_astype_float(dtype, any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
     arr = pd.Series(["a", "b", "c"], dtype=dtype)
     result = arr.sum(skipna=skipna)
     assert result == "abc"
 
 
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
     result = arr.sum(skipna=skipna)
