@@ -43,6 +43,8 @@ def cls(dtype):
 
 
 def test_dtype_constructor():
+    pytest.importorskip("pyarrow")
+
     with tm.assert_produces_warning(FutureWarning):
         dtype = pd.StringDtype("pyarrow_numpy")
     assert dtype == pd.StringDtype("pyarrow", na_value=np.nan)
