@@ -43,7 +43,7 @@ If you want to support pandas development, you can find information in the [dona
 
 Wes McKinney is the Benevolent Dictator for Life (BDFL).
 
-The project governance is available in the [project governance page]({{ base_url }}governance.html).
+The project governance is available in the [project governance page]({{ base_url }}about/governance.html).
 
 ## Workgroups
 
