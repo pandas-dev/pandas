@@ -1225,9 +1225,6 @@ def maybe_cast_to_datetime(
     _ensure_nanosecond_dtype(dtype)
 
     if lib.is_np_dtype(dtype, "m"):
-        if isinstance(value, np.ndarray) and value.ndim == 2 and value.shape[1] == 1:
-            res = TimedeltaArray._from_sequence(value.ravel(), dtype=dtype)
-            return res.reshape(value.shape)
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
     else:

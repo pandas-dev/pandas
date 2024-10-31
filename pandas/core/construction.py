@@ -807,6 +807,8 @@ def _try_cast(
         )
 
     elif dtype.kind in "mM":
+        if is_ndarray and arr.ndim == 2 and arr.shape[1] == 1:
+            return maybe_cast_to_datetime(arr.ravel(), dtype).reshape(arr.shape)
         return maybe_cast_to_datetime(arr, dtype)
 
     # GH#15832: Check if we are requesting a numeric dtype and
