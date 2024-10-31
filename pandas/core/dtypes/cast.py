@@ -110,6 +110,7 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
+
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
