@@ -256,7 +256,7 @@ class TestBase:
                 "RangeIndex cannot be initialized from data, "
                 "MultiIndex and CategoricalIndex are tested separately"
             )
-        elif index.dtype == object and index.inferred_type == "boolean":
+        elif index.dtype == object and index.inferred_type in ["boolean", "string"]:
             init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
