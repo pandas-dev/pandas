@@ -993,16 +993,9 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
-    def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
+    def test_timezone_aware_index(self, pa, timezone_aware_date_list):
         pytest.importorskip("pyarrow", "11.0.0")
 
-        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="temporary skip this test until it is properly resolved: "
-                    "https://github.com/pandas-dev/pandas/issues/37286"
-                )
-            )
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 
@@ -1015,7 +1008,23 @@ class TestParquetPyArrow(Base):
         # they both implement datetime.tzinfo
         # they both wrap datetime.timedelta()
         # this use-case sets the resolution to 1 minute
-        check_round_trip(df, pa, check_dtype=False)
+
+        expected = df[:]
+        if pa_version_under11p0:
+            expected.index = expected.index.as_unit("ns")
+        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
+            # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
+            # https://github.com/pandas-dev/pandas/issues/37286
+            try:
+                import pytz
+            except ImportError:
+                pass
+            else:
+                offset = df.index.tz.utcoffset(timezone_aware_date_list)
+                tz = pytz.FixedOffset(offset.total_seconds() / 60)
+                expected.index = expected.index.tz_convert(tz)
+                expected["index_as_col"] = expected["index_as_col"].dt.tz_convert(tz)
+        check_round_trip(df, pa, check_dtype=False, expected=expected)
 
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
