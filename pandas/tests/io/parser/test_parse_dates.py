@@ -13,8 +13,9 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
-import pandas._testing as tm
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -23,7 +24,7 @@ from pandas import (
     Series,
     Timestamp,
 )
-from pandas._config import using_string_dtype
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.tools.datetimes import start_caching_at
 from pandas.io.parsers import read_csv
@@ -870,8 +871,8 @@ def test_parse_dates_arrow_dtype_as_index(all_parsers):
             ],
             name="a",
         ),
-    ).to_frame()
-    tm.assert_frame_equal(result, expected)
+    )
+    tm.assert_series_equals(result, expected)
 
 
 @xfail_pyarrow  # object dtype index
