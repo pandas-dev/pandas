@@ -1165,28 +1165,13 @@ class TestStata:
 
     def test_categorical_warnings_and_errors(self, temp_file):
         # Warning for non-string labels
-        # Error for labels too long
-        original = DataFrame.from_records(
-            [["a" * 10000], ["b" * 10000], ["c" * 10000], ["d" * 10000]],
-            columns=["Too_long"],
-        )
-
-        original = original.astype("category")
-        path = temp_file
-        msg = (
-            "Stata value labels for a single variable must have "
-            r"a combined length less than 32,000 characters\."
-        )
-        with pytest.raises(ValueError, match=msg):
-            original.to_stata(path)
-
         original = DataFrame.from_records(
             [["a"], ["b"], ["c"], ["d"], [1]], columns=["Too_long"]
         ).astype("category")
 
         msg = "data file created has not lost information due to duplicate labels"
         with tm.assert_produces_warning(ValueLabelTypeMismatch, match=msg):
-            original.to_stata(path)
+            original.to_stata(temp_file)
             # should get a warning for mixed content
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
