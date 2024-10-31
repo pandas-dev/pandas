@@ -3,7 +3,9 @@ import datetime as dt
 from datetime import datetime
 import gzip
 import io
+import itertools
 import os
+import string
 import struct
 import tarfile
 import zipfile
@@ -2592,3 +2594,12 @@ def test_empty_frame(temp_file):
     df3 = read_stata(path, columns=["a"])
     assert "b" not in df3
     tm.assert_series_equal(df3.dtypes, dtypes.loc[["a"]])
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+def test_many_strl(temp_file, version):
+    n = 65534
+    df = DataFrame(np.arange(n), columns=["col"])
+    lbls = ["".join(v) for v in itertools.product(*([string.ascii_letters] * 3))]
+    value_labels = {"col": {i: lbls[i] for i in range(n)}}
+    df.to_stata(temp_file, value_labels=value_labels, version=version)
