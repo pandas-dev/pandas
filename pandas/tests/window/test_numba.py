@@ -38,6 +38,11 @@ def arithmetic_numba_supported_operators(request):
     return request.param
 
 
+@pytest.fixture
+def roll_frame():
+    return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
+
+
 @td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
@@ -66,6 +71,62 @@ class TestEngine:
             f, engine="cython", args=args, raw=True
         )
         tm.assert_series_equal(result, expected)
+
+    def test_apply_numba_with_kwargs(self, roll_frame):
+        # GH 58995
+        # rolling apply
+        def func(sr, a=0):
+            return sr.sum() + a
+
+        data = DataFrame(range(10))
+
+        result = data.rolling(5).apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        expected = data.rolling(5).sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = data.rolling(5).apply(func, engine="numba", raw=True, args=(1,))
+        tm.assert_frame_equal(result, expected)
+
+        # expanding apply
+
+        result = data.expanding().apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        expected = data.expanding().sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = data.expanding().apply(func, engine="numba", raw=True, args=(1,))
+        tm.assert_frame_equal(result, expected)
+
+        # groupby rolling
+        result = (
+            roll_frame.groupby("A")
+            .rolling(5)
+            .apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        )
+        expected = roll_frame.groupby("A").rolling(5).sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = (
+            roll_frame.groupby("A")
+            .rolling(5)
+            .apply(func, engine="numba", raw=True, args=(1,))
+        )
+        tm.assert_frame_equal(result, expected)
+        # groupby expanding
+
+        result = (
+            roll_frame.groupby("A")
+            .expanding()
+            .apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        )
+        expected = roll_frame.groupby("A").expanding().sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = (
+            roll_frame.groupby("A")
+            .expanding()
+            .apply(func, engine="numba", raw=True, args=(1,))
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_numba_min_periods(self):
         # GH 58868
@@ -319,12 +380,23 @@ def test_use_global_config():
 
 @td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
+    with pytest.raises(TypeError, match="got an unexpected keyword argument 'a'"):
+        Series(range(1)).rolling(1).apply(
+            lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
+        )
     with pytest.raises(
         NumbaUtilError, match="numba does not support keyword-only arguments"
     ):
         Series(range(1)).rolling(1).apply(
-            lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
+            lambda x, *, a: x, kwargs={"a": 1}, engine="numba", raw=True
         )
+
+    tm.assert_series_equal(
+        Series(range(1), dtype=float) + 1,
+        Series(range(1))
+        .rolling(1)
+        .apply(lambda x, a: (x + a).sum(), kwargs={"a": 1}, engine="numba", raw=True),
+    )
 
 
 @td.skip_if_no("numba")
