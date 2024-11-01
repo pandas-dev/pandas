@@ -8640,7 +8640,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         other_idxlen = len(other.index)  # save for compare
 
-        this, other = self.align(other)
+        fill_value_for_align = None
+        if all(self.dtypes.eq(np.int64)) and all(other.dtypes.eq(np.int64)):
+            fill_value_for_align = 0
+        this, other = self.align(other, fill_value=fill_value_for_align)
         new_index = this.index
 
         if other.empty and len(new_index) == len(self.index):
