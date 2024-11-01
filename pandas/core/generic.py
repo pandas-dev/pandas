@@ -2812,8 +2812,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         chunksize : int, optional
-            Specify the number of rows in each batch to be written at a time.
-            By default, all rows will be written at once.
+            Specify the number of rows in each batch to be written to the database connection at a time.
+            By default, all rows will be written at once. Also see the method keyword.
         dtype : dict or scalar, optional
             Specifying the datatype for columns. If a dictionary is used, the
             keys should be the column names and the values should be the
@@ -3339,7 +3339,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The subset of columns to write. Writes all columns by default.
         header : bool or list of str, default True
             Write out the column names. If a list of strings is given,
-            it is assumed to be aliases for the column names.
+            it is assumed to be aliases for the column names. Braces must be escaped.
         index : bool, default True
             Write row names (index).
         na_rep : str, default 'NaN'
@@ -6994,7 +6994,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f'you passed a "{type(value).__name__}"'
             )
 
-        # set the default here, so functions examining the signaure
+        # set the default here, so functions examining the signature
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
             axis = 0
@@ -7051,7 +7051,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         # see test_fillna_dict_inplace_nonunique_columns
                         locs = result.columns.get_loc(k)
                         if isinstance(locs, slice):
-                            locs = np.arange(self.shape[1])[locs]
+                            locs = range(self.shape[1])[locs]
                         elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
                             locs = locs.nonzero()[0]
                         elif not (

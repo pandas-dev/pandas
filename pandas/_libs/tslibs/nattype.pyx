@@ -348,6 +348,22 @@ class NaTType(_NaT):
     """
     (N)ot-(A)-(T)ime, the time equivalent of NaN.
 
+    NaT is used to denote missing or null values in datetime and timedelta objects
+    in pandas. It functions similarly to how NaN is used for numerical data.
+    Operations with NaT will generally propagate the NaT value, similar to NaN.
+    NaT can be used in pandas data structures like Series and DataFrame
+    to represent missing datetime values. It is useful in data analysis
+    and time series analysis when working with incomplete or sparse
+    time-based data. Pandas provides robust handling of NaT to ensure
+    consistency and reliability in computations involving datetime objects.
+
+    See Also
+    --------
+    NA : NA ("not available") missing value indicator.
+    isna : Detect missing values (NaN or NaT) in an array-like object.
+    notna : Detect non-missing values.
+    numpy.nan : Floating point representation of Not a Number (NaN) for numerical data.
+
     Examples
     --------
     >>> pd.DataFrame([pd.Timestamp("2023"), np.nan], columns=["col_1"])
@@ -476,6 +492,16 @@ class NaTType(_NaT):
         "total_seconds",
         """
         Total seconds in the duration.
+
+        This method calculates the total duration in seconds by combining
+        the days, seconds, and microseconds of the `Timedelta` object.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta.
+        Timedelta : Represents a duration, the difference between two dates or times.
+        Timedelta.seconds : Returns the seconds component of the timedelta.
+        Timedelta.microseconds : Returns the microseconds component of the timedelta.
 
         Examples
         --------
@@ -1805,7 +1831,7 @@ default 'raise'
 
     def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
         """
-        Convert the underlying int64 representaton to the given unit.
+        Convert the underlying int64 representation to the given unit.
 
         Parameters
         ----------

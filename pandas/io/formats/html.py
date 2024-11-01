@@ -195,6 +195,8 @@ class HTMLFormatter:
             esc = {}
 
         rs = pprint_thing(s, escape_chars=esc).strip()
+        # replace spaces betweens strings with non-breaking spaces
+        rs = rs.replace("  ", "&nbsp;&nbsp;")
 
         if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()

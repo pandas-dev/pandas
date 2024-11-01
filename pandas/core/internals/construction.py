@@ -621,7 +621,7 @@ def reorder_arrays(
     arrays: list[ArrayLike], arr_columns: Index, columns: Index | None, length: int
 ) -> tuple[list[ArrayLike], Index]:
     """
-    Pre-emptively (cheaply) reindex arrays with new columns.
+    Preemptively (cheaply) reindex arrays with new columns.
     """
     # reorder according to the columns
     if columns is not None:
@@ -750,7 +750,8 @@ def to_arrays(
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
         # e.g. recarray
-        columns = Index(list(data.dtype.names))
+        if columns is None:
+            columns = Index(data.dtype.names)
         arrays = [data[k] for k in columns]
         return arrays, columns
 

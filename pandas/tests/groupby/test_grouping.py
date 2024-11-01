@@ -1180,3 +1180,15 @@ def test_grouping_by_key_is_in_axis():
     result = gb.sum()
     expected = DataFrame({"a": [1, 2], "b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_any_with_timedelta():
+    # GH#59712
+    df = DataFrame({"value": [pd.Timedelta(1), pd.NaT]})
+
+    result = df.groupby(np.array([0, 1], dtype=np.int64))["value"].any()
+
+    expected = Series({0: True, 1: False}, name="value", dtype=bool)
+    expected.index = expected.index.astype(np.int64)
+
+    tm.assert_series_equal(result, expected)

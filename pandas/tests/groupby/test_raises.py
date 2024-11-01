@@ -267,7 +267,8 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            "Could not convert string .* to numeric",
+            "Could not convert string .* to numeric|"
+            "Cannot perform reduction 'mean' with string dtype",
         ),
     }[groupby_func_np]
 

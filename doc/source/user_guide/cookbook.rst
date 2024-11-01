@@ -35,7 +35,7 @@ These are some neat pandas ``idioms``
    )
    df
 
-if-then...
+If-then...
 **********
 
 An if-then on one column
@@ -176,7 +176,7 @@ One could hard code:
 Selection
 ---------
 
-Dataframes
+DataFrames
 **********
 
 The :ref:`indexing <indexing>` docs.
@@ -914,7 +914,7 @@ Using TimeGrouper and another grouping to create subgroups, then apply a custom 
 <https://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
 
 `Resample intraday frame without adding new days
-<https://stackoverflow.com/questions/14898574/resample-intrday-pandas-dataframe-without-add-new-days>`__
+<https://stackoverflow.com/questions/14898574/resample-intraday-pandas-dataframe-without-add-new-days>`__
 
 `Resample minute data
 <https://stackoverflow.com/questions/14861023/resampling-minute-data>`__
@@ -1489,7 +1489,7 @@ of the data values:
    )
    df
 
-Constant series
+Constant Series
 ---------------
 
 To assess if a series has a constant value, we can check if ``series.nunique() <= 1``.

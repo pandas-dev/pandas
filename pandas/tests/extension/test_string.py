@@ -22,7 +22,7 @@ from typing import cast
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 import pandas._testing as tm
@@ -30,10 +30,6 @@ from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
-
-pytestmark = pytest.mark.xfail(
-    using_string_dtype(), reason="TODO(infer_string)", strict=False
-)
 
 
 def maybe_split_array(arr, chunked):
@@ -109,8 +105,8 @@ class TestStringArray(base.ExtensionTests):
             # only the NA-variant supports parametrized string alias
             assert dtype == f"string[{dtype.storage}]"
         elif dtype.storage == "pyarrow":
-            # TODO(infer_string) deprecate this
-            assert dtype == "string[pyarrow_numpy]"
+            with tm.assert_produces_warning(FutureWarning):
+                assert dtype == "string[pyarrow_numpy]"
 
     def test_is_not_string_type(self, dtype):
         # Different from BaseDtypeTests.test_is_not_string_type
@@ -192,7 +188,7 @@ class TestStringArray(base.ExtensionTests):
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return (
-            op_name in ["min", "max"]
+            op_name in ["min", "max", "sum"]
             or ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
@@ -213,9 +209,38 @@ class TestStringArray(base.ExtensionTests):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, "abc")
 
-    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+
+    def test_combine_add(self, data_repeated, using_infer_string, request):
+        dtype = next(data_repeated(1)).dtype
+        if using_infer_string and (
+            (dtype.na_value is pd.NA) and dtype.storage == "python"
+        ):
+            mark = pytest.mark.xfail(
+                reason="The pointwise operation result will be inferred to "
+                "string[nan, pyarrow], which does not match the input dtype"
+            )
+            request.applymarker(mark)
+        super().test_combine_add(data_repeated)
+
+    def test_arith_series_with_array(
+        self, data, all_arithmetic_operators, using_infer_string, request
+    ):
+        dtype = data.dtype
+        if (
+            using_infer_string
+            and all_arithmetic_operators == "__radd__"
+            and (
+                (dtype.na_value is pd.NA) or (dtype.storage == "python" and HAS_PYARROW)
+            )
+        ):
+            mark = pytest.mark.xfail(
+                reason="The pointwise operation result will be inferred to "
+                "string[nan, pyarrow], which does not match the input dtype"
+            )
+            request.applymarker(mark)
+        super().test_arith_series_with_array(data, all_arithmetic_operators)
 
 
 class Test2DCompat(base.Dim2CompatTests):

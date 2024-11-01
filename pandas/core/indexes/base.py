@@ -504,7 +504,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
-            pass
+            if isinstance(data, (set, frozenset)):
+                data = list(data)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
             pass
@@ -2943,7 +2944,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         With mismatched timezones, cast both to UTC.
         """
-        # Caller is responsibelf or checking
+        # Caller is responsible for checking
         #  `self.dtype != other.dtype`
         if (
             isinstance(self, ABCDatetimeIndex)
@@ -4152,7 +4153,8 @@ class Index(IndexOpsMixin, PandasObject):
         preserve_names = not hasattr(target, "name")
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
-        target = ensure_has_len(target)  # target may be an iterator
+        if is_iterator(target):
+            target = list(target)
 
         if not isinstance(target, Index) and len(target) == 0:
             if level is not None and self._is_multi:
@@ -6261,7 +6263,11 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
         dtype = _unpack_nested_dtype(other)
-        return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
+        return (
+            self._is_comparable_dtype(dtype)
+            or is_object_dtype(dtype)
+            or is_string_dtype(dtype)
+        )
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -6877,6 +6883,9 @@ class Index(IndexOpsMixin, PandasObject):
             #  We cannot keep the same dtype, so cast to the (often object)
             #  minimal shared dtype before doing the insert.
             dtype = self._find_common_type_compat(item)
+            if dtype == self.dtype:
+                # EA's might run into recursion errors if loc is invalid
+                raise
             return self.astype(dtype).insert(loc, item)
 
         if arr.dtype != object or not isinstance(
@@ -7560,21 +7569,9 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
         return Index(index_like, copy=copy)
 
 
-def ensure_has_len(seq):
-    """
-    If seq is an iterator, put its values into a list.
-    """
-    try:
-        len(seq)
-    except TypeError:
-        return list(seq)
-    else:
-        return seq
-
-
 def trim_front(strings: list[str]) -> list[str]:
     """
-    Trims zeros and decimal points.
+    Trims leading spaces evenly among all strings.
 
     Examples
     --------
@@ -7586,8 +7583,9 @@ def trim_front(strings: list[str]) -> list[str]:
     """
     if not strings:
         return strings
-    while all(strings) and all(x[0] == " " for x in strings):
-        strings = [x[1:] for x in strings]
+    smallest_leading_space = min(len(x) - len(x.lstrip()) for x in strings)
+    if smallest_leading_space > 0:
+        strings = [x[smallest_leading_space:] for x in strings]
     return strings
 
 
