@@ -4,10 +4,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -94,6 +90,16 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
     tm.assert_frame_equal(result, expected)
 
     if engine == "numba":
+        # py signature binding
+        with pytest.raises(TypeError, match="missing a required argument: 'a'"):
+            float_frame.apply(
+                lambda x, a: x + a,
+                b=2,
+                raw=raw,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+            )
+
         # keyword-only arguments are not supported in numba
         with pytest.raises(
             pd.errors.NumbaUtilError,
@@ -1218,7 +1224,6 @@ def test_agg_with_name_as_column_name():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_agg_multiple_mixed():
     # GH 20909
     mdf = DataFrame(
@@ -1247,9 +1252,6 @@ def test_agg_multiple_mixed():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 def test_agg_multiple_mixed_raises():
     # GH 20909
     mdf = DataFrame(
@@ -1347,7 +1349,6 @@ def test_named_agg_reduce_axis1_raises(float_frame):
             float_frame.agg(row1=(name1, "sum"), row2=(name2, "max"), axis=axis)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_nuiscance_columns():
     # GH 15015
     df = DataFrame(
@@ -1524,7 +1525,6 @@ def test_apply_datetime_tz_issue(engine, request):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
 def test_mixed_column_raises(df, method, using_infer_string):

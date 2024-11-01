@@ -691,12 +691,6 @@ class StataValueLabel:
             self.txt.append(category)
             self.n += 1
 
-        if self.text_len > 32000:
-            raise ValueError(
-                "Stata value labels for a single variable must "
-                "have a combined length less than 32,000 characters."
-            )
-
         # Ensure int32
         self.off = np.array(offsets, dtype=np.int32)
         self.val = np.array(values, dtype=np.int32)
