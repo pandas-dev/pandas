@@ -89,7 +89,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.pandas_dtype PR07,RT03,SA01" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
-        -i "pandas.arrays.IntervalArray.left SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
         -i "pandas.arrays.IntervalArray.right SA01" \
         -i "pandas.arrays.NumpyExtensionArray SA01" \
