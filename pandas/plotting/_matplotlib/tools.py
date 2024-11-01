@@ -1,7 +1,11 @@
 # being a bit too dynamic
 from __future__ import annotations
 
-from math import ceil
+from math import (
+    ceil,
+    floor,
+    log2,
+)
 from typing import TYPE_CHECKING
 import warnings
 
@@ -126,9 +130,7 @@ def _get_layout(
     try:
         return layouts[nplots]
     except KeyError:
-        k = 1
-        while k**2 < nplots:
-            k += 1
+        k = floor(log2(nplots))
 
         if (k - 1) * k >= nplots:
             return k, (k - 1)

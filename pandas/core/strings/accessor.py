@@ -423,7 +423,7 @@ class StringMethods(NoNewAttributesMixin):
                 result.name = name
             return result
 
-    def _get_series_list(self, others):
+    def _get_series_list(self, others) -> list[Series]:
         """
         Auxiliary function for :meth:`str.cat`. Turn potentially mixed input
         into a list of Series (elements without an index must match the length
@@ -474,8 +474,8 @@ class StringMethods(NoNewAttributesMixin):
                     for x in others
                 ):
                     los: list[Series] = []
-                    while others:  # iterate through list and append each element
-                        los = los + self._get_series_list(others.pop(0))
+                    for other in others:
+                        los.extend(self._get_series_list(other))
                     return los
                 # ... or just strings
                 elif all(not is_list_like(x) for x in others):
