@@ -1,0 +1,155 @@
+import pandas as pd
+from datetime import datetime
+
+class JanitorialScorecard:
+    def __init__(self):
+        # Define weights for different components
+        self.weights = {
+            'compliance': 0.40,  # Critical for healthcare settings
+            'quality': 0.35,     # Direct inspection results
+            'customer': 0.25     # Customer satisfaction and relationship
+        }
+        
+        # Score mappings
+        self.letter_scores = {
+            'G': 100,  # Great
+            'A': 80,   # Average
+            'P': 0     # Poor
+        }
+        
+        # Define critical areas for healthcare facilities
+        self.critical_areas = [
+            'Clean and Disinfect (All touchpoints)',
+            'Clean and disinfect toilets and urinals',
+            'Restock supplies and consumables',
+            'Wet mop floors using disinfectant and clean water',
+            'SDS sheets current',
+            'Proper PPE',
+            'Commercial grade chemicals'
+        ]
+        
+    def calculate_compliance_score(self, inspection_data):
+        """Calculate compliance score based on critical healthcare requirements"""
+        critical_items = sum(1 for item in inspection_data.get('compliance_items', [])
+                           if item['compliant'] is True)
+        total_critical_items = len(inspection_data.get('compliance_items', []))
+        
+        return (critical_items / total_critical_items) * 100 if total_critical_items > 0 else 0
+    
+    def calculate_quality_score(self, inspection_results):
+        """Calculate quality score based on inspection results"""
+        scores = []
+        for area, grade in inspection_results.items():
+            score = self.letter_scores.get(grade, 0)
+            # Weight critical areas more heavily
+            weight = 1.5 if area in self.critical_areas else 1.0
+            scores.append(score * weight)
+        
+        return sum(scores) / len(scores) if scores else 0
+    
+    def calculate_customer_score(self, customer_feedback):
+        """Calculate customer satisfaction and relationship score"""
+        metrics = {
+            'communication': customer_feedback.get('communication', 0),
+            'responsiveness': customer_feedback.get('responsiveness', 0),
+            'consistency': customer_feedback.get('consistency', 0),
+            'relationship': customer_feedback.get('relationship', 0)
+        }
+        
+        return sum(metrics.values()) / len(metrics)
+    
+    def calculate_total_score(self, inspection_data, inspection_results, customer_feedback):
+        """Calculate final weighted score"""
+        compliance_score = self.calculate_compliance_score(inspection_data)
+        quality_score = self.calculate_quality_score(inspection_results)
+        customer_score = self.calculate_customer_score(customer_feedback)
+        
+        weighted_score = (
+            compliance_score * self.weights['compliance'] +
+            quality_score * self.weights['quality'] +
+            customer_score * self.weights['customer']
+        )
+        
+        return {
+            'total_score': round(weighted_score, 2),
+            'compliance_score': round(compliance_score, 2),
+            'quality_score': round(quality_score, 2),
+            'customer_score': round(customer_score, 2),
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'status': self.get_status(weighted_score)
+        }
+    
+    def get_status(self, score):
+        """Determine status based on total score"""
+        if score >= 90:
+            return 'Excellent - Exceeds Standards'
+        elif score >= 80:
+            return 'Good - Meets Standards'
+        elif score >= 70:
+            return 'Fair - Needs Improvement'
+        else:
+            return 'Poor - Immediate Action Required'
+
+    def generate_report(self, scores):
+        """Generate a formatted report of the scores"""
+        report = f"""
+Healthcare Facility Janitorial Scorecard
+Date: {scores['date']}
+
+Overall Status: {scores['status']}
+Total Score: {scores['total_score']}%
+
+Component Breakdown:
+1. Compliance Score: {scores['compliance_score']}%
+   - Weight: {self.weights['compliance'] * 100}%
+   - Focus: CMS/Dialysis requirements and safety standards
+
+2. Quality Score: {scores['quality_score']}%
+   - Weight: {self.weights['quality'] * 100}%
+   - Based on direct inspection results
+
+3. Customer Satisfaction: {scores['customer_score']}%
+   - Weight: {self.weights['customer'] * 100}%
+   - Measures relationship health and satisfaction
+
+Action Items:
+{'- Immediate corrective action required' if scores['total_score'] < 70 else ''}
+{'- Schedule follow-up inspection' if 70 <= scores['total_score'] < 80 else ''}
+{'- Maintain current standards' if scores['total_score'] >= 80 else ''}
+"""
+        return report
+
+# Example usage
+if __name__ == "__main__":
+    scorecard = JanitorialScorecard()
+    
+    # Sample data
+    inspection_data = {
+        'compliance_items': [
+            {'item': 'SDS sheets current', 'compliant': True},
+            {'item': 'Proper PPE', 'compliant': True},
+            {'item': 'Commercial grade chemicals', 'compliant': True}
+        ]
+    }
+    
+    inspection_results = {
+        'Clean and Disinfect (All touchpoints)': 'G',
+        'Clean and disinfect toilets and urinals': 'G',
+        'Restock supplies and consumables': 'A',
+        'Wet mop floors using disinfectant and clean water': 'G'
+    }
+    
+    customer_feedback = {
+        'communication': 90,
+        'responsiveness': 85,
+        'consistency': 88,
+        'relationship': 92
+    }
+    
+    scores = scorecard.calculate_total_score(
+        inspection_data,
+        inspection_results,
+        customer_feedback
+    )
+    
+    print(scorecard.generate_report(scores))
