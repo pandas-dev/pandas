@@ -182,7 +182,6 @@ def test_groupby_raises_string(
 
     if using_infer_string:
         if groupby_func in [
-            "sum",
             "prod",
             "mean",
             "median",
@@ -213,13 +212,7 @@ def test_groupby_raises_string(
         elif groupby_func in ["cummin", "cummax"]:
             msg = msg.replace("object", "str")
         elif groupby_func == "corrwith":
-            if df["d"].dtype.storage == "pyarrow":
-                msg = (
-                    "ArrowStringArrayNumpySemantics' with dtype str does not "
-                    "support operation 'mean'"
-                )
-            else:
-                msg = "Cannot perform reduction 'mean' with string dtype"
+            msg = "Cannot perform reduction 'mean' with string dtype"
 
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
@@ -273,17 +266,12 @@ def test_groupby_raises_string_np(
     }[groupby_func_np]
 
     if using_infer_string:
-        klass = TypeError
-        if df["d"].dtype.storage == "python":
-            msg = (
-                f"Cannot perform reduction '{groupby_func_np.__name__}' "
-                "with string dtype"
-            )
-        else:
-            msg = (
-                "'ArrowStringArrayNumpySemantics' with dtype str does not "
-                f"support operation '{groupby_func_np.__name__}'"
-            )
+        if groupby_func_np is np.mean:
+            klass = TypeError
+        msg = (
+            f"Cannot perform reduction '{groupby_func_np.__name__}' "
+            "with string dtype"
+        )
 
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 

@@ -2609,7 +2609,6 @@ class ExtensionArray:
         if isinstance(self.dtype, StringDtype):
             # StringArray
             if op.how in [
-                "sum",
                 "prod",
                 "mean",
                 "median",

@@ -912,11 +912,6 @@ def test_frame_downsample_method(
             msg = expected_data
         with pytest.raises(klass, match=msg):
             _ = func(**kwargs)
-    elif method == "sum" and using_infer_string and numeric_only is not True:
-        klass = TypeError
-        msg = f"dtype 'str' does not support operation '{method}'"
-        with pytest.raises(klass, match=msg):
-            _ = func(**kwargs)
     else:
         result = func(**kwargs)
         expected = DataFrame(expected_data, index=expected_index)
@@ -966,10 +961,6 @@ def test_series_downsample_method(
         msg = re.escape("agg function failed [how->prod,dtype->")
         if using_infer_string:
             msg = "dtype 'str' does not support operation 'prod'"
-        with pytest.raises(TypeError, match=msg):
-            func(**kwargs)
-    elif method == "sum" and using_infer_string and numeric_only is not True:
-        msg = "dtype 'str' does not support operation 'sum'"
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
 

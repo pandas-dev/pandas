@@ -2304,7 +2304,6 @@ class ArrowExtensionArray(
     ):
         if isinstance(self.dtype, StringDtype):
             if how in [
-                "sum",
                 "prod",
                 "mean",
                 "median",

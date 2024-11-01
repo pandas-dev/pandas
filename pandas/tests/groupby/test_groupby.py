@@ -709,8 +709,6 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only, using_infer_string):
     grouped = df.groupby("A")
 
     no_drop_nuisance = ("var", "std", "sem", "mean", "prod", "median")
-    if using_infer_string:
-        no_drop_nuisance += ("sum",)
     if agg_function in no_drop_nuisance and not numeric_only:
         # Added numeric_only as part of GH#46560; these do not drop nuisance
         # columns when numeric_only is False
@@ -1814,7 +1812,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
 
     if op in ["prod", "sum", "skew"]:
         # ops that require more than just ordered-ness
-        if is_dt64 or is_cat or is_per or is_str:
+        if is_dt64 or is_cat or is_per or (is_str and op != "sum"):
             # GH#41291
             # datetime64 -> prod and sum are invalid
             if is_dt64:
