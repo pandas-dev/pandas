@@ -35,8 +35,8 @@ You will need `Build Tools for Visual Studio 2022
         scrolling down to "All downloads" -> "Tools for Visual Studio".
         In the installer, select the "Desktop development with C++" Workloads.
 
-        If you encounter an error indicating `cl.exe` is not found when building with Meson, 
-        reopen the installer and also select the optional component 
+        If you encounter an error indicating ``cl.exe`` is not found when building with Meson,
+        reopen the installer and also select the optional component
         **MSVC v142 - VS 2019 C++ x64/x86 build tools** in the right pane for installation.
 
 Alternatively, you can install the necessary components on the commandline using
