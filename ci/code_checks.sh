@@ -76,9 +76,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.freq GL08" \
         -i "pandas.Series.dt.unit GL08" \
         -i "pandas.Series.pad PR01,SA01" \
-        -i "pandas.Timedelta.max PR02" \
-        -i "pandas.Timedelta.min PR02" \
-        -i "pandas.Timedelta.resolution PR02" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.nanosecond GL08" \
