@@ -644,11 +644,11 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Assigning a PyArrow array in a ``pd.DataFrame`` column now produces a ``pd.Series`` with a ``pd.ArrowDtype`` (:issue:`56994`)
 - Bug in :meth:`DataFrame.astype` not casting ``values`` for Arrow-based dictionary dtype correctly (:issue:`58479`)
 - Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
 - Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
-- Bug in :meth:`sanitize_array` was not taking into account pyarrow arrays. (:issue:`56994`)
 
 Strings
 ^^^^^^^
