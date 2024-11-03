@@ -55,9 +55,6 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 
-if not pa_version_under10p1:
-    pass
-
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
