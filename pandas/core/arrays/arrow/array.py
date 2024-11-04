@@ -673,7 +673,8 @@ class ArrowExtensionArray(
                 "Unable to avoid copy while creating an array as requested."
             )
         elif copy is None:
-            copy = False  # The NumPy copy=False meaning is different here.
+            # `to_numpy(copy=False)` has the meaning of NumPy `copy=None`.
+            copy = False
 
         return self.to_numpy(dtype=dtype, copy=copy)
 

@@ -2022,7 +2022,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             arr = np.array(values, dtype=dtype, copy=copy)
 
         if (
-            copy is not False
+            copy is not True
             and astype_is_view(values.dtype, arr.dtype)
             and self._mgr.is_single_block
         ):

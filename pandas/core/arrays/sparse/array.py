@@ -547,6 +547,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if self.sp_index.ngaps == 0:
+            # Compat for na dtype and int values.
+            if copy is True:
+                return np.array(self.sp_values)
+            else:
+                return self.sp_values
+
         if copy is False:
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
@@ -554,9 +561,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         fill_value = self.fill_value
 
-        if self.sp_index.ngaps == 0:
-            # Compat for na dtype and int values.
-            return self.sp_values
         if dtype is None:
             # Can NumPy represent this type?
             # If not, `np.result_type` will raise. We catch that

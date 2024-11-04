@@ -1391,9 +1391,11 @@ class MultiIndex(Index):
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
-        if copy is True:
-            # Note: branch avoids `copy=None` for NumPy 1.x support
-            return np.array(self.values, dtype=dtype, copy=copy)
+        if copy is False:
+            # self.values is always a newly construct array, so raise.
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
         return self.values
 
     def view(self, cls=None) -> Self:

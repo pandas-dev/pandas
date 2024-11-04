@@ -1697,10 +1697,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # we need to ensure __array__ gets all the way to an
         # ndarray.
 
-        if copy is None:
-            # Branch required since copy=None is not defined on 1.x
-            return np.asarray(ret, dtype=dtype)
-        return np.array(ret, dtype=dtype)
+        # `take_nd` should already make a copy, so don't force again.
+        return np.asarray(ret, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
