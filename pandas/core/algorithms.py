@@ -931,7 +931,7 @@ def value_counts_internal(
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.
             idx = Index(keys)
-            if idx.dtype == bool and keys.dtype == object:
+            if idx.dtype in [bool, "string"] and keys.dtype == object:
                 idx = idx.astype(object)
             elif (
                 idx.dtype != keys.dtype  # noqa: PLR1714  # # pylint: disable=R1714
