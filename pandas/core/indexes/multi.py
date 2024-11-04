@@ -1396,6 +1396,10 @@ class MultiIndex(Index):
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
+        if copy is True:
+            # explicit np.array call to ensure a copy is made and unique objects
+            # are returned, because self.values is cached
+            return np.array(self.values, dtype=dtype)
         return self.values
 
     def view(self, cls=None) -> Self:
