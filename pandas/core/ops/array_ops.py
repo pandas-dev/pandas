@@ -261,6 +261,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     #  and `maybe_prepare_scalar_for_op` has already been called on `right`
     # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
+
     if (
         should_extension_dispatch(left, right)
         or isinstance(right, (Timedelta, BaseOffset, Timestamp))
