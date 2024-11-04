@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     NA,
     ArrowDtype,
@@ -137,10 +135,9 @@ def test_interp_fill_functions_inplace(
         assert np.shares_memory(arr, get_array(df, "a")) is (dtype == "float64")
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_interpolate_cleaned_fill_method(using_copy_on_write):
-    # Check that "method is set to None" case works correctly
+def test_interpolate_cannot_with_object_dtype(using_copy_on_write):
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
+    df["a"] = df["a"].astype(object)
     df_orig = df.copy()
 
     msg = "DataFrame.interpolate with object dtype"
@@ -159,9 +156,9 @@ def test_interpolate_cleaned_fill_method(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_interpolate_object_convert_no_op(using_copy_on_write):
+def test_interpolate_object_convert_no_op(using_copy_on_write, using_infer_string):
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
+    df["a"] = df["a"].astype(object)
     arr_a = get_array(df, "a")
     msg = "DataFrame.interpolate with method=pad is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
