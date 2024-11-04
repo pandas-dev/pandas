@@ -36,9 +36,8 @@ def test_config(string_storage, using_infer_string):
         result = pd.array(["a", "b"])
         assert result.dtype.storage == string_storage
 
-    dtype = StringDtype(
-        string_storage, na_value=np.nan if using_infer_string else pd.NA
-    )
+    # pd.array(..) by default always returns the NA-variant
+    dtype = StringDtype(string_storage, na_value=pd.NA)
     expected = dtype.construct_array_type()._from_sequence(["a", "b"], dtype=dtype)
     tm.assert_equal(result, expected)
 
@@ -242,10 +241,11 @@ def test_setitem_invalid_indexer_raises():
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 
-@pytest.mark.parametrize("dtype", ["string[pyarrow]", "string[pyarrow_numpy]"])
-def test_pickle_roundtrip(dtype):
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+def test_pickle_roundtrip(na_value):
     # GH 42600
     pytest.importorskip("pyarrow")
+    dtype = StringDtype("pyarrow", na_value=na_value)
     expected = pd.Series(range(10), dtype=dtype)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)

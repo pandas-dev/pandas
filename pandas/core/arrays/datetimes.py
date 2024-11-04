@@ -15,6 +15,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
 from pandas._config.config import get_option
 
 from pandas._libs import (
@@ -158,15 +159,8 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
             # these return a boolean by-definition
             return result
 
-        if field in self._object_ops:
-            result = fields.get_date_name_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(result, fill_value=None)
-
-        else:
-            result = fields.get_date_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(
-                result, fill_value=None, convert="float64"
-            )
+        result = fields.get_date_field(values, field, reso=self._creso)
+        result = self._maybe_mask_results(result, fill_value=None, convert="float64")
 
         return result
 
@@ -211,6 +205,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     -------
     None
 
+    See Also
+    --------
+    DatetimeIndex : Immutable Index for datetime-like data.
+    Series : One-dimensional labeled array capable of holding datetime-like data.
+    Timestamp : Pandas replacement for python datetime.datetime object.
+    to_datetime : Convert argument to datetime.
+    period_range : Return a fixed frequency PeriodIndex.
+
     Examples
     --------
     >>> pd.arrays.DatetimeArray._from_sequence(
@@ -243,7 +245,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         "is_year_end",
         "is_leap_year",
     ]
-    _object_ops: list[str] = ["freq", "tz"]
     _field_ops: list[str] = [
         "year",
         "month",
@@ -264,7 +265,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     ]
     _other_ops: list[str] = ["date", "time", "timetz"]
     _datetimelike_ops: list[str] = (
-        _field_ops + _object_ops + _bool_ops + _other_ops + ["unit"]
+        _field_ops + _bool_ops + _other_ops + ["unit", "freq", "tz"]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
@@ -825,11 +826,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                     stacklevel=find_stack_level(),
                 )
             res_values = self.astype("O") + offset
-            # TODO(GH#55564): as_unit will be unnecessary
-            result = type(self)._from_sequence(res_values).as_unit(self.unit)
-            if not len(self):
-                # GH#30336 _from_sequence won't be able to infer self.tz
-                return result.tz_localize(self.tz)
+            result = type(self)._from_sequence(res_values, dtype=self.dtype)
 
         else:
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
@@ -1340,6 +1337,13 @@ default 'raise'
             values, "month_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
+        if using_string_dtype():
+            from pandas import (
+                StringDtype,
+                array as pd_array,
+            )
+
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
@@ -1401,6 +1405,14 @@ default 'raise'
             values, "day_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
+        if using_string_dtype():
+            # TODO: no tests that check for dtype of result as of 2024-08-15
+            from pandas import (
+                StringDtype,
+                array as pd_array,
+            )
+
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
     @property
@@ -2906,7 +2918,7 @@ def _generate_range(
     offset: BaseOffset,
     *,
     unit: str,
-) -> Generator[Timestamp, None, None]:
+) -> Generator[Timestamp]:
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset

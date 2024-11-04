@@ -321,7 +321,7 @@ parse_dates : bool, None, list of Hashable, default None
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_format : str or dict of column -> format, optional
-    Format to use for parsing dates when used in conjunction with ``parse_dates``.
+    Format to use for parsing dates and/or times when used in conjunction with ``parse_dates``.
     The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
     `strftime documentation
     <https://docs.python.org/3/library/datetime.html
@@ -1648,7 +1648,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
             if keep_default_na:
                 v = set(v) | STR_NA_VALUES
 
-            na_values[k] = v
+            na_values[k] = _stringify_na_values(v, floatify)
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):

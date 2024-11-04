@@ -11,6 +11,7 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
+import functools
 import operator
 import sys
 from textwrap import dedent
@@ -34,6 +35,7 @@ from pandas._libs import (
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -558,6 +560,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
 
+    def __arrow_c_stream__(self, requested_schema=None):
+        """
+        Export the pandas Series as an Arrow C stream PyCapsule.
+
+        This relies on pyarrow to convert the pandas Series to the Arrow
+        format (and follows the default behaviour of ``pyarrow.Array.from_pandas``
+        in its handling of the index, i.e. to ignore it).
+        This conversion is not necessarily zero-copy.
+
+        Parameters
+        ----------
+        requested_schema : PyCapsule, default None
+            The schema to which the dataframe should be casted, passed as a
+            PyCapsule containing a C ArrowSchema representation of the
+            requested schema.
+
+        Returns
+        -------
+        PyCapsule
+        """
+        pa = import_optional_dependency("pyarrow", min_version="16.0.0")
+        type = (
+            pa.DataType._import_from_c_capsule(requested_schema)
+            if requested_schema is not None
+            else None
+        )
+        ca = pa.array(self, type=type)
+        if not isinstance(ca, pa.ChunkedArray):
+            ca = pa.chunked_array([ca])
+        return ca.__arrow_c_stream__()
+
+    # ----------------------------------------------------------------------
+
     @property
     def _constructor(self) -> type[Series]:
         return Series
@@ -778,8 +813,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _references(self) -> BlockValuesRefs:
         return self._mgr._block.refs
 
-    # error: Decorated property not supported
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr.array_values()
@@ -1616,6 +1650,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         str
             {klass} in Markdown-friendly format.
+
+        See Also
+        --------
+        Series.to_frame : Rrite a text representation of object to the system clipboard.
+        Series.to_latex : Render Series to LaTeX-formatted table.
 
         Notes
         -----
@@ -2619,6 +2658,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
         >>> s1.corr(s2)
         -1.0
+
+        If the input is a constant array, the correlation is not defined in this case,
+        and ``np.nan`` is returned.
+
+        >>> s1 = pd.Series([0.45, 0.45])
+        >>> s1.corr(s1)
+        nan
         """  # noqa: E501
         this, other = self.align(other, join="inner")
         if len(this) == 0:
@@ -3211,6 +3257,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parameters
         ----------
         other : Series, or object coercible into Series
+            Other Series that provides values to update the current Series.
+
+        See Also
+        --------
+        Series.combine : Perform element-wise operation on two Series
+            using a given function.
+        Series.transform: Modify a Series using a function.
 
         Examples
         --------
@@ -4086,7 +4139,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        type of caller (new object)
+        Series
+            Type of caller with index as MultiIndex (new object).
+
+        See Also
+        --------
+        DataFrame.reorder_levels : Rearrange index or column levels using
+            input ``order``.
 
         Examples
         --------
@@ -4253,6 +4312,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         arg: Callable | Mapping | Series,
         na_action: Literal["ignore"] | None = None,
+        **kwargs,
     ) -> Series:
         """
         Map values of Series according to an input mapping or function.
@@ -4268,6 +4328,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
+        **kwargs
+            Additional keyword arguments to pass as keywords arguments to
+            `arg`.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -4329,6 +4394,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3  I am a rabbit
         dtype: object
         """
+        if callable(arg):
+            arg = functools.partial(arg, **kwargs)
         new_values = self._map_values(arg, na_action=na_action)
         return self._constructor(new_values, index=self.index, copy=False).__finalize__(
             self, method="map"
@@ -5040,6 +5107,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         scalar
             Value that is popped from series.
+
+        See Also
+        --------
+        Series.drop: Drop specified values from Series.
+        Series.drop_duplicates: Return Series with duplicate values removed.
 
         Examples
         --------

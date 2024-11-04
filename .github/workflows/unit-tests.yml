@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
   pull_request:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
     paths-ignore:
       - "doc/**"
       - "web/**"
@@ -86,7 +86,6 @@ jobs:
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
       REMOVE_PYARROW: ${{ matrix.name == 'Future infer strings (without pyarrow)' && '1' || '0' }}
@@ -235,9 +234,9 @@ jobs:
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
-          python -m pip install numpy --config-settings=setup-args="-Dallow-noblas=true"
+          python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
           python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
-          python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
+          python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
           export PANDAS_CI=1
           python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
@@ -275,7 +274,7 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
-          python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
+          python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
 
       - name: Run Tests
@@ -349,7 +348,7 @@ jobs:
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil tzdata cython hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
-          python -m pip install -ve . --no-build-isolation --no-index --no-deps --config-settings=setup-args="--werror"
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
           python -m pip list
 
       - name: Run Tests
@@ -380,7 +379,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python Free-threading Version
-        uses: deadsnakes/action@v3.1.0
+        uses: deadsnakes/action@v3.2.0
         with:
           python-version: 3.13-dev
           nogil: true
@@ -392,7 +391,7 @@ jobs:
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil pytz tzdata hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
-          python -m pip install -ve . --no-build-isolation --no-index --no-deps --config-settings=setup-args="--werror"
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
           python -m pip list
 
       - name: Run Tests

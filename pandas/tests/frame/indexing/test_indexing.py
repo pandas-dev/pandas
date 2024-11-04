@@ -1864,13 +1864,11 @@ def test_adding_new_conditional_column() -> None:
     ("dtype", "infer_string"),
     [
         (object, False),
-        ("string[pyarrow_numpy]", True),
+        (pd.StringDtype(na_value=np.nan), True),
     ],
 )
 def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
     # https://github.com/pandas-dev/pandas/issues/56204
-    pytest.importorskip("pyarrow")
-
     df = DataFrame({"a": [1, 2], "b": [3, 4]})
     with pd.option_context("future.infer_string", infer_string):
         df.loc[df["a"] == 1, "c"] = "1"
@@ -1880,16 +1878,14 @@ def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_add_new_column_infer_string():
     # GH#55366
-    pytest.importorskip("pyarrow")
     df = DataFrame({"x": [1]})
     with pd.option_context("future.infer_string", True):
         df.loc[df["x"] == 1, "y"] = "1"
     expected = DataFrame(
-        {"x": [1], "y": Series(["1"], dtype="string[pyarrow_numpy]")},
-        columns=Index(["x", "y"], dtype=object),
+        {"x": [1], "y": Series(["1"], dtype=pd.StringDtype(na_value=np.nan))},
+        columns=Index(["x", "y"], dtype="str"),
     )
     tm.assert_frame_equal(df, expected)
 

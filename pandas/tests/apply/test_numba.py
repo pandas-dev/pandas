@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -19,7 +18,6 @@ def apply_axis(request):
     return request.param
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_numba_vs_python_noop(float_frame, apply_axis):
     func = lambda x: x
     result = float_frame.apply(func, engine="numba", axis=apply_axis)
@@ -29,11 +27,10 @@ def test_numba_vs_python_noop(float_frame, apply_axis):
 
 def test_numba_vs_python_string_index():
     # GH#56189
-    pytest.importorskip("pyarrow")
     df = DataFrame(
         1,
-        index=Index(["a", "b"], dtype="string[pyarrow_numpy]"),
-        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+        index=Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     func = lambda x: x
     result = df.apply(func, engine="numba", axis=0)
@@ -43,7 +40,6 @@ def test_numba_vs_python_string_index():
     )
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_numba_vs_python_indexing():
     frame = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7.0, 8.0, 9.0]},
@@ -73,7 +69,7 @@ def test_numba_vs_python_reductions(reduction, apply_axis):
 
 @pytest.mark.parametrize("colnames", [[1, 2, 3], [1.0, 2.0, 3.0]])
 def test_numba_numeric_colnames(colnames):
-    # Check that numeric column names lower properly and can be indxed on
+    # Check that numeric column names lower properly and can be indexed on
     df = DataFrame(
         np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.int64), columns=colnames
     )

@@ -28,11 +28,6 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
-from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 from pandas.io.json import ujson_dumps
 
@@ -2143,12 +2138,10 @@ class TestPandasContainer:
         result = df.to_json(orient="split")
         assert result == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_read_json_dtype_backend(
         self, string_storage, dtype_backend, orient, using_infer_string
     ):
         # GH#50750
-        pa = pytest.importorskip("pyarrow")
         df = DataFrame(
             {
                 "a": Series([1, np.nan, 3], dtype="Int64"),
@@ -2162,29 +2155,17 @@ class TestPandasContainer:
             }
         )
 
-        if using_infer_string:
-            string_array = ArrowStringArrayNumpySemantics(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArrayNumpySemantics(pa.array(["a", "b", None]))
-        elif string_storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
-
-        elif dtype_backend == "pyarrow":
-            pa = pytest.importorskip("pyarrow")
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
-
-        else:
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
-
         out = df.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
             result = read_json(
                 StringIO(out), dtype_backend=dtype_backend, orient=orient
             )
+
+        if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            string_dtype = pd.ArrowDtype(pa.string())
+        else:
+            string_dtype = pd.StringDtype(string_storage)
 
         expected = DataFrame(
             {
@@ -2194,12 +2175,13 @@ class TestPandasContainer:
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": Series(["a", "b", "c"], dtype=string_dtype),
+                "h": Series(["a", "b", None], dtype=string_dtype),
             }
         )
 
         if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
             from pandas.arrays import ArrowExtensionArray
 
             expected = DataFrame(
@@ -2212,7 +2194,9 @@ class TestPandasContainer:
         if orient == "values":
             expected.columns = list(range(8))
 
-        tm.assert_frame_equal(result, expected)
+        # the storage of the str columns' Index is also affected by the
+        # string_storage setting -> ignore that for checking the result
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.parametrize("orient", ["split", "records", "index"])
     def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):
@@ -2261,18 +2245,18 @@ def test_pyarrow_engine_lines_false():
 
 
 def test_json_roundtrip_string_inference(orient):
-    pytest.importorskip("pyarrow")
     df = DataFrame(
         [["a", "b"], ["c", "d"]], index=["row 1", "row 2"], columns=["col 1", "col 2"]
     )
     out = df.to_json()
     with pd.option_context("future.infer_string", True):
         result = read_json(StringIO(out))
+    dtype = pd.StringDtype(na_value=np.nan)
     expected = DataFrame(
         [["a", "b"], ["c", "d"]],
-        dtype="string[pyarrow_numpy]",
-        index=Index(["row 1", "row 2"], dtype="string[pyarrow_numpy]"),
-        columns=Index(["col 1", "col 2"], dtype="string[pyarrow_numpy]"),
+        dtype=dtype,
+        index=Index(["row 1", "row 2"], dtype=dtype),
+        columns=Index(["col 1", "col 2"], dtype=dtype),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2302,3 +2286,15 @@ def test_read_json_lines_rangeindex():
     result = read_json(StringIO(data), lines=True).index
     expected = RangeIndex(2)
     tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_large_number():
+    # GH#20608
+    result = read_json(
+        StringIO('["9999999999999999"]'),
+        orient="values",
+        typ="series",
+        convert_dates=False,
+    )
+    expected = Series([9999999999999999])
+    tm.assert_series_equal(result, expected)

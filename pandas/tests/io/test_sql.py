@@ -39,10 +39,6 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 from pandas.util.version import Version
 
 from pandas.io import sql
@@ -3661,24 +3657,13 @@ def dtype_backend_data() -> DataFrame:
 
 @pytest.fixture
 def dtype_backend_expected():
-    def func(storage, dtype_backend, conn_name) -> DataFrame:
-        string_array: StringArray | ArrowStringArray
-        string_array_na: StringArray | ArrowStringArray
-        if storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
-
-        elif dtype_backend == "pyarrow":
+    def func(string_storage, dtype_backend, conn_name) -> DataFrame:
+        string_dtype: pd.StringDtype | pd.ArrowDtype
+        if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))  # type: ignore[assignment]
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))  # type: ignore[assignment]
-
+            string_dtype = pd.ArrowDtype(pa.string())
         else:
-            pa = pytest.importorskip("pyarrow")
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+            string_dtype = pd.StringDtype(string_storage)
 
         df = DataFrame(
             {
@@ -3688,8 +3673,8 @@ def dtype_backend_expected():
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, pd.NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": Series(["a", "b", "c"], dtype=string_dtype),
+                "h": Series(["a", "b", None], dtype=string_dtype),
             }
         )
         if dtype_backend == "pyarrow":
@@ -3824,7 +3809,6 @@ def test_row_object_is_named_tuple(sqlite_engine):
 def test_read_sql_string_inference(sqlite_engine):
     conn = sqlite_engine
     # GH#54430
-    pytest.importorskip("pyarrow")
     table = "test"
     df = DataFrame({"a": ["x", "y"]})
     df.to_sql(table, con=conn, index=False, if_exists="replace")
@@ -3832,7 +3816,7 @@ def test_read_sql_string_inference(sqlite_engine):
     with pd.option_context("future.infer_string", True):
         result = read_sql_table(table, conn)
 
-    dtype = "string[pyarrow_numpy]"
+    dtype = pd.StringDtype(na_value=np.nan)
     expected = DataFrame(
         {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
     )

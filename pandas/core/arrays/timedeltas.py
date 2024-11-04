@@ -152,9 +152,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     # define my properties & methods for delegation
     _other_ops: list[str] = []
     _bool_ops: list[str] = []
-    _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
+    _datetimelike_ops: list[str] = _field_ops + _bool_ops + ["unit", "freq"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
@@ -791,6 +790,19 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         numpy.ndarray
+            A NumPy ``timedelta64`` object representing the same duration as the
+            original pandas ``Timedelta`` object. The precision of the resulting
+            object is in nanoseconds, which is the default
+            time resolution used by pandas for ``Timedelta`` objects, ensuring
+            high precision for time-based calculations.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta format.
+        Timedelta : Represents a duration between two dates or times.
+        DatetimeIndex: Index of datetime64 data.
+        Timedelta.components : Return a components namedtuple-like
+                               of a single timedelta.
 
         Examples
         --------
@@ -801,6 +813,14 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> tdelta_idx.to_pytimedelta()
         array([datetime.timedelta(days=1), datetime.timedelta(days=2),
                datetime.timedelta(days=3)], dtype=object)
+
+        >>> tidx = pd.TimedeltaIndex(data=["1 days 02:30:45", "3 days 04:15:10"])
+        >>> tidx
+        TimedeltaIndex(['1 days 02:30:45', '3 days 04:15:10'],
+               dtype='timedelta64[ns]', freq=None)
+        >>> tidx.to_pytimedelta()
+        array([datetime.timedelta(days=1, seconds=9045),
+                datetime.timedelta(days=3, seconds=15310)], dtype=object)
         """
         return ints_to_pytimedelta(self._ndarray)
 
@@ -843,6 +863,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     seconds_docstring = textwrap.dedent(
         """Number of seconds (>= 0 and less than 1 day) for each element.
 
+    See Also
+    --------
+    Series.dt.seconds : Return number of seconds for each element.
+    Series.dt.nanoseconds : Return number of nanoseconds for each element.
+
     Examples
     --------
     For Series:
@@ -876,6 +901,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     microseconds_docstring = textwrap.dedent(
         """Number of microseconds (>= 0 and less than 1 second) for each element.
+
+    See Also
+    --------
+    pd.Timedelta.microseconds : Number of microseconds (>= 0 and less than 1 second).
+    pd.Timedelta.to_pytimedelta.microseconds : Number of microseconds (>= 0 and less
+        than 1 second) of a datetime.timedelta.
 
     Examples
     --------
@@ -911,6 +942,11 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     nanoseconds_docstring = textwrap.dedent(
         """Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
+
+    See Also
+    --------
+    Series.dt.seconds : Return number of seconds for each element.
+    Series.dt.microseconds : Return number of nanoseconds for each element.
 
     Examples
     --------
@@ -955,6 +991,12 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         DataFrame
+
+        See Also
+        --------
+        TimedeltaIndex.total_seconds : Return total duration expressed in seconds.
+        Timedelta.components : Return a components namedtuple-like of a single
+            timedelta.
 
         Examples
         --------

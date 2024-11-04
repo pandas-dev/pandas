@@ -4,8 +4,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas.core.dtypes.base import _registry as registry
@@ -961,7 +959,6 @@ class TestCategoricalDtypeParametrized:
         c2 = CategoricalDtype(["b", "a"], ordered=True)
         assert c1 is not c2
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("ordered2", [True, False, None])
     def test_categorical_equality(self, ordered, ordered2):
         # same categories, same order
@@ -1245,4 +1242,13 @@ def test_loc_setitem_empty_labels_no_dtype_conversion():
     df.loc[[]] = 0.1
 
     assert df.a.dtype == "int64"
+    tm.assert_frame_equal(df, expected)
+
+
+def test_categorical_nan_no_dtype_conversion():
+    # GH 43996
+
+    df = pd.DataFrame({"a": Categorical([np.nan], [1]), "b": [1]})
+    expected = pd.DataFrame({"a": Categorical([1], [1]), "b": [1]})
+    df.loc[0, "a"] = np.array([1])
     tm.assert_frame_equal(df, expected)
