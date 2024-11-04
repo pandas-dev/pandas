@@ -826,6 +826,9 @@ class ExcelFormatter:
                         fill_value=levels._na_value,
                     )
 
+                    if isinstance(values, PeriodIndex):
+                        values = values.to_timestamp()
+
                     for i, span_val in spans.items():
                         mergestart, mergeend = None, None
                         if span_val > 1:
@@ -849,6 +852,10 @@ class ExcelFormatter:
                 # Format hierarchical rows with non-merged values.
                 for indexcolvals in zip(*self.df.index):
                     for idx, indexcolval in enumerate(indexcolvals):
+
+                        if isinstance(indexcolval, Period):
+                            indexcolval = indexcolval.to_timestamp()
+
                         yield CssExcelCell(
                             row=self.rowcounter + idx,
                             col=gcolidx,
