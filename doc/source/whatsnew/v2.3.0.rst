@@ -32,7 +32,7 @@ enhancement1
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ notable_bug_fix1
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated allowing non-``bool`` values for ``na`` in :meth:`.str.contains`, :meth:`.str.startswith`, and :meth:`.str.endswith` for dtypes that do not already disallow these (:issue:`59615`)
--
+- Deprecated the ``"pyarrow_numpy"`` storage option for :class:`StringDtype` (:issue:`60152`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.performance:

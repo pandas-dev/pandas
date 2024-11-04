@@ -7,6 +7,7 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -27,6 +28,7 @@ from pandas.compat import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -154,7 +156,16 @@ class StringDtype(StorageExtensionDtype):
                     storage = "python"
 
         if storage == "pyarrow_numpy":
-            # TODO raise a deprecation warning
+            warnings.warn(
+                "The 'pyarrow_numpy' storage option name is deprecated and will be "
+                'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
+                "na_value-np.nan)' to construct the same dtype.\nOr enable the "
+                "'pd.options.future.infer_string = True' option globally and use "
+                'the "str" alias as a shorthand notation to specify a dtype '
+                '(instead of "string[pyarrow_numpy]").',
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             storage = "pyarrow"
             na_value = np.nan
 
@@ -254,7 +265,7 @@ class StringDtype(StorageExtensionDtype):
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
         elif string == "string[pyarrow_numpy]":
-            # TODO deprecate
+            # this is deprecated in the dtype __init__, remove this in pandas 3.0
             return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
@@ -812,8 +823,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             else:
                 return nanops.nanall(self._ndarray, skipna=skipna)
 
-        if name in ["min", "max"]:
-            result = getattr(self, name)(skipna=skipna, axis=axis)
+        if name in ["min", "max", "sum"]:
+            result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
             if keepdims:
                 return self._from_sequence([result], dtype=self.dtype)
             return result
@@ -837,6 +848,20 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
+    ) -> Scalar:
+        nv.validate_sum((), kwargs)
+        result = masked_reductions.sum(
+            values=self._ndarray, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
