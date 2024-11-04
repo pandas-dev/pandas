@@ -668,7 +668,16 @@ class ArrowExtensionArray(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
-        return self.to_numpy(dtype=dtype)
+        if copy is False:
+            # TODO: By using `zero_copy_only` it may be possible to implement this
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        elif copy is None:
+            # `to_numpy(copy=False)` has the meaning of NumPy `copy=None`.
+            copy = False
+
+        return self.to_numpy(dtype=dtype, copy=copy)
 
     def __invert__(self) -> Self:
         # This is a bit wise op for integer types
