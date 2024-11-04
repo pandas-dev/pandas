@@ -2498,6 +2498,7 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_numeric=True,  # NB: different default!
                           bint convert_to_nullable_dtype=False,
                           bint convert_non_numeric=False,
+                          bint convert_string=True,
                           object dtype_if_all_nat=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
@@ -2741,7 +2742,11 @@ def maybe_convert_objects(ndarray[object] objects,
         seen.object_ = True
 
     elif seen.str_:
-        if using_string_dtype() and is_string_array(objects, skipna=True):
+        if (
+            convert_string
+            and using_string_dtype()
+            and is_string_array(objects, skipna=True)
+        ):
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype(na_value=np.nan)

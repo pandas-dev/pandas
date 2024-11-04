@@ -552,7 +552,12 @@ class Block(PandasObject, libinternals.Block):
                 return blocks
 
             nbs = extend_blocks(
-                [blk.convert(using_cow=using_cow, copy=not using_cow) for blk in blocks]
+                [
+                    blk.convert(
+                        using_cow=using_cow, copy=not using_cow, convert_string=False
+                    )
+                    for blk in blocks
+                ]
             )
             if caller == "fillna":
                 if len(nbs) != len(blocks) or not all(
@@ -625,6 +630,7 @@ class Block(PandasObject, libinternals.Block):
         *,
         copy: bool = True,
         using_cow: bool = False,
+        convert_string: bool = True,
     ) -> list[Block]:
         """
         Attempt to coerce any object types to better types. Return a copy
@@ -655,6 +661,7 @@ class Block(PandasObject, libinternals.Block):
         res_values = lib.maybe_convert_objects(
             values,  # type: ignore[arg-type]
             convert_non_numeric=True,
+            convert_string=convert_string,
         )
         refs = None
         if (
@@ -904,7 +911,9 @@ class Block(PandasObject, libinternals.Block):
                 if get_option("future.no_silent_downcasting") is True:
                     blocks = [blk]
                 else:
-                    blocks = blk.convert(copy=False, using_cow=using_cow)
+                    blocks = blk.convert(
+                        copy=False, using_cow=using_cow, convert_string=False
+                    )
                     if len(blocks) > 1 or blocks[0].dtype != blk.dtype:
                         warnings.warn(
                             # GH#54710
@@ -1007,7 +1016,7 @@ class Block(PandasObject, libinternals.Block):
                 )
                 already_warned.warned_already = True
 
-        nbs = block.convert(copy=False, using_cow=using_cow)
+        nbs = block.convert(copy=False, using_cow=using_cow, convert_string=False)
         opt = get_option("future.no_silent_downcasting")
         if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
             warnings.warn(
@@ -1150,7 +1159,9 @@ class Block(PandasObject, libinternals.Block):
                     nbs = []
                     for res_blk in result:
                         converted = res_blk.convert(
-                            copy=True and not using_cow, using_cow=using_cow
+                            copy=True and not using_cow,
+                            using_cow=using_cow,
+                            convert_string=False,
                         )
                         if len(converted) > 1 or converted[0].dtype != res_blk.dtype:
                             warnings.warn(
