@@ -8,6 +8,8 @@ You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
 
+import zoneinfo
+
 from hypothesis import (
     assume,
     given,
@@ -34,7 +36,7 @@ def test_on_offset_implementations(dt, offset):
     assume(
         not (
             WASM
-            and dt.tzinfo is not None
+            and isinstance(dt.tzinfo, zoneinfo.ZoneInfo)
             and dt.tzinfo.key == "Indian/Cocos"
             and isinstance(offset, pd.offsets.MonthBegin)
         )
