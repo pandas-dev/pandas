@@ -405,7 +405,7 @@ In Python, this list would be a list of tuples, so
    a = list(enumerate(list(range(1, 5)) + [np.NAN]))
    pd.DataFrame(a)
 
-For more details and examples see :ref:`the Into to Data Structures
+For more details and examples see :ref:`the Intro to Data Structures
 documentation <dsintro>`.
 
 meltdf
