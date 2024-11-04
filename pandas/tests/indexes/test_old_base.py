@@ -485,6 +485,7 @@ class TestBase:
         with pytest.raises(IndexError, match=msg):
             index.delete(length)
 
+    @pytest.mark.filterwarnings(r"ignore:Dtype inference:FutureWarning")
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_equals(self, index):
         if isinstance(index, IntervalIndex):

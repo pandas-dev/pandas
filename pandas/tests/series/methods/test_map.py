@@ -221,6 +221,7 @@ def test_map_category_string():
     tm.assert_series_equal(a.map(c), exp)
 
 
+@pytest.mark.filterwarnings(r"ignore:Dtype inference:FutureWarning")
 def test_map_empty(request, index):
     if isinstance(index, MultiIndex):
         request.applymarker(

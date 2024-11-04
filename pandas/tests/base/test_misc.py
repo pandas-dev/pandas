@@ -165,6 +165,7 @@ def test_searchsorted(request, index_or_series_obj):
     assert 0 <= index <= len(obj)
 
 
+@pytest.mark.filterwarnings(r"ignore:Dtype inference:FutureWarning")
 def test_access_by_position(index_flat):
     index = index_flat
 
