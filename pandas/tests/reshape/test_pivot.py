@@ -139,7 +139,6 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        df = df.astype({"rows": object, "cols": object})
         rs = df.pivot_table(columns="cols", aggfunc="sum")
         xp = df.pivot_table(index="cols", aggfunc="sum").T
         tm.assert_frame_equal(rs, xp)

@@ -28,7 +28,8 @@ class TestNumericOnly:
                 "group": [1, 1, 2],
                 "int": [1, 2, 3],
                 "float": [4.0, 5.0, 6.0],
-                "string": Series(["a", "b", "c"], dtype=object),
+                "string": Series(["a", "b", "c"], dtype="str"),
+                "object": Series(["a", "b", "c"], dtype=object),
                 "category_string": Series(list("abc")).astype("category"),
                 "category_int": [7, 8, 9],
                 "datetime": date_range("20130101", periods=3),
@@ -40,6 +41,7 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "string",
+                "object",
                 "category_string",
                 "category_int",
                 "datetime",
@@ -112,6 +114,7 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "string",
+                "object",
                 "category_string",
                 "category_int",
                 "datetime",
@@ -159,7 +162,9 @@ class TestNumericOnly:
 
         # object dtypes for transformations are not implemented in Cython and
         # have no Python fallback
-        exception = NotImplementedError if method.startswith("cum") else TypeError
+        exception = (
+            (NotImplementedError, TypeError) if method.startswith("cum") else TypeError
+        )
 
         if method in ("min", "max", "cummin", "cummax", "cumsum", "cumprod"):
             # The methods default to numeric_only=False and raise TypeError
@@ -170,6 +175,7 @@ class TestNumericOnly:
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     # cumsum/cummin/cummax/cumprod
                     "function is not implemented for this dtype",
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):

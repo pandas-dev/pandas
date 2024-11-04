@@ -194,10 +194,7 @@ def test_groupby_raises_string(
             "quantile",
         ]:
             msg = f"dtype 'str' does not support operation '{groupby_func}'"
-            if groupby_func == "sum":
-                # The object-dtype allows this, StringArray variants do not.
-                klass = TypeError
-            elif groupby_func in ["sem", "std", "skew"]:
+            if groupby_func in ["sem", "std", "skew"]:
                 # The object-dtype raises ValueError when trying to convert to numeric.
                 klass = TypeError
         elif groupby_func == "pct_change" and df["d"].dtype.storage == "pyarrow":

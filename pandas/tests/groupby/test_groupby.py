@@ -575,7 +575,6 @@ def test_ops_not_as_index(reduction_func):
 
 
 def test_as_index_series_return_frame(df):
-    df = df.astype({"A": object, "B": object})
     grouped = df.groupby("A", as_index=False)
     grouped2 = df.groupby(["A", "B"], as_index=False)
 
@@ -979,7 +978,6 @@ def test_groupby_with_hier_columns():
 
 
 def test_grouping_ndarray(df):
-    df = df.astype({"A": object, "B": object})
     grouped = df.groupby(df["A"].values)
     grouped2 = df.groupby(df["A"].rename(None))
 
@@ -1477,13 +1475,10 @@ def test_group_name_available_in_inference_pass():
 
 def test_no_dummy_key_names(df):
     # see gh-1291
-    df = df.astype({"A": object, "B": object})
-    gb = df.groupby(df["A"].values)
-    gb2 = df.groupby([df["A"].values, df["B"].values])
-    result = gb.sum()
+    result = df.groupby(df["A"].values).sum()
     assert result.index.name is None
 
-    result2 = gb2.sum()
+    result2 = df.groupby([df["A"].values, df["B"].values]).sum()
     assert result2.index.names == (None, None)
 
 

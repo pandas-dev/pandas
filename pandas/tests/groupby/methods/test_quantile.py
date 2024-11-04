@@ -244,7 +244,7 @@ def test_groupby_quantile_nullable_array(values, q):
 
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
 @pytest.mark.parametrize("numeric_only", [True, False])
-def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only, using_infer_string):
+def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
     if numeric_only:
         result = df.groupby("a").quantile(q, numeric_only=numeric_only)
