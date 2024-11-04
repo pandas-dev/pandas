@@ -861,9 +861,9 @@ def test_parse_dates_arrow_dtype_as_index(all_parsers):
         index_col="a",
         dtype_backend="pyarrow",
     )
-    expected = Series(
+    expected = pd.DataFrame(
         [1, 1],
-        name="b",
+        columns=["b"],
         dtype="int64[pyarrow]",
         index=Index(
             [
