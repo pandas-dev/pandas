@@ -259,10 +259,9 @@ def test_replace_empty_list():
     assert not df2._mgr._has_no_reference(0)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(value):
-    df = DataFrame({"a": ["a", "b", "c"]})
+    df = DataFrame({"a": ["a", "b", "c"]}, dtype=object)
     arr = get_array(df, "a")
     df.replace(["c"], value, inplace=True)
     assert np.shares_memory(arr, get_array(df, "a"))
