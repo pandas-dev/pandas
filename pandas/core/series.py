@@ -2489,6 +2489,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
+        Series.dt.round : Round values of data to the specified freq.
 
         Notes
         -----

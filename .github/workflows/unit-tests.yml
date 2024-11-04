@@ -86,7 +86,6 @@ jobs:
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
       REMOVE_PYARROW: ${{ matrix.name == 'Future infer strings (without pyarrow)' && '1' || '0' }}

@@ -1926,6 +1926,9 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     """
     Format float representation in DataFrame with SI notation.
 
+    Sets the floating-point display format for ``DataFrame`` objects using engineering
+    notation (SI units), allowing easier readability of values across wide ranges.
+
     Parameters
     ----------
     accuracy : int, default 3
@@ -1936,6 +1939,13 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     Returns
     -------
     None
+        This method does not return a value. it updates the global display format
+        for floats in DataFrames.
+
+    See Also
+    --------
+    set_option : Set the value of the specified option or options.
+    reset_option : Reset one or more options to their default value.
 
     Examples
     --------

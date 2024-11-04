@@ -136,6 +136,7 @@ from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
+    prepare_function_arguments,
 )
 
 if TYPE_CHECKING:
@@ -767,10 +768,24 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Groupby iterator.
 
+        This method provides an iterator over the groups created by the ``resample``
+        or ``groupby`` operation on the object. The method yields tuples where
+        the first element is the label (group key) corresponding to each group or
+        resampled bin, and the second element is the subset of the data that falls
+        within that group or bin.
+
         Returns
         -------
-        Generator yielding sequence of (name, subsetted object)
-        for each group
+        Iterator
+            Generator yielding a sequence of (name, subsetted object)
+            for each group.
+
+        See Also
+        --------
+        Series.groupby : Group data by a specific key or column.
+        DataFrame.groupby : Group DataFrame using mapper or by columns.
+        DataFrame.resample : Resample a DataFrame.
+        Series.resample : Resample a Series.
 
         Examples
         --------
@@ -1275,8 +1290,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=2
+        )
         numba_transform_func = numba_.generate_numba_transform_func(
-            func, **get_jit_arguments(engine_kwargs, kwargs)
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = numba_transform_func(
             sorted_data,
@@ -1311,8 +1329,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=2
+        )
         numba_agg_func = numba_.generate_numba_agg_func(
-            func, **get_jit_arguments(engine_kwargs, kwargs)
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = numba_agg_func(
             sorted_data,
@@ -3223,6 +3244,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         DataFrame
             Open, high, low and close values within each group.
+
+        See Also
+        --------
+        DataFrame.agg : Aggregate using one or more operations over the specified axis.
+        DataFrame.resample : Resample time-series data.
+        DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
 
         Examples
         --------
