@@ -34,6 +34,7 @@ def test_on_offset_implementations(dt, offset):
     assume(
         not (
             WASM
+            and dt.tzinfo is not None
             and dt.tzinfo.key == "Indian/Cocos"
             and isinstance(offset, pd.offsets.MonthBegin)
         )
