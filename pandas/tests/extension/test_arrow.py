@@ -1074,8 +1074,11 @@ class TestArrowArray(base.ExtensionTests):
         df["C"] = pd.Series(data)
         result = df.dtypes
         expected = pd.Series({"A": data.dtype, "B": data.dtype, "C": data.dtype})
-
         tm.assert_series_equal(result, expected)
+
+    def test_create_series_dtype(self, data):
+        ser = pd.Series(data._pa_array)
+        assert ser.dtype == data.dtype
 
 
 class TestLogicalOps:
