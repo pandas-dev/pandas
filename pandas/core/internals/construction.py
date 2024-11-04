@@ -258,7 +258,7 @@ def ndarray_to_mgr(
             # and a subsequent `astype` will not already result in a copy
             values = np.array(values, copy=True, order="F")
         else:
-            values = np.array(values, copy=False)
+            values = np.asarray(values)
         values = _ensure_2d(values)
 
     else:
