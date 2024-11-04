@@ -13,8 +13,6 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import HAS_PYARROW
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1544,9 +1542,6 @@ class TestFrameArithmeticUnsorted:
         with pytest.raises(ValueError, match=msg):
             func(simple_frame, simple_frame[:2])
 
-    @pytest.mark.xfail(
-        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_strings_to_numbers_comparisons_raises(self, compare_operators_no_eq_ne):
         # GH 11565
         df = DataFrame(
@@ -1554,7 +1549,12 @@ class TestFrameArithmeticUnsorted:
         )
 
         f = getattr(operator, compare_operators_no_eq_ne)
-        msg = "'[<>]=?' not supported between instances of 'str' and 'int'"
+        msg = "|".join(
+            [
+                "'[<>]=?' not supported between instances of 'str' and 'int'",
+                "Invalid comparison between dtype=str and int",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             f(df, 0)
 
