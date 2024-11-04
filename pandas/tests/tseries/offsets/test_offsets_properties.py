@@ -14,6 +14,8 @@ from hypothesis import (
 )
 import pytest
 
+from pandas.compat import WASM
+
 import pandas as pd
 from pandas._testing._hypothesis import (
     DATETIME_JAN_1_1900_OPTIONAL_TZ,
@@ -28,6 +30,14 @@ from pandas._testing._hypothesis import (
 @given(DATETIME_JAN_1_1900_OPTIONAL_TZ, YQM_OFFSET)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
+    # This case is flaky in CI 2024-11-04
+    assume(
+        not (
+            WASM
+            and dt.tzinfo.key == "Indian/Cocos"
+            and isinstance(offset, pd.offsets.MonthBegin)
+        )
+    )
     # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt
