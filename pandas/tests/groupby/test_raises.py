@@ -219,7 +219,6 @@ def test_groupby_raises_string_udf(how, by, groupby_series, df_with_string_col):
         getattr(gb, how)(func)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
 def test_groupby_raises_string_np(
@@ -236,7 +235,7 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            re.escape("agg function failed [how->mean,dtype->object]"),
+            "agg function failed|Cannot perform reduction 'mean' with string dtype",
         ),
     }[groupby_func_np]
 
