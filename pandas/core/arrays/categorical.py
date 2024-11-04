@@ -577,11 +577,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError("Cannot convert float NaN to integer")
 
         elif len(self.codes) == 0 or len(self.categories) == 0:
-            result = np.array(
-                self,
-                dtype=dtype,
-                copy=copy,
-            )
+            # For NumPy 1.x compatibility we cannot use copy=None.  And
+            # `copy=False` has the meaning of `copy=None` here:
+            if not copy:
+                result = np.asarray(self, dtype=dtype)
+            else:
+                result = np.array(self, dtype=dtype)
 
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
@@ -1642,6 +1643,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         The numpy array interface.
 
+        Users should not call this directly. Rather, it is invoked by
+        :func:`numpy.array` and :func:`numpy.asarray`.
+
+        Parameters
+        ----------
+        dtype : np.dtype or None
+            Specifies the the dtype for the array.
+
+        copy : bool or None, optional
+            See :func:`numpy.asarray`.
+
         Returns
         -------
         numpy.array
@@ -1659,13 +1671,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> np.asarray(cat)
         array(['a', 'b'], dtype=object)
         """
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         ret = take_nd(self.categories._values, self._codes)
-        if dtype and np.dtype(dtype) != self.categories.dtype:
-            return np.asarray(ret, dtype)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
         # ndarray.
-        return np.asarray(ret)
+
+        # `take_nd` should already make a copy, so don't force again.
+        return np.asarray(ret, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
