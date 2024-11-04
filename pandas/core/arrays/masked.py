@@ -507,7 +507,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
-                data = np.array(self._data, dtype=dtype, copy=copy)
+                data = self._data.astype(dtype, copy=copy)
         return data
 
     @doc(ExtensionArray.tolist)
@@ -581,7 +581,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        if copy is False and self._hasna:
+        if copy is False:
+            if not self._hasna:
+                # special case, here we can simply return the underlying data
+                return np.array(self._data, dtype=dtype, copy=copy)
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
