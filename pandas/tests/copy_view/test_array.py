@@ -138,6 +138,9 @@ def test_dataframe_multiple_numpy_dtypes():
     assert not np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is True
 
+    with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
+        arr = np.array(df, copy=False)
+
 
 def test_values_is_ea():
     df = DataFrame({"a": date_range("2012-01-01", periods=3)})
