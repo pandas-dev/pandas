@@ -2150,9 +2150,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self, dtype: npt.DTypeLike | None = None, copy: bool_t | None = None
     ) -> np.ndarray:
         values = self._values
-        arr = np.asarray(values, dtype=dtype)
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            arr = np.asarray(values, dtype=dtype)
+        else:
+            arr = np.array(values, dtype=dtype, copy=copy)
+
         if (
-            astype_is_view(values.dtype, arr.dtype)
+            copy is not True
+            and astype_is_view(values.dtype, arr.dtype)
             and using_copy_on_write()
             and self._mgr.is_single_block
         ):

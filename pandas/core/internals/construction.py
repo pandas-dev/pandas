@@ -305,12 +305,12 @@ def ndarray_to_mgr(
 
     elif isinstance(values, (np.ndarray, ExtensionArray)):
         # drop subclass info
-        _copy = (
-            copy_on_sanitize
-            if (dtype is None or astype_is_view(values.dtype, dtype))
-            else False
-        )
-        values = np.array(values, copy=_copy)
+        if copy_on_sanitize and (dtype is None or astype_is_view(values.dtype, dtype)):
+            # only force a copy now if copy=True was requested
+            # and a subsequent `astype` will not already result in a copy
+            values = np.array(values, copy=True, order="F")
+        else:
+            values = np.asarray(values)
         values = _ensure_2d(values)
 
     else:
