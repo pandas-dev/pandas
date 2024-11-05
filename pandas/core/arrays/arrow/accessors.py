@@ -46,7 +46,7 @@ class ArrowAccessor(metaclass=ABCMeta):
 
     def _validate(self, data):
         dtype = data.dtype
-        if not isinstance(dtype, ArrowDtype):
+        if pa_version_under10p1 or not isinstance(dtype, ArrowDtype):
             # Raise AttributeError so that inspect can handle non-struct Series.
             raise AttributeError(self._validation_msg.format(dtype=dtype))
 

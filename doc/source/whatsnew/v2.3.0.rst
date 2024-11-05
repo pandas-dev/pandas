@@ -174,7 +174,8 @@ Styler
 
 Other
 ^^^^^
--
+- Fixed usage of ``inspect`` when the optional dependencies ``pyarrow`` or ``jinja2``
+  are not installed (:issue:`60196`)
 -
 
 .. ---------------------------------------------------------------------------
