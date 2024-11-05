@@ -5,8 +5,8 @@ dependencies:
   - python=3.11
 
   # build dependencies
-  - versioneer[toml]
-  - meson[ninja]=1.2.1
+  - versioneer
+  - meson=1.2.1
   - cython>=0.29.33
   - meson-python=0.13.1
 
@@ -18,7 +18,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy<2
+  - numpy
   - pip
 
   - pip:
