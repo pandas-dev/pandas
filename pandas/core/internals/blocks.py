@@ -975,6 +975,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         mask=None,
         using_cow: bool = False,
+        convert_string: bool = True,
         already_warned=None,
     ) -> list[Block]:
         """
@@ -1025,7 +1026,7 @@ class Block(PandasObject, libinternals.Block):
                 already_warned.warned_already = True
 
         nbs = block.convert(
-            copy=False, using_cow=using_cow, convert_string=self.dtype != _dtype_obj
+            copy=False, using_cow=using_cow, convert_string=convert_string
         )
         opt = get_option("future.no_silent_downcasting")
         if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
@@ -1057,8 +1058,6 @@ class Block(PandasObject, libinternals.Block):
         """
         values = self.values
 
-        convert_string = self.dtype != _dtype_obj
-
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
@@ -1066,6 +1065,8 @@ class Block(PandasObject, libinternals.Block):
             values = cast(Categorical, blk.values)
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
+
+        convert_string = self.dtype != _dtype_obj
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -1234,6 +1235,7 @@ class Block(PandasObject, libinternals.Block):
                 inplace=inplace,
                 mask=mask,
                 using_cow=using_cow,
+                convert_string=convert_string,
             )
         else:
             if value is None:
