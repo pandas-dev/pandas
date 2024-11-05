@@ -737,7 +737,7 @@ class ArrowExtensionArray(
                 try:
                     result[valid] = op(np_array[valid], other)
                 except TypeError:
-                    result = ops.invalid_comparison(np_array, other, op)
+                    result = ops.invalid_comparison(self, other, op)
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
         else:
