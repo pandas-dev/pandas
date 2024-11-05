@@ -376,6 +376,5 @@ class TestDataFrameMisc:
 
     def test_inspect_getmembers(self):
         # GH38740
-        pytest.importorskip("jinja2")
         df = DataFrame()
         inspect.getmembers(df)
