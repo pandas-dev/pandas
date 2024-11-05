@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 from pandas import (
     DataFrame,
     Series,
@@ -138,8 +140,11 @@ def test_dataframe_multiple_numpy_dtypes():
     assert not np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is True
 
-    with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
-        arr = np.array(df, copy=False)
+    if not np_version_gt2:
+        # copy=False semantics are only supported in NumPy>=2.
+
+        with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
+            arr = np.array(df, copy=False)
 
     arr = np.array(df, copy=True)
     assert arr.flags.writeable is True
