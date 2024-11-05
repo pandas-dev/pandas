@@ -1843,6 +1843,41 @@ class TestMergeDtypes:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_with_uintc_columns(self):
+        df1 = DataFrame({"a": ["foo", "bar"], "b": np.array([1, 2], dtype=np.uintc)})
+        df2 = DataFrame({"a": ["foo", "baz"], "b": np.array([3, 4], dtype=np.uintc)})
+        result = df1.merge(df2, how="outer")
+        expected = DataFrame(
+            {
+                "a": ["bar", "baz", "foo", "foo"],
+                "b": np.array([2, 4, 1, 3], dtype=np.uintc),
+            }
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_merge_with_intc_columns(self):
+        df1 = DataFrame({"a": ["foo", "bar"], "b": np.array([1, 2], dtype=np.intc)})
+        df2 = DataFrame({"a": ["foo", "baz"], "b": np.array([3, 4], dtype=np.intc)})
+        result = df1.merge(df2, how="outer")
+        expected = DataFrame(
+            {
+                "a": ["bar", "baz", "foo", "foo"],
+                "b": np.array([2, 4, 1, 3], dtype=np.intc),
+            }
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_merge_intc_non_monotonic(self):
+        df = DataFrame({"join_key": Series([0, 2, 1], dtype=np.intc)})
+        df_details = DataFrame(
+            {"join_key": Series([0, 1, 2], dtype=np.intc), "value": ["a", "b", "c"]}
+        )
+        merged = df.merge(df_details, on="join_key", how="left")
+        expected = DataFrame(
+            {"join_key": np.array([0, 2, 1], dtype=np.intc), "value": ["a", "c", "b"]}
+        )
+        tm.assert_frame_equal(merged.reset_index(drop=True), expected)
+
 
 @pytest.fixture
 def left():

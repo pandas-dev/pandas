@@ -42,6 +42,14 @@ def cls(dtype):
     return dtype.construct_array_type()
 
 
+def test_dtype_constructor():
+    pytest.importorskip("pyarrow")
+
+    with tm.assert_produces_warning(FutureWarning):
+        dtype = pd.StringDtype("pyarrow_numpy")
+    assert dtype == pd.StringDtype("pyarrow", na_value=np.nan)
+
+
 def test_dtype_equality():
     pytest.importorskip("pyarrow")
 
@@ -444,14 +452,12 @@ def test_astype_float(dtype, any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
     arr = pd.Series(["a", "b", "c"], dtype=dtype)
     result = arr.sum(skipna=skipna)
     assert result == "abc"
 
 
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
     result = arr.sum(skipna=skipna)
