@@ -15,8 +15,12 @@ from pandas.tests.copy_view.util import get_array
 
 @pytest.mark.parametrize(
     "method",
-    [lambda ser: ser.values, lambda ser: np.asarray(ser)],
-    ids=["values", "asarray"],
+    [
+        lambda ser: ser.values,
+        lambda ser: np.asarray(ser),
+        lambda ser: np.array(ser, copy=False),
+    ],
+    ids=["values", "asarray", "array"],
 )
 def test_series_values(method):
     ser = Series([1, 2, 3], name="name")
@@ -40,8 +44,12 @@ def test_series_values(method):
 
 @pytest.mark.parametrize(
     "method",
-    [lambda df: df.values, lambda df: np.asarray(df)],
-    ids=["values", "asarray"],
+    [
+        lambda df: df.values,
+        lambda df: np.asarray(df),
+        lambda ser: np.array(ser, copy=False),
+    ],
+    ids=["values", "asarray", "array"],
 )
 def test_dataframe_values(method):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
@@ -82,7 +90,7 @@ def test_series_to_numpy():
     ser.iloc[0] = 0
     assert ser.values[0] == 0
 
-    # specify copy=False gives a writeable array
+    # specify copy=True gives a writeable array
     ser = Series([1, 2, 3], name="name")
     arr = ser.to_numpy(copy=True)
     assert not np.shares_memory(arr, get_array(ser, "name"))
