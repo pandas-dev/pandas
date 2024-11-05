@@ -643,7 +643,10 @@ class Block(PandasObject, libinternals.Block):
 
         if self.ndim != 1 and self.shape[0] != 1:
             blocks = self.split_and_operate(
-                Block.convert, copy=copy, using_cow=using_cow
+                Block.convert,
+                copy=copy,
+                using_cow=using_cow,
+                convert_string=convert_string,
             )
             if all(blk.dtype.kind == "O" for blk in blocks):
                 # Avoid fragmenting the block if convert is a no-op
@@ -847,6 +850,7 @@ class Block(PandasObject, libinternals.Block):
         mask: npt.NDArray[np.bool_] | None = None,
         using_cow: bool = False,
         already_warned=None,
+        convert_string=None,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
@@ -912,7 +916,9 @@ class Block(PandasObject, libinternals.Block):
                     blocks = [blk]
                 else:
                     blocks = blk.convert(
-                        copy=False, using_cow=using_cow, convert_string=False
+                        copy=False,
+                        using_cow=using_cow,
+                        convert_string=convert_string or self.dtype != _dtype_obj,
                     )
                     if len(blocks) > 1 or blocks[0].dtype != blk.dtype:
                         warnings.warn(
@@ -941,6 +947,7 @@ class Block(PandasObject, libinternals.Block):
                 value=value,
                 inplace=True,
                 mask=mask,
+                convert_string=convert_string,
             )
 
         else:
@@ -955,6 +962,7 @@ class Block(PandasObject, libinternals.Block):
                         inplace=True,
                         mask=mask[i : i + 1],
                         using_cow=using_cow,
+                        convert_string=convert_string,
                     )
                 )
             return blocks
@@ -1016,7 +1024,9 @@ class Block(PandasObject, libinternals.Block):
                 )
                 already_warned.warned_already = True
 
-        nbs = block.convert(copy=False, using_cow=using_cow, convert_string=False)
+        nbs = block.convert(
+            copy=False, using_cow=using_cow, convert_string=self.dtype != _dtype_obj
+        )
         opt = get_option("future.no_silent_downcasting")
         if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
             warnings.warn(
@@ -1046,6 +1056,8 @@ class Block(PandasObject, libinternals.Block):
         See BlockManager.replace_list docstring.
         """
         values = self.values
+
+        convert_string = self.dtype != _dtype_obj
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
@@ -1137,6 +1149,7 @@ class Block(PandasObject, libinternals.Block):
                     inplace=inplace,
                     regex=regex,
                     using_cow=using_cow,
+                    convert_string=convert_string,
                 )
 
                 if using_cow and i != src_len:
@@ -1161,7 +1174,7 @@ class Block(PandasObject, libinternals.Block):
                         converted = res_blk.convert(
                             copy=True and not using_cow,
                             using_cow=using_cow,
-                            convert_string=False,
+                            convert_string=convert_string,
                         )
                         if len(converted) > 1 or converted[0].dtype != res_blk.dtype:
                             warnings.warn(
@@ -1191,6 +1204,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = True,
         regex: bool = False,
         using_cow: bool = False,
+        convert_string: bool = True,
     ) -> list[Block]:
         """
         Replace value corresponding to the given boolean array with another
@@ -1243,6 +1257,7 @@ class Block(PandasObject, libinternals.Block):
                 inplace=inplace,
                 mask=mask,
                 using_cow=using_cow,
+                convert_string=convert_string,
             )
 
     # ---------------------------------------------------------------------
