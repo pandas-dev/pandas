@@ -177,7 +177,6 @@ class TestDataFrameIndexing:
                 if bif[c].dtype != bifw[c].dtype:
                     assert bif[c].dtype == df[c].dtype
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_getitem_boolean_casting(self, datetime_frame):
         # don't upcast if we don't need to
         df = datetime_frame.copy()
