@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.base import _registry as ea_registry
@@ -148,13 +146,16 @@ class TestDataFrameSetItem:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_empty_columns(self):
         # GH 13522
         df = DataFrame(index=["A", "B", "C"])
         df["X"] = df.index
         df["X"] = ["x", "y", "z"]
-        exp = DataFrame(data={"X": ["x", "y", "z"]}, index=["A", "B", "C"])
+        exp = DataFrame(
+            data={"X": ["x", "y", "z"]},
+            index=["A", "B", "C"],
+            columns=Index(["X"], dtype=object),
+        )
         tm.assert_frame_equal(df, exp)
 
     def test_setitem_dt64_index_empty_columns(self):
@@ -164,14 +165,15 @@ class TestDataFrameSetItem:
         df["A"] = rng
         assert df["A"].dtype == np.dtype("M8[ns]")
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
         df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
 
         expected = DataFrame(
-            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
+            [[Timestamp("20130101", tz="UTC")]] * 3,
+            index=range(3),
+            columns=Index(["now"], dtype=object),
         )
         tm.assert_frame_equal(df, expected)
 
@@ -204,14 +206,13 @@ class TestDataFrameSetItem:
         expected = Series(SparseArray([1, 0, 0]), name="new_column")
         tm.assert_series_equal(df["new_column"], expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_period_preserves_dtype(self):
         # GH: 26861
         data = [Period("2003-12", "D")]
         result = DataFrame([])
         result["a"] = data
 
-        expected = DataFrame({"a": data})
+        expected = DataFrame({"a": data}, columns=Index(["a"], dtype=object))
 
         tm.assert_frame_equal(result, expected)
 
@@ -677,11 +678,10 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1, 2, 3], "b": [4, 1, 1]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_dtypes_bytes_type_to_object(self):
         # GH 20734
         index = Series(name="id", dtype="S24")
-        df = DataFrame(index=index)
+        df = DataFrame(index=index, columns=Index([], dtype="str"))
         df["a"] = Series(name="a", index=index, dtype=np.uint32)
         df["b"] = Series(name="b", index=index, dtype="S64")
         df["c"] = Series(name="c", index=index, dtype="S64")
@@ -712,7 +712,6 @@ class TestDataFrameSetItem:
 
     # TODO(ArrayManager) set column with 2d column array, see #44788
     @td.skip_array_manager_not_yet_implemented
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_npmatrix_2d(self):
         # GH#42376
         # for use-case df["x"] = sparse.random((10, 10)).mean(axis=1)
@@ -721,7 +720,7 @@ class TestDataFrameSetItem:
         )
 
         a = np.ones((10, 1))
-        df = DataFrame(index=np.arange(10))
+        df = DataFrame(index=np.arange(10), columns=Index([], dtype="str"))
         df["np-array"] = a
 
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
@@ -936,12 +935,11 @@ class TestDataFrameSetItemWithExpansion:
         ser.name = "E"
         tm.assert_series_equal(result2.sort_index(), ser.sort_index())
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_scalars_no_index(self):
         # GH#16823 / GH#17894
         df = DataFrame()
         df["foo"] = 1
-        expected = DataFrame(columns=["foo"]).astype(np.int64)
+        expected = DataFrame(columns=Index(["foo"], dtype=object)).astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_newcol_tuple_key(self, float_frame):
