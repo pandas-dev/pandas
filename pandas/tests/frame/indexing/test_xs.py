@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     DataFrame,
     Index,
@@ -74,10 +72,9 @@ class TestXS:
         tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
         assert not (expected == 5).all()
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_xs_corner(self):
         # pathological mixed-type reordering case
-        df = DataFrame(index=[0])
+        df = DataFrame(index=[0], columns=Index([], dtype="str"))
         df["A"] = 1.0
         df["B"] = "foo"
         df["C"] = 2.0
