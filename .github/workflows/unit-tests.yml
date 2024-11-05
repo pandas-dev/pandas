@@ -452,7 +452,7 @@ jobs:
           PANDAS_CI: 1
         run: |
           source .venv-pyodide/bin/activate
-          pip install pytest hypothesis
+          pip install pytest hypothesis tzdata
           # do not import pandas from the checked out repo
           cd ..
           python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'
