@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -143,9 +141,6 @@ class TestSeriesRepr:
         rep_str = repr(ser)
         assert "Name: 0" in rep_str
 
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="TODO(infer_string): investigate failure"
-    )
     def test_newline(self):
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
         assert "\t" not in repr(ser)
