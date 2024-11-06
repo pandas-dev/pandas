@@ -136,11 +136,10 @@ def test_unstack_mixed_type_name_in_multiindex(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_unstack_multi_index_categorical_values():
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     mi = df.stack().index.rename(["major", "minor"])
