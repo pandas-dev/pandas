@@ -757,6 +757,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # base class implementation that uses __setitem__
         ExtensionArray._putmask(self, mask, value)
 
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
+        # the super() method NDArrayBackedExtensionArray._where uses
+        # np.putmask which doesn't properly handle None/pd.NA, so using the
+        # base class implementation that uses __setitem__
+        return ExtensionArray._where(self, mask, value)
+
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         if isinstance(values, BaseStringArray) or (
             isinstance(values, ExtensionArray) and is_string_dtype(values.dtype)
@@ -915,7 +921,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             if not is_array_like(other):
                 other = np.asarray(other)
             other = other[valid]
-            other = np.asarray(other)
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
