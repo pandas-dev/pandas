@@ -1233,6 +1233,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return the left endpoints of each Interval in the IntervalArray as an Index.
 
+        This property provides access to the left endpoints of the intervals
+        contained within the IntervalArray. This can be useful for analyses where
+        the starting point of each interval is of interest, such as in histogram
+        creation, data aggregation, or any scenario requiring the identification
+        of the beginning of defined ranges. This property returns a ``pandas.Index``
+        object containing the midpoint for each interval.
+
+        See Also
+        --------
+        arrays.IntervalArray.right : Return the right endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.mid : Return the midpoint of each Interval in the
+            IntervalArray as an Index.
+        arrays.IntervalArray.contains : Check elementwise if the Intervals contain
+            the value.
+
         Examples
         --------
 
@@ -1606,6 +1622,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
         """
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         left = self._left
         right = self._right
         mask = self.isna()
