@@ -775,10 +775,10 @@ class TestDataFramePlots:
         assert result == expected
 
     def test_bar_stacked_label_position_with_zero_height(self):
-        df = pd.DataFrame({"A": [3, 0, 1], "B": [0, 2, 4], "C": [5, 0, 2]})
+        df = DataFrame({"A": [3, 0, 1], "B": [0, 2, 4], "C": [5, 0, 2]})
         ax = df.plot.bar(stacked=True)
         ax.bar_label(ax.containers[-1])
-        expected = [8., 2., 7.]
+        expected = [8.0, 2.0, 7.0]
         result = [text.xy[1] for text in ax.texts]
         tm.assert_almost_equal(result, expected)
         plt.close("all")
