@@ -501,6 +501,8 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, MultiIndex):
         return shares_memory(left._codes, right)
     if isinstance(left, (Index, Series)):
+        if isinstance(right, (Index, Series)):
+            return shares_memory(left._values, right._values)
         return shares_memory(left._values, right)
 
     if isinstance(left, NDArrayBackedExtensionArray):
