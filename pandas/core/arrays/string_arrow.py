@@ -18,6 +18,7 @@ from pandas._libs import (
 from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
+    pa_version_under16p0,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -63,6 +64,10 @@ def _chk_pyarrow_available() -> None:
     if pa_version_under10p1:
         msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
+
+
+def _is_string_view(typ):
+    return not pa_version_under16p0 and pa.types.is_string_view(typ)
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
@@ -122,11 +127,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         _chk_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
             pa.types.is_string(values.type)
+            or _is_string_view(values.type)
             or (
                 pa.types.is_dictionary(values.type)
                 and (
                     pa.types.is_string(values.type.value_type)
                     or pa.types.is_large_string(values.type.value_type)
+                    or _is_string_view(values.type.value_type)
                 )
             )
         ):
