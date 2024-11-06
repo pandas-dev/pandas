@@ -3,6 +3,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 
 from pandas.core.dtypes.common import ensure_platform_int
@@ -370,7 +372,7 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_nuisance_raises(df):
+def test_transform_nuisance_raises(df, using_infer_string):
     # case that goes through _transform_item_by_item
 
     df.columns = ["A", "B", "B", "D"]
@@ -380,10 +382,13 @@ def test_transform_nuisance_raises(df):
     grouped = df.groupby("A")
 
     gbc = grouped["B"]
-    with pytest.raises(TypeError, match="Could not convert"):
+    msg = "Could not convert"
+    if using_infer_string:
+        msg = "Cannot perform reduction 'mean' with string dtype"
+    with pytest.raises(TypeError, match=msg):
         gbc.transform(lambda x: np.mean(x))
 
-    with pytest.raises(TypeError, match="Could not convert"):
+    with pytest.raises(TypeError, match=msg):
         df.groupby("A").transform(lambda x: np.mean(x))
 
 
@@ -442,7 +447,7 @@ def test_transform_coercion():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_transform_with_int():
+def test_groupby_transform_with_int(using_infer_string):
     # GH 3740, make sure that we might upcast on item-by-item transform
 
     # floats
@@ -472,8 +477,11 @@ def test_groupby_transform_with_int():
             "D": "foo",
         }
     )
+    msg = "Could not convert"
+    if using_infer_string:
+        msg = "Cannot perform reduction 'mean' with string dtype"
     with np.errstate(all="ignore"):
-        with pytest.raises(TypeError, match="Could not convert"):
+        with pytest.raises(TypeError, match=msg):
             df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
         result = df.groupby("A")[["B", "C"]].transform(
             lambda x: (x - x.mean()) / x.std()
@@ -485,7 +493,7 @@ def test_groupby_transform_with_int():
     s = Series([2, 3, 4, 10, 5, -1])
     df = DataFrame({"A": [1, 1, 1, 2, 2, 2], "B": 1, "C": s, "D": "foo"})
     with np.errstate(all="ignore"):
-        with pytest.raises(TypeError, match="Could not convert"):
+        with pytest.raises(TypeError, match=msg):
             df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
         result = df.groupby("A")[["B", "C"]].transform(
             lambda x: (x - x.mean()) / x.std()
@@ -752,6 +760,7 @@ def test_cython_transform_frame_column(
                 "does not support operation",
                 ".* is not supported for object dtype",
                 "is not implemented for this dtype",
+                ".* is not supported for str dtype",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -1025,6 +1034,7 @@ def test_groupby_transform_with_datetimes(func, values):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_transform_dtype():
     # GH 22243
     df = DataFrame({"a": [1], "val": [1.35]})

@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.parsers import STR_NA_VALUES
 
 from pandas import (
@@ -259,6 +261,7 @@ a,b,c,d
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -426,6 +429,7 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @xfail_pyarrow  # mismatched dtypes in both cases, FutureWarning in the True case
 @pytest.mark.parametrize(
     "na_filter,row_data",
@@ -532,6 +536,7 @@ def test_na_values_dict_aliasing(all_parsers):
     tm.assert_dict_equal(na_values, na_values_copy)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_na_values_dict_null_column_name(all_parsers):
     # see gh-57547
     parser = all_parsers
@@ -804,4 +809,22 @@ False
 """
     result = parser.read_csv(StringIO(data), dtype="float")
     expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+@pytest.mark.parametrize(
+    "na_values",
+    [[-99.0, -99], [-99, -99.0]],
+)
+def test_na_values_dict_without_dtype(all_parsers, na_values):
+    parser = all_parsers
+    data = """A
+-99
+-99
+-99.0
+-99.0"""
+
+    result = parser.read_csv(StringIO(data), na_values=na_values)
+    expected = DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]})
     tm.assert_frame_equal(result, expected)

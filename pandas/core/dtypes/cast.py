@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import (
     Interval,
@@ -798,10 +798,10 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
-        if using_pyarrow_string_dtype():
+        if using_string_dtype():
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(storage="pyarrow_numpy")
+            dtype = StringDtype(na_value=np.nan)
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
@@ -1014,10 +1014,8 @@ def convert_dtypes(
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). Behaviour is as follows:
 
-        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
+        * ``"numpy_nullable"``: returns nullable-dtype
         * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -1025,6 +1023,8 @@ def convert_dtypes(
     -------
     np.dtype, or ExtensionDtype
     """
+    from pandas.core.arrays.string_ import StringDtype
+
     inferred_dtype: str | DtypeObj
 
     if (
@@ -1102,6 +1102,13 @@ def convert_dtypes(
         if isinstance(inferred_dtype, str):
             # If we couldn't do anything else, then we retain the dtype
             inferred_dtype = input_array.dtype
+
+    elif (
+        convert_string
+        and isinstance(input_array.dtype, StringDtype)
+        and input_array.dtype.na_value is np.nan
+    ):
+        inferred_dtype = pandas_dtype_func("string")
 
     else:
         inferred_dtype = input_array.dtype
@@ -1371,7 +1378,7 @@ def common_dtype_categorical_compat(
     # TODO: more generally, could do `not can_hold_na(dtype)`
     if lib.is_np_dtype(dtype, "iu"):
         for obj in objs:
-            # We don't want to accientally allow e.g. "categorical" str here
+            # We don't want to accidentally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
             if isinstance(obj_dtype, CategoricalDtype):
                 if isinstance(obj, ABCIndex):

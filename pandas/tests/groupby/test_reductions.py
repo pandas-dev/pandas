@@ -5,6 +5,8 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -468,6 +470,7 @@ def test_max_min_non_numeric():
     assert "ss" in result
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_max_min_object_multiple_columns():
     # GH#41111 case where the aggregation is valid for some columns but not
     # others; we split object blocks column-wise, consistent with
@@ -711,10 +714,9 @@ def test_groupby_min_max_categorical(func):
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
-def test_min_empty_string_dtype(func):
+def test_min_empty_string_dtype(func, string_dtype_no_object):
     # GH#55619
-    pytest.importorskip("pyarrow")
-    dtype = "string[pyarrow_numpy]"
+    dtype = string_dtype_no_object
     df = DataFrame({"a": ["a"], "b": "a", "c": "a"}, dtype=dtype).iloc[:0]
     result = getattr(df.groupby("a"), func)()
     expected = DataFrame(

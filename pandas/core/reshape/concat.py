@@ -5,6 +5,7 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
+import types
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -200,7 +201,7 @@ def concat(
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
         Sort non-concatenation axis. One exception to this is when the
-        non-concatentation axis is a DatetimeIndex and join='outer' and the axis is
+        non-concatenation axis is a DatetimeIndex and join='outer' and the axis is
         not already aligned. In that case, the non-concatenation axis is always
         sorted lexicographically.
     copy : bool, default False
@@ -378,6 +379,11 @@ def concat(
     0   1   2
     1   3   4
     """
+    if ignore_index and keys is not None:
+        raise ValueError(
+            f"Cannot set {ignore_index=} and specify keys. Either should be used."
+        )
+
     if copy is not lib.no_default:
         warnings.warn(
             "The copy keyword is deprecated and will be removed in a future "
@@ -536,7 +542,9 @@ def _get_result(
 
             result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
             result._name = name
-            return result.__finalize__(object(), method="concat", objs=objs)
+            return result.__finalize__(
+                types.SimpleNamespace(objs=objs), method="concat"
+            )
 
         # combine as columns in a frame
         else:
@@ -556,7 +564,7 @@ def _get_result(
             )
             df = cons(data, index=index, copy=False)
             df.columns = columns
-            return df.__finalize__(object(), method="concat", objs=objs)
+            return df.__finalize__(types.SimpleNamespace(objs=objs), method="concat")
 
     # combine block managers
     else:
@@ -595,7 +603,7 @@ def _get_result(
         )
 
         out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
-        return out.__finalize__(object(), method="concat", objs=objs)
+        return out.__finalize__(types.SimpleNamespace(objs=objs), method="concat")
 
 
 def new_axes(

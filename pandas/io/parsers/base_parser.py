@@ -4,6 +4,7 @@ from collections import defaultdict
 from copy import copy
 import csv
 from enum import Enum
+import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -271,48 +272,36 @@ class ParserBase:
 
     @final
     def _make_index(
-        self, data, alldata, columns, indexnamerow: list[Scalar] | None = None
+        self, alldata, columns, indexnamerow: list[Scalar] | None = None
     ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
         index: Index | None
-        if not is_index_col(self.index_col) or not self.index_col:
-            index = None
-        else:
-            simple_index = self._get_simple_index(alldata, columns)
-            index = self._agg_index(simple_index)
+        if isinstance(self.index_col, list) and len(self.index_col):
+            to_remove = []
+            indexes = []
+            for idx in self.index_col:
+                if isinstance(idx, str):
+                    raise ValueError(f"Index {idx} invalid")
+                to_remove.append(idx)
+                indexes.append(alldata[idx])
+            # remove index items from content and columns, don't pop in
+            # loop
+            for i in sorted(to_remove, reverse=True):
+                alldata.pop(i)
+                if not self._implicit_index:
+                    columns.pop(i)
+            index = self._agg_index(indexes)
 
-        # add names for the index
-        if indexnamerow:
-            coffset = len(indexnamerow) - len(columns)
-            assert index is not None
-            index = index.set_names(indexnamerow[:coffset])
+            # add names for the index
+            if indexnamerow:
+                coffset = len(indexnamerow) - len(columns)
+                index = index.set_names(indexnamerow[:coffset])
+        else:
+            index = None
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)
 
         return index, columns
-
-    @final
-    def _get_simple_index(self, data, columns):
-        def ix(col):
-            if not isinstance(col, str):
-                return col
-            raise ValueError(f"Index {col} invalid")
-
-        to_remove = []
-        index = []
-        for idx in self.index_col:
-            i = ix(idx)
-            to_remove.append(i)
-            index.append(data[i])
-
-        # remove index items from content and columns, don't pop in
-        # loop
-        for i in sorted(to_remove, reverse=True):
-            data.pop(i)
-            if not self._implicit_index:
-                columns.pop(i)
-
-        return index
 
     @final
     def _clean_mapping(self, mapping):
@@ -333,12 +322,17 @@ class ParserBase:
         return clean
 
     @final
-    def _agg_index(self, index, try_parse_dates: bool = True) -> Index:
+    def _agg_index(self, index) -> Index:
         arrays = []
         converters = self._clean_mapping(self.converters)
+        clean_dtypes = self._clean_mapping(self.dtype)
 
-        for i, arr in enumerate(index):
-            if try_parse_dates and self._should_parse_dates(i):
+        if self.index_names is not None:
+            names: Iterable = self.index_names
+        else:
+            names = itertools.cycle([None])
+        for i, (arr, name) in enumerate(zip(index, names)):
+            if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,
                     col=self.index_names[i] if self.index_names is not None else None,
@@ -364,8 +358,6 @@ class ParserBase:
                 else:
                     col_na_values, col_na_fvalues = set(), set()
 
-            clean_dtypes = self._clean_mapping(self.dtype)
-
             cast_type = None
             index_converter = False
             if self.index_names is not None:
@@ -382,12 +374,17 @@ class ParserBase:
             arr, _ = self._infer_types(
                 arr, col_na_values | col_na_fvalues, cast_type is None, try_num_bool
             )
-            arrays.append(arr)
+            if cast_type is not None:
+                # Don't perform RangeIndex inference
+                idx = Index(arr, name=name, dtype=cast_type)
+            else:
+                idx = ensure_index_from_sequences([arr], [name])
+            arrays.append(idx)
 
-        names = self.index_names
-        index = ensure_index_from_sequences(arrays, names)
-
-        return index
+        if len(arrays) == 1:
+            return arrays[0]
+        else:
+            return MultiIndex.from_arrays(arrays)
 
     @final
     def _set_noconvert_dtype_columns(
@@ -632,35 +629,6 @@ class ParserBase:
                 stacklevel=find_stack_level(),
             )
 
-    @overload
-    def _evaluate_usecols(
-        self,
-        usecols: Callable[[Hashable], object],
-        names: Iterable[Hashable],
-    ) -> set[int]: ...
-
-    @overload
-    def _evaluate_usecols(
-        self, usecols: SequenceT, names: Iterable[Hashable]
-    ) -> SequenceT: ...
-
-    @final
-    def _evaluate_usecols(
-        self,
-        usecols: Callable[[Hashable], object] | SequenceT,
-        names: Iterable[Hashable],
-    ) -> SequenceT | set[int]:
-        """
-        Check whether or not the 'usecols' parameter
-        is a callable.  If so, enumerates the 'names'
-        parameter and returns a set of indices for
-        each entry in 'names' that evaluates to True.
-        If not a callable, returns 'usecols'.
-        """
-        if callable(usecols):
-            return {i for i, name in enumerate(names) if usecols(name)}
-        return usecols
-
     @final
     def _validate_usecols_names(self, usecols: SequenceT, names: Sequence) -> SequenceT:
         """
@@ -746,12 +714,11 @@ class ParserBase:
         dtype_dict: defaultdict[Hashable, Any]
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
-            default_dtype = dtype or object
-            dtype_dict = defaultdict(lambda: default_dtype)
+            dtype_dict = defaultdict(lambda: dtype)
         else:
             dtype = cast(dict, dtype)
             dtype_dict = defaultdict(
-                lambda: object,
+                lambda: None,
                 {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
             )
 
@@ -768,8 +735,14 @@ class ParserBase:
         if (index_col is None or index_col is False) or index_names is None:
             index = default_index(0)
         else:
-            data = [Series([], dtype=dtype_dict[name]) for name in index_names]
-            index = ensure_index_from_sequences(data, names=index_names)
+            # TODO: We could return default_index(0) if dtype_dict[name] is None
+            data = [
+                Index([], name=name, dtype=dtype_dict[name]) for name in index_names
+            ]
+            if len(data) == 1:
+                index = data[0]
+            else:
+                index = MultiIndex.from_arrays(data)
             index_col.sort()
 
             for i, n in enumerate(index_col):
@@ -988,3 +961,32 @@ def _validate_usecols_arg(usecols):
 
         return usecols, usecols_dtype
     return usecols, None
+
+
+@overload
+def evaluate_callable_usecols(
+    usecols: Callable[[Hashable], object],
+    names: Iterable[Hashable],
+) -> set[int]: ...
+
+
+@overload
+def evaluate_callable_usecols(
+    usecols: SequenceT, names: Iterable[Hashable]
+) -> SequenceT: ...
+
+
+def evaluate_callable_usecols(
+    usecols: Callable[[Hashable], object] | SequenceT,
+    names: Iterable[Hashable],
+) -> SequenceT | set[int]:
+    """
+    Check whether or not the 'usecols' parameter
+    is a callable.  If so, enumerates the 'names'
+    parameter and returns a set of indices for
+    each entry in 'names' that evaluates to True.
+    If not a callable, returns 'usecols'.
+    """
+    if callable(usecols):
+        return {i for i, name in enumerate(names) if usecols(name)}
+    return usecols

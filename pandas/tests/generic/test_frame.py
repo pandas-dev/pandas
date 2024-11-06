@@ -84,9 +84,8 @@ class TestDataFrame:
                     value = getattr(left, name, "") + "|" + getattr(right, name, "")
                     object.__setattr__(self, name, value)
                 elif method == "concat":
-                    objs = kwargs["objs"]
                     value = "+".join(
-                        [getattr(o, name) for o in objs if getattr(o, name, None)]
+                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
                     )
                     object.__setattr__(self, name, value)
                 else:

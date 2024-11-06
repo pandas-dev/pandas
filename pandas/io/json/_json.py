@@ -59,6 +59,7 @@ from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import (
     build_table_schema,
     parse_table_schema,
+    set_default_names,
 )
 from pandas.io.parsers.readers import validate_integer
 
@@ -353,6 +354,8 @@ class JSONTableWriter(FrameWriter):
             raise ValueError(msg)
 
         self.schema = build_table_schema(obj, index=self.index)
+        if self.index:
+            obj = set_default_names(obj)
 
         # NotImplemented on a column MultiIndex
         if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
@@ -649,14 +652,15 @@ def read_json(
 
     {storage_options}
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -1164,6 +1168,7 @@ class Parser:
         """
         Try to parse a Series into a column by inferring dtype.
         """
+        org_data = data
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
@@ -1218,7 +1223,7 @@ class Parser:
         if len(data) and data.dtype in ("float", "object"):
             # coerce ints if we can
             try:
-                new_data = data.astype("int64")
+                new_data = org_data.astype("int64")
                 if (new_data == data).all():
                     data = new_data
                     converted = True

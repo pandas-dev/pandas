@@ -1,7 +1,11 @@
 import pytest
 
-from pandas import interval_range
+from pandas import (
+    Interval,
+    interval_range,
+)
 import pandas._testing as tm
+from pandas.arrays import IntervalArray
 
 
 @pytest.mark.parametrize(
@@ -76,6 +80,21 @@ IntervalArray.left are different
 IntervalArray.left values are different \\(100.0 %\\)
 \\[left\\]:  \\[0, 1, 2, 3\\]
 \\[right\\]: \\[1, 2, 3, 4\\]"""
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_interval_array_equal(arr1, arr2)
+
+
+def test_interval_array_equal_end_mismatch_only():
+    arr1 = IntervalArray([Interval(0, 1), Interval(0, 5)])
+    arr2 = IntervalArray([Interval(0, 1), Interval(0, 6)])
+
+    msg = """\
+IntervalArray.right are different
+
+IntervalArray.right values are different \\(50.0 %\\)
+\\[left\\]:  \\[1, 5\\]
+\\[right\\]: \\[1, 6\\]"""
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_interval_array_equal(arr1, arr2)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -25,6 +27,8 @@ def _arrow_dtype_mapping() -> dict:
         pa.string(): pd.StringDtype(),
         pa.float32(): pd.Float32Dtype(),
         pa.float64(): pd.Float64Dtype(),
+        pa.string(): pd.StringDtype(),
+        pa.large_string(): pd.StringDtype(),
     }
 
 
@@ -32,6 +36,6 @@ def arrow_string_types_mapper() -> Callable:
     pa = import_optional_dependency("pyarrow")
 
     return {
-        pa.string(): pd.StringDtype(storage="pyarrow_numpy"),
-        pa.large_string(): pd.StringDtype(storage="pyarrow_numpy"),
+        pa.string(): pd.StringDtype(na_value=np.nan),
+        pa.large_string(): pd.StringDtype(na_value=np.nan),
     }.get
