@@ -603,9 +603,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtypes = self.dtypes
         return {
             clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=dtypes[k]
+                v, copy=False, index=self.index, name=k, dtype=dtype
             ).__finalize__(self)
-            for k, v in zip(self.columns, self._iter_column_arrays())
+            for k, v, dtype in zip(self.columns, self._iter_column_arrays(), dtypes)
             if not isinstance(k, int)
         }
 
@@ -2015,8 +2015,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self, dtype: npt.DTypeLike | None = None, copy: bool | None = None
     ) -> np.ndarray:
         values = self._values
-        arr = np.asarray(values, dtype=dtype)
-        if astype_is_view(values.dtype, arr.dtype) and self._mgr.is_single_block:
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            arr = np.asarray(values, dtype=dtype)
+        else:
+            arr = np.array(values, dtype=dtype, copy=copy)
+
+        if (
+            copy is not True
+            and astype_is_view(values.dtype, arr.dtype)
+            and self._mgr.is_single_block
+        ):
             # Check if both conversions can be done without a copy
             if astype_is_view(self.dtypes.iloc[0], values.dtype) and astype_is_view(
                 values.dtype, arr.dtype
