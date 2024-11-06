@@ -646,16 +646,16 @@ def test_close_on_error():
 @td.skip_if_no("fsspec")
 def test_read_csv_chained_url_no_error():
     # GH 60100
-    tar_file = "pandas/tests/io/data/tar/test-csv.tar"
+    tar_file_path = "pandas/tests/io/data/tar/test-csv.tar"
+    chained_file_url = f"tar://test.csv::file://{tar_file_path}"
 
-    x = pd.read_csv(f"tar://test.csv::file://{tar_file}", compression=None)
-    y = pd.read_csv(f"tar://test.csv::file://{tar_file}", compression="infer")
+    result_a = pd.read_csv(chained_file_url, compression=None, sep=";")
+    result_b = pd.read_csv(chained_file_url, compression="infer", sep=";")
 
-    x_to_json_expected_output = '{"1;2":{"0":"3;4"}}'
-    y_to_json_expected_output = '{"1;2":{"0":"3;4"}}'
+    expected = pd.DataFrame({"1": {0: 3}, "2": {0: 4}})
 
-    assert x_to_json_expected_output == x.to_json()
-    assert y_to_json_expected_output == y.to_json()
+    tm.assert_frame_equal(expected, result_a)
+    tm.assert_frame_equal(expected, result_b)
 
 
 @pytest.mark.parametrize(
