@@ -141,8 +141,13 @@ class TestSeriesRepr:
         rep_str = repr(ser)
         assert "Name: 0" in rep_str
 
-    def test_newline(self):
-        ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
+    def test_newline(self, any_string_dtype):
+        ser = Series(
+            ["a\n\r\tb"],
+            name="a\n\r\td",
+            index=Index(["a\n\r\tf"], dtype=any_string_dtype),
+            dtype=any_string_dtype,
+        )
         assert "\t" not in repr(ser)
         assert "\r" not in repr(ser)
         assert "a\n" not in repr(ser)
