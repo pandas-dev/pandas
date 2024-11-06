@@ -774,6 +774,15 @@ class TestDataFramePlots:
         expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
         assert result == expected
 
+    def test_bar_stacked_label_position_with_zero_height(self):
+        df = pd.DataFrame({"A": [3, 0, 1], "B": [0, 2, 4], "C": [5, 0, 2]})
+        ax = df.plot.bar(stacked=True)
+        ax.bar_label(ax.containers[-1])
+        expected = [8., 2., 7.]
+        result = [text.xy[1] for text in ax.texts]
+        tm.assert_almost_equal(result, expected)
+        plt.close("all")
+
     @pytest.mark.parametrize("idx", [Index, pd.CategoricalIndex])
     def test_bar_categorical(self, idx):
         # GH 13019
