@@ -100,7 +100,10 @@ pc_max_rows_doc = """
 : int
     If max_rows is exceeded, switch to truncate view. Depending on
     `large_repr`, objects are either centrally truncated or printed as
-    a summary view. 'None' value means unlimited.
+    a summary view.
+
+    'None' value means unlimited. Beware that printing a large number of rows
+    could cause your rendering environment (the browser, etc.) to crash.
 
     In case python/IPython is running in a terminal and `large_repr`
     equals 'truncate' this can be set to 0 and pandas will auto-detect
@@ -121,7 +124,11 @@ pc_max_cols_doc = """
 : int
     If max_cols is exceeded, switch to truncate view. Depending on
     `large_repr`, objects are either centrally truncated or printed as
-    a summary view. 'None' value means unlimited.
+    a summary view.
+
+    'None' value means unlimited. Beware that printing a large number of
+    columns could cause your rendering environment (the browser, etc.) to
+    crash.
 
     In case python/IPython is running in a terminal and `large_repr`
     equals 'truncate' this can be set to 0 or None and pandas will auto-detect
