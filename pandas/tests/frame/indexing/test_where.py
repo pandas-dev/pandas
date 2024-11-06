@@ -46,7 +46,6 @@ def _safe_add(df):
 
 
 class TestDataFrameIndexingWhere:
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_get(self, where_frame, float_string_frame):
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -64,7 +63,10 @@ class TestDataFrameIndexingWhere:
         # check getting
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -98,7 +100,6 @@ class TestDataFrameIndexingWhere:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -130,7 +131,10 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -174,7 +178,6 @@ class TestDataFrameIndexingWhere:
             df.mask(0)
 
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 
@@ -196,7 +199,10 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
