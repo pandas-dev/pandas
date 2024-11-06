@@ -641,7 +641,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return self.dtype.na_value
         elif not isinstance(value, str):
             raise TypeError(
-                f"Cannot set non-string value '{value}' into a string array."
+                f"Invalid value '{value}' for dtype '{self.dtype}'. Value should be a "
+                f"string or missing value, got '{type(value).__name__}' instead."
             )
         return value
 
@@ -732,7 +733,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 value = self.dtype.na_value
             elif not isinstance(value, str):
                 raise TypeError(
-                    f"Cannot set non-string value '{value}' into a StringArray."
+                    f"Invalid value '{value}' for dtype '{self.dtype}'. Value should "
+                    f"be a string or missing value, got '{type(value).__name__}' "
+                    "instead."
                 )
         else:
             if not is_array_like(value):
@@ -742,7 +745,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 # compatible, compatibility with arrow backed strings
                 value = np.asarray(value)
             if len(value) and not lib.is_string_array(value, skipna=True):
-                raise TypeError("Must provide strings.")
+                raise TypeError(
+                    "Invalid value for dtype 'str'. Value should be a "
+                    "string or missing value (or array of those)."
+                )
 
             mask = isna(value)
             if mask.any():
