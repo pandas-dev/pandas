@@ -143,7 +143,7 @@ Period
 
 Plotting
 ^^^^^^^^
-- Bug in :meth:`DataFrame.plot.bar` with ``stacked=True`` where labels on stacked bars with zero-height segments were incorrectly positioned at the base instead of the label position of the previous segment (:issue:`59429`)
+-
 -
 
 Groupby/resample/rolling
