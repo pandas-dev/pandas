@@ -32,7 +32,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_integer_array,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
-    maybe_promote,
 )
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -513,10 +512,17 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     mask = ma.getmaskarray(data)
     if mask.any():
-        dtype, fill_value = maybe_promote(data.dtype, np.nan)
-        dtype = cast(np.dtype, dtype)
+        dtype = cast(np.dtype, data.dtype)
         data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
+
+        if np.issubdtype(dtype, np.integer):
+            fill_value: int | float | None = np.iinfo(dtype).min
+        elif np.issubdtype(dtype, np.floating):
+            fill_value = np.nan
+        else:
+            fill_value = None
+
         data[mask] = fill_value
     else:
         data = data.copy()
