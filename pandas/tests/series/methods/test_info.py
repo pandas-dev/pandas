@@ -7,10 +7,14 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    HAS_PYARROW,
+    PYPY,
+)
 
 from pandas import (
     CategoricalIndex,
+    Index,
     MultiIndex,
     Series,
     date_range,
@@ -142,14 +146,17 @@ def test_info_memory_usage_deep_pypy():
     assert s_object.memory_usage(deep=True) == s_object.memory_usage()
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "index, plus",
     [
         ([1, 2, 3], False),
-        (list("ABC"), True),
+        (Index(list("ABC"), dtype="str"), not (using_string_dtype() and HAS_PYARROW)),
+        (Index(list("ABC"), dtype=object), True),
         (MultiIndex.from_product([range(3), range(3)]), False),
-        (MultiIndex.from_product([range(3), ["foo", "bar"]]), True),
+        (
+            MultiIndex.from_product([range(3), ["foo", "bar"]]),
+            not (using_string_dtype() and HAS_PYARROW),
+        ),
     ],
 )
 def test_info_memory_usage_qualified(index, plus):
