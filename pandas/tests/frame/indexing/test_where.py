@@ -4,8 +4,6 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
