@@ -45,7 +45,9 @@ def test_info_categorical():
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_info_series(lexsorted_two_level_string_multiindex, verbose):
+def test_info_series(
+    lexsorted_two_level_string_multiindex, verbose, using_infer_string
+):
     index = lexsorted_two_level_string_multiindex
     ser = Series(range(len(index)), index=index, name="sth")
     buf = StringIO()
@@ -70,7 +72,7 @@ def test_info_series(lexsorted_two_level_string_multiindex, verbose):
     expected += textwrap.dedent(
         f"""\
         dtypes: int64(1)
-        memory usage: {ser.memory_usage()}.0+ bytes
+        memory usage: {ser.memory_usage()}.0{'' if using_infer_string else '+'} bytes
         """
     )
     assert result == expected
