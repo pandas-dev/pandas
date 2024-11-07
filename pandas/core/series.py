@@ -813,8 +813,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _references(self) -> BlockValuesRefs:
         return self._mgr._block.refs
 
-    # error: Decorated property not supported
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr.array_values()
@@ -843,7 +842,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             the dtype is inferred from the data.
 
         copy : bool or None, optional
-            Unused.
+            See :func:`numpy.asarray`.
 
         Returns
         -------
@@ -880,8 +879,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
               dtype='datetime64[ns]')
         """
         values = self._values
-        arr = np.asarray(values, dtype=dtype)
-        if astype_is_view(values.dtype, arr.dtype):
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            arr = np.asarray(values, dtype=dtype)
+        else:
+            arr = np.array(values, dtype=dtype, copy=copy)
+
+        if copy is True:
+            return arr
+        if copy is False or astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
@@ -2483,6 +2489,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
+        Series.dt.round : Round values of data to the specified freq.
 
         Notes
         -----
