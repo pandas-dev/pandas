@@ -807,6 +807,12 @@ def _try_cast(
         )
 
     elif dtype.kind in "mM":
+        if is_ndarray:
+            arr = cast(np.ndarray, arr)
+            if arr.ndim == 2 and arr.shape[1] == 1:
+                # GH#60081: DataFrame Constructor converts 1D data to array of
+                # shape (N, 1), but maybe_cast_to_datetime assumes 1D input
+                return maybe_cast_to_datetime(arr[:, 0], dtype).reshape(arr.shape)
         return maybe_cast_to_datetime(arr, dtype)
 
     # GH#15832: Check if we are requesting a numeric dtype and

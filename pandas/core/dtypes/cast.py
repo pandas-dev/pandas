@@ -1205,7 +1205,7 @@ def maybe_infer_to_datetimelike(
 
 def maybe_cast_to_datetime(
     value: np.ndarray | list, dtype: np.dtype
-) -> ExtensionArray | np.ndarray:
+) -> DatetimeArray | TimedeltaArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
