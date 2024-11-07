@@ -545,7 +545,6 @@ class TestSetitemWithExpansion:
         expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_not_contained(self, string_series):
         # set item that's not contained
         ser = string_series.copy()
