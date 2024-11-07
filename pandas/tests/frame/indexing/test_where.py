@@ -931,7 +931,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
     mask = np.array([True, True, False], ndmin=obj.ndim).T
 
-    msg = r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}"
+    msg = r"Invalid value '.*' for dtype '(U?Int|Float)\d{1,2}'"
 
     for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype
@@ -1030,7 +1030,7 @@ def test_where_int_overflow(replacement, using_infer_string):
     df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
     if using_infer_string and replacement not in (None, "snake"):
         with pytest.raises(
-            TypeError, match="Cannot set non-string value|Scalar must be NA or str"
+            TypeError, match=f"Invalid value '{replacement}' for dtype 'str'"
         ):
             df.where(pd.notnull(df), replacement)
         return

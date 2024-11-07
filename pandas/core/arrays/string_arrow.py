@@ -223,7 +223,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if self.dtype.na_value is np.nan and item is np.nan:
             item = libmissing.NA
         if not isinstance(item, str) and item is not libmissing.NA:
-            raise TypeError("Scalar must be NA or str")
+            raise TypeError(
+                f"Invalid value '{item}' for dtype 'str'. Value should be a "
+                f"string or missing value, got '{type(item).__name__}' instead."
+            )
         return super().insert(loc, item)
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
@@ -255,13 +258,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             if isna(value):
                 value = None
             elif not isinstance(value, str):
-                raise TypeError("Scalar must be NA or str")
+                raise TypeError(
+                    f"Invalid value '{value}' for dtype 'str'. Value should be a "
+                    f"string or missing value, got '{type(value).__name__}' instead."
+                )
         else:
             value = np.array(value, dtype=object, copy=True)
             value[isna(value)] = None
             for v in value:
                 if not (v is None or isinstance(v, str)):
-                    raise TypeError("Must provide strings")
+                    raise TypeError(
+                        "Invalid value for dtype 'str'. Value should be a "
+                        "string or missing value (or array of those)."
+                    )
         return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
