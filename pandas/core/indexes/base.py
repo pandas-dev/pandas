@@ -5140,7 +5140,7 @@ class Index(IndexOpsMixin, PandasObject):
         Return a boolean if we need a qualified .info display.
         """
         return is_object_dtype(self.dtype) or (
-            is_string_dtype(self.dtype) and self.dtype.storage == "python"
+            is_string_dtype(self.dtype) and self.dtype.storage == "python"  # type: ignore[union-attr]
         )
 
     def __contains__(self, key: Any) -> bool:
