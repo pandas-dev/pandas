@@ -50,8 +50,8 @@ import datetime as dt
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
-from pandas.util._exceptions import find_stack_level
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
@@ -2927,7 +2927,7 @@ timedelta}, default 'raise'
         --------
         >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
         >>> ts.tz
-        <DstTzInfo 'Europe/Stockholm' CET+1:00:00 STD>
+        zoneinfo.ZoneInfo(key='Europe/Stockholm')
         """
         return self.tzinfo
 
