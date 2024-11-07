@@ -144,7 +144,7 @@ def test_maybe_get_tz_invalid_types():
     with pytest.raises(TypeError, match="<class 'module'>"):
         timezones.maybe_get_tz(pytest)
 
-    msg = "<class 'pandas._libs.tslibs.timestamps.Timestamp'>"
+    msg = "<class 'pandas.Timestamp'>"
     with pytest.raises(TypeError, match=msg):
         timezones.maybe_get_tz(Timestamp("2021-01-01", tz="UTC"))
 
