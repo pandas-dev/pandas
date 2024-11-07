@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
