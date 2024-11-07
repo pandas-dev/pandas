@@ -69,10 +69,11 @@ def test_info_series(
             10 non-null     int64
             """
         )
+    qualifier = "" if using_infer_string and HAS_PYARROW else "+"
     expected += textwrap.dedent(
         f"""\
         dtypes: int64(1)
-        memory usage: {ser.memory_usage()}.0{'' if using_infer_string else '+'} bytes
+        memory usage: {ser.memory_usage()}.0{qualifier} bytes
         """
     )
     assert result == expected
