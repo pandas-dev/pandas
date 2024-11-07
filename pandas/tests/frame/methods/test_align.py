@@ -3,8 +3,6 @@ from datetime import timezone
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -157,7 +155,6 @@ class TestDataFrameAlign:
         expected = DataFrame({"a": [0, 2, 0], "b": [0, 5, 0]})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_align_int(self, int_frame):
         # test other non-float types
         other = DataFrame(index=range(5), columns=["A", "B", "C"])

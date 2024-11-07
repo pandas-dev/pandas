@@ -1058,7 +1058,6 @@ class TestDataFrameAnalytics:
     # ----------------------------------------------------------------------
     # Index of max / min
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("axis", [0, 1])
     def test_idxmin(self, float_frame, int_frame, skipna, axis):
