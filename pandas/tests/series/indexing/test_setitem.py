@@ -27,6 +27,7 @@ from pandas import (
     NaT,
     Period,
     Series,
+    StringDtype,
     Timedelta,
     Timestamp,
     array,
@@ -1371,13 +1372,13 @@ class TestCoercionObject(CoercionTest):
     "val,exp_dtype,raises",
     [
         (1, object, True),
-        ("e", "str", False),
+        ("e", StringDtype(na_value=np.nan), False),
     ],
 )
 class TestCoercionString(CoercionTest):
     @pytest.fixture
     def obj(self):
-        return Series(["a", "b", "c", "d"])
+        return Series(["a", "b", "c", "d"], dtype=StringDtype(na_value=np.nan))
 
 
 @pytest.mark.parametrize(
