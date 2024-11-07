@@ -864,7 +864,7 @@ class SetitemCastingEquivalents:
         mask[key] = True
 
         if using_infer_string and obj.dtype == object:
-            with pytest.raises(TypeError, match="Scalar must"):
+            with pytest.raises(TypeError, match="Invalid value"):
                 Index(obj).where(~mask, val)
         else:
             res = Index(obj).where(~mask, val)
@@ -877,7 +877,7 @@ class SetitemCastingEquivalents:
         mask[key] = True
 
         if using_infer_string and obj.dtype == object:
-            with pytest.raises(TypeError, match="Scalar must"):
+            with pytest.raises(TypeError, match="Invalid value"):
                 Index(obj).putmask(mask, val)
         else:
             res = Index(obj).putmask(mask, val)
