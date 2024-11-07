@@ -10,9 +10,7 @@ from typing import (
     TypeVar,
 )
 
-from pandas.util._decorators import (
-    cache_readonly,
-)
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import ABCDataFrame
 

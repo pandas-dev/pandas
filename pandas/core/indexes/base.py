@@ -315,6 +315,7 @@ def _new_Index(cls, d):
         d["dtype"] = d["data"].dtype
     return cls.__new__(cls, **d)
 
+
 @set_module("pandas")
 class Index(IndexOpsMixin, PandasObject):
     """
