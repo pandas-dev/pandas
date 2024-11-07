@@ -1543,7 +1543,7 @@ class TestTSPlot:
             "9 days 06:13:20",
         ]
 
-        rng = timedelta_range("0", periods=10, freq="1 d")
+        rng = timedelta_range("0", periods=10, freq="1 D")
         df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(fontsize=2, ax=ax)
@@ -1562,7 +1562,7 @@ class TestTSPlot:
 
     def test_timedelta_long_period(self):
         # test long period
-        index = timedelta_range("1 day 2 hr 30 min 10 s", periods=10, freq="1 d")
+        index = timedelta_range("1 day 2 hr 30 min 10 s", periods=10, freq="1 D")
         s = Series(np.random.default_rng(2).standard_normal(len(index)), index)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(s.plot, ax=ax)

@@ -286,6 +286,13 @@ class BooleanArray(BaseMaskedArray):
     -------
     BooleanArray
 
+    See Also
+    --------
+    array : Create an array from data with the appropriate dtype.
+    BooleanDtype : Extension dtype for boolean data.
+    Series : One-dimensional ndarray with axis labels (including time series).
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
     Examples
     --------
     Create an BooleanArray with :func:`pandas.array`:
@@ -329,15 +336,21 @@ class BooleanArray(BaseMaskedArray):
         copy: bool = False,
         true_values: list[str] | None = None,
         false_values: list[str] | None = None,
+        none_values: list[str] | None = None,
     ) -> BooleanArray:
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
-        def map_string(s) -> bool:
+        if none_values is None:
+            none_values = []
+
+        def map_string(s) -> bool | None:
             if s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
+            elif s in none_values:
+                return None
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
 
@@ -356,7 +369,7 @@ class BooleanArray(BaseMaskedArray):
             assert dtype == "boolean"
         return coerce_to_array(value, copy=copy)
 
-    def _logical_method(self, other, op):
+    def _logical_method(self, other, op):  # type: ignore[override]
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_scalar = lib.is_scalar(other)
         mask = None

@@ -1131,14 +1131,15 @@ def read_html(
 
         .. versionadded:: 1.5.0
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -1178,7 +1179,10 @@ def read_html(
     **after** `skiprows` is applied.
 
     This function will *always* return a list of :class:`DataFrame` *or*
-    it will fail, e.g., it will *not* return an empty list.
+    it will fail, i.e., it will *not* return an empty list, save for some
+    rare cases.
+    It might return an empty list in case of inputs with single row and
+    ``<td>`` containing only whitespaces.
 
     Examples
     --------

@@ -12,7 +12,8 @@ from io import StringIO
 
 import numpy as np
 import pytest
-import pytz
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -217,6 +218,7 @@ def test_parse_tz_aware(all_parsers):
         {"x": [0.5]}, index=Index([Timestamp("2012-06-13 01:39:00+00:00")], name="Date")
     )
     if parser.engine == "pyarrow":
+        pytz = pytest.importorskip("pytz")
         expected_tz = pytz.utc
     else:
         expected_tz = timezone.utc
@@ -419,6 +421,7 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
@@ -504,8 +507,8 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
     with pytest.raises(
         ValueError,
         match=(
-            r'^time data "31/05/2000" doesn\'t match format "%m/%d/%Y", '
-            r"at position 1. You might want to try:"
+            r'^time data "31/05/2000" doesn\'t match format "%m/%d/%Y". '
+            r"You might want to try:"
         ),
     ):
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
@@ -606,6 +609,7 @@ def test_date_parser_usecols_thousands(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_dayfirst_warnings():
     # GH 12585
 
@@ -748,6 +752,7 @@ def test_parse_dates_and_string_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_parse_dot_separated_dates(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/2586
     parser = all_parsers

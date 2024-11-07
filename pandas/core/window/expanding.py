@@ -4,7 +4,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
@@ -32,6 +31,8 @@ from pandas.core.window.rolling import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         QuantileInterpolation,
         WindowingRankType,
@@ -173,6 +174,8 @@ class Expanding(RollingAndExpandingMixin):
 
     @doc(
         template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -864,6 +867,9 @@ class Expanding(RollingAndExpandingMixin):
             output will be a MultiIndexed DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,

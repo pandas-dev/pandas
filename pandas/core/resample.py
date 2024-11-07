@@ -4,7 +4,6 @@ import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
     final,
@@ -92,7 +91,10 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Callable,
+        Hashable,
+    )
 
     from pandas._typing import (
         Any,
@@ -402,7 +404,7 @@ class Resampler(BaseGroupBy, PandasObject):
             arg, *args, **kwargs
         )
 
-    def _downsample(self, f, **kwargs):
+    def _downsample(self, how, **kwargs):
         raise AbstractMethodError(self)
 
     def _upsample(self, f, limit: int | None = None, fill_value=None):
@@ -527,6 +529,11 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Forward fill the values.
 
+        This method fills missing values by propagating the last valid
+        observation forward, up to the next valid observation. It is commonly
+        used in time series analysis when resampling data to a higher frequency
+        (upsampling) and filling gaps in the resampled output.
+
         Parameters
         ----------
         limit : int, optional
@@ -534,7 +541,8 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Returns
         -------
-        An upsampled Series.
+        Series
+            The resampled data with missing values filled forward.
 
         See Also
         --------
@@ -1013,6 +1021,10 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute sum of group values.
 
+        This method provides a simple way to compute the sum of values within each
+        resampled group, particularly useful for aggregating time-based data into
+        daily, monthly, or yearly sums.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1030,6 +1042,14 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         Series or DataFrame
             Computed sum of values within each group.
+
+        See Also
+        --------
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
+        core.resample.Resampler.count : Compute count of group, excluding missing
+            values.
+        DataFrame.resample : Resample time-series data.
+        Series.sum : Return the sum of the values over the requested axis.
 
         Examples
         --------
@@ -2464,7 +2484,7 @@ def _get_timestamp_range_edges(
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
-            last = last.tz_localize(index_tz)
+            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()

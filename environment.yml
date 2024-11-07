@@ -7,16 +7,16 @@ dependencies:
   - pip
 
   # build dependencies
-  - versioneer[toml]
+  - versioneer
   - cython~=3.0.5
-  - meson[ninja]=1.2.1
+  - meson=1.2.1
   - meson-python=0.13.1
 
   # test dependencies
   - pytest>=7.3.2
   - pytest-cov
-  - pytest-xdist>=2.2.0
-  - pytest-qt>=4.2.0
+  - pytest-xdist>=3.4.0
+  - pytest-qt>=4.4.0
   - pytest-localserver
   - pyqt>=5.15.9
   - coverage
@@ -24,7 +24,6 @@ dependencies:
   # required dependencies
   - python-dateutil
   - numpy<2
-  - pytz
 
   # optional dependencies
   - beautifulsoup4>=4.11.2
@@ -33,7 +32,7 @@ dependencies:
   - fastparquet>=2023.10.0
   - fsspec>=2022.11.0
   - html5lib>=1.1
-  - hypothesis>=6.46.1
+  - hypothesis>=6.84.0
   - gcsfs>=2022.11.0
   - ipython
   - jinja2>=3.1.2
@@ -50,12 +49,13 @@ dependencies:
   - pyreadstat>=1.2.0
   - pytables>=3.8.0
   - python-calamine>=0.1.7
+  - pytz>=2023.4
   - pyxlsb>=1.0.10
   - s3fs>=2022.11.0
   - scipy>=1.10.0
   - sqlalchemy>=2.0.0
   - tabulate>=0.9.0
-  - xarray>=2022.12.0
+  - xarray>=2022.12.0, <=2024.9.0
   - xlrd>=2.0.1
   - xlsxwriter>=3.0.5
   - zstandard>=0.19.0
@@ -76,10 +76,10 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - flake8=6.1.0  # run in subprocess over docstring examples
-  - mypy=1.9.0  # pre-commit uses locally installed mypy
+  - flake8=7.1.0  # run in subprocess over docstring examples
+  - mypy=1.11.2  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
-  - pre-commit>=3.6.0
+  - pre-commit>=4.0.1
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew

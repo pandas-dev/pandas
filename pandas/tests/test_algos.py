@@ -873,6 +873,14 @@ class TestUnique:
         expected = pd.array([1, pd.NA, 2], dtype=any_numeric_ea_dtype)
         tm.assert_extension_array_equal(result, expected)
 
+    def test_unique_NumpyExtensionArray(self):
+        arr_complex = pd.array(
+            [1 + 1j, 2, 3]
+        )  # NumpyEADtype('complex128') => NumpyExtensionArray
+        result = pd.unique(arr_complex)
+        expected = pd.array([1 + 1j, 2 + 0j, 3 + 0j])
+        tm.assert_extension_array_equal(result, expected)
+
 
 def test_nunique_ints(index_or_series_or_array):
     # GH#36327
@@ -1638,7 +1646,10 @@ class TestDuplicated:
         expected = np.empty(len(uniques), dtype=object)
         expected[:] = uniques
 
-        msg = "unique requires a Series, Index, ExtensionArray, or np.ndarray, got list"
+        msg = (
+            r"unique requires a Series, Index, ExtensionArray, np.ndarray "
+            r"or NumpyExtensionArray got list"
+        )
         with pytest.raises(TypeError, match=msg):
             # GH#52986
             pd.unique(arr)
@@ -1657,7 +1668,11 @@ class TestDuplicated:
     )
     def test_unique_complex_numbers(self, array, expected):
         # GH 17927
-        msg = "unique requires a Series, Index, ExtensionArray, or np.ndarray, got list"
+        msg = (
+            r"unique requires a Series, Index, ExtensionArray, np.ndarray "
+            r"or NumpyExtensionArray got list"
+        )
+
         with pytest.raises(TypeError, match=msg):
             # GH#52986
             pd.unique(array)
@@ -1670,8 +1685,14 @@ class TestHashTable:
     @pytest.mark.parametrize(
         "htable, data",
         [
-            (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
-            (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
+            (
+                ht.PyObjectHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
+            (
+                ht.StringHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
             (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
             (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
             (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
@@ -1679,7 +1700,7 @@ class TestHashTable:
     )
     def test_hashtable_unique(self, htable, data, writable):
         # output of maker has guaranteed unique elements
-        s = Series(data)
+        s = Series(data, dtype=data.dtype)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1709,8 +1730,14 @@ class TestHashTable:
     @pytest.mark.parametrize(
         "htable, data",
         [
-            (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
-            (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
+            (
+                ht.PyObjectHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
+            (
+                ht.StringHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
             (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
             (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
             (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
@@ -1718,7 +1745,7 @@ class TestHashTable:
     )
     def test_hashtable_factorize(self, htable, writable, data):
         # output of maker has guaranteed unique elements
-        s = Series(data)
+        s = Series(data, dtype=data.dtype)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1858,13 +1885,16 @@ class TestMode:
         tm.assert_series_equal(ser.mode(), exp)
 
     @pytest.mark.parametrize("dt", [str, object])
-    def test_strobj_multi_char(self, dt):
+    def test_strobj_multi_char(self, dt, using_infer_string):
         exp = ["bar"]
         data = ["foo"] * 2 + ["bar"] * 3
 
         ser = Series(data, dtype=dt)
         exp = Series(exp, dtype=dt)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        if using_infer_string and dt is str:
+            tm.assert_extension_array_equal(algos.mode(ser.values), exp.values)
+        else:
+            tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_datelike_mode(self):

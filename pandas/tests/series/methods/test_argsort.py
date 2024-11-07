@@ -20,21 +20,15 @@ class TestSeriesArgsort:
 
     def test_argsort_numpy(self, datetime_series):
         ser = datetime_series
-
         res = np.argsort(ser).values
         expected = np.argsort(np.array(ser))
         tm.assert_numpy_array_equal(res, expected)
 
-        # with missing values
-        ts = ser.copy()
-        ts[::2] = np.nan
-
-        msg = "The behavior of Series.argsort in the presence of NA values"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            result = np.argsort(ts)[1::2]
-        expected = np.argsort(np.array(ts.dropna()))
+    def test_argsort_numpy_missing(self):
+        data = [0.1, np.nan, 0.2, np.nan, 0.3]
+        ser = Series(data)
+        result = np.argsort(ser)
+        expected = np.argsort(np.array(data))
 
         tm.assert_numpy_array_equal(result.values, expected)
 
@@ -56,10 +50,8 @@ class TestSeriesArgsort:
         expected = Series(range(5), dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
-        msg = "The behavior of Series.argsort in the presence of NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = shifted.argsort()
-        expected = Series(list(range(4)) + [-1], dtype=np.intp)
+        result = shifted.argsort()
+        expected = Series(list(range(4)) + [4], dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
     def test_argsort_stable(self):

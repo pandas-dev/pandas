@@ -7,8 +7,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas import (
     NA,
     Categorical,
@@ -38,10 +36,10 @@ class TestDataFrameRepr:
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
-        assert type(df.__repr__()) is str  # noqa: E721
+        assert type(df.__repr__()) is str
 
         ser = df[cols[0]]
-        assert type(ser.__repr__()) is str  # noqa: E721
+        assert type(ser.__repr__()) is str
 
     def test_repr_bytes_61_lines(self):
         # GH#12857
@@ -176,7 +174,6 @@ NaT   4"""
 
         repr(biggie)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="/r in")
     def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])

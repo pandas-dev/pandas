@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+from collections.abc import Callable
 import functools
 from functools import partial
 import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
 )
@@ -38,10 +38,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_sequence,
 )
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -51,6 +48,10 @@ from pandas.core.dtypes.generic import (
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.util.numba_ import (
+    get_jit_arguments,
+    prepare_function_arguments,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -70,7 +71,6 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
-
 ResType = dict[int, Any]
 
 
@@ -87,15 +87,18 @@ def frame_apply(
     kwargs=None,
 ) -> FrameApply:
     """construct and return a row or column based frame apply object"""
+    _, func, columns, _ = reconstruct_func(func, **kwargs)
+
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
     if axis == 0:
         klass = FrameRowApply
     elif axis == 1:
+        if columns:
+            raise NotImplementedError(
+                f"Named aggregation is not supported when {axis=}."
+            )
         klass = FrameColumnApply
-
-    _, func, _, _ = reconstruct_func(func, **kwargs)
-    assert func is not None
 
     return klass(
         obj,
@@ -243,12 +246,8 @@ class Apply(metaclass=abc.ABCMeta):
             and not obj.empty
         ):
             raise ValueError("Transform function failed")
-        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
-        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
-        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
-        # Series]"
         if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-            obj.index  # type: ignore[arg-type]
+            obj.index
         ):
             raise ValueError("Function did not transform")
 
@@ -480,20 +479,14 @@ class Apply(metaclass=abc.ABCMeta):
                 cols = df[key]
 
                 if cols.ndim == 1:
-                    series_list = [obj._gotitem(key, ndim=1, subset=cols)]
-                else:
-                    series_list = []
-                    for index in range(cols.shape[1]):
-                        col = cols.iloc[:, index]
-
-                        series = obj._gotitem(key, ndim=1, subset=col)
-                        series_list.append(series)
-
-                for series in series_list:
-                    result = getattr(series, op_name)(how, **kwargs)
-                    results.append(result)
+                    series = obj._gotitem(key, ndim=1, subset=cols)
+                    results.append(getattr(series, op_name)(how, **kwargs))
                     keys.append(key)
-
+                else:
+                    for _, col in cols.items():
+                        series = obj._gotitem(key, ndim=1, subset=col)
+                        results.append(getattr(series, op_name)(how, **kwargs))
+                        keys.append(key)
         else:
             results = [
                 getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
@@ -806,7 +799,7 @@ class FrameApply(NDFrameApply):
 
     @property
     @abc.abstractmethod
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         pass
 
     @staticmethod
@@ -997,17 +990,21 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-            engine_kwargs = {} if engine_kwargs is None else engine_kwargs
-
+            args, kwargs = prepare_function_arguments(
+                self.func,  # type: ignore[arg-type]
+                self.args,
+                self.kwargs,
+                num_required_args=1,
+            )
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
             # list[Callable[..., Any] | str]]"; expected "Hashable"
             nb_looper = generate_apply_looper(
                 self.func,  # type: ignore[arg-type]
-                **engine_kwargs,
+                **get_jit_arguments(engine_kwargs),
             )
-            result = nb_looper(self.values, self.axis)
+            result = nb_looper(self.values, self.axis, *args)
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
@@ -1128,7 +1125,7 @@ class FrameRowApply(FrameApply):
     axis: AxisInt = 0
 
     @property
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @staticmethod
@@ -1148,36 +1145,35 @@ class FrameRowApply(FrameApply):
         # Currently the parallel argument doesn't get passed through here
         # (it's disabled) since the dicts in numba aren't thread-safe.
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
-        def numba_func(values, col_names, df_index):
+        def numba_func(values, col_names, df_index, *args):
             results = {}
             for j in range(values.shape[1]):
                 # Create the series
                 ser = Series(
                     values[:, j], index=df_index, name=maybe_cast_str(col_names[j])
                 )
-                results[j] = jitted_udf(ser)
+                results[j] = jitted_udf(ser, *args)
             return results
 
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
+        func = cast(Callable, self.func)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
-            cast(Callable, self.func), **self.engine_kwargs
+            func, **get_jit_arguments(self.engine_kwargs)
         )
         from pandas.core._numba.extensions import set_numba_data
 
         index = self.obj.index
-        if index.dtype == "string":
-            index = index.astype(object)
-
         columns = self.obj.columns
-        if columns.dtype == "string":
-            columns = columns.astype(object)
 
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
         with set_numba_data(index) as index, set_numba_data(columns) as columns:
-            res = dict(nb_func(self.values, columns, index))
+            res = dict(nb_func(self.values, columns, index, *args))
         return res
 
     @property
@@ -1238,7 +1234,7 @@ class FrameColumnApply(FrameApply):
         return result.T
 
     @property
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         values = self.values
         values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0
@@ -1285,7 +1281,7 @@ class FrameColumnApply(FrameApply):
         jitted_udf = numba.extending.register_jitable(func)
 
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
-        def numba_func(values, col_names_index, index):
+        def numba_func(values, col_names_index, index, *args):
             results = {}
             # Currently the parallel argument doesn't get passed through here
             # (it's disabled) since the dicts in numba aren't thread-safe.
@@ -1297,15 +1293,19 @@ class FrameColumnApply(FrameApply):
                     index=col_names_index,
                     name=maybe_cast_str(index[i]),
                 )
-                results[i] = jitted_udf(ser)
+                results[i] = jitted_udf(ser, *args)
 
             return results
 
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
+        func = cast(Callable, self.func)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
-            cast(Callable, self.func), **self.engine_kwargs
+            func, **get_jit_arguments(self.engine_kwargs)
         )
 
         from pandas.core._numba.extensions import set_numba_data
@@ -1316,7 +1316,7 @@ class FrameColumnApply(FrameApply):
             set_numba_data(self.obj.index) as index,
             set_numba_data(self.columns) as columns,
         ):
-            res = dict(nb_func(self.values, columns, index))
+            res = dict(nb_func(self.values, columns, index, *args))
 
         return res
 
@@ -1463,14 +1463,7 @@ class SeriesApply(NDFrameApply):
 
         else:
             curried = func
-
-        # row-wise access
-        # apply doesn't have a `na_action` keyword and for backward compat reasons
-        # we need to give `na_action="ignore"` for categorical data.
-        # TODO: remove the `na_action="ignore"` when that default has been changed in
-        #  Categorical (GH51645).
-        action = "ignore" if isinstance(obj.dtype, CategoricalDtype) else None
-        mapped = obj._map_values(mapper=curried, na_action=action)
+        mapped = obj._map_values(mapper=curried)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested

@@ -149,7 +149,11 @@ class TestDataFrameSetItem:
         df = DataFrame(index=["A", "B", "C"])
         df["X"] = df.index
         df["X"] = ["x", "y", "z"]
-        exp = DataFrame(data={"X": ["x", "y", "z"]}, index=["A", "B", "C"])
+        exp = DataFrame(
+            data={"X": ["x", "y", "z"]},
+            index=["A", "B", "C"],
+            columns=Index(["X"], dtype=object),
+        )
         tm.assert_frame_equal(df, exp)
 
     def test_setitem_dt64_index_empty_columns(self):
@@ -165,7 +169,9 @@ class TestDataFrameSetItem:
         df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
-            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
+            [[Timestamp("20130101", tz="UTC")]] * 3,
+            index=range(3),
+            columns=Index(["now"], dtype=object),
         )
         tm.assert_frame_equal(df, expected)
 
@@ -204,7 +210,7 @@ class TestDataFrameSetItem:
         result = DataFrame([])
         result["a"] = data
 
-        expected = DataFrame({"a": data})
+        expected = DataFrame({"a": data}, columns=Index(["a"], dtype=object))
 
         tm.assert_frame_equal(result, expected)
 
@@ -670,7 +676,7 @@ class TestDataFrameSetItem:
     def test_setitem_dtypes_bytes_type_to_object(self):
         # GH 20734
         index = Series(name="id", dtype="S24")
-        df = DataFrame(index=index)
+        df = DataFrame(index=index, columns=Index([], dtype="str"))
         df["a"] = Series(name="a", index=index, dtype=np.uint32)
         df["b"] = Series(name="b", index=index, dtype="S64")
         df["c"] = Series(name="c", index=index, dtype="S64")
@@ -707,7 +713,7 @@ class TestDataFrameSetItem:
         )
 
         a = np.ones((10, 1))
-        df = DataFrame(index=np.arange(10))
+        df = DataFrame(index=np.arange(10), columns=Index([], dtype="str"))
         df["np-array"] = a
 
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
@@ -924,7 +930,7 @@ class TestDataFrameSetItemWithExpansion:
         # GH#16823 / GH#17894
         df = DataFrame()
         df["foo"] = 1
-        expected = DataFrame(columns=["foo"]).astype(np.int64)
+        expected = DataFrame(columns=Index(["foo"], dtype=object)).astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_newcol_tuple_key(self, float_frame):
@@ -1356,18 +1362,12 @@ class TestDataFrameSetitemCopyViewSemantics:
 def test_full_setter_loc_incompatible_dtype():
     # https://github.com/pandas-dev/pandas/issues/55791
     df = DataFrame({"a": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.loc[:, "a"] = True
-    expected = DataFrame({"a": [True, True]})
-    tm.assert_frame_equal(df, expected)
 
-    df = DataFrame({"a": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.loc[:, "a"] = {0: 3.5, 1: 4.5}
-    expected = DataFrame({"a": [3.5, 4.5]})
-    tm.assert_frame_equal(df, expected)
 
-    df = DataFrame({"a": [1, 2]})
     df.loc[:, "a"] = {0: 3, 1: 4}
     expected = DataFrame({"a": [3, 4]})
     tm.assert_frame_equal(df, expected)

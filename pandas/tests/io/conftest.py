@@ -224,19 +224,3 @@ def compression_format(request):
 @pytest.fixture(params=_compression_formats_params)
 def compression_ext(request):
     return request.param[0]
-
-
-@pytest.fixture(
-    params=[
-        "python",
-        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
-    ]
-)
-def string_storage(request):
-    """
-    Parametrized fixture for pd.options.mode.string_storage.
-
-    * 'python'
-    * 'pyarrow'
-    """
-    return request.param

@@ -16,7 +16,7 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -358,7 +358,8 @@ def array(
             return cls._from_sequence(data, dtype=dtype, copy=copy)
 
         elif data.dtype.kind in "iu":
-            return IntegerArray._from_sequence(data, copy=copy)
+            dtype = IntegerArray._dtype_cls._get_dtype_mapping()[data.dtype]
+            return IntegerArray._from_sequence(data, dtype=dtype, copy=copy)
         elif data.dtype.kind == "f":
             # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
             #  we will fall back to NumpyExtensionArray.
@@ -366,7 +367,8 @@ def array(
                 return NumpyExtensionArray._from_sequence(
                     data, dtype=data.dtype, copy=copy
                 )
-            return FloatingArray._from_sequence(data, copy=copy)
+            dtype = FloatingArray._dtype_cls._get_dtype_mapping()[data.dtype]
+            return FloatingArray._from_sequence(data, dtype=dtype, copy=copy)
 
         elif data.dtype.kind == "b":
             return BooleanArray._from_sequence(data, dtype="boolean", copy=copy)
@@ -571,14 +573,10 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
-        if (
-            isinstance(data, str)
-            and using_pyarrow_string_dtype()
-            and original_dtype is None
-        ):
+        if isinstance(data, str) and using_string_dtype() and original_dtype is None:
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype("pyarrow_numpy")
+            dtype = StringDtype(na_value=np.nan)
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
         return data
@@ -609,13 +607,16 @@ def sanitize_array(
             subarr = data
             if data.dtype == object and infer_object:
                 subarr = maybe_infer_to_datetimelike(data)
-            elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
+            elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
-                dtype = StringDtype(storage="pyarrow_numpy")
+                dtype = StringDtype(na_value=np.nan)
                 subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
-            if subarr is data and copy:
+            if (
+                subarr is data
+                or (subarr.dtype == "str" and subarr.dtype.storage == "python")  # type: ignore[union-attr]
+            ) and copy:
                 subarr = subarr.copy()
 
         else:

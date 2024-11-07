@@ -9,7 +9,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     Union,
     cast,
@@ -20,6 +19,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
 from pandas._config.config import get_option
 
 from pandas._libs import (
@@ -66,6 +66,7 @@ from pandas._typing import (
     ScalarIndexer,
     Self,
     SequenceIndexer,
+    TakeIndexer,
     TimeAmbiguous,
     TimeNonexistent,
     npt,
@@ -148,6 +149,7 @@ from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
@@ -357,7 +359,14 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     ) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
+            if copy is False:
+                raise ValueError(
+                    "Unable to avoid copy while creating an array as requested."
+                )
             return np.array(list(self), dtype=object)
+
+        if copy is True:
+            return np.array(self._ndarray, dtype=dtype)
         return self._ndarray
 
     @overload
@@ -469,10 +478,16 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
 
+        elif is_string_dtype(dtype):
+            if isinstance(dtype, ExtensionDtype):
+                arr_object = self._format_native_types(na_rep=dtype.na_value)  # type: ignore[arg-type]
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(arr_object, dtype=dtype, copy=False)
+            else:
+                return self._format_native_types()
+
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
-        elif is_string_dtype(dtype):
-            return self._format_native_types()
         elif dtype.kind in "iu":
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
@@ -1385,7 +1400,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if isinstance(result, np.ndarray) and lib.is_np_dtype(result.dtype, "m"):
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._from_sequence(result)
+            return TimedeltaArray._from_sequence(result, dtype=result.dtype)
         return result
 
     def __radd__(self, other):
@@ -1445,7 +1460,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if isinstance(result, np.ndarray) and lib.is_np_dtype(result.dtype, "m"):
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._from_sequence(result)
+            return TimedeltaArray._from_sequence(result, dtype=result.dtype)
         return result
 
     def __rsub__(self, other):
@@ -1464,7 +1479,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 # Avoid down-casting DatetimeIndex
                 from pandas.core.arrays import DatetimeArray
 
-                other = DatetimeArray._from_sequence(other)
+                other = DatetimeArray._from_sequence(other, dtype=other.dtype)
             return other - self
         elif self.dtype.kind == "M" and hasattr(other, "dtype") and not other_is_dt64:
             # GH#19959 datetime - datetime is well-defined as timedelta,
@@ -1758,6 +1773,10 @@ class DatelikeOps(DatetimeLikeArrayMixin):
               dtype='object')
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
+        if using_string_dtype():
+            from pandas import StringDtype
+
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result.astype(object, copy=False)
 
 
@@ -1780,7 +1799,7 @@ _round_doc = """
           a non-DST time (note that this flag is only applicable for
           ambiguous times)
         - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+        - 'raise' will raise a ValueError if there are ambiguous
           times.
 
     nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, default 'raise'
@@ -1793,7 +1812,7 @@ _round_doc = """
           closest existing time
         - 'NaT' will return NaT where there are nonexistent times
         - timedelta objects will shift nonexistent times by the timedelta
-        - 'raise' will raise an NonExistentTimeError if there are
+        - 'raise' will raise a ValueError if there are
           nonexistent times.
 
     Returns
@@ -2339,6 +2358,27 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
+
+    def take(
+        self,
+        indices: TakeIndexer,
+        *,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+        axis: AxisInt = 0,
+    ) -> Self:
+        result = super().take(
+            indices=indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
+        )
+
+        indices = np.asarray(indices, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
+
+        if isinstance(maybe_slice, slice):
+            freq = self._get_getitem_freq(maybe_slice)
+            result._freq = freq
+
+        return result
 
     # --------------------------------------------------------------
     # Unsorted

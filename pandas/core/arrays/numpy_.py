@@ -137,9 +137,6 @@ class NumpyExtensionArray(  # type: ignore[misc]
             result = result.copy()
         return cls(result)
 
-    def _from_backing_data(self, arr: np.ndarray) -> NumpyExtensionArray:
-        return type(self)(arr)
-
     # ------------------------------------------------------------------------
     # Data
 
@@ -153,6 +150,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if copy is not None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            return np.array(self._ndarray, dtype=dtype, copy=copy)
         return np.asarray(self._ndarray, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -557,7 +557,3 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
             return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
-
-    # ------------------------------------------------------------------------
-    # String methods interface
-    _str_na_value = np.nan
