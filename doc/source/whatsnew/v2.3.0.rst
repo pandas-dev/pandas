@@ -133,7 +133,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- :meth:`DataFrame.to_excel` was storing decimals as strings instead of numbers (:issue:`49598`)
 -
 
 Period

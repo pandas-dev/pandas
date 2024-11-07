@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from decimal import Decimal
 from functools import partial
 from io import BytesIO
 import os
@@ -974,6 +975,36 @@ class TestExcelWriter:
             [[0.12, 0.23, 0.57], [12.32, 123123.20, 321321.20]],
             index=["A", "B"],
             columns=["X", "Y", "Z"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_datatypes_preserved(self, tmp_excel):
+        # Test that when writing and reading Excel with dtype=object,
+        # datatypes are preserved, except Decimals which should be
+        # stored as floats
+
+        # see gh-49598
+        df = DataFrame(
+            [
+                [1.23, "1.23", Decimal("1.23")],
+                [4.56, "4.56", Decimal("4.56")],
+            ],
+            index=["A", "B"],
+            columns=["X", "Y", "Z"],
+        )
+        df.to_excel(tmp_excel)
+
+        with ExcelFile(tmp_excel) as reader:
+            result = pd.read_excel(reader, index_col=0, dtype=object)
+
+        expected = DataFrame(
+            [
+                [1.23, "1.23", 1.23],
+                [4.56, "4.56", 4.56],
+            ],
+            index=["A", "B"],
+            columns=["X", "Y", "Z"],
+            dtype=object,
         )
         tm.assert_frame_equal(result, expected)
 
