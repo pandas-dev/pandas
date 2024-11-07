@@ -983,7 +983,7 @@ class TestExcelWriter:
         # datatypes are preserved, except Decimals which should be
         # stored as floats
 
-        # see gh-50174
+        # see gh-49598
         df = DataFrame(
             [
                 [1.23, "1.23", Decimal("1.23")],
