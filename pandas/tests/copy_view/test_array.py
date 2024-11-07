@@ -140,7 +140,7 @@ def test_dataframe_multiple_numpy_dtypes():
     assert not np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is True
 
-    if not np_version_gt2:
+    if np_version_gt2:
         # copy=False semantics are only supported in NumPy>=2.
 
         with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
