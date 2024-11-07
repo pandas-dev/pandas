@@ -2927,7 +2927,7 @@ timedelta}, default 'raise'
         --------
         >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
         >>> ts.tz
-        <DstTzInfo 'Europe/Stockholm' CET+1:00:00 STD>
+        zoneinfo.ZoneInfo(key='Europe/Stockholm')
         """
         return self.tzinfo
 
