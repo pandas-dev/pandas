@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -63,6 +64,8 @@ from pandas.core.arrays.numpy_ import NumpyExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
+
+from pandas.io.formats import printing
 
 if TYPE_CHECKING:
     import pyarrow
@@ -390,6 +393,14 @@ class BaseStringArray(ExtensionArray):
             # TODO: require any NAs be valid-for-string
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
+
+    def _formatter(self, boxed: bool = False):
+        formatter = partial(
+            printing.pprint_thing,
+            escape_chars=("\t", "\r", "\n"),
+            quote_strings=not boxed,
+        )
+        return formatter
 
     def _str_map(
         self,
@@ -756,6 +767,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # np.putmask which doesn't properly handle None/pd.NA, so using the
         # base class implementation that uses __setitem__
         ExtensionArray._putmask(self, mask, value)
+
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
+        # the super() method NDArrayBackedExtensionArray._where uses
+        # np.putmask which doesn't properly handle None/pd.NA, so using the
+        # base class implementation that uses __setitem__
+        return ExtensionArray._where(self, mask, value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         if isinstance(values, BaseStringArray) or (
