@@ -5,8 +5,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import IndexingError
 
 from pandas import (
@@ -270,18 +268,29 @@ def test_slice(string_series, object_series, using_copy_on_write, warn_copy_on_w
         assert (string_series[10:20] == 0).all()
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_timedelta_assignment():
     # GH 8209
     s = Series([], dtype=object)
     s.loc["B"] = timedelta(1)
-    tm.assert_series_equal(s, Series(Timedelta("1 days"), index=["B"]))
+    expected = Series(
+        Timedelta("1 days"), dtype="timedelta64[ns]", index=Index(["B"], dtype=object)
+    )
+    tm.assert_series_equal(s, expected)
 
     s = s.reindex(s.index.insert(0, "A"))
-    tm.assert_series_equal(s, Series([np.nan, Timedelta("1 days")], index=["A", "B"]))
+    expected = Series(
+        [np.nan, Timedelta("1 days")],
+        dtype="timedelta64[ns]",
+        index=Index(["A", "B"], dtype=object),
+    )
+    tm.assert_series_equal(s, expected)
 
     s.loc["A"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), index=["A", "B"])
+    expected = Series(
+        Timedelta("1 days"),
+        dtype="timedelta64[ns]",
+        index=Index(["A", "B"], dtype=object),
+    )
     tm.assert_series_equal(s, expected)
 
 
