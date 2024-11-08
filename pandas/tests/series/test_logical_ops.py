@@ -413,6 +413,7 @@ class TestSeriesLogicalOps:
         for e in [Series(["z"])]:
             if using_infer_string:
                 # TODO(infer_string) should this behave differently?
+                # -> https://github.com/pandas-dev/pandas/issues/60234
                 with pytest.raises(
                     TypeError, match="not supported for dtype|unsupported operand type"
                 ):

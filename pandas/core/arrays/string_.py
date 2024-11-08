@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -63,6 +64,8 @@ from pandas.core.arrays.numpy_ import NumpyExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
+
+from pandas.io.formats import printing
 
 if TYPE_CHECKING:
     import pyarrow
@@ -391,6 +394,14 @@ class BaseStringArray(ExtensionArray):
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
 
+    def _formatter(self, boxed: bool = False):
+        formatter = partial(
+            printing.pprint_thing,
+            escape_chars=("\t", "\r", "\n"),
+            quote_strings=not boxed,
+        )
+        return formatter
+
     def _str_map(
         self,
         f,
@@ -641,7 +652,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return self.dtype.na_value
         elif not isinstance(value, str):
             raise TypeError(
-                f"Cannot set non-string value '{value}' into a string array."
+                f"Invalid value '{value}' for dtype '{self.dtype}'. Value should be a "
+                f"string or missing value, got '{type(value).__name__}' instead."
             )
         return value
 
@@ -732,7 +744,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 value = self.dtype.na_value
             elif not isinstance(value, str):
                 raise TypeError(
-                    f"Cannot set non-string value '{value}' into a StringArray."
+                    f"Invalid value '{value}' for dtype '{self.dtype}'. Value should "
+                    f"be a string or missing value, got '{type(value).__name__}' "
+                    "instead."
                 )
         else:
             if not is_array_like(value):
@@ -742,7 +756,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 # compatible, compatibility with arrow backed strings
                 value = np.asarray(value)
             if len(value) and not lib.is_string_array(value, skipna=True):
-                raise TypeError("Must provide strings.")
+                raise TypeError(
+                    "Invalid value for dtype 'str'. Value should be a "
+                    "string or missing value (or array of those)."
+                )
 
             mask = isna(value)
             if mask.any():
