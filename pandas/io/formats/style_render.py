@@ -867,6 +867,8 @@ class StylerRenderer:
         """
         index_levels = self.index.nlevels
         visible_index_level_n = index_levels - sum(self.hide_index_)
+        if visible_index_level_n == 0:
+            visible_index_level_n = 1
         d["head"] = [
             [
                 {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
