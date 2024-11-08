@@ -8,9 +8,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import (
     np_version_gt2,
     np_version_gte1p24,
@@ -37,6 +34,7 @@ from pandas import (
     concat,
     date_range,
     interval_range,
+    isna,
     period_range,
     timedelta_range,
 )
@@ -564,14 +562,16 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_with_expansion_type_promotion(self):
         # GH#12599
         ser = Series(dtype=object)
         ser["a"] = Timestamp("2016-01-01")
         ser["b"] = 3.0
         ser["c"] = "foo"
-        expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
+        expected = Series(
+            [Timestamp("2016-01-01"), 3.0, "foo"],
+            index=Index(["a", "b", "c"], dtype=object),
+        )
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_not_contained(self, string_series):
@@ -850,11 +850,6 @@ class SetitemCastingEquivalents:
             indexer_sli(obj)[mask] = val
         tm.assert_series_equal(obj, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     def test_series_where(self, obj, key, expected, warn, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -870,6 +865,11 @@ class SetitemCastingEquivalents:
         obj = obj.copy()
         arr = obj._values
 
+        if obj.dtype == "string" and not (isinstance(val, str) or isna(val)):
+            with pytest.raises(TypeError, match="Invalid value"):
+                obj.where(~mask, val)
+            return
+
         res = obj.where(~mask, val)
 
         if val is NA and res.dtype == object:
@@ -882,29 +882,27 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-    def test_index_where(self, obj, key, expected, warn, val, using_infer_string):
+    def test_index_where(self, obj, key, expected, warn, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if using_infer_string and obj.dtype == object:
+        if obj.dtype == "string" and not (isinstance(val, str) or isna(val)):
             with pytest.raises(TypeError, match="Invalid value"):
-                Index(obj).where(~mask, val)
+                Index(obj, dtype=obj.dtype).where(~mask, val)
         else:
-            res = Index(obj).where(~mask, val)
+            res = Index(obj, dtype=obj.dtype).where(~mask, val)
             expected_idx = Index(expected, dtype=expected.dtype)
             tm.assert_index_equal(res, expected_idx)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-    def test_index_putmask(self, obj, key, expected, warn, val, using_infer_string):
+    def test_index_putmask(self, obj, key, expected, warn, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if using_infer_string and obj.dtype == object:
+        if obj.dtype == "string" and not (isinstance(val, str) or isna(val)):
             with pytest.raises(TypeError, match="Invalid value"):
-                Index(obj).putmask(mask, val)
+                Index(obj, dtype=obj.dtype).putmask(mask, val)
         else:
-            res = Index(obj).putmask(mask, val)
+            res = Index(obj, dtype=obj.dtype).putmask(mask, val)
             tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
 
