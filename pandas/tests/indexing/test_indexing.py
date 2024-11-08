@@ -728,9 +728,7 @@ class TestMisc:
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
         if using_infer_string:
-            with pytest.raises(
-                TypeError, match="Must provide strings|Scalar must be NA or str"
-            ):
+            with pytest.raises(TypeError, match="Invalid value"):
                 with tm.assert_produces_warning(
                     FutureWarning, match="incompatible dtype"
                 ):
