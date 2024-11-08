@@ -199,18 +199,17 @@ def pprint_thing(
     -------
     str
     """
-
     def as_escaped_string(
         thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
-        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
+        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": ""}
         if isinstance(escape_chars, Mapping):
             if default_escapes:
                 translate.update(escape_chars)
             else:
                 translate = escape_chars  # type: ignore[assignment]
             escape_chars = list(escape_chars.keys())
-        else:
+        else:   
             escape_chars = escape_chars or ()
 
         result = str(thing)
