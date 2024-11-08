@@ -7,7 +7,6 @@ from sys import byteorder
 from typing import (
     TYPE_CHECKING,
     ContextManager,
-    cast,
 )
 
 import numpy as np
@@ -512,9 +511,6 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, ArrowExtensionArray):
         if isinstance(right, ArrowExtensionArray):
             # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
-            # breakpoint()
-            left = cast("ArrowExtensionArray", left)
-            right = cast("ArrowExtensionArray", right)
             left_pa_data = left._pa_array
             right_pa_data = right._pa_array
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
