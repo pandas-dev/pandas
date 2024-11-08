@@ -8,7 +8,7 @@ import pandas as pd
 
 class TestSetitemValidation:
     def _check_setitem_invalid(self, arr, invalid):
-        msg = f"Invalid value '{str(invalid)}' for dtype {arr.dtype}"
+        msg = f"Invalid value '{invalid!s}' for dtype '{arr.dtype}'"
         msg = re.escape(msg)
         with pytest.raises(TypeError, match=msg):
             arr[0] = invalid
