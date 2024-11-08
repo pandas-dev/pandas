@@ -1,5 +1,6 @@
 """test feather-format compat"""
 
+from datetime import datetime
 import zoneinfo
 
 import numpy as np
@@ -247,3 +248,15 @@ class TestFeather:
             data={"a": ["x", "y"]}, dtype=pd.StringDtype(na_value=np.nan)
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_out_of_bounds_datetime_to_feather(self):
+        # GH#47832
+        df = pd.DataFrame(
+            {
+                "date": [
+                    datetime.fromisoformat("1654-01-01"),
+                    datetime.fromisoformat("1920-01-01"),
+                ],
+            }
+        )
+        self.check_round_trip(df)
