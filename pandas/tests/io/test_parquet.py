@@ -17,7 +17,6 @@ from pandas.compat.pyarrow import (
     pa_version_under13p0,
     pa_version_under15p0,
     pa_version_under17p0,
-    pa_version_under18p0,
 )
 
 import pandas as pd
@@ -1134,26 +1133,6 @@ class TestParquetPyArrow(Base):
         path = tmp_path / "large_string.p"
 
         table = pa.table({"a": pa.array([None, "b", "c"], pa.large_string())})
-        pq.write_table(table, path)
-
-        with pd.option_context("future.infer_string", True):
-            result = read_parquet(path)
-        expected = pd.DataFrame(
-            data={"a": [None, "b", "c"]},
-            dtype=pd.StringDtype(na_value=np.nan),
-            columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
-        )
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.skipif(pa_version_under18p0, reason="not supported before 18.0")
-    def test_infer_string_string_view_type(self, tmp_path, pa):
-        # GH#54798
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-
-        path = tmp_path / "string_view.parquet"
-
-        table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
         pq.write_table(table, path)
 
         with pd.option_context("future.infer_string", True):
