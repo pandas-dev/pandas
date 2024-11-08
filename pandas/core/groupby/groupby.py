@@ -435,6 +435,18 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Dict {group name -> group labels}.
 
+        This property provides a dictionary representation of the groupings formed
+        during a groupby operation, where each key represents a unique group value from
+        the specified column(s), and each value is a list of index of the row labels
+        that belong to that group.
+
+        See Also
+        --------
+        core.groupby.DataFrameGroupBy.get_group : Get a DataFrame or Series that
+            contains the rows belonging to the specified group.
+        core.groupby.DataFrameGroupBy.indices : Get a dict with group labels as keys
+            and lists of integer indices of rows in each group as values.
+
         Examples
         --------
 
