@@ -9,6 +9,13 @@ import pytest
 
 from pandas.errors import CSSWarning
 
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Timestamp,
+    period_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 from pandas.io.formats.excel import (
@@ -428,3 +435,35 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
 
     assert cache_info.hits == cache_hits
     assert cache_info.misses == cache_misses
+
+
+def test_format_hierarchical_rows_with_periodindex():
+    # GH#60099
+    period_index = period_range(start="2006-10-06", end="2006-10-07", freq="D")
+    df = DataFrame({"A": [0, 0]}, index=period_index)
+    converter = CSSToExcelConverter()
+    cells: list[CssExcelCell] = list(converter._format_hierarchical_rows(df))
+    for cell in cells:
+        assert isinstance(cell.val, Timestamp), "Expected cell value to be a Timestamp"
+        assert cell.val in to_datetime(
+            ["2006-10-06", "2006-10-07"]
+        ), "Unexpected cell value"
+
+
+def test_format_hierarchical_rows_with_period():
+    # GH#60099
+    period_index = period_range(start="2006-10-06", end="2006-10-07", freq="D")
+    number_index = ["1", "2"]
+    df = DataFrame(
+        {"A": [0, 0]}, index=MultiIndex.from_arrays([period_index, number_index])
+    )
+    converter = CSSToExcelConverter()
+    cells: list[CssExcelCell] = list(converter._format_hierarchical_rows(df))
+    for cell in cells:
+        if cell.css_col == 0:
+            assert isinstance(
+                cell.val, Timestamp
+            ), "Expected cell value to be a Timestamp"
+            assert cell.val in to_datetime(
+                ["2006-10-06", "2006-10-07"]
+            ), "Unexpected cell value"

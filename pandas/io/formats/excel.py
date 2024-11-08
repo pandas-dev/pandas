@@ -37,6 +37,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    Period,
     PeriodIndex,
 )
 import pandas.core.common as com
@@ -825,8 +826,8 @@ class ExcelFormatter:
                         allow_fill=levels._can_hold_na,
                         fill_value=levels._na_value,
                     )
-
-                    if isinstance(values, PeriodIndex):
+                    # GH#60099
+                    if isinstance(values[0], Period):
                         values = values.to_timestamp()
 
                     for i, span_val in spans.items():
@@ -852,7 +853,7 @@ class ExcelFormatter:
                 # Format hierarchical rows with non-merged values.
                 for indexcolvals in zip(*self.df.index):
                     for idx, indexcolval in enumerate(indexcolvals):
-
+                        # GH#60099
                         if isinstance(indexcolval, Period):
                             indexcolval = indexcolval.to_timestamp()
 
