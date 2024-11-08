@@ -7668,8 +7668,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
             * 'time': Works on daily and higher resolution data to interpolate
-              given length of interval.
-            * 'index', 'values': use the actual numerical values of the index.
+              given length of interval. This interpolates values based on
+              time interval between observations.
+            * 'index': The interpolation uses the actual numerical values
+              of the df's index to linearly calculate missing value.
+            * 'value': Interpolation based on the actual numerical values
+              in the DataFrame, treating them as equally spaced along the index.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
@@ -7798,6 +7802,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  2.0  3.0 -3.0   9.0
         3  2.0  4.0 -4.0  16.0
 
+        Using linear and index method for linear interpolation.
+        >>> data = {"val": [1, np.nan, 3]}
+        >>> df = pd.DataFrame(
+        ...     data, index=[0, 1, 6]
+        ... )  # a non-sequential index to demonstrate the difference
+        >>> df
+        val
+        0  1.0
+        1  NaN
+        6  3.0
+        >>> df.interpolate(method="linear")
+        val
+        0  1.0
+        1  2.0
+        6  3.0
+        >>> df.interpolate(method="index")
+            val
+        0  1.000000
+        1  1.333333
+        6  3.000000
         Using polynomial interpolation.
 
         >>> df["d"].interpolate(method="polynomial", order=2)
