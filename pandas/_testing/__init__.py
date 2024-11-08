@@ -108,7 +108,7 @@ ALL_FLOAT_DTYPES: list[Dtype] = [*FLOAT_NUMPY_DTYPES, *FLOAT_EA_DTYPES]
 
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 if using_string_dtype():
-    STRING_DTYPES: list[Dtype] = [str, "U"]
+    STRING_DTYPES: list[Dtype] = ["U"]
 else:
     STRING_DTYPES: list[Dtype] = [str, "str", "U"]  # type: ignore[no-redef]
 COMPLEX_FLOAT_DTYPES: list[Dtype] = [*COMPLEX_DTYPES, *FLOAT_NUMPY_DTYPES]
@@ -501,6 +501,8 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, MultiIndex):
         return shares_memory(left._codes, right)
     if isinstance(left, (Index, Series)):
+        if isinstance(right, (Index, Series)):
+            return shares_memory(left._values, right._values)
         return shares_memory(left._values, right)
 
     if isinstance(left, NDArrayBackedExtensionArray):

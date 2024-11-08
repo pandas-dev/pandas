@@ -516,7 +516,7 @@ class SAS7BDATReader(SASReader):
                 buf = self._read_bytes(offset1, self._lcs)
                 self.creator_proc = buf[0 : self._lcp]
             if hasattr(self, "creator_proc"):
-                self.creator_proc = self._convert_header_text(self.creator_proc)
+                self.creator_proc = self._convert_header_text(self.creator_proc)  # pyright: ignore[reportArgumentType]
 
     def _process_columnname_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length

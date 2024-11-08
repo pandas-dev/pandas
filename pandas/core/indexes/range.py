@@ -27,6 +27,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -74,6 +75,7 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     return start + abs(step) * no_steps
 
 
+@set_module("pandas")
 class RangeIndex(Index):
     """
     Immutable Index implementing a monotonic integer range.
@@ -350,6 +352,15 @@ class RangeIndex(Index):
     def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
+
+        The ``step`` parameter determines the increment (or decrement in the case
+        of negative values) between consecutive elements in the ``RangeIndex``.
+
+        See Also
+        --------
+        RangeIndex : Immutable index implementing a range-based index.
+        RangeIndex.stop : Returns the stop value of the RangeIndex.
+        RangeIndex.start : Returns the start value of the RangeIndex.
 
         Examples
         --------

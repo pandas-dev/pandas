@@ -43,7 +43,6 @@ from pandas.compat import (
     pa_version_under13p0,
     pa_version_under14p0,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -292,7 +291,7 @@ class TestArrowArray(base.ExtensionTests):
                 expected = data_missing.to_numpy()
             tm.assert_numpy_array_equal(result, expected)
 
-    def test_astype_str(self, data, request):
+    def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_binary(pa_dtype):
             request.applymarker(
@@ -300,34 +299,16 @@ class TestArrowArray(base.ExtensionTests):
                     reason=f"For {pa_dtype} .astype(str) decodes.",
                 )
             )
-        elif (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ) or pa.types.is_duration(pa_dtype):
+        elif not using_infer_string and (
+            (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+            or pa.types.is_duration(pa_dtype)
+        ):
             request.applymarker(
                 pytest.mark.xfail(
                     reason="pd.Timestamp/pd.Timedelta repr different from numpy repr",
                 )
             )
         super().test_astype_str(data)
-
-    @pytest.mark.parametrize(
-        "nullable_string_dtype",
-        [
-            "string[python]",
-            pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        ],
-    )
-    def test_astype_string(self, data, nullable_string_dtype, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ) or pa.types.is_duration(pa_dtype):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="pd.Timestamp/pd.Timedelta repr different from numpy repr",
-                )
-            )
-        super().test_astype_string(data, nullable_string_dtype)
 
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -480,10 +461,11 @@ class TestArrowArray(base.ExtensionTests):
                 pass
             else:
                 return False
+        elif pa.types.is_binary(pa_dtype) and op_name == "sum":
+            return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
         ) and op_name in [
-            "sum",
             "mean",
             "median",
             "prod",
@@ -582,6 +564,8 @@ class TestArrowArray(base.ExtensionTests):
             cmp_dtype = "float64[pyarrow]"
         elif op_name in ["sum", "prod"] and pa.types.is_boolean(pa_type):
             cmp_dtype = "uint64[pyarrow]"
+        elif op_name == "sum" and pa.types.is_string(pa_type):
+            cmp_dtype = arr.dtype
         else:
             cmp_dtype = {
                 "i": "int64[pyarrow]",
@@ -612,26 +596,6 @@ class TestArrowArray(base.ExtensionTests):
         # GH 52679
         result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
         assert result == 1.5
-
-    def test_in_numeric_groupby(self, data_for_grouping):
-        dtype = data_for_grouping.dtype
-        if is_string_dtype(dtype):
-            df = pd.DataFrame(
-                {
-                    "A": [1, 1, 2, 2, 3, 3, 1, 4],
-                    "B": data_for_grouping,
-                    "C": [1, 1, 1, 1, 1, 1, 1, 1],
-                }
-            )
-
-            expected = pd.Index(["C"])
-            msg = re.escape(f"agg function failed [how->sum,dtype->{dtype}")
-            with pytest.raises(TypeError, match=msg):
-                df.groupby("A").sum()
-            result = df.groupby("A").sum(numeric_only=True).columns
-            tm.assert_index_equal(result, expected)
-        else:
-            super().test_in_numeric_groupby(data_for_grouping)
 
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype

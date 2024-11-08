@@ -87,8 +87,9 @@ index will be pulled out.
 
 **From scalar value**
 
-If ``data`` is a scalar value, an index must be
-provided. The value will be repeated to match the length of **index**.
+If ``data`` is a scalar value, the value will be repeated to match
+the length of **index**.  If the **index** is not provided, it defaults
+to ``RangeIndex(1)``.
 
 .. ipython:: python
 

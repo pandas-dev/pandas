@@ -4,10 +4,6 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -50,7 +46,6 @@ def _safe_add(df):
 
 
 class TestDataFrameIndexingWhere:
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_get(self, where_frame, float_string_frame):
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -68,7 +63,10 @@ class TestDataFrameIndexingWhere:
         # check getting
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -101,7 +99,6 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -133,7 +130,10 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -176,7 +176,6 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.mask(0)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 
@@ -198,7 +197,10 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -929,7 +931,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
     mask = np.array([True, True, False], ndmin=obj.ndim).T
 
-    msg = r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}"
+    msg = r"Invalid value '.*' for dtype '(U?Int|Float)\d{1,2}'"
 
     for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype
@@ -940,9 +942,6 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 @given(data=OPTIONAL_ONE_OF_ALL)
 def test_where_inplace_casting(data):
     # GH 22051
@@ -1023,19 +1022,18 @@ def test_where_producing_ea_cond_for_np_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
-)
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
-def test_where_int_overflow(replacement, using_infer_string, request):
+def test_where_int_overflow(replacement, using_infer_string):
     # GH 31687
     df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
     if using_infer_string and replacement not in (None, "snake"):
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Can't set non-string into string column")
-        )
+        with pytest.raises(
+            TypeError, match=f"Invalid value '{replacement}' for dtype 'str'"
+        ):
+            df.where(pd.notnull(df), replacement)
+        return
     result = df.where(pd.notnull(df), replacement)
     expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 

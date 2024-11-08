@@ -9,6 +9,7 @@ The full license is in the LICENSE file, distributed with this software.
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #include <numpy/ndarraytypes.h>
 
 // Scales value inplace from nanosecond resolution to unit resolution
