@@ -32,6 +32,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    set_module,
 )
 from pandas.util._exceptions import rewrite_exception
 
@@ -202,6 +203,7 @@ def _new_IntervalIndex(cls, d):
     IntervalArray,
 )
 @inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
+@set_module("pandas")
 class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
 

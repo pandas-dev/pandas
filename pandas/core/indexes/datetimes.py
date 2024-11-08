@@ -26,6 +26,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_scalar
@@ -126,6 +127,7 @@ def _new_DatetimeIndex(cls, d):
     + DatetimeArray._bool_ops,
     DatetimeArray,
 )
+@set_module("pandas")
 class DatetimeIndex(DatetimeTimedeltaMixin):
     """
     Immutable ndarray-like of datetime64 data.

@@ -13,6 +13,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
     ],
     TimedeltaArray,
 )
+@set_module("pandas")
 class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
     Immutable Index of timedelta64 data.
