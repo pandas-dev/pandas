@@ -71,6 +71,7 @@ from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import (
     find_stack_level,
@@ -315,6 +316,7 @@ def _new_Index(cls, d):
     return cls.__new__(cls, **d)
 
 
+@set_module("pandas")
 class Index(IndexOpsMixin, PandasObject):
     """
     Immutable sequence used for indexing and alignment.
@@ -5139,7 +5141,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a boolean if we need a qualified .info display.
         """
-        return is_object_dtype(self.dtype)
+        return is_object_dtype(self.dtype) or (
+            is_string_dtype(self.dtype) and self.dtype.storage == "python"  # type: ignore[union-attr]
+        )
 
     def __contains__(self, key: Any) -> bool:
         """

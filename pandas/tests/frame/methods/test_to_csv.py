@@ -44,7 +44,6 @@ class TestDataFrameToCSV:
         float_frame.to_csv(path, header=False)
         float_frame.to_csv(path, index=False)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_from_csv1_datetime(self, temp_file, datetime_frame):
         path = str(temp_file)
         # test roundtrip
@@ -549,7 +548,6 @@ class TestDataFrameToCSV:
         assert return_value is None
         tm.assert_frame_equal(to_df, recons)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_multiindex(self, temp_file, float_frame, datetime_frame):
         frame = float_frame
         old_index = frame.index
