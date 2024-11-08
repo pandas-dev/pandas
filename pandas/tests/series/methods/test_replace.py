@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -628,14 +626,22 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match="Invalid value"):
             ints.replace(1, 9.5)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't fill 1 in string")
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_series(self, regex):
         # GH-48644
-        series = pd.Series(["0"])
+        series = pd.Series(["0"], dtype=object)
         expected = pd.Series([1], dtype=object)
         result = series.replace(to_replace="0", value=1, regex=regex)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_regex_dtype_series_string(self, regex, using_infer_string):
+        if not using_infer_string:
+            # then this is object dtype which is already tested above
+            return
+        series = pd.Series(["0"], dtype="str")
+        with pytest.raises(TypeError, match="Invalid value"):
+            series.replace(to_replace="0", value=1, regex=regex)
 
     def test_replace_different_int_types(self, any_int_numpy_dtype):
         # GH#45311
@@ -656,21 +662,18 @@ class TestSeriesReplace:
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_replace_change_dtype_series(self, using_infer_string):
+    def test_replace_change_dtype_series(self):
         # GH#25797
-        df = pd.DataFrame.from_dict({"Test": ["0.5", True, "0.6"]})
-        warn = FutureWarning if using_infer_string else None
-        with tm.assert_produces_warning(warn, match="Downcasting"):
-            df["Test"] = df["Test"].replace([True], [np.nan])
-        expected = pd.DataFrame.from_dict({"Test": ["0.5", np.nan, "0.6"]})
+        df = pd.DataFrame({"Test": ["0.5", True, "0.6"]}, dtype=object)
+        df["Test"] = df["Test"].replace([True], [np.nan])
+        expected = pd.DataFrame({"Test": ["0.5", np.nan, "0.6"]}, dtype=object)
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
+        df = pd.DataFrame({"Test": ["0.5", None, "0.6"]}, dtype=object)
         df["Test"] = df["Test"].replace([None], [np.nan])
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
+        df = pd.DataFrame({"Test": ["0.5", None, "0.6"]}, dtype=object)
         df["Test"] = df["Test"].fillna(np.nan)
         tm.assert_frame_equal(df, expected)
 

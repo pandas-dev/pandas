@@ -50,6 +50,7 @@ import datetime as dt
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.conversion cimport (
@@ -1648,7 +1649,7 @@ cdef class _Timestamp(ABCTimestamp):
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 
-
+@set_module("pandas")
 class Timestamp(_Timestamp):
     """
     Pandas replacement for python datetime.datetime object.
@@ -2926,7 +2927,7 @@ timedelta}, default 'raise'
         --------
         >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
         >>> ts.tz
-        <DstTzInfo 'Europe/Stockholm' CET+1:00:00 STD>
+        zoneinfo.ZoneInfo(key='Europe/Stockholm')
         """
         return self.tzinfo
 

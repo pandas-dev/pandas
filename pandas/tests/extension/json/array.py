@@ -148,12 +148,20 @@ class JSONArray(ExtensionArray):
         return NotImplemented
 
     def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         if dtype is None:
             dtype = object
         if dtype == object:
             # on py38 builds it looks like numpy is inferring to a non-1D array
             return construct_1d_object_array_from_listlike(list(self))
-        return np.asarray(self.data, dtype=dtype)
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            return np.asarray(self.data, dtype=dtype)
+        return np.asarray(self.data, dtype=dtype, copy=copy)
 
     @property
     def nbytes(self) -> int:

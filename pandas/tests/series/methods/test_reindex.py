@@ -23,7 +23,7 @@ import pandas._testing as tm
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
-    assert np.may_share_memory(string_series.index, identity.index)
+    assert tm.shares_memory(string_series.index, identity.index)
 
     assert identity.index.is_(string_series.index)
     assert identity.index.identical(string_series.index)
