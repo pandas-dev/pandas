@@ -209,7 +209,7 @@ def pprint_thing(
             else:
                 translate = escape_chars  # type: ignore[assignment]
             escape_chars = list(escape_chars.keys())
-        else:   
+        else:
             escape_chars = escape_chars or ()
 
         result = str(thing)
