@@ -32,6 +32,9 @@ enhancement1
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- The semantics for the ``copy`` keyword in ``__array__`` methods (i.e. called
+  when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
+  updated to work correctly with NumPy >= 2 (:issue:`57739`)
 - The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
 -
 
@@ -130,7 +133,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- :meth:`DataFrame.to_excel` was storing decimals as strings instead of numbers (:issue:`49598`)
 -
 
 Period
@@ -170,7 +173,8 @@ Styler
 
 Other
 ^^^^^
--
+- Fixed usage of ``inspect`` when the optional dependencies ``pyarrow`` or ``jinja2``
+  are not installed (:issue:`60196`)
 -
 
 .. ---------------------------------------------------------------------------

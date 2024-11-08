@@ -908,7 +908,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The array interface, return my values.
         """
-        return np.asarray(self._data, dtype=dtype)
+        if copy is None:
+            # Note, that the if branch exists for NumPy 1.x support
+            return np.asarray(self._data, dtype=dtype)
+
+        return np.array(self._data, dtype=dtype, copy=copy)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str_t, *inputs, **kwargs):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
@@ -5135,7 +5139,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a boolean if we need a qualified .info display.
         """
-        return is_object_dtype(self.dtype)
+        return is_object_dtype(self.dtype) or (
+            is_string_dtype(self.dtype) and self.dtype.storage == "python"  # type: ignore[union-attr]
+        )
 
     def __contains__(self, key: Any) -> bool:
         """
