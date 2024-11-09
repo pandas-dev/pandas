@@ -726,7 +726,9 @@ def nanmean(
 
 
 @bottleneck_switch()
-def nanmedian(values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None) -> float | np.ndarray:
+def nanmedian(
+    values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None
+) -> float | np.ndarray:
     """
     Parameters
     ----------
