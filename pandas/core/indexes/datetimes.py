@@ -1021,6 +1021,7 @@ def date_range(
     return DatetimeIndex._simple_new(dtarr, name=name)
 
 
+@set_module("pandas")
 def bdate_range(
     start=None,
     end=None,
