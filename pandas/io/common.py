@@ -910,10 +910,8 @@ def get_handle(
             or not hasattr(handle, "seekable")
         ):
             handle = _IOWrapper(handle)
-        # error: Argument 1 to "TextIOWrapper" has incompatible type
-        # "_IOWrapper"; expected "IO[bytes]"
         handle = TextIOWrapper(
-            handle,  # type: ignore[arg-type]
+            handle,
             encoding=ioargs.encoding,
             errors=errors,
             newline="",
