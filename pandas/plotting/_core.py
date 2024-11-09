@@ -1038,7 +1038,9 @@ class PlotAccessor(PandasObject):
                     label_name = label_kw or y
                     data.name = label_name
                 else:
-                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    # error: Argument 1 to "len" has incompatible type "Any | bool"; 
+                    # expected "Sized"  [arg-type]
+                    match = is_list_like(label_kw) and len(label_kw) == len(y) # type: ignore[arg-type]
                     if label_kw and not match:
                         raise ValueError(
                             "label should be list-like and same length as y"
