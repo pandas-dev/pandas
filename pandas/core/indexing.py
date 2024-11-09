@@ -98,6 +98,7 @@ _one_ellipsis_message = "indexer may only contain one '...' entry"
 
 
 # the public IndexSlicerMaker
+@set_module("pandas")
 class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing.
