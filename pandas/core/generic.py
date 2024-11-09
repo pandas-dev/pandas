@@ -8024,7 +8024,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     np.nan, index=self.columns, name=where[0]
                 )
 
-        # error: Unsupported operand type for ~ ("ExtensionArray | ndarray[Any, Any] | Any")
+        # error: Unsupported operand type for
+        # ~ ("ExtensionArray | ndarray[Any, Any] | Any")
         locs = self.index.asof_locs(where, ~nulls._values)  # type: ignore[operator]
 
         # mask the missing
