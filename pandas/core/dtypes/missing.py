@@ -309,7 +309,7 @@ def notna(
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
-@set_module('pandas')
+@set_module("pandas")
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect non-missing values for an array-like object.
