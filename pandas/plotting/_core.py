@@ -428,7 +428,7 @@ is returned:
     >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
     ...                      return_type='axes')
     >>> type(boxplot)
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
 
 If ``return_type`` is `None`, a NumPy array of axes with the same shape
 as ``layout`` is returned:
