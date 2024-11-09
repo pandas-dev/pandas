@@ -398,21 +398,28 @@ class TestTesting(Base):
             pd.util.foo
 
 
-def test_set_module():
-    assert pd.DataFrame.__module__ == "pandas"
-    assert pd.CategoricalDtype.__module__ == "pandas"
-    assert pd.PeriodDtype.__module__ == "pandas"
-    assert pd.IntervalDtype.__module__ == "pandas"
-    assert pd.SparseDtype.__module__ == "pandas"
-    assert pd.ArrowDtype.__module__ == "pandas"
-    assert pd.Index.__module__ == "pandas"
-    assert pd.CategoricalIndex.__module__ == "pandas"
-    assert pd.DatetimeIndex.__module__ == "pandas"
-    assert pd.IntervalIndex.__module__ == "pandas"
-    assert pd.MultiIndex.__module__ == "pandas"
-    assert pd.PeriodIndex.__module__ == "pandas"
-    assert pd.RangeIndex.__module__ == "pandas"
-    assert pd.TimedeltaIndex.__module__ == "pandas"
-    assert pd.Period.__module__ == "pandas"
-    assert pd.Timestamp.__module__ == "pandas"
-    assert pd.Timedelta.__module__ == "pandas"
+@pytest.mark.parametrize(
+    "classes",
+    [
+        pd.DataFrame,
+        pd.CategoricalDtype,
+        pd.PeriodDtype,
+        pd.IntervalDtype,
+        pd.SparseDtype,
+        pd.ArrowDtype,
+        pd.Index,
+        pd.CategoricalIndex,
+        pd.DatetimeIndex,
+        pd.IntervalIndex,
+        pd.MultiIndex,
+        pd.PeriodIndex,
+        pd.RangeIndex,
+        pd.TimedeltaIndex,
+        pd.Period,
+        pd.Timestamp,
+        pd.Timedelta,
+        pd.StringDtype,
+    ],
+)
+def test_set_module(classes):
+    assert classes.__module__ == "pandas"
