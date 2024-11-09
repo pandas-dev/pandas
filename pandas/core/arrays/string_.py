@@ -378,7 +378,6 @@ class StringDtype(StorageExtensionDtype):
         return new_string_array
 
 
-@set_module("pandas")
 class BaseStringArray(ExtensionArray):
     """
     Mixin class for StringArray, ArrowStringArray.
@@ -728,7 +727,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
-    def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
+    # type: ignore[override]
+    def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:
         arr = self._ndarray
 
         return arr, self.dtype.na_value
