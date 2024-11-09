@@ -43,6 +43,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 
+from pandas.util._decorators import set_module
+
 if TYPE_CHECKING:
     from re import Pattern
 
