@@ -352,7 +352,7 @@ def test_replace_empty_list(using_copy_on_write):
 
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(using_copy_on_write, value):
-    df = DataFrame({"a": ["a", "b", "c"]})
+    df = DataFrame({"a": ["a", "b", "c"]}, dtype=object)
     arr = get_array(df, "a")
     df.replace(["c"], value, inplace=True)
     if using_copy_on_write or value is None:
