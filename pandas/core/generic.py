@@ -7817,11 +7817,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0  1.0
         1  2.0
         6  3.0
-        >>> df.interpolate(method="index")
-            val
-        0  1.000000
-        1  1.333333
-        6  3.000000
+        >>> df.interpolate(method="index").round(1)
+        val
+        0  1.0
+        1  1.3
+        6  3.0
         Using polynomial interpolation.
 
         >>> df["d"].interpolate(method="polynomial", order=2)
