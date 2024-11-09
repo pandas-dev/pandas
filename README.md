@@ -147,7 +147,7 @@ See the full instructions for [installing from source](https://pandas.pydata.org
 [BSD 3](LICENSE)
 
 ## Documentation
-The official documentation is hosted on [PyData.org](https://pandas.pydata.org/pandas-docs/stable/).
+The official documentation is available at [PyData.org](https://pandas.pydata.org/pandas-docs/stable/).
 
 ## Background
 Work on ``pandas`` started at [AQR](https://www.aqr.com/) (a quantitative hedge fund) in 2008 and
