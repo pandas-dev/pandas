@@ -53,6 +53,7 @@ from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -195,6 +196,7 @@ def names_compat(meth: F) -> F:
     return cast(F, new_meth)
 
 
+@set_module("pandas")
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.

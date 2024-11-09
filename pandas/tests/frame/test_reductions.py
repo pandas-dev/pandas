@@ -6,8 +6,6 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -1081,7 +1079,6 @@ class TestDataFrameAnalytics:
         expected = Series(dtype=index.dtype)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmin_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
@@ -1098,7 +1095,6 @@ class TestDataFrameAnalytics:
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("axis", [0, 1])
     def test_idxmax(self, float_frame, int_frame, skipna, axis):
         frame = float_frame
@@ -1132,7 +1128,6 @@ class TestDataFrameAnalytics:
         expected = Series(dtype=index.dtype)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmax_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
