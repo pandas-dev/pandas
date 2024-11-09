@@ -64,7 +64,7 @@ from pandas.core.arrays.numpy_ import NumpyExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
-
+from pandas.util._decorators import set_module
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
@@ -86,6 +86,7 @@ if TYPE_CHECKING:
     from pandas import Series
 
 
+@set_module("pandas")
 @register_extension_dtype
 class StringDtype(StorageExtensionDtype):
     """
@@ -373,7 +374,7 @@ class StringDtype(StorageExtensionDtype):
         NDArrayBacked.__init__(new_string_array, arr, self)
         return new_string_array
 
-
+@set_module("pandas")
 class BaseStringArray(ExtensionArray):
     """
     Mixin class for StringArray, ArrowStringArray.
@@ -532,6 +533,7 @@ class BaseStringArray(ExtensionArray):
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
+
 class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     """
     Extension array for string data.
@@ -957,6 +959,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return res_arr
 
     _arith_method = _cmp_method
+
 
 
 class StringArrayNumpySemantics(StringArray):
