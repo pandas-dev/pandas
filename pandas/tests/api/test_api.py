@@ -418,3 +418,4 @@ def test_set_module():
     assert pd.Timestamp.__module__ == "pandas"
     assert pd.Timedelta.__module__ == "pandas"
     assert pd.isna.__module__ == "pandas"
+    assert pd.notna.__module__ == "pandas"

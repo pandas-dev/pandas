@@ -180,7 +180,6 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 isnull = isna
 
 
-@set_module("pandas")
 def _isna(obj):
     """
     Detect missing values, treating None, NaN or NA as null.
@@ -313,6 +312,7 @@ def notna(
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
+@set_module('pandas')
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect non-missing values for an array-like object.
