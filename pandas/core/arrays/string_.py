@@ -28,7 +28,10 @@ from pandas.compat import (
     pa_version_under10p1,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
@@ -64,7 +67,7 @@ from pandas.core.arrays.numpy_ import NumpyExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
-from pandas.util._decorators import set_module
+
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
@@ -374,6 +377,7 @@ class StringDtype(StorageExtensionDtype):
         NDArrayBacked.__init__(new_string_array, arr, self)
         return new_string_array
 
+
 @set_module("pandas")
 class BaseStringArray(ExtensionArray):
     """
@@ -533,6 +537,7 @@ class BaseStringArray(ExtensionArray):
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
+
 
 class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     """
@@ -723,7 +728,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
-    def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
+    # type: ignore[override]
+    def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:
         arr = self._ndarray
 
         return arr, self.dtype.na_value
@@ -959,7 +965,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return res_arr
 
     _arith_method = _cmp_method
-
 
 
 class StringArrayNumpySemantics(StringArray):
