@@ -263,9 +263,10 @@ class TestFeather:
 
         with pd.option_context("future.infer_string", True):
             result = read_feather(path)
-        expected = pd.DataFrame(
-            data={"a": [None, "b", "c"]}, dtype=pd.StringDtype(na_value=np.nan)
-        )
+
+            expected = pd.DataFrame(
+                data={"a": [None, "b", "c"]}, dtype=pd.StringDtype(na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
 
     def test_out_of_bounds_datetime_to_feather(self):
