@@ -910,12 +910,13 @@ def get_handle(
             or not hasattr(handle, "seekable")
         ):
             handle = _IOWrapper(handle)
+        # error: Value of type variable "_BufferT_co" of "TextIOWrapper" cannot be "_IOWrapper | BaseBuffer"  [type-var]
         handle = TextIOWrapper(
             handle,
             encoding=ioargs.encoding,
             errors=errors,
             newline="",
-        )
+        ) # type: ignore[arg-type]
         handles.append(handle)
         # only marked as wrapped when the caller provided a handle
         is_wrapped = not (
