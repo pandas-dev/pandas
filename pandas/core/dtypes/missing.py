@@ -21,7 +21,6 @@ from pandas._libs.tslibs import (
 )
 
 from pandas.util._decorators import set_module
-
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
