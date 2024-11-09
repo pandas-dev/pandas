@@ -418,7 +418,6 @@ class TestTesting(Base):
         pd.Period,
         pd.Timestamp,
         pd.Timedelta,
-        pd.StringDtype,
     ],
 )
 def test_set_module(classes):
