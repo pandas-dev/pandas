@@ -873,7 +873,7 @@ def test_parse_dates_arrow_dtype_as_index(all_parsers):
             name="a",
         ),
     )
-    tm.assert_series_equals(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @xfail_pyarrow  # object dtype index
