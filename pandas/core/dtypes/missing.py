@@ -93,7 +93,7 @@ def isna(
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
-@set_module('pandas')
+@set_module("pandas")
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect missing values for an array-like object.
