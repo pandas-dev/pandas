@@ -416,3 +416,6 @@ def test_set_module():
     assert pd.Period.__module__ == "pandas"
     assert pd.Timestamp.__module__ == "pandas"
     assert pd.Timedelta.__module__ == "pandas"
+    assert pd.read_csv.__module__ == "pandas"
+    assert pd.read_table.__module__ == "pandas"
+    assert pd.read_fwf.__module__ == "pandas"
