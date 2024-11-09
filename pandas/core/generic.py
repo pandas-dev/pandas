@@ -7801,6 +7801,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  1.0  2.0 -2.0   5.0
         2  2.0  3.0 -3.0   9.0
         3  2.0  4.0 -4.0  16.0
+
         Using polynomial interpolation.
 
         >>> df["d"].interpolate(method="polynomial", order=2)
@@ -7809,7 +7810,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2     9.0
         3    16.0
         Name: d, dtype: float64
-
         Using index method for linear interpolation
         with non-sequential index.
         >>> data_non_seq = {"val": [1, np.nan, 3]}
