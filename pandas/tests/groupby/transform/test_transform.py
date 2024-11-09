@@ -905,6 +905,7 @@ def test_cython_transform_frame_column(
                 ".* is not supported for object dtype",
                 "is not implemented for this dtype",
                 ".* is not supported for str dtype",
+                "dtype 'str' does not support operation '.*'",
             ]
         )
         with pytest.raises(TypeError, match=msg):
