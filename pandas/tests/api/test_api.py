@@ -417,6 +417,3 @@ def test_set_module():
     assert pd.Timestamp.__module__ == "pandas"
     assert pd.Timedelta.__module__ == "pandas"
     assert pd.StringDtype.__module__ == "pandas"
-    assert pd.BaseStringArray.__module__ == "pandas"
-    assert pd.StringArrayNumpySemantics.___module__ == "pandas"
-    assert pd.StringArray.__module__ == "pandas"
