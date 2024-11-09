@@ -144,7 +144,6 @@ class NamedAgg(NamedTuple):
     aggfunc: AggScalar
 
 
-@set_module("pandas")
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
         out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
@@ -1558,7 +1557,6 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
 
-@set_module("pandas")
 class DataFrameGroupBy(GroupBy[DataFrame]):
     _agg_examples_doc = dedent(
         """
