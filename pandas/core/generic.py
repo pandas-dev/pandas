@@ -8024,7 +8024,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     np.nan, index=self.columns, name=where[0]
                 )
 
-        locs = self.index.asof_locs(where, ~(nulls._values))
+        locs = self.index.asof_locs(where, ~cast("DataFrame", nulls._values))
 
         # mask the missing
         mask = locs == -1
