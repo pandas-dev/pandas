@@ -20,7 +20,9 @@ def test_formatted_index_names():
 
     for input_names, expected_names in test_cases:
         # Create DataFrame with specified index names
-        df = pd.DataFrame({name: [1, 2, 3] for name in input_names}).set_index(input_names)
+        df = pd.DataFrame(
+            {name: [1, 2, 3] for name in input_names}
+        ).set_index(input_names)
         index_names_str = df.index.names.__str__() 
 
         formatted_names = ast.literal_eval(index_names_str)
