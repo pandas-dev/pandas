@@ -917,7 +917,7 @@ def get_handle(
             encoding=ioargs.encoding,
             errors=errors,
             newline="",
-        )  # type: ignore[arg-type]
+        )
         handles.append(handle)
         # only marked as wrapped when the caller provided a handle
         is_wrapped = not (
