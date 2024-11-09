@@ -536,8 +536,6 @@ class BaseStringArray(ExtensionArray):
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
-
-
 class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     """
     Extension array for string data.
