@@ -481,7 +481,7 @@ Other Removals
 - Enforced deprecation of :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for object-dtype (:issue:`57820`)
 - Enforced deprecation of :meth:`offsets.Tick.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
 - Enforced deprecation of ``axis=None`` acting the same as ``axis=0`` in the DataFrame reductions ``sum``, ``prod``, ``std``, ``var``, and ``sem``, passing ``axis=None`` will now reduce over both axes; this is particularly the case when doing e.g. ``numpy.sum(df)`` (:issue:`21597`)
-- Enforced deprecation of ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock`` (:issue:`58467`)
+- Enforced deprecation of ``core.internals`` member ``DatetimeTZBlock`` (:issue:`58467`)
 - Enforced deprecation of ``date_parser`` in :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_excel` in favour of ``date_format`` (:issue:`50601`)
 - Enforced deprecation of ``keep_date_col`` keyword in :func:`read_csv` (:issue:`55569`)
 - Enforced deprecation of ``quantile`` keyword in :meth:`.Rolling.quantile` and :meth:`.Expanding.quantile`, renamed to ``q`` instead. (:issue:`52550`)
