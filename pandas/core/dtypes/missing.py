@@ -20,6 +20,8 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
@@ -43,7 +45,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 
-from pandas.util._decorators import set_module
+
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -178,6 +180,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 isnull = isna
 
 
+@set_module("pandas")
 def _isna(obj):
     """
     Detect missing values, treating None, NaN or NA as null.

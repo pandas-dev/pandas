@@ -14,6 +14,7 @@ from pandas.api import (
 )
 
 
+
 class Base:
     def check(self, namespace, expected, ignored=None):
         # see which names are in the namespace, minus optional
