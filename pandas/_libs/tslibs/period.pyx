@@ -114,6 +114,7 @@ from pandas._libs.tslibs.offsets import (
     INVALID_FREQ_ERR_MSG,
     BDay,
 )
+from pandas.util._decorators import set_module
 
 cdef:
     enum:
@@ -2001,6 +2002,12 @@ cdef class _Period(PeriodMixin):
         -------
         Timestamp
 
+        See Also
+        --------
+        Timestamp : A class representing a single point in time.
+        Period : Represents a span of time with a fixed frequency.
+        PeriodIndex.to_timestamp : Convert a `PeriodIndex` to a `DatetimeIndex`.
+
         Examples
         --------
         >>> period = pd.Period('2023-1-1', freq='D')
@@ -2824,6 +2831,7 @@ cdef class _Period(PeriodMixin):
         return period_format(self.ordinal, base, fmt)
 
 
+@set_module("pandas")
 class Period(_Period):
     """
     Represents a period of time.

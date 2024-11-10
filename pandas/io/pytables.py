@@ -126,8 +126,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.internals.blocks import Block
-
+    from pandas.core.internals import Block
 
 # versioning attribute
 _version = "0.15.2"
@@ -3580,7 +3579,7 @@ class Table(Fixed):
 
     @property
     def data_orientation(self) -> tuple[int, ...]:
-        """return a tuple of my permuted axes, non_indexable at the front"""
+        """return a tuple of my permutated axes, non_indexable at the front"""
         return tuple(
             itertools.chain(
                 [int(a[0]) for a in self.non_index_axes],

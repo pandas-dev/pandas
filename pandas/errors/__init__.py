@@ -76,6 +76,12 @@ class UnsupportedFunctionCall(ValueError):
 
     For example, ``np.cumsum(groupby_object)``.
 
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+    Series.groupby : Group Series using a mapper or by a Series of columns.
+    core.groupby.GroupBy.cumsum : Compute cumulative sum for each group.
+
     Examples
     --------
     >>> df = pd.DataFrame(
@@ -205,6 +211,17 @@ class EmptyDataError(ValueError):
     """
     Exception raised in ``pd.read_csv`` when empty data or header is encountered.
 
+    This error is typically encountered when attempting to read an empty file or
+    an invalid file where no data or headers are present.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (CSV) file into DataFrame.
+    errors.ParserError : Exception that is raised by an error encountered in parsing
+        file contents.
+    errors.DtypeWarning : Warning raised when reading different dtypes in a column
+        from a file.
+
     Examples
     --------
     >>> from io import StringIO
@@ -260,6 +277,11 @@ class MergeError(ValueError):
     Exception raised when merging data.
 
     Subclass of ``ValueError``.
+
+    See Also
+    --------
+    DataFrame.join : For joining DataFrames on their indexes.
+    merge : For merging two DataFrames on a common set of keys.
 
     Examples
     --------
@@ -428,6 +450,11 @@ class SpecificationError(Exception):
     The second way is calling ``agg`` on a Dataframe with duplicated functions
     names without assigning column name.
 
+    See Also
+    --------
+    DataFrame.agg : Aggregate using one or more operations over the specified axis.
+    Series.agg : Aggregate using one or more operations over the specified axis.
+
     Examples
     --------
     >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)})
@@ -570,6 +597,14 @@ class CSSWarning(UserWarning):
     This can be due to the styling not having an equivalent value or because the
     styling isn't properly formatted.
 
+    See Also
+    --------
+    DataFrame.style : Returns a Styler object for applying CSS-like styles.
+    io.formats.style.Styler : Helps style a DataFrame or Series according to the
+        data with HTML and CSS.
+    io.formats.style.Styler.to_excel : Export styled DataFrame to Excel.
+    io.formats.style.Styler.to_html : Export styled DataFrame to HTML.
+
     Examples
     --------
     >>> df = pd.DataFrame({"A": [1, 1, 1]})
@@ -598,6 +633,16 @@ class PossibleDataLossError(Exception):
 class ClosedFileError(Exception):
     """
     Exception is raised when trying to perform an operation on a closed HDFStore file.
+
+    ``ClosedFileError`` is specific to operations on ``HDFStore`` objects. Once an
+    HDFStore is closed, its resources are no longer available, and any further attempt
+    to access data or perform file operations will raise this exception.
+
+    See Also
+    --------
+    HDFStore.close : Closes the PyTables file handle.
+    HDFStore.open : Opens the file in the specified mode.
+    HDFStore.is_open : Returns a boolean indicating whether the file is open.
 
     Examples
     --------
@@ -660,6 +705,10 @@ class PossiblePrecisionLoss(Warning):
     When the column value is outside or equal to the int64 value the column is
     converted to a float64 dtype.
 
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
     Examples
     --------
     >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
@@ -699,6 +748,15 @@ class InvalidColumnName(Warning):
 class CategoricalConversionWarning(Warning):
     """
     Warning is raised when reading a partial labeled Stata file using a iterator.
+
+    This warning helps ensure data integrity and alerts users to potential issues
+    during the incremental reading of Stata files with labeled data, allowing for
+    additional checks and adjustments as necessary.
+
+    See Also
+    --------
+    read_stata : Read a Stata file into a DataFrame.
+    Categorical : Represents a categorical variable in pandas.
 
     Examples
     --------

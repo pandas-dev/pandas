@@ -11,6 +11,7 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
+import functools
 import operator
 import sys
 from textwrap import dedent
@@ -580,8 +581,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         PyCapsule
         """
         pa = import_optional_dependency("pyarrow", min_version="16.0.0")
-        ca = pa.chunked_array([pa.Array.from_pandas(self, type=requested_schema)])
-        return ca.__arrow_c_stream__(requested_schema)
+        type = (
+            pa.DataType._import_from_c_capsule(requested_schema)
+            if requested_schema is not None
+            else None
+        )
+        ca = pa.array(self, type=type)
+        if not isinstance(ca, pa.ChunkedArray):
+            ca = pa.chunked_array([ca])
+        return ca.__arrow_c_stream__()
 
     # ----------------------------------------------------------------------
 
@@ -805,8 +813,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _references(self) -> BlockValuesRefs:
         return self._mgr._block.refs
 
-    # error: Decorated property not supported
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr.array_values()
@@ -835,7 +842,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             the dtype is inferred from the data.
 
         copy : bool or None, optional
-            Unused.
+            See :func:`numpy.asarray`.
 
         Returns
         -------
@@ -872,8 +879,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
               dtype='datetime64[ns]')
         """
         values = self._values
-        arr = np.asarray(values, dtype=dtype)
-        if astype_is_view(values.dtype, arr.dtype):
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            arr = np.asarray(values, dtype=dtype)
+        else:
+            arr = np.array(values, dtype=dtype, copy=copy)
+
+        if copy is True:
+            return arr
+        if copy is False or astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
@@ -2475,6 +2489,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
+        Series.dt.round : Round values of data to the specified freq.
 
         Notes
         -----
@@ -4305,6 +4320,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         arg: Callable | Mapping | Series,
         na_action: Literal["ignore"] | None = None,
+        **kwargs,
     ) -> Series:
         """
         Map values of Series according to an input mapping or function.
@@ -4320,6 +4336,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
+        **kwargs
+            Additional keyword arguments to pass as keywords arguments to
+            `arg`.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -4381,6 +4402,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3  I am a rabbit
         dtype: object
         """
+        if callable(arg):
+            arg = functools.partial(arg, **kwargs)
         new_values = self._map_values(arg, na_action=na_action)
         return self._constructor(new_values, index=self.index, copy=False).__finalize__(
             self, method="map"

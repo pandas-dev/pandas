@@ -9,6 +9,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    StringDtype,
     bdate_range,
 )
 import pandas._testing as tm
@@ -412,6 +413,7 @@ class TestSeriesLogicalOps:
         for e in [Series(["z"])]:
             if using_infer_string:
                 # TODO(infer_string) should this behave differently?
+                # -> https://github.com/pandas-dev/pandas/issues/60234
                 with pytest.raises(
                     TypeError, match="not supported for dtype|unsupported operand type"
                 ):
@@ -514,7 +516,7 @@ class TestSeriesLogicalOps:
         # GH#56008
         pa = pytest.importorskip("pyarrow")
         ser = Series([False, True])
-        ser2 = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        ser2 = Series(["a", "b"], dtype=StringDtype(na_value=np.nan))
         result = ser == ser2
         expected_eq = Series(False, index=ser.index)
         tm.assert_series_equal(result, expected_eq)

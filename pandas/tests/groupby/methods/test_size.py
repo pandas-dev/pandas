@@ -3,8 +3,6 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -79,16 +77,9 @@ def test_size_series_masked_type_returns_Int64(dtype):
 
 
 @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        object,
-        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ],
-)
-def test_size_strings(dtype):
+def test_size_strings(any_string_dtype):
     # GH#55627
+    dtype = any_string_dtype
     df = DataFrame({"a": ["a", "a", "b"], "b": "a"}, dtype=dtype)
     result = df.groupby("a")["b"].size()
     exp_dtype = "Int64" if dtype == "string[pyarrow]" else "int64"
