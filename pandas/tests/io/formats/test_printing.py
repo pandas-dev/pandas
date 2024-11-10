@@ -2,33 +2,27 @@
 # functions, not the general printing of pandas objects.
 from collections.abc import Mapping
 import string
-import ast
+import pytest
 import pandas._config.config as cf
 import pandas as pd
 from pandas.io.formats import printing
 
 
-def test_formatted_index_names():
-    # Test cases: (input index names, expected formatted index names as lists)
-    test_cases = [
-        (["'a", "b"], ['a', 'b']),            # Remove leading quote
-        (["test's", "b"], ['tests', 'b']),    # Remove apostrophe
-        (["'test'", "b"], ['test', 'b']),     # Remove surrounding quotes
-        (["test","'b"], ["test",'b']),        # Remove single quote
-        (["'test\n'", "b"], ['test\n', 'b'])  # Remove quotes, preserve newline
-    ]
-
-    for input_names, expected_names in test_cases:
-        # Create DataFrame with specified index names
-        df = pd.DataFrame(
-            {name: [1, 2, 3] for name in input_names}
+@pytest.mark.parametrize("input_names, expected_names", [
+    (["'a", "b"], ["\'a", "b"]),             # Escape leading quote
+    (["test's", "b"], ["test\'s", "b"]),     # Escape apostrophe
+    (["'test'", "b"], ["\'test\'", "b"]),    # Escape surrounding quotes
+    (["test","b'"], ["test","b\'"]),         # Escape single quote
+    (["'test\n'", "b"], ["\'test\n\'", "b"]) # Escape and preserve newline
+])
+def test_formatted_index_names(input_names, expected_names):
+    # Create DataFrame with specified index names
+    df = pd.DataFrame(
+        {name: [1, 2, 3] for name in input_names}
         ).set_index(input_names)
-        index_names_str = df.index.names.__str__() 
-
-        formatted_names = ast.literal_eval(index_names_str)
-
-        # Compare the formatted names with the expected names
-        assert formatted_names == expected_names
+    formatted_names = df.index.names
+    
+    assert formatted_names == expected_names
 
 
 def test_adjoin():
