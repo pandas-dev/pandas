@@ -2130,9 +2130,11 @@ class SparseDtype(ExtensionDtype):
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-
         np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
-        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)
+        # error: Argument 1 to "np_find_common_type" has incompatible type
+        # "*Generator[Any | dtype[Any] | ExtensionDtype, None, None]";
+        # expected "dtype[Any]"  [arg-type]
+        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)  # type: ignore [arg-type]
 
 
 @register_extension_dtype
