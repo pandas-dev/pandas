@@ -442,10 +442,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         See Also
         --------
-        core.groupby.DataFrameGroupBy.get_group : Get a DataFrame or Series that
-            contains the rows belonging to the specified group.
-        core.groupby.DataFrameGroupBy.indices : Get a dict with group labels as keys
-            and lists of integer indices of rows in each group as values.
+        core.groupby.DataFrameGroupBy.get_group : Retrieve group from a
+            ``DataFrameGroupBy`` object with provided name.
+        core.groupby.SeriesGroupBy.get_group : Retrieve group from a
+            ``SeriesGroupBy`` object with provided name.
+        core.resample.Resampler.get_group : Retrieve group from a
+            ``Resampler`` object with provided name.
 
         Examples
         --------
