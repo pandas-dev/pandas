@@ -7670,8 +7670,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'time': Works on daily and higher resolution data to interpolate
               given length of interval. This interpolates values based on
               time interval between observations.
-            * 'index': The interpolation uses the actual numerical values
-              of the df's index to linearly calculate missing value.
+            * 'index': The interpolation uses the numerical values
+              of the DataFrame's index to linearly calculate missing values.
             * 'values': Interpolation based on the numerical values
               in the DataFrame, treating them as equally spaced along the index.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
