@@ -437,7 +437,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         This property provides a dictionary representation of the groupings formed
         during a groupby operation, where each key represents a unique group value from
-        the specified column(s), and each value is a list of index of the row labels
+        the specified column(s), and each value is a list of index labels
         that belong to that group.
 
         See Also
