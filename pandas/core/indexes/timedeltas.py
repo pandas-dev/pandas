@@ -237,6 +237,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         return "timedelta64"
 
 
+@set_module("pandas")
 def timedelta_range(
     start=None,
     end=None,
