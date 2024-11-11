@@ -635,8 +635,8 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
-- Bug in :meth:`Index.to_julian_date()` not accounting for timezone information in `DatetimeIndex`, leading to incorrect Julian date calculations when timezones are present (:issue:`54763`).
-- Bug in :meth:`Timestamp.to_julian_date()` not accounting for timezone in `Timestamp` calculations, resulting in incorrect Julian dates when timezone-aware timestamps are used (:issue:`54763`).
+- Bug in :meth:`Index.to_julian_date` not accounting for timezone information in ``DatetimeIndex``, leading to incorrect Julian date calculations when timezones are present (:issue:`54763`).
+- Bug in :meth:`Timestamp.to_julian_date` not accounting for timezone in ``Timestamp`` calculations, resulting in incorrect Julian dates when timezone-aware timestamps are used (:issue:`54763`).
 -
 
 Numeric

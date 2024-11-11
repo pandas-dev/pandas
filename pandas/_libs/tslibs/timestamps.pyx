@@ -3337,7 +3337,7 @@ default 'raise'
                 + self.second / 3600.0
                 + self.microsecond / 3600.0 / 1e+6
                 + self.nanosecond / 3600.0 / 1e+9
-            ) 
+            )
             / 24.0
         )
 

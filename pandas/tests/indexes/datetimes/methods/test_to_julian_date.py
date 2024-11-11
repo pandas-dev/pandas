@@ -1,5 +1,7 @@
-import numpy as np
 from zoneinfo import ZoneInfo
+
+import numpy as np
+import pytest
 
 from pandas import (
     Index,
@@ -8,7 +10,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-import pytest
 
 
 class TestDateTimeIndexToJulianDate:
@@ -47,36 +48,42 @@ class TestDateTimeIndexToJulianDate:
         assert isinstance(r2, Index) and r2.dtype == np.float64
         tm.assert_index_equal(r1, r2)
 
-    @pytest.mark.parametrize("tz, expected", [
-        (None, 2400000.5),
-        (ZoneInfo("UTC"), 2400000.5),
-        (ZoneInfo("US/Pacific"), 2400000.5 + (8 / 24)),
-        (ZoneInfo("Europe/London"), 2400000.5 - (1 / 24))
-    ])
+    @pytest.mark.parametrize(
+        "tz, expected",
+        [
+            (None, 2400000.5),
+            (ZoneInfo("UTC"), 2400000.5),
+            (ZoneInfo("US/Pacific"), 2400000.5 + (8 / 24)),
+            (ZoneInfo("Europe/London"), 2400000.5 - (1 / 24)),
+        ],
+    )
     def test_to_julian_date_with_timezones_single_element(self, tz, expected):
         # GH54763: Timestamp.to_julian_date() must consider timezone
-        dates = to_datetime(['1858-11-17T00:00:00.0'])
+        dates = to_datetime(["1858-11-17T00:00:00.0"])
         if tz:
             dates = dates.tz_localize(tz)
         result = Index(dates.to_julian_date())
         expected = Index([expected])
         tm.assert_almost_equal(result, expected, rtol=1e-6, atol=1e-6)
 
-    @pytest.mark.parametrize("tz, offset", [
-        (None, 0),
-        (ZoneInfo("UTC"), 0),
-        (ZoneInfo("US/Pacific"), 8),
-        (ZoneInfo("Europe/London"), -1)
-    ])
+    @pytest.mark.parametrize(
+        "tz, offset",
+        [
+            (None, 0),
+            (ZoneInfo("UTC"), 0),
+            (ZoneInfo("US/Pacific"), 8),
+            (ZoneInfo("Europe/London"), -1),
+        ],
+    )
     def test_to_julian_date_with_timezones_multiple_elements(self, tz, offset):
         # GH54763: Timestamp.to_julian_date() must consider timezone
         dates = to_datetime(
             [
-                '1858-11-17T00:00:00',
-                '1858-11-17T12:00:00',
-                '2000-01-01T00:00:00',
-                '2000-01-01T12:00:00',
-                '2000-01-01T12:00:00'
+                "1858-11-17T00:00:00",
+                "1858-11-17T12:00:00",
+                "2000-01-01T00:00:00",
+                "2000-01-01T12:00:00",
+                "2000-01-01T12:00:00",
             ]
         )
         if tz:
@@ -88,7 +95,7 @@ class TestDateTimeIndexToJulianDate:
                 2400001.0 + (offset / 24),
                 2451544.5 + (offset / 24),
                 2451545.0 + (offset / 24),
-                2451545.0 + (offset / 24)
+                2451545.0 + (offset / 24),
             ]
         )
         tm.assert_almost_equal(result, expected, rtol=1e-6, atol=1e-6)

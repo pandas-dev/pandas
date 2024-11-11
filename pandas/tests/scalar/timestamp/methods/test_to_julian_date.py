@@ -1,9 +1,9 @@
-from pandas import Timestamp
-
 import zoneinfo
 
-import pandas._testing as tm
 import pytest
+
+from pandas import Timestamp
+import pandas._testing as tm
 
 
 class TestTimestampToJulianDate:
@@ -32,15 +32,18 @@ class TestTimestampToJulianDate:
         res = ts.to_julian_date()
         assert res == 2_451_769.0416666666666666
 
-    @pytest.mark.parametrize("tz, expected", [
-        (None, 2400000.5),
-        (zoneinfo.ZoneInfo("UTC"), 2400000.5),
-        (zoneinfo.ZoneInfo("US/Pacific"), 2400000.5 + (8 / 24)),
-        (zoneinfo.ZoneInfo("Europe/London"), 2400000.5 - (1 / 24))
-    ])
+    @pytest.mark.parametrize(
+        "tz, expected",
+        [
+            (None, 2400000.5),
+            (zoneinfo.ZoneInfo("UTC"), 2400000.5),
+            (zoneinfo.ZoneInfo("US/Pacific"), 2400000.5 + (8 / 24)),
+            (zoneinfo.ZoneInfo("Europe/London"), 2400000.5 - (1 / 24)),
+        ],
+    )
     def test_to_julian_date_with_timezones(self, tz, expected):
         # GH54763: Timestamp.to_julian_date() must consider timezone
-        ts = Timestamp('1858-11-17T00:00:00.0')
+        ts = Timestamp("1858-11-17T00:00:00.0")
         if tz:
             ts.tz_localize(tz)
         result = ts.to_julian_date()
