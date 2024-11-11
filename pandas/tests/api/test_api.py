@@ -405,6 +405,7 @@ def test_set_module():
     assert pd.IntervalDtype.__module__ == "pandas"
     assert pd.SparseDtype.__module__ == "pandas"
     assert pd.ArrowDtype.__module__ == "pandas"
+    assert pd.StringDtype.__module__ == "pandas"
     assert pd.Index.__module__ == "pandas"
     assert pd.CategoricalIndex.__module__ == "pandas"
     assert pd.DatetimeIndex.__module__ == "pandas"
@@ -416,3 +417,4 @@ def test_set_module():
     assert pd.Period.__module__ == "pandas"
     assert pd.Timestamp.__module__ == "pandas"
     assert pd.Timedelta.__module__ == "pandas"
+    assert pd.Series.__module__ == "pandas"

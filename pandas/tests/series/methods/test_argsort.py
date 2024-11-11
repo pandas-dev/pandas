@@ -66,7 +66,7 @@ class TestSeriesArgsort:
         tm.assert_series_equal(qindexer.astype(np.intp), Series(qexpected))
         msg = (
             r"ndarray Expected type <class 'numpy\.ndarray'>, "
-            r"found <class 'pandas\.core\.series\.Series'> instead"
+            r"found <class 'pandas\.Series'> instead"
         )
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
