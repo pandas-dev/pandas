@@ -67,5 +67,5 @@ def test_construct_1d_ndarray_preserving_na_datetimelike(dtype):
     ],
 )
 def test_sanitize_masked_array_with_masked_ea(values, dtype, expected):
-    result = sanitize_array(values, index=None, type=dtype)
+    result = sanitize_array(values, index=None, dtype=dtype)
     tm.assert_numpy_array_equal(result, expected)
