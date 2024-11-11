@@ -28,7 +28,10 @@ from pandas.compat import (
     pa_version_under10p1,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
@@ -86,6 +89,7 @@ if TYPE_CHECKING:
     from pandas import Series
 
 
+@set_module("pandas")
 @register_extension_dtype
 class StringDtype(StorageExtensionDtype):
     """
