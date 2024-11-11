@@ -25,6 +25,7 @@ from pandas.compat import (
     WASM,
     is_platform_windows,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -640,6 +641,19 @@ def test_close_on_error():
         with BytesIO() as buffer:
             with icom.get_handle(buffer, "rb") as handles:
                 handles.created_handles.append(TestError())
+
+
+@td.skip_if_no("fsspec", min_version="2023.1.0")
+@pytest.mark.parametrize("compression", [None, "infer"])
+def test_read_csv_chained_url_no_error(compression):
+    # GH 60100
+    tar_file_path = "pandas/tests/io/data/tar/test-csv.tar"
+    chained_file_url = f"tar://test.csv::file://{tar_file_path}"
+
+    result = pd.read_csv(chained_file_url, compression=compression, sep=";")
+    expected = pd.DataFrame({"1": {0: 3}, "2": {0: 4}})
+
+    tm.assert_frame_equal(expected, result)
 
 
 @pytest.mark.parametrize(
