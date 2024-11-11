@@ -418,3 +418,5 @@ def test_set_module():
     assert pd.Timestamp.__module__ == "pandas"
     assert pd.Timedelta.__module__ == "pandas"
     assert pd.Series.__module__ == "pandas"
+    assert pd.date_range.__module__ == "pandas"
+    assert pd.bdate_range.__module__ == "pandas"
