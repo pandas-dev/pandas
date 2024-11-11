@@ -25,6 +25,7 @@ from pandas import (
     MultiIndex,
     date_range,
     option_context,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -1549,3 +1550,24 @@ def test_subclass_attr(klass):
     attrs_base = {name for name in dir(ExcelWriter) if not name.startswith("_")}
     attrs_klass = {name for name in dir(klass) if not name.startswith("_")}
     assert not attrs_base.symmetric_difference(attrs_klass)
+
+
+@pytest.mark.parametrize("merge_cells", [True, False])
+def test_excel_round_trip_with_periodindex(merge_cells):
+    # GH#60099
+    df = DataFrame(
+        {"A": [1, 2]},
+        index=MultiIndex.from_arrays(
+            [period_range("2023-01", "2023-02", freq="M"), ["X", "Y"]],
+            names=["date", "category"],
+        ),
+    )
+
+    with BytesIO() as buffer:
+        with ExcelWriter(buffer, engine="xlsxwriter") as writer:
+            df.to_excel(writer, merge_cells=merge_cells)
+
+        buffer.seek(0)
+        result_df = pd.read_excel(buffer, index_col=[0, 1])
+
+    tm.assert_frame_equal(df, result_df)
