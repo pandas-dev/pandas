@@ -643,7 +643,7 @@ def test_close_on_error():
                 handles.created_handles.append(TestError())
 
 
-@td.skip_if_no("fsspec")
+@td.skip_if_no("fsspec", min_version="2023.1.0")
 def test_read_csv_chained_url_no_error():
     # GH 60100
     tar_file_path = "pandas/tests/io/data/tar/test-csv.tar"
