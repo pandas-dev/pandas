@@ -57,7 +57,8 @@ from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
-
+from pandas.core.frame import DataFrame
+from pandas.core.series import Series
 if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
@@ -405,6 +406,25 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     -------
     ndarray or ExtensionArray
     """
+    def logical_operator(left: ArrayLike, right: Any, op) -> ArrayLike:
+    # Check if `right` is a Series and `left` is a DataFrame, and apply broadcasting
+        if isinstance(left, DataFrame) and isinstance(right, Series):
+            right = right.values  # Convert Series to array for broadcasting
+
+        # Convert right to a scalar or valid object if necessary
+        right = lib.item_from_zerodim(right)
+
+        # Check for dtype-less sequences (e.g., list, tuple) and raise error
+        if is_list_like(right) and not hasattr(right, "dtype"):
+            # Raise an error if `right` is a list or tuple without a dtype
+            raise TypeError(
+                "Logical ops (and, or, xor) between Pandas objects and dtype-less "
+                "sequences (e.g., list, tuple) are no longer supported. "
+                "Wrap the object in a Series, Index, or np.array before operating."
+            )
+
+        # Proceed with the logical operation
+        return logical_operator(op(left, right))
 
     def fill_bool(x, left=None):
         # if `left` is specifically not-boolean, we do not cast to bool
