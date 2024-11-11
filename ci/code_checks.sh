@@ -81,10 +81,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.resolution PR02" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.min PR02" \
-        -i "pandas.Timestamp.nanosecond GL08" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.tzinfo GL08" \
-        -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.types.is_re_compilable PR07,SA01" \
         -i "pandas.api.types.pandas_dtype PR07,RT03,SA01" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
@@ -122,7 +120,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.resample.Resampler.var SA01" \
         -i "pandas.errors.AttributeConflictWarning SA01" \
         -i "pandas.errors.ChainedAssignmentError SA01" \
-        -i "pandas.errors.DataError SA01" \
         -i "pandas.errors.DuplicateLabelError SA01" \
         -i "pandas.errors.IntCastingNaNError SA01" \
         -i "pandas.errors.InvalidIndexError SA01" \
