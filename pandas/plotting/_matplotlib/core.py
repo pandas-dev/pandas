@@ -1960,7 +1960,7 @@ class BarPlot(MPLPlot):
                 )
                 ax.set_title(label)
             elif self.stacked:
-                mask = y > 0
+                mask = y >= 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base
                 w = self.bar_width / 2
                 rect = self._plot(
