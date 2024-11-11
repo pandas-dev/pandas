@@ -2266,6 +2266,10 @@ default 'raise'
         testarr = month < 3
         year[testarr] -= 1
         month[testarr] += 12
+        timezone_offsets = np.zeros(len(self), dtype=np.float64)
+        for i in range(len(self)):
+            if self[i].tzinfo is not None:
+                timezone_offsets[i] = self[i].utcoffset().total_seconds() / 86400.0
         return (
             day
             + np.fix((153 * month - 457) / 5)
@@ -2274,6 +2278,7 @@ default 'raise'
             - np.floor(year / 100)
             + np.floor(year / 400)
             + 1_721_118.5
+            - timezone_offsets
             + (
                 self.hour
                 + self.minute / 60
