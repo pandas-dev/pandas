@@ -56,7 +56,7 @@ def test_info_series(
 
     expected = textwrap.dedent(
         """\
-        <class 'pandas.core.series.Series'>
+        <class 'pandas.Series'>
         MultiIndex: 10 entries, ('foo', 'one') to ('qux', 'three')
         """
     )
@@ -87,7 +87,7 @@ def test_info_memory():
     memory_bytes = float(s.memory_usage())
     expected = textwrap.dedent(
         f"""\
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     RangeIndex: 2 entries, 0 to 1
     Series name: None
     Non-Null Count  Dtype
