@@ -421,3 +421,6 @@ def test_set_module():
     assert pd.date_range.__module__ == "pandas"
     assert pd.bdate_range.__module__ == "pandas"
     assert pd.timedelta_range.__module__ == "pandas"
+    assert pd.NamedAgg.__module__ == "pandas"
+    assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
+    assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"
