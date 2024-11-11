@@ -1569,5 +1569,8 @@ def test_excel_round_trip_with_periodindex(merge_cells):
 
         buffer.seek(0)
         result_df = pd.read_excel(buffer, index_col=[0, 1])
+        result_df.index = result_df.index.set_levels(
+            [result_df.index.levels[0].to_period("M"), result_df.index.levels[1]]
+        )
 
     tm.assert_frame_equal(df, result_df)
