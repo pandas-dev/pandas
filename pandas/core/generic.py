@@ -2214,7 +2214,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         merge_cells : bool or 'columns', default False
             Write MultiIndex and Hierarchical Rows as merged cells if True.
             Merge MultiIndex column header cells only if 'columns'.
-
         {encoding_parameter}
         inf_rep : str, default 'inf'
             Representation for infinity (there is no native representation for
