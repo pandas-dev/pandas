@@ -1553,7 +1553,6 @@ def test_subclass_attr(klass):
 
 
 @pytest.mark.parametrize("merge_cells", [True, False])
-@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
 def test_excel_round_trip_with_periodindex(merge_cells, engine):
     # GH#60099
     df = DataFrame(
@@ -1565,7 +1564,7 @@ def test_excel_round_trip_with_periodindex(merge_cells, engine):
     )
 
     with BytesIO() as buffer:
-        with ExcelWriter(buffer, engine=engine) as writer:
+        with ExcelWriter(buffer) as writer:
             df.to_excel(writer, merge_cells=merge_cells)
 
         buffer.seek(0)
