@@ -162,7 +162,8 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
-    with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
+    msg = "dtype 'object' does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
         df.groupby("key").quantile()
 
 
@@ -241,7 +242,6 @@ def test_groupby_quantile_nullable_array(values, q):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
 @pytest.mark.parametrize("numeric_only", [True, False])
 def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
@@ -251,9 +251,8 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
         expected = df.groupby("a")[["b"]].quantile(q)
         tm.assert_frame_equal(result, expected)
     else:
-        with pytest.raises(
-            TypeError, match="'quantile' cannot be performed against 'object' dtypes!"
-        ):
+        msg = "dtype '.*' does not support operation 'quantile'"
+        with pytest.raises(TypeError, match=msg):
             df.groupby("a").quantile(q, numeric_only=numeric_only)
 
 

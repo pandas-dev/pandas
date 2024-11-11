@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -27,7 +28,10 @@ from pandas.compat import (
     pa_version_under10p1,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
@@ -64,6 +68,8 @@ from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
 
+from pandas.io.formats import printing
+
 if TYPE_CHECKING:
     import pyarrow
 
@@ -83,6 +89,7 @@ if TYPE_CHECKING:
     from pandas import Series
 
 
+@set_module("pandas")
 @register_extension_dtype
 class StringDtype(StorageExtensionDtype):
     """
@@ -391,6 +398,14 @@ class BaseStringArray(ExtensionArray):
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
 
+    def _formatter(self, boxed: bool = False):
+        formatter = partial(
+            printing.pprint_thing,
+            escape_chars=("\t", "\r", "\n"),
+            quote_strings=not boxed,
+        )
+        return formatter
+
     def _str_map(
         self,
         f,
@@ -641,7 +656,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return self.dtype.na_value
         elif not isinstance(value, str):
             raise TypeError(
-                f"Cannot set non-string value '{value}' into a string array."
+                f"Invalid value '{value}' for dtype '{self.dtype}'. Value should be a "
+                f"string or missing value, got '{type(value).__name__}' instead."
             )
         return value
 
@@ -732,7 +748,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 value = self.dtype.na_value
             elif not isinstance(value, str):
                 raise TypeError(
-                    f"Cannot set non-string value '{value}' into a StringArray."
+                    f"Invalid value '{value}' for dtype '{self.dtype}'. Value should "
+                    f"be a string or missing value, got '{type(value).__name__}' "
+                    "instead."
                 )
         else:
             if not is_array_like(value):
@@ -742,7 +760,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 # compatible, compatibility with arrow backed strings
                 value = np.asarray(value)
             if len(value) and not lib.is_string_array(value, skipna=True):
-                raise TypeError("Must provide strings.")
+                raise TypeError(
+                    "Invalid value for dtype 'str'. Value should be a "
+                    "string or missing value (or array of those)."
+                )
 
             mask = isna(value)
             if mask.any():
@@ -829,7 +850,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             else:
                 return nanops.nanall(self._ndarray, skipna=skipna)
 
-        if name in ["min", "max", "sum"]:
+        if name in ["min", "max", "argmin", "argmax", "sum"]:
             result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
             if keepdims:
                 return self._from_sequence([result], dtype=self.dtype)
