@@ -320,7 +320,10 @@ class TestTimedelta64ArithmeticUnsorted:
         with pytest.raises(TypeError, match=msg):
             td - dt
 
-        msg = "(bad|unsupported) operand type for unary"
+        msg = (
+            r"TypeError: unsupported operand type\(s\) "
+            "for -: 'DatetimeArray' and 'Timedelta'"
+        )
         with pytest.raises(TypeError, match=msg):
             td - dti
 
