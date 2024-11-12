@@ -628,7 +628,6 @@ class ExcelFormatter:
         if self.index and isinstance(self.df.index, MultiIndex):
             coloffset = self.df.index.nlevels - 1
 
-        # Format multi-index as a merged cells.
         for lnum, name in enumerate(columns.names):
             yield ExcelCell(
                 row=lnum,
