@@ -344,7 +344,10 @@ def test_format_hierarchical_rows_periodindex(merge_cells):
     df = DataFrame(
         {"A": [1, 2]},
         index=MultiIndex.from_arrays(
-            [period_range("2023-01", "2023-02", freq="M"), ["X", "Y"]],
+            [
+                period_range(start="2006-10-06", end="2006-10-07", freq="D"),
+                ["X", "Y"],
+            ],
             names=["date", "category"],
         ),
     )

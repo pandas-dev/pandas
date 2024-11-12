@@ -338,6 +338,36 @@ class TestRoundTrip:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("merge_cells", [True, False])
+    def test_excel_round_trip_with_periodindex(self, tmp_excel, merge_cells):
+        # GH#60099
+        df = DataFrame(
+            {"A": [1, 2]},
+            index=MultiIndex.from_arrays(
+                [
+                    period_range(start="2006-10-06", end="2006-10-07", freq="D"),
+                    ["X", "Y"],
+                ],
+                names=["date", "category"],
+            ),
+        )
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        result = pd.read_excel(tmp_excel, index_col=[0, 1])
+        expected = DataFrame(
+            {"A": [1, 2]},
+            MultiIndex.from_arrays(
+                [
+                    [
+                        "2006-10-06 00:00:00",
+                        "2020-01-31 00:00:00",
+                    ],
+                    ["X", "Y"],
+                ],
+                names=["date", "category"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "engine,ext",
@@ -1550,27 +1580,3 @@ def test_subclass_attr(klass):
     attrs_base = {name for name in dir(ExcelWriter) if not name.startswith("_")}
     attrs_klass = {name for name in dir(klass) if not name.startswith("_")}
     assert not attrs_base.symmetric_difference(attrs_klass)
-
-
-@pytest.mark.parametrize("merge_cells", [True, False])
-def test_excel_round_trip_with_periodindex(merge_cells, engine):
-    # GH#60099
-    df = DataFrame(
-        {"A": [1, 2]},
-        index=MultiIndex.from_arrays(
-            [period_range("2023-01", "2023-02", freq="M"), ["X", "Y"]],
-            names=["date", "category"],
-        ),
-    )
-
-    with BytesIO() as buffer:
-        with ExcelWriter(buffer) as writer:
-            df.to_excel(writer, merge_cells=merge_cells)
-
-        buffer.seek(0)
-        result_df = pd.read_excel(buffer, index_col=[0, 1])
-        result_df.index = result_df.index.set_levels(
-            [result_df.index.levels[0].to_period("M"), result_df.index.levels[1]]
-        )
-
-    tm.assert_frame_equal(df, result_df)
