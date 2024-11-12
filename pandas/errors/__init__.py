@@ -429,6 +429,11 @@ class DataError(Exception):
     For example, calling ``ohlc`` on a non-numerical column or a function
     on a rolling window.
 
+    See Also
+    --------
+    Series.rolling : Provide rolling window calculations on Series object.
+    DataFrame.rolling : Provide rolling window calculations on DataFrame object.
+
     Examples
     --------
     >>> ser = pd.Series(["a", "b", "c"])
