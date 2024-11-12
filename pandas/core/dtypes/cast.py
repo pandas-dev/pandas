@@ -1205,7 +1205,7 @@ def maybe_infer_to_datetimelike(
 
 def maybe_cast_to_datetime(
     value: np.ndarray | list, dtype: np.dtype
-) -> ExtensionArray | np.ndarray:
+) -> DatetimeArray | TimedeltaArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
@@ -1745,6 +1745,13 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
             )
             try:
                 arr._validate_setitem_value(element)
+                return True
+            except (ValueError, TypeError):
+                return False
+
+        if dtype == "string":
+            try:
+                arr._maybe_convert_setitem_value(element)  # type: ignore[union-attr]
                 return True
             except (ValueError, TypeError):
                 return False

@@ -39,7 +39,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.errors import MergeError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -123,11 +126,22 @@ _factorizers = {
 
 # See https://github.com/pandas-dev/pandas/issues/52451
 if np.intc is not np.int32:
-    _factorizers[np.intc] = libhashtable.Int64Factorizer
+    if np.dtype(np.intc).itemsize == 4:
+        _factorizers[np.intc] = libhashtable.Int32Factorizer
+    else:
+        _factorizers[np.intc] = libhashtable.Int64Factorizer
+
+if np.uintc is not np.uint32:
+    if np.dtype(np.uintc).itemsize == 4:
+        _factorizers[np.uintc] = libhashtable.UInt32Factorizer
+    else:
+        _factorizers[np.uintc] = libhashtable.UInt64Factorizer
+
 
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
 
+@set_module("pandas")
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
@@ -492,6 +506,7 @@ def _groupby_and_merge(
     return result, lby
 
 
+@set_module("pandas")
 def merge_ordered(
     left: DataFrame | Series,
     right: DataFrame | Series,
@@ -635,6 +650,7 @@ def merge_ordered(
     return result
 
 
+@set_module("pandas")
 def merge_asof(
     left: DataFrame | Series,
     right: DataFrame | Series,
