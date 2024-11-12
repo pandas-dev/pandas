@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from pandas.compat import pa_version_under18p0
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -35,7 +36,11 @@ def _arrow_dtype_mapping() -> dict:
 def arrow_string_types_mapper() -> Callable:
     pa = import_optional_dependency("pyarrow")
 
-    return {
+    mapping = {
         pa.string(): pd.StringDtype(na_value=np.nan),
         pa.large_string(): pd.StringDtype(na_value=np.nan),
-    }.get
+    }
+    if not pa_version_under18p0:
+        mapping[pa.string_view()] = pd.StringDtype(na_value=np.nan)
+
+    return mapping.get
