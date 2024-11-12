@@ -718,7 +718,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
+                    stacklevel=2,
                 )
 
             data = data.copy(deep=False)
@@ -1192,6 +1192,7 @@ class DataFrame(NDFrame, OpsMixin):
             min_rows = get_option("display.min_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
+            show_floats = get_option("display.float_format")
 
             formatter = fmt.DataFrameFormatter(
                 self,
@@ -1199,7 +1200,7 @@ class DataFrame(NDFrame, OpsMixin):
                 col_space=None,
                 na_rep="NaN",
                 formatters=None,
-                float_format=None,
+                float_format=show_floats,
                 sparsify=None,
                 justify=None,
                 index_names=True,
@@ -1396,6 +1397,11 @@ class DataFrame(NDFrame, OpsMixin):
         Please see
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
+        # Raise AttributeError so that inspect works even if jinja2 is not installed.
+        has_jinja2 = import_optional_dependency("jinja2", errors="ignore")
+        if not has_jinja2:
+            raise AttributeError("The '.style' accessor requires jinja2")
+
         from pandas.io.formats.style import Styler
 
         return Styler(self)
@@ -2305,7 +2311,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if any(exclude):
             arr_exclude = (x for x in exclude if x in arr_columns)
-            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}
+            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}  # pyright: ignore[reportUnhashable]
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
             columns = columns.drop(exclude)
@@ -5704,7 +5710,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if self.empty:
+        if self.empty and freq is None:
             return self.copy()
 
         axis = self._get_axis_number(axis)
@@ -7265,7 +7271,11 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Sort by DataFrame column values when False.
+            Sort by frequencies when True. Preserve the order of the data when False.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, ``sort=False`` would sort by the columns values.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -7371,7 +7381,9 @@ class DataFrame(NDFrame, OpsMixin):
             subset = self.columns.tolist()
 
         name = "proportion" if normalize else "count"
-        counts = self.groupby(subset, dropna=dropna, observed=False)._grouper.size()
+        counts = self.groupby(
+            subset, sort=False, dropna=dropna, observed=False
+        )._grouper.size()
         counts.name = name
 
         if sort:
@@ -10816,7 +10828,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, decimals: int | dict[IndexLabel, int] | Series = 0, *args, **kwargs
     ) -> DataFrame:
         """
-        Round a DataFrame to a variable number of decimal places.
+        Round numeric columns in a DataFrame to a variable number of decimal places.
 
         Parameters
         ----------

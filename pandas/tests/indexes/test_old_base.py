@@ -256,7 +256,7 @@ class TestBase:
                 "RangeIndex cannot be initialized from data, "
                 "MultiIndex and CategoricalIndex are tested separately"
             )
-        elif index.dtype == object and index.inferred_type == "boolean":
+        elif index.dtype == object and index.inferred_type in ["boolean", "string"]:
             init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
@@ -455,7 +455,7 @@ class TestBase:
             msg = "slice indices must be integers or None or have an __index__ method"
 
         if using_infer_string and (
-            index.dtype == "string" or index.dtype == "category"  # noqa: PLR1714
+            index.dtype == "string" or index.dtype == "category"
         ):
             msg = "loc must be an integer between"
 

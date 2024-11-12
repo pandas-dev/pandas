@@ -9,12 +9,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import (
-    HAS_PYARROW,
-    WASM,
-)
+from pandas.compat import WASM
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
@@ -32,6 +27,7 @@ from pandas import (
     NaT,
     Period,
     Series,
+    StringDtype,
     Timedelta,
     Timestamp,
     array,
@@ -535,17 +531,18 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_with_expansion_type_promotion(self):
         # GH#12599
         ser = Series(dtype=object)
         ser["a"] = Timestamp("2016-01-01")
         ser["b"] = 3.0
         ser["c"] = "foo"
-        expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
+        expected = Series(
+            [Timestamp("2016-01-01"), 3.0, "foo"],
+            index=Index(["a", "b", "c"], dtype=object),
+        )
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_not_contained(self, string_series):
         # set item that's not contained
         ser = string_series.copy()
@@ -827,11 +824,6 @@ class SetitemCastingEquivalents:
         else:
             indexer_sli(obj)[mask] = val
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     def test_series_where(self, obj, key, expected, raises, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -847,6 +839,11 @@ class SetitemCastingEquivalents:
         obj = obj.copy()
         arr = obj._values
 
+        if raises and obj.dtype == "string":
+            with pytest.raises(TypeError, match="Invalid value"):
+                obj.where(~mask, val)
+            return
+
         res = obj.where(~mask, val)
 
         if val is NA and res.dtype == object:
@@ -859,26 +856,24 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-    def test_index_where(self, obj, key, expected, raises, val, using_infer_string):
+    def test_index_where(self, obj, key, expected, raises, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if using_infer_string and obj.dtype == object:
-            with pytest.raises(TypeError, match="Scalar must"):
+        if raises and obj.dtype == "string":
+            with pytest.raises(TypeError, match="Invalid value"):
                 Index(obj).where(~mask, val)
         else:
             res = Index(obj).where(~mask, val)
             expected_idx = Index(expected, dtype=expected.dtype)
             tm.assert_index_equal(res, expected_idx)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-    def test_index_putmask(self, obj, key, expected, raises, val, using_infer_string):
+    def test_index_putmask(self, obj, key, expected, raises, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if using_infer_string and obj.dtype == object:
-            with pytest.raises(TypeError, match="Scalar must"):
+        if raises and obj.dtype == "string":
+            with pytest.raises(TypeError, match="Invalid value"):
                 Index(obj).putmask(mask, val)
         else:
             res = Index(obj).putmask(mask, val)
@@ -1371,6 +1366,19 @@ class TestCoercionObject(CoercionTest):
     @pytest.fixture
     def raises(self):
         return False
+
+
+@pytest.mark.parametrize(
+    "val,exp_dtype,raises",
+    [
+        (1, object, True),
+        ("e", StringDtype(na_value=np.nan), False),
+    ],
+)
+class TestCoercionString(CoercionTest):
+    @pytest.fixture
+    def obj(self):
+        return Series(["a", "b", "c", "d"], dtype=StringDtype(na_value=np.nan))
 
 
 @pytest.mark.parametrize(

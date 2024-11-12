@@ -940,7 +940,7 @@ Finally, docstrings can also be appended to with the ``doc`` decorator.
 
 In this example, we'll create a parent docstring normally (this is like
 ``pandas.core.generic.NDFrame``). Then we'll have two children (like
-``pandas.core.series.Series`` and ``pandas.DataFrame``). We'll
+``pandas.Series`` and ``pandas.DataFrame``). We'll
 substitute the class names in this docstring.
 
 .. code-block:: python
@@ -995,5 +995,5 @@ mapping function names to docstrings. Wherever possible, we prefer using
 ``doc``, since the docstring-writing processes is slightly closer to normal.
 
 See ``pandas.core.generic.NDFrame.fillna`` for an example template, and
-``pandas.core.series.Series.fillna`` and ``pandas.core.generic.frame.fillna``
+``pandas.Series.fillna`` and ``pandas.core.generic.frame.fillna``
 for the filled versions.

@@ -136,6 +136,7 @@ from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
+    prepare_function_arguments,
 )
 
 if TYPE_CHECKING:
@@ -433,6 +434,20 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def groups(self) -> dict[Hashable, Index]:
         """
         Dict {group name -> group labels}.
+
+        This property provides a dictionary representation of the groupings formed
+        during a groupby operation, where each key represents a unique group value from
+        the specified column(s), and each value is a list of index labels
+        that belong to that group.
+
+        See Also
+        --------
+        core.groupby.DataFrameGroupBy.get_group : Retrieve group from a
+            ``DataFrameGroupBy`` object with provided name.
+        core.groupby.SeriesGroupBy.get_group : Retrieve group from a
+            ``SeriesGroupBy`` object with provided name.
+        core.resample.Resampler.get_group : Retrieve group from a
+            ``Resampler`` object with provided name.
 
         Examples
         --------
@@ -767,10 +782,24 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Groupby iterator.
 
+        This method provides an iterator over the groups created by the ``resample``
+        or ``groupby`` operation on the object. The method yields tuples where
+        the first element is the label (group key) corresponding to each group or
+        resampled bin, and the second element is the subset of the data that falls
+        within that group or bin.
+
         Returns
         -------
-        Generator yielding sequence of (name, subsetted object)
-        for each group
+        Iterator
+            Generator yielding a sequence of (name, subsetted object)
+            for each group.
+
+        See Also
+        --------
+        Series.groupby : Group data by a specific key or column.
+        DataFrame.groupby : Group DataFrame using mapper or by columns.
+        DataFrame.resample : Resample a DataFrame.
+        Series.resample : Resample a Series.
 
         Examples
         --------
@@ -1275,8 +1304,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=2
+        )
         numba_transform_func = numba_.generate_numba_transform_func(
-            func, **get_jit_arguments(engine_kwargs, kwargs)
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = numba_transform_func(
             sorted_data,
@@ -1311,8 +1343,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=2
+        )
         numba_agg_func = numba_.generate_numba_agg_func(
-            func, **get_jit_arguments(engine_kwargs, kwargs)
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = numba_agg_func(
             sorted_data,
@@ -2519,7 +2554,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             grouper, _, _ = get_grouper(
                 df,
                 key=key,
-                sort=self.sort,
+                sort=False,
                 observed=False,
                 dropna=dropna,
             )
@@ -2528,7 +2563,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Take the size of the overall columns
         gb = df.groupby(
             groupings,
-            sort=self.sort,
+            sort=False,
             observed=self.observed,
             dropna=self.dropna,
         )
@@ -3224,6 +3259,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame
             Open, high, low and close values within each group.
 
+        See Also
+        --------
+        DataFrame.agg : Aggregate using one or more operations over the specified axis.
+        DataFrame.resample : Resample time-series data.
+        DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+
         Examples
         --------
 
@@ -3719,7 +3760,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             mask = isna(values)
             if values.ndim == 1:
                 indexer = np.empty(values.shape, dtype=np.intp)
-                col_func(out=indexer, mask=mask)
+                col_func(out=indexer, mask=mask)  # type: ignore[arg-type]
                 return algorithms.take_nd(values, indexer)
 
             else:
@@ -3833,7 +3874,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         3  1.0  3.0  NaN  NaN
         4  1.0  1.0  NaN  NaN
 
-        Only replace the first NaN element within a group along rows.
+        Only replace the first NaN element within a group along columns.
 
         >>> df.groupby("key").ffill(limit=1)
              A    B    C
@@ -4081,7 +4122,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def quantile(
         self,
         q: float | AnyArrayLike = 0.5,
-        interpolation: str = "linear",
+        interpolation: Literal[
+            "linear", "lower", "higher", "nearest", "midpoint"
+        ] = "linear",
         numeric_only: bool = False,
     ):
         """
@@ -4133,9 +4176,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
-            if is_object_dtype(vals.dtype):
+            if isinstance(vals.dtype, StringDtype) or is_object_dtype(vals.dtype):
                 raise TypeError(
-                    "'quantile' cannot be performed against 'object' dtypes!"
+                    f"dtype '{vals.dtype}' does not support operation 'quantile'"
                 )
 
             inference: DtypeObj | None = None
@@ -4270,7 +4313,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 func(
                     out[0],
                     values=vals,
-                    mask=mask,
+                    mask=mask,  # type: ignore[arg-type]
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
