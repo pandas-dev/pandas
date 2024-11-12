@@ -932,7 +932,6 @@ class TestDataFrameReplace:
         with pytest.raises(ValueError, match=msg):
             df.replace(to_rep, values[1:])
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_input_formats_scalar(self):
         df = DataFrame(
             {"A": [np.nan, 0, np.inf], "B": [0, 2, 5], "C": ["", "asdf", "fd"]}
@@ -985,7 +984,6 @@ class TestDataFrameReplace:
             result = answer.replace(weights)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_series_no_regex(self):
         answer = Series(
             {
@@ -1367,7 +1365,6 @@ class TestDataFrameReplace:
         result = df.replace(to_replace)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     @pytest.mark.parametrize(
         "replacer",
         [

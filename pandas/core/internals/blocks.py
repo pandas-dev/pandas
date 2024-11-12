@@ -84,6 +84,7 @@ from pandas.core.dtypes.generic import (
     ABCNumpyExtensionArray,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_re
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -879,7 +880,7 @@ class Block(PandasObject, libinternals.Block):
             else:
                 return [self] if inplace else [self.copy()]
 
-        elif self._can_hold_element(value):
+        elif self._can_hold_element(value) or (self.dtype == "string" and is_re(value)):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
             blk = self._maybe_copy(using_cow, inplace)
@@ -980,16 +981,26 @@ class Block(PandasObject, libinternals.Block):
         -------
         List[Block]
         """
-        if not self._can_hold_element(to_replace):
+        if not is_re(to_replace) and not self._can_hold_element(to_replace):
             # i.e. only if self.is_object is True, but could in principle include a
             #  String ExtensionBlock
             if using_cow:
                 return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
-        rx = re.compile(to_replace)
+        if is_re(to_replace) and self.dtype not in [object, "string"]:
+            # only object or string dtype can hold strings, and a regex object
+            # will only match strings
+            return [self.copy(deep=False)]
 
-        block = self._maybe_copy(using_cow, inplace)
+        if not (
+            self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
+        ):
+            block = self.astype(np.dtype(object))
+        else:
+            block = self._maybe_copy(using_cow, inplace)
+
+        rx = re.compile(to_replace)
 
         replace_regex(block.values, rx, value, mask)
 
@@ -1048,7 +1059,9 @@ class Block(PandasObject, libinternals.Block):
 
         # Exclude anything that we know we won't contain
         pairs = [
-            (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
+            (x, y)
+            for x, y in zip(src_list, dest_list)
+            if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
         if not len(pairs):
             if using_cow:

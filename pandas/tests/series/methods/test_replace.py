@@ -745,13 +745,11 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("regex", [False, True])
-    def test_replace_regex_dtype_series_string(self, regex, using_infer_string):
-        if not using_infer_string:
-            # then this is object dtype which is already tested above
-            return
+    def test_replace_regex_dtype_series_string(self, regex):
         series = pd.Series(["0"], dtype="str")
-        with pytest.raises(TypeError, match="Invalid value"):
-            series.replace(to_replace="0", value=1, regex=regex)
+        expected = pd.Series([1], dtype=object)
+        result = series.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_series_equal(result, expected)
 
     def test_replace_different_int_types(self, any_int_numpy_dtype):
         # GH#45311
