@@ -149,7 +149,6 @@ class IndexSlice:
         return arg
 
 
-
 class IndexingMixin:
     """
     Mixin for adding .loc/.iloc/.at/.iat to Dataframes and Series.
