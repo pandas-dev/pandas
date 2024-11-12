@@ -10,14 +10,20 @@ image:
 tasks:
   - name: Prepare development environment
     init: |
+      echo "running: mkdir -p .vscode" 2>&1 | tee -a setup.log
       mkdir -p .vscode
+      echo "running: cp gitpod/settings.json .vscode/settings.json" 2>&1 | tee -a setup.log
       cp gitpod/settings.json .vscode/settings.json
-      git fetch --tags
-      python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
-      pre-commit install --install-hooks
+      echo "running: git fetch --tags" 2>&1 | tee -a setup.log
+      git fetch --tags 2>&1 | tee -a setup.log
+      echo "running: python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true" 2>&1 | tee -a setup.log
+      python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true 2>&1 | tee -a setup.log
+      echo "running: pre-commit install --install-hooks" 2>&1 | tee -a setup.log
+      pre-commit install --install-hooks 2>&1 | tee -a setup.log
     command: |
-      python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
-      echo "✨ Pre-build complete! You can close this terminal ✨ "
+      echo "running:  python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true" 2>&1 | tee -a setup.log
+      python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true 2>&1 | tee -a setup.log
+      echo "✨ Pre-build complete! You can close this terminal ✨ " 2>&1 | tee -a setup.log
 
 # --------------------------------------------------------
 # exposing ports for liveserve
