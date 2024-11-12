@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -93,6 +94,7 @@ def isna(
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
+@set_module("pandas")
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect missing values for an array-like object.
@@ -307,6 +309,7 @@ def notna(
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
+@set_module("pandas")
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect non-missing values for an array-like object.
