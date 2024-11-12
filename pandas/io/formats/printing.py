@@ -199,6 +199,7 @@ def pprint_thing(
     -------
     str
     """
+
     def as_escaped_string(
         thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:

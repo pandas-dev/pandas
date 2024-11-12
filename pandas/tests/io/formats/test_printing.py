@@ -2,26 +2,31 @@
 # functions, not the general printing of pandas objects.
 from collections.abc import Mapping
 import string
+
 import pytest
+
 import pandas._config.config as cf
+
 import pandas as pd
+
 from pandas.io.formats import printing
 
 
-@pytest.mark.parametrize("input_names, expected_names", [
-    (["'a", "b"], ["\'a", "b"]),             # Escape leading quote
-    (["test's", "b"], ["test\'s", "b"]),     # Escape apostrophe
-    (["'test'", "b"], ["\'test\'", "b"]),    # Escape surrounding quotes
-    (["test","b'"], ["test","b\'"]),         # Escape single quote
-    (["'test\n'", "b"], ["\'test\n\'", "b"]) # Escape and preserve newline
-])
+@pytest.mark.parametrize(
+    "input_names, expected_names",
+    [
+        (["'a", "b"], ["'a", "b"]),  # Escape leading quote
+        (["test's", "b"], ["test's", "b"]),  # Escape apostrophe
+        (["'test'", "b"], ["'test'", "b"]),  # Escape surrounding quotes
+        (["test", "b'"], ["test", "b'"]),  # Escape single quote
+        (["'test\n'", "b"], ["'test\n'", "b"]),  # Escape and preserve newline
+    ],
+)
 def test_formatted_index_names(input_names, expected_names):
-    # Create DataFrame with specified index names
-    df = pd.DataFrame(
-        {name: [1, 2, 3] for name in input_names}
-        ).set_index(input_names)
+    # GH#60190
+    df = pd.DataFrame({name: [1, 2, 3] for name in input_names}).set_index(input_names)
     formatted_names = df.index.names
-    
+
     assert formatted_names == expected_names
 
 
