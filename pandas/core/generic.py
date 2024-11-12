@@ -2212,8 +2212,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``io.excel.xlsm.writer``.
 
         merge_cells : bool or 'columns', default False
-            Write MultiIndex and Hierarchical Rows as merged cells if True.
-            Merge MultiIndex column header cells only if 'columns'.
+            If True, write MultiIndex index and columns as merged cells.
+            If 'columns', merge MultiIndex column cells only.
         {encoding_parameter}
         inf_rep : str, default 'inf'
             Representation for infinity (there is no native representation for
