@@ -1995,7 +1995,8 @@ class TestTimestampSeriesArithmetic:
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
         tm.assert_series_equal(result, exp)
         msg = (
-            r"TypeError: unsupported operand type\(s\) for -: 'DatetimeArray' and '.*'"
+            r"TypeError: unsupported operand type\(s\) "
+            "for -: 'DatetimeArray' and 'Timedelta'"
         )
         with pytest.raises(TypeError, match=msg):
             td1[0] - dt1
