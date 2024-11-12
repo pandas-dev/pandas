@@ -676,6 +676,7 @@ def test_pickle_reader(reader):
         pickle.dump(reader, buffer)
 
 
+@td.skip_if_no("pyarrow")
 def test_pyarrow_read_csv_datetime_dtype():
     data = "date,id\n20/12/2025,a\n,b\n31/12/2020,c"
     df = pd.read_csv(
