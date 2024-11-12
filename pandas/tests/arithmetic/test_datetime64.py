@@ -12,10 +12,10 @@ from itertools import (
     starmap,
 )
 import operator
+import re
 
 import numpy as np
 import pytest
-import re
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
@@ -1321,8 +1321,12 @@ class TestDatetime64DateOffsetArithmetic:
             roundtrip = offset - scalar
             tm.assert_equal(roundtrip, dates)
 
-            msg = f"TypeError: unsupported operand type(s) for -: 'DatetimeArray' and '{type(scalar).__name__}'"
-            with pytest.raises(TypeError, match=re.escape(msg)):
+            msg = (
+                r"TypeError: unsupported operand type\(s\) "
+                "for -: 'DatetimeArray' and '.*'|"
+                r"cannot subtract DatetimeArray from .*"
+            )
+            with pytest.raises(TypeError, match=msg):
                 scalar - dates
 
     # -------------------------------------------------------------
@@ -1380,7 +1384,10 @@ class TestDatetime64DateOffsetArithmetic:
             expected = DatetimeIndex([x - off for x in vec_items]).as_unit(exp_unit)
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, vec - off)
-            msg = "(bad|unsupported) operand type for unary"
+            msg = (
+                r"TypeError: unsupported operand type\(s\) "
+                "for -: 'DatetimeArray' and '.*'"
+            )
             with pytest.raises(TypeError, match=msg):
                 off - vec
 
@@ -1496,7 +1503,9 @@ class TestDatetime64DateOffsetArithmetic:
         expected = DatetimeIndex([offset + x for x in vec_items]).as_unit(unit)
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, offset + vec)
-        msg = "(bad|unsupported) operand type for unary"
+        msg = (
+            r"TypeError: unsupported operand type\(s\) for -: 'DatetimeArray' and '.*'"
+        )
         with pytest.raises(TypeError, match=msg):
             offset - vec
 
@@ -1985,7 +1994,9 @@ class TestTimestampSeriesArithmetic:
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
         tm.assert_series_equal(result, exp)
-        msg = "(bad|unsupported) operand type for unary"
+        msg = (
+            r"TypeError: unsupported operand type\(s\) for -: 'DatetimeArray' and '.*'"
+        )
         with pytest.raises(TypeError, match=msg):
             td1[0] - dt1
 
