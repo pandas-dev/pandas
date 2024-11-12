@@ -1749,6 +1749,13 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
             except (ValueError, TypeError):
                 return False
 
+        if dtype == "string":
+            try:
+                arr._maybe_convert_setitem_value(element)
+                return True
+            except (ValueError, TypeError):
+                return False
+
         # This is technically incorrect, but maintains the behavior of
         # ExtensionBlock._can_hold_element
         return True
