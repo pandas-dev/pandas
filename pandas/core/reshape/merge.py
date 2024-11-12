@@ -39,7 +39,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.errors import MergeError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -138,6 +141,7 @@ if np.uintc is not np.uint32:
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
 
+@set_module("pandas")
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
@@ -502,6 +506,7 @@ def _groupby_and_merge(
     return result, lby
 
 
+@set_module("pandas")
 def merge_ordered(
     left: DataFrame | Series,
     right: DataFrame | Series,
@@ -645,6 +650,7 @@ def merge_ordered(
     return result
 
 
+@set_module("pandas")
 def merge_asof(
     left: DataFrame | Series,
     right: DataFrame | Series,

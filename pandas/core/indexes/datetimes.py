@@ -816,6 +816,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return mask.nonzero()[0]
 
 
+@set_module("pandas")
 def date_range(
     start=None,
     end=None,
@@ -1020,6 +1021,7 @@ def date_range(
     return DatetimeIndex._simple_new(dtarr, name=name)
 
 
+@set_module("pandas")
 def bdate_range(
     start=None,
     end=None,
