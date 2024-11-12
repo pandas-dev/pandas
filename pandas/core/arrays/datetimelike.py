@@ -1495,6 +1495,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             return (-self) + other
 
         # We get here with e.g. datetime objects
+        from pandas.core.arrays import DatetimeArray
+
         datetime_result = self - other
         if isinstance(datetime_result, DatetimeArray):
             raise TypeError(
