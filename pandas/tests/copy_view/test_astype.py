@@ -11,6 +11,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -236,3 +237,13 @@ def test_convert_dtypes(using_infer_string):
     df2.iloc[0, 0] = "x"
     df2.iloc[0, 1] = 10
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_convert_dtypes_pyarrow_timezone():
+    # GH 60237
+    expected = Series(
+        to_datetime(range(5), utc=True, unit="h"),
+        dtype="timestamp[ns, tz=UTC][pyarrow]",
+    )
+    result = expected.convert_dtypes(dtype_backend="pyarrow")
+    tm.assert_series_equal(result, expected)
