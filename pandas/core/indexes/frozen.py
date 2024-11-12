@@ -111,9 +111,7 @@ class FrozenList(PandasObject, list):
 
     def __str__(self) -> str:
         return pprint_thing(
-            self,
-            quote_strings=True,
-            escape_chars=("\t", "\r", "\n", "'")
+            self, quote_strings=True, escape_chars=("\t", "\r", "\n", "'")
         )
 
     def __repr__(self) -> str:
