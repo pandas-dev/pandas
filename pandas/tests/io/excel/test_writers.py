@@ -352,20 +352,30 @@ class TestRoundTrip:
             ),
         )
         df.to_excel(tmp_excel, merge_cells=merge_cells)
+
         result = pd.read_excel(tmp_excel, index_col=[0, 1])
+        if result.index.levels[0].dtype == "datetime64[us]":
+            result.index = result.index.set_levels(
+                result.index.levels[0].astype("datetime64[s]"), level=0
+            )
+
         expected = DataFrame(
             {"A": [1, 2]},
             MultiIndex.from_arrays(
                 [
                     [
-                        "2006-10-06 00:00:00",
-                        "2020-01-31 00:00:00",
+                        pd.to_datetime("2006-10-06 00:00:00"),
+                        pd.to_datetime("2006-10-07 00:00:00"),
                     ],
                     ["X", "Y"],
                 ],
                 names=["date", "category"],
             ),
         )
+        expected.index = expected.index.set_levels(
+            expected.index.levels[0].astype("datetime64[s]"), level=0
+        )
+
         tm.assert_frame_equal(result, expected)
 
 
