@@ -11,7 +11,6 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    to_datetime,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -242,7 +241,13 @@ def test_convert_dtypes(using_infer_string):
 def test_convert_dtypes_pyarrow_timezone():
     # GH 60237
     expected = Series(
-        to_datetime(range(5), utc=True, unit="h"),
+        [
+            "1970-01-01 00:00:00+00:00",
+            "1970-01-01 01:00:00+00:00",
+            "1970-01-01 02:00:00+00:00",
+            "1970-01-01 03:00:00+00:00",
+            "1970-01-01 04:00:00+00:00",
+        ],
         dtype="timestamp[ns, tz=UTC][pyarrow]",
     )
     result = expected.convert_dtypes(dtype_backend="pyarrow")
