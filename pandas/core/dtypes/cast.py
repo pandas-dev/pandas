@@ -1751,7 +1751,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
 
         if dtype == "string":
             try:
-                arr._maybe_convert_setitem_value(element)
+                arr._maybe_convert_setitem_value(element)  # type: ignore[union-attr]
                 return True
             except (ValueError, TypeError):
                 return False
