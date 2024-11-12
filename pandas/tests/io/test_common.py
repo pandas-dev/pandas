@@ -5,6 +5,7 @@ Tests for the pandas.io.common functionalities
 import codecs
 import errno
 from functools import partial
+import io
 from io import (
     BytesIO,
     StringIO,
@@ -674,3 +675,11 @@ def test_pickle_reader(reader):
     # GH 22265
     with BytesIO() as buffer:
         pickle.dump(reader, buffer)
+
+
+def test_pyarrow_read_csv_datetime_dtype():
+    data = "date,id\n20/12/2025,a\n,b\n31/12/2020,c"
+    df = pd.read_csv(
+        io.StringIO(data), parse_dates=["date"], dayfirst=True, dtype_backend="pyarrow"
+    )
+    assert (df["date"].dtype) == "datetime64[s]"
