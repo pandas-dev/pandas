@@ -67,7 +67,7 @@ from pandas.core.indexes.interval import (
 )
 from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.indexing import IndexSlice
+from pandas.core.indexing import IndexSlice as _IndexSlice
 from pandas.core.series import Series
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.numeric import to_numeric
@@ -78,6 +78,8 @@ from pandas.tseries.offsets import DateOffset
 
 # DataFrame needs to be imported after NamedAgg to avoid a circular import
 from pandas.core.frame import DataFrame  # isort:skip
+
+IndexSlice = _IndexSlice()
 
 __all__ = [
     "array",

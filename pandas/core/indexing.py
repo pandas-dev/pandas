@@ -102,7 +102,7 @@ _one_ellipsis_message = "indexer may only contain one '...' entry"
 
 # the public IndexSlicerMaker
 @set_module("pandas")
-class _IndexSlice:
+class IndexSlice:
     """
     Create an object to more easily perform multi-index slicing.
 
@@ -148,8 +148,6 @@ class _IndexSlice:
     def __getitem__(self, arg):
         return arg
 
-
-IndexSlice = _IndexSlice()
 
 
 class IndexingMixin:
