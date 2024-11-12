@@ -48,7 +48,6 @@ from pandas.io.formats.css import (
     CSSWarning,
 )
 from pandas.io.formats.format import get_level_lengths
-from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -620,9 +619,8 @@ class ExcelFormatter:
             return
 
         columns = self.columns
-        level_strs = columns._format_multi(
-            sparsify=self.merge_cells in {True, "columns"}, include_names=False
-        )
+        merge_columns = self.merge_cells in {True, "columns"}
+        level_strs = columns._format_multi(sparsify=merge_columns, include_names=False)
         level_lengths = get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
@@ -630,51 +628,35 @@ class ExcelFormatter:
         if self.index and isinstance(self.df.index, MultiIndex):
             coloffset = self.df.index.nlevels - 1
 
-        if self.merge_cells in {True, "columns"}:
-            # Format multi-index as a merged cells.
-            for lnum, name in enumerate(columns.names):
-                yield ExcelCell(
-                    row=lnum,
-                    col=coloffset,
-                    val=name,
-                    style=None,
-                )
+        # Format multi-index as a merged cells.
+        for lnum, name in enumerate(columns.names):
+            yield ExcelCell(
+                row=lnum,
+                col=coloffset,
+                val=name,
+                style=None,
+            )
 
-            for lnum, (spans, levels, level_codes) in enumerate(
-                zip(level_lengths, columns.levels, columns.codes)
-            ):
-                values = levels.take(level_codes)
-                for i, span_val in spans.items():
-                    mergestart, mergeend = None, None
-                    if span_val > 1:
-                        mergestart, mergeend = lnum, coloffset + i + span_val
-                    yield CssExcelCell(
-                        row=lnum,
-                        col=coloffset + i + 1,
-                        val=values[i],
-                        style=None,
-                        css_styles=getattr(self.styler, "ctx_columns", None),
-                        css_row=lnum,
-                        css_col=i,
-                        css_converter=self.style_converter,
-                        mergestart=mergestart,
-                        mergeend=mergeend,
-                    )
-        else:
-            # Format in legacy format with dots to indicate levels.
-            for i, values in enumerate(zip(*level_strs)):
-                v = ".".join(map(pprint_thing, values))
+        for lnum, (spans, levels, level_codes) in enumerate(
+            zip(level_lengths, columns.levels, columns.codes)
+        ):
+            values = levels.take(level_codes)
+            for i, span_val in spans.items():
+                mergestart, mergeend = None, None
+                if merge_columns and span_val > 1:
+                    mergestart, mergeend = lnum, coloffset + i + span_val
                 yield CssExcelCell(
                     row=lnum,
                     col=coloffset + i + 1,
-                    val=v,
+                    val=values[i],
                     style=None,
                     css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=lnum,
                     css_col=i,
                     css_converter=self.style_converter,
+                    mergestart=mergestart,
+                    mergeend=mergeend,
                 )
-
         self.rowcounter = lnum
 
     def _format_header_regular(self) -> Iterable[ExcelCell]:
@@ -798,11 +780,8 @@ class ExcelFormatter:
 
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
-            # unambiguous round-trip, unless not merging,
-            # in which case the names all go on one row Issue #11328
-            if isinstance(self.columns, MultiIndex) and (
-                self.merge_cells in {True, "columns"}
-            ):
+            # unambiguous round-trip, Issue #11328
+            if isinstance(self.columns, MultiIndex):
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump

@@ -878,8 +878,6 @@ class TestExcelWriter:
         new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2), (50, 1), (50, 2)])
         frame.columns = new_cols_index
         header = [0, 1]
-        if not merge_cells:
-            header = 0
 
         # round trip
         frame.to_excel(tmp_excel, sheet_name="test1", merge_cells=merge_cells)
@@ -887,9 +885,6 @@ class TestExcelWriter:
             df = pd.read_excel(
                 reader, sheet_name="test1", header=header, index_col=[0, 1]
             )
-        if not merge_cells:
-            fm = frame.columns._format_multi(sparsify=False, include_names=False)
-            frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 
     def test_to_excel_multiindex_dates(self, merge_cells, tmp_excel):
