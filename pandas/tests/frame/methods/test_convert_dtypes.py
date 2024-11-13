@@ -198,6 +198,7 @@ class TestConvertDtypes:
         tm.assert_frame_equal(result, expected)
 
     def test_convert_dtypes_timezone_series(self):
+        # GH#60237
         df = pd.Series(
             pd.to_datetime(range(5), utc=True, unit="h"),
             dtype="timestamp[ns, tz=UTC][pyarrow]",
