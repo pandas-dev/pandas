@@ -918,7 +918,11 @@ def value_counts_internal(
         result = result / counts.sum()
     elif normalize == "keep":
         # Add normlized values to counts.
-        result = result.astype(str)+'('+(result/counts.sum()).apply(lambda x: round(x, 6)).astype(str)+')'
+        result = result.astype(str) + "(" + (
+            (result / counts.sum()).apply(lambda x: round(x, 6))
+            .astype(str)
+        ) + ")"
+
     return result
 
 # Called once from SparseArray, otherwise could be private
