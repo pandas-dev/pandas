@@ -969,7 +969,7 @@ class IndexOpsMixin(OpsMixin):
 
     def value_counts(
         self,
-        normalize: bool = False,
+        normalize: Union[bool, str] = False,
         sort: bool = True,
         ascending: bool = False,
         bins=None,
@@ -984,9 +984,10 @@ class IndexOpsMixin(OpsMixin):
 
         Parameters
         ----------
-        normalize : bool, default False
+        normalize : bool and string, default False
             If True then the object returned will contain the relative
             frequencies of the unique values.
+            If keep then both the count and relative count will be returned.
         sort : bool, default True
             Sort by frequencies when True. Preserve the order of the data when False.
         ascending : bool, default False
