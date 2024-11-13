@@ -338,7 +338,7 @@ def test_styler_to_s3(s3_public_bucket, s3so):
         tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.parametrize("merge_cells", [True, False])
+@pytest.mark.parametrize("merge_cells", [True, False, "columns"])
 def test_format_hierarchical_rows_periodindex(merge_cells):
     # GH#60099
     df = DataFrame(

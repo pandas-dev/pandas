@@ -338,7 +338,7 @@ class TestRoundTrip:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("merge_cells", [True, False])
+    @pytest.mark.parametrize("merge_cells", [True, False, "columns"])
     def test_excel_round_trip_with_periodindex(self, tmp_excel, merge_cells):
         # GH#60099
         df = DataFrame(
@@ -352,13 +352,7 @@ class TestRoundTrip:
             ),
         )
         df.to_excel(tmp_excel, merge_cells=merge_cells)
-
         result = pd.read_excel(tmp_excel, index_col=[0, 1])
-        if result.index.levels[0].dtype == "datetime64[us]":
-            result.index = result.index.set_levels(
-                result.index.levels[0].astype("datetime64[s]"), level=0
-            )
-
         expected = DataFrame(
             {"A": [1, 2]},
             MultiIndex.from_arrays(
@@ -372,9 +366,14 @@ class TestRoundTrip:
                 names=["date", "category"],
             ),
         )
-        expected.index = expected.index.set_levels(
-            expected.index.levels[0].astype("datetime64[s]"), level=0
-        )
+        if tmp_excel.endswith(".ods"):
+            expected.index = expected.index.set_levels(
+                expected.index.levels[0].astype("datetime64[s]"), level=0
+            )
+        else:
+            expected.index = expected.index.set_levels(
+                expected.index.levels[0].astype("datetime64[us]"), level=0
+            )
 
         tm.assert_frame_equal(result, expected)
 
