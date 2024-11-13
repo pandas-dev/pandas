@@ -959,7 +959,6 @@ class TestSeriesPlots:
         with tm.assert_produces_warning(False):
             _ = ts.plot()
 
-    @pytest.mark.slow
     def test_secondary_y_subplot_axis_labels(self):
         # GH#14102
         s1 = Series([5, 7, 6, 8, 7], index=[1, 2, 3, 4, 5])
