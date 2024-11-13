@@ -839,7 +839,7 @@ def value_counts_internal(
     values,
     sort: bool = True,
     ascending: bool = False,
-    normalize: bool = False,
+    normalize: Union[bool, str] = False,
     bins=None,
     dropna: bool = True,
 ) -> Series:
@@ -912,11 +912,13 @@ def value_counts_internal(
     if sort:
         result = result.sort_values(ascending=ascending)
 
-    if normalize:
+    if normalize is True:
+        # Handle normalization as usual
         result = result / counts.sum()
-
+    elif normalize == "keep":
+        # Add normlized values to counts.
+        result = result.astype(str)+'('+(result/counts.sum()).apply(lambda x: round(x, 6)).astype(str)+')'
     return result
-
 
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
