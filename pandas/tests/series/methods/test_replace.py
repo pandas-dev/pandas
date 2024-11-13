@@ -403,10 +403,6 @@ class TestSeriesReplace:
         ser = pd.Series(categorical)
         msg = "Downcasting behavior in `replace`"
         msg = "with CategoricalDtype is deprecated"
-        if using_infer_string:
-            with pytest.raises(TypeError, match="Invalid value"):
-                ser.replace({"A": 1, "B": 2})
-            return
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ser.replace({"A": 1, "B": 2})
         expected = pd.Series(numeric).astype("category")
@@ -747,8 +743,10 @@ class TestSeriesReplace:
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_series_string(self, regex):
         series = pd.Series(["0"], dtype="str")
-        expected = pd.Series([1], dtype=object)
-        result = series.replace(to_replace="0", value=1, regex=regex)
+        expected = pd.Series([1], dtype="int64")
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = series.replace(to_replace="0", value=1, regex=regex)
         tm.assert_series_equal(result, expected)
 
     def test_replace_different_int_types(self, any_int_numpy_dtype):
