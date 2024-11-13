@@ -4,7 +4,6 @@ intended for public consumption
 """
 
 from __future__ import annotations
-from typing import Union
 
 import decimal
 import operator
@@ -12,6 +11,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
+    Union,
     cast,
 )
 import warnings
