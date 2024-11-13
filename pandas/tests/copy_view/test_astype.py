@@ -236,19 +236,3 @@ def test_convert_dtypes(using_infer_string):
     df2.iloc[0, 0] = "x"
     df2.iloc[0, 1] = 10
     tm.assert_frame_equal(df, df_orig)
-
-
-def test_convert_dtypes_pyarrow_timezone():
-    # GH 60237
-    expected = Series(
-        [
-            "1970-01-01 00:00:00+00:00",
-            "1970-01-01 01:00:00+00:00",
-            "1970-01-01 02:00:00+00:00",
-            "1970-01-01 03:00:00+00:00",
-            "1970-01-01 04:00:00+00:00",
-        ],
-        dtype="timestamp[ns, tz=UTC][pyarrow]",
-    )
-    result = expected.convert_dtypes(dtype_backend="pyarrow")
-    tm.assert_series_equal(result, expected)

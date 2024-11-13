@@ -196,3 +196,12 @@ class TestConvertDtypes:
         result = df.convert_dtypes()
         expected = df.astype({"a": "string[python]"})
         tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_timezone_series(self):
+        df = pd.Series(
+            pd.to_datetime(range(5), utc=True, unit="h"),
+            dtype="timestamp[ns, tz=UTC][pyarrow]",
+        )
+        result = df.convert_dtypes(dtype_backend="pyarrow")
+        expected = df
+        tm.assert_series_equal(result, expected)
