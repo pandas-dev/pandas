@@ -3,6 +3,7 @@ Base and utility classes for pandas objects.
 """
 
 from __future__ import annotations
+from typing import Union
 
 import textwrap
 from typing import (
