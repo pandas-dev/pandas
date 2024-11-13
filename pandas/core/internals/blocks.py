@@ -108,6 +108,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -1684,7 +1685,7 @@ class EABackedBlock(Block):
             res_values = arr._where(cond, other).T
         except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
-                if isinstance(self.dtype, IntervalDtype):
+                if isinstance(self.dtype, (IntervalDtype, StringDtype)):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other, raise_on_upcast=False)
                     return blk.where(orig_other, orig_cond)
@@ -1854,7 +1855,7 @@ class ExtensionBlock(EABackedBlock):
         limit: int | None = None,
         inplace: bool = False,
     ) -> list[Block]:
-        if isinstance(self.dtype, IntervalDtype):
+        if isinstance(self.dtype, (IntervalDtype, StringDtype)):
             # Block.fillna handles coercion (test_fillna_interval)
             if limit is not None:
                 raise ValueError("limit must be None")
