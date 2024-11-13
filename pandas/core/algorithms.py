@@ -4,6 +4,7 @@ intended for public consumption
 """
 
 from __future__ import annotations
+from typing import Union
 
 import decimal
 import operator
