@@ -917,7 +917,7 @@ def value_counts_internal(
         # Handle normalization as usual
         result = result / counts.sum()
     elif normalize == "keep":
-        # Add normlized values to counts.
+        # Add normalized values to counts.
         result = result.astype(str) + "(" + (
             (result / counts.sum()).apply(lambda x: round(x, 6))
             .astype(str)
