@@ -870,27 +870,49 @@ class TestExcelWriter:
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells
-    def test_to_excel_multiindex_cols(self, merge_cells, frame, tmp_excel):
+    def test_to_excel_multiindex_cols(self, merge_cells, tmp_excel):
+        # GH#11328
+        frame = DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": [7, 8, 9],
+            }
+        )
         arrays = np.arange(len(frame.index) * 2, dtype=np.int64).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
         frame.index = new_index
 
-        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2), (50, 1), (50, 2)])
+        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2), (50, 1)])
         frame.columns = new_cols_index
-        header = [0, 1]
-        if not merge_cells:
-            header = 0
-
-        # round trip
         frame.to_excel(tmp_excel, sheet_name="test1", merge_cells=merge_cells)
+
+        # Check round trip
         with ExcelFile(tmp_excel) as reader:
-            df = pd.read_excel(
-                reader, sheet_name="test1", header=header, index_col=[0, 1]
+            result = pd.read_excel(
+                reader, sheet_name="test1", header=[0, 1], index_col=[0, 1]
             )
+        tm.assert_frame_equal(result, frame)
+
+        # GH#60274
+        # Check with header/index_col None to determine which cells were merged
+        with ExcelFile(tmp_excel) as reader:
+            result = pd.read_excel(
+                reader, sheet_name="test1", header=None, index_col=None
+            )
+        expected = DataFrame(
+            {
+                0: [np.nan, np.nan, "first", 0, 1, 2],
+                1: [np.nan, np.nan, "second", 3, 4, 5],
+                2: [40.0, 1.0, np.nan, 1.0, 2.0, 3.0],
+                3: [np.nan, 2.0, np.nan, 4.0, 5.0, 6.0],
+                4: [50.0, 1.0, np.nan, 7.0, 8.0, 9.0],
+            }
+        )
         if not merge_cells:
-            fm = frame.columns._format_multi(sparsify=False, include_names=False)
-            frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
-        tm.assert_frame_equal(frame, df)
+            # MultiIndex column value is repeated
+            expected.loc[0, 3] = 40.0
+        tm.assert_frame_equal(result, expected)
 
     def test_to_excel_multiindex_dates(self, merge_cells, tmp_excel):
         # try multiindex with dates
