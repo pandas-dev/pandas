@@ -4357,16 +4357,17 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-def test_bytes_column(sqlite_buildin):
+@pytest.mark.parametrize("dtype_backend", ["pyarrow", "numpy_nullable", lib.no_default])
+def test_bytes_column(sqlite_buildin, dtype_backend):
     pytest.importorskip("pyarrow")
     """
     Regression test for (#59242)
     Bytes being returned in a column that could not be converted
     to a string would raise a UnicodeDecodeError
-    when using dtype_backend='pyarrow'
+    when using dtype_backend='pyarrow' or dtype_backend='numpy_nullable'
     """
     query = """
     select cast(x'0123456789abcdef0123456789abcdef' as blob) a
     """
-    df = pd.read_sql(query, sqlite_buildin, dtype_backend="pyarrow")
+    df = pd.read_sql(query, sqlite_buildin, dtype_backend=dtype_backend)
     assert df.a.values[0] == b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"

@@ -972,27 +972,30 @@ def convert_object_array(
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
                     if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
+                        # Addressing (#59242)
+                        # Byte data that could not be decoded into
+                        # a string would throw a UnicodeDecodeError exception
+
+                        # Try and greedily convert to string
                         if dtype_backend == "pyarrow":
                             pa = import_optional_dependency("pyarrow")
-                            # Addressing (#59242)
-                            # Byte data that could not be decoded into
-                            # a string would throw a UnicodeDecodeError exception
-
-                            # Try and greedily convert to pyarrow string
-                            # Will fail if the object is bytes:
-                            # in this case convert to pyarrow binary
                             try:
                                 str_dtype = ArrowDtype(pa.string())
                                 str_cls = str_dtype.construct_array_type()
                                 arr = str_cls._from_sequence(arr, dtype=str_dtype)
                             except pa.lib.ArrowInvalid:
+                                # in this case convert to pyarrow binary
                                 bin_dtype = ArrowDtype(pa.binary())
                                 bin_cls = bin_dtype.construct_array_type()
                                 arr = bin_cls._from_sequence(arr, dtype=bin_dtype)
                         else:
-                            new_dtype = StringDtype()
-                            arr_cls = new_dtype.construct_array_type()
-                            arr = arr_cls._from_sequence(arr, dtype=new_dtype)
+                            try:
+                                new_dtype = StringDtype()
+                                arr_cls = new_dtype.construct_array_type()
+                                arr = arr_cls._from_sequence(arr, dtype=new_dtype)
+                            except UnicodeDecodeError:
+                                # in this case do nothing
+                                pass
 
                 elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
                     if arr.dtype.kind in "iufb":
