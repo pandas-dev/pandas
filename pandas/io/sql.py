@@ -46,6 +46,8 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_list_like,
+    is_object_dtype,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -59,6 +61,7 @@ from pandas.core.api import (
     Series,
 )
 from pandas.core.arrays import ArrowExtensionArray
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import maybe_make_list
@@ -1331,7 +1334,12 @@ class SQLTable(PandasObject):
                 elif dtype_backend == "numpy" and col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type, copy=False)
-
+                elif (
+                    using_string_dtype()
+                    and is_string_dtype(col_type)
+                    and is_object_dtype(self.frame[col_name])
+                ):
+                    self.frame[col_name] = df_col.astype(col_type, copy=False)
                 elif dtype_backend == "numpy" and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
@@ -1418,6 +1426,7 @@ class SQLTable(PandasObject):
             DateTime,
             Float,
             Integer,
+            String,
         )
 
         if isinstance(sqltype, Float):
@@ -1437,6 +1446,10 @@ class SQLTable(PandasObject):
             return date
         elif isinstance(sqltype, Boolean):
             return bool
+        elif isinstance(sqltype, String):
+            if using_string_dtype():
+                return StringDtype(na_value=np.nan)
+
         return object
 
 
@@ -2218,7 +2231,7 @@ class ADBCDatabase(PandasSQL):
         elif using_string_dtype():
             from pandas.io._util import arrow_string_types_mapper
 
-            arrow_string_types_mapper()
+            mapping = arrow_string_types_mapper()
         else:
             mapping = None
 
@@ -2299,6 +2312,10 @@ class ADBCDatabase(PandasSQL):
             from pandas.io._util import _arrow_dtype_mapping
 
             mapping = _arrow_dtype_mapping().get
+        elif using_string_dtype():
+            from pandas.io._util import arrow_string_types_mapper
+
+            mapping = arrow_string_types_mapper()
         else:
             mapping = None
 
