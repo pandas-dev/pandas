@@ -2192,3 +2192,9 @@ def test_read_json_lines_rangeindex():
     result = read_json(StringIO(data), lines=True).index
     expected = RangeIndex(2)
     tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_read_json_to_datetime_futurewarning_supress():
+    data = '{"A":{"0":"X","Y":"Y"}}'
+    with tm.assert_produces_warning(None):
+        read_json(StringIO(data))
