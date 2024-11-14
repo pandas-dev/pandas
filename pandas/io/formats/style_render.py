@@ -366,7 +366,6 @@ class StylerRenderer:
         if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
-                table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
                 table_attr = table_attr.replace(
                     'class="', 'class="tex2jax_ignore mathjax_ignore '
                 )
