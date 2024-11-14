@@ -116,6 +116,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -477,7 +478,9 @@ class Block(PandasObject, libinternals.Block):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other, warn_on_upcast: bool = False) -> Block:
+    def coerce_to_target_dtype(
+        self, other, warn_on_upcast: bool = False, using_cow: bool = False
+    ) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -529,7 +532,14 @@ class Block(PandasObject, libinternals.Block):
                 f"{self.values.dtype}. Please report a bug at "
                 "https://github.com/pandas-dev/pandas/issues."
             )
-        return self.astype(new_dtype, copy=False)
+        copy = False
+        if (
+            not using_cow
+            and isinstance(self.dtype, StringDtype)
+            and self.dtype.storage == "python"
+        ):
+            copy = True
+        return self.astype(new_dtype, copy=copy, using_cow=using_cow)
 
     @final
     def _maybe_downcast(
@@ -927,12 +937,13 @@ class Block(PandasObject, libinternals.Block):
             if value is None or value is NA:
                 blk = self.astype(np.dtype(object))
             else:
-                blk = self.coerce_to_target_dtype(value)
+                blk = self.coerce_to_target_dtype(value, using_cow=using_cow)
             return blk.replace(
                 to_replace=to_replace,
                 value=value,
                 inplace=True,
                 mask=mask,
+                using_cow=using_cow,
             )
 
         else:
