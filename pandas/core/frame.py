@@ -2116,7 +2116,7 @@ class DataFrame(NDFrame, OpsMixin):
         Convert structured or record ndarray to DataFrame.
 
         Creates a DataFrame object from a structured ndarray, sequence of
-        tuples or dicts, or DataFrame.
+        tuples or dicts.
 
         Parameters
         ----------
