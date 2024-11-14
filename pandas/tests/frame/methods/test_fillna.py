@@ -74,11 +74,6 @@ class TestFillNA:
         ).all()
         assert (result.loc[result.index[5:20], "foo"] == "bar").all()
 
-        if using_infer_string:
-            with pytest.raises(TypeError, match="Invalid value"):
-                mf.fillna(value=0)
-
-        mf["foo"] = mf["foo"].astype("object")
         result = mf.fillna(value=0)
         assert (result.loc[result.index[-10:], "A"] == 0).all()
         assert (result.loc[result.index[5:20], "foo"] == 0).all()
