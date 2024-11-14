@@ -53,6 +53,7 @@ from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -66,6 +67,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -194,6 +196,7 @@ def names_compat(meth: F) -> F:
     return cast(F, new_meth)
 
 
+@set_module("pandas")
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.
@@ -1391,6 +1394,15 @@ class MultiIndex(Index):
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
+        if copy is False:
+            # self.values is always a newly construct array, so raise.
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        if copy is True:
+            # explicit np.array call to ensure a copy is made and unique objects
+            # are returned, because self.values is cached
+            return np.array(self.values, dtype=dtype)
         return self.values
 
     def view(self, cls=None) -> Self:
@@ -1416,10 +1428,12 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """return a boolean if we need a qualified .info display"""
 
-        def f(level) -> bool:
-            return "mixed" in level or "string" in level or "unicode" in level
+        def f(dtype) -> bool:
+            return is_object_dtype(dtype) or (
+                is_string_dtype(dtype) and dtype.storage == "python"
+            )
 
-        return any(f(level.inferred_type) for level in self.levels)
+        return any(f(level.dtype) for level in self.levels)
 
     # Cannot determine type of "memory_usage"
     @doc(Index.memory_usage)  # type: ignore[has-type]

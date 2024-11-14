@@ -109,14 +109,11 @@ def test_none_to_nan(cls, dtype):
 def test_setitem_validates(cls, dtype):
     arr = cls._from_sequence(["a", "b"], dtype=dtype)
 
-    if dtype.storage == "python":
-        msg = "Cannot set non-string value '10' into a StringArray."
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Invalid value '10' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
-    msg = "Must provide strings"
+    msg = "Invalid value for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 
@@ -508,10 +505,7 @@ def test_fillna_args(dtype):
     expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
-    if dtype.storage == "pyarrow":
-        msg = "Invalid value '1' for dtype str"
-    else:
-        msg = "Cannot set non-string value '1' into a StringArray."
+    msg = "Invalid value '1' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr.fillna(value=1)
 
@@ -727,10 +721,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
 
     # for other non-string we should also raise an error
     ser = pd.Series(["a", "b", "c"], dtype=dtype)
-    if dtype.storage == "python":
-        msg = "Cannot set non-string value"
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Invalid value '1' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         ser[mask] = 1
 

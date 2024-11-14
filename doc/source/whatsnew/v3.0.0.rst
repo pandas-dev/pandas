@@ -481,7 +481,7 @@ Other Removals
 - Enforced deprecation of :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for object-dtype (:issue:`57820`)
 - Enforced deprecation of :meth:`offsets.Tick.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
 - Enforced deprecation of ``axis=None`` acting the same as ``axis=0`` in the DataFrame reductions ``sum``, ``prod``, ``std``, ``var``, and ``sem``, passing ``axis=None`` will now reduce over both axes; this is particularly the case when doing e.g. ``numpy.sum(df)`` (:issue:`21597`)
-- Enforced deprecation of ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock`` (:issue:`58467`)
+- Enforced deprecation of ``core.internals`` member ``DatetimeTZBlock`` (:issue:`58467`)
 - Enforced deprecation of ``date_parser`` in :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_excel` in favour of ``date_format`` (:issue:`50601`)
 - Enforced deprecation of ``keep_date_col`` keyword in :func:`read_csv` (:issue:`55569`)
 - Enforced deprecation of ``quantile`` keyword in :meth:`.Rolling.quantile` and :meth:`.Expanding.quantile`, renamed to ``q`` instead. (:issue:`52550`)
@@ -613,6 +613,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :attr:`is_year_start` where a DateTimeIndex constructed via a date_range with frequency 'MS' wouldn't have the correct year or quarter start attributes (:issue:`57377`)
+- Bug in :class:`DataFrame` raising ``ValueError`` when ``dtype`` is ``timedelta64`` and ``data`` is a list containing ``None`` (:issue:`60064`)
 - Bug in :class:`Timestamp` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``tzinfo`` or data (:issue:`48688`)
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
 - Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56147`)
@@ -701,6 +702,8 @@ I/O
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
 - Bug in :meth:`read_stata` where extreme value integers were incorrectly interpreted as missing for format versions 111 and prior (:issue:`58130`)
 - Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
+- Bug in :meth:`set_option` where setting the pandas option ``display.html.use_mathjax`` to ``False`` has no effect (:issue:`59884`)
+- Bug in :meth:`to_excel` where :class:`MultiIndex` columns would be merged to a single row when ``merge_cells=False`` is passed (:issue:`60274`)
 
 Period
 ^^^^^^
@@ -710,6 +713,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.boxplot` failed when there were multiple groupings (:issue:`14701`)
+- Bug in :meth:`DataFrame.plot.bar` with ``stacked=True`` where labels on stacked bars with zero-height segments were incorrectly positioned at the base instead of the label position of the previous segment (:issue:`59429`)
 - Bug in :meth:`DataFrame.plot.line` raising ``ValueError`` when set both color and a ``dict`` style (:issue:`59461`)
 - Bug in :meth:`DataFrame.plot` that causes a shift to the right when the frequency multiplier is greater than one. (:issue:`57587`)
 - Bug in :meth:`Series.plot` with ``kind="pie"`` with :class:`ArrowDtype` (:issue:`59192`)
@@ -771,7 +775,9 @@ Other
 - Bug in :meth:`DataFrame.apply` where passing ``engine="numba"`` ignored ``args`` passed to the applied function (:issue:`58712`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which did not allow to use ``tan`` function. (:issue:`55091`)
+- Bug in :meth:`DataFrame.query` where using duplicate column names led to a ``TypeError``. (:issue:`59950`)
 - Bug in :meth:`DataFrame.query` which raised an exception or produced incorrect results when expressions contained backtick-quoted column names containing the hash character ``#``, backticks, or characters that fall outside the ASCII range (U+0001..U+007F). (:issue:`59285`) (:issue:`49633`)
+- Bug in :meth:`DataFrame.shift` where passing a ``freq`` on a DataFrame with no columns did not shift the index correctly. (:issue:`60102`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.transform` that was returning the wrong order unless the index was monotonically increasing. (:issue:`57069`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
@@ -780,6 +786,7 @@ Other
 - Bug in :meth:`Series.dt` methods in :class:`ArrowDtype` that were returning incorrect values. (:issue:`57355`)
 - Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
+- Bug in :meth:`read_csv` where chained fsspec TAR file and ``compression="infer"`` fails with ``tarfile.ReadError`` (:issue:`60028`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
 
