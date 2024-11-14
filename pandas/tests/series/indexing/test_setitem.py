@@ -34,7 +34,6 @@ from pandas import (
     concat,
     date_range,
     interval_range,
-    isna,
     period_range,
     timedelta_range,
 )
@@ -864,11 +863,6 @@ class SetitemCastingEquivalents:
         orig = obj
         obj = obj.copy()
         arr = obj._values
-
-        if obj.dtype == "string" and not (isinstance(val, str) or isna(val)):
-            with pytest.raises(TypeError, match="Invalid value"):
-                obj.where(~mask, val)
-            return
 
         res = obj.where(~mask, val)
 
