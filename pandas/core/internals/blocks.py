@@ -1710,7 +1710,7 @@ class Block(PandasObject, libinternals.Block):
                 return nbs
 
         if limit is not None:
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
+            mask[mask.cumsum(self.values.ndim - 1) > limit] = False
 
         if inplace:
             nbs = self.putmask(
@@ -2136,7 +2136,7 @@ class EABackedBlock(Block):
             res_values = arr._where(cond, other).T
         except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
-                if isinstance(self.dtype, IntervalDtype):
+                if isinstance(self.dtype, (IntervalDtype, StringDtype)):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
@@ -2338,7 +2338,7 @@ class ExtensionBlock(EABackedBlock):
         using_cow: bool = False,
         already_warned=None,
     ) -> list[Block]:
-        if isinstance(self.dtype, IntervalDtype):
+        if isinstance(self.dtype, (IntervalDtype, StringDtype)):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
                 value=value,
