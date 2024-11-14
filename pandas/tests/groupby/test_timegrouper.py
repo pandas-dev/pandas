@@ -75,6 +75,8 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
+    # TODO(infer_string) resample sum introduces 0's
+    # https://github.com/pandas-dev/pandas/issues/60229
     @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_groupby_with_timegrouper(self):
         # GH 4161

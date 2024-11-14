@@ -1617,7 +1617,6 @@ def test_groupby_two_group_keys_all_nan():
     assert result == {}
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_2d_malformed():
     d = DataFrame(index=range(2))
     d["group"] = ["g1", "g2"]
@@ -1626,7 +1625,7 @@ def test_groupby_2d_malformed():
     d["label"] = ["l1", "l2"]
     tmp = d.groupby(["group"]).mean(numeric_only=True)
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
-    tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
+    tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"], dtype=object))
     tm.assert_numpy_array_equal(tmp.values, res_values)
 
 
@@ -2711,7 +2710,6 @@ def test_groupby_all_nan_groups_drop():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("numeric_only", [True, False])
 def test_groupby_empty_multi_column(as_index, numeric_only):
     # GH 15106 & GH 41998
@@ -2720,7 +2718,7 @@ def test_groupby_empty_multi_column(as_index, numeric_only):
     result = gb.sum(numeric_only=numeric_only)
     if as_index:
         index = MultiIndex([[], []], [[], []], names=["A", "B"])
-        columns = ["C"] if not numeric_only else []
+        columns = ["C"] if not numeric_only else Index([], dtype="str")
     else:
         index = RangeIndex(0)
         columns = ["A", "B", "C"] if not numeric_only else ["A", "B"]
@@ -2728,7 +2726,6 @@ def test_groupby_empty_multi_column(as_index, numeric_only):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_aggregation_non_numeric_dtype():
     # GH #43108
     df = DataFrame(
@@ -2739,7 +2736,7 @@ def test_groupby_aggregation_non_numeric_dtype():
         {
             "v": [[1, 1], [10, 20]],
         },
-        index=Index(["M", "W"], dtype="object", name="MW"),
+        index=Index(["M", "W"], name="MW"),
     )
 
     gb = df.groupby(by=["MW"])
