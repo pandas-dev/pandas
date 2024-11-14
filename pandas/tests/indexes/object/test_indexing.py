@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
-import pandas.util._test_decorators as td
 
 from pandas import Index
 import pandas._testing as tm
@@ -63,7 +62,6 @@ class TestGetIndexer:
         expected = np.array([0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-    @td.skip_if_no("pyarrow")
     def test_get_indexer_infer_string_missing_values(self):
         # ensure the passed list is not cast to string but to object so that
         # the None value is matched in the index
