@@ -678,8 +678,15 @@ def test_pickle_reader(reader):
 
 @td.skip_if_no("pyarrow")
 def test_pyarrow_read_csv_datetime_dtype():
-    data = "date,id\n20/12/2025,a\n,b\n31/12/2020,c"
-    df = pd.read_csv(
+    # GH 59904
+    data = '"date"\n"20/12/2025"\n""\n"31/12/2020"'
+    result = pd.read_csv(
         StringIO(data), parse_dates=["date"], dayfirst=True, dtype_backend="pyarrow"
     )
-    assert (df["date"].dtype) == "datetime64[s]"
+    expect_data = pd.Series(
+        pd.to_datetime(["20/12/2025", pd.NaT, "31/12/2020"], dayfirst=True)
+    )
+    expect = pd.DataFrame({"date": expect_data})
+
+    assert (result["date"].dtype) == "datetime64[s]"
+    tm.assert_frame_equal(expect, result)
