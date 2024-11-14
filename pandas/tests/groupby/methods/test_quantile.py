@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -158,11 +156,10 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
-    msg = "dtype 'object' does not support operation 'quantile'"
+    msg = "dtype '(object|str)' does not support operation 'quantile'"
     with pytest.raises(TypeError, match=msg):
         df.groupby("key").quantile()
 
