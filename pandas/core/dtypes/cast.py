@@ -1202,7 +1202,7 @@ def maybe_infer_to_datetimelike(
         convert_numeric=False,
         convert_non_numeric=True,
         convert_to_nullable_dtype=convert_to_nullable_dtype,
-        dtype_if_all_nat=np.dtype("M8[s]"),
+        dtype_if_all_nat=np.dtype("M8[ns]"),
     )
 
 
