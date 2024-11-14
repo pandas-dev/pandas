@@ -839,11 +839,6 @@ class SetitemCastingEquivalents:
         obj = obj.copy()
         arr = obj._values
 
-        if raises and obj.dtype == "string":
-            with pytest.raises(TypeError, match="Invalid value"):
-                obj.where(~mask, val)
-            return
-
         res = obj.where(~mask, val)
 
         if val is NA and res.dtype == object:
