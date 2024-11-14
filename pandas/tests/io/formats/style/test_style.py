@@ -488,9 +488,11 @@ class TestStyler:
     def test_repr_html_mathjax(self, styler):
         # gh-19824 / 41395
         assert "tex2jax_ignore" not in styler._repr_html_()
+        assert "mathjax_ignore" not in styler._repr_html_()
 
         with option_context("styler.html.mathjax", False):
             assert "tex2jax_ignore" in styler._repr_html_()
+            assert "mathjax_ignore" in styler._repr_html_()
 
     def test_update_ctx(self, styler):
         styler._update_ctx(DataFrame({"A": ["color: red", "color: blue"]}))
