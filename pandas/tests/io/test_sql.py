@@ -60,7 +60,7 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
     ),
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+    pytest.mark.single_cpu,
 ]
 
 
@@ -685,6 +685,7 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 @pytest.fixture
 def postgresql_adbc_conn():
+    pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
@@ -817,6 +818,7 @@ def sqlite_conn_types(sqlite_engine_types):
 
 @pytest.fixture
 def sqlite_adbc_conn():
+    pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_sqlite")
     from adbc_driver_sqlite import dbapi
 
@@ -986,13 +988,13 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_empty(conn, test_frame1, request):
-    if conn == "postgresql_adbc_conn":
+    if conn == "postgresql_adbc_conn" and not using_string_dtype():
         request.node.add_marker(
             pytest.mark.xfail(
-                reason="postgres ADBC driver cannot insert index with null type",
-                strict=True,
+                reason="postgres ADBC driver < 1.2 cannot insert index with null type",
             )
         )
+
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
     empty_df = test_frame1.iloc[:0]
@@ -3557,7 +3559,8 @@ def test_read_sql_dtype_backend(
         result = getattr(pd, func)(
             f"Select * from {table}", conn, dtype_backend=dtype_backend
         )
-    expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
+        expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
+
     tm.assert_frame_equal(result, expected)
 
     if "adbc" in conn_name:
@@ -3607,7 +3610,7 @@ def test_read_sql_dtype_backend_table(
 
     with pd.option_context("mode.string_storage", string_storage):
         result = getattr(pd, func)(table, conn, dtype_backend=dtype_backend)
-    expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
+        expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
     tm.assert_frame_equal(result, expected)
 
     if "adbc" in conn_name:
@@ -4123,7 +4126,7 @@ def tquery(query, con=None):
 def test_xsqlite_basic(sqlite_buildin):
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     assert sql.to_sql(frame, name="test_table", con=sqlite_buildin, index=False) == 10
@@ -4150,7 +4153,7 @@ def test_xsqlite_basic(sqlite_buildin):
 def test_xsqlite_write_row_by_row(sqlite_buildin):
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     frame.iloc[0, 0] = np.nan
@@ -4173,7 +4176,7 @@ def test_xsqlite_write_row_by_row(sqlite_buildin):
 def test_xsqlite_execute(sqlite_buildin):
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     create_sql = sql.get_schema(frame, "test")
@@ -4194,7 +4197,7 @@ def test_xsqlite_execute(sqlite_buildin):
 def test_xsqlite_schema(sqlite_buildin):
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     create_sql = sql.get_schema(frame, "test")
