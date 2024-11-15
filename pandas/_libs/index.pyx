@@ -557,6 +557,16 @@ cdef class StringEngine(IndexEngine):
             raise KeyError(val)
         return str(val)
 
+cdef class StringObjectEngine(ObjectEngine):
+
+    cdef _check_type(self, object val):
+        if isinstance(val, str):
+            return val
+        elif checknull(val):
+            return np.nan
+        else:
+            raise KeyError(val)
+
 
 cdef class DatetimeEngine(Int64Engine):
 
