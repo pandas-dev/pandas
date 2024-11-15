@@ -48,10 +48,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    DatetimeTZDtype,
-)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas import get_option
@@ -66,6 +63,8 @@ import pandas.core.common as com
 from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
+
+from pandas.io._util import arrow_table_to_pandas
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -2208,23 +2207,10 @@ class ADBCDatabase(PandasSQL):
         else:
             stmt = f"SELECT {select_list} FROM {table_name}"
 
-        mapping: type[ArrowDtype] | None | Callable
-        if dtype_backend == "pyarrow":
-            mapping = ArrowDtype
-        elif dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping().get
-        elif using_string_dtype():
-            from pandas.io._util import arrow_string_types_mapper
-
-            mapping = arrow_string_types_mapper()
-        else:
-            mapping = None
-
         with self.con.cursor() as cur:
             cur.execute(stmt)
-            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+            pa_table = cur.fetch_arrow_table()
+            df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
         return _wrap_result_adbc(
             df,
@@ -2292,23 +2278,10 @@ class ADBCDatabase(PandasSQL):
         if chunksize:
             raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
 
-        mapping: type[ArrowDtype] | None | Callable
-        if dtype_backend == "pyarrow":
-            mapping = ArrowDtype
-        elif dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping().get
-        elif using_string_dtype():
-            from pandas.io._util import arrow_string_types_mapper
-
-            mapping = arrow_string_types_mapper()
-        else:
-            mapping = None
-
         with self.con.cursor() as cur:
             cur.execute(sql)
-            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+            pa_table = cur.fetch_arrow_table()
+            df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
         return _wrap_result_adbc(
             df,
