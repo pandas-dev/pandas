@@ -350,9 +350,9 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
     if using_string_dtype():
         res = pd.Series(str_list, dtype="str")
     else:
-        res = np.asarray(str_list, dtype="object")
+        res = np.asarray(str_list, dtype="object")  # type: ignore[assignment]
 
-    return res, buffers
+    return res, buffers  # type: ignore[return-value]
 
 
 def parse_datetime_format_str(format_str, data) -> pd.Series | np.ndarray:
