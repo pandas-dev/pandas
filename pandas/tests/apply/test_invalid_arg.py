@@ -218,18 +218,12 @@ def test_apply_modify_traceback():
 def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_string):
     # GH 21224
     if using_infer_string:
-        if df.dtypes.iloc[0].storage == "pyarrow":
-            import pyarrow as pa
-
-            # TODO(infer_string)
-            # should raise a proper TypeError instead of propagating the pyarrow error
-
-            expected = (expected, pa.lib.ArrowNotImplementedError)
-        else:
-            expected = (expected, NotImplementedError)
+        expected = (expected, NotImplementedError)
 
     msg = (
-        "can't multiply sequence by non-int of type 'str'|has no kernel|cannot perform"
+        "can't multiply sequence by non-int of type 'str'"
+        "|cannot perform cumprod with type str"  # NotImplementedError python backend
+        "|operation 'cumprod' not supported for dtype 'str'"  # TypeError pyarrow
     )
     warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
@@ -259,16 +253,12 @@ def test_agg_cython_table_raises_series(series, func, expected, using_infer_stri
     if func == "median" or func is np.nanmedian or func is np.median:
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
 
-    if using_infer_string:
-        if series.dtype.storage == "pyarrow":
-            import pyarrow as pa
+    if using_infer_string and func == "cumprod":
+        expected = (expected, NotImplementedError)
 
-            # TODO(infer_string)
-            # should raise a proper TypeError instead of propagating the pyarrow error
-            expected = (expected, pa.lib.ArrowNotImplementedError)
-        else:
-            expected = (expected, NotImplementedError)
-    msg = msg + "|does not support|has no kernel|Cannot perform|cannot perform"
+    msg = (
+        msg + "|does not support|has no kernel|Cannot perform|cannot perform|operation"
+    )
     warn = None if isinstance(func, str) else FutureWarning
 
     with pytest.raises(expected, match=msg):
