@@ -2139,6 +2139,13 @@ class EABackedBlock(Block):
                 if isinstance(self.dtype, (IntervalDtype, StringDtype)):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
+                    if (
+                        self.ndim == 2
+                        and isinstance(orig_cond, np.ndarray)
+                        and orig_cond.ndim == 1
+                        and not is_1d_only_ea_dtype(blk.dtype)
+                    ):
+                        orig_cond = orig_cond[:, None]
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
                         nbs, downcast=_downcast, using_cow=using_cow, caller="where"

@@ -6,8 +6,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -30,7 +28,6 @@ def mix_abc() -> dict[str, list[float | str]]:
 
 
 class TestDataFrameReplace:
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_inplace(self, datetime_frame, float_string_frame):
         datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
         datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
@@ -46,7 +43,9 @@ class TestDataFrameReplace:
         mf.iloc[-10:, mf.columns.get_loc("A")] = np.nan
 
         result = float_string_frame.replace(np.nan, 0)
-        expected = float_string_frame.fillna(value=0)
+        expected = float_string_frame.copy()
+        expected["foo"] = expected["foo"].astype(object)
+        expected = expected.fillna(value=0)
         tm.assert_frame_equal(result, expected)
 
         tsframe = datetime_frame.copy()
@@ -298,20 +297,22 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     def test_regex_replace_dict_nested_gh4115(self):
-        df = DataFrame({"Type": ["Q", "T", "Q", "Q", "T"], "tmp": 2})
-        expected = DataFrame({"Type": [0, 1, 0, 0, 1], "tmp": 2})
+        df = DataFrame(
+            {"Type": Series(["Q", "T", "Q", "Q", "T"], dtype=object), "tmp": 2}
+        )
+        expected = DataFrame({"Type": Series([0, 1, 0, 0, 1], dtype=object), "tmp": 2})
         msg = "Downcasting behavior in `replace`"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df.replace({"Type": {"Q": 0, "T": 1}})
+
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_regex_replace_list_to_scalar(self, mix_abc):
         df = DataFrame(mix_abc)
         expec = DataFrame(
             {
                 "a": mix_abc["a"],
-                "b": np.array([np.nan] * 4),
+                "b": Series([np.nan] * 4, dtype="str"),
                 "c": [np.nan, np.nan, np.nan, "d"],
             }
         )
@@ -334,7 +335,6 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res2, expec)
         tm.assert_frame_equal(res3, expec)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_regex_replace_str_to_numeric(self, mix_abc):
         # what happens when you try to replace a numeric value with a regex?
         df = DataFrame(mix_abc)
@@ -346,11 +346,12 @@ class TestDataFrameReplace:
         return_value = res3.replace(regex=r"\s*\.\s*", value=0, inplace=True)
         assert return_value is None
         expec = DataFrame({"a": mix_abc["a"], "b": ["a", "b", 0, 0], "c": mix_abc["c"]})
+        # TODO(infer_string)
+        expec["c"] = expec["c"].astype(object)
         tm.assert_frame_equal(res, expec)
         tm.assert_frame_equal(res2, expec)
         tm.assert_frame_equal(res3, expec)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_regex_replace_regex_list_to_numeric(self, mix_abc):
         df = DataFrame(mix_abc)
         res = df.replace([r"\s*\.\s*", "b"], 0, regex=True)
@@ -566,21 +567,28 @@ class TestDataFrameReplace:
         res = rep.dtypes
         tm.assert_series_equal(expec, res)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_mixed(self, float_string_frame):
         mf = float_string_frame
         mf.iloc[5:20, mf.columns.get_loc("foo")] = np.nan
         mf.iloc[-10:, mf.columns.get_loc("A")] = np.nan
 
         result = float_string_frame.replace(np.nan, -18)
-        expected = float_string_frame.fillna(value=-18)
+        expected = float_string_frame.copy()
+        expected["foo"] = expected["foo"].astype(object)
+        expected = expected.fillna(value=-18)
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result.replace(-18, np.nan), float_string_frame)
+        expected2 = float_string_frame.copy()
+        expected2["foo"] = expected2["foo"].astype(object)
+        tm.assert_frame_equal(result.replace(-18, np.nan), expected2)
 
         result = float_string_frame.replace(np.nan, -1e8)
-        expected = float_string_frame.fillna(value=-1e8)
+        expected = float_string_frame.copy()
+        expected["foo"] = expected["foo"].astype(object)
+        expected = expected.fillna(value=-1e8)
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result.replace(-1e8, np.nan), float_string_frame)
+        expected2 = float_string_frame.copy()
+        expected2["foo"] = expected2["foo"].astype(object)
+        tm.assert_frame_equal(result.replace(-1e8, np.nan), expected2)
 
     def test_replace_mixed_int_block_upcasting(self):
         # int block upcasting
@@ -641,7 +649,7 @@ class TestDataFrameReplace:
 
         expected = DataFrame(
             {
-                "A": Series(["foo", "bar"]),
+                "A": Series(["foo", "bar"], dtype="object"),
                 "B": Series([0, "foo"], dtype="object"),
             }
         )
@@ -958,7 +966,7 @@ class TestDataFrameReplace:
         # TODO
         pass
 
-    def test_replace_dict_no_regex(self):
+    def test_replace_dict_no_regex(self, any_string_dtype):
         answer = Series(
             {
                 0: "Strongly Agree",
@@ -966,7 +974,8 @@ class TestDataFrameReplace:
                 2: "Neutral",
                 3: "Disagree",
                 4: "Strongly Disagree",
-            }
+            },
+            dtype=any_string_dtype,
         )
         weights = {
             "Agree": 4,
@@ -981,7 +990,7 @@ class TestDataFrameReplace:
             result = answer.replace(weights)
         tm.assert_series_equal(result, expected)
 
-    def test_replace_series_no_regex(self):
+    def test_replace_series_no_regex(self, any_string_dtype):
         answer = Series(
             {
                 0: "Strongly Agree",
@@ -989,7 +998,8 @@ class TestDataFrameReplace:
                 2: "Neutral",
                 3: "Disagree",
                 4: "Strongly Disagree",
-            }
+            },
+            dtype=any_string_dtype,
         )
         weights = Series(
             {
@@ -1087,16 +1097,15 @@ class TestDataFrameReplace:
         expected = df.replace({"a": dict(zip(astr, bstr))})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
-    def test_replace_swapping_bug(self, using_infer_string):
+    def test_replace_swapping_bug(self):
         df = DataFrame({"a": [True, False, True]})
         res = df.replace({"a": {True: "Y", False: "N"}})
-        expect = DataFrame({"a": ["Y", "N", "Y"]})
+        expect = DataFrame({"a": ["Y", "N", "Y"]}, dtype=object)
         tm.assert_frame_equal(res, expect)
 
         df = DataFrame({"a": [0, 1, 0]})
         res = df.replace({"a": {0: "Y", 1: "N"}})
-        expect = DataFrame({"a": ["Y", "N", "Y"]})
+        expect = DataFrame({"a": ["Y", "N", "Y"]}, dtype=object)
         tm.assert_frame_equal(res, expect)
 
     def test_replace_period(self):
@@ -1372,7 +1381,7 @@ class TestDataFrameReplace:
     )
     def test_replace_replacer_dtype(self, replacer):
         # GH26632
-        df = DataFrame(["a"])
+        df = DataFrame(["a"], dtype=object)
         msg = "Downcasting behavior in `replace` "
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df.replace({"a": replacer, "b": replacer})
@@ -1489,6 +1498,7 @@ class TestDataFrameReplace:
             input_df = input_df.replace("obj1", "obj9")
             result = input_df.replace("cat2", "catX")
 
+        result = result.astype({"col1": "int64", "col3": "float64", "col5": "str"})
         tm.assert_frame_equal(result, expected)
 
     def test_replace_dict_category_type(self):
@@ -1650,6 +1660,14 @@ class TestDataFrameReplaceRegex:
         expected_df2 = DataFrame({"A": [1], "B": ["1"]})
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
+
+        if regex:
+            # TODO(infer_string): both string columns get cast to object,
+            # while only needed for column A
+            expected_df2 = DataFrame({"A": [1], "B": ["1"]}, dtype=object)
+        else:
+            expected_df2 = DataFrame({"A": Series([1], dtype=object), "B": ["1"]})
+        result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
         tm.assert_frame_equal(result_df2, expected_df2)
 
     def test_replace_with_value_also_being_replaced(self):
