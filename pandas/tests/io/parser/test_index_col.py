@@ -9,8 +9,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     DataFrame,
     Index,
@@ -345,7 +343,6 @@ def test_infer_types_boolean_sum(all_parsers):
     tm.assert_frame_equal(result, expected, check_index_type=False)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("dtype, val", [(object, "01"), ("int64", 1)])
 def test_specify_dtype_for_index_col(all_parsers, dtype, val, request):
     # GH#9435
@@ -356,7 +353,7 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val, request):
             pytest.mark.xfail(reason="Cannot disable type-inference for pyarrow engine")
         )
     result = parser.read_csv(StringIO(data), index_col="a", dtype={"a": dtype})
-    expected = DataFrame({"b": [2]}, index=Index([val], name="a"))
+    expected = DataFrame({"b": [2]}, index=Index([val], name="a", dtype=dtype))
     tm.assert_frame_equal(result, expected)
 
 
