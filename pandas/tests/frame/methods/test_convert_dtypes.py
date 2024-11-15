@@ -199,7 +199,10 @@ class TestConvertDtypes:
 
     def test_convert_dtypes_timezone_series(self):
         # GH#60237
-        ser = pd.Series(pd.date_range(start='2020-01-01', periods=5, freq='h', tz='UTC'))
+        ser = pd.Series(pd.date_range(start='2020-01-01', 
+                                      periods=5, 
+                                      freq='h', 
+                                      tz='UTC'))
         ser = ser.astype("timestamp[ns, tz=UTC][pyarrow]")
         expected = ser
         result = ser.convert_dtypes(dtype_backend="pyarrow")
