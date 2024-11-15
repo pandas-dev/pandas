@@ -76,6 +76,8 @@ def test_size_series_masked_type_returns_Int64(dtype):
     tm.assert_series_equal(result, expected)
 
 
+# TODO(infer_string) in case the column is object dtype, it should preserve that dtype
+# for the result's index
 @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_size_strings(any_string_dtype):
     # GH#55627
