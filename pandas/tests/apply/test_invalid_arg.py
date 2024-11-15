@@ -253,7 +253,7 @@ def test_agg_cython_table_raises_series(series, func, expected, using_infer_stri
     if func == "median" or func is np.nanmedian or func is np.median:
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
 
-    if using_infer_string and func == "cumprod":
+    if using_infer_string and func in ("cumprod", np.cumprod, np.nancumprod):
         expected = (expected, NotImplementedError)
 
     msg = (
