@@ -565,6 +565,14 @@ class MPLPlot(ABC):
     @cache_readonly
     def _axes_and_fig(self) -> tuple[Sequence[Axes], Figure]:
         import matplotlib.pyplot as plt
+        import warnings
+
+        # Warn users that 'sharex' and 'sharey' are ignored when 'subplots' is False
+        if not self.subplots and (self.sharex or self.sharey):
+            warnings.warn(
+                "'sharex' and 'sharey' parameters are ignored when 'subplots' is set to False.",
+                UserWarning
+            )
 
         if self.subplots:
             naxes = (
@@ -602,6 +610,7 @@ class MPLPlot(ABC):
 
         axes_seq = cast(Sequence["Axes"], axes)
         return axes_seq, fig
+
 
     @property
     def result(self):
