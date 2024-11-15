@@ -1798,7 +1798,7 @@ def pandas_dtype(dtype) -> DtypeObj:
     TypeError if not a dtype
 
     See Also
-    ------
+    --------
     api.types.is_dtype : Return true if the condition is satisfied for the arr_or_dtype.
 
     Examples
