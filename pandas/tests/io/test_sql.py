@@ -959,12 +959,12 @@ adbc_connectable = [
 
 adbc_connectable_iris = [
     pytest.param("postgresql_adbc_iris", marks=pytest.mark.db),
-    pytest.param("sqlite_adbc_iris", marks=pytest.mark.db),
+    "sqlite_adbc_iris",
 ]
 
 adbc_connectable_types = [
     pytest.param("postgresql_adbc_types", marks=pytest.mark.db),
-    pytest.param("sqlite_adbc_types", marks=pytest.mark.db),
+    "sqlite_adbc_types",
 ]
 
 
