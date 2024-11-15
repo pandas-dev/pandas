@@ -559,11 +559,18 @@ cdef class StringEngine(IndexEngine):
 
 cdef class StringObjectEngine(ObjectEngine):
 
+    cdef:
+        object na_value
+
+    def __init__(self, ndarray values, na_value):
+        super().__init__(values)
+        self.na_value = na_value
+
     cdef _check_type(self, object val):
         if isinstance(val, str):
             return val
         elif checknull(val):
-            return np.nan
+            return self.na_value
         else:
             raise KeyError(val)
 

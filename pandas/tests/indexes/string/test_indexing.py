@@ -6,6 +6,37 @@ from pandas import Index
 import pandas._testing as tm
 
 
+class TestGetLoc:
+    def test_get_loc(self, any_string_dtype):
+        index = Index(["a", "b", "c"], dtype=any_string_dtype)
+        assert index.get_loc("b") == 1
+
+    def test_get_loc_raises(self, any_string_dtype):
+        index = Index(["a", "b", "c"], dtype=any_string_dtype)
+        with pytest.raises(KeyError, match="d"):
+            index.get_loc("d")
+
+    def test_get_loc_invalid_value(self, any_string_dtype):
+        index = Index(["a", "b", "c"], dtype=any_string_dtype)
+        with pytest.raises(KeyError, match="1"):
+            index.get_loc(1)
+
+    def test_get_loc_non_unique(self, any_string_dtype):
+        index = Index(["a", "b", "a"], dtype=any_string_dtype)
+        result = index.get_loc("a")
+        expected = np.array([True, False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_loc_non_missing(self, any_string_dtype, nulls_fixture):
+        index = Index(["a", "b", "c"], dtype=any_string_dtype)
+        with pytest.raises(KeyError):
+            index.get_loc(nulls_fixture)
+
+    def test_get_loc_missing(self, any_string_dtype, nulls_fixture):
+        index = Index(["a", "b", nulls_fixture], dtype=any_string_dtype)
+        assert index.get_loc(nulls_fixture) == 2
+
+
 class TestGetIndexer:
     @pytest.mark.parametrize(
         "method,expected",
