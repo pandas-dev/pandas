@@ -151,4 +151,6 @@ def replace_regex(
     if mask is None:
         values[:] = f(values)
     else:
+        if values.ndim != mask.ndim:
+            mask = np.broadcast_to(mask, values.shape)
         values[mask] = f(values[mask])
