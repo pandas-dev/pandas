@@ -136,6 +136,7 @@ from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
+    prepare_function_arguments,
 )
 
 if TYPE_CHECKING:
@@ -433,6 +434,20 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def groups(self) -> dict[Hashable, Index]:
         """
         Dict {group name -> group labels}.
+
+        This property provides a dictionary representation of the groupings formed
+        during a groupby operation, where each key represents a unique group value from
+        the specified column(s), and each value is a list of index labels
+        that belong to that group.
+
+        See Also
+        --------
+        core.groupby.DataFrameGroupBy.get_group : Retrieve group from a
+            ``DataFrameGroupBy`` object with provided name.
+        core.groupby.SeriesGroupBy.get_group : Retrieve group from a
+            ``SeriesGroupBy`` object with provided name.
+        core.resample.Resampler.get_group : Retrieve group from a
+            ``Resampler`` object with provided name.
 
         Examples
         --------
@@ -1289,8 +1304,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=2
+        )
         numba_transform_func = numba_.generate_numba_transform_func(
-            func, **get_jit_arguments(engine_kwargs, kwargs)
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = numba_transform_func(
             sorted_data,
@@ -1325,8 +1343,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         numba_.validate_udf(func)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=2
+        )
         numba_agg_func = numba_.generate_numba_agg_func(
-            func, **get_jit_arguments(engine_kwargs, kwargs)
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = numba_agg_func(
             sorted_data,
@@ -4155,9 +4176,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
-            if is_object_dtype(vals.dtype):
+            if isinstance(vals.dtype, StringDtype) or is_object_dtype(vals.dtype):
                 raise TypeError(
-                    "'quantile' cannot be performed against 'object' dtypes!"
+                    f"dtype '{vals.dtype}' does not support operation 'quantile'"
                 )
 
             inference: DtypeObj | None = None
