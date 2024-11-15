@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 
 import numpy as np
 
@@ -14,6 +17,8 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    import pyarrow
 
     from pandas._typing import DtypeBackend
 
@@ -52,8 +57,8 @@ def _arrow_string_types_mapper() -> Callable:
 
 
 def arrow_table_to_pandas(
-    table,
-    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    table: pyarrow.Table,
+    dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault = lib.no_default,
     null_to_int64: bool = False,
 ) -> pd.DataFrame:
     pa = import_optional_dependency("pyarrow")
@@ -70,7 +75,7 @@ def arrow_table_to_pandas(
         types_mapper = pd.ArrowDtype
     elif using_string_dtype():
         types_mapper = _arrow_string_types_mapper()
-    elif dtype_backend is lib.no_default:
+    elif dtype_backend is lib.no_default or dtype_backend == "numpy":
         types_mapper = None
     else:
         raise NotImplementedError
