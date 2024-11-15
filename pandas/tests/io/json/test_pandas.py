@@ -708,7 +708,7 @@ class TestPandasContainer:
             expected.name = None
 
         if using_string_dtype():
-            expected = expected.astype(pd.StringDtype(na_value=np.nan))
+            expected = expected.astype("str")
 
         tm.assert_series_equal(result, expected)
 
