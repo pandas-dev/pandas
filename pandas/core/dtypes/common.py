@@ -1785,15 +1785,21 @@ def pandas_dtype(dtype) -> DtypeObj:
 
     Parameters
     ----------
-    dtype : object to be converted
+    dtype : object
+        The object to be converted into a dtype.
 
     Returns
     -------
     np.dtype or a pandas dtype
+        The converted dtype, which can be either a numpy dtype or a pandas dtype.
 
     Raises
     ------
     TypeError if not a dtype
+
+    See Also
+    ------
+    api.types.is_dtype : Return true if the condition is satisfied for the arr_or_dtype.
 
     Examples
     --------
