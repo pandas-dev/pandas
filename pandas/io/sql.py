@@ -2210,6 +2210,9 @@ class ADBCDatabase(PandasSQL):
         with self.con.cursor() as cur:
             cur.execute(stmt)
             pa_table = cur.fetch_arrow_table()
+            dtype_backend = (
+                lib.no_default if dtype_backend == "numpy" else dtype_backend
+            )
             df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
         return _wrap_result_adbc(
@@ -2281,6 +2284,9 @@ class ADBCDatabase(PandasSQL):
         with self.con.cursor() as cur:
             cur.execute(sql)
             pa_table = cur.fetch_arrow_table()
+            dtype_backend = (
+                lib.no_default if dtype_backend == "numpy" else dtype_backend
+            )
             df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
         return _wrap_result_adbc(

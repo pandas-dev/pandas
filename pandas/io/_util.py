@@ -58,6 +58,7 @@ def arrow_table_to_pandas(
 ) -> pd.DataFrame:
     pa = import_optional_dependency("pyarrow")
 
+    types_mapper: type[pd.ArrowDtype] | None | Callable
     if dtype_backend == "numpy_nullable":
         mapping = _arrow_dtype_mapping()
         if null_to_int64:
