@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -322,14 +320,17 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-def test_observed(observed):
+def test_observed(request, using_infer_string, observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
     # gh-10132 (back-compat)
     # gh-8138 (back-compat)
     # gh-8869
+
+    if using_infer_string and not observed:
+        # TODO(infer_string) this fails with filling the string column with 0
+        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     cat1 = Categorical(["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True)
     cat2 = Categorical(["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True)
