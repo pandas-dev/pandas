@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -7,6 +8,7 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -26,7 +28,11 @@ from pandas.compat import (
     pa_version_under10p1,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -62,6 +68,8 @@ from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
 
+from pandas.io.formats import printing
+
 if TYPE_CHECKING:
     import pyarrow
 
@@ -81,6 +89,7 @@ if TYPE_CHECKING:
     from pandas import Series
 
 
+@set_module("pandas")
 @register_extension_dtype
 class StringDtype(StorageExtensionDtype):
     """
@@ -154,7 +163,16 @@ class StringDtype(StorageExtensionDtype):
                     storage = "python"
 
         if storage == "pyarrow_numpy":
-            # TODO raise a deprecation warning
+            warnings.warn(
+                "The 'pyarrow_numpy' storage option name is deprecated and will be "
+                'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
+                "na_value-np.nan)' to construct the same dtype.\nOr enable the "
+                "'pd.options.future.infer_string = True' option globally and use "
+                'the "str" alias as a shorthand notation to specify a dtype '
+                '(instead of "string[pyarrow_numpy]").',
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             storage = "pyarrow"
             na_value = np.nan
 
@@ -254,7 +272,7 @@ class StringDtype(StorageExtensionDtype):
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
         elif string == "string[pyarrow_numpy]":
-            # TODO deprecate
+            # this is deprecated in the dtype __init__, remove this in pandas 3.0
             return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
@@ -379,6 +397,14 @@ class BaseStringArray(ExtensionArray):
             # TODO: require any NAs be valid-for-string
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
+
+    def _formatter(self, boxed: bool = False):
+        formatter = partial(
+            printing.pprint_thing,
+            escape_chars=("\t", "\r", "\n"),
+            quote_strings=not boxed,
+        )
+        return formatter
 
     def _str_map(
         self,
@@ -630,7 +656,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return self.dtype.na_value
         elif not isinstance(value, str):
             raise TypeError(
-                f"Cannot set non-string value '{value}' into a string array."
+                f"Invalid value '{value}' for dtype '{self.dtype}'. Value should be a "
+                f"string or missing value, got '{type(value).__name__}' instead."
             )
         return value
 
@@ -703,11 +730,36 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         return arr, self.dtype.na_value
 
+    def _maybe_convert_setitem_value(self, value):
+        """Maybe convert value to be pyarrow compatible."""
+        if lib.is_scalar(value):
+            if isna(value):
+                value = self.dtype.na_value
+            elif not isinstance(value, str):
+                raise TypeError(
+                    f"Invalid value '{value}' for dtype '{self.dtype}'. Value should "
+                    f"be a string or missing value, got '{type(value).__name__}' "
+                    "instead."
+                )
+        else:
+            value = extract_array(value, extract_numpy=True)
+            if not is_array_like(value):
+                value = np.asarray(value, dtype=object)
+            elif isinstance(value.dtype, type(self.dtype)):
+                return value
+            else:
+                # cast categories and friends to arrays to see if values are
+                # compatible, compatibility with arrow backed strings
+                value = np.asarray(value)
+            if len(value) and not lib.is_string_array(value, skipna=True):
+                raise TypeError(
+                    "Invalid value for dtype 'str'. Value should be a "
+                    "string or missing value (or array of those)."
+                )
+        return value
+
     def __setitem__(self, key, value) -> None:
-        value = extract_array(value, extract_numpy=True)
-        if isinstance(value, type(self)):
-            # extract_array doesn't extract NumpyExtensionArray subclasses
-            value = value._ndarray
+        value = self._maybe_convert_setitem_value(value)
 
         key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)
@@ -715,28 +767,15 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if scalar_key and not scalar_value:
             raise ValueError("setting an array element with a sequence.")
 
-        # validate new items
-        if scalar_value:
-            if isna(value):
-                value = self.dtype.na_value
-            elif not isinstance(value, str):
-                raise TypeError(
-                    f"Cannot set non-string value '{value}' into a StringArray."
-                )
-        else:
-            if not is_array_like(value):
-                value = np.asarray(value, dtype=object)
+        if not scalar_value:
+            if value.dtype == self.dtype:
+                value = value._ndarray
             else:
-                # cast categories and friends to arrays to see if values are
-                # compatible, compatibility with arrow backed strings
                 value = np.asarray(value)
-            if len(value) and not lib.is_string_array(value, skipna=True):
-                raise TypeError("Must provide strings.")
-
-            mask = isna(value)
-            if mask.any():
-                value = value.copy()
-                value[isna(value)] = self.dtype.na_value
+                mask = isna(value)
+                if mask.any():
+                    value = value.copy()
+                    value[isna(value)] = self.dtype.na_value
 
         super().__setitem__(key, value)
 
@@ -745,6 +784,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # np.putmask which doesn't properly handle None/pd.NA, so using the
         # base class implementation that uses __setitem__
         ExtensionArray._putmask(self, mask, value)
+
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
+        # the super() method NDArrayBackedExtensionArray._where uses
+        # np.putmask which doesn't properly handle None/pd.NA, so using the
+        # base class implementation that uses __setitem__
+        return ExtensionArray._where(self, mask, value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         if isinstance(values, BaseStringArray) or (
@@ -812,8 +857,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             else:
                 return nanops.nanall(self._ndarray, skipna=skipna)
 
-        if name in ["min", "max"]:
-            result = getattr(self, name)(skipna=skipna, axis=axis)
+        if name in ["min", "max", "argmin", "argmax", "sum"]:
+            result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
             if keepdims:
                 return self._from_sequence([result], dtype=self.dtype)
             return result
@@ -837,6 +882,20 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
+    ) -> Scalar:
+        nv.validate_sum((), kwargs)
+        result = masked_reductions.sum(
+            values=self._ndarray, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
@@ -890,7 +949,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             if not is_array_like(other):
                 other = np.asarray(other)
             other = other[valid]
-            other = np.asarray(other)
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
