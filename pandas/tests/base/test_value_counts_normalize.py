@@ -1,11 +1,11 @@
 """
-This module contains a test for the `value_counts` function with the new 'keep' parameter.
+This module contains a test for the `value_counts` function with 'keep' parameter.
 """
 
 import pandas as pd
 
 def test_value_counts_normalize():
-    """This function tests the ability of the value_counts function with the keep parameter."""
+    """This function tests the ability of the value_counts function with parameter."""
     # Test data
     data = pd.Series([1, 1, 2, 2, 3, 3, 3, 4])
 
