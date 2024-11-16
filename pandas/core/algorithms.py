@@ -11,6 +11,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
+    Union,
     cast,
 )
 import warnings
@@ -839,7 +840,7 @@ def value_counts_internal(
     values,
     sort: bool = True,
     ascending: bool = False,
-    normalize: bool = False,
+    normalize: Union[bool, str] = False,
     bins=None,
     dropna: bool = True,
 ) -> Series:
@@ -912,9 +913,11 @@ def value_counts_internal(
     if sort:
         result = result.sort_values(ascending=ascending)
 
-    if normalize:
+    if normalize is True:
         result = result / counts.sum()
-
+    elif normalize == "keep":
+        result = result.astype(str)+'('+(result/counts.sum())\
+            .apply(lambda x: round(x, 6)).astype(str)+')'
     return result
 
 

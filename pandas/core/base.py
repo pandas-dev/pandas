@@ -1086,7 +1086,7 @@ class IndexOpsMixin(OpsMixin):
             self,
             sort=sort,
             ascending=ascending,
-            normalize=normalize,
+            normalize: Union[bool, str] = False,
             bins=bins,
             dropna=dropna,
         )
