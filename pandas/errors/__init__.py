@@ -76,6 +76,12 @@ class UnsupportedFunctionCall(ValueError):
 
     For example, ``np.cumsum(groupby_object)``.
 
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+    Series.groupby : Group Series using a mapper or by a Series of columns.
+    core.groupby.GroupBy.cumsum : Compute cumulative sum for each group.
+
     Examples
     --------
     >>> df = pd.DataFrame(
@@ -423,6 +429,11 @@ class DataError(Exception):
     For example, calling ``ohlc`` on a non-numerical column or a function
     on a rolling window.
 
+    See Also
+    --------
+    Series.rolling : Provide rolling window calculations on Series object.
+    DataFrame.rolling : Provide rolling window calculations on DataFrame object.
+
     Examples
     --------
     >>> ser = pd.Series(["a", "b", "c"])
@@ -443,6 +454,11 @@ class SpecificationError(Exception):
 
     The second way is calling ``agg`` on a Dataframe with duplicated functions
     names without assigning column name.
+
+    See Also
+    --------
+    DataFrame.agg : Aggregate using one or more operations over the specified axis.
+    Series.agg : Aggregate using one or more operations over the specified axis.
 
     Examples
     --------
@@ -586,6 +602,14 @@ class CSSWarning(UserWarning):
     This can be due to the styling not having an equivalent value or because the
     styling isn't properly formatted.
 
+    See Also
+    --------
+    DataFrame.style : Returns a Styler object for applying CSS-like styles.
+    io.formats.style.Styler : Helps style a DataFrame or Series according to the
+        data with HTML and CSS.
+    io.formats.style.Styler.to_excel : Export styled DataFrame to Excel.
+    io.formats.style.Styler.to_html : Export styled DataFrame to HTML.
+
     Examples
     --------
     >>> df = pd.DataFrame({"A": [1, 1, 1]})
@@ -686,6 +710,10 @@ class PossiblePrecisionLoss(Warning):
     When the column value is outside or equal to the int64 value the column is
     converted to a float64 dtype.
 
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
     Examples
     --------
     >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
@@ -725,6 +753,15 @@ class InvalidColumnName(Warning):
 class CategoricalConversionWarning(Warning):
     """
     Warning is raised when reading a partial labeled Stata file using a iterator.
+
+    This warning helps ensure data integrity and alerts users to potential issues
+    during the incremental reading of Stata files with labeled data, allowing for
+    additional checks and adjustments as necessary.
+
+    See Also
+    --------
+    read_stata : Read a Stata file into a DataFrame.
+    Categorical : Represents a categorical variable in pandas.
 
     Examples
     --------
