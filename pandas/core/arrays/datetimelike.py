@@ -1498,12 +1498,14 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         from pandas.core.arrays import DatetimeArray
 
         datetime_result = self - other
-        if isinstance(datetime_result, DatetimeArray):
-            raise TypeError(
-                "TypeError: unsupported operand type(s) for -: "
-                f"'{type(self).__name__}' and '{type(other).__name__}'"
-            )
-        return -(datetime_result)
+        try:
+            return -(datetime_result)
+        except TypeError as e:
+            if isinstance(datetime_result, DatetimeArray):
+                raise TypeError(
+                    "Unsupported operand type(s) for -: "
+                    f"'{type(self).__name__}' and '{type(other).__name__}'"
+                ) from e
 
     def __iadd__(self, other) -> Self:
         result = self + other
