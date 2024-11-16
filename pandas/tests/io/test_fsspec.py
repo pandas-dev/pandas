@@ -176,7 +176,6 @@ def test_excel_options(fsspectest):
     assert fsspectest.test[0] == "read"
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_to_parquet_new_file(cleared_fs, df1):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")
