@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Union,
     cast,
     final,
     overload,
