@@ -118,7 +118,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Fixed bug in :meth:`Index.get_indexer` round-tripping through string dtype when ``infer_string`` is enabled (:issue:`55834`)
 -
 
 Missing
