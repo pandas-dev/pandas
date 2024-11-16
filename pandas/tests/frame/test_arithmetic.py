@@ -11,8 +11,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -2101,12 +2099,21 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_mixed_col_index_dtype():
+def test_mixed_col_index_dtype(any_string_dtype):
     # GH 47382
-    df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
-    df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
-    df1.columns = df2.columns.astype("string")
+    df1 = DataFrame(
+        columns=Index(list("abc"), dtype=any_string_dtype), data=1.0, index=[0]
+    )
+    df2 = DataFrame(columns=Index(list("abc"), dtype="object"), data=0.0, index=[0])
+
     result = df1 + df2
-    expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    expected = DataFrame(
+        columns=Index(list("abc"), dtype=any_string_dtype), data=1.0, index=[0]
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df2 + df1
+    expected = DataFrame(
+        columns=Index(list("abc"), dtype="object"), data=1.0, index=[0]
+    )
     tm.assert_frame_equal(result, expected)
