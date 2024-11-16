@@ -412,7 +412,7 @@ def test_large_string():
     pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
-    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    expected = pd.DataFrame({"a": ["x"]}, dtype="str")
     tm.assert_frame_equal(result, expected)
 
 
