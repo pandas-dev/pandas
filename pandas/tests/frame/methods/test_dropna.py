@@ -4,8 +4,6 @@ import dateutil
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -184,13 +182,11 @@ class TestDataFrameMissingData:
         with pytest.raises(TypeError, match="supplying multiple axes"):
             inp.dropna(how="all", axis=(0, 1), inplace=True)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_dropna_tz_aware_datetime(self):
         # GH13407
-        df = DataFrame()
         dt1 = datetime.datetime(2015, 1, 1, tzinfo=dateutil.tz.tzutc())
         dt2 = datetime.datetime(2015, 2, 2, tzinfo=dateutil.tz.tzutc())
-        df["Time"] = [dt1]
+        df = DataFrame({"Time": [dt1]})
         result = df.dropna(axis=0)
         expected = DataFrame({"Time": [dt1]})
         tm.assert_frame_equal(result, expected)
