@@ -1174,7 +1174,6 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-    @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
     def test_basic(self, fp, df_full):
         pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
@@ -1213,10 +1212,6 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg)
 
-    @pytest.mark.xfail(
-        Version(np.__version__) >= Version("2.0.0"),
-        reason="fastparquet uses np.float_ in numpy2",
-    )
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
@@ -1331,9 +1326,6 @@ class TestParquetFastParquet(Base):
         expected = df.copy()
         check_round_trip(df, fp, expected=expected)
 
-    @pytest.mark.xfail(
-        reason="fastparquet bug, see https://github.com/dask/fastparquet/issues/929"
-    )
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
         idx = 5 * [timezone_aware_date_list]
 
