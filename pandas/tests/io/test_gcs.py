@@ -7,6 +7,8 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.pyarrow import pa_version_under17p0
 
 from pandas import (
@@ -194,6 +196,7 @@ def test_to_csv_compression_encoding_gcs(
     tm.assert_frame_equal(df, read_df)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")

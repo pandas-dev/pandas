@@ -1351,7 +1351,9 @@ class TestParquetFastParquet(Base):
     def test_timezone_aware_index(self, fp, timezone_aware_date_list, request):
         import fastparquet
 
-        if Version(fastparquet.__version__) < Version("2024.11.0"):
+        if Version(fastparquet.__version__) > Version("2022.12") and Version(
+            fastparquet.__version__
+        ) < Version("2024.11.0"):
             request.applymarker(
                 pytest.mark.xfail(
                     reason=(
