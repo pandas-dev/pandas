@@ -366,14 +366,12 @@ class TestRoundTrip:
                 names=["date", "category"],
             ),
         )
-        if tmp_excel.endswith(".ods"):
-            expected.index = expected.index.set_levels(
-                expected.index.levels[0].astype("datetime64[s]"), level=0
-            )
-        else:
-            expected.index = expected.index.set_levels(
-                expected.index.levels[0].astype("datetime64[us]"), level=0
-            )
+        time_format = (
+            "datetime64[s]" if tmp_excel.endswith(".ods") else "datetime64[us]"
+        )
+        expected.index = expected.index.set_levels(
+            expected.index.levels[0].astype(time_format), level=0
+        )
 
         tm.assert_frame_equal(result, expected)
 

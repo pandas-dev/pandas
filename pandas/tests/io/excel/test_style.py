@@ -352,7 +352,7 @@ def test_format_hierarchical_rows_periodindex(merge_cells):
         ),
     )
     formatter = ExcelFormatter(df, merge_cells=merge_cells)
-    formatted_cells = list(formatter._format_hierarchical_rows())
+    formatted_cells = formatter._format_hierarchical_rows()
 
     for cell in formatted_cells:
         assert not isinstance(
