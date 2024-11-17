@@ -13,8 +13,6 @@ import uuid
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -1387,12 +1385,11 @@ class TestExcelWriter:
         result = pd.read_excel(tmp_excel, index_col=0)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_path_path_lib(self, engine, ext):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         writer = partial(df.to_excel, engine=engine)
 
