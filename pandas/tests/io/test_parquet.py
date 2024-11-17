@@ -1187,16 +1187,7 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-    def test_basic(self, fp, df_full, request):
-        import fastparquet
-
-        if Version(fastparquet.__version__) < Version("2024.11.0"):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=("datetime_with_nat gets incorrect values"),
-                )
-            )
-
+    def test_basic(self, fp, df_full):
         df = df_full
 
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
