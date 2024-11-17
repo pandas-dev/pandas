@@ -1174,9 +1174,17 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-    @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
-    def test_basic(self, fp, df_full):
+    def test_basic(self, fp, df_full, request):
         pytz = pytest.importorskip("pytz")
+        import fastparquet
+
+        if Version(fastparquet.__version__) < Version("2024.11.0"):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=("datetime_with_nat gets incorrect values"),
+                )
+            )
+
         tz = pytz.timezone("US/Eastern")
         df = df_full
 
@@ -1213,11 +1221,17 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg)
 
-    @pytest.mark.xfail(
-        Version(np.__version__) >= Version("2.0.0"),
-        reason="fastparquet uses np.float_ in numpy2",
-    )
-    def test_bool_with_none(self, fp):
+    def test_bool_with_none(self, fp, request):
+        import fastparquet
+
+        if Version(fastparquet.__version__) < Version("2024.11.0") and Version(
+            np.__version__
+        ) >= Version("2.0.0"):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=("fastparquet uses np.float_ in numpy2"),
+                )
+            )
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
         # Fastparquet bug in 0.7.1 makes it so that this dtype becomes
@@ -1331,10 +1345,19 @@ class TestParquetFastParquet(Base):
         expected = df.copy()
         check_round_trip(df, fp, expected=expected)
 
-    @pytest.mark.xfail(
-        reason="fastparquet bug, see https://github.com/dask/fastparquet/issues/929"
-    )
-    def test_timezone_aware_index(self, fp, timezone_aware_date_list):
+    def test_timezone_aware_index(self, fp, timezone_aware_date_list, request):
+        import fastparquet
+
+        if Version(fastparquet.__version__) < Version("2024.11.0"):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=(
+                        "fastparquet bug, see "
+                        "https://github.com/dask/fastparquet/issues/929"
+                    ),
+                )
+            )
+
         idx = 5 * [timezone_aware_date_list]
 
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
