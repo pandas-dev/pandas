@@ -39,6 +39,7 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
+from pandas.testing import assert_frame_equal
 from pandas.util.version import Version
 
 from pandas.io import sql
@@ -4352,3 +4353,94 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+@pytest.mark.db
+def test_exists_temporary_table(mysql_pymysql_engine):
+    df_true = DataFrame(
+        {
+            "id": [1, 2],
+            "name": ["Siegfried", "Isolde"],
+        }
+    )
+
+    pandas_sql = pandasSQL_builder(
+        mysql_pymysql_engine, schema=None, need_transaction=True
+    )
+    table = sql.SQLTable(
+        name="DF_TRUE",
+        pandas_sql_engine=pandas_sql,
+        frame=df_true,
+        index=False,
+        if_exists="fail",
+        prefixes=["TEMPORARY"],
+    )
+
+    table.create()
+
+    assert True if table.exists() else False
+
+
+@pytest.mark.db
+def test_to_sql_temporary_table_replace(mysql_pymysql_engine):
+    from sqlalchemy import text
+
+    df_true = DataFrame(
+        {
+            "id": [1, 2],
+            "name": ["Siegried", "Isolde"],
+        }
+    )
+
+    query = """
+        CREATE TEMPORARY TABLE DF_TRUE (
+            ID SMALLINT,
+            NAME VARCHAR(20)
+        )
+    """
+
+    with mysql_pymysql_engine.begin() as conn:
+        conn.execute(text(query))
+
+        df_true.to_sql(
+            name="DF_TRUE",
+            con=conn,
+            if_exists="replace",
+            index=False,
+            prefixes=["TEMPORARY"],
+        )
+
+        df_test = pd.read_sql("SELECT * FROM DF_TRUE", conn)
+
+    assert_frame_equal(df_true, df_test)
+
+
+@pytest.mark.db
+def test_to_sql_temporary_table_fail(mysql_pymysql_engine):
+    from sqlalchemy import text
+
+    df_true = DataFrame(
+        {
+            "id": [1, 2],
+            "name": ["Siegfried", "Isolde"],
+        }
+    )
+
+    query = """
+        CREATE TEMPORARY TABLE DF_TRUE (
+            ID SMALLINT,
+            NAME VARCHAR(20)
+        )
+    """
+
+    with mysql_pymysql_engine.begin() as conn:
+        conn.execute(text(query))
+
+        with pytest.raises(ValueError, match=r"Table 'DF_TRUE' already exists."):
+            df_true.to_sql(
+                name="DF_TRUE",
+                con=conn,
+                if_exists="fail",
+                index=False,
+                prefixes=["TEMPORARY"],
+            )

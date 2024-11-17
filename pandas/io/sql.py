@@ -30,6 +30,7 @@ from typing import (
 import warnings
 
 import numpy as np
+from sqlalchemy.exc import ProgrammingError
 
 from pandas._config import using_string_dtype
 
@@ -966,8 +967,30 @@ class SQLTable(PandasObject):
         if not len(self.name):
             raise ValueError("Empty table name specified")
 
+    def _drop_temporary_table(self):
+        if self.schema is None:
+            query = f"DROP TABLE {self.name}"
+        else:
+            query = f"DROP TABLE {self.schema}.{self.name}"
+        self.pd_sql.execute(query)
+
+    def _exists_temporary(self):
+        if self.schema is None:
+            query = f"SELECT * FROM {self.name} LIMIT 1"
+        else:
+            query = f"SELECT * FROM {self.schema}.{self.name} LIMIT 1"
+        try:
+            _ = self.pd_sql.read_query(query)
+            return True
+        except ProgrammingError:
+            print("doesn't exist")
+            return False
+
     def exists(self):
-        return self.pd_sql.has_table(self.name, self.schema)
+        if self.is_temporary:
+            return self._exists_temporary()
+        else:
+            return self.pd_sql.has_table(self.name, self.schema)
 
     def sql_schema(self) -> str:
         from sqlalchemy.schema import CreateTable
@@ -985,7 +1008,10 @@ class SQLTable(PandasObject):
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
             if self.if_exists == "replace":
-                self.pd_sql.drop_table(self.name, self.schema)
+                if self.is_temporary:
+                    self._drop_temporary_table()
+                else:
+                    self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
             elif self.if_exists == "append":
                 pass
@@ -1279,7 +1305,7 @@ class SQLTable(PandasObject):
         # At this point, attach to new metadata, only attach to self.meta
         # once table is created.
         meta = MetaData()
-        return Table(self.name, meta, *columns, schema=schema)
+        return Table(self.name, meta, *columns, schema=schema, prefixes=self.prefixes)
 
     def _harmonize_columns(
         self,
