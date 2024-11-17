@@ -998,7 +998,9 @@ class SQLTable(PandasObject):
 
     def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
-        self.table = self.table.to_metadata(self.pd_sql.meta)
+        if not self.is_temporary:
+            # only insert into meta data, if table is not temporary
+            self.table = self.table.to_metadata(self.pd_sql.meta)
         with self.pd_sql.run_transaction():
             self.table.create(bind=self.pd_sql.con)
 

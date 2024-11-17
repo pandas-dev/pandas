@@ -17,6 +17,8 @@ import uuid
 
 import numpy as np
 import pytest
+from sqlalchemy import text
+from sqlalchemy.engine import Connection
 
 from pandas._config import using_string_dtype
 
@@ -4355,22 +4357,15 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-@pytest.mark.db
-def test_exists_temporary_table(mysql_pymysql_engine):
-    df_true = DataFrame(
-        {
-            "id": [1, 2],
-            "name": ["Siegfried", "Isolde"],
-        }
-    )
+@pytest.mark.parametrize("conn", mysql_connectable)
+def test_exists_temporary_table(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
 
-    pandas_sql = pandasSQL_builder(
-        mysql_pymysql_engine, schema=None, need_transaction=True
-    )
+    pandas_sql = pandasSQL_builder(conn, schema=None, need_transaction=True)
     table = sql.SQLTable(
-        name="DF_TRUE",
+        name="test_frame1",
         pandas_sql_engine=pandas_sql,
-        frame=df_true,
+        frame=test_frame1,
         index=False,
         if_exists="fail",
         prefixes=["TEMPORARY"],
@@ -4381,66 +4376,66 @@ def test_exists_temporary_table(mysql_pymysql_engine):
     assert True if table.exists() else False
 
 
-@pytest.mark.db
-def test_to_sql_temporary_table_replace(mysql_pymysql_engine):
-    from sqlalchemy import text
-
-    df_true = DataFrame(
-        {
-            "id": [1, 2],
-            "name": ["Siegried", "Isolde"],
-        }
-    )
+@pytest.mark.parametrize("conn", mysql_connectable)
+def test_to_sql_temporary_table_replace(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
 
     query = """
-        CREATE TEMPORARY TABLE DF_TRUE (
-            ID SMALLINT,
-            NAME VARCHAR(20)
+        CREATE TEMPORARY TABLE test_frame1 (
+            `INDEX` TEXT,
+            A FLOAT(53),
+            B FLOAT(53),
+            C FLOAT(53),
+            D FLOAT(53)
         )
     """
 
-    with mysql_pymysql_engine.begin() as conn:
-        conn.execute(text(query))
+    if isinstance(conn, Connection):
+        con = conn
+    else:
+        con = conn.connect()
 
-        df_true.to_sql(
-            name="DF_TRUE",
-            con=conn,
-            if_exists="replace",
+    con.execute(text(query))
+
+    test_frame1.to_sql(
+        name="test_frame1",
+        con=con,
+        if_exists="replace",
+        index=False,
+        prefixes=["TEMPORARY"],
+    )
+
+    df_test = pd.read_sql("SELECT * FROM test_frame1", con)
+
+    assert_frame_equal(test_frame1, df_test)
+
+
+@pytest.mark.parametrize("conn", mysql_connectable)
+def test_to_sql_temporary_table_fail(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+
+    query = """
+        CREATE TEMPORARY TABLE test_frame1 (
+            `INDEX` TEXT,
+            A FLOAT(53),
+            B FLOAT(53),
+            C FLOAT(53),
+            D FLOAT(53)
+        )
+    """
+
+    if isinstance(conn, Connection):
+        con = conn
+    else:
+        con = conn.connect()
+
+    con.execute(text(query))
+
+    with pytest.raises(ValueError, match=r"Table 'test_frame1' already exists."):
+        test_frame1.to_sql(
+            name="test_frame1",
+            con=con,
+            if_exists="fail",
             index=False,
             prefixes=["TEMPORARY"],
         )
-
-        df_test = pd.read_sql("SELECT * FROM DF_TRUE", conn)
-
-    assert_frame_equal(df_true, df_test)
-
-
-@pytest.mark.db
-def test_to_sql_temporary_table_fail(mysql_pymysql_engine):
-    from sqlalchemy import text
-
-    df_true = DataFrame(
-        {
-            "id": [1, 2],
-            "name": ["Siegfried", "Isolde"],
-        }
-    )
-
-    query = """
-        CREATE TEMPORARY TABLE DF_TRUE (
-            ID SMALLINT,
-            NAME VARCHAR(20)
-        )
-    """
-
-    with mysql_pymysql_engine.begin() as conn:
-        conn.execute(text(query))
-
-        with pytest.raises(ValueError, match=r"Table 'DF_TRUE' already exists."):
-            df_true.to_sql(
-                name="DF_TRUE",
-                con=conn,
-                if_exists="fail",
-                index=False,
-                prefixes=["TEMPORARY"],
-            )
