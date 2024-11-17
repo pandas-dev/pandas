@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-
-from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -11,7 +8,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_pipe():
     # Test the pipe method of DataFrameGroupBy.
     # Issue #17871
@@ -39,7 +35,7 @@ def test_pipe():
     # NDFrame.pipe methods
     result = df.groupby("A").pipe(f).pipe(square)
 
-    index = Index(["bar", "foo"], dtype="object", name="A")
+    index = Index(["bar", "foo"], name="A")
     expected = pd.Series([3.749306591013693, 6.717707873081384], name="B", index=index)
 
     tm.assert_series_equal(expected, result)

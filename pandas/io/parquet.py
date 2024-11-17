@@ -15,22 +15,19 @@ from warnings import (
     filterwarnings,
 )
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
-import pandas as pd
 from pandas import (
     DataFrame,
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io._util import arrow_string_types_mapper
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
     IOHandles,
     get_handle,
@@ -249,17 +246,6 @@ class PyArrowImpl(BaseImpl):
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        to_pandas_kwargs = {}
-        if dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping()
-            to_pandas_kwargs["types_mapper"] = mapping.get
-        elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
-        elif using_string_dtype():
-            to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
-
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
@@ -280,7 +266,7 @@ class PyArrowImpl(BaseImpl):
                     "make_block is deprecated",
                     DeprecationWarning,
                 )
-                result = pa_table.to_pandas(**to_pandas_kwargs)
+                result = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
