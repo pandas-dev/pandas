@@ -191,6 +191,7 @@ except ImportError:
 
 
 # module level doc-string
+__version__ = "3.0.0"
 __doc__ = """
 pandas - a powerful data analysis and manipulation library for Python
 =====================================================================

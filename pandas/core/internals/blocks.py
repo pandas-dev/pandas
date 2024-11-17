@@ -108,6 +108,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -1336,7 +1337,7 @@ class Block(PandasObject, libinternals.Block):
             return [self.copy(deep=False)]
 
         if limit is not None:
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
+            mask[mask.cumsum(self.values.ndim - 1) > limit] = False
 
         if inplace:
             nbs = self.putmask(mask.T, value)
@@ -1684,9 +1685,16 @@ class EABackedBlock(Block):
             res_values = arr._where(cond, other).T
         except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
-                if isinstance(self.dtype, IntervalDtype):
+                if isinstance(self.dtype, (IntervalDtype, StringDtype)):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other, raise_on_upcast=False)
+                    if (
+                        self.ndim == 2
+                        and isinstance(orig_cond, np.ndarray)
+                        and orig_cond.ndim == 1
+                        and not is_1d_only_ea_dtype(blk.dtype)
+                    ):
+                        orig_cond = orig_cond[:, None]
                     return blk.where(orig_other, orig_cond)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
@@ -1854,9 +1862,9 @@ class ExtensionBlock(EABackedBlock):
         limit: int | None = None,
         inplace: bool = False,
     ) -> list[Block]:
-        if isinstance(self.dtype, IntervalDtype):
+        if isinstance(self.dtype, (IntervalDtype, StringDtype)):
             # Block.fillna handles coercion (test_fillna_interval)
-            if limit is not None:
+            if isinstance(self.dtype, IntervalDtype) and limit is not None:
                 raise ValueError("limit must be None")
             return super().fillna(
                 value=value,
