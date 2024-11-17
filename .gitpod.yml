@@ -23,6 +23,8 @@ tasks:
     command: |
       echo "running:  python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true" 2>&1 | tee -a setup.log
       python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true 2>&1 | tee -a setup.log
+      echo "removing: _version_meson.py"
+      rm -f build/cp310/_version_meson.py
       echo "✨ Pre-build complete! You can close this terminal ✨ " 2>&1 | tee -a setup.log
 
 # --------------------------------------------------------
