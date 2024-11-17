@@ -970,7 +970,7 @@ class IndexOpsMixin(OpsMixin):
 
     def value_counts(
         self,
-        normalize: bool = False,
+        normalize: Union[bool, str] = False,
         sort: bool = True,
         ascending: bool = False,
         bins=None,
@@ -1087,7 +1087,7 @@ class IndexOpsMixin(OpsMixin):
             self,
             sort=sort,
             ascending=ascending,
-            normalize: Union[bool, str] = False,
+            normalize=normalize,
             bins=bins,
             dropna=dropna,
         )
