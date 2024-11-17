@@ -983,7 +983,6 @@ class SQLTable(PandasObject):
             _ = self.pd_sql.read_query(query)
             return True
         except ProgrammingError:
-            print("doesn't exist")
             return False
 
     def exists(self):
