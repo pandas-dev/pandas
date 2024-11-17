@@ -3299,27 +3299,24 @@ class TestLocSeries:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
-        "df, row_index, col_index, setting_series, expected_df",
+        "df, row_index, col_index, expected_df",
         [
             [
                 DataFrame([[1, 2, 3], [4, 5, 6]], columns=list("ABC")),
                 slice(0, 3),
                 ["A", "B", "C"],
-                Series([10, 20, 30]),
                 DataFrame([[10, 10, 10], [20, 20, 20]], columns=list("ABC")),
             ],
             [
                 DataFrame([[1, 2, 3], [4, 5, 6]], columns=list("ABC")),
                 slice(None),
                 ["A", "B", "C"],
-                Series([10, 20, 30]),
                 DataFrame([[10, 10, 10], [20, 20, 20]], columns=list("ABC")),
             ],
             [
                 DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC")),
                 [True, True, True],
                 ["A", "B", "C"],
-                Series([10, 20, 30]),
                 DataFrame(
                     [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
                 ),
@@ -3328,7 +3325,6 @@ class TestLocSeries:
                 DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC")),
                 slice(0, 4),
                 ["A", "B", "C"],
-                Series([10, 20, 30]),
                 DataFrame(
                     [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
                 ),
@@ -3337,7 +3333,6 @@ class TestLocSeries:
                 DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC")),
                 slice(None),
                 slice("A", "C"),
-                Series([10, 20, 30]),
                 DataFrame(
                     [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
                 ),
@@ -3345,8 +3340,8 @@ class TestLocSeries:
         ],
     )
     def test_loc_set_series_to_multiple_columns(
-        self, df, row_index, col_index, setting_series, expected_df
+        self, df, row_index, col_index, expected_df
     ):
         # GH 59933
-        df.loc[row_index, col_index] = setting_series
+        df.loc[row_index, col_index] = Series([10, 20, 30])
         tm.assert_frame_equal(df, expected_df)
