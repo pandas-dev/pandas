@@ -48,6 +48,8 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
 
+- The `to_latex` is now fixed for hidden multiindex dataframes (:issue:`52218`)
+
 notable_bug_fix1
 ^^^^^^^^^^^^^^^^
 
