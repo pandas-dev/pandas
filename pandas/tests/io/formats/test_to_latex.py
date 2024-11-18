@@ -1408,10 +1408,12 @@ class TestToLatexMultiindex:
 
     def test_to_latex_multiindex_format_single_index_hidden(self):
         # GH 52218
-        df = pd.DataFrame({
-            "A": [1, 2],
-            "B": [4, 5],
-        })
+        df = DataFrame(
+            {
+                "A": [1, 2],
+                "B": [4, 5],
+            }
+        )
         result = (
             df.style.hide(axis="index")
             .map_index(lambda v: "textbf:--rwrap;", axis="columns")
@@ -1423,8 +1425,7 @@ class TestToLatexMultiindex:
             1 & 4 \\
             2 & 5 \\
             \end{tabular}
-            """
-        )
+            """)
         assert result == expected
 
     def test_to_latex_multiindex_format_triple_index_two_hidden(self):
@@ -1434,11 +1435,13 @@ class TestToLatexMultiindex:
             ["one", "two", "one", "two"],
             ["x", "x", "y", "y"],
         ]
-        index = pd.MultiIndex.from_arrays(arrays, names=["Level 0", "Level 1", "Level 2"])
-        df = pd.DataFrame(
-            [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], 
-            index=index, 
-            columns=["C1", "C2", "C3"]
+        index = pd.MultiIndex.from_arrays(
+            arrays, names=["Level 0", "Level 1", "Level 2"]
+        )
+        df = DataFrame(
+            [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            index=index,
+            columns=["C1", "C2", "C3"],
         )
         result = (
             df.style.hide(axis="index", level=[0, 1])
@@ -1454,8 +1457,7 @@ class TestToLatexMultiindex:
             y & 0 & 0 & 0 \\
             y & 0 & 0 & 0 \\
             \end{tabular}
-            """
-        )
+            """)
         assert result == expected
 
     def test_to_latex_multiindex_format_triple_index_all_hidden(self):
@@ -1465,11 +1467,13 @@ class TestToLatexMultiindex:
             ["one", "two", "one", "two"],
             ["x", "x", "y", "y"],
         ]
-        index = pd.MultiIndex.from_arrays(arrays, names=["Level 0", "Level 1", "Level 2"])
-        df = pd.DataFrame(
-            [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], 
-            index=index, 
-            columns=["C1", "C2", "C3"]
+        index = pd.MultiIndex.from_arrays(
+            arrays, names=["Level 0", "Level 1", "Level 2"]
+        )
+        df = DataFrame(
+            [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            index=index,
+            columns=["C1", "C2", "C3"],
         )
         result = (
             df.style.hide(axis="index", level=[0, 1, 2])
@@ -1484,6 +1488,5 @@ class TestToLatexMultiindex:
             0 & 0 & 0 \\
             0 & 0 & 0 \\
             \end{tabular}
-            """
-        )
+            """)
         assert result == expected
