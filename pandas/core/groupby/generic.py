@@ -32,6 +32,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -108,6 +109,7 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
+@set_module("pandas")
 class NamedAgg(NamedTuple):
     """
     Helper for column specific aggregation with control over output column names.
@@ -142,6 +144,7 @@ class NamedAgg(NamedTuple):
     aggfunc: AggScalar
 
 
+@set_module("pandas.api.typing")
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
         out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
@@ -1555,6 +1558,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
 
+@set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
     _agg_examples_doc = dedent(
         """
