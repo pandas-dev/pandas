@@ -603,9 +603,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtypes = self.dtypes
         return {
             clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=dtypes[k]
+                v, copy=False, index=self.index, name=k, dtype=dtype
             ).__finalize__(self)
-            for k, v in zip(self.columns, self._iter_column_arrays())
+            for k, v, dtype in zip(self.columns, self._iter_column_arrays(), dtypes)
             if not isinstance(k, int)
         }
 
@@ -2014,6 +2014,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __array__(
         self, dtype: npt.DTypeLike | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if copy is False and not self._mgr.is_single_block and not self.empty:
+            # check this manually, otherwise ._values will already return a copy
+            # and np.array(values, copy=False) will not raise an error
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
         values = self._values
         if copy is None:
             # Note: branch avoids `copy=None` for NumPy 1.x support
@@ -2205,8 +2211,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             via the options ``io.excel.xlsx.writer`` or
             ``io.excel.xlsm.writer``.
 
-        merge_cells : bool, default True
-            Write MultiIndex and Hierarchical Rows as merged cells.
+        merge_cells : bool or 'columns', default False
+            If True, write MultiIndex index and columns as merged cells.
+            If 'columns', merge MultiIndex column cells only.
         {encoding_parameter}
         inf_rep : str, default 'inf'
             Representation for infinity (there is no native representation for
@@ -7662,8 +7669,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
             * 'time': Works on daily and higher resolution data to interpolate
-              given length of interval.
-            * 'index', 'values': use the actual numerical values of the index.
+              given length of interval. This interpolates values based on
+              time interval between observations.
+            * 'index': The interpolation uses the numerical values
+              of the DataFrame's index to linearly calculate missing values.
+            * 'values': Interpolation based on the numerical values
+              in the DataFrame, treating them as equally spaced along the index.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
@@ -8018,7 +8029,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     np.nan, index=self.columns, name=where[0]
                 )
 
-        locs = self.index.asof_locs(where, ~(nulls._values))
+        # error: Unsupported operand type for
+        # ~ ("ExtensionArray | ndarray[Any, Any] | Any")
+        locs = self.index.asof_locs(where, ~nulls._values)  # type: ignore[operator]
 
         # mask the missing
         mask = locs == -1

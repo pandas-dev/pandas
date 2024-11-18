@@ -1145,7 +1145,7 @@ class ArrowExtensionArray(
         try:
             fill_value = self._box_pa(value, pa_type=self._pa_array.type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{value!s}' for dtype {self.dtype}"
+            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
 
         try:
@@ -1644,7 +1644,11 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
-        result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+        try:
+            result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+        except pa.ArrowNotImplementedError as err:
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg) from err
 
         if convert_to_int:
             result = result.cast(pa_dtype)
@@ -2136,7 +2140,7 @@ class ArrowExtensionArray(
         try:
             value = self._box_pa(value, self._pa_array.type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{value!s}' for dtype {self.dtype}"
+            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
         return value
 
@@ -2312,6 +2316,20 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         if isinstance(self.dtype, StringDtype):
+            if how in [
+                "prod",
+                "mean",
+                "median",
+                "cumsum",
+                "cumprod",
+                "std",
+                "sem",
+                "var",
+                "skew",
+            ]:
+                raise TypeError(
+                    f"dtype '{self.dtype}' does not support operation '{how}'"
+                )
             return super()._groupby_op(
                 how=how,
                 has_dropped_na=has_dropped_na,
