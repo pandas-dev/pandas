@@ -467,7 +467,9 @@ def to_parquet(
         .. versionadded:: 2.1.0
 
     kwargs
-        Additional keyword arguments passed to the engine
+        Additional keyword arguments passed to the engine.
+        When using the ``'pyarrow'`` engine ``to_pandas_kwargs`` can be used to pass
+        through arguments to ``pyarrow.Table.to_pandas``.
 
     Returns
     -------
