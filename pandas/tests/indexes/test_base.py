@@ -8,12 +8,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import (
-    HAS_PYARROW,
-    IS64,
-)
+from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
@@ -76,9 +71,6 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_constructor_copy(self, using_infer_string):
         index = Index(list("abc"), name="name")
         arr = np.array(index)
@@ -343,11 +335,6 @@ class TestIndex:
     def test_view_with_args(self, index):
         index.view("i8")
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     @pytest.mark.parametrize(
         "index",
         [
@@ -364,7 +351,8 @@ class TestIndex:
             msg = "When changing to a larger dtype"
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
-        elif index.dtype == "string":
+        elif index.dtype == "str" and not index.dtype.storage == "python":
+            # TODO(infer_string): Make the errors consistent
             with pytest.raises(NotImplementedError, match="i8"):
                 index.view("i8")
         else:
@@ -830,11 +818,6 @@ class TestIndex:
         expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     def test_isin_nan_common_object(
         self, nulls_fixture, nulls_fixture2, using_infer_string
     ):
@@ -940,10 +923,9 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
-    @td.skip_if_no("pyarrow")
-    def test_isin_arrow_string_null(self):
+    def test_isin_string_null(self, string_dtype_no_object):
         # GH#55821
-        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        index = Index(["a", "b"], dtype=string_dtype_no_object)
         result = index.isin([None])
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -1643,7 +1625,7 @@ def test_generated_op_names(opname, index):
         partial(DatetimeIndex, data=["2020-01-01"]),
         partial(PeriodIndex, data=["2020-01-01"]),
         partial(TimedeltaIndex, data=["1 day"]),
-        partial(RangeIndex, data=range(1)),
+        partial(RangeIndex, start=range(1)),
         partial(IntervalIndex, data=[pd.Interval(0, 1)]),
         partial(Index, data=["a"], dtype=object),
         partial(MultiIndex, levels=[1], codes=[0]),

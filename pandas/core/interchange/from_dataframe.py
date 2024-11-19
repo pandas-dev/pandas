@@ -9,6 +9,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_string_dtype
+
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -60,6 +62,13 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
+        A pandas DataFrame built from the provided interchange
+        protocol object.
+
+    See Also
+    --------
+    pd.DataFrame : DataFrame class which can be created from various input data
+        formats, including objects that support the interchange protocol.
 
     Examples
     --------
@@ -140,8 +149,6 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     -------
     pd.DataFrame
     """
-    # We need a dict of columns here, with each column being a NumPy array (at
-    # least for now, deal with non-NumPy dtypes later).
     columns: dict[str, Any] = {}
     buffers = []  # hold on to buffers, keeps memory alive
     for name in df.column_names():
@@ -340,8 +347,12 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
         # Add to our list of strings
         str_list[i] = string
 
-    # Convert the string list to a NumPy array
-    return np.asarray(str_list, dtype="object"), buffers
+    if using_string_dtype():
+        res = pd.Series(str_list, dtype="str")
+    else:
+        res = np.asarray(str_list, dtype="object")  # type: ignore[assignment]
+
+    return res, buffers  # type: ignore[return-value]
 
 
 def parse_datetime_format_str(format_str, data) -> pd.Series | np.ndarray:

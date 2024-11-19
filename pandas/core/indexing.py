@@ -212,7 +212,7 @@ class IndexingMixin:
         With a scalar integer.
 
         >>> type(df.iloc[0])
-        <class 'pandas.core.series.Series'>
+        <class 'pandas.Series'>
         >>> df.iloc[0]
         a    1
         b    2
@@ -914,7 +914,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
-        iloc = self if self.name == "iloc" else self.obj.iloc
+        iloc: _iLocIndexer = (
+            cast("_iLocIndexer", self) if self.name == "iloc" else self.obj.iloc
+        )
         iloc._setitem_with_indexer(indexer, value, self.name)
 
     def _validate_key(self, key, axis: AxisInt) -> None:
@@ -2308,11 +2310,11 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        ilocs: Sequence[int | np.integer] | np.ndarray
+        ilocs: Sequence[int | np.integer] | np.ndarray | range
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ilocs = np.arange(len(self.obj.columns))[column_indexer]
+            ilocs = range(len(self.obj.columns))[column_indexer]
         elif (
             isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
         ):

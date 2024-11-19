@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
   pull_request:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
     paths-ignore:
       - "doc/**"
       - "web/**"
@@ -86,7 +86,6 @@ jobs:
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
       REMOVE_PYARROW: ${{ matrix.name == 'Future infer strings (without pyarrow)' && '1' || '0' }}
@@ -380,7 +379,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python Free-threading Version
-        uses: deadsnakes/action@v3.1.0
+        uses: deadsnakes/action@v3.2.0
         with:
           python-version: 3.13-dev
           nogil: true
@@ -388,8 +387,8 @@ jobs:
       - name: Build Environment
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
-          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython
+          python -m pip install --upgrade pip setuptools wheel numpy meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil pytz tzdata hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"

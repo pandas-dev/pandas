@@ -10,8 +10,6 @@ import unicodedata
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs.timezones import maybe_get_tz
 
 from pandas.core.dtypes.common import (
@@ -556,7 +554,6 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_strftime_dt64_days(self):
         ser = Series(date_range("20130101", periods=5))
         ser.iloc[0] = pd.NaT
@@ -571,7 +568,6 @@ class TestSeriesDatetimeValues:
 
         expected = Index(
             ["2015/03/01", "2015/03/02", "2015/03/03", "2015/03/04", "2015/03/05"],
-            dtype=np.object_,
         )
         # dtype may be S10 or U10 depending on python version
         tm.assert_index_equal(result, expected)
@@ -790,7 +786,8 @@ class TestSeriesPeriodValuesDtAccessor:
         # GH#17157
         # Check that the time part of the Period is adjusted by end_time
         # when using the dt accessor on a Series
-        input_vals = PeriodArray._from_sequence(np.asarray(input_vals))
+        dtype = pd.PeriodDtype(input_vals[0].freq)
+        input_vals = PeriodArray._from_sequence(np.asarray(input_vals), dtype=dtype)
 
         ser = Series(input_vals)
         result = ser.dt.end_time

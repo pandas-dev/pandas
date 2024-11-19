@@ -1,9 +1,12 @@
 """test feather-format compat"""
 
+from datetime import datetime
 import zoneinfo
 
 import numpy as np
 import pytest
+
+from pandas.compat.pyarrow import pa_version_under18p0
 
 import pandas as pd
 import pandas._testing as tm
@@ -243,5 +246,37 @@ class TestFeather:
         df.to_feather(path)
         with pd.option_context("future.infer_string", True):
             result = read_feather(path)
-        expected = pd.DataFrame(data={"a": ["x", "y"]}, dtype="string[pyarrow_numpy]")
+        expected = pd.DataFrame(
+            data={"a": ["x", "y"]}, dtype=pd.StringDtype(na_value=np.nan)
+        )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(pa_version_under18p0, reason="not supported before 18.0")
+    def test_string_inference_string_view_type(self, tmp_path):
+        # GH#54798
+        import pyarrow as pa
+        from pyarrow import feather
+
+        path = tmp_path / "string_view.parquet"
+        table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
+        feather.write_feather(table, path)
+
+        with pd.option_context("future.infer_string", True):
+            result = read_feather(path)
+
+            expected = pd.DataFrame(
+                data={"a": [None, "b", "c"]}, dtype=pd.StringDtype(na_value=np.nan)
+            )
+        tm.assert_frame_equal(result, expected)
+
+    def test_out_of_bounds_datetime_to_feather(self):
+        # GH#47832
+        df = pd.DataFrame(
+            {
+                "date": [
+                    datetime.fromisoformat("1654-01-01"),
+                    datetime.fromisoformat("1920-01-01"),
+                ],
+            }
+        )
+        self.check_round_trip(df)

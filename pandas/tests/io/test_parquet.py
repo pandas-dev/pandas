@@ -17,7 +17,6 @@ from pandas.compat.pyarrow import (
     pa_version_under13p0,
     pa_version_under15p0,
     pa_version_under17p0,
-    pa_version_under18p0,
 )
 
 import pandas as pd
@@ -974,21 +973,9 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
-    def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
+    def test_timezone_aware_index(self, pa, timezone_aware_date_list):
         pytest.importorskip("pyarrow", "11.0.0")
 
-        if (
-            timezone_aware_date_list.tzinfo != datetime.timezone.utc
-            and pa_version_under18p0
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=(
-                        "pyarrow returns pytz.FixedOffset while pandas "
-                        "constructs datetime.timezone https://github.com/pandas-dev/pandas/issues/37286"
-                    )
-                )
-            )
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 
@@ -1005,6 +992,18 @@ class TestParquetPyArrow(Base):
         expected = df[:]
         if pa_version_under11p0:
             expected.index = expected.index.as_unit("ns")
+        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
+            # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
+            # https://github.com/pandas-dev/pandas/issues/37286
+            try:
+                import pytz
+            except ImportError:
+                pass
+            else:
+                offset = df.index.tz.utcoffset(timezone_aware_date_list)
+                tz = pytz.FixedOffset(offset.total_seconds() / 60)
+                expected.index = expected.index.tz_convert(tz)
+                expected["index_as_col"] = expected["index_as_col"].dt.tz_convert(tz)
         check_round_trip(df, pa, check_dtype=False, expected=expected)
 
     def test_filter_row_groups(self, pa):
@@ -1109,8 +1108,8 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, engine="pyarrow")
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
-            dtype="string[pyarrow_numpy]",
-            index=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+            dtype=pd.StringDtype(na_value=np.nan),
+            index=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1140,8 +1139,8 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path)
         expected = pd.DataFrame(
             data={"a": [None, "b", "c"]},
-            dtype="string[pyarrow_numpy]",
-            columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
+            dtype=pd.StringDtype(na_value=np.nan),
+            columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1189,9 +1188,17 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-    @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
-    def test_basic(self, fp, df_full):
+    def test_basic(self, fp, df_full, request):
         pytz = pytest.importorskip("pytz")
+        import fastparquet
+
+        if Version(fastparquet.__version__) < Version("2024.11.0"):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=("datetime_with_nat gets incorrect values"),
+                )
+            )
+
         tz = pytz.timezone("US/Eastern")
         df = df_full
 
@@ -1228,11 +1235,17 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg)
 
-    @pytest.mark.xfail(
-        Version(np.__version__) >= Version("2.0.0"),
-        reason="fastparquet uses np.float_ in numpy2",
-    )
-    def test_bool_with_none(self, fp):
+    def test_bool_with_none(self, fp, request):
+        import fastparquet
+
+        if Version(fastparquet.__version__) < Version("2024.11.0") and Version(
+            np.__version__
+        ) >= Version("2.0.0"):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=("fastparquet uses np.float_ in numpy2"),
+                )
+            )
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
         # Fastparquet bug in 0.7.1 makes it so that this dtype becomes
@@ -1346,10 +1359,19 @@ class TestParquetFastParquet(Base):
         expected = df.copy()
         check_round_trip(df, fp, expected=expected)
 
-    @pytest.mark.xfail(
-        reason="fastparquet bug, see https://github.com/dask/fastparquet/issues/929"
-    )
-    def test_timezone_aware_index(self, fp, timezone_aware_date_list):
+    def test_timezone_aware_index(self, fp, timezone_aware_date_list, request):
+        import fastparquet
+
+        if Version(fastparquet.__version__) < Version("2024.11.0"):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=(
+                        "fastparquet bug, see "
+                        "https://github.com/dask/fastparquet/issues/929"
+                    ),
+                )
+            )
+
         idx = 5 * [timezone_aware_date_list]
 
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})

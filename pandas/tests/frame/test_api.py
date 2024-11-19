@@ -87,7 +87,7 @@ class TestDataFrameMisc:
         assert isinstance(df.__getitem__("A"), DataFrame)
 
     def test_display_max_dir_items(self):
-        # display.max_dir_items increaes the number of columns that are in __dir__.
+        # display.max_dir_items increases the number of columns that are in __dir__.
         columns = ["a" + str(i) for i in range(420)]
         values = [range(420), range(420)]
         df = DataFrame(values, columns=columns)
@@ -376,6 +376,5 @@ class TestDataFrameMisc:
 
     def test_inspect_getmembers(self):
         # GH38740
-        pytest.importorskip("jinja2")
         df = DataFrame()
         inspect.getmembers(df)

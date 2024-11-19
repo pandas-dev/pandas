@@ -31,9 +31,23 @@ def dtype(string_dtype_arguments):
 
 
 @pytest.fixture
+def dtype2(string_dtype_arguments2):
+    storage, na_value = string_dtype_arguments2
+    return pd.StringDtype(storage=storage, na_value=na_value)
+
+
+@pytest.fixture
 def cls(dtype):
     """Fixture giving array type from parametrized 'dtype'"""
     return dtype.construct_array_type()
+
+
+def test_dtype_constructor():
+    pytest.importorskip("pyarrow")
+
+    with tm.assert_produces_warning(FutureWarning):
+        dtype = pd.StringDtype("pyarrow_numpy")
+    assert dtype == pd.StringDtype("pyarrow", na_value=np.nan)
 
 
 def test_dtype_equality():
@@ -95,17 +109,11 @@ def test_none_to_nan(cls, dtype):
 def test_setitem_validates(cls, dtype):
     arr = cls._from_sequence(["a", "b"], dtype=dtype)
 
-    if dtype.storage == "python":
-        msg = "Cannot set non-string value '10' into a StringArray."
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Invalid value '10' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
-    if dtype.storage == "python":
-        msg = "Must provide strings."
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Invalid value for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 
@@ -441,14 +449,12 @@ def test_astype_float(dtype, any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
     arr = pd.Series(["a", "b", "c"], dtype=dtype)
     result = arr.sum(skipna=skipna)
     assert result == "abc"
 
 
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
     result = arr.sum(skipna=skipna)
@@ -499,10 +505,7 @@ def test_fillna_args(dtype):
     expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
-    if dtype.storage == "pyarrow":
-        msg = "Invalid value '1' for dtype str"
-    else:
-        msg = "Cannot set non-string value '1' into a StringArray."
+    msg = "Invalid value '1' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr.fillna(value=1)
 
@@ -522,7 +525,6 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     # roundtrip possible from arrow 1.0.0
@@ -541,13 +543,16 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         assert result["a"].dtype == "object"
     else:
         assert isinstance(result["a"].dtype, pd.StringDtype)
-        expected = df.astype(f"string[{string_storage}]")
+        expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
         # ensure the missing value is represented by NA and not np.nan or None
         assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     # GH-41040
@@ -569,7 +574,11 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
         assert result["a"].dtype == "object"
     else:
         assert isinstance(result["a"].dtype, pd.StringDtype)
-        expected = df.astype(f"string[{string_storage}]")
+        expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
 
 
@@ -659,11 +668,7 @@ def test_isin(dtype, fixed_now_ts):
     tm.assert_series_equal(result, expected)
 
     result = s.isin(["a", pd.NA])
-    if dtype.storage == "python" and dtype.na_value is np.nan:
-        # TODO(infer_string) we should make this consistent
-        expected = pd.Series([True, False, False])
-    else:
-        expected = pd.Series([True, False, True])
+    expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
     result = s.isin([])
@@ -672,6 +677,35 @@ def test_isin(dtype, fixed_now_ts):
 
     result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
+    tm.assert_series_equal(result, expected)
+
+    result = s.isin([fixed_now_ts])
+    expected = pd.Series([False, False, False])
+    tm.assert_series_equal(result, expected)
+
+
+def test_isin_string_array(dtype, dtype2):
+    s = pd.Series(["a", "b", None], dtype=dtype)
+
+    result = s.isin(pd.array(["a", "c"], dtype=dtype2))
+    expected = pd.Series([True, False, False])
+    tm.assert_series_equal(result, expected)
+
+    result = s.isin(pd.array(["a", None], dtype=dtype2))
+    expected = pd.Series([True, False, True])
+    tm.assert_series_equal(result, expected)
+
+
+def test_isin_arrow_string_array(dtype):
+    pa = pytest.importorskip("pyarrow")
+    s = pd.Series(["a", "b", None], dtype=dtype)
+
+    result = s.isin(pd.array(["a", "c"], dtype=pd.ArrowDtype(pa.string())))
+    expected = pd.Series([True, False, False])
+    tm.assert_series_equal(result, expected)
+
+    result = s.isin(pd.array(["a", None], dtype=pd.ArrowDtype(pa.string())))
+    expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
 
@@ -687,10 +721,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
 
     # for other non-string we should also raise an error
     ser = pd.Series(["a", "b", "c"], dtype=dtype)
-    if dtype.storage == "python":
-        msg = "Cannot set non-string value"
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Invalid value '1' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         ser[mask] = 1
 

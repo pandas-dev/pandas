@@ -32,7 +32,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -771,6 +774,7 @@ def read_csv(
         % "filepath_or_buffer",
     )
 )
+@set_module("pandas")
 def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -906,6 +910,7 @@ def read_table(
         % "filepath_or_buffer",
     )
 )
+@set_module("pandas")
 def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -1023,6 +1028,7 @@ def read_fwf(
 ) -> DataFrame: ...
 
 
+@set_module("pandas")
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -1648,7 +1654,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
             if keep_default_na:
                 v = set(v) | STR_NA_VALUES
 
-            na_values[k] = v
+            na_values[k] = _stringify_na_values(v, floatify)
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):

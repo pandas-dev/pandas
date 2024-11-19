@@ -600,7 +600,7 @@ def multiindex_year_month_day_dataframe_random_data():
     """
     tdf = DataFrame(
         np.random.default_rng(2).standard_normal((100, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=100, freq="B"),
     )
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
@@ -667,7 +667,8 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "string": Index([f"pandas_{i}" for i in range(10)]),
+    "object": Index([f"pandas_{i}" for i in range(10)], dtype=object),
+    "string": Index([f"pandas_{i}" for i in range(10)], dtype="str"),
     "datetime": date_range("2020-01-01", periods=10),
     "datetime-tz": date_range("2020-01-01", periods=10, tz="US/Pacific"),
     "period": period_range("2020-01-01", periods=10, freq="D"),
@@ -786,7 +787,7 @@ def string_series() -> Series:
     """
     return Series(
         np.arange(30, dtype=np.float64) * 1.1,
-        index=Index([f"i_{i}" for i in range(30)], dtype=object),
+        index=Index([f"i_{i}" for i in range(30)]),
         name="series",
     )
 
@@ -797,7 +798,7 @@ def object_series() -> Series:
     Fixture for Series of dtype object with Index of unique strings
     """
     data = [f"foo_{i}" for i in range(30)]
-    index = Index([f"bar_{i}" for i in range(30)], dtype=object)
+    index = Index([f"bar_{i}" for i in range(30)])
     return Series(data, index=index, name="objects", dtype=object)
 
 
@@ -889,8 +890,8 @@ def int_frame() -> DataFrame:
     """
     return DataFrame(
         np.ones((30, 4), dtype=np.int64),
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"foo_{i}" for i in range(30)]),
+        columns=Index(list("ABCD")),
     )
 
 
@@ -1274,6 +1275,34 @@ def string_dtype(request):
 
 @pytest.fixture(
     params=[
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
+    ],
+    ids=[
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+        "string=str[python]",
+    ],
+)
+def string_dtype_no_object(request):
+    """
+    Parametrized fixture for string dtypes.
+    * 'string[python]' (NA variant)
+    * 'string[pyarrow]' (NA variant)
+    * 'str' (NaN variant, with pyarrow)
+    * 'str' (NaN variant, without pyarrow)
+    """
+    # need to instantiate the StringDtype here instead of in the params
+    # to avoid importing pyarrow during test collection
+    storage, na_value = request.param
+    return pd.StringDtype(storage, na_value)
+
+
+@pytest.fixture(
+    params=[
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
@@ -1310,7 +1339,13 @@ def string_storage(request):
         pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
         pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
         ("python", np.nan),
-    ]
+    ],
+    ids=[
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+        "string=str[python]",
+    ],
 )
 def string_dtype_arguments(request):
     """
@@ -1341,6 +1376,7 @@ def dtype_backend(request):
 
 # Alias so we can test with cartesian product of string_storage
 string_storage2 = string_storage
+string_dtype_arguments2 = string_dtype_arguments
 
 
 @pytest.fixture(params=tm.BYTES_DTYPES)

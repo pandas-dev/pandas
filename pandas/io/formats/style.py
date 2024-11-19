@@ -222,6 +222,7 @@ class Styler(StylerRenderer):
       * ``level<k>`` where `k` is the level in a MultiIndex
 
     * Column label cells include
+
       * ``col_heading``
       * ``col<n>`` where `n` is the numeric position of the column
       * ``level<k>`` where `k` is the level in a MultiIndex
@@ -231,7 +232,7 @@ class Styler(StylerRenderer):
     * Trimmed cells include ``col_trim`` or ``row_trim``.
 
     Any, or all, or these classes can be renamed by using the ``css_class_names``
-    argument in ``Styler.set_table_classes``, giving a value such as
+    argument in ``Styler.set_table_styles``, giving a value such as
     *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
 
     Examples
@@ -342,7 +343,7 @@ class Styler(StylerRenderer):
             keys ``data``, ``row_heading`` and ``row`` will be prepended with
             ``foot0_``. If more concats are chained, their styles will be prepended
             with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
-            another concatanated style, the second style will be prepended with
+            another concatenated style, the second style will be prepended with
             ``foot{parent}_foot{child}_``.
 
         A common use case is to concatenate user defined functions with

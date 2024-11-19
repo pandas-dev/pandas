@@ -99,6 +99,20 @@ def test_constructor_valid_string_type_value_dictionary(string_type, chunked):
     assert pa.types.is_large_string(arr._pa_array.type)
 
 
+@pytest.mark.parametrize("chunked", [True, False])
+def test_constructor_valid_string_view(chunked):
+    # requires pyarrow>=18 for casting string_view to string
+    pa = pytest.importorskip("pyarrow", minversion="18")
+
+    arr = pa.array(["1", "2", "3"], pa.string_view())
+    if chunked:
+        arr = pa.chunked_array(arr)
+
+    arr = ArrowStringArray(arr)
+    # dictionary type get converted to dense large string array
+    assert pa.types.is_large_string(arr._pa_array.type)
+
+
 def test_constructor_from_list():
     # GH#27673
     pytest.importorskip("pyarrow")
@@ -241,10 +255,11 @@ def test_setitem_invalid_indexer_raises():
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 
-@pytest.mark.parametrize("dtype", ["string[pyarrow]", "string[pyarrow_numpy]"])
-def test_pickle_roundtrip(dtype):
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+def test_pickle_roundtrip(na_value):
     # GH 42600
     pytest.importorskip("pyarrow")
+    dtype = StringDtype("pyarrow", na_value=na_value)
     expected = pd.Series(range(10), dtype=dtype)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)

@@ -258,7 +258,7 @@ def ndarray_to_mgr(
             # and a subsequent `astype` will not already result in a copy
             values = np.array(values, copy=True, order="F")
         else:
-            values = np.array(values, copy=False)
+            values = np.asarray(values)
         values = _ensure_2d(values)
 
     else:
@@ -621,7 +621,7 @@ def reorder_arrays(
     arrays: list[ArrayLike], arr_columns: Index, columns: Index | None, length: int
 ) -> tuple[list[ArrayLike], Index]:
     """
-    Pre-emptively (cheaply) reindex arrays with new columns.
+    Preemptively (cheaply) reindex arrays with new columns.
     """
     # reorder according to the columns
     if columns is not None:
@@ -750,7 +750,8 @@ def to_arrays(
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
         # e.g. recarray
-        columns = Index(list(data.dtype.names))
+        if columns is None:
+            columns = Index(data.dtype.names)
         arrays = [data[k] for k in columns]
         return arrays, columns
 
@@ -965,8 +966,9 @@ def convert_object_array(
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
-                    arr = maybe_infer_to_datetimelike(arr)
-                    if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
+                    convert_to_nullable_dtype = dtype_backend != "numpy"
+                    arr = maybe_infer_to_datetimelike(arr, convert_to_nullable_dtype)
+                    if convert_to_nullable_dtype and arr.dtype == np.dtype("O"):
                         new_dtype = StringDtype()
                         arr_cls = new_dtype.construct_array_type()
                         arr = arr_cls._from_sequence(arr, dtype=new_dtype)

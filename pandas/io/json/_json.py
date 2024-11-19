@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas import (
-    ArrowDtype,
     DataFrame,
     Index,
     MultiIndex,
@@ -48,6 +47,7 @@ from pandas import (
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
     IOHandles,
     dedup_names,
@@ -940,18 +940,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             if self.engine == "pyarrow":
                 pyarrow_json = import_optional_dependency("pyarrow.json")
                 pa_table = pyarrow_json.read_json(self.data)
-
-                mapping: type[ArrowDtype] | None | Callable
-                if self.dtype_backend == "pyarrow":
-                    mapping = ArrowDtype
-                elif self.dtype_backend == "numpy_nullable":
-                    from pandas.io._util import _arrow_dtype_mapping
-
-                    mapping = _arrow_dtype_mapping().get
-                else:
-                    mapping = None
-
-                return pa_table.to_pandas(types_mapper=mapping)
+                return arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
             elif self.engine == "ujson":
                 if self.lines:
                     if self.chunksize:
@@ -1168,6 +1157,7 @@ class Parser:
         """
         Try to parse a Series into a column by inferring dtype.
         """
+        org_data = data
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
@@ -1222,7 +1212,7 @@ class Parser:
         if len(data) and data.dtype in ("float", "object"):
             # coerce ints if we can
             try:
-                new_data = data.astype("int64")
+                new_data = org_data.astype("int64")
                 if (new_data == data).all():
                     data = new_data
                     converted = True

@@ -358,7 +358,8 @@ def array(
             return cls._from_sequence(data, dtype=dtype, copy=copy)
 
         elif data.dtype.kind in "iu":
-            return IntegerArray._from_sequence(data, copy=copy)
+            dtype = IntegerArray._dtype_cls._get_dtype_mapping()[data.dtype]
+            return IntegerArray._from_sequence(data, dtype=dtype, copy=copy)
         elif data.dtype.kind == "f":
             # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
             #  we will fall back to NumpyExtensionArray.
@@ -366,7 +367,8 @@ def array(
                 return NumpyExtensionArray._from_sequence(
                     data, dtype=data.dtype, copy=copy
                 )
-            return FloatingArray._from_sequence(data, copy=copy)
+            dtype = FloatingArray._dtype_cls._get_dtype_mapping()[data.dtype]
+            return FloatingArray._from_sequence(data, dtype=dtype, copy=copy)
 
         elif data.dtype.kind == "b":
             return BooleanArray._from_sequence(data, dtype="boolean", copy=copy)
@@ -611,7 +613,10 @@ def sanitize_array(
                 dtype = StringDtype(na_value=np.nan)
                 subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
-            if subarr is data and copy:
+            if (
+                subarr is data
+                or (subarr.dtype == "str" and subarr.dtype.storage == "python")  # type: ignore[union-attr]
+            ) and copy:
                 subarr = subarr.copy()
 
         else:
@@ -802,6 +807,12 @@ def _try_cast(
         )
 
     elif dtype.kind in "mM":
+        if is_ndarray:
+            arr = cast(np.ndarray, arr)
+            if arr.ndim == 2 and arr.shape[1] == 1:
+                # GH#60081: DataFrame Constructor converts 1D data to array of
+                # shape (N, 1), but maybe_cast_to_datetime assumes 1D input
+                return maybe_cast_to_datetime(arr[:, 0], dtype).reshape(arr.shape)
         return maybe_cast_to_datetime(arr, dtype)
 
     # GH#15832: Check if we are requesting a numeric dtype and

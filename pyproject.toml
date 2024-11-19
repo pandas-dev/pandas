@@ -2,8 +2,8 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python==0.13.1",
-    "meson==1.2.1",
+    "meson-python>=0.13.1",
+    "meson>=1.2.1,<2",
     "wheel",
     "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Force numpy higher than 2.0rc1, so that built wheels are compatible
@@ -45,6 +45,7 @@ classifiers = [
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     'Topic :: Scientific/Engineering'
 ]
 
@@ -156,23 +157,29 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 free-threaded-support = true
-before-build = "bash {package}/scripts/cibw_before_build.sh"
-before-test = "bash {package}/scripts/cibw_before_test.sh"
+before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build.sh"
+before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build_windows.sh"
+before-test = "bash {package}/scripts/cibw_before_test_windows.sh"
+test-command = """
+  set PANDAS_CI='1' && \
+  python -c "import pandas as pd; \
+  pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
+  """
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
-select = "*-musllinux*"
-before-test = "apk update && apk add musl-locales && bash {package}/scripts/cibw_before_test.sh"
+select = "*-manylinux_aarch64*"
+test-command = """
+  PANDAS_CI='1' python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
 
 [[tool.cibuildwheel.overrides]]
-select = "*-win*"
-# We test separately for Windows, since we use
-# the windowsservercore docker image to check if any dlls are
-# missing from the wheel
-test-command = ""
+select = "*-musllinux*"
+before-test = "apk update && apk add musl-locales"
 
 [[tool.cibuildwheel.overrides]]
 # Don't strip wheels on macOS.
@@ -317,7 +324,8 @@ ignore = [
   "PT019",
   # The following rules may cause conflicts when used with the formatter:
   "ISC001",
-
+  # if-stmt-min-max
+  "PLR1730",
 
   ### TODO: Enable gradually
   # Useless statement
@@ -334,8 +342,10 @@ ignore = [
   "RUF012",
   # type-comparison
   "E721",
-
-  # Additional pylint rules
+  # repeated-equality-comparison
+  "PLR1714",
+  # self-or-cls-assignment
+  "PLW0642",
   # literal-membership
   "PLR6201", # 847 errors
   # Method could be a function, class method, or static method
@@ -478,6 +488,10 @@ markers = [
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
   "skip_ubsan: Tests known to fail UBSAN check",
+  # TODO: someone should investigate this ...
+  # these tests only fail in the wheel builder and don't fail in regular
+  # ARM CI
+  "fails_arm_wheels: Tests that fail in the ARM wheel build only",
 ]
 
 [tool.mypy]

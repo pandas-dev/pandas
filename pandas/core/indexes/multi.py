@@ -53,6 +53,7 @@ from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -66,6 +67,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -194,6 +196,7 @@ def names_compat(meth: F) -> F:
     return cast(F, new_meth)
 
 
+@set_module("pandas")
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.
@@ -799,7 +802,7 @@ class MultiIndex(Index):
         """
         from pandas import Series
 
-        names = com.fill_missing_names([level.name for level in self.levels])
+        names = com.fill_missing_names(self.names)
         return Series([level.dtype for level in self.levels], index=Index(names))
 
     def __len__(self) -> int:
@@ -1391,6 +1394,15 @@ class MultiIndex(Index):
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
+        if copy is False:
+            # self.values is always a newly construct array, so raise.
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        if copy is True:
+            # explicit np.array call to ensure a copy is made and unique objects
+            # are returned, because self.values is cached
+            return np.array(self.values, dtype=dtype)
         return self.values
 
     def view(self, cls=None) -> Self:
@@ -1416,10 +1428,12 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """return a boolean if we need a qualified .info display"""
 
-        def f(level) -> bool:
-            return "mixed" in level or "string" in level or "unicode" in level
+        def f(dtype) -> bool:
+            return is_object_dtype(dtype) or (
+                is_string_dtype(dtype) and dtype.storage == "python"
+            )
 
-        return any(f(level.inferred_type) for level in self.levels)
+        return any(f(level.dtype) for level in self.levels)
 
     # Cannot determine type of "memory_usage"
     @doc(Index.memory_usage)  # type: ignore[has-type]
@@ -1572,7 +1586,7 @@ class MultiIndex(Index):
     def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, *, level=None, validate: bool = True) -> None:
+    def _set_names(self, names, *, level=None) -> None:
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -1583,8 +1597,6 @@ class MultiIndex(Index):
         level : int, level name, or sequence of int/level names (default None)
             If the index is a MultiIndex (hierarchical), level(s) to set (None
             for all levels).  Otherwise level must be None
-        validate : bool, default True
-            validate that the names match level lengths
 
         Raises
         ------
@@ -1603,13 +1615,12 @@ class MultiIndex(Index):
             raise ValueError("Names should be list-like for a MultiIndex")
         names = list(names)
 
-        if validate:
-            if level is not None and len(names) != len(level):
-                raise ValueError("Length of names must match length of level.")
-            if level is None and len(names) != self.nlevels:
-                raise ValueError(
-                    "Length of names must match number of levels in MultiIndex."
-                )
+        if level is not None and len(names) != len(level):
+            raise ValueError("Length of names must match length of level.")
+        if level is None and len(names) != self.nlevels:
+            raise ValueError(
+                "Length of names must match number of levels in MultiIndex."
+            )
 
         if level is None:
             level = range(self.nlevels)
@@ -1627,8 +1638,9 @@ class MultiIndex(Index):
                     )
             self._names[lev] = name
 
-        # If .levels has been accessed, the names in our cache will be stale.
-        self._reset_cache()
+        # If .levels has been accessed, the .name of each level in our cache
+        # will be stale.
+        self._reset_cache("levels")
 
     names = property(
         fset=_set_names,
@@ -2604,6 +2616,13 @@ class MultiIndex(Index):
         """
         Rearrange levels using input order. May not drop or duplicate levels.
 
+        `reorder_levels` is useful when you need to change the order of levels in
+        a MultiIndex, such as when reordering levels for hierarchical indexing. It
+        maintains the integrity of the MultiIndex, ensuring that all existing levels
+        are present and no levels are duplicated. This method is helpful for aligning
+        the index structure with other data structures or for optimizing the order
+        for specific data operations.
+
         Parameters
         ----------
         order : list of int or list of str
@@ -2613,6 +2632,13 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
+            A new MultiIndex with levels rearranged according to the specified order.
+
+        See Also
+        --------
+        MultiIndex.swaplevel : Swap two levels of the MultiIndex.
+        MultiIndex.set_names : Set names for the MultiIndex levels.
+        DataFrame.reorder_levels : Reorder levels in a DataFrame with a MultiIndex.
 
         Examples
         --------
@@ -2652,7 +2678,7 @@ class MultiIndex(Index):
 
     def _recode_for_new_levels(
         self, new_levels, copy: bool = True
-    ) -> Generator[np.ndarray, None, None]:
+    ) -> Generator[np.ndarray]:
         if len(new_levels) > self.nlevels:
             raise AssertionError(
                 f"Length of new_levels ({len(new_levels)}) "
@@ -2672,9 +2698,9 @@ class MultiIndex(Index):
         a valid valid
         """
 
-        def cats(level_codes):
+        def cats(level_codes: np.ndarray) -> np.ndarray:
             return np.arange(
-                np.array(level_codes).max() + 1 if len(level_codes) else 0,
+                level_codes.max() + 1 if len(level_codes) else 0,
                 dtype=level_codes.dtype,
             )
 

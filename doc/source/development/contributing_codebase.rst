@@ -244,7 +244,7 @@ in your python environment.
 
 .. warning::
 
-    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.mamba>` or select a `recently succeeded workflow <https://github.com/pandas-dev/pandas/actions/workflows/code-checks.yml?query=branch%3Amain+is%3Asuccess>`_, select the "Docstring validation, typing, and other manual pre-commit hooks" job, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
+    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.conda>` or select a `recently succeeded workflow <https://github.com/pandas-dev/pandas/actions/workflows/code-checks.yml?query=branch%3Amain+is%3Asuccess>`_, select the "Docstring validation, typing, and other manual pre-commit hooks" job, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
 
 .. _contributing.ci:
 
@@ -297,6 +297,12 @@ improvement or new function, then produces the minimum amount of code to pass th
 So, before actually writing any code, you should write your tests.  Often the test can be
 taken from the original GitHub issue.  However, it is always worth considering additional
 use cases and writing corresponding tests.
+
+We use `code coverage <https://en.wikipedia.org/wiki/Code_coverage>`_ to help understand
+the amount of code which is covered by a test. We recommend striving to ensure code
+you add or change within Pandas is covered by a test. Please see our
+`code coverage dashboard through Codecov <https://app.codecov.io/github/pandas-dev/pandas>`_
+for more information.
 
 Adding tests is one of the most common requests after code is pushed to pandas.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
@@ -605,7 +611,7 @@ The ``temp_file`` pytest fixture creates a temporary file :py:class:`Pathlib` ob
         pd.DataFrame([1]).to_csv(str(temp_file))
 
 Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#the-default-base-temporary-directory>`_
-for the file retension policy.
+for the file retention policy.
 
 Testing involving network connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

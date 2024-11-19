@@ -774,6 +774,16 @@ class TestDataFramePlots:
         expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
         assert result == expected
 
+    def test_bar_stacked_label_position_with_zero_height(self):
+        # GH 59429
+        df = DataFrame({"A": [3, 0, 1], "B": [0, 2, 4], "C": [5, 0, 2]})
+        ax = df.plot.bar(stacked=True)
+        ax.bar_label(ax.containers[-1])
+        expected = [8.0, 2.0, 7.0]
+        result = [text.xy[1] for text in ax.texts]
+        tm.assert_almost_equal(result, expected)
+        plt.close("all")
+
     @pytest.mark.parametrize("idx", [Index, pd.CategoricalIndex])
     def test_bar_categorical(self, idx):
         # GH 13019
@@ -2578,6 +2588,14 @@ class TestDataFramePlots:
         ax = df.plot()
         result = ax.get_lines()[0].get_xdata()
         assert all(str(result[i]) == str(expected[i]) for i in range(4))
+
+    def test_plot_display_xlabel_and_xticks(self):
+        # GH#44050
+        df = DataFrame(np.random.default_rng(2).random((10, 2)), columns=["a", "b"])
+        ax = df.plot.hexbin(x="a", y="b")
+
+        _check_visible([ax.xaxis.get_label()], visible=True)
+        _check_visible(ax.get_xticklabels(), visible=True)
 
 
 def _generate_4_axes_via_gridspec():
