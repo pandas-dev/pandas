@@ -13,6 +13,10 @@ import numpy as np
 from pandas._libs import missing as libmissing
 from pandas._libs.sparse import IntIndex
 
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
@@ -567,7 +571,13 @@ def from_dummies(
             )
         else:
             data_slice = data_to_decode.loc[:, prefix_slice]
-        cats_array = data._constructor_sliced(cats, dtype=data.columns.dtype)
+        dtype = data.columns.dtype
+        if default_category:
+            default_category_dtype = infer_dtype_from_scalar(default_category[prefix])[
+                0
+            ]
+            dtype = find_common_type([dtype, default_category_dtype])
+        cats_array = data._constructor_sliced(cats, dtype=dtype)
         # get indices of True entries along axis=1
         true_values = data_slice.idxmax(axis=1)
         indexer = data_slice.columns.get_indexer_for(true_values)
