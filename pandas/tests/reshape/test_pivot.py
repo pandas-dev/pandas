@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
@@ -2699,9 +2701,12 @@ class TestPivot:
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_values_is_none(self):
         # GH#48293
-        df = DataFrame([[1, 2, 3]], columns=Index([None, "b", "c"], dtype="object"))
+        df = DataFrame({None: [1], "b": 2, "c": 3})
 
         result = df.pivot(columns="b", index="c", values=None)
         expected = DataFrame(
