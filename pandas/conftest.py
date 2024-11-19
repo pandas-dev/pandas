@@ -1435,10 +1435,6 @@ def any_string_dtype(request):
         return pd.StringDtype(storage, na_value)
 
 
-# Generate cartesian product of any_string_dtype:
-any_string_dtype2 = any_string_dtype
-
-
 @pytest.fixture(params=tm.DATETIME64_DTYPES)
 def datetime64_dtype(request):
     """

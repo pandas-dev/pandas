@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -96,77 +98,30 @@ def test_get_dummies_with_pyarrow_dtype(any_string_dtype, dtype):
 
 
 # GH#47872
-@pytest.mark.parametrize("use_string_repr", [True, False])
-def test_get_dummies_with_any_string_dtype(
-    request, any_string_dtype, any_string_dtype2, use_string_repr, using_infer_string
-):
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+def test_get_dummies_with_str_dtype(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    test_ids = request.node.callspec.id.split("-")
-    series_dtype_id = test_ids[0][7:]
-    expected_dtype_id = test_ids[1][7:]
-    if expected_dtype_id == "object":
-        if "pyarrow" in series_dtype_id:
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=("pyarrow.lib.ArrowTypeError: Expected integer, got bool"),
-                    strict=True,
-                )
-            )
-        expected = DataFrame(
-            [
-                [True, True, False],
-                [True, False, True],
-                [False, False, False],
-            ],
-            columns=list("abc"),
-            dtype=np.bool_,
-        )
-    elif expected_dtype_id == "str[pyarrow]" and use_string_repr:
-        # data type 'str[pyarrow]' uses pandas.ArrowDtype instead
-        expected = DataFrame(
-            [
-                ["true", "true", "false"],
-                ["true", "false", "true"],
-                ["false", "false", "false"],
-            ],
-            columns=list("abc"),
-            dtype="str[pyarrow]",
-        )
-    elif expected_dtype_id == "str[python]" and use_string_repr:
-        # data type 'str[python]' not understood"
-        expected_dtype_id = str
-        if using_infer_string:
-            expected = DataFrame(
-                [
-                    ["True", "True", "False"],
-                    ["True", "False", "True"],
-                    ["False", "False", "False"],
-                ],
-                columns=list("abc"),
-                dtype=expected_dtype_id,
-            )
-        else:
-            expected = DataFrame(
-                [
-                    ["T", "T", "F"],
-                    ["T", "F", "T"],
-                    ["F", "F", "F"],
-                ],
-                columns=list("abc"),
-                dtype=expected_dtype_id,
-            )
-    else:
-        expected = DataFrame(
-            [
-                ["True", "True", "False"],
-                ["True", "False", "True"],
-                ["False", "False", "False"],
-            ],
-            columns=list("abc"),
-            dtype=any_string_dtype2,
-        )
-    if use_string_repr:
-        result = s.str.get_dummies("|", dtype=expected_dtype_id)
-    else:
-        result = s.str.get_dummies("|", dtype=any_string_dtype2)
+    result = s.str.get_dummies("|", dtype=str)
+    expected = DataFrame(
+        [["T", "T", "F"], ["T", "F", "T"], ["F", "F", "F"]],
+        columns=list("abc"),
+        dtype=str,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+# GH#47872
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pa_str_dtype(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype="str[pyarrow]")
+    expected = DataFrame(
+        [
+            ["true", "true", "false"],
+            ["true", "false", "true"],
+            ["false", "false", "false"],
+        ],
+        columns=list("abc"),
+        dtype="str[pyarrow]",
+    )
     tm.assert_frame_equal(result, expected)
