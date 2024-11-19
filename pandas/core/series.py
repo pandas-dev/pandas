@@ -50,6 +50,7 @@ from pandas.util._decorators import (
     Substitution,
     deprecate_nonkeyword_arguments,
     doc,
+    set_module,
 )
 from pandas.util._validators import (
     validate_ascending,
@@ -229,6 +230,7 @@ axis : int or str, optional
 # error: Cannot override final attribute "size" (previously declared in base
 # class "NDFrame")
 # definition in base class "NDFrame"
+@set_module("pandas")
 class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
@@ -842,7 +844,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             the dtype is inferred from the data.
 
         copy : bool or None, optional
-            Unused.
+            See :func:`numpy.asarray`.
 
         Returns
         -------
@@ -879,8 +881,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
               dtype='datetime64[ns]')
         """
         values = self._values
-        arr = np.asarray(values, dtype=dtype)
-        if astype_is_view(values.dtype, arr.dtype):
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            arr = np.asarray(values, dtype=dtype)
+        else:
+            arr = np.array(values, dtype=dtype, copy=copy)
+
+        if copy is True:
+            return arr
+        if copy is False or astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
@@ -2482,6 +2491,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
+        Series.dt.round : Round values of data to the specified freq.
 
         Notes
         -----

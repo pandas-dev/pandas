@@ -1152,8 +1152,16 @@ class TestPeriodArray(SharedTests):
         result = np.asarray(arr, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+        # to int64 gives the underlying representation
         result = np.asarray(arr, dtype="int64")
         tm.assert_numpy_array_equal(result, arr.asi8)
+
+        result2 = np.asarray(arr, dtype="int64")
+        assert np.may_share_memory(result, result2)
+
+        result_copy1 = np.array(arr, dtype="int64", copy=True)
+        result_copy2 = np.array(arr, dtype="int64", copy=True)
+        assert not np.may_share_memory(result_copy1, result_copy2)
 
         # to other dtypes
         msg = r"float\(\) argument must be a string or a( real)? number, not 'Period'"

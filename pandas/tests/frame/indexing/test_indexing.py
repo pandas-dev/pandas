@@ -12,7 +12,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import iNaT
-from pandas.compat import HAS_PYARROW
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_integer
@@ -177,7 +176,6 @@ class TestDataFrameIndexing:
                 if bif[c].dtype != bifw[c].dtype:
                     assert bif[c].dtype == df[c].dtype
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_getitem_boolean_casting(self, datetime_frame):
         # don't upcast if we don't need to
         df = datetime_frame.copy()
@@ -506,17 +504,16 @@ class TestDataFrameIndexing:
             assert dm[2].dtype == np.object_
 
     @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_setitem_None(self, float_frame, using_infer_string):
+    def test_setitem_None(self, float_frame):
         # GH #766
         float_frame[None] = float_frame["A"]
-        key = None if not using_infer_string else np.nan
         tm.assert_series_equal(
             float_frame.iloc[:, -1], float_frame["A"], check_names=False
         )
         tm.assert_series_equal(
-            float_frame.loc[:, key], float_frame["A"], check_names=False
+            float_frame.loc[:, None], float_frame["A"], check_names=False
         )
-        tm.assert_series_equal(float_frame[key], float_frame["A"], check_names=False)
+        tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
 
     def test_loc_setitem_boolean_mask_allfalse(self):
         # GH 9596
@@ -1126,7 +1123,6 @@ class TestDataFrameIndexing:
         df.loc[[0, 1, 2], "dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_loc_setitem_datetimelike_with_inference(self):
         # GH 7592
         # assignment of timedeltas with NaT
@@ -1145,13 +1141,10 @@ class TestDataFrameIndexing:
         result = df.dtypes
         expected = Series(
             [np.dtype("timedelta64[ns]")] * 6 + [np.dtype("datetime64[ns]")] * 2,
-            index=list("ABCDEFGH"),
+            index=Index(list("ABCDEFGH"), dtype=object),
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_getitem_boolean_indexing_mixed(self):
         df = DataFrame(
             {
@@ -1193,7 +1186,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df2, expected)
 
         df["foo"] = "test"
-        msg = "not supported between instances|unorderable types"
+        msg = "not supported between instances|unorderable types|Invalid comparison"
 
         with pytest.raises(TypeError, match=msg):
             df[df > 0.3] = 1
@@ -1281,7 +1274,7 @@ class TestDataFrameIndexing:
                 r"timedelta64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 "'values' contains non-numeric NA",
-                r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
+                r"Invalid value '.*' for dtype '(U?Int|Float)\d{1,2}'",
             ]
         )
         with pytest.raises(TypeError, match=msg):
