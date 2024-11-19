@@ -247,7 +247,6 @@ class PyArrowImpl(BaseImpl):
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        to_pandas_kwargs = {} if to_pandas_kwargs is None else to_pandas_kwargs
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
@@ -269,7 +268,9 @@ class PyArrowImpl(BaseImpl):
                     DeprecationWarning,
                 )
                 result = arrow_table_to_pandas(
-                    pa_table, dtype_backend=dtype_backend, **to_pandas_kwargs
+                    pa_table,
+                    dtype_backend=dtype_backend,
+                    to_pandas_kwargs=to_pandas_kwargs,
                 )
 
             if pa_table.schema.metadata:
