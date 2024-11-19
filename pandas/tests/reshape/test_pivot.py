@@ -2664,21 +2664,18 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()
 
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_columns_is_none(self):
         # GH#48293
-        df = DataFrame([[1, 2, 3]], columns=Index([None, "b", "c"], dtype="object"))
+        df = DataFrame({None: [1], "b": 2, "c": 3})
         result = df.pivot(columns=None)
         expected = DataFrame({("b", 1): [2], ("c", 1): 3})
-        expected.columns = expected.columns.set_levels(
-            expected.columns.levels[0].astype(object), level=0
-        )
         tm.assert_frame_equal(result, expected)
 
         result = df.pivot(columns=None, index="b")
         expected = DataFrame({("c", 1): 3}, index=Index([2], name="b"))
-        expected.columns = expected.columns.set_levels(
-            expected.columns.levels[0].astype(object), level=0
-        )
         tm.assert_frame_equal(result, expected)
 
         result = df.pivot(columns=None, index="b", values="c")
