@@ -48,8 +48,6 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
 
-- The ``to_latex`` function is now fixed for hidden multiindex dataframes (:issue:`52218`)
-
 notable_bug_fix1
 ^^^^^^^^^^^^^^^^
 
@@ -74,6 +72,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+
+- The ``to_latex`` styling of column headers when combined with a hidden index or hidden index-levels is fixed.
 
 Categorical
 ^^^^^^^^^^^
