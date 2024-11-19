@@ -140,7 +140,6 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_get_handle_pyarrow_compat(self):
         pa_csv = pytest.importorskip("pyarrow.csv")
 
@@ -155,6 +154,8 @@ Look,a snake,🐍"""
         s = StringIO(data)
         with icom.get_handle(s, "rb", is_text=False) as handles:
             df = pa_csv.read_csv(handles.handle).to_pandas()
+            # TODO will have to update this when pyarrow' to_pandas() is fixed
+            expected = expected.astype("object")
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 
@@ -338,7 +339,6 @@ Look,a snake,🐍"""
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],
     )
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_write_fspath_all(self, writer_name, writer_kwargs, module):
         if writer_name in ["to_latex"]:  # uses Styler implementation
             pytest.importorskip("jinja2")
@@ -365,7 +365,7 @@ Look,a snake,🐍"""
                     expected = f_path.read()
                     assert result == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) hdf support")
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -438,14 +438,13 @@ class TestMMapWrapper:
         with tm.ensure_clean() as path:
             df = pd.DataFrame(
                 1.1 * np.arange(120).reshape((30, 4)),
-                columns=pd.Index(list("ABCD"), dtype=object),
-                index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+                columns=pd.Index(list("ABCD")),
+                index=pd.Index([f"i-{i}" for i in range(30)]),
             )
             df.to_csv(path)
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_binary_mode(self):
         """
         'encoding' shouldn't be passed to 'open' in binary mode.
@@ -455,8 +454,8 @@ class TestMMapWrapper:
         with tm.ensure_clean() as path:
             df = pd.DataFrame(
                 1.1 * np.arange(120).reshape((30, 4)),
-                columns=pd.Index(list("ABCD"), dtype=object),
-                index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+                columns=pd.Index(list("ABCD")),
+                index=pd.Index([f"i-{i}" for i in range(30)]),
             )
             df.to_csv(path, mode="w+b")
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
@@ -473,8 +472,8 @@ class TestMMapWrapper:
         """
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         )
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(UnicodeWarning, match="byte order mark"):
@@ -504,15 +503,14 @@ def test_is_fsspec_url():
     assert icom.is_fsspec_url("RFC-3986+compliant.spec://something")
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
     # GH39247
     expected = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=pd.Index(list("ABCD"), dtype=object),
-        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     with tm.ensure_clean() as path:
         with codecs.open(path, mode="w", encoding=encoding) as handle:
@@ -525,13 +523,12 @@ def test_codecs_encoding(encoding, format):
     tm.assert_frame_equal(expected, df)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_codecs_get_writer_reader():
     # GH39247
     expected = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=pd.Index(list("ABCD"), dtype=object),
-        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     with tm.ensure_clean() as path:
         with open(path, "wb") as handle:
@@ -556,8 +553,8 @@ def test_explicit_encoding(io_class, mode, msg):
     # wrong mode is requested
     expected = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=pd.Index(list("ABCD"), dtype=object),
-        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     with io_class() as buffer:
         with pytest.raises(TypeError, match=msg):
@@ -674,3 +671,17 @@ def test_pickle_reader(reader):
     # GH 22265
     with BytesIO() as buffer:
         pickle.dump(reader, buffer)
+
+
+@td.skip_if_no("pyarrow")
+def test_pyarrow_read_csv_datetime_dtype():
+    # GH 59904
+    data = '"date"\n"20/12/2025"\n""\n"31/12/2020"'
+    result = pd.read_csv(
+        StringIO(data), parse_dates=["date"], dayfirst=True, dtype_backend="pyarrow"
+    )
+
+    expect_data = pd.to_datetime(["20/12/2025", pd.NaT, "31/12/2020"], dayfirst=True)
+    expect = pd.DataFrame({"date": expect_data})
+
+    tm.assert_frame_equal(expect, result)

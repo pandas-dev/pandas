@@ -441,7 +441,7 @@ class TestArrowArray(base.ExtensionTests):
             request.applymarker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
-                    raises=NotImplementedError,
+                    raises=TypeError,
                 )
             )
 
