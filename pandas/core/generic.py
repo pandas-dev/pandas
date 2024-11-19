@@ -6053,8 +6053,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
-        if method == "concat":
-            objs = other.objs
+        elif hasattr(other, "input_objs"):
+            objs = other.input_objs
             # propagate attrs only if all concat arguments have the same attrs
             if all(bool(obj.attrs) for obj in objs):
                 # all concatenate arguments have non-empty attrs

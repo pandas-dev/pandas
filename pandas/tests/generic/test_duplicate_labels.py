@@ -164,7 +164,6 @@ class TestPreserves:
                     allows_duplicate_labels=False
                 ),
                 False,
-                marks=not_implemented,
             ),
             # false true false
             pytest.param(
@@ -173,7 +172,6 @@ class TestPreserves:
                 ),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
                 False,
-                marks=not_implemented,
             ),
             # true true true
             (
@@ -296,7 +294,6 @@ class TestRaises:
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             pd.concat(objs, axis=1)
 
-    @not_implemented
     def test_merge_raises(self):
         a = pd.DataFrame({"A": [0, 1, 2]}, index=["a", "b", "c"]).set_flags(
             allows_duplicate_labels=False
