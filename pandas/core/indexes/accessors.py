@@ -385,16 +385,12 @@ class DatetimeProperties(Properties):
 
         Examples
         --------
-        >>> ser = pd.Series(
-        ...     ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04"]
-        ... )
+        >>> ser = pd.Series(["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04"])
         >>> ser = pd.to_datetime(ser)
         >>> ser.dt.freq
         'D'
 
-        >>> ser = pd.Series(
-        ...     ["2022-01-01", "2024-01-01", "2026-01-01", "2028-01-01"]
-        ... )
+        >>> ser = pd.Series(["2022-01-01", "2024-01-01", "2026-01-01", "2028-01-01"])
         >>> ser = pd.to_datetime(ser)
         >>> ser.dt.freq
         '2YS-JAN'
