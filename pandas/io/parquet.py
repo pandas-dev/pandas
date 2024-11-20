@@ -352,6 +352,7 @@ class FastParquetImpl(BaseImpl):
         filters=None,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        to_pandas_kwargs: dict | None = None,
         **kwargs,
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
@@ -366,6 +367,10 @@ class FastParquetImpl(BaseImpl):
         if filesystem is not None:
             raise NotImplementedError(
                 "filesystem is not implemented for the fastparquet engine."
+            )
+        if to_pandas_kwargs is not None:
+            raise NotImplementedError(
+                "to_pandas_kwargs is not implemented for the fastparquet engine."
             )
         path = stringify_path(path)
         handles = None
