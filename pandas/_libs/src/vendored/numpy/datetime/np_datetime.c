@@ -660,11 +660,12 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt, NPY_DATETIMEUNIT base,
     perday = 24LL * 60 * 60 * 1000 * 1000 * 1000 * 1000;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
-    out->min = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
-    out->sec = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000);
-    out->us = (npy_int32)extract_unit(&dt, 1000LL);
-    out->ps = (npy_int32)(dt * 1000);
+    out->hour =
+        (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 60 * 60);
+    out->min = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 60);
+    out->sec = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000);
+    out->us = (npy_int32)extract_unit(&dt, 1000LL * 1000);
+    out->ps = (npy_int32)(dt);
     break;
 
   case NPY_FR_fs:
