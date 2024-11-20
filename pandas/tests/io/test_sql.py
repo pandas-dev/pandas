@@ -1247,7 +1247,6 @@ def test_read_procedure(conn, request):
     # GH 7324
     # Although it is more an api test, it is added to the
     # mysql tests as sqlite does not have stored procedures
-    from sqlalchemy import text
     from sqlalchemy.engine import Engine
 
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
@@ -2387,7 +2386,6 @@ def test_read_sql_delegate(conn, request):
 
 def test_not_reflect_all_tables(sqlite_conn):
     conn = sqlite_conn
-    from sqlalchemy import text
     from sqlalchemy.engine import Engine
 
     # create invalid table
@@ -2532,7 +2530,6 @@ def test_query_by_text_obj(conn, request):
     # WIP : GH10846
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    from sqlalchemy import text
 
     if "postgres" in conn_name:
         name_text = text('select * from iris where "Name"=:name')
@@ -3199,7 +3196,6 @@ def test_get_schema_create_table(conn, request, test_frame3):
 
     conn = request.getfixturevalue(conn)
 
-    from sqlalchemy import text
     from sqlalchemy.engine import Engine
 
     tbl = "test_get_schema_create_table"
@@ -4357,7 +4353,7 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-@pytest.mark.parametrize("conn", mysql_connectable)
+@pytest.mark.parametrize("conn", mysql_connectable + postgresql_connectable)
 def test_exists_temporary_table(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
 
@@ -4376,26 +4372,22 @@ def test_exists_temporary_table(conn, test_frame1, request):
     assert True if table.exists() else False
 
 
-@pytest.mark.parametrize("conn", mysql_connectable)
+@pytest.mark.parametrize("conn", mysql_connectable + postgresql_connectable)
 def test_to_sql_temporary_table_replace(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
-
-    query = """
-        CREATE TEMPORARY TABLE test_frame1 (
-            `INDEX` TEXT,
-            A FLOAT(53),
-            B FLOAT(53),
-            C FLOAT(53),
-            D FLOAT(53)
-        )
-    """
 
     if isinstance(conn, Connection):
         con = conn
     else:
         con = conn.connect()
 
-    con.execute(text(query))
+    test_frame1.to_sql(
+        name="test_frame1",
+        con=con,
+        if_exists="fail",
+        index=False,
+        prefixes=["TEMPORARY"],
+    )
 
     test_frame1.to_sql(
         name="test_frame1",
@@ -4410,26 +4402,22 @@ def test_to_sql_temporary_table_replace(conn, test_frame1, request):
     assert_frame_equal(test_frame1, df_test)
 
 
-@pytest.mark.parametrize("conn", mysql_connectable)
+@pytest.mark.parametrize("conn", mysql_connectable + postgresql_connectable)
 def test_to_sql_temporary_table_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
-
-    query = """
-        CREATE TEMPORARY TABLE test_frame1 (
-            `INDEX` TEXT,
-            A FLOAT(53),
-            B FLOAT(53),
-            C FLOAT(53),
-            D FLOAT(53)
-        )
-    """
 
     if isinstance(conn, Connection):
         con = conn
     else:
         con = conn.connect()
 
-    con.execute(text(query))
+    test_frame1.to_sql(
+        name="test_frame1",
+        con=con,
+        if_exists="fail",
+        index=False,
+        prefixes=["TEMPORARY"],
+    )
 
     with pytest.raises(ValueError, match=r"Table 'test_frame1' already exists."):
         test_frame1.to_sql(

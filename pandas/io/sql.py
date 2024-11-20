@@ -983,6 +983,8 @@ class SQLTable(PandasObject):
             _ = self.pd_sql.read_query(query)
             return True
         except ProgrammingError:
+            # Some DBMS (e.g. postgres) require a rollback after a caught exception
+            self.pd_sql.execute("rollback")
             return False
 
     def exists(self):
