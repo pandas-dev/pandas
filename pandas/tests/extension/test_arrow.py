@@ -3508,12 +3508,13 @@ def test_map_numeric_na_action():
     expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
     tm.assert_series_equal(result, expected)
 
+
 def test_convert_dtypes_timezone_series():
     # GH#60237
-    ser = pd.Series(pd.date_range(start='2020-01-01', 
-                                periods=5, freq='h', 
-                                tz='UTC'), 
-                                dtype="timestamp[ns, tz=UTC][pyarrow]")
+    ser = pd.Series(
+        pd.date_range(start="2020-01-01", periods=5, freq="h", tz="UTC"),
+        dtype="timestamp[ns, tz=UTC][pyarrow]",
+    )
     expected = ser
     result = ser.convert_dtypes(dtype_backend="pyarrow")
     tm.assert_series_equal(result, expected)
