@@ -92,7 +92,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.indices SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.nth PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
