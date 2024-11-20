@@ -4373,6 +4373,12 @@ def test_bytes_column(sqlite_buildin, dtype_backend):
     select cast(x'0123456789abcdef0123456789abcdef' as blob) a
     """
     df = pd.read_sql(query, sqlite_buildin, dtype_backend=dtype_backend)
-    assert df.a.values[0] == b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"
-    if dtype_backend == "pyarrow":
-        assert df.a.dtype == pd.ArrowDtype(pa.binary())
+    expected = DataFrame(
+        [
+            {
+                "a": b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef",
+            }
+        ],
+        dtype=(pd.ArrowDtype(pa.binary()) if dtype_backend == "pyarrow" else "O"),
+    )
+    tm.assert_frame_equal(df, expected)
