@@ -575,8 +575,8 @@ def read_parquet(
 
         .. versionadded:: 2.1.0
 
-    to_pandas_kwargs: dict | None, default None
-        keyword arguments to pass through to ``pyarrow.Table.to_pandas``
+    to_pandas_kwargs : dict | None, default None
+        Keyword arguments to pass through to ``pyarrow.Table.to_pandas``
         when ``engine="pyarrow"``.
 
         .. versionadded:: 3.0.0
