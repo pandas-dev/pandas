@@ -839,11 +839,6 @@ class SetitemCastingEquivalents:
         obj = obj.copy()
         arr = obj._values
 
-        if raises and obj.dtype == "string":
-            with pytest.raises(TypeError, match="Invalid value"):
-                obj.where(~mask, val)
-            return
-
         res = obj.where(~mask, val)
 
         if val is NA and res.dtype == object:
@@ -860,24 +855,16 @@ class SetitemCastingEquivalents:
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if raises and obj.dtype == "string":
-            with pytest.raises(TypeError, match="Invalid value"):
-                Index(obj).where(~mask, val)
-        else:
-            res = Index(obj).where(~mask, val)
-            expected_idx = Index(expected, dtype=expected.dtype)
-            tm.assert_index_equal(res, expected_idx)
+        res = Index(obj).where(~mask, val)
+        expected_idx = Index(expected, dtype=expected.dtype)
+        tm.assert_index_equal(res, expected_idx)
 
     def test_index_putmask(self, obj, key, expected, raises, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if raises and obj.dtype == "string":
-            with pytest.raises(TypeError, match="Invalid value"):
-                Index(obj).putmask(mask, val)
-        else:
-            res = Index(obj).putmask(mask, val)
-            tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        res = Index(obj).putmask(mask, val)
+        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
 
 @pytest.mark.parametrize(
