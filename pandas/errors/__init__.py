@@ -676,7 +676,7 @@ class AttributeConflictWarning(Warning):
     --------
     HDFStore : Dict-like IO interface for storing pandas objects in PyTables.
     DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
-    read_hdf : Read from the store, close it if we opened it.
+    read_hdf : Read from an HDF5 file into a DataFrame.
 
     Examples
     --------
