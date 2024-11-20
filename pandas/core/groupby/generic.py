@@ -1469,8 +1469,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         See Also
         --------
-        SeriesGroupBy.is_monotonic_decreasing : Return whether each group's values
-            are monotonically decreasing.
+        SeriesGroupBy.is_monotonic_increasing : Return whether each group's values
+            are monotonically increasing.
 
         Examples
         --------
