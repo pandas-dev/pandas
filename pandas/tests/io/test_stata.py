@@ -1719,7 +1719,6 @@ The repeated labels are:\n-+\nwolof
         formatted = df.loc[0, column + "_fmt"]
         assert unformatted == formatted
 
-    # @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("byteorder", ["little", "big"])
     def test_writer_117(self, byteorder, temp_file, using_infer_string):
         original = DataFrame(

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat.pyarrow import pa_version_under10p1
 
 from pandas.core.dtypes.missing import na_value_for_dtype
@@ -99,7 +97,6 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
     tm.assert_frame_equal(grouped, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "dropna, idx, outputs",
     [
@@ -126,7 +123,7 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d"])
     grouped = df.groupby("a", dropna=dropna).sum()
 
-    expected = pd.DataFrame(outputs, index=pd.Index(idx, dtype="object", name="a"))
+    expected = pd.DataFrame(outputs, index=pd.Index(idx, name="a"))
 
     tm.assert_frame_equal(grouped, expected)
 
