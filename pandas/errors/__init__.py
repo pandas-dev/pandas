@@ -672,6 +672,12 @@ class AttributeConflictWarning(Warning):
     name than the existing index on an HDFStore or attempting to append an index with a
     different frequency than the existing index on an HDFStore.
 
+    See Also
+    --------
+    HDFStore : Dict-like IO interface for storing pandas objects in PyTables.
+    DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
+    read_hdf : Read from an HDF5 file into a DataFrame.
+
     Examples
     --------
     >>> idx1 = pd.Index(["a", "b"], name="name1")
