@@ -868,9 +868,9 @@ class StylerRenderer:
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         index_levels = self.index.nlevels
-        visible_index_level_n = index_levels - sum(self.hide_index_)
-        if visible_index_level_n == 0:
-            visible_index_level_n = 1
+        # d["head"] will contain at least one column relating to the index,
+        # it will be marked as `is_visible`: False if all levels are hidden
+        visible_index_level_n = max(1, index_levels - sum(self.hide_index_))
         d["head"] = [
             [
                 {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
