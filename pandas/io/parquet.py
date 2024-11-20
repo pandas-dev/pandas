@@ -458,8 +458,6 @@ def to_parquet(
 
     kwargs
         Additional keyword arguments passed to the engine.
-        When using the ``'pyarrow'`` engine ``to_pandas_kwargs`` can be used to pass
-        through arguments to ``pyarrow.Table.to_pandas``.
 
     Returns
     -------
@@ -498,6 +496,7 @@ def read_parquet(
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
     filters: list[tuple] | list[list[tuple]] | None = None,
+    to_pandas_kwargs: dict | None = None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -571,6 +570,12 @@ def read_parquet(
 
         .. versionadded:: 2.1.0
 
+    to_pandas_kwargs: dict | None, default None
+        keyword arguments to pass through to ``pyarrow.Table.to_pandas``
+        when ``engine="pyarrow"``.
+
+        .. versionadded:: 3.0.0
+
     **kwargs
         Any additional kwargs are passed to the engine.
 
@@ -643,5 +648,6 @@ def read_parquet(
         storage_options=storage_options,
         dtype_backend=dtype_backend,
         filesystem=filesystem,
+        to_pandas_kwargs=to_pandas_kwargs,
         **kwargs,
     )
