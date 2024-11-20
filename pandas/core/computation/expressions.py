@@ -65,26 +65,26 @@ def set_numexpr_threads(n=None) -> None:
         ne.set_num_threads(n)
 
 
-def _evaluate_standard(op, op_str, a, b):
+def _evaluate_standard(op, op_str, left_op, right_op):
     """
     Standard evaluation.
     """
     if _TEST_MODE:
         _store_test_result(False)
-    return op(a, b)
+    return op(left_op, right_op)
 
 
-def _can_use_numexpr(op, op_str, a, b, dtype_check) -> bool:
+def _can_use_numexpr(op, op_str, left_op, right_op, dtype_check) -> bool:
     """return a boolean if we WILL be using numexpr"""
     if op_str is not None:
         # required min elements (otherwise we are adding overhead)
-        if a.size > _MIN_ELEMENTS:
+        if left_op.size > _MIN_ELEMENTS:
             # check for dtype compatibility
             dtypes: set[str] = set()
-            for o in [a, b]:
+            for operand in [left_op, right_op]:
                 # ndarray and Series Case
-                if hasattr(o, "dtype"):
-                    dtypes |= {o.dtype.name}
+                if hasattr(operand, "dtype"):
+                    dtypes |= {operand.dtype.name}
 
             # allowed are a superset
             if not len(dtypes) or _ALLOWED_DTYPES[dtype_check] >= dtypes:
@@ -93,22 +93,22 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check) -> bool:
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b):
+def _evaluate_numexpr(op, op_str, left_op, right_op):
     result = None
 
-    if _can_use_numexpr(op, op_str, a, b, "evaluate"):
+    if _can_use_numexpr(op, op_str, left_op, right_op, "evaluate"):
         is_reversed = op.__name__.strip("_").startswith("r")
         if is_reversed:
             # we were originally called by a reversed op method
-            a, b = b, a
+            left_op, right_op = right_op, left_op
 
-        a_value = a
-        b_value = b
+        left_value = left_op
+        right_value = right_op
 
         try:
             result = ne.evaluate(
-                f"a_value {op_str} b_value",
-                local_dict={"a_value": a_value, "b_value": b_value},
+                f"left_value {op_str} right_value",
+                local_dict={"a_value": left_value, "b_value": right_value},
                 casting="safe",
             )
         except TypeError:
@@ -116,20 +116,20 @@ def _evaluate_numexpr(op, op_str, a, b):
             # (https://github.com/pydata/numexpr/issues/379)
             pass
         except NotImplementedError:
-            if _bool_arith_fallback(op_str, a, b):
+            if _bool_arith_fallback(op_str, left_op, right_op):
                 pass
             else:
                 raise
 
         if is_reversed:
             # reverse order to original for fallback
-            a, b = b, a
+            left_op, right_op = right_op, left_op
 
     if _TEST_MODE:
         _store_test_result(result is not None)
 
     if result is None:
-        result = _evaluate_standard(op, op_str, a, b)
+        result = _evaluate_standard(op, op_str, left_op, right_op)
 
     return result
 
@@ -224,15 +224,15 @@ def _bool_arith_fallback(op_str, a, b) -> bool:
     return False
 
 
-def evaluate(op, a, b, use_numexpr: bool = True):
+def evaluate(op, left_op, right_op, use_numexpr: bool = True):
     """
     Evaluate and return the expression of the op on a and b.
 
     Parameters
     ----------
     op : the actual operand
-    a : left operand
-    b : right operand
+    left_op : left operand
+    right_op : right operand
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
@@ -240,8 +240,8 @@ def evaluate(op, a, b, use_numexpr: bool = True):
     if op_str is not None:
         if use_numexpr:
             # error: "None" not callable
-            return _evaluate(op, op_str, a, b)  # type: ignore[misc]
-    return _evaluate_standard(op, op_str, a, b)
+            return _evaluate(op, op_str, left_op, right_op)  # type: ignore[misc]
+    return _evaluate_standard(op, op_str, left_op, right_op)
 
 
 def where(cond, a, b, use_numexpr: bool = True):
