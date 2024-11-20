@@ -868,8 +868,7 @@ class StylerRenderer:
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         index_levels = self.index.nlevels
-        # d["head"] will contain at least one column relating to the index,
-        # it will be marked as `is_visible`: False if all levels are hidden
+        # GH 52218
         visible_index_level_n = max(1, index_levels - sum(self.hide_index_))
         d["head"] = [
             [
