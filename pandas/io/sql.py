@@ -30,7 +30,6 @@ from typing import (
 import warnings
 
 import numpy as np
-from sqlalchemy.exc import ProgrammingError
 
 from pandas._config import using_string_dtype
 
@@ -975,6 +974,11 @@ class SQLTable(PandasObject):
         self.pd_sql.execute(query)
 
     def _exists_temporary(self):
+        from sqlalchemy.exc import (
+            OperationalError,
+            ProgrammingError,
+        )
+
         if self.schema is None:
             query = f"SELECT * FROM {self.name} LIMIT 1"
         else:
@@ -985,6 +989,8 @@ class SQLTable(PandasObject):
         except ProgrammingError:
             # Some DBMS (e.g. postgres) require a rollback after a caught exception
             self.pd_sql.execute("rollback")
+            return False
+        except OperationalError:
             return False
 
     def exists(self):
@@ -2816,6 +2822,7 @@ class SQLiteDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2856,6 +2863,9 @@ class SQLiteDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        prefixs : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
         """
         if dtype:
             if not is_dict_like(dtype):
@@ -2881,6 +2891,7 @@ class SQLiteDatabase(PandasSQL):
             if_exists=if_exists,
             index_label=index_label,
             dtype=dtype,
+            prefixes=prefixes,
         )
         table.create()
         return table.insert(chunksize, method)

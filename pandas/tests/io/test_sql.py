@@ -17,8 +17,11 @@ import uuid
 
 import numpy as np
 import pytest
-from sqlalchemy import text
-from sqlalchemy.engine import Connection
+from sqlalchemy import (
+    create_engine,
+    text,
+)
+from sqlalchemy.engine import Engine
 
 from pandas._config import using_string_dtype
 
@@ -4353,7 +4356,7 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-@pytest.mark.parametrize("conn", mysql_connectable + postgresql_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_exists_temporary_table(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
 
@@ -4372,14 +4375,18 @@ def test_exists_temporary_table(conn, test_frame1, request):
     assert True if table.exists() else False
 
 
-@pytest.mark.parametrize("conn", mysql_connectable + postgresql_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_to_sql_temporary_table_replace(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
 
-    if isinstance(conn, Connection):
-        con = conn
-    else:
+    # some DBMS only allow temporary tables to exist within a connection, therefore
+    # we can only test for a connection and not all types of connectables.
+    if isinstance(conn, Engine):
         con = conn.connect()
+    elif isinstance(conn, str):
+        con = create_engine(conn).connect()
+    else:
+        con = conn
 
     test_frame1.to_sql(
         name="test_frame1",
@@ -4402,14 +4409,18 @@ def test_to_sql_temporary_table_replace(conn, test_frame1, request):
     assert_frame_equal(test_frame1, df_test)
 
 
-@pytest.mark.parametrize("conn", mysql_connectable + postgresql_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_to_sql_temporary_table_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
 
-    if isinstance(conn, Connection):
-        con = conn
-    else:
+    # some DBMS only allow temporary tables to exist within a connection, therefore
+    # we can only test for a connection and not all types of connectables.
+    if isinstance(conn, Engine):
         con = conn.connect()
+    elif isinstance(conn, str):
+        con = create_engine(conn).connect()
+    else:
+        con = conn
 
     test_frame1.to_sql(
         name="test_frame1",
