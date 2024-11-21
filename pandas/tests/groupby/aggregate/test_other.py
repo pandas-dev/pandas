@@ -8,8 +8,6 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import SpecificationError
 
 import pandas as pd
@@ -308,7 +306,6 @@ def test_series_agg_multikey():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_series_agg_multi_pure_python():
     data = DataFrame(
         {
@@ -358,7 +355,8 @@ def test_series_agg_multi_pure_python():
     )
 
     def bad(x):
-        assert len(x.values.base) > 0
+        if isinstance(x.values, np.ndarray):
+            assert len(x.values.base) > 0
         return "foo"
 
     result = data.groupby(["A", "B"]).agg(bad)

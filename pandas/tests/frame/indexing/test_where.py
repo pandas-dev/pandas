@@ -1086,15 +1086,9 @@ def test_where_producing_ea_cond_for_np_dtype():
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
-def test_where_int_overflow(replacement, using_infer_string):
+def test_where_int_overflow(replacement):
     # GH 31687
     df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
-    if using_infer_string and replacement not in (None, "snake"):
-        with pytest.raises(
-            TypeError, match=f"Invalid value '{replacement}' for dtype 'str'"
-        ):
-            df.where(pd.notnull(df), replacement)
-        return
     result = df.where(pd.notnull(df), replacement)
     expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 
