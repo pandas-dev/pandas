@@ -2376,15 +2376,16 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "int64"])
-    def test_pivot_ea_dtype_dropna(self, dropna, dtype):
+    @pytest.mark.parametrize(
+        "dtype,expected_dtype", [("Int64", "Float64"), ("int64", "float64")]
+    )
+    def test_pivot_ea_dtype_dropna(self, dropna, dtype, expected_dtype):
         # GH#47477
         # GH#47971
         df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype=dtype)})
         result = df.pivot_table(
             index="x", columns="y", values="age", aggfunc="mean", dropna=dropna
         )
-        expected_dtype = "float64" if dtype == "int64" else "Float64"
         expected = DataFrame(
             [[30]],
             index=Index(["a"], name="x"),
