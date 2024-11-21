@@ -1405,3 +1405,88 @@ class TestToLatexMultiindex:
             """
         )
         assert result == expected
+
+    def test_to_latex_multiindex_format_single_index_hidden(self):
+        # GH 52218
+        df = DataFrame(
+            {
+                "A": [1, 2],
+                "B": [4, 5],
+            }
+        )
+        result = (
+            df.style.hide(axis="index")
+            .map_index(lambda v: "textbf:--rwrap;", axis="columns")
+            .to_latex()
+        )
+        expected = _dedent(r"""
+            \begin{tabular}{rr}
+            \textbf{A} & \textbf{B} \\
+            1 & 4 \\
+            2 & 5 \\
+            \end{tabular}
+            """)
+        assert result == expected
+
+    def test_to_latex_multiindex_format_triple_index_two_hidden(self):
+        # GH 52218
+        arrays = [
+            ["A", "A", "B", "B"],
+            ["one", "two", "one", "two"],
+            ["x", "x", "y", "y"],
+        ]
+        index = pd.MultiIndex.from_arrays(
+            arrays, names=["Level 0", "Level 1", "Level 2"]
+        )
+        df = DataFrame(
+            [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            index=index,
+            columns=["C1", "C2", "C3"],
+        )
+        result = (
+            df.style.hide(axis="index", level=[0, 1])
+            .map_index(lambda v: "textbf:--rwrap;", axis="columns")
+            .to_latex()
+        )
+        expected = _dedent(r"""
+            \begin{tabular}{lrrr}
+             & \textbf{C1} & \textbf{C2} & \textbf{C3} \\
+            Level 2 &  &  &  \\
+            x & 0 & 0 & 0 \\
+            x & 0 & 0 & 0 \\
+            y & 0 & 0 & 0 \\
+            y & 0 & 0 & 0 \\
+            \end{tabular}
+            """)
+        assert result == expected
+
+    def test_to_latex_multiindex_format_triple_index_all_hidden(self):
+        # GH 52218
+        arrays = [
+            ["A", "A", "B", "B"],
+            ["one", "two", "one", "two"],
+            ["x", "x", "y", "y"],
+        ]
+        index = pd.MultiIndex.from_arrays(
+            arrays, names=["Level 0", "Level 1", "Level 2"]
+        )
+        df = DataFrame(
+            [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            index=index,
+            columns=["C1", "C2", "C3"],
+        )
+        result = (
+            df.style.hide(axis="index", level=[0, 1, 2])
+            .map_index(lambda v: "textbf:--rwrap;", axis="columns")
+            .to_latex()
+        )
+        expected = _dedent(r"""
+            \begin{tabular}{rrr}
+            \textbf{C1} & \textbf{C2} & \textbf{C3} \\
+            0 & 0 & 0 \\
+            0 & 0 & 0 \\
+            0 & 0 & 0 \\
+            0 & 0 & 0 \\
+            \end{tabular}
+            """)
+        assert result == expected
