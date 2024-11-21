@@ -3983,19 +3983,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
         before the groupby.
 
-        Parameters
-        ----------
-        n : int, slice or list of ints and slices
-            A single nth value for the row or a list of nth values or slices.
-
-            .. versionchanged:: 1.4.0
-                Added slice and lists containing slices.
-                Added index notation.
-
-        dropna : {'any', 'all', None}, default None
-            Apply the specified dropna operation before counting which row is
-            the nth row. Only supported if n is an int.
-
         Returns
         -------
         Series or DataFrame
