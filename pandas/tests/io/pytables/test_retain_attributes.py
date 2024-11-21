@@ -8,7 +8,6 @@ from pandas import (
     date_range,
     errors,
     read_hdf,
-    to_datetime,
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
@@ -96,10 +95,7 @@ def test_retain_index_attributes2(tmp_path, setup_path):
 def test_retain_datetime_attribute(tmp_path, setup_path):
     path = tmp_path / setup_path
     ser = Series(
-        [
-            to_datetime("2024-08-26 15:13:14"),
-            to_datetime("2024-08-26 15:14:14"),
-        ],
+        ["2024-08-26 15:13:14", "2024-08-26 15:14:14"],
         dtype="datetime64[us, UTC]",
     )
     dataframe = DataFrame(ser)
