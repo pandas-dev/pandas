@@ -2211,8 +2211,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             via the options ``io.excel.xlsx.writer`` or
             ``io.excel.xlsm.writer``.
 
-        merge_cells : bool, default True
-            Write MultiIndex and Hierarchical Rows as merged cells.
+        merge_cells : bool or 'columns', default False
+            If True, write MultiIndex index and columns as merged cells.
+            If 'columns', merge MultiIndex column cells only.
         {encoding_parameter}
         inf_rep : str, default 'inf'
             Representation for infinity (there is no native representation for
@@ -7668,8 +7669,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
             * 'time': Works on daily and higher resolution data to interpolate
-              given length of interval.
-            * 'index', 'values': use the actual numerical values of the index.
+              given length of interval. This interpolates values based on
+              time interval between observations.
+            * 'index': The interpolation uses the numerical values
+              of the DataFrame's index to linearly calculate missing values.
+            * 'values': Interpolation based on the numerical values
+              in the DataFrame, treating them as equally spaced along the index.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to

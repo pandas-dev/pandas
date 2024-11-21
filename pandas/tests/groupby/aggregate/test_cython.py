@@ -5,8 +5,6 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -92,7 +90,6 @@ def test_cython_agg_boolean():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame(
         {"a": np.random.default_rng(2).integers(0, 5, 50), "b": ["foo", "bar"] * 25}
@@ -108,7 +105,9 @@ def test_cython_agg_nothing_to_agg():
 
     result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
     expected = DataFrame(
-        [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
+        [],
+        index=frame["a"].sort_values().drop_duplicates(),
+        columns=Index([], dtype="str"),
     )
     tm.assert_frame_equal(result, expected)
 
