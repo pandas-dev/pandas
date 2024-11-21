@@ -335,6 +335,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             rvalues = rvalues.astype("string")
             lvalues = pd_array(lvalues, dtype="string")
 
+
     if should_extension_dispatch(lvalues, rvalues) or (
         (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
         and lvalues.dtype != object
