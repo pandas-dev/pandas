@@ -763,7 +763,6 @@ ExtensionArray
 Styler
 ^^^^^^
 - Bug in :method:`Styler.to_latex` where styling column headers when combined with a hidden index or hidden index-levels is fixed.
-- 
 
 Other
 ^^^^^
