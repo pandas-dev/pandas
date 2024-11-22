@@ -429,6 +429,11 @@ class DataError(Exception):
     For example, calling ``ohlc`` on a non-numerical column or a function
     on a rolling window.
 
+    See Also
+    --------
+    Series.rolling : Provide rolling window calculations on Series object.
+    DataFrame.rolling : Provide rolling window calculations on DataFrame object.
+
     Examples
     --------
     >>> ser = pd.Series(["a", "b", "c"])
@@ -481,6 +486,11 @@ class ChainedAssignmentError(Warning):
 
     For more information on Copy-on-Write,
     see :ref:`the user guide<copy_on_write>`.
+
+    See Also
+    --------
+    options.mode.copy_on_write : Global setting for enabling or disabling
+        Copy-on-Write behavior.
 
     Examples
     --------
@@ -666,6 +676,12 @@ class AttributeConflictWarning(Warning):
     Occurs when attempting to append an index with a different
     name than the existing index on an HDFStore or attempting to append an index with a
     different frequency than the existing index on an HDFStore.
+
+    See Also
+    --------
+    HDFStore : Dict-like IO interface for storing pandas objects in PyTables.
+    DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
+    read_hdf : Read from an HDF5 file into a DataFrame.
 
     Examples
     --------
