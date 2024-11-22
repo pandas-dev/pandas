@@ -138,3 +138,15 @@ def test_compare_datetime64_and_string():
     tm.assert_series_equal(result_eq1, expected_eq)
     tm.assert_series_equal(result_eq2, expected_eq)
     tm.assert_series_equal(result_neq, expected_neq)
+
+def test_comparison_string_mixed_object():
+    pd.options.future.infer_string = True
+
+    ser_string = pd.Series(["a", "b"], dtype="string")
+    ser_mixed = pd.Series([1, "b"])
+
+    result = ser_string == ser_mixed
+    expected = pd.Series([False, True], dtype="boolean")
+    tm.assert_series_equal(result, expected)
+
+    pd.options.future.infer_string = False
