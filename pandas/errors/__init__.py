@@ -487,6 +487,11 @@ class ChainedAssignmentError(Warning):
     For more information on Copy-on-Write,
     see :ref:`the user guide<copy_on_write>`.
 
+    See Also
+    --------
+    options.mode.copy_on_write : Global setting for enabling or disabling
+        Copy-on-Write behavior.
+
     Examples
     --------
     >>> pd.options.mode.copy_on_write = True
@@ -671,6 +676,12 @@ class AttributeConflictWarning(Warning):
     Occurs when attempting to append an index with a different
     name than the existing index on an HDFStore or attempting to append an index with a
     different frequency than the existing index on an HDFStore.
+
+    See Also
+    --------
+    HDFStore : Dict-like IO interface for storing pandas objects in PyTables.
+    DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
+    read_hdf : Read from an HDF5 file into a DataFrame.
 
     Examples
     --------
