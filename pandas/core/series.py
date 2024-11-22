@@ -567,7 +567,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Export the pandas Series as an Arrow C stream PyCapsule.
 
         This relies on pyarrow to convert the pandas Series to the Arrow
-        format (and follows the default behaviour of ``pyarrow.Array.from_pandas``
+        format (and follows the default behavior of ``pyarrow.Array.from_pandas``
         in its handling of the index, i.e. to ignore it).
         This conversion is not necessarily zero-copy.
 
@@ -2226,7 +2226,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5     hippo
         Name: animal, dtype: object
 
-        With the 'keep' parameter, the selection behaviour of duplicated values
+        With the 'keep' parameter, the selection behavior of duplicated values
         can be changed. The value 'first' keeps the first occurrence for each
         set of duplicated entries. The default value of keep is 'first'.
 
@@ -3451,7 +3451,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4     5.0
         dtype: float64
 
-        Sort values ascending order (default behaviour)
+        Sort values ascending order (default behavior)
 
         >>> s.sort_values(ascending=True)
         1     1.0
@@ -4098,7 +4098,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         In the following example, we will swap the levels of the indices.
         Here, we will swap the levels column-wise, but levels can be swapped row-wise
-        in a similar manner. Note that column-wise is the default behaviour.
+        in a similar manner. Note that column-wise is the default behavior.
         By not supplying any arguments for i and j, we swap the last and second to
         last indices.
 
