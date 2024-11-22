@@ -663,6 +663,16 @@ class ArrowExtensionArray(
     ) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         if copy is False:
+            import warnings
+
+            from pandas.util._exceptions import find_stack_level
+
+            warnings.warn(
+                "Numpy>=2.0 changed copy keyword's behavior, making copy=False"
+                "raise an error when a zero-copy numpy array is not possible",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             # TODO: By using `zero_copy_only` it may be possible to implement this
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."

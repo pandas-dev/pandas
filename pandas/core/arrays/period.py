@@ -415,6 +415,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 return np.array(self.asi8, dtype=dtype)
 
         if copy is False:
+            import warnings
+
+            from pandas.util._exceptions import find_stack_level
+
+            warnings.warn(
+                "Numpy>=2.0 changed copy keyword's behavior, making copy=False"
+                "raise an error when a zero-copy numpy array is not possible",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )

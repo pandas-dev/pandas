@@ -604,6 +604,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if not self._hasna:
                 # special case, here we can simply return the underlying data
                 return np.array(self._data, dtype=dtype, copy=copy)
+
+            import warnings
+
+            from pandas.util._exceptions import find_stack_level
+
+            warnings.warn(
+                "Numpy>=2.0 changed copy keyword's behavior, making copy=False"
+                "raise an error when a zero-copy numpy array is not possible",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
