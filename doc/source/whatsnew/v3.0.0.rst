@@ -768,6 +768,7 @@ Styler
 Other
 ^^^^^
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
+- Bug in :func:`comparison_op` where comparing a ``string`` dtype array with an ``object`` dtype array containing mixed types would raise a ``TypeError`` when PyArrow-based strings are enabled. (:issue:`60228`)
 - Bug in :func:`eval` on :class:`ExtensionArray` on including division ``/`` failed with a ``TypeError``. (:issue:`58748`)
 - Bug in :func:`eval` where the names of the :class:`Series` were not preserved when using ``engine="numexpr"``. (:issue:`10239`)
 - Bug in :func:`eval` with ``engine="numexpr"`` returning unexpected result for float division. (:issue:`59736`)

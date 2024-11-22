@@ -139,7 +139,9 @@ def test_compare_datetime64_and_string():
     tm.assert_series_equal(result_eq2, expected_eq)
     tm.assert_series_equal(result_neq, expected_neq)
 
+
 def test_comparison_string_mixed_object():
+    # Issue https://github.com/pandas-dev/pandas/issues/60228
     pd.options.future.infer_string = True
 
     ser_string = pd.Series(["a", "b"], dtype="string")
