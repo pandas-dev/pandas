@@ -23,6 +23,7 @@ from pandas import (
     MultiIndex,
     date_range,
     option_context,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -333,6 +334,43 @@ class TestRoundTrip:
             ),
             columns=Index([0]),
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("merge_cells", [True, False, "columns"])
+    def test_excel_round_trip_with_periodindex(self, tmp_excel, merge_cells):
+        # GH#60099
+        df = DataFrame(
+            {"A": [1, 2]},
+            index=MultiIndex.from_arrays(
+                [
+                    period_range(start="2006-10-06", end="2006-10-07", freq="D"),
+                    ["X", "Y"],
+                ],
+                names=["date", "category"],
+            ),
+        )
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        result = pd.read_excel(tmp_excel, index_col=[0, 1])
+        expected = DataFrame(
+            {"A": [1, 2]},
+            MultiIndex.from_arrays(
+                [
+                    [
+                        pd.to_datetime("2006-10-06 00:00:00"),
+                        pd.to_datetime("2006-10-07 00:00:00"),
+                    ],
+                    ["X", "Y"],
+                ],
+                names=["date", "category"],
+            ),
+        )
+        time_format = (
+            "datetime64[s]" if tmp_excel.endswith(".ods") else "datetime64[us]"
+        )
+        expected.index = expected.index.set_levels(
+            expected.index.levels[0].astype(time_format), level=0
+        )
+
         tm.assert_frame_equal(result, expected)
 
 
