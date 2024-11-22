@@ -38,9 +38,9 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_numeric_v_string_like,
-    is_string_dtype,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -54,7 +54,10 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import roperator
 from pandas.core.computation import expressions
-from pandas.core.construction import ensure_wrapped_if_datetimelike, array
+from pandas.core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+)
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
@@ -322,16 +325,15 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
                 "Lengths must match to compare", lvalues.shape, rvalues.shape
             )
 
-    if (
-            (is_string_dtype(lvalues) and is_object_dtype(rvalues)) or
-            (is_object_dtype(lvalues) and is_string_dtype(rvalues))
+    if (is_string_dtype(lvalues) and is_object_dtype(rvalues)) or (
+        is_object_dtype(lvalues) and is_string_dtype(rvalues)
     ):
         if lvalues.dtype.name == "string" and rvalues.dtype == object:
             lvalues = lvalues.astype("string")
-            rvalues = array(rvalues, dtype="string")
+            rvalues = pd_array(rvalues, dtype="string")
         elif rvalues.dtype.name == "string" and lvalues.dtype == object:
             rvalues = rvalues.astype("string")
-            lvalues = array(lvalues, dtype="string")
+            lvalues = pd_array(lvalues, dtype="string")
 
     if should_extension_dispatch(lvalues, rvalues) or (
         (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
