@@ -487,6 +487,11 @@ class ChainedAssignmentError(Warning):
     For more information on Copy-on-Write,
     see :ref:`the user guide<copy_on_write>`.
 
+    See Also
+    --------
+    options.mode.copy_on_write : Global setting for enabling or disabling
+        Copy-on-Write behavior.
+
     Examples
     --------
     >>> pd.options.mode.copy_on_write = True
