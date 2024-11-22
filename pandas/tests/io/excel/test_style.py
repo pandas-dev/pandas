@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 from pandas import (
     DataFrame,
     MultiIndex,
-    Period,
+    Timestamp,
     period_range,
     read_excel,
 )
@@ -355,6 +355,7 @@ def test_format_hierarchical_rows_periodindex(merge_cells):
     formatted_cells = formatter._format_hierarchical_rows()
 
     for cell in formatted_cells:
-        assert not isinstance(
-            cell.val, Period
-        ), "Period should be converted to Timestamp"
+        if cell.row != 0 and cell.col == 0:
+            assert isinstance(
+                cell.val, Timestamp
+            ), "Period should be converted to Timestamp"
