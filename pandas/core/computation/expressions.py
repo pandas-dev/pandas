@@ -81,10 +81,10 @@ def _can_use_numexpr(op, op_str, left_op, right_op, dtype_check) -> bool:
         if left_op.size > _MIN_ELEMENTS:
             # check for dtype compatibility
             dtypes: set[str] = set()
-            for operand in [left_op, right_op]:
+            for o in [left_op, right_op]:
                 # ndarray and Series Case
-                if hasattr(operand, "dtype"):
-                    dtypes |= {operand.dtype.name}
+                if hasattr(o, "dtype"):
+                    dtypes |= {o.dtype.name}
 
             # allowed are a superset
             if not len(dtypes) or _ALLOWED_DTYPES[dtype_check] >= dtypes:
@@ -108,7 +108,7 @@ def _evaluate_numexpr(op, op_str, left_op, right_op):
         try:
             result = ne.evaluate(
                 f"left_value {op_str} right_value",
-                local_dict={"a_value": left_value, "b_value": right_value},
+                local_dict={"left_value": left_value, "right_value": right_value},
                 casting="safe",
             )
         except TypeError:
@@ -170,24 +170,24 @@ _op_str_mapping = {
 }
 
 
-def _where_standard(cond, a, b):
+def _where_standard(cond, left_op, right_op):
     # Caller is responsible for extracting ndarray if necessary
-    return np.where(cond, a, b)
+    return np.where(cond, left_op, right_op)
 
 
-def _where_numexpr(cond, a, b):
+def _where_numexpr(cond, left_op, right_op):
     # Caller is responsible for extracting ndarray if necessary
     result = None
 
-    if _can_use_numexpr(None, "where", a, b, "where"):
+    if _can_use_numexpr(None, "where", left_op, right_op, "where"):
         result = ne.evaluate(
-            "where(cond_value, a_value, b_value)",
-            local_dict={"cond_value": cond, "a_value": a, "b_value": b},
+            "where(cond_value, left_value, right_value)",
+            local_dict={"cond_value": cond, "left_value": left_op, "right_value": right_op},
             casting="safe",
         )
 
     if result is None:
-        result = _where_standard(cond, a, b)
+        result = _where_standard(cond, left_op, right_op)
 
     return result
 
@@ -206,13 +206,13 @@ def _has_bool_dtype(x):
 _BOOL_OP_UNSUPPORTED = {"+": "|", "*": "&", "-": "^"}
 
 
-def _bool_arith_fallback(op_str, a, b) -> bool:
+def _bool_arith_fallback(op_str, left_op, right_op) -> bool:
     """
     Check if we should fallback to the python `_evaluate_standard` in case
     of an unsupported operation by numexpr, which is the case for some
     boolean ops.
     """
-    if _has_bool_dtype(a) and _has_bool_dtype(b):
+    if _has_bool_dtype(left_op) and _has_bool_dtype(right_op):
         if op_str in _BOOL_OP_UNSUPPORTED:
             warnings.warn(
                 f"evaluating in Python space because the {op_str!r} "
@@ -226,7 +226,7 @@ def _bool_arith_fallback(op_str, a, b) -> bool:
 
 def evaluate(op, left_op, right_op, use_numexpr: bool = True):
     """
-    Evaluate and return the expression of the op on a and b.
+    Evaluate and return the expression of the op on left_op and right_op.
 
     Parameters
     ----------
@@ -244,20 +244,20 @@ def evaluate(op, left_op, right_op, use_numexpr: bool = True):
     return _evaluate_standard(op, op_str, left_op, right_op)
 
 
-def where(cond, a, b, use_numexpr: bool = True):
+def where(cond, left_op, right_op, use_numexpr: bool = True):
     """
-    Evaluate the where condition cond on a and b.
+    Evaluate the where condition cond on left_op and right_op.
 
     Parameters
     ----------
     cond : np.ndarray[bool]
-    a : return if cond is True
-    b : return if cond is False
+    left_op : return if cond is True
+    right_op : return if cond is False
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
     assert _where is not None
-    return _where(cond, a, b) if use_numexpr else _where_standard(cond, a, b)
+    return _where(cond, left_op, right_op) if use_numexpr else _where_standard(cond, left_op, right_op)
 
 
 def set_test_mode(v: bool = True) -> None:
