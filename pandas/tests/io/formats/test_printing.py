@@ -15,17 +15,17 @@ from pandas.io.formats import printing
 @pytest.mark.parametrize(
     "input_names, expected_names",
     [
-        (["'a", "b"], ["'a", "b"]),  # Escape leading quote
-        (["test's", "b"], ["test's", "b"]),  # Escape apostrophe
-        (["'test'", "b"], ["'test'", "b"]),  # Escape surrounding quotes
-        (["test", "b'"], ["test", "b'"]),  # Escape single quote
-        (["'test\n'", "b"], ["'test\n'", "b"]),  # Escape and preserve newline
+        (["'a b"], "['\\'a b']"),  # Escape leading quote
+        (["test's b"], "['test\\'s b']"),  # Escape apostrophe
+        (["'test' b"], "['\\'test\\' b']"),  # Escape surrounding quotes
+        (["test b'"], "['test b\\'']"),  # Escape single quote
+        (["test\n' b"], "['test\\n\\' b']"),  # Escape quotes, preserve newline
     ],
 )
 def test_formatted_index_names(input_names, expected_names):
     # GH#60190
     df = pd.DataFrame({name: [1, 2, 3] for name in input_names}).set_index(input_names)
-    formatted_names = df.index.names
+    formatted_names = str(df.index.names)
 
     assert formatted_names == expected_names
 
