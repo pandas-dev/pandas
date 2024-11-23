@@ -109,7 +109,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.resample.Resampler.std SA01" \
         -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.var SA01" \
-        -i "pandas.errors.DuplicateLabelError SA01" \
         -i "pandas.errors.IntCastingNaNError SA01" \
         -i "pandas.errors.InvalidIndexError SA01" \
         -i "pandas.errors.NullFrequencyError SA01" \
