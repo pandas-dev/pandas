@@ -422,6 +422,23 @@ class TestToStringNumericFormatting:
             )
             assert result == expected
 
+        # GH #60393
+        with option_context("display.precision", 6):
+            df = DataFrame(
+                {
+                    "x": [
+                        (1.8816e-09 + 0j),
+                        (1.8816e-09 + 3.39676e-09j),
+                    ]
+                }
+            )
+            result = df.to_string()
+            expected = (
+                "                            x\n0  1.881600e-09+0.000000e+00j\n"
+                "1  1.881600e-09+3.396760e-09j"
+            )
+            assert result == expected
+
     def test_to_string_format_inf(self):
         # GH#24861
         df = DataFrame(
