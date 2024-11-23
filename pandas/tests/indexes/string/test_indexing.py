@@ -87,22 +87,43 @@ class TestGetIndexer:
             )
 
     @pytest.mark.parametrize("null", [None, np.nan, float("nan"), pd.NA])
-    def test_get_indexer_missing(self, any_string_dtype, null):
+    def test_get_indexer_missing(self, any_string_dtype, null, using_infer_string):
         # NaT and Decimal("NaN") from null_fixture are not supported for string dtype
         index = Index(["a", "b", null], dtype=any_string_dtype)
         result = index.get_indexer(["a", null, "c"])
-        expected = np.array([0, 2, -1], dtype=np.intp)
+        if using_infer_string:
+            expected = np.array([0, 2, -1], dtype=np.intp)
+        elif any_string_dtype == "string" and (
+            (any_string_dtype.na_value is pd.NA and null is not pd.NA)
+            or (_isnan(any_string_dtype.na_value) and not _isnan(null))
+        ):
+            expected = np.array([0, -1, -1], dtype=np.intp)
+        else:
+            expected = np.array([0, 2, -1], dtype=np.intp)
+
         tm.assert_numpy_array_equal(result, expected)
 
 
 class TestGetIndexerNonUnique:
     @pytest.mark.parametrize("null", [None, np.nan, float("nan"), pd.NA])
-    def test_get_indexer_non_unique_nas(self, any_string_dtype, null):
+    def test_get_indexer_non_unique_nas(
+        self, any_string_dtype, null, using_infer_string
+    ):
         index = Index(["a", "b", null], dtype=any_string_dtype)
         indexer, missing = index.get_indexer_non_unique(["a", null])
 
-        expected_indexer = np.array([0, 2], dtype=np.intp)
-        expected_missing = np.array([], dtype=np.intp)
+        if using_infer_string:
+            expected_indexer = np.array([0, 2], dtype=np.intp)
+            expected_missing = np.array([], dtype=np.intp)
+        elif any_string_dtype == "string" and (
+            (any_string_dtype.na_value is pd.NA and null is not pd.NA)
+            or (_isnan(any_string_dtype.na_value) and not _isnan(null))
+        ):
+            expected_indexer = np.array([0, -1], dtype=np.intp)
+            expected_missing = np.array([1], dtype=np.intp)
+        else:
+            expected_indexer = np.array([0, 2], dtype=np.intp)
+            expected_missing = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected_indexer)
         tm.assert_numpy_array_equal(missing, expected_missing)
 
@@ -110,7 +131,15 @@ class TestGetIndexerNonUnique:
         index = Index(["a", null, "b", null], dtype=any_string_dtype)
         indexer, missing = index.get_indexer_non_unique(["a", null])
 
-        expected_indexer = np.array([0, 1, 3], dtype=np.intp)
+        if using_infer_string:
+            expected_indexer = np.array([0, 1, 3], dtype=np.intp)
+        elif any_string_dtype == "string" and (
+            (any_string_dtype.na_value is pd.NA and null is not pd.NA)
+            or (_isnan(any_string_dtype.na_value) and not _isnan(null))
+        ):
+            pass
+        else:
+            expected_indexer = np.array([0, 1, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected_indexer)
         tm.assert_numpy_array_equal(missing, expected_missing)
 
