@@ -1172,6 +1172,20 @@ class TestParquetPyArrow(Base):
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_maps_as_pydicts(self, pa):
+        pyarrow = pytest.importorskip("pyarrow", "13.0.0")
+
+        schema = pyarrow.schema(
+            [("foo", pyarrow.map_(pyarrow.string(), pyarrow.int64()))]
+        )
+        df = pd.DataFrame([{"foo": {"A": 1}}, {"foo": {"B": 2}}])
+        check_round_trip(
+            df,
+            pa,
+            write_kwargs={"schema": schema},
+            read_kwargs={"to_pandas_kwargs": {"maps_as_pydicts": "strict"}},
+        )
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full, request):
