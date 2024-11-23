@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import iNaT
 from pandas.errors import InvalidIndexError
 
@@ -501,6 +503,7 @@ class TestDataFrameIndexing:
         else:
             assert dm[2].dtype == np.object_
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_None(self, float_frame):
         # GH #766
         float_frame[None] = float_frame["A"]

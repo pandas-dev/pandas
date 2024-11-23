@@ -6,6 +6,13 @@ from pandas import Index
 import pandas._testing as tm
 
 
+def _isnan(val):
+    try:
+        return val is not pd.NA and np.isnan(val)
+    except TypeError:
+        return False
+
+
 class TestGetLoc:
     def test_get_loc(self, any_string_dtype):
         index = Index(["a", "b", "c"], dtype=any_string_dtype)
@@ -34,7 +41,14 @@ class TestGetLoc:
 
     def test_get_loc_missing(self, any_string_dtype, nulls_fixture):
         index = Index(["a", "b", nulls_fixture], dtype=any_string_dtype)
-        assert index.get_loc(nulls_fixture) == 2
+        if any_string_dtype == "string" and (
+            (any_string_dtype.na_value is pd.NA and nulls_fixture is not pd.NA)
+            or (_isnan(any_string_dtype.na_value) and not _isnan(nulls_fixture))
+        ):
+            with pytest.raises(KeyError):
+                index.get_loc(nulls_fixture)
+        else:
+            assert index.get_loc(nulls_fixture) == 2
 
 
 class TestGetIndexer:
@@ -83,32 +97,20 @@ class TestGetIndexer:
 
 class TestGetIndexerNonUnique:
     @pytest.mark.parametrize("null", [None, np.nan, float("nan"), pd.NA])
-    def test_get_indexer_non_unique_nas(self, request, any_string_dtype, null):
-        if (
-            any_string_dtype == "string"
-            and any_string_dtype.na_value is pd.NA
-            and isinstance(null, float)
-        ):
-            # TODO(infer_string)
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="NA-variant string dtype does not work with NaN"
-                )
-            )
-
+    def test_get_indexer_non_unique_nas(self, any_string_dtype, null):
         index = Index(["a", "b", null], dtype=any_string_dtype)
-        indexer, missing = index.get_indexer_non_unique([null])
+        indexer, missing = index.get_indexer_non_unique(["a", null])
 
-        expected_indexer = np.array([2], dtype=np.intp)
+        expected_indexer = np.array([0, 2], dtype=np.intp)
         expected_missing = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected_indexer)
         tm.assert_numpy_array_equal(missing, expected_missing)
 
         # actually non-unique
         index = Index(["a", null, "b", null], dtype=any_string_dtype)
-        indexer, missing = index.get_indexer_non_unique([null])
+        indexer, missing = index.get_indexer_non_unique(["a", null])
 
-        expected_indexer = np.array([1, 3], dtype=np.intp)
+        expected_indexer = np.array([0, 1, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected_indexer)
         tm.assert_numpy_array_equal(missing, expected_missing)
 

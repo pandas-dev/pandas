@@ -5974,7 +5974,6 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer_non_unique(
         self, target
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        target = ensure_index(target)
         target = self._maybe_cast_listlike_indexer(target)
 
         if not self._should_compare(target) and not self._should_partial_index(target):
@@ -6221,10 +6220,6 @@ class Index(IndexOpsMixin, PandasObject):
             except (TypeError, ValueError):
                 # let's instead try with a straight Index
                 self = Index(self._values)
-
-        elif self.dtype == "string" and other.dtype == "object":
-            if lib.is_string_array(other._values, skipna=True):  # type: ignore[arg-type]
-                return self, other.astype(self.dtype)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
