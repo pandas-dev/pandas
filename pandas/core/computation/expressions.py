@@ -182,7 +182,11 @@ def _where_numexpr(cond, left_op, right_op):
     if _can_use_numexpr(None, "where", left_op, right_op, "where"):
         result = ne.evaluate(
             "where(cond_value, left_value, right_value)",
-            local_dict={"cond_value": cond, "left_value": left_op, "right_value": right_op},
+            local_dict={
+                "cond_value": cond,
+                "left_value": left_op,
+                "right_value": right_op
+            },
             casting="safe",
         )
 
@@ -257,7 +261,9 @@ def where(cond, left_op, right_op, use_numexpr: bool = True):
         Whether to try to use numexpr.
     """
     assert _where is not None
-    return _where(cond, left_op, right_op) if use_numexpr else _where_standard(cond, left_op, right_op)
+    return (_where(cond, left_op, right_op) 
+            if use_numexpr 
+            else _where_standard(cond, left_op, right_op))
 
 
 def set_test_mode(v: bool = True) -> None:
