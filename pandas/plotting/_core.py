@@ -570,19 +570,24 @@ def boxplot_frame_groupby(
 
     Parameters
     ----------
-    grouped : Grouped DataFrame
+    grouped : DataFrameGroupBy
+        The grouped DataFrame to plot.
     subplots : bool
         * ``False`` - no subplots will be used
         * ``True`` - create a subplot for each group.
-
     column : column name or list of names, or vector
         Can be any valid input to groupby.
-    fontsize : float or str
-    rot : label rotation angle
-    grid : Setting this to True will show the grid
+    fontsize : int or None
+        Font size for the labels.
+    rot : int
+        Rotation angle of the labels.
+    grid : bool
+        Setting this to True will show the grid.
     ax : Matplotlib axis object, default None
-    figsize : A tuple (width, height) in inches
-    layout : tuple (optional)
+        An axis object to plot on. If None, a new figure and axis will be created.
+    figsize : tuple of (float, float) or None
+        A tuple (width, height) in inches.
+    layout : tuple of (int, int) or None
         The layout of the plot: (rows, columns).
     sharex : bool, default False
         Whether x-axes will be shared among subplots.
@@ -599,8 +604,17 @@ def boxplot_frame_groupby(
 
     Returns
     -------
-    dict of key/value = group key/DataFrame.boxplot return value
-    or DataFrame.boxplot return value in case subplots=figures=False
+    dict of key/value pairs or DataFrame.boxplot
+        When subplots=True, returns a dictionary where keys are group names and
+        values are the matplotlib BoxPlot objects for each group.
+        When subplots=False, returns a single matplotlib BoxPlot object for the
+        combined plot.
+
+    See Also
+    --------
+    DataFrame.boxplot : Make box plots from DataFrame data.
+    Series.boxplot : Make box plots from Series data.
+    pandas.plotting.boxplot : Lower-level method for creating box plots.
 
     Examples
     --------

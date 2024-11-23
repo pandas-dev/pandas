@@ -515,6 +515,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Dict {group name -> group indices}.
 
+        See Also
+        --------
+        DataFrame.groupby : Apply a groupby operation on a DataFrame.
+        Series.groupby : Apply a groupby operation on a Series.
+        Resampler.indices : Return the indices of the groups in a resampler.
+
         Examples
         --------
 
@@ -563,6 +569,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Timestamp('2023-02-01 00:00:00'): [2, 3]})
         """
         return self._grouper.indices
+
 
     @final
     def _get_indices(self, names):
@@ -707,7 +714,14 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Returns
         -------
         DataFrame or Series
+            A DataFrame or Series corresponding to the group with the specified name.
 
+        See Also
+        --------
+        DataFrame.groupby : Apply a groupby operation on a DataFrame.
+        Series.groupby : Apply a groupby operation on a Series.
+        Resampler.get_group : Get a group from a resampler.
+        
         Examples
         --------
 
