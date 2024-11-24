@@ -724,7 +724,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         
         Examples
         --------
-
         For SeriesGroupBy:
 
         >>> lst = ["a", "a", "b"]
