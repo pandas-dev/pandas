@@ -721,7 +721,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         DataFrame.groupby : Apply a groupby operation on a DataFrame.
         Series.groupby : Apply a groupby operation on a Series.
         Resampler.get_group : Get a group from a resampler.
-        
+
         Examples
         --------
         For SeriesGroupBy:
