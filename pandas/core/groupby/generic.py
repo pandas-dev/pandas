@@ -32,6 +32,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -108,6 +109,7 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
+@set_module("pandas")
 class NamedAgg(NamedTuple):
     """
     Helper for column specific aggregation with control over output column names.
@@ -142,6 +144,7 @@ class NamedAgg(NamedTuple):
     aggfunc: AggScalar
 
 
+@set_module("pandas.api.typing")
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
         out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
@@ -1440,6 +1443,11 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         Series
 
+        See Also
+        --------
+        SeriesGroupBy.is_monotonic_decreasing : Return whether each group's values
+            are monotonically decreasing.
+
         Examples
         --------
         >>> s = pd.Series([2, 1, 3, 4], index=["Falcon", "Falcon", "Parrot", "Parrot"])
@@ -1458,6 +1466,11 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+
+        See Also
+        --------
+        SeriesGroupBy.is_monotonic_increasing : Return whether each group's values
+            are monotonically increasing.
 
         Examples
         --------
@@ -1555,6 +1568,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
 
+@set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
     _agg_examples_doc = dedent(
         """

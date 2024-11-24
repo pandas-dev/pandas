@@ -3,10 +3,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
-from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import ensure_platform_int
 
@@ -385,10 +382,7 @@ def test_transform_nuisance_raises(df, using_infer_string):
     gbc = grouped["B"]
     msg = "Could not convert"
     if using_infer_string:
-        if df.columns.dtype.storage == "pyarrow":
-            msg = "with dtype str does not support operation 'mean'"
-        else:
-            msg = "Cannot perform reduction 'mean' with string dtype"
+        msg = "Cannot perform reduction 'mean' with string dtype"
     with pytest.raises(TypeError, match=msg):
         gbc.transform(lambda x: np.mean(x))
 
@@ -483,10 +477,7 @@ def test_groupby_transform_with_int(using_infer_string):
     )
     msg = "Could not convert"
     if using_infer_string:
-        if HAS_PYARROW:
-            msg = "with dtype str does not support operation 'mean'"
-        else:
-            msg = "Cannot perform reduction 'mean' with string dtype"
+        msg = "Cannot perform reduction 'mean' with string dtype"
     with np.errstate(all="ignore"):
         with pytest.raises(TypeError, match=msg):
             df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
@@ -1041,20 +1032,19 @@ def test_groupby_transform_with_datetimes(func, values):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_transform_dtype():
     # GH 22243
     df = DataFrame({"a": [1], "val": [1.35]})
 
     result = df["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
-    expected1 = Series(["+1.35"], name="val", dtype="object")
+    expected1 = Series(["+1.35"], name="val")
     tm.assert_series_equal(result, expected1)
 
     result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
     tm.assert_series_equal(result, expected1)
 
     result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+({y})"))
-    expected2 = Series(["+(1.35)"], name="val", dtype="object")
+    expected2 = Series(["+(1.35)"], name="val")
     tm.assert_series_equal(result, expected2)
 
     df["val"] = df["val"].astype(object)

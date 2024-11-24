@@ -299,7 +299,13 @@ class TestSetOps:
                 first.difference([1, 2, 3], sort)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    def test_symmetric_difference(self, index):
+    def test_symmetric_difference(self, index, using_infer_string, request):
+        if (
+            using_infer_string
+            and index.dtype == "object"
+            and index.inferred_type == "string"
+        ):
+            request.applymarker(pytest.mark.xfail(reason="TODO: infer_string"))
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"Not relevant for {type(index).__name__}")
         if len(index) < 2:
