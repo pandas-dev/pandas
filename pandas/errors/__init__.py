@@ -538,6 +538,11 @@ class NumExprClobberingError(NameError):
     to 'numexpr'. 'numexpr' is the default engine value for these methods if the
     numexpr package is installed.
 
+    See Also
+    --------
+    eval : Evaluate a Python expression as a string using various backends.
+    DataFrame.query : Query the columns of a DataFrame with a boolean expression.
+
     Examples
     --------
     >>> df = pd.DataFrame({"abs": [1, 1, 1]})
