@@ -201,6 +201,10 @@ class OutOfBoundsTimedelta(ValueError):
 
     Representation should be within a timedelta64[ns].
 
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+
     Examples
     --------
     >>> pd.date_range(start="1/1/1700", freq="B", periods=100000)
