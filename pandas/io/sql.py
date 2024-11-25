@@ -969,6 +969,8 @@ class SQLTable(PandasObject):
             raise ValueError("Empty table name specified")
 
     def _drop_temporary_table(self):
+        """Drop a temporary table. Temporary tables are not in a database's meta data
+        and need to be dropped hard coded."""
         if self.schema is None:
             query = f"DROP TABLE {self.name}"
         else:
@@ -976,6 +978,8 @@ class SQLTable(PandasObject):
         self.pd_sql.execute(query)
 
     def _exists_temporary(self):
+        """Check if a temporary table exists. Temporary tables are not in a database's
+        meta data. The existence is duck tested by a SELECT statement."""
         from sqlalchemy.exc import (
             OperationalError,
             ProgrammingError,
