@@ -425,6 +425,16 @@ class InvalidIndexError(Exception):
     """
     Exception raised when attempting to use an invalid index key.
 
+    This exception is triggered when a user attempts to access or manipulate
+    data in a pandas DataFrame or Series using an index key that is not valid
+    for the given object. This may occur in cases such as using a malformed
+    slice, a mismatched key for a ``MultiIndex``, or attempting to access an index
+    element that does not exist.
+
+    See Also
+    --------
+    MultiIndex : A multi-level, or hierarchical, index object for pandas objects.
+
     Examples
     --------
     >>> idx = pd.MultiIndex.from_product([["x", "y"], [0, 1]])
