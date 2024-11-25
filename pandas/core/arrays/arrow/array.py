@@ -12,6 +12,7 @@ from typing import (
     cast,
 )
 import unicodedata
+import warnings
 
 import numpy as np
 
@@ -28,6 +29,7 @@ from pandas.compat import (
     pa_version_under13p0,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import (
@@ -663,19 +665,14 @@ class ArrowExtensionArray(
     ) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         if copy is False:
-            import warnings
-
-            from pandas.util._exceptions import find_stack_level
-
             warnings.warn(
-                "Numpy>=2.0 changed copy keyword's behavior, making copy=False"
-                "raise an error when a zero-copy numpy array is not possible",
+                "Starting on NumPy 2.0, the behavior of the 'copy' keyword has changed "
+                "and passing 'copy=False' raises an error when a zero-copy NumPy array "
+                "is not possible, Pandas will follow this behavior starting with "
+                "version 3.0. This conversion to NumPy requires a copy, but "
+                "'copy=False' was passed. Consider using 'np.asarray(..)' instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
-            )
-            # TODO: By using `zero_copy_only` it may be possible to implement this
-            raise ValueError(
-                "Unable to avoid copy while creating an array as requested."
             )
         elif copy is None:
             # `to_numpy(copy=False)` has the meaning of NumPy `copy=None`.
