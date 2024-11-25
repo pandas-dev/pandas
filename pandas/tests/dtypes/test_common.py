@@ -3,7 +3,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    pa_version_under10p1,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.astype import astype_array
@@ -835,3 +838,10 @@ def test_pandas_dtype_string_dtypes(string_storage):
     with pd.option_context("string_storage", string_storage):
         result = pandas_dtype("string")
     assert result == pd.StringDtype(string_storage, na_value=pd.NA)
+
+
+@pytest.mark.skipif(not pa_version_under10p1, reason="pyarrow>=10.0.1 installed")
+def test_construct_from_string_without_pyarrow_installed():
+    # GH 57928
+    with pytest.raises(ImportError, match="pyarrow>=10.0.1 is required"):
+        pd.Series([-1.5, 0.2, None], dtype="float32[pyarrow]")
