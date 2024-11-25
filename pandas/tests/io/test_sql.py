@@ -17,11 +17,6 @@ import uuid
 
 import numpy as np
 import pytest
-from sqlalchemy import (
-    create_engine,
-    text,
-)
-from sqlalchemy.engine import Engine
 
 from pandas._config import using_string_dtype
 
@@ -312,6 +307,7 @@ def create_and_load_types_postgresql(conn, types_data: list[dict]):
 
 def create_and_load_types(conn, types_data: list[dict], dialect: str):
     from sqlalchemy import insert
+    from sqlalchemy.engine import Engine
 
     types = types_table_metadata(dialect)
 
@@ -337,6 +333,7 @@ def create_and_load_postgres_datetz(conn):
         Table,
         insert,
     )
+    from sqlalchemy.engine import Engine
 
     metadata = MetaData()
     datetz = Table("datetz", metadata, Column("DateColWithTz", DateTime(timezone=True)))
@@ -1215,6 +1212,7 @@ def test_read_iris_query_expression_with_parameter(conn, request):
     from sqlalchemy import (
         MetaData,
         Table,
+        create_engine,
         select,
     )
 
@@ -1329,6 +1327,8 @@ def test_read_procedure(conn, request):
     # GH 7324
     # Although it is more an api test, it is added to the
     # mysql tests as sqlite does not have stored procedures
+    from sqlalchemy import text
+    from sqlalchemy.engine import Engine
 
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
     df.to_sql(name="test_frame", con=conn, index=False)
@@ -1402,6 +1402,7 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
     conn = request.getfixturevalue(conn)
 
     from sqlalchemy.dialects.postgresql import insert
+    from sqlalchemy.engine import Engine
     from sqlalchemy.sql import text
 
     def insert_on_conflict(table, conn, keys, data_iter):
@@ -1483,6 +1484,7 @@ def test_insertion_method_on_conflict_update(conn, request):
     conn = request.getfixturevalue(conn)
 
     from sqlalchemy.dialects.mysql import insert
+    from sqlalchemy.engine import Engine
     from sqlalchemy.sql import text
 
     def insert_on_conflict(table, conn, keys, data_iter):
@@ -1534,6 +1536,7 @@ def test_read_view_postgres(conn, request):
     # GH 52969
     conn = request.getfixturevalue(conn)
 
+    from sqlalchemy.engine import Engine
     from sqlalchemy.sql import text
 
     table_name = f"group_{uuid.uuid4().hex}"
@@ -2464,6 +2467,8 @@ def test_read_sql_delegate(conn, request):
 
 def test_not_reflect_all_tables(sqlite_conn):
     conn = sqlite_conn
+    from sqlalchemy import text
+    from sqlalchemy.engine import Engine
 
     # create invalid table
     query_list = [
@@ -2607,6 +2612,7 @@ def test_query_by_text_obj(conn, request):
     # WIP : GH10846
     conn_name = conn
     conn = request.getfixturevalue(conn)
+    from sqlalchemy import text
 
     if "postgres" in conn_name:
         name_text = text('select * from iris where "Name"=:name')
@@ -3273,6 +3279,9 @@ def test_get_schema_create_table(conn, request, test_frame3):
 
     conn = request.getfixturevalue(conn)
 
+    from sqlalchemy import text
+    from sqlalchemy.engine import Engine
+
     tbl = "test_get_schema_create_table"
     create_sql = sql.get_schema(test_frame3, tbl, con=conn)
     blank_test_df = test_frame3.iloc[:0]
@@ -3425,6 +3434,7 @@ def test_connectable_issue_example(conn, request):
 
     # This tests the example raised in issue
     # https://github.com/pandas-dev/pandas/issues/10104
+    from sqlalchemy.engine import Engine
 
     def test_select(connection):
         query = "SELECT test_foo_data FROM test_foo_data"
