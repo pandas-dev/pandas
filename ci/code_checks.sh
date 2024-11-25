@@ -117,7 +117,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.NumbaUtilError SA01" \
         -i "pandas.errors.OutOfBoundsTimedelta SA01" \
         -i "pandas.errors.PerformanceWarning SA01" \
-        -i "pandas.errors.PossibleDataLossError SA01" \
         -i "pandas.errors.UndefinedVariableError PR01,SA01" \
         -i "pandas.errors.ValueLabelTypeMismatch SA01" \
         -i "pandas.infer_freq SA01" \
