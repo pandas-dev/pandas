@@ -638,6 +638,15 @@ class PossibleDataLossError(Exception):
     """
     Exception raised when trying to open a HDFStore file when already opened.
 
+    This error is triggered when there is a potential risk of data loss due to
+    conflicting operations on an HDFStore file. It serves to prevent unintended
+    overwrites or data corruption by enforcing exclusive access to the file.
+
+    See Also
+    --------
+    HDFStore : Dict-like IO interface for storing pandas objects in PyTables.
+    HDFStore.open : Open an HDFStore file in the specified mode.
+
     Examples
     --------
     >>> store = pd.HDFStore("my-store", "a")  # doctest: +SKIP
