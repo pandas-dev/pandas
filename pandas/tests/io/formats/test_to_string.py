@@ -422,6 +422,7 @@ class TestToStringNumericFormatting:
             )
             assert result == expected
 
+    def test_to_string_complex_float_formatting_with_exponents(self):
         # GH #60393
         with option_context("display.precision", 6):
             df = DataFrame(
