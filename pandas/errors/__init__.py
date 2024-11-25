@@ -100,6 +100,11 @@ class UnsortedIndexError(KeyError):
 
     Subclass of `KeyError`.
 
+    See Also
+    --------
+    DataFrame.sort_index : Sort a DataFrame by its index.
+    DataFrame.set_index : Set the DataFrame index using existing columns.
+
     Examples
     --------
     >>> df = pd.DataFrame(
