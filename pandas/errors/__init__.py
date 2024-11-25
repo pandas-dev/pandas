@@ -393,6 +393,19 @@ class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
 
+    This error is typically encountered when performing operations on objects
+    with `allows_duplicate_labels=False` and the operation would result in
+    duplicate labels in the index. Duplicate labels can lead to ambiguities
+    in indexing and reduce data integrity.
+
+    See Also
+    --------
+    Series.set_flags : Return a new ``Series`` object with updated flags.
+    DataFrame.set_flags : Return a new ``DataFrame`` object with updated flags.
+    Series.reindex : Conform ``Series`` object to new index with optional filling logic.
+    DataFrame.reindex : Conform ``DataFrame`` object to new index with optional filling
+        logic.
+
     Examples
     --------
     >>> s = pd.Series([0, 1, 2], index=["a", "b", "c"]).set_flags(
