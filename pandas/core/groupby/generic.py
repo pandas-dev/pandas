@@ -1443,6 +1443,11 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         Series
 
+        See Also
+        --------
+        SeriesGroupBy.is_monotonic_decreasing : Return whether each group's values
+            are monotonically decreasing.
+
         Examples
         --------
         >>> s = pd.Series([2, 1, 3, 4], index=["Falcon", "Falcon", "Parrot", "Parrot"])
@@ -1461,6 +1466,11 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+
+        See Also
+        --------
+        SeriesGroupBy.is_monotonic_increasing : Return whether each group's values
+            are monotonically increasing.
 
         Examples
         --------
