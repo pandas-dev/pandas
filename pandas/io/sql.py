@@ -2084,7 +2084,9 @@ class SQLDatabase(PandasSQL):
             **engine_kwargs,
         )
 
-        self.check_case_sensitive(name=name, schema=schema)
+        # only check case sensitivity for non temporary tables
+        if not table.is_temporary:
+            self.check_case_sensitive(name=name, schema=schema)
         return total_inserted
 
     @property
