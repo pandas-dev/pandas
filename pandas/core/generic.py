@@ -2845,7 +2845,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-        prefixs : sequence, optional
+        prefixes : sequence, optional
             A list of strings to insert after CREATE in the CREATE TABLE statement.
             They will be separated by spaces.
 
