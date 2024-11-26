@@ -3,10 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    HAS_PYARROW,
-    pa_version_under10p1,
-)
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.astype import astype_array
