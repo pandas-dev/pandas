@@ -2362,6 +2362,7 @@ class ADBCDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2391,6 +2392,9 @@ class ADBCDatabase(PandasSQL):
             Raises NotImplementedError
         method : {None', 'multi', callable}, default None
             Raises NotImplementedError
+        prefixes : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
