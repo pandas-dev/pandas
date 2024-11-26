@@ -840,7 +840,7 @@ def test_pandas_dtype_string_dtypes(string_storage):
     assert result == pd.StringDtype(string_storage, na_value=pd.NA)
 
 
-@pytest.mark.skipif(not pa_version_under10p1, reason="pyarrow>=10.0.1 installed")
+@td.skip_if_installed("pyarrow")
 def test_construct_from_string_without_pyarrow_installed():
     # GH 57928
     with pytest.raises(ImportError, match="pyarrow>=10.0.1 is required"):
