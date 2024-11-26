@@ -82,7 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.tzinfo GL08" \
-        -i "pandas.api.types.is_re_compilable PR07,SA01" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
