@@ -54,6 +54,7 @@ Other enhancements
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
 - :meth:`DataFrame.plot.scatter` argument ``c`` now accepts a column of strings, where rows with the same string are colored identically (:issue:`16827` and :issue:`16485`)
+- :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :meth:`DataFrameGroupBy.transform`, :meth:`SeriesGroupBy.transform`, :meth:`DataFrameGroupBy.agg`, :meth:`SeriesGroupBy.agg`, :meth:`RollingGroupby.apply`, :meth:`ExpandingGroupby.apply`, :meth:`Rolling.apply`, :meth:`Expanding.apply`, :meth:`DataFrame.apply` with ``engine="numba"`` now supports positional arguments passed as kwargs (:issue:`58995`)
 - :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
@@ -626,6 +627,7 @@ Datetimelike
 - Bug in :meth:`Series.dt.microsecond` producing incorrect results for pyarrow backed :class:`Series`. (:issue:`59154`)
 - Bug in :meth:`to_datetime` not respecting dayfirst if an uncommon date string was passed. (:issue:`58859`)
 - Bug in :meth:`to_datetime` reports incorrect index in case of any failure scenario. (:issue:`58298`)
+- Bug in :meth:`to_datetime` wrongly converts when ``arg`` is a ``np.datetime64`` object with unit of ``ps``. (:issue:`60341`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
 
 Timedelta
@@ -688,6 +690,7 @@ I/O
 - Bug in :meth:`DataFrame.from_records` where ``columns`` parameter with numpy structured array was not reordering and filtering out the columns (:issue:`59717`)
 - Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
 - Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
+- Bug in :meth:`DataFrame.to_excel` where the :class:`MultiIndex` index with a period level was not a date (:issue:`60099`)
 - Bug in :meth:`DataFrame.to_stata` when writing :class:`DataFrame` and ``byteorder=`big```. (:issue:`58969`)
 - Bug in :meth:`DataFrame.to_stata` when writing more than 32,000 value labels. (:issue:`60107`)
 - Bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
@@ -702,6 +705,8 @@ I/O
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
 - Bug in :meth:`read_stata` where extreme value integers were incorrectly interpreted as missing for format versions 111 and prior (:issue:`58130`)
 - Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
+- Bug in :meth:`set_option` where setting the pandas option ``display.html.use_mathjax`` to ``False`` has no effect (:issue:`59884`)
+- Bug in :meth:`to_excel` where :class:`MultiIndex` columns would be merged to a single row when ``merge_cells=False`` is passed (:issue:`60274`)
 
 Period
 ^^^^^^
@@ -760,7 +765,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
+- Bug in :meth:`Styler.to_latex` where styling column headers when combined with a hidden index or hidden index-levels is fixed.
 
 Other
 ^^^^^
@@ -784,6 +789,7 @@ Other
 - Bug in :meth:`Series.dt` methods in :class:`ArrowDtype` that were returning incorrect values. (:issue:`57355`)
 - Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
+- Bug in :meth:`Series.to_string` when series contains complex floats with exponents (:issue:`60405`)
 - Bug in :meth:`read_csv` where chained fsspec TAR file and ``compression="infer"`` fails with ``tarfile.ReadError`` (:issue:`60028`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)

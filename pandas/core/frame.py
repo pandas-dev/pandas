@@ -2115,8 +2115,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Convert structured or record ndarray to DataFrame.
 
-        Creates a DataFrame object from a structured ndarray, sequence of
-        tuples or dicts, or DataFrame.
+        Creates a DataFrame object from a structured ndarray, or sequence of
+        tuples or dicts.
 
         Parameters
         ----------
@@ -4742,7 +4742,8 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4    7   8  0
         4  5   2    6   7  3
 
-        For columns with spaces in their name, you can use backtick quoting.
+        For columns with spaces or other disallowed characters in their name, you can
+        use backtick quoting.
 
         >>> df.eval("B * `C&C`")
         0    100
