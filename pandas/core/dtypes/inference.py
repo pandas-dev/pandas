@@ -215,7 +215,7 @@ def is_re_compilable(obj: object) -> bool:
         return False
     else:
         return True
-    
+
 
 def is_array_like(obj: object) -> bool:
     """
