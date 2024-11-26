@@ -1538,6 +1538,7 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
