@@ -15,6 +15,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -766,7 +767,7 @@ def test_dict_keys_as_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @xfail_pyarrow  # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xed in position 0
 def test_encoding_surrogatepass(all_parsers):
     # GH39017
