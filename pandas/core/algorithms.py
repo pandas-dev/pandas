@@ -16,6 +16,7 @@ from typing import (
 import warnings
 
 import numpy as np
+from pandas_mask import PandasMaskArray
 
 from pandas._libs import (
     algos,
@@ -1173,6 +1174,8 @@ def take(
     ... )
     array([ 10,  10, -10])
     """
+    if isinstance(arr, PandasMaskArray):  # TODO: implement take directly on mask
+        arr = np.array(arr)
     if not isinstance(
         arr,
         (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, ABCNumpyExtensionArray),

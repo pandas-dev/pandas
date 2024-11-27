@@ -324,7 +324,7 @@ class WrappedCythonOp:
             # expand to 2d, dispatch, then squeeze if appropriate
             values2d = values[None, :]
             if mask is not None:
-                mask = mask[None, :]
+                mask = np.array(mask)[None, :]
             if result_mask is not None:
                 result_mask = result_mask[None, :]
             res = self._call_cython_op(

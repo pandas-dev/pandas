@@ -140,7 +140,7 @@ cdef class IndexEngine:
 
     cdef readonly:
         ndarray values
-        ndarray mask
+        object mask
         HashTable mapping
         bint over_size_threshold
 
