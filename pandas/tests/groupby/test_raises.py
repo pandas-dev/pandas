@@ -172,6 +172,7 @@ def test_groupby_raises_string(
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (ValueError, "could not convert string to float"),
+        "kurt": (ValueError, "could not convert string to float"),
         "std": (ValueError, "could not convert string to float"),
         "sum": (None, ""),
         "var": (
@@ -191,10 +192,11 @@ def test_groupby_raises_string(
             "sem",
             "var",
             "skew",
+            "kurt",
             "quantile",
         ]:
             msg = f"dtype 'str' does not support operation '{groupby_func}'"
-            if groupby_func in ["sem", "std", "skew"]:
+            if groupby_func in ["sem", "std", "skew", "kurt"]:
                 # The object-dtype raises ValueError when trying to convert to numeric.
                 klass = TypeError
         elif groupby_func == "pct_change" and df["d"].dtype.storage == "pyarrow":
@@ -328,6 +330,15 @@ def test_groupby_raises_datetime(
                 ]
             ),
         ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    r"dtype datetime64\[ns\] does not support operation",
+                    "datetime64 type does not support operation 'kurt'",
+                ]
+            ),
+        ),
         "std": (None, ""),
         "sum": (TypeError, "datetime64 type does not support operation 'sum"),
         "var": (TypeError, "datetime64 type does not support operation 'var'"),
@@ -380,7 +391,7 @@ def test_groupby_raises_datetime_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
-@pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
+@pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "kurt", "var"])
 def test_groupby_raises_timedelta(func):
     df = DataFrame(
         {
@@ -508,6 +519,15 @@ def test_groupby_raises_category(
                 [
                     "dtype category does not support operation 'skew'",
                     "category type does not support skew operations",
+                ]
+            ),
+        ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    "dtype category does not support operation 'kurt'",
+                    "category type does not support kurt operations",
                 ]
             ),
         ),
@@ -686,6 +706,15 @@ def test_groupby_raises_category_on_category(
                 [
                     "category type does not support skew operations",
                     "dtype category does not support operation 'skew'",
+                ]
+            ),
+        ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    "category type does not support kurt operations",
+                    "dtype category does not support operation 'kurt'",
                 ]
             ),
         ),
