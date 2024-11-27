@@ -11,7 +11,7 @@ permissions:
 jobs:
   issue_assign:
     runs-on: ubuntu-22.04
-    if: (!github.event.issue.pull_request) && trim(github.event.comment.body) == 'take'
+    if: (!github.event.issue.pull_request) && github.event.comment.body == 'take'
     concurrency:
       group: ${{ github.actor }}-issue-assign
     steps:
