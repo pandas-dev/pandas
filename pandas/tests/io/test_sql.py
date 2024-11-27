@@ -1061,6 +1061,8 @@ all_connectable_types = (
     sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
 )
 
+temporary_connectable = sqlalchemy_connectable_default_pool + adbc_connectable
+
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql(conn, test_frame1, request):
@@ -4462,7 +4464,7 @@ def test_exists_temporary_table(conn, test_frame1, request):
     assert True if table.exists() else False
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable_default_pool + adbc_connectable)
+@pytest.mark.parametrize("conn", temporary_connectable)
 def test_to_sql_temporary_table_replace(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
 
@@ -4487,7 +4489,7 @@ def test_to_sql_temporary_table_replace(conn, test_frame1, request):
     assert_frame_equal(test_frame1, df_test)
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable_default_pool + adbc_connectable)
+@pytest.mark.parametrize("conn", temporary_connectable)
 def test_to_sql_temporary_table_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
 
@@ -4509,7 +4511,7 @@ def test_to_sql_temporary_table_fail(conn, test_frame1, request):
         )
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable_default_pool + adbc_connectable)
+@pytest.mark.parametrize("conn", temporary_connectable)
 def test_to_sql_temporary_table_append(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
 
