@@ -2415,6 +2415,11 @@ class ADBCDatabase(PandasSQL):
                 "engine != 'auto' not implemented for ADBC drivers"
             )
 
+        # check if the table to be created is a temporary table
+        temporary = prefixes is not None and "TEMPORARY".casefold() in [
+            prefix.casefold() for prefix in prefixes
+        ]
+
         if schema:
             table_name = f"{schema}.{name}"
         else:
@@ -2425,7 +2430,14 @@ class ADBCDatabase(PandasSQL):
         # as applicable modes, so the semantics get blurred across
         # the libraries
         mode = "create"
-        if self.has_table(name, schema):
+
+        # for temporary tables use duck testing for existence check
+        if temporary:
+            exists = self._has_table_temporary(name, schema)
+        else:
+            exists = self.has_table(name, schema)
+
+        if exists:
             if if_exists == "fail":
                 raise ValueError(f"Table '{table_name}' already exists.")
             elif if_exists == "replace":
@@ -2443,11 +2455,40 @@ class ADBCDatabase(PandasSQL):
 
         with self.con.cursor() as cur:
             total_inserted = cur.adbc_ingest(
-                table_name=name, data=tbl, mode=mode, db_schema_name=schema
+                table_name=name,
+                data=tbl,
+                mode=mode,
+                db_schema_name=schema,
+                temporary=temporary,
             )
 
         self.con.commit()
         return total_inserted
+
+    def _has_table_temporary(self, name: str, schema: str | None = None) -> bool:
+        """Check if a temporary table exists. Temporary tables are not in a database's
+        meta data. The existence is duck tested by a SELECT statement."""
+        from adbc_driver_manager import ProgrammingError
+
+        # sqlite doesn't allow a rollback at this point
+        rollback = (
+            True if not self.con.adbc_get_info()["vendor_name"] == "SQLite" else False
+        )
+
+        if schema is None:
+            query = f"SELECT * FROM {name} LIMIT 1"
+        else:
+            query = f"SELECT * FROM {schema}.{name} LIMIT 1"
+        try:
+            with self.con.cursor() as cur:
+                cur.execute(query)
+            return True
+        except ProgrammingError:
+            if rollback:
+                # Some DBMS (e.g. postgres) require a rollback after a caught exception
+                with self.con.cursor() as cur:
+                    cur.execute("rollback")
+            return False
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
