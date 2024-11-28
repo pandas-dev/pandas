@@ -728,9 +728,10 @@ class ArrowExtensionArray(
             try:
                 if pa.types.is_string(self._pa_array.type):
                     other_array = self._box_pa(other)
+                    self_array = self._pa_array.cast(pa.large_string())
                     if pa.types.is_string(other_array.type):
                         other_array = other_array.cast(pa.large_string())
-                    result = pc_func(self._pa_array, other_array)
+                    result = pc_func(self_array, other_array)
                 else:
                     result = pc_func(self._pa_array, self._box_pa(other))
             except pa.ArrowNotImplementedError:
