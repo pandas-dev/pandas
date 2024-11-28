@@ -8721,10 +8721,10 @@ class DataFrame(NDFrame, OpsMixin):
         Combine two DataFrame objects by filling null values in one DataFrame
         with non-null values from other DataFrame. The row and column indexes
         of the resulting DataFrame will be the union of the two. The resulting
-        dataframe contains the 'first' dataframe values and overrides the
-        second one values where both first.loc[index, col] and
-        second.loc[index, col] are not missing values, upon calling
-        first.combine_first(second).
+        DataFrame contains the 'first' DataFrame values and overrides the
+        second one values where both `first.loc[index, col]` and
+        `second.loc[index, col]` are not missing values, upon calling
+        `first.combine_first(second)`.
 
         Parameters
         ----------
@@ -8733,7 +8733,6 @@ class DataFrame(NDFrame, OpsMixin):
         sort_columns : bool, default True
             Whether to sort the columns in the result DataFrame. If False, the
             order of the columns in `self` is preserved.
-
 
         Returns
         -------
@@ -8752,27 +8751,26 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df1 = pd.DataFrame({"A": [None, 0], "B": [None, 4]})
         >>> df2 = pd.DataFrame({"A": [1, 1], "B": [3, 3]})
         >>> df1.combine_first(df2)
-             A    B
+            A    B
         0  1.0  3.0
         1  0.0  4.0
-
 
         Preserving the column order of `self` with `sort_columns=False`:
 
         >>> df1 = pd.DataFrame({"B": [None, 4], "A": [0, None]})
         >>> df2 = pd.DataFrame({"A": [1, 1], "B": [3, 3]})
         >>> df1.combine_first(df2, sort_columns=False)
-             B    A
+            B    A
         0  3.0  0.0
         1  4.0  1.0
 
         Null values still persist if the location of that null value
-        does not exist in `other`
+        does not exist in `other`.
 
         >>> df1 = pd.DataFrame({"A": [None, 0], "B": [4, None]})
         >>> df2 = pd.DataFrame({"B": [3, 3], "C": [1, 1]}, index=[1, 2])
         >>> df1.combine_first(df2)
-             A    B    C
+            A    B    C
         0  NaN  4.0  NaN
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
