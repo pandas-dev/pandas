@@ -648,11 +648,6 @@ class PlotAccessor(PandasObject):
     Uses the backend specified by the
     option ``plotting.backend``. By default, matplotlib is used.
 
-    Parameters
-    ----------
-    data : Series or DataFrame
-        The object for which the method is called.
-
     Attributes
     ----------
     x : label or position, default None
