@@ -14,10 +14,10 @@ from pandas.core.dtypes.dtypes import (
 )
 
 __all__ = [
-    "infer_dtype",
-    "union_categoricals",
     "CategoricalDtype",
     "DatetimeTZDtype",
     "IntervalDtype",
     "PeriodDtype",
+    "infer_dtype",
+    "union_categoricals",
 ]
