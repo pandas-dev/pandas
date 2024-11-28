@@ -8712,7 +8712,7 @@ class DataFrame(NDFrame, OpsMixin):
         frame_result = self._constructor(result, index=new_index, columns=new_columns)
         return frame_result.__finalize__(self, method="combine")
 
-    def combine_first(self, other: DataFrame) -> DataFrame:
+    def combine_first(self, other: DataFrame, sort_columns=True) -> DataFrame:
         """
         Update null elements with value in the same location in `other`.
 
@@ -8728,6 +8728,10 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         other : DataFrame
             Provided DataFrame to use to fill null values.
+        sort_columns : bool, default True
+            Whether to sort the columns in the result DataFrame. If False, the
+            order of the columns in `self` is preserved.
+
 
         Returns
         -------
@@ -8741,12 +8745,24 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
+        Default behavior with `sort_columns=True` (default):
+
         >>> df1 = pd.DataFrame({"A": [None, 0], "B": [None, 4]})
         >>> df2 = pd.DataFrame({"A": [1, 1], "B": [3, 3]})
         >>> df1.combine_first(df2)
              A    B
         0  1.0  3.0
         1  0.0  4.0
+
+
+        Preserving the column order of `self` with `sort_columns=False`:
+
+        >>> df1 = pd.DataFrame({"B": [None, 4], "A": [0, None]})
+        >>> df2 = pd.DataFrame({"A": [1, 1], "B": [3, 3]})
+        >>> df1.combine_first(df2, sort_columns=False)
+             B    A
+        0  3.0  0.0
+        1  4.0  1.0
 
         Null values still persist if the location of that null value
         does not exist in `other`
@@ -8773,6 +8789,8 @@ class DataFrame(NDFrame, OpsMixin):
                 return y_values
 
             return expressions.where(mask, y_values, x_values)
+        
+        all_columns = self.columns.union(other.columns)
 
         if len(other) == 0:
             combined = self.reindex(
@@ -8790,6 +8808,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         if dtypes:
             combined = combined.astype(dtypes)
+        
+        combined = combined.reindex(columns=all_columns, fill_value=None)
+
+        if not sort_columns:
+            combined = combined[self.columns]
+        
+
 
         return combined.__finalize__(self, method="combine_first")
 
