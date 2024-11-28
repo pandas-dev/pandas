@@ -726,14 +726,21 @@ class ArrowExtensionArray(
             other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
         ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
             try:
-                if pa.types.is_string(self._pa_array.type):
-                    other_array = self._box_pa(other)
-                    self_array = self._pa_array.cast(pa.large_string())
+                other_array = self._box_pa(other)
+                if isinstance(other_array.type, pa.DictionaryType):
+                    other_array = other_array.dictionary_decode()
                     if pa.types.is_string(other_array.type):
-                        other_array = other_array.cast(pa.large_string())
+                        other_array = other_array.cast(pa.string())
+                if pa.types.is_string(self._pa_array.type):
+                    self_array = self._pa_array
+                    if not pa.types.is_string(other_array.type):
+                        other_array = other_array.cast(pa.string())
                     result = pc_func(self_array, other_array)
                 else:
-                    result = pc_func(self._pa_array, self._box_pa(other))
+                    result = pc_func(self._pa_array, other_array)
+                if result.type == pa.string():
+                    result = result.cast(self._pa_array.type)
+                return type(self)(result)
             except pa.ArrowNotImplementedError:
                 # TODO: could this be wrong if other is object dtype?
                 #  in which case we need to operate pointwise?
