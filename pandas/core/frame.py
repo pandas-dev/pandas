@@ -8712,7 +8712,9 @@ class DataFrame(NDFrame, OpsMixin):
         frame_result = self._constructor(result, index=new_index, columns=new_columns)
         return frame_result.__finalize__(self, method="combine")
 
-    def combine_first(self, other: DataFrame, sort_columns=True) -> DataFrame:
+    def combine_first(
+        self, other: DataFrame, *, sort_columns: bool = True
+    ) -> DataFrame:
         """
         Update null elements with value in the same location in `other`.
 
@@ -8789,7 +8791,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return y_values
 
             return expressions.where(mask, y_values, x_values)
-        
+
         all_columns = self.columns.union(other.columns)
 
         if len(other) == 0:
@@ -8808,13 +8810,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         if dtypes:
             combined = combined.astype(dtypes)
-        
+
         combined = combined.reindex(columns=all_columns, fill_value=None)
 
         if not sort_columns:
             combined = combined[self.columns]
-        
-
 
         return combined.__finalize__(self, method="combine_first")
 
@@ -10543,9 +10543,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             index = Index(
                 [other.name],
-                name=self.index.names
-                if isinstance(self.index, MultiIndex)
-                else self.index.name,
+                name=(
+                    self.index.names
+                    if isinstance(self.index, MultiIndex)
+                    else self.index.name
+                ),
             )
             row_df = other.to_frame().T
             # infer_objects is needed for
