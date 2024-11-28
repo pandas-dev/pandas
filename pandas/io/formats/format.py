@@ -1749,7 +1749,7 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         # The split will give [{"", "-"}, "xxx", "+/-", "xxx", "j", ""]
         # Therefore, the imaginary part is the 4th and 3rd last elements,
         # and the real part is everything before the imaginary part
-        trimmed = re.split(r"([j+-])", x)
+        trimmed = re.split(r"(?<!e)([j+-])", x)
         real_part.append("".join(trimmed[:-4]))
         imag_part.append("".join(trimmed[-4:-2]))
 

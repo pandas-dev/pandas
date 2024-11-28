@@ -190,11 +190,16 @@ def is_re_compilable(obj: object) -> bool:
     Parameters
     ----------
     obj : The object to check
+        The object to check if the object can be compiled into a regex pattern instance.
 
     Returns
     -------
     bool
         Whether `obj` can be compiled as a regex pattern.
+
+    See Also
+    --------
+    api.types.is_re : Check if the object is a regex pattern instance.
 
     Examples
     --------

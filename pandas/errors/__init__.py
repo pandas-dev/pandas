@@ -100,6 +100,11 @@ class UnsortedIndexError(KeyError):
 
     Subclass of `KeyError`.
 
+    See Also
+    --------
+    DataFrame.sort_index : Sort a DataFrame by its index.
+    DataFrame.set_index : Set the DataFrame index using existing columns.
+
     Examples
     --------
     >>> df = pd.DataFrame(
@@ -388,6 +393,19 @@ class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
 
+    This error is typically encountered when performing operations on objects
+    with `allows_duplicate_labels=False` and the operation would result in
+    duplicate labels in the index. Duplicate labels can lead to ambiguities
+    in indexing and reduce data integrity.
+
+    See Also
+    --------
+    Series.set_flags : Return a new ``Series`` object with updated flags.
+    DataFrame.set_flags : Return a new ``DataFrame`` object with updated flags.
+    Series.reindex : Conform ``Series`` object to new index with optional filling logic.
+    DataFrame.reindex : Conform ``DataFrame`` object to new index with optional filling
+        logic.
+
     Examples
     --------
     >>> s = pd.Series([0, 1, 2], index=["a", "b", "c"]).set_flags(
@@ -406,6 +424,16 @@ class DuplicateLabelError(ValueError):
 class InvalidIndexError(Exception):
     """
     Exception raised when attempting to use an invalid index key.
+
+    This exception is triggered when a user attempts to access or manipulate
+    data in a pandas DataFrame or Series using an index key that is not valid
+    for the given object. This may occur in cases such as using a malformed
+    slice, a mismatched key for a ``MultiIndex``, or attempting to access an index
+    element that does not exist.
+
+    See Also
+    --------
+    MultiIndex : A multi-level, or hierarchical, index object for pandas objects.
 
     Examples
     --------
@@ -509,6 +537,11 @@ class NumExprClobberingError(NameError):
     ``eval`` or ``query`` will throw the error if the engine is set
     to 'numexpr'. 'numexpr' is the default engine value for these methods if the
     numexpr package is installed.
+
+    See Also
+    --------
+    eval : Evaluate a Python expression as a string using various backends.
+    DataFrame.query : Query the columns of a DataFrame with a boolean expression.
 
     Examples
     --------
@@ -632,6 +665,15 @@ class CSSWarning(UserWarning):
 class PossibleDataLossError(Exception):
     """
     Exception raised when trying to open a HDFStore file when already opened.
+
+    This error is triggered when there is a potential risk of data loss due to
+    conflicting operations on an HDFStore file. It serves to prevent unintended
+    overwrites or data corruption by enforcing exclusive access to the file.
+
+    See Also
+    --------
+    HDFStore : Dict-like IO interface for storing pandas objects in PyTables.
+    HDFStore.open : Open an HDFStore file in the specified mode.
 
     Examples
     --------
