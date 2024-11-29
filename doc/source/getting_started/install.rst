@@ -193,13 +193,13 @@ Visualization
 
 Installable with ``pip install "pandas[plot, output-formatting]"``.
 
-========================= ================== ================== =============================================================
-Dependency                Minimum Version    pip extra          Notes
-========================= ================== ================== =============================================================
-matplotlib                3.6.3              plot               Plotting library
-Jinja2                    3.1.2              output-formatting  Conditional formatting with DataFrame.style
-tabulate                  0.9.0              output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
-========================= ================== ================== =============================================================
+======================================================== ================== ================== ===============================================================================================
+Dependency                                               Minimum Version    pip extra          Notes
+======================================================== ================== ================== ===============================================================================================
+`matplotlib <https://matplotlib.org/>`__                 3.6.3              plot               Plotting library
+Jinja2                                                   3.1.2              output-formatting  Conditional formatting with DataFrame.style
+tabulate                                                 0.9.0              output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
+======================================================== ================== ================== ===============================================================================================
 
 Computation
 ^^^^^^^^^^^
