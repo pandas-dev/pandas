@@ -517,12 +517,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         See Also
         --------
-        core.groupby.DataFrameGroupBy.indices : Provides a mapping of group names to
-         positions of the elements in object.
-        core.groupby.SeriesGroupBy.indices : Provides a mapping of group names to
-         positions of the elements in object.
-        core.resample.Resampler.indices : Provides a mapping of group names to
-         positions of the elements in object.
+        core.groupby.DataFrameGroupBy.indices : Provides a mapping of group rows to
+            positions of the elements in object.
+        core.groupby.SeriesGroupBy.indices : Provides a mapping of group rows to
+            positions of the elements in object.
+        core.resample.Resampler.indices : Provides a mapping of group rows to
+            positions of the elements in object.
 
         Examples
         --------
