@@ -3308,11 +3308,11 @@ class TestLocSeries:
             random_sample = ser1.sample(n=nsize)
             matching_mask = ser1.index.isin(random_sample.index)
             # Remove values at indices to test assignment
-            ser1.loc[matching_mask] = np.NaN
+            ser1.loc[matching_mask] = np.nan
             ser1.loc[matching_mask] = random_sample
             tm.assert_series_equal(ser1, ser2)
             # exclude row and index and test assignment of unmatched indices
             exclude_mask = ~matching_mask
             ser2.loc[matching_mask] = ser1.loc[exclude_mask]
-            ser1.loc[matching_mask] = np.NaN
+            ser1.loc[matching_mask] = np.nan
             tm.assert_series_equal(ser2, ser1)
