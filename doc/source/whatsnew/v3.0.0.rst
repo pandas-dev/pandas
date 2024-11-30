@@ -787,6 +787,7 @@ Other
 - Bug in :meth:`read_csv` where chained fsspec TAR file and ``compression="infer"`` fails with ``tarfile.ReadError`` (:issue:`60028`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
+- Bug in ``_version_meson.py`` when building pandas in Gitpod environment, using an (unusable) untagged version of pandas that breaks the build
 
 .. ***DO NOT USE THIS SECTION***
 
