@@ -730,20 +730,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         return arr, self.dtype.na_value
 
-    def __setitem__(self, key, value) -> None:
-        value = extract_array(value, extract_numpy=True)
-        if isinstance(value, type(self)):
-            # extract_array doesn't extract NumpyExtensionArray subclasses
-            value = value._ndarray
-
-        key = check_array_indexer(self, key)
-        scalar_key = lib.is_scalar(key)
-        scalar_value = lib.is_scalar(value)
-        if scalar_key and not scalar_value:
-            raise ValueError("setting an array element with a sequence.")
-
-        # validate new items
-        if scalar_value:
+    def _maybe_convert_setitem_value(self, value):
+        """Maybe convert value to be pyarrow compatible."""
+        if lib.is_scalar(value):
             if isna(value):
                 value = self.dtype.na_value
             elif not isinstance(value, str):
@@ -753,8 +742,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     "instead."
                 )
         else:
+            value = extract_array(value, extract_numpy=True)
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
+            elif isinstance(value.dtype, type(self.dtype)):
+                return value
             else:
                 # cast categories and friends to arrays to see if values are
                 # compatible, compatibility with arrow backed strings
@@ -764,11 +756,26 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     "Invalid value for dtype 'str'. Value should be a "
                     "string or missing value (or array of those)."
                 )
+        return value
 
-            mask = isna(value)
-            if mask.any():
-                value = value.copy()
-                value[isna(value)] = self.dtype.na_value
+    def __setitem__(self, key, value) -> None:
+        value = self._maybe_convert_setitem_value(value)
+
+        key = check_array_indexer(self, key)
+        scalar_key = lib.is_scalar(key)
+        scalar_value = lib.is_scalar(value)
+        if scalar_key and not scalar_value:
+            raise ValueError("setting an array element with a sequence.")
+
+        if not scalar_value:
+            if value.dtype == self.dtype:
+                value = value._ndarray
+            else:
+                value = np.asarray(value)
+                mask = isna(value)
+                if mask.any():
+                    value = value.copy()
+                    value[isna(value)] = self.dtype.na_value
 
         super().__setitem__(key, value)
 
