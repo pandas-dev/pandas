@@ -17,7 +17,7 @@ tasks:
       pre-commit install --install-hooks
     command: |
       python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
-      rm -f build/cp310/_version_meson.py
+      rm -f build/cp310/_version_meson.py    # this file breaks setup if not removed (causes untagged pandas version to be used)
       echo "✨ Pre-build complete! You can close this terminal ✨ "
 
 # --------------------------------------------------------
