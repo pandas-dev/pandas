@@ -1024,7 +1024,7 @@ def save_to_buffer(
 @contextmanager
 def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
+) -> Generator[WriteBuffer[str]] | Generator[StringIO]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1749,7 +1749,7 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         # The split will give [{"", "-"}, "xxx", "+/-", "xxx", "j", ""]
         # Therefore, the imaginary part is the 4th and 3rd last elements,
         # and the real part is everything before the imaginary part
-        trimmed = re.split(r"([j+-])", x)
+        trimmed = re.split(r"(?<!e)([j+-])", x)
         real_part.append("".join(trimmed[:-4]))
         imag_part.append("".join(trimmed[-4:-2]))
 
@@ -1926,6 +1926,9 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     """
     Format float representation in DataFrame with SI notation.
 
+    Sets the floating-point display format for ``DataFrame`` objects using engineering
+    notation (SI units), allowing easier readability of values across wide ranges.
+
     Parameters
     ----------
     accuracy : int, default 3
@@ -1936,6 +1939,13 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     Returns
     -------
     None
+        This method does not return a value. it updates the global display format
+        for floats in DataFrames.
+
+    See Also
+    --------
+    set_option : Set the value of the specified option or options.
+    reset_option : Reset one or more options to their default value.
 
     Examples
     --------

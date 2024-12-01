@@ -1230,7 +1230,7 @@ class TestLocBaseIndependent:
         # assigning with loc/iloc attempts to set the values inplace, which
         #  in this case is successful
         if using_infer_string:
-            with pytest.raises(TypeError, match="Must provide strings"):
+            with pytest.raises(TypeError, match="Invalid value"):
                 result.loc[result.index, "A"] = [float(x) for x in col_data]
         else:
             result.loc[result.index, "A"] = [float(x) for x in col_data]

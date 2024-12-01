@@ -289,12 +289,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
 
+    SparseArray efficiently stores data with a high frequency of a
+    specific fill value (e.g., zeros), saving memory by only retaining
+    non-fill elements and their indices. This class is particularly
+    useful for large datasets where most values are redundant.
+
     Parameters
     ----------
     data : array-like or scalar
         A dense array of values to store in the SparseArray. This may contain
         `fill_value`.
     sparse_index : SparseIndex, optional
+        Index indicating the locations of sparse elements.
     fill_value : scalar, optional
         Elements in data that are ``fill_value`` are not stored in the
         SparseArray. For memory savings, this should be the most common value
@@ -344,6 +350,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     Methods
     -------
     None
+
+    See Also
+    --------
+    SparseDtype : Dtype for sparse data.
 
     Examples
     --------
@@ -547,11 +557,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
-        fill_value = self.fill_value
-
         if self.sp_index.ngaps == 0:
             # Compat for na dtype and int values.
-            return self.sp_values
+            if copy is True:
+                return np.array(self.sp_values)
+            else:
+                return self.sp_values
+
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        fill_value = self.fill_value
+
         if dtype is None:
             # Can NumPy represent this type?
             # If not, `np.result_type` will raise. We catch that
@@ -707,6 +726,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def npoints(self) -> int:
         """
         The number of non- ``fill_value`` points.
+
+        This property returns the number of elements in the sparse series that are
+        not equal to the ``fill_value``. Sparse data structures store only the
+        non-``fill_value`` elements, reducing memory usage when the majority of
+        values are the same.
+
+        See Also
+        --------
+        Series.sparse.to_dense : Convert a Series from sparse values to dense.
+        Series.sparse.fill_value : Elements in ``data`` that are ``fill_value`` are
+            not stored.
+        Series.sparse.density : The percent of non- ``fill_value`` points, as decimal.
 
         Examples
         --------

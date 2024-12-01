@@ -92,7 +92,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Generator[None, None, None]:
+def pandas_converters() -> Generator[None]:
     """
     Context manager registering pandas' converters for a plot.
 
@@ -527,7 +527,7 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
 
     ppd = -1  # placeholder for above-day freqs
 
-    if dtype_code >= FreqGroup.FR_HR.value:
+    if dtype_code >= FreqGroup.FR_HR.value:  # pyright: ignore[reportAttributeAccessIssue]
         # error: "BaseOffset" has no attribute "_creso"
         ppd = periods_per_day(freq._creso)  # type: ignore[attr-defined]
         ppm = 28 * ppd
@@ -684,7 +684,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     elif span <= periodsperyear // 4:
         month_start = _period_break(dates_, "month")
         info_maj[month_start] = True
-        if dtype_code < FreqGroup.FR_HR.value:
+        if dtype_code < FreqGroup.FR_HR.value:  # pyright: ignore[reportAttributeAccessIssue]
             info["min"] = True
         else:
             day_start = _period_break(dates_, "day")
@@ -910,7 +910,7 @@ def get_finder(freq: BaseOffset):
         return _quarterly_finder
     elif fgroup == FreqGroup.FR_MTH:
         return _monthly_finder
-    elif (dtype_code >= FreqGroup.FR_BUS.value) or fgroup == FreqGroup.FR_WK:
+    elif (dtype_code >= FreqGroup.FR_BUS.value) or fgroup == FreqGroup.FR_WK:  # pyright: ignore[reportAttributeAccessIssue]
         return _daily_finder
     else:  # pragma: no cover
         raise NotImplementedError(f"Unsupported frequency: {dtype_code}")

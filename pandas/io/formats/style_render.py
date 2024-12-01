@@ -366,9 +366,11 @@ class StylerRenderer:
         if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
-                table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
+                table_attr = table_attr.replace(
+                    'class="', 'class="tex2jax_ignore mathjax_ignore '
+                )
             else:
-                table_attr += ' class="tex2jax_ignore"'
+                table_attr += ' class="tex2jax_ignore mathjax_ignore"'
         d.update({"table_attributes": table_attr})
 
         if self.tooltips:
@@ -866,7 +868,8 @@ class StylerRenderer:
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         index_levels = self.index.nlevels
-        visible_index_level_n = index_levels - sum(self.hide_index_)
+        # GH 52218
+        visible_index_level_n = max(1, index_levels - sum(self.hide_index_))
         d["head"] = [
             [
                 {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
@@ -906,9 +909,9 @@ class StylerRenderer:
                 row_body_headers = [
                     {
                         **col,
-                        "display_value": col["display_value"]
-                        if col["is_visible"]
-                        else "",
+                        "display_value": (
+                            col["display_value"] if col["is_visible"] else ""
+                        ),
                         "cellstyle": self.ctx_index[r, c],
                     }
                     for c, col in enumerate(row[:index_levels])
@@ -2086,18 +2089,18 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                                              ('border','1px solid red')]
     """
     if isinstance(style, str):
-        s = style.split(";")
-        try:
-            return [
-                (x.split(":")[0].strip(), x.split(":")[1].strip())
-                for x in s
-                if x.strip() != ""
-            ]
-        except IndexError as err:
+        if style and ":" not in style:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
-            ) from err
+            )
+        s = style.split(";")
+        return [
+            (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
+            for x in s
+            if x.strip() != ""
+        ]
+
     return style
 
 

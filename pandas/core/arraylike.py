@@ -403,12 +403,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             # for np.<ufunc>(..) calls
             # kwargs cannot necessarily be handled block-by-block, so only
             # take this path if there are no kwargs
-            mgr = inputs[0]._mgr
+            mgr = inputs[0]._mgr  # pyright: ignore[reportGeneralTypeIssues]
             result = mgr.apply(getattr(ufunc, method))
         else:
             # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
             # Those can have an axis keyword and thus can't be called block-by-block
-            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)
+            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
             # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
