@@ -514,7 +514,7 @@ def json_normalize(
     ):
         return DataFrame(_simple_json_normalize(data, sep=sep), index=index)
 
-    if record_path is None:
+    if record_path is None and meta is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
@@ -525,6 +525,8 @@ def json_normalize(
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
         return DataFrame(data, index=index)
+    elif record_path is None and meta is not None:
+        record_path = []
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -554,23 +556,30 @@ def json_normalize(
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_records(obj, path[0])
-                recs = [
-                    nested_to_record(r, sep=sep, max_level=max_level)
-                    if isinstance(r, dict)
-                    else r
-                    for r in recs
-                ]
+                if len(path) == 1:
+                    recs = _pull_records(obj, path[0])
+                    recs = [
+                        nested_to_record(r, sep=sep, max_level=max_level)
+                        if isinstance(r, dict)
+                        else r
+                        for r in recs
+                    ]
+                    records.extend(recs)
 
-                # For repeating the metadata later
-                lengths.append(len(recs))
+                    # For repeating the metadata later
+                    lengths.append(len(recs))
+                else:
+                    # If path is an empty list, data is treated as an
+                    # array of records, and only the meta fields will
+                    # be extract from each record.
+                    lengths.append(1)
+
                 for val, key in zip(_meta, meta_keys):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
                         meta_val = _pull_field(obj, val[level:])
                     meta_vals[key].append(meta_val)
-                records.extend(recs)
 
     _recursive_extract(data, record_path, {}, level=0)
 
