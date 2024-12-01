@@ -726,7 +726,9 @@ def nanmean(
 
 
 @bottleneck_switch()
-def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=None):
+def nanmedian(
+    values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None
+) -> float | np.ndarray:
     """
     Parameters
     ----------
@@ -738,7 +740,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     Returns
     -------
-    result : float
+    result : float | ndarray
         Unless input is a float array, in which case use the same
         precision as the input array.
 
@@ -758,7 +760,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     # cases we never need to set NaN to the masked values
     using_nan_sentinel = values.dtype.kind == "f" and mask is None
 
-    def get_median(x, _mask=None):
+    def get_median(x: np.ndarray, _mask=None):
         if _mask is None:
             _mask = notna(x)
         else:
@@ -793,6 +795,8 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         values[mask] = np.nan
 
     notempty = values.size
+
+    res: float | np.ndarray
 
     # an array from a frame
     if values.ndim > 1 and axis is not None:

@@ -8,12 +8,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import (
-    HAS_PYARROW,
-    IS64,
-)
+from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
@@ -823,11 +818,6 @@ class TestIndex:
         expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     def test_isin_nan_common_object(
         self, nulls_fixture, nulls_fixture2, using_infer_string
     ):
@@ -1635,7 +1625,7 @@ def test_generated_op_names(opname, index):
         partial(DatetimeIndex, data=["2020-01-01"]),
         partial(PeriodIndex, data=["2020-01-01"]),
         partial(TimedeltaIndex, data=["1 day"]),
-        partial(RangeIndex, data=range(1)),
+        partial(RangeIndex, start=range(1)),
         partial(IntervalIndex, data=[pd.Interval(0, 1)]),
         partial(Index, data=["a"], dtype=object),
         partial(MultiIndex, levels=[1], codes=[0]),

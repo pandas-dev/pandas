@@ -181,7 +181,7 @@ class XlsxWriter(ExcelWriter):
     _engine = "xlsxwriter"
     _supported_extensions = (".xlsx",)
 
-    def __init__(
+    def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,

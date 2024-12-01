@@ -71,6 +71,7 @@ from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import (
     find_stack_level,
@@ -315,6 +316,7 @@ def _new_Index(cls, d):
     return cls.__new__(cls, **d)
 
 
+@set_module("pandas")
 class Index(IndexOpsMixin, PandasObject):
     """
     Immutable sequence used for indexing and alignment.
@@ -874,7 +876,7 @@ class Index(IndexOpsMixin, PandasObject):
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
             target_values = self._data._ndarray  # type: ignore[union-attr]
         elif is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
-            return libindex.StringEngine(target_values)
+            return libindex.StringObjectEngine(target_values, self.dtype.na_value)  # type: ignore[union-attr]
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
@@ -908,7 +910,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The array interface, return my values.
         """
-        return np.asarray(self._data, dtype=dtype)
+        if copy is None:
+            # Note, that the if branch exists for NumPy 1.x support
+            return np.asarray(self._data, dtype=dtype)
+
+        return np.array(self._data, dtype=dtype, copy=copy)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str_t, *inputs, **kwargs):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
@@ -4153,7 +4159,8 @@ class Index(IndexOpsMixin, PandasObject):
         preserve_names = not hasattr(target, "name")
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
-        target = ensure_has_len(target)  # target may be an iterator
+        if is_iterator(target):
+            target = list(target)
 
         if not isinstance(target, Index) and len(target) == 0:
             if level is not None and self._is_multi:
@@ -5134,7 +5141,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a boolean if we need a qualified .info display.
         """
-        return is_object_dtype(self.dtype)
+        return is_object_dtype(self.dtype) or (
+            is_string_dtype(self.dtype) and self.dtype.storage == "python"  # type: ignore[union-attr]
+        )
 
     def __contains__(self, key: Any) -> bool:
         """
@@ -5965,7 +5974,6 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer_non_unique(
         self, target
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        target = ensure_index(target)
         target = self._maybe_cast_listlike_indexer(target)
 
         if not self._should_compare(target) and not self._should_partial_index(target):
@@ -6262,7 +6270,11 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
         dtype = _unpack_nested_dtype(other)
-        return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
+        return (
+            self._is_comparable_dtype(dtype)
+            or is_object_dtype(dtype)
+            or is_string_dtype(dtype)
+        )
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -6543,7 +6555,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
         """
-        return ensure_index(target)
+        target_index = ensure_index(target)
+        if (
+            not hasattr(target, "dtype")
+            and self.dtype == object
+            and target_index.dtype == "string"
+        ):
+            # If we started with a list-like, avoid inference to string dtype if self
+            # is object dtype (coercing to string dtype will alter the missing values)
+            target_index = Index(target, dtype=self.dtype)
+        return target_index
 
     @final
     def _validate_indexer(
@@ -7564,21 +7585,9 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
         return Index(index_like, copy=copy)
 
 
-def ensure_has_len(seq):
-    """
-    If seq is an iterator, put its values into a list.
-    """
-    try:
-        len(seq)
-    except TypeError:
-        return list(seq)
-    else:
-        return seq
-
-
 def trim_front(strings: list[str]) -> list[str]:
     """
-    Trims zeros and decimal points.
+    Trims leading spaces evenly among all strings.
 
     Examples
     --------
@@ -7590,8 +7599,9 @@ def trim_front(strings: list[str]) -> list[str]:
     """
     if not strings:
         return strings
-    while all(strings) and all(x[0] == " " for x in strings):
-        strings = [x[1:] for x in strings]
+    smallest_leading_space = min(len(x) - len(x.lstrip()) for x in strings)
+    if smallest_leading_space > 0:
+        strings = [x[smallest_leading_space:] for x in strings]
     return strings
 
 

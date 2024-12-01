@@ -68,6 +68,7 @@ from pandas.core.indexers import (
     unpack_tuple_and_ellipses,
     validate_indices,
 )
+from pandas.core.nanops import check_below_min_count
 from pandas.core.strings.base import BaseStringArrayMethods
 
 from pandas.io._util import _arrow_dtype_mapping
@@ -667,7 +668,16 @@ class ArrowExtensionArray(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
-        return self.to_numpy(dtype=dtype)
+        if copy is False:
+            # TODO: By using `zero_copy_only` it may be possible to implement this
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        elif copy is None:
+            # `to_numpy(copy=False)` has the meaning of NumPy `copy=None`.
+            copy = False
+
+        return self.to_numpy(dtype=dtype, copy=copy)
 
     def __invert__(self) -> Self:
         # This is a bit wise op for integer types
@@ -733,7 +743,7 @@ class ArrowExtensionArray(
                 try:
                     result[valid] = op(np_array[valid], other)
                 except TypeError:
-                    result = ops.invalid_comparison(np_array, other, op)
+                    result = ops.invalid_comparison(self, other, op)
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
         else:
@@ -1135,7 +1145,7 @@ class ArrowExtensionArray(
         try:
             fill_value = self._box_pa(value, pa_type=self._pa_array.type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{value!s}' for dtype {self.dtype}"
+            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
 
         try:
@@ -1634,7 +1644,11 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
-        result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+        try:
+            result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+        except pa.ArrowNotImplementedError as err:
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg) from err
 
         if convert_to_int:
             result = result.cast(pa_dtype)
@@ -1704,6 +1718,37 @@ class ArrowExtensionArray(
                 numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
                 denominator = pc.sqrt_checked(pc.count(self._pa_array))
                 return pc.divide_checked(numerator, denominator)
+
+        elif name == "sum" and (
+            pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
+        ):
+
+            def pyarrow_meth(data, skip_nulls, min_count=0):  # type: ignore[misc]
+                mask = pc.is_null(data) if data.null_count > 0 else None
+                if skip_nulls:
+                    if min_count > 0 and check_below_min_count(
+                        (len(data),),
+                        None if mask is None else mask.to_numpy(),
+                        min_count,
+                    ):
+                        return pa.scalar(None, type=data.type)
+                    if data.null_count > 0:
+                        # binary_join returns null if there is any null ->
+                        # have to filter out any nulls
+                        data = data.filter(pc.invert(mask))
+                else:
+                    if mask is not None or check_below_min_count(
+                        (len(data),), None, min_count
+                    ):
+                        return pa.scalar(None, type=data.type)
+
+                if pa.types.is_large_string(data.type):
+                    # binary_join only supports string, not large_string
+                    data = data.cast(pa.string())
+                data_list = pa.ListArray.from_arrays(
+                    [0, len(data)], data.combine_chunks()
+                )[0]
+                return pc.binary_join(data_list, "")
 
         else:
             pyarrow_name = {
@@ -2095,7 +2140,7 @@ class ArrowExtensionArray(
         try:
             value = self._box_pa(value, self._pa_array.type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{value!s}' for dtype {self.dtype}"
+            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
         return value
 
@@ -2271,6 +2316,20 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         if isinstance(self.dtype, StringDtype):
+            if how in [
+                "prod",
+                "mean",
+                "median",
+                "cumsum",
+                "cumprod",
+                "std",
+                "sem",
+                "var",
+                "skew",
+            ]:
+                raise TypeError(
+                    f"dtype '{self.dtype}' does not support operation '{how}'"
+                )
             return super()._groupby_op(
                 how=how,
                 has_dropped_na=has_dropped_na,
@@ -2300,7 +2359,13 @@ class ArrowExtensionArray(
         )
         if isinstance(result, np.ndarray):
             return result
-        return type(self)._from_sequence(result, copy=False)
+        elif isinstance(result, BaseMaskedArray):
+            pa_result = result.__arrow_array__()
+            return type(self)(pa_result)
+        else:
+            # DatetimeArray, TimedeltaArray
+            pa_result = pa.array(result, from_pandas=True)
+            return type(self)(pa_result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         """Apply a callable to each element while maintaining the chunking structure."""
@@ -2312,7 +2377,9 @@ class ArrowExtensionArray(
             for chunk in self._pa_array.iterchunks()
         ]
 
-    def _convert_bool_result(self, result):
+    def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
+        if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+            result = result.fill_null(na)
         return type(self)(result)
 
     def _convert_int_result(self, result):
@@ -2420,7 +2487,7 @@ class ArrowExtensionArray(
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
-    def _str_normalize(self, form: str) -> Self:
+    def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
         predicate = lambda val: unicodedata.normalize(form, val)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))

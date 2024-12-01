@@ -811,8 +811,20 @@ def test_pandas_dtype_string_dtypes(string_storage):
     )
 
     with pd.option_context("future.infer_string", True):
+        # with the default string_storage setting
+        result = pandas_dtype(str)
+    assert result == pd.StringDtype(
+        "pyarrow" if HAS_PYARROW else "python", na_value=np.nan
+    )
+
+    with pd.option_context("future.infer_string", True):
         with pd.option_context("string_storage", string_storage):
             result = pandas_dtype("str")
+    assert result == pd.StringDtype(string_storage, na_value=np.nan)
+
+    with pd.option_context("future.infer_string", True):
+        with pd.option_context("string_storage", string_storage):
+            result = pandas_dtype(str)
     assert result == pd.StringDtype(string_storage, na_value=np.nan)
 
     with pd.option_context("future.infer_string", False):
@@ -823,3 +835,10 @@ def test_pandas_dtype_string_dtypes(string_storage):
     with pd.option_context("string_storage", string_storage):
         result = pandas_dtype("string")
     assert result == pd.StringDtype(string_storage, na_value=pd.NA)
+
+
+@td.skip_if_installed("pyarrow")
+def test_construct_from_string_without_pyarrow_installed():
+    # GH 57928
+    with pytest.raises(ImportError, match="pyarrow>=10.0.1 is required"):
+        pd.Series([-1.5, 0.2, None], dtype="float32[pyarrow]")

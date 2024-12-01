@@ -17,8 +17,6 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -587,7 +585,7 @@ class TestReaders:
 
         expected["a"] = expected["a"].astype("float64")
         expected["b"] = expected["b"].astype("float32")
-        expected["c"] = Series(["001", "002", "003", "004"], dtype=object)
+        expected["c"] = Series(["001", "002", "003", "004"], dtype="str")
         tm.assert_frame_equal(actual, expected)
 
         msg = "Unable to convert column d to type int64"
@@ -611,8 +609,8 @@ class TestReaders:
                 {
                     "a": Series([1, 2, 3, 4], dtype="float64"),
                     "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
-                    "c": Series(["001", "002", "003", "004"], dtype=object),
-                    "d": Series(["1", "2", np.nan, "4"], dtype=object),
+                    "c": Series(["001", "002", "003", "004"], dtype="str"),
+                    "d": Series(["1", "2", np.nan, "4"], dtype="str"),
                 },
             ),
         ],
@@ -625,7 +623,6 @@ class TestReaders:
         expected = DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_dtype_backend(self, read_ext, dtype_backend, engine, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):

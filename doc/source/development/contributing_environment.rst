@@ -35,6 +35,10 @@ You will need `Build Tools for Visual Studio 2022
         scrolling down to "All downloads" -> "Tools for Visual Studio".
         In the installer, select the "Desktop development with C++" Workloads.
 
+        If you encounter an error indicating ``cl.exe`` is not found when building with Meson,
+        reopen the installer and also select the optional component
+        **MSVC v142 - VS 2019 C++ x64/x86 build tools** in the right pane for installation.
+
 Alternatively, you can install the necessary components on the commandline using
 `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_
 
@@ -43,7 +47,7 @@ and consult the ``Linux`` instructions below.
 
 **macOS**
 
-To use the :ref:`mamba <contributing.mamba>`-based compilers, you will need to install the
+To use the :ref:`conda <contributing.conda>`-based compilers, you will need to install the
 Developer Tools using ``xcode-select --install``.
 
 If you prefer to use a different compiler, general information can be found here:
@@ -51,9 +55,9 @@ https://devguide.python.org/setup/#macos
 
 **Linux**
 
-For Linux-based :ref:`mamba <contributing.mamba>` installations, you won't have to install any
-additional components outside of the mamba environment. The instructions
-below are only needed if your setup isn't based on mamba environments.
+For Linux-based :ref:`conda <contributing.conda>` installations, you won't have to install any
+additional components outside of the conda environment. The instructions
+below are only needed if your setup isn't based on conda environments.
 
 Some Linux distributions will come with a pre-installed C compiler. To find out
 which compilers (and versions) are installed on your system::
@@ -82,19 +86,18 @@ Before we begin, please:
 * Make sure that you have :any:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory you just created with the clone command
 
-.. _contributing.mamba:
+.. _contributing.conda:
 
-Option 1: using mamba (recommended)
+Option 1: using conda (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Install miniforge to get `mamba <https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html>`_
-* Make sure your mamba is up to date (``mamba update mamba``)
-* Create and activate the ``pandas-dev`` mamba environment using the following commands:
+* Install miniforge to get `conda <https://github.com/conda-forge/miniforge?tab=readme-ov-file#download>`_
+* Create and activate the ``pandas-dev`` conda environment using the following commands:
 
-.. code-block:: none
+.. code-block:: bash
 
-   mamba env create --file environment.yml
-   mamba activate pandas-dev
+   conda env create --file environment.yml
+   conda activate pandas-dev
 
 .. _contributing.pip:
 

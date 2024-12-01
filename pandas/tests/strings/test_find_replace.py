@@ -29,20 +29,28 @@ def test_contains(any_string_dtype):
     pat = "mmm[_]+"
 
     result = values.str.contains(pat)
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
-    expected = Series(
-        np.array([False, np.nan, True, True, False], dtype=np.object_),
-        dtype=expected_dtype,
-    )
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected = Series([False, False, True, True, False], dtype=bool)
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        expected = Series(
+            np.array([False, np.nan, True, True, False], dtype=np.object_),
+            dtype=expected_dtype,
+        )
+
     tm.assert_series_equal(result, expected)
 
     result = values.str.contains(pat, regex=False)
-    expected = Series(
-        np.array([False, np.nan, False, False, True], dtype=np.object_),
-        dtype=expected_dtype,
-    )
+    if any_string_dtype == "str":
+        expected = Series([False, False, False, False, True], dtype=bool)
+    else:
+        expected = Series(
+            np.array([False, np.nan, False, False, True], dtype=np.object_),
+            dtype=expected_dtype,
+        )
     tm.assert_series_equal(result, expected)
 
     values = Series(
@@ -79,12 +87,16 @@ def test_contains(any_string_dtype):
     pat = "mmm[_]+"
 
     result = values.str.contains(pat)
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
-    expected = Series(
-        np.array([False, np.nan, True, True], dtype=np.object_), dtype=expected_dtype
-    )
+    if any_string_dtype == "str":
+        expected = Series([False, False, True, True], dtype=bool)
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        expected = Series(
+            np.array([False, np.nan, True, True], dtype=np.object_),
+            dtype=expected_dtype,
+        )
     tm.assert_series_equal(result, expected)
 
     result = values.str.contains(pat, na=False)
@@ -184,39 +196,45 @@ def test_contains_moar(any_string_dtype):
     )
 
     result = s.str.contains("a")
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected_dtype = bool
+        na_value = False
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        na_value = np.nan
     expected = Series(
-        [False, False, False, True, True, False, np.nan, False, False, True],
+        [False, False, False, True, True, False, na_value, False, False, True],
         dtype=expected_dtype,
     )
     tm.assert_series_equal(result, expected)
 
     result = s.str.contains("a", case=False)
     expected = Series(
-        [True, False, False, True, True, False, np.nan, True, False, True],
+        [True, False, False, True, True, False, na_value, True, False, True],
         dtype=expected_dtype,
     )
     tm.assert_series_equal(result, expected)
 
     result = s.str.contains("Aa")
     expected = Series(
-        [False, False, False, True, False, False, np.nan, False, False, False],
+        [False, False, False, True, False, False, na_value, False, False, False],
         dtype=expected_dtype,
     )
     tm.assert_series_equal(result, expected)
 
     result = s.str.contains("ba")
     expected = Series(
-        [False, False, False, True, False, False, np.nan, False, False, False],
+        [False, False, False, True, False, False, na_value, False, False, False],
         dtype=expected_dtype,
     )
     tm.assert_series_equal(result, expected)
 
     result = s.str.contains("ba", case=False)
     expected = Series(
-        [False, False, False, True, True, False, np.nan, True, False, False],
+        [False, False, False, True, True, False, na_value, True, False, False],
         dtype=expected_dtype,
     )
     tm.assert_series_equal(result, expected)
@@ -252,10 +270,14 @@ def test_contains_nan(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     result = s.str.contains("foo")
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
-    expected = Series([np.nan, np.nan, np.nan], dtype=expected_dtype)
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected = Series([False, False, False], dtype=bool)
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        expected = Series([np.nan, np.nan, np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -272,9 +294,7 @@ def test_startswith_endswith_validate_na(any_string_dtype):
     )
 
     dtype = ser.dtype
-    if (
-        isinstance(dtype, pd.StringDtype) and dtype.storage == "python"
-    ) or dtype == np.dtype("object"):
+    if (isinstance(dtype, pd.StringDtype)) or dtype == np.dtype("object"):
         msg = "Allowing a non-bool 'na' in obj.str.startswith is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             ser.str.startswith("kapow", na="baz")
@@ -296,7 +316,7 @@ def test_startswith_endswith_validate_na(any_string_dtype):
 @pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
-def test_startswith(pat, dtype, null_value, na):
+def test_startswith(pat, dtype, null_value, na, using_infer_string):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
@@ -310,6 +330,8 @@ def test_startswith(pat, dtype, null_value, na):
         exp = exp.fillna(null_value)
     elif dtype == "object" and null_value is None:
         exp[exp.isna()] = None
+    elif using_infer_string and dtype == "category":
+        exp = exp.fillna(False).astype(bool)
     tm.assert_series_equal(result, exp)
 
     result = values.str.startswith(pat, na=na)
@@ -327,20 +349,31 @@ def test_startswith(pat, dtype, null_value, na):
 
 
 @pytest.mark.parametrize("na", [None, True, False])
-def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
+def test_startswith_string_dtype(any_string_dtype, na):
     values = Series(
         ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
-        dtype=nullable_string_dtype,
+        dtype=any_string_dtype,
     )
     result = values.str.startswith("foo", na=na)
+
+    expected_dtype = (
+        (object if na is None else bool)
+        if is_object_or_nan_string_dtype(any_string_dtype)
+        else "boolean"
+    )
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected_dtype = bool
+        if na is None:
+            na = False
     exp = Series(
-        [False, na, True, False, False, na, True, False, False], dtype="boolean"
+        [False, na, True, False, False, na, True, False, False], dtype=expected_dtype
     )
     tm.assert_series_equal(result, exp)
 
     result = values.str.startswith("rege.", na=na)
     exp = Series(
-        [False, na, False, False, False, na, False, False, True], dtype="boolean"
+        [False, na, False, False, False, na, False, False, True], dtype=expected_dtype
     )
     tm.assert_series_equal(result, exp)
 
@@ -354,7 +387,7 @@ def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
 @pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
-def test_endswith(pat, dtype, null_value, na):
+def test_endswith(pat, dtype, null_value, na, using_infer_string):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
@@ -368,6 +401,8 @@ def test_endswith(pat, dtype, null_value, na):
         exp = exp.fillna(null_value)
     elif dtype == "object" and null_value is None:
         exp[exp.isna()] = None
+    elif using_infer_string and dtype == "category":
+        exp = exp.fillna(False).astype(bool)
     tm.assert_series_equal(result, exp)
 
     result = values.str.endswith(pat, na=na)
@@ -385,20 +420,30 @@ def test_endswith(pat, dtype, null_value, na):
 
 
 @pytest.mark.parametrize("na", [None, True, False])
-def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
+def test_endswith_string_dtype(any_string_dtype, na):
     values = Series(
         ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
-        dtype=nullable_string_dtype,
+        dtype=any_string_dtype,
     )
     result = values.str.endswith("foo", na=na)
+    expected_dtype = (
+        (object if na is None else bool)
+        if is_object_or_nan_string_dtype(any_string_dtype)
+        else "boolean"
+    )
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected_dtype = bool
+        if na is None:
+            na = False
     exp = Series(
-        [False, na, False, False, True, na, True, False, False], dtype="boolean"
+        [False, na, False, False, True, na, True, False, False], dtype=expected_dtype
     )
     tm.assert_series_equal(result, exp)
 
     result = values.str.endswith("rege.", na=na)
     exp = Series(
-        [False, na, False, False, False, na, False, False, True], dtype="boolean"
+        [False, na, False, False, False, na, False, False, True], dtype=expected_dtype
     )
     tm.assert_series_equal(result, exp)
 
@@ -690,36 +735,41 @@ def test_replace_regex_single_character(regex, any_string_dtype):
 
 
 def test_match(any_string_dtype):
-    # New match behavior introduced in 0.13
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected_dtype = bool
+        na_value = False
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        na_value = np.nan
 
     values = Series(["fooBAD__barBAD", np.nan, "foo"], dtype=any_string_dtype)
     result = values.str.match(".*(BAD[_]+).*(BAD)")
-    expected = Series([True, np.nan, False], dtype=expected_dtype)
+    expected = Series([True, na_value, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     values = Series(
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
     result = values.str.match(".*BAD[_]+.*BAD")
-    expected = Series([True, True, np.nan, False], dtype=expected_dtype)
+    expected = Series([True, True, na_value, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = values.str.match("BAD[_]+.*BAD")
-    expected = Series([False, True, np.nan, False], dtype=expected_dtype)
+    expected = Series([False, True, na_value, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     values = Series(
         ["fooBAD__barBAD", "^BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
     result = values.str.match("^BAD[_]+.*BAD")
-    expected = Series([False, False, np.nan, False], dtype=expected_dtype)
+    expected = Series([False, False, na_value, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = values.str.match("\\^BAD[_]+.*BAD")
-    expected = Series([False, True, np.nan, False], dtype=expected_dtype)
+    expected = Series([False, True, na_value, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -755,10 +805,17 @@ def test_match_na_kwarg(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     result = s.str.match("a")
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
-    expected = Series([True, False, np.nan], dtype=expected_dtype)
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected_dtype = bool
+        na_value = False
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        na_value = np.nan
+
+    expected = Series([True, False, na_value], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -783,10 +840,14 @@ def test_fullmatch(any_string_dtype):
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
     result = ser.str.fullmatch(".*BAD[_]+.*BAD")
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
-    expected = Series([True, False, np.nan, False], dtype=expected_dtype)
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected = Series([True, False, False, False], dtype=bool)
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        expected = Series([True, False, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -794,10 +855,14 @@ def test_fullmatch_dollar_literal(any_string_dtype):
     # GH 56652
     ser = Series(["foo", "foo$foo", np.nan, "foo$"], dtype=any_string_dtype)
     result = ser.str.fullmatch("foo\\$")
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
-    expected = Series([False, False, np.nan, True], dtype=expected_dtype)
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected = Series([False, False, False, True], dtype=bool)
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        expected = Series([False, False, np.nan, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
