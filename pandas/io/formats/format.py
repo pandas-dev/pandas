@@ -669,9 +669,9 @@ class DataFrameFormatter:
         assert self.max_cols_fitted is not None
         col_num = self.max_cols_fitted // 2
         if col_num >= 1:
-            _len = len(self.tr_frame.columns)
-            _slice = np.hstack([np.arange(col_num), np.arange(_len - col_num, _len)])
-            self.tr_frame = self.tr_frame.iloc[:, _slice]
+            left = self.tr_frame.iloc[:, :col_num]
+            right = self.tr_frame.iloc[:, -col_num:]
+            self.tr_frame = concat((left, right), axis=1)
 
             # truncate formatter
             if isinstance(self.formatters, (list, tuple)):
