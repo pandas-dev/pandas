@@ -544,6 +544,27 @@ class TestResetIndex:
         result = df.reset_index()
         tm.assert_frame_equal(result, expected)
 
+    def test_reset_index_multiindex_dt_with_nan(self):
+        # GH#60388
+        df = DataFrame(
+            {
+                "Date": [
+                    datetime(2024, 11, 1),
+                    datetime(2024, 11, 1),
+                    datetime(2024, 11, 2),
+                    datetime(2024, 11, 2),
+                ],
+                "sub": ["a", "b", "c", "d"],
+                "value1": [1, 2, 3, 4],
+                "value2": [5, 6, 7, 8],
+            }
+        )
+        df = df.pivot(index="sub", columns="Date", values=["value1", "value2"])
+        df = df.reset_index()
+        result = df[df.columns[0]]
+        expected = Series(["a", "b", "c", "d"], name=("sub", np.nan))
+        tm.assert_series_equal(result, expected)
+
     def test_reset_index_period(self):
         # GH#7746
         idx = MultiIndex.from_product(
