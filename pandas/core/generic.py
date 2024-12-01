@@ -838,7 +838,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result
 
     @final
-    def squeeze(self, axis: Axis | None = None):
+    def squeeze(self, axis: Axis | None = None) -> Scalar | Series | DataFrame:
         """
         Squeeze 1 dimensional axis objects into scalars.
 
