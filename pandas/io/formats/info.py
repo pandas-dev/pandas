@@ -165,7 +165,7 @@ series_examples_sub = dedent(
     >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
     >>> s = pd.Series(text_values, index=int_values)
     >>> s.info()
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     Index: 5 entries, 1 to 5
     Series name: None
     Non-Null Count  Dtype
@@ -177,7 +177,7 @@ series_examples_sub = dedent(
     Prints a summary excluding information about its values:
 
     >>> s.info(verbose=False)
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     Index: 5 entries, 1 to 5
     dtypes: object(1)
     memory usage: 80.0+ bytes
@@ -200,7 +200,7 @@ series_examples_sub = dedent(
     >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
     >>> s = pd.Series(np.random.choice(['a', 'b', 'c'], 10 ** 6))
     >>> s.info()
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     RangeIndex: 1000000 entries, 0 to 999999
     Series name: None
     Non-Null Count    Dtype
@@ -210,7 +210,7 @@ series_examples_sub = dedent(
     memory usage: 7.6+ MB
 
     >>> s.info(memory_usage='deep')
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     RangeIndex: 1000000 entries, 0 to 999999
     Series name: None
     Non-Null Count    Dtype

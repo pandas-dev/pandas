@@ -435,6 +435,20 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Dict {group name -> group labels}.
 
+        This property provides a dictionary representation of the groupings formed
+        during a groupby operation, where each key represents a unique group value from
+        the specified column(s), and each value is a list of index labels
+        that belong to that group.
+
+        See Also
+        --------
+        core.groupby.DataFrameGroupBy.get_group : Retrieve group from a
+            ``DataFrameGroupBy`` object with provided name.
+        core.groupby.SeriesGroupBy.get_group : Retrieve group from a
+            ``SeriesGroupBy`` object with provided name.
+        core.resample.Resampler.get_group : Retrieve group from a
+            ``Resampler`` object with provided name.
+
         Examples
         --------
 
@@ -3968,19 +3982,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
         before the groupby.
-
-        Parameters
-        ----------
-        n : int, slice or list of ints and slices
-            A single nth value for the row or a list of nth values or slices.
-
-            .. versionchanged:: 1.4.0
-                Added slice and lists containing slices.
-                Added index notation.
-
-        dropna : {'any', 'all', None}, default None
-            Apply the specified dropna operation before counting which row is
-            the nth row. Only supported if n is an int.
 
         Returns
         -------
