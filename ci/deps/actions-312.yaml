@@ -56,6 +56,8 @@ dependencies:
   - xlrd>=2.0.1
   - xlsxwriter>=3.0.5
   - zstandard>=0.19.0
+  # TEMP to avoid error when the env gets cryptography >= 42 but older pyopenssl
+  - pyopenssl>=23.2.0
 
   - pip:
     - adbc-driver-postgresql>=0.10.0
