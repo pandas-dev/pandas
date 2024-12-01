@@ -129,6 +129,13 @@ class TestDataFrameFormatting:
         with option_context("display.max_rows", 2, "display.show_dimensions", False):
             assert repr(df) == "       a\n0   <NA>\n..   ...\n9   <NA>"
 
+    def test_repr_truncation_dataframe_attrs(self):
+        # 60455
+        df = DataFrame([[0] * 10])
+        df.attrs["b"] = DataFrame([])
+        with option_context("display.max_columns", 2, "display.show_dimensions", False):
+            assert repr(df) == "   0  ...  9\n0  0  ...  0"
+
     def test_max_colwidth_negative_int_raises(self):
         # Deprecation enforced from:
         # https://github.com/pandas-dev/pandas/issues/31532
