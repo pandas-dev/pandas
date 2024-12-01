@@ -569,6 +569,29 @@ class TestJSONNormalize:
         result = json_normalize(series, "counties")
         tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
+    @pytest.mark.parametrize("path", [None, []])
+    def test_empty_record_path_and_not_empty_meta(self, state_data, path):
+        ex_data = [
+            {
+                "shortname": "FL",
+                "state": "Florida",
+                "info.governor": "Rick Scott",
+            },
+            {
+                "shortname": "OH",
+                "state": "Ohio",
+                "info.governor": "John Kasich",
+            },
+        ]
+        expected = DataFrame(ex_data)
+
+        result = json_normalize(
+            state_data,
+            record_path=path,
+            meta=["shortname", "state", ["info", "governor"]],
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
