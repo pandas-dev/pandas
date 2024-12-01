@@ -361,6 +361,7 @@ def test_observed(request, using_infer_string, observed):
         expected = cartesian_product_for_groupers(
             expected, [cat1, cat2], list("AB"), fill_value=0
         )
+        expected.loc[expected.C == 0, "C"] = None
 
     tm.assert_frame_equal(result, expected)
 
