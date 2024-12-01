@@ -87,8 +87,8 @@ from pandas.io._util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Iterable,
         Sequence,
-        Sized,
     )
 
     from pandas._typing import (
@@ -1581,7 +1581,7 @@ def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     return _maybe_unbox_datetimelike(value, dtype)
 
 
-def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
+def construct_1d_object_array_from_listlike(values: Iterable) -> np.ndarray:
     """
     Transform any list-like object in a 1-dimensional numpy array of object
     dtype.
@@ -1602,7 +1602,8 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
     # numpy will try to interpret nested lists as further dimensions, hence
     # making a 1D array that contains list-likes is a bit tricky:
     result = np.empty(len(values), dtype="object")
-    result[:] = values
+    for i, obj in enumerate(values):
+        result[i] = obj
     return result
 
 
