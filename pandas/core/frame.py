@@ -7829,7 +7829,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Literal[1] = 1  # only relevant for Series other case
 
         if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
+            self.__finalize__(other)
 
         self, other = self._align_for_op(other, axis, flex=False, level=None)
 
@@ -7839,7 +7839,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _arith_method(self, other, op):
         if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
+            self.__finalize__(other)
 
         if self._should_reindex_frame_op(other, op, 1, None, None):
             return self._arith_method_with_reindex(other, op)
@@ -8207,7 +8207,7 @@ class DataFrame(NDFrame, OpsMixin):
                 new_data = self._dispatch_frame_op(other, op)
 
         if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
+            self.__finalize__(other)
 
         return self._construct_result(new_data)
 
@@ -8248,7 +8248,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
         if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
+            self.__finalize__(other)
 
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
