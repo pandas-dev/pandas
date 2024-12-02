@@ -1464,7 +1464,7 @@ class IndexOpsMixin(OpsMixin):
 
     def _arith_method(self, other, op):
         if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
+            self.__finalize__(other)
         res_name = ops.get_op_result_name(self, other)
 
         lvalues = self._values
