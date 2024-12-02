@@ -2206,15 +2206,15 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
 
 def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> dict:
     new_dict = {}
-    for key in convert_dates:
-        if not convert_dates[key].startswith("%"):  # make sure proper fmts
-            convert_dates[key] = "%" + convert_dates[key]
+    for key, value in convert_dates.items():
+        if not value.startswith("%"):  # make sure proper fmts
+            convert_dates[key] = "%" + value
         if key in varlist:
-            new_dict.update({varlist.index(key): convert_dates[key]})
+            new_dict[varlist.index(key)] = value
         else:
             if not isinstance(key, int):
                 raise ValueError("convert_dates key must be a column or an integer")
-            new_dict.update({key: convert_dates[key]})
+            new_dict[key] = value
     return new_dict
 
 
