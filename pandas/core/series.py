@@ -5862,7 +5862,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_name = ops.get_op_result_name(self, other)
 
         if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
+            self.__finalize__(other)
 
         if isinstance(other, Series) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
@@ -5948,7 +5948,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name = ops.get_op_result_name(self, other)
 
         if not getattr(this, "attrs", None) and getattr(other, "attrs", None):
-            this.attrs = other.attrs
+            this.__finalize__(other)
 
         out = this._construct_result(result, name)
         return cast(Series, out)
