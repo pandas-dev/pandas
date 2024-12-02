@@ -694,3 +694,79 @@ def test_intersection_non_nano_rangelike():
         freq="D",
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_union_preserves_timezone_and_resolution():
+    """
+    GH 60080: Ensure union of DatetimeIndex with the same timezone
+    and differing resolutions results in the higher resolution unit
+    and preserves the timezone.
+    """
+    idx1 = DatetimeIndex(["2020-01-01 10:00:00+05:00"]).astype(
+        "datetime64[us, UTC+05:00]"
+    )
+    idx2 = DatetimeIndex(["2020-01-01 10:00:00+05:00"]).astype(
+        "datetime64[ns, UTC+05:00]"
+    )
+    result = idx1.union(idx2)
+    expected = DatetimeIndex(["2020-01-01 10:00:00+05:00"]).astype(
+        "datetime64[ns, UTC+05:00]"
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_multiple_entries_same_timezone():
+    """
+    GH 60080: Test union with multiple DatetimeIndex entries having the same timezone
+    and different units, ensuring correct alignment and resolution preservation.
+    """
+    idx1 = DatetimeIndex(
+        ["2023-01-01 10:00:00+05:00", "2023-01-02 10:00:00+05:00"]
+    ).astype("datetime64[us, UTC+05:00]")
+    idx2 = DatetimeIndex(
+        ["2023-01-01 10:00:00+05:00", "2023-01-03 10:00:00+05:00"]
+    ).astype("datetime64[ns, UTC+05:00]")
+    result = idx1.union(idx2)
+    expected = DatetimeIndex(
+        [
+            "2023-01-01 10:00:00+05:00",
+            "2023-01-02 10:00:00+05:00",
+            "2023-01-03 10:00:00+05:00",
+        ]
+    ).astype("datetime64[ns, UTC+05:00]")
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_same_timezone_same_resolution():
+    """
+    GH 60080: Ensure union of DatetimeIndex with the same timezone and
+    resolution is straightforward and retains the resolution.
+    """
+    idx1 = DatetimeIndex(["2022-01-01 15:00:00+05:00"]).astype(
+        "datetime64[ms, UTC+05:00]"
+    )
+    idx2 = DatetimeIndex(["2022-01-01 16:00:00+05:00"]).astype(
+        "datetime64[ms, UTC+05:00]"
+    )
+    result = idx1.union(idx2)
+    expected = DatetimeIndex(
+        ["2022-01-01 15:00:00+05:00", "2022-01-01 16:00:00+05:00"]
+    ).astype("datetime64[ms, UTC+05:00]")
+    tm.assert_index_equal(result, expected)
+
+    def test_union_single_entry():
+        """
+        GH 60080: Ensure union of single-entry DatetimeIndex works as expected
+        with different units and same timezone.
+        """
+        idx1 = DatetimeIndex(["2023-01-01 10:00:00+05:00"]).astype(
+            "datetime64[ms, UTC+05:00]"
+        )
+        idx2 = DatetimeIndex(["2023-01-01 10:00:00+05:00"]).astype(
+            "datetime64[us, UTC+05:00]"
+        )
+        result = idx1.union(idx2)
+        expected = DatetimeIndex(["2023-01-01 10:00:00+05:00"]).astype(
+            "datetime64[us, UTC+05:00]"
+        )
+        tm.assert_index_equal(result, expected)
