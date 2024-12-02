@@ -459,7 +459,7 @@ class _HtmlFrameParser:
             body_rows,
             section="body",
             remainder=rem,
-            overflow=True if len(footer_rows) > 0 else False,
+            overflow=len(footer_rows) > 0,
         )
         footer, _ = self._expand_colspan_rowspan(
             footer_rows, section="footer", remainder=rem, overflow=False
