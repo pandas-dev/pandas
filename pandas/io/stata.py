@@ -2867,7 +2867,7 @@ supported types."""
         # ds_format - just use 114
         self._write_bytes(struct.pack("b", 114))
         # byteorder
-        self._write(byteorder == ">" and "\x01" or "\x02")
+        self._write((byteorder == ">" and "\x01") or "\x02")
         # filetype
         self._write("\x01")
         # unused
@@ -3413,7 +3413,7 @@ class StataWriter117(StataWriter):
         # ds_format - 117
         bio.write(self._tag(bytes(str(self._dta_version), "utf-8"), "release"))
         # byteorder
-        bio.write(self._tag(byteorder == ">" and "MSF" or "LSF", "byteorder"))
+        bio.write(self._tag((byteorder == ">" and "MSF") or "LSF", "byteorder"))
         # number of vars, 2 bytes in 117 and 118, 4 byte in 119
         nvar_type = "H" if self._dta_version <= 118 else "I"
         bio.write(self._tag(struct.pack(byteorder + nvar_type, self.nvar), "K"))
