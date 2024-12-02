@@ -2748,6 +2748,18 @@ supported types."""
         """
         Export DataFrame object to Stata dta format.
 
+        This method writes the contents of a pandas DataFrame to a `.dta` file
+        compatible with Stata. It includes features for handling value labels,
+        variable types, and metadata like timestamps and data labels. The output
+        file can then be read and used in Stata or other compatible statistical
+        tools.
+
+        See Also
+        --------
+        read_stata : Read Stata file into DataFrame.
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
+        io.stata.StataWriter : A class for writing Stata binary dta files.
+
         Examples
         --------
         >>> df = pd.DataFrame(
