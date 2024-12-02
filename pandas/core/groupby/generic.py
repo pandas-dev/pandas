@@ -2610,7 +2610,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Wheat Products       103.11         19.66
         Beef                  55.48       1712.00
 
-        By default, it returns the index for the minimum value in each column.
+        By default, it returns the index for the minimum value in each column according to the group.
 
         >>> df.groupby("food_type").idxmin()
                         consumption   co2_emissions
