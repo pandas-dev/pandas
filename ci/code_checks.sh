@@ -109,7 +109,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.PerformanceWarning SA01" \
         -i "pandas.errors.UndefinedVariableError PR01,SA01" \
         -i "pandas.errors.ValueLabelTypeMismatch SA01" \
-        -i "pandas.infer_freq SA01" \
         -i "pandas.io.json.build_table_schema PR07,RT03,SA01" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
