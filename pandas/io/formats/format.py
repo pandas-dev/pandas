@@ -682,7 +682,7 @@ class DataFrameFormatter:
         else:
             col_num = cast(int, self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :col_num]
-        self.tr_col_num = col_num
+        self.tr_col_num: int = col_num
 
     def _truncate_vertically(self) -> None:
         """Remove rows, which are not to be displayed.
