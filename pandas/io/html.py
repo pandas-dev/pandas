@@ -471,7 +471,7 @@ class _HtmlFrameParser:
         self,
         rows,
         section: Literal["header", "footer", "body"],
-        remainder: list[int, tuple[str | tuple, int]] | None = None,
+        remainder: list[tuple[int, str | tuple, int]] | None = None,
         overflow: bool = True,
     ) -> list[list]:
         """
@@ -482,7 +482,7 @@ class _HtmlFrameParser:
         rows : list of node-like
             List of <tr>s
         section : the section that the rows belong to (header, body or footer).
-        remainder: list[int, tuple[str | tuple, int]] | None
+        remainder: list[tuple[int, str | tuple, int]] | None
             Any remainder from the expansion of previous section
         overflow: bool
             If true, return any partial rows as 'remainder'. If not, use up any
