@@ -473,7 +473,7 @@ class _HtmlFrameParser:
         section: Literal["header", "footer", "body"],
         remainder: list[tuple[int, str | tuple, int]] | None = None,
         overflow: bool = True,
-    ) -> list[list]:
+    ) -> tuple[list[list], list[tuple[int, str | tuple, int]]]:
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -493,6 +493,9 @@ class _HtmlFrameParser:
         list of list
             Each returned row is a list of str text, or tuple (text, link)
             if extract_links is not None.
+        remainder
+            Remaining partial rows if any. If overflow is False, an empty list
+            is returned.
 
         Notes
         -----
