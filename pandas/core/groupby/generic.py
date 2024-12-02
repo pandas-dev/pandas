@@ -2533,7 +2533,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ...     {
         ...         "consumption": [10.51, 103.11, 55.48],
         ...         "co2_emissions": [37.2, 19.66, 1712],
-        ...         "food_type": ["meat", "plant", "meat"]
+        ...         "food_type": ["meat", "plant", "meat"],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -2599,7 +2599,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ...     {
         ...         "consumption": [10.51, 103.11, 55.48],
         ...         "co2_emissions": [37.2, 19.66, 1712],
-        ...         "food_type": ["meat", "plant", "meat"]
+        ...         "food_type": ["meat", "plant", "meat"],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
