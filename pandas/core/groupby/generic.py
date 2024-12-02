@@ -2548,7 +2548,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         >>> df.groupby("food_type").idxmax()
                         consumption   co2_emissions
-        animal_type                                
+        food_type                                
         animal                 Beef            Beef
         plant        Wheat Products  Wheat Products
 
@@ -2612,9 +2612,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         By default, it returns the index for the minimum value in each column.
 
-        >>> df.idxmin()
+        >>> df.groupby("food_type").idxmin()
                         consumption   co2_emissions
-        animal_type                                
+        food_type                                
         animal                 Pork            Pork
         plant        Wheat Products  Wheat Products
         """
