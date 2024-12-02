@@ -716,15 +716,14 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Returns
         -------
         Series or DataFrame
-            Get the respective Series or DataFrame corresponding to the group provided
+            Get the respective Series or DataFrame corresponding to the group provided.
 
         See Also
         --------
-        DataFrameGroupBy.groups: dictionary representation of the groupings formed during a groupby operation
+        DataFrameGroupBy.groups: Dictionary representation of the groupings formed during a groupby operation.
         DataFrameGroupBy.indices: Provides a mapping of group rows to positions of the elements.
-        SeriesGroupBy.groups: dictionary representation of the groupings formed during a groupby operation
+        SeriesGroupBy.groups: Dictionary representation of the groupings formed during a groupby operation.
         SeriesGroupBy.indices: Provides a mapping of group rows to positions of the elements.
-
 
         Examples
         --------
