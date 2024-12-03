@@ -239,6 +239,19 @@ class ParserBase:
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = list(zip(*(extract(r) for r in header)))
+        # Replace None, empty strings, or column names starting with 'Unnamed: '
+        # (used as placeholders in multi-index headers) with empty strings.
+        columns = [
+            tuple(
+                ""
+                if level is None
+                or str(level).strip() == ""
+                or (isinstance(level, str) and level.startswith("Unnamed: "))
+                else level
+                for level in col
+            )
+            for col in columns
+        ]
         names = columns.copy()
         for single_ic in sorted(ic):
             names.insert(single_ic, single_ic)
@@ -357,7 +370,7 @@ class ParserBase:
                     )
                 else:
                     col_na_values, col_na_fvalues = set(), set()
-
+            col_na_values.discard("")
             cast_type = None
             index_converter = False
             if self.index_names is not None:
@@ -694,8 +707,11 @@ class ParserBase:
 
         # Only clean index names that were placeholders.
         for i, name in enumerate(index_names):
-            if isinstance(name, str) and name in self.unnamed_cols:
-                index_names[i] = None
+            if isinstance(name, str):
+                if name.strip() == "":
+                    index_names[i] = ""
+                elif name in self.unnamed_cols:
+                    index_names[i] = None
 
         return index_names, columns, index_col
 
