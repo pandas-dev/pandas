@@ -130,7 +130,7 @@ class TestDataFrameFormatting:
             assert repr(df) == "       a\n0   <NA>\n..   ...\n9   <NA>"
 
     def test_repr_truncation_dataframe_attrs(self):
-        # 60455
+        # GH#60455
         df = DataFrame([[0] * 10])
         df.attrs["b"] = DataFrame([])
         with option_context("display.max_columns", 2, "display.show_dimensions", False):
