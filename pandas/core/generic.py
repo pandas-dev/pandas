@@ -3885,7 +3885,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Format floats using scientific notation:
 
-        >>> df.to_csv("out2.csv", float_format="{:.2e}".format)  # doctest: +SKIP
+        >>> df.to_csv("out2.csv", float_format="{{:.2e}}".format)  # doctest: +SKIP
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
