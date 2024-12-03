@@ -90,7 +90,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
-        -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.get_group RT03,SA01" \
@@ -99,7 +98,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.resample.Resampler.min PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.prod SA01" \
         -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
-        -i "pandas.core.resample.Resampler.sem SA01" \
         -i "pandas.core.resample.Resampler.std SA01" \
         -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.var SA01" \
