@@ -896,9 +896,7 @@ class TestArrowArray(base.ExtensionTests):
                 )
             )
             and pa.types.is_duration(pa_dtype)
-            or opname in ("__sub__", "__rsub__")
-            and pa.types.is_temporal(pa_dtype)
-        )
+        ) or (opname in ("__sub__", "__rsub__") and pa.types.is_temporal(pa_dtype))
 
     def _get_expected_exception(
         self, op_name: str, obj, other

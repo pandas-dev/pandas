@@ -368,7 +368,7 @@ class ParserBase:
                     index_converter = converters.get(self.index_names[i]) is not None
 
             try_num_bool = not (
-                cast_type and is_string_dtype(cast_type) or index_converter
+                (cast_type and is_string_dtype(cast_type)) or index_converter
             )
 
             arr, _ = self._infer_types(
