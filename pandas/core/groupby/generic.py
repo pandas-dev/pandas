@@ -2453,6 +2453,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         nunique: DataFrame
             Counts of unique elements in each position.
 
+        See Also
+        --------
+        DataFrame.nunique : Count number of distinct elements in specified axis.
+
         Examples
         --------
         >>> df = pd.DataFrame(
