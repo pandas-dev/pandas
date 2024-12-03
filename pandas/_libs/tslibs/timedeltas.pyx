@@ -2423,6 +2423,32 @@ class Timedelta(_Timedelta):
         div = other // self
         return div, other - div * self
 
+Timedelta.min.__doc__ = """
+The minimum representable Timedelta.
+
+Returns
+-------
+Timedelta
+    The minimum duration supported by Timedelta.
+"""
+
+Timedelta.max.__doc__ = """
+The maximum representable Timedelta.
+
+Returns
+-------
+Timedelta
+    The maximum duration supported by Timedelta.
+"""
+
+Timedelta.resolution.__doc__ = """
+The smallest possible difference between non-equal Timedelta objects.
+
+Returns
+-------
+Timedelta
+    The resolution of Timedelta, i.e., Timedelta(nanoseconds=1).
+"""
 
 def truediv_object_array(ndarray left, ndarray right):
     cdef:
