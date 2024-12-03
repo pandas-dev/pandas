@@ -2637,8 +2637,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        DataFrame.groupby : Apply a function groupby to each row or column of a
-            DataFrame.
+        DataFrame.sem : Return unbiased standard error of the mean over requested axis.
+        Series.sem : Return unbiased standard error of the mean over requested axis.
 
         Examples
         --------

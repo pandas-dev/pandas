@@ -99,9 +99,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.groups SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.indices SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.nth PR02" \
-        -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
-        -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.groups SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.indices SA01" \
