@@ -2657,6 +2657,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
+        
+        See Also
+        --------
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
 
         Examples
         --------
