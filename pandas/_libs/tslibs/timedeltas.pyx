@@ -1949,7 +1949,7 @@ class Timedelta(_Timedelta):
     def min(self):
         """
         The minimum representable Timedelta.
-        
+
         Returns
         -------
         Timedelta
@@ -1961,7 +1961,7 @@ class Timedelta(_Timedelta):
     def max(self):
         """
         The maximum representable Timedelta.
-        
+
         Returns
         -------
         Timedelta
@@ -1973,7 +1973,7 @@ class Timedelta(_Timedelta):
     def resolution(self):
         """
         The smallest possible difference between non-equal Timedelta objects.
-        
+
         Returns
         -------
         Timedelta
