@@ -1894,6 +1894,18 @@ class Timedelta(_Timedelta):
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
+    Attributes
+    ----------
+    min : Timedelta
+        The minimum representable `Timedelta`, corresponding to the smallest
+        duration supported.
+    max : Timedelta
+        The maximum representable `Timedelta`, corresponding to the largest
+        duration supported.
+    resolution : Timedelta
+        The smallest possible difference between non-equal `Timedelta` objects,
+        i.e., `Timedelta(nanoseconds=1)`.
+
     See Also
     --------
     Timestamp : Represents a single timestamp in time.
@@ -1932,6 +1944,10 @@ class Timedelta(_Timedelta):
 
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
+
+    min = Timedelta(np.timedelta64(np.iinfo(np.int64).min + 1, 'ns'))
+    max = Timedelta(np.timedelta64(np.iinfo(np.int64).max, 'ns'))
+    resolution = Timedelta(1, unit='ns')
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         if value is _no_input:
