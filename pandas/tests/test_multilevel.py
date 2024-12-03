@@ -295,6 +295,29 @@ class TestMultiLevel:
         df[na, "B"] = 1
         tm.assert_frame_equal(df[na], DataFrame([1], columns=["B"]))
 
+    def test_multiindex_dt_with_nan(self):
+        # GH#60388
+        df = DataFrame(
+            [
+                [1, np.nan, 5, np.nan],
+                [2, np.nan, 6, np.nan],
+                [np.nan, 3, np.nan, 7],
+                [np.nan, 4, np.nan, 8],
+            ],
+            index=Series(["a", "b", "c", "d"], dtype=object, name="sub"),
+            columns=MultiIndex.from_product(
+                [
+                    ["value1", "value2"],
+                    [datetime.datetime(2024, 11, 1), datetime.datetime(2024, 11, 2)],
+                ],
+                names=[None, "Date"],
+            ),
+        )
+        df = df.reset_index()
+        result = df[df.columns[0]]
+        expected = Series(["a", "b", "c", "d"], name=("sub", np.nan))
+        tm.assert_series_equal(result, expected)
+
 
 class TestSorted:
     """everything you wanted to test about sorting"""
