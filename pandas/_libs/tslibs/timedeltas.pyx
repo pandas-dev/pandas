@@ -2455,6 +2455,7 @@ Timedelta
     The resolution of Timedelta, i.e., Timedelta(nanoseconds=1).
 """
 
+
 def truediv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)
