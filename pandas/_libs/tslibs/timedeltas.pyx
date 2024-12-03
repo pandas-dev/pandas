@@ -1945,42 +1945,6 @@ class Timedelta(_Timedelta):
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
-    @property
-    def min(self):
-        """
-        The minimum representable Timedelta.
-
-        Returns
-        -------
-        Timedelta
-            The minimum duration supported by Timedelta.
-        """
-        return Timedelta(np.timedelta64(np.iinfo(np.int64).min + 1, "ns"))
-
-    @property
-    def max(self):
-        """
-        The maximum representable Timedelta.
-
-        Returns
-        -------
-        Timedelta
-            The maximum duration supported by Timedelta.
-        """
-        return Timedelta(np.timedelta64(np.iinfo(np.int64).max, "ns"))
-
-    @property
-    def resolution(self):
-        """
-        The smallest possible difference between non-equal Timedelta objects.
-
-        Returns
-        -------
-        Timedelta
-            The resolution of Timedelta, i.e. Timedelta(nanoseconds=1).
-        """
-        return Timedelta(1, unit="ns")
-
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         if value is _no_input:
             if not len(kwargs):
@@ -2459,6 +2423,37 @@ class Timedelta(_Timedelta):
         div = other // self
         return div, other - div * self
 
+
+Timedelta.min = Timedelta(np.timedelta64(np.iinfo(np.int64).min + 1, "ns"))
+Timedelta.max = Timedelta(np.timedelta64(np.iinfo(np.int64).max, "ns"))
+Timedelta.resolution = Timedelta(1, unit="ns")
+
+Timedelta.min.__doc__ = """
+The minimum representable Timedelta.
+
+Returns
+-------
+Timedelta
+    The minimum duration supported by Timedelta.
+"""
+
+Timedelta.max.__doc__ = """
+The maximum representable Timedelta.
+
+Returns
+-------
+Timedelta
+    The maximum duration supported by Timedelta.
+"""
+
+Timedelta.resolution.__doc__ = """
+The smallest possible difference between non-equal Timedelta objects.
+
+Returns
+-------
+Timedelta
+    The resolution of Timedelta, i.e., Timedelta(nanoseconds=1).
+"""
 
 def truediv_object_array(ndarray left, ndarray right):
     cdef:
