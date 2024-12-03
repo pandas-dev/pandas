@@ -1446,8 +1446,7 @@ class ArrowExtensionArray(
             pa.types.is_floating(pa_type)
             and (
                 na_value is np.nan
-                or original_na_value is lib.no_default
-                and is_float_dtype(dtype)
+                or (original_na_value is lib.no_default and is_float_dtype(dtype))
             )
         ):
             result = data._pa_array.to_numpy()

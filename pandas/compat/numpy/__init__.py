@@ -47,7 +47,7 @@ else:
 
 
 __all__ = [
-    "np",
     "_np_version",
     "is_numpy_dev",
+    "np",
 ]

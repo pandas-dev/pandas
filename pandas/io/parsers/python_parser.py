@@ -1052,8 +1052,9 @@ class PythonParser(ParserBase):
             for line in lines
             if (
                 len(line) > 1
-                or len(line) == 1
-                and (not isinstance(line[0], str) or line[0].strip())
+                or (
+                    len(line) == 1 and (not isinstance(line[0], str) or line[0].strip())
+                )
             )
         ]
         return ret

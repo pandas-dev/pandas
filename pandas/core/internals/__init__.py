@@ -7,11 +7,11 @@ from pandas.core.internals.managers import (
 
 __all__ = [
     "Block",
-    "ExtensionBlock",
-    "make_block",
     "BlockManager",
+    "ExtensionBlock",
     "SingleBlockManager",
     "concatenate_managers",
+    "make_block",
 ]
 
 
