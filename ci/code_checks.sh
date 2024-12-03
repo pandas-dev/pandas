@@ -73,8 +73,17 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
+<<<<<<< HEAD
         -i "pandas.Series.dt.unit GL08" \
         -i "pandas.Series.pad PR01,SA01" \
+=======
+        -i "pandas.Timedelta.max PR02" \
+        -i "pandas.Timedelta.min PR02" \
+        -i "pandas.Timedelta.resolution PR02" \
+        -i "pandas.Timestamp.max PR02" \
+        -i "pandas.Timestamp.min PR02" \
+        -i "pandas.Timestamp.resolution PR02" \
+>>>>>>> upstream/main
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
@@ -82,19 +91,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.get_group RT03,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
-        -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
-        -i "pandas.core.groupby.SeriesGroupBy.sem SA01" \
         -i "pandas.core.resample.Resampler.get_group RT03,SA01" \
         -i "pandas.core.resample.Resampler.max PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.mean SA01" \
         -i "pandas.core.resample.Resampler.min PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.prod SA01" \
         -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
-        -i "pandas.core.resample.Resampler.sem SA01" \
         -i "pandas.core.resample.Resampler.std SA01" \
         -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.var SA01" \
