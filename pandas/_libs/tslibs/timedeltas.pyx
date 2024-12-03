@@ -1945,9 +1945,9 @@ class Timedelta(_Timedelta):
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
-    min = Timedelta(np.timedelta64(np.iinfo(np.int64).min + 1, 'ns'))
-    max = Timedelta(np.timedelta64(np.iinfo(np.int64).max, 'ns'))
-    resolution = Timedelta(1, unit='ns')
+    Timedelta.min = Timedelta(np.timedelta64(np.iinfo(np.int64).min + 1, 'ns'))
+    Timedelta.max = Timedelta(np.timedelta64(np.iinfo(np.int64).max, 'ns'))
+    Timedelta.resolution = Timedelta(1, unit='ns')
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         if value is _no_input:
