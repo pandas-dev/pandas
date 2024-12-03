@@ -201,7 +201,6 @@ def test_concat_copy_keyword(using_copy_on_write, copy):
         assert not np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
 
 
-# @pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "func",
     [

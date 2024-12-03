@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import HAS_PYARROW
 from pandas.errors import SettingWithCopyWarning
 
@@ -953,15 +951,19 @@ def test_head_tail(method, using_copy_on_write, warn_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
-def test_infer_objects(using_copy_on_write):
-    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
+def test_infer_objects(using_copy_on_write, using_infer_string):
+    df = DataFrame(
+        {"a": [1, 2], "b": Series(["x", "y"], dtype=object), "c": 1, "d": "x"}
+    )
     df_orig = df.copy()
     df2 = df.infer_objects()
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        if using_infer_string and HAS_PYARROW:
+            assert not tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        else:
+            assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
 
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -975,19 +977,16 @@ def test_infer_objects(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
-def test_infer_objects_no_reference(using_copy_on_write):
+def test_infer_objects_no_reference(using_copy_on_write, using_infer_string):
     df = DataFrame(
         {
             "a": [1, 2],
-            "b": "c",
+            "b": Series(["x", "y"], dtype=object),
             "c": 1,
             "d": Series(
                 [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
             ),
-            "e": "b",
+            "e": Series(["z", "w"], dtype=object),
         }
     )
     df = df.infer_objects()
@@ -1001,8 +1000,14 @@ def test_infer_objects_no_reference(using_copy_on_write):
     df.iloc[0, 3] = Timestamp("2018-12-31")
     if using_copy_on_write:
         assert np.shares_memory(arr_a, get_array(df, "a"))
-        # TODO(CoW): Block splitting causes references here
-        assert not np.shares_memory(arr_b, get_array(df, "b"))
+        if using_infer_string and HAS_PYARROW:
+            # note that the underlying memory of arr_b has been copied anyway
+            # because of the assignment, but the EA is updated inplace so still
+            # appears the share memory
+            assert tm.shares_memory(arr_b, get_array(df, "b"))
+        else:
+            # TODO(CoW): Block splitting causes references here
+            assert not np.shares_memory(arr_b, get_array(df, "b"))
         assert np.shares_memory(arr_d, get_array(df, "d"))
 
 
@@ -1010,7 +1015,7 @@ def test_infer_objects_reference(using_copy_on_write):
     df = DataFrame(
         {
             "a": [1, 2],
-            "b": "c",
+            "b": Series(["x", "y"], dtype=object),
             "c": 1,
             "d": Series(
                 [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
@@ -1184,7 +1189,6 @@ def test_sort_values_inplace(using_copy_on_write, obj, kwargs, warn_copy_on_writ
         assert np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("decimals", [-1, 0, 1])
 def test_round(using_copy_on_write, warn_copy_on_write, decimals):
     df = DataFrame({"a": [1, 2], "b": "c"})
@@ -1192,7 +1196,7 @@ def test_round(using_copy_on_write, warn_copy_on_write, decimals):
     df2 = df.round(decimals=decimals)
 
     if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
         # TODO: Make inplace by using out parameter of ndarray.round?
         if decimals >= 0:
             # Ensure lazy copy if no-op
