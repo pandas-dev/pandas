@@ -1894,7 +1894,7 @@ class Timedelta(_Timedelta):
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
-     Attributes
+    Attributes
     ----------
     min : Timedelta
         The minimum representable `Timedelta`, corresponding to the smallest
