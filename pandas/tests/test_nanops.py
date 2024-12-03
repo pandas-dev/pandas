@@ -537,11 +537,8 @@ class TestnanopsDataFrame:
         nullnan = isna(nans)
         if res.ndim:
             res[nullnan] = -1
-        elif (
-            hasattr(nullnan, "all")
-            and nullnan.all()
-            or not hasattr(nullnan, "all")
-            and nullnan
+        elif (hasattr(nullnan, "all") and nullnan.all()) or (
+            not hasattr(nullnan, "all") and nullnan
         ):
             res = -1
         return res

@@ -1055,7 +1055,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             from pandas import Index
 
             fill_value = Index(self._left, copy=False)._na_value
-            empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
+            empty = IntervalArray.from_breaks(
+                [fill_value] * (empty_len + 1), closed=self.closed
+            )
         else:
             empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
 
@@ -1268,6 +1270,21 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def right(self) -> Index:
         """
         Return the right endpoints of each Interval in the IntervalArray as an Index.
+
+        This property extracts the right endpoints from each interval contained within
+        the IntervalArray. This can be helpful in use cases where you need to work
+        with or compare only the upper bounds of intervals, such as when performing
+        range-based filtering, determining interval overlaps, or visualizing the end
+        boundaries of data segments.
+
+        See Also
+        --------
+        arrays.IntervalArray.left : Return the left endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.mid : Return the midpoint of each Interval in the
+            IntervalArray as an Index.
+        arrays.IntervalArray.contains : Check elementwise if the Intervals contain
+            the value.
 
         Examples
         --------

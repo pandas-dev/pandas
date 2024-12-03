@@ -53,6 +53,7 @@ from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -66,6 +67,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -194,6 +196,7 @@ def names_compat(meth: F) -> F:
     return cast(F, new_meth)
 
 
+@set_module("pandas")
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.
@@ -1425,10 +1428,12 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """return a boolean if we need a qualified .info display"""
 
-        def f(level) -> bool:
-            return "mixed" in level or "string" in level or "unicode" in level
+        def f(dtype) -> bool:
+            return is_object_dtype(dtype) or (
+                is_string_dtype(dtype) and dtype.storage == "python"
+            )
 
-        return any(f(level.inferred_type) for level in self.levels)
+        return any(f(level.dtype) for level in self.levels)
 
     # Cannot determine type of "memory_usage"
     @doc(Index.memory_usage)  # type: ignore[has-type]
@@ -4079,11 +4084,10 @@ class MultiIndex(Index):
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
                 # other codes
-                if isna(k):  # GH 59003
+                lev_loc = len(level)
+                level = level.insert(lev_loc, k)
+                if isna(level[lev_loc]):  # GH 59003, 60388
                     lev_loc = -1
-                else:
-                    lev_loc = len(level)
-                    level = level.insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 

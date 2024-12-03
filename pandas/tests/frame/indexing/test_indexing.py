@@ -1274,7 +1274,7 @@ class TestDataFrameIndexing:
                 r"timedelta64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 "'values' contains non-numeric NA",
-                r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
+                r"Invalid value '.*' for dtype '(U?Int|Float)\d{1,2}'",
             ]
         )
         with pytest.raises(TypeError, match=msg):

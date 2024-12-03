@@ -2115,8 +2115,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Convert structured or record ndarray to DataFrame.
 
-        Creates a DataFrame object from a structured ndarray, sequence of
-        tuples or dicts, or DataFrame.
+        Creates a DataFrame object from a structured ndarray, or sequence of
+        tuples or dicts.
 
         Parameters
         ----------
@@ -3929,8 +3929,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#45316 Return view if key is not duplicated
             # Only use drop_duplicates with duplicates for performance
             if not is_mi and (
-                self.columns.is_unique
-                and key in self.columns
+                (self.columns.is_unique and key in self.columns)
                 or key in self.columns.drop_duplicates(keep=False)
             ):
                 return self._get_item(key)
@@ -4742,7 +4741,8 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4    7   8  0
         4  5   2    6   7  3
 
-        For columns with spaces in their name, you can use backtick quoting.
+        For columns with spaces or other disallowed characters in their name, you can
+        use backtick quoting.
 
         >>> df.eval("B * `C&C`")
         0    100
@@ -6775,8 +6775,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
-            or isinstance(subset, tuple)
-            and subset in self.columns
+            or (isinstance(subset, tuple) and subset in self.columns)
         ):
             subset = (subset,)
 

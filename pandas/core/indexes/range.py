@@ -27,6 +27,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -74,6 +75,7 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     return start + abs(step) * no_steps
 
 
+@set_module("pandas")
 class RangeIndex(Index):
     """
     Immutable Index implementing a monotonic integer range.
@@ -1193,7 +1195,7 @@ class RangeIndex(Index):
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
         if is_integer(other) and other != 0:
-            if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
+            if len(self) == 0 or (self.start % other == 0 and self.step % other == 0):
                 start = self.start // other
                 step = self.step // other
                 stop = start + len(self) * step
