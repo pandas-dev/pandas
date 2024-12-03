@@ -93,7 +93,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
-        -i "pandas.core.groupby.SeriesGroupBy.sem SA01" \
         -i "pandas.core.resample.Resampler.get_group RT03,SA01" \
         -i "pandas.core.resample.Resampler.max PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.mean SA01" \
