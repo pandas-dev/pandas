@@ -2658,6 +2658,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Standard error of the mean of values within each group.
 
+        See Also
+        --------
+        Series.sem : Return unbiased standard error of the mean over requested axis.
+        DataFrame.sem : Return unbiased standard error of the mean over requested axis.      
+
         Examples
         --------
         For SeriesGroupBy:
