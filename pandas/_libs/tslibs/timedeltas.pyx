@@ -1955,7 +1955,7 @@ class Timedelta(_Timedelta):
         Timedelta
             The minimum duration supported by Timedelta.
         """
-        return Timedelta(np.timedelta64(np.iinfo(np.int64).min + 1, 'ns'))
+        return Timedelta(np.timedelta64(np.iinfo(np.int64).min + 1, "ns"))
 
     @property
     def max(self):
@@ -1967,7 +1967,7 @@ class Timedelta(_Timedelta):
         Timedelta
             The maximum duration supported by Timedelta.
         """
-        return Timedelta(np.timedelta64(np.iinfo(np.int64).max, 'ns'))
+        return Timedelta(np.timedelta64(np.iinfo(np.int64).max, "ns"))
 
     @property
     def resolution(self):
@@ -1979,7 +1979,7 @@ class Timedelta(_Timedelta):
         Timedelta
             The resolution of Timedelta, i.e. Timedelta(nanoseconds=1).
         """
-        return Timedelta(1, unit='ns')
+        return Timedelta(1, unit="ns")
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         if value is _no_input:
