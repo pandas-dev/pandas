@@ -720,10 +720,14 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         See Also
         --------
-        DataFrameGroupBy.groups: Dictionary representation of the groupings formed during a groupby operation.
-        DataFrameGroupBy.indices: Provides a mapping of group rows to positions of the elements.
-        SeriesGroupBy.groups: Dictionary representation of the groupings formed during a groupby operation.
-        SeriesGroupBy.indices: Provides a mapping of group rows to positions of the elements.
+        DataFrameGroupBy.groups: Dictionary representation of the groupings formed
+            during a groupby operation.
+        DataFrameGroupBy.indices: Provides a mapping of group rows to positions
+            of the elements.
+        SeriesGroupBy.groups: Dictionary representation of the groupings formed
+            during a groupby operation.
+        SeriesGroupBy.indices: Provides a mapping of group rows to positions
+            of the elements.
 
         Examples
         --------
