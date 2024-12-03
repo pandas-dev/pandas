@@ -512,8 +512,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             )
 
         if self.engine != "pytables" and (
-            res.op in CMP_OPS_SYMS
-            and getattr(lhs, "is_datetime", False)
+            (res.op in CMP_OPS_SYMS and getattr(lhs, "is_datetime", False))
             or getattr(rhs, "is_datetime", False)
         ):
             # all date ops must be done in python bc numexpr doesn't work

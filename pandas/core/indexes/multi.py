@@ -4084,11 +4084,10 @@ class MultiIndex(Index):
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
                 # other codes
-                if isna(k):  # GH 59003
+                lev_loc = len(level)
+                level = level.insert(lev_loc, k)
+                if isna(level[lev_loc]):  # GH 59003, 60388
                     lev_loc = -1
-                else:
-                    lev_loc = len(level)
-                    level = level.insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 
