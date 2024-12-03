@@ -2551,7 +2551,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         food_type
         animal                 Beef            Beef
         plant        Wheat Products  Wheat Products
-
         """
         return self._idxmax_idxmin("idxmax", numeric_only=numeric_only, skipna=skipna)
 
