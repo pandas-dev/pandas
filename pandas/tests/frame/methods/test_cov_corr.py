@@ -326,6 +326,7 @@ class TestDataFrameCorrWith:
 
     @pytest.mark.parametrize("method", ["spearman", "kendall"])
     def test_corrwith_categorical(self, categorical_frame, method):
+        pytest.importorskip("scipy")
         other = categorical_frame["B"]
         result = categorical_frame.corrwith(other, method=method)
         expected = categorical_frame.agg(lambda x: x.corr(other, method=method))
