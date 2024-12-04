@@ -1031,18 +1031,12 @@ cdef class _Timedelta(timedelta):
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
     #    NPY_DATETIMEUNIT _reso
 
-    Attributes
-    ----------
-    min : Timedelta
-        The minimum representable `Timedelta`, corresponding to the smallest
-        duration supported.
-
-    max : Timedelta
-        The maximum representable `Timedelta`, corresponding to the largest
-        duration supported.
-
-    resolution : Timedelta
-        The smallest possible difference between non-equal `Timedelta` objects.
+    """
+    Attributes:
+        min (Timedelta): Minimum allowable value for Timedelta.
+        max (Timedelta): Maximum allowable value for Timedelta.
+        resolution (Timedelta): Resolution of the Timedelta.
+    """
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
