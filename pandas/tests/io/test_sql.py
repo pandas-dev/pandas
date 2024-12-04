@@ -4367,7 +4367,7 @@ def test_bytes_column(conn, request):
     pa = pytest.importorskip("pyarrow")
     for dtype_backend in ["pyarrow", "numpy_nullable", lib.no_default]:
         query = """
-        select cast(x'0123456789abcdef0123456789abcdef' as blob) a
+        select x'0123456789abcdef0123456789abcdef' a
         """
         df = pd.read_sql(query, conn, dtype_backend=dtype_backend)
         expected = DataFrame(
