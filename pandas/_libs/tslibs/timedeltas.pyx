@@ -1943,10 +1943,6 @@ class Timedelta(_Timedelta):
     We see that either way we get the same result
     """
 
-    min = _Timedelta.min
-    max = _Timedelta.max
-    resolution = _Timedelta.resolution
-
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
