@@ -30,7 +30,7 @@ def test_groupby_kurt_equivalence():
 
 def test_groupby_kurt_arrow_float64():
     # GH#40139
-    # Test groupby.kurt() with skipna = False
+    # Test groupby.kurt() with float64[pyarrow] dtype
     df = pd.DataFrame(
         {
             "x": [1.0, np.nan, 3.2, 4.8, 2.3, 1.9, 8.9],
@@ -65,7 +65,7 @@ def test_groupby_kurt_noskipna():
 
 def test_groupby_kurt_all_ones():
     # GH#40139
-    # Test groupby.kurt() with skipna = False
+    # Test groupby.kurt() with constant values
     df = pd.DataFrame(
         {
             "x": [1.0] * 10,
