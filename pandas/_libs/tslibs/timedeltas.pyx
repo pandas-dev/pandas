@@ -1957,7 +1957,7 @@ class Timedelta(_Timedelta):
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
-    min = MinMaxReso("min")  
+    min = MinMaxReso("min")
     # Timedelta: The smallest representable duration.
 
     max = MinMaxReso("max")
