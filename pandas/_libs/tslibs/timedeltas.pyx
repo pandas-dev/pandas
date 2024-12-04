@@ -1958,13 +1958,13 @@ class Timedelta(_Timedelta):
                            "milliseconds", "microseconds", "nanoseconds"}
 
     min = MinMaxReso("min")
-    # Timedelta: The smallest representable duration.
+    min.__doc__ = "Timedelta: The minimum representable value."
 
     max = MinMaxReso("max")
-    # Timedelta: The largest representable duration.
+    max.__doc__ = "Timedelta: The maximum representable value."
 
     resolution = MinMaxReso("resolution")
-    # Timedelta: The smallest increment between distinct durations.
+    resolution.__doc__ = "Timedelta: The smallest representable increment."
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         if value is _no_input:
