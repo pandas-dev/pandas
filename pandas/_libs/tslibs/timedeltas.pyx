@@ -1957,15 +1957,6 @@ class Timedelta(_Timedelta):
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
-    min = MinMaxReso("min")
-    min.__doc__ = "Timedelta: The minimum representable value."
-
-    max = MinMaxReso("max")
-    max.__doc__ = "Timedelta: The maximum representable value."
-
-    resolution = MinMaxReso("resolution")
-    resolution.__doc__ = "Timedelta: The smallest representable increment."
-
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         if value is _no_input:
             if not len(kwargs):
@@ -2109,6 +2100,10 @@ class Timedelta(_Timedelta):
             return NaT
 
         return _timedelta_from_value_and_reso(cls, value, NPY_FR_ns)
+
+    min = MinMaxReso("min")
+    max = MinMaxReso("max")
+    resolution = MinMaxReso("resolution")
 
     def __setstate__(self, state):
         if len(state) == 1:
