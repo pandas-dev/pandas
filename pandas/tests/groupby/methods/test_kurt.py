@@ -26,7 +26,7 @@ def test_groupby_kurt_equivalence():
 
     grpwise = [grp.kurt().to_frame(i).T for i, grp in gb]
     expected = pd.concat(grpwise, axis=0)
-    expected.index = expected.index.astype("intp")  # 32bit builds
+    expected.index = expected.index.astype("int64")  # 32bit builds
     tm.assert_frame_equal(result, expected)
 
 
