@@ -4372,14 +4372,14 @@ def test_bytes_column(con, request):
         df = pd.read_sql(query, conn, dtype_backend=dtype_backend)
 
         dtype = "O"
-        if dtype_backend == "pyarrow":
-            # sqlite3 + mysql both return a binary type
-            # for the binary literal
-            dtype = pd.ArrowDtype(pa.binary())
-        elif dtype_backend == "pyarrow" and "postgres" in con:
+        if dtype_backend == "pyarrow" and "postgres" in con:
             # postgres column is a bit type
             # but converts to a string when returned
             dtype = pd.ArrowDtype(pa.string())
+        elif dtype_backend == "pyarrow":
+            # sqlite3 + mysql both return a binary type
+            # for the binary literal
+            dtype = pd.ArrowDtype(pa.binary())
 
         expected = DataFrame(
             [
