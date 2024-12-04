@@ -73,6 +73,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
+        -i "pandas.Timestamp.max PR02" \
+        -i "pandas.Timestamp.min PR02" \
+        -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
