@@ -7,6 +7,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
     Index,
     Series,
@@ -14,6 +15,19 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+
+
+@pytest.fixture
+def categorical_frame():
+    frame = DataFrame(
+        {
+            "A": Categorical(list("abcde") * 6, list("bacde"), ordered=True),
+            "B": Categorical(list("123") * 10, list("321"), ordered=True),
+        }
+    )
+    frame.loc[frame.index[:5], "A"] = np.nan
+    frame.loc[frame.index[3:6], "B"] = np.nan
+    return frame
 
 
 class TestDataFrameCov:
@@ -115,6 +129,13 @@ class TestDataFrameCorr:
         correls = float_frame.corr(method=method)
         expected = float_frame["A"].corr(float_frame["C"], method=method)
         tm.assert_almost_equal(correls["A"]["C"], expected)
+
+    @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    def test_corr_scipy_method_category(self, method, categorical_frame):
+        pytest.importorskip("scipy")
+        correls = categorical_frame.corr(method=method)
+        expected = categorical_frame["A"].corr(categorical_frame["B"], method=method)
+        tm.assert_almost_equal(correls["A"]["B"], expected)
 
     # ---------------------------------------------------------------------
 
@@ -302,6 +323,14 @@ class TestDataFrameCorrWith:
 
         dropped = a.corrwith(b, axis=1, drop=True)
         assert a.index[-1] not in dropped.index
+
+    @pytest.mark.parametrize("method", ["spearman", "kendall"])
+    def test_corrwith_categorical(self, categorical_frame, method):
+        other = categorical_frame["B"]
+        result = categorical_frame.corrwith(other, method=method)
+        expected = categorical_frame.agg(lambda x: x.corr(other, method=method))
+        tm.assert_almost_equal(result["A"], expected["A"])
+        tm.assert_almost_equal(result["B"], expected["B"])
 
     def test_corrwith_non_timeseries_data(self):
         index = ["a", "b", "c", "d", "e"]
