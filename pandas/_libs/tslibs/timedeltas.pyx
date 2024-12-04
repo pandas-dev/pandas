@@ -1939,14 +1939,32 @@ class Timedelta(_Timedelta):
     Timedelta('1 days 00:00:00')
 
     We see that either way we get the same result
+
+    Accessing the smallest and largest Timedelta values:
+
+    >>> pd.Timedelta.min
+    Timedelta('-106751 days +00:12:44.000000')
+
+    >>> pd.Timedelta.max
+    Timedelta('106751 days 23:47:16.854775807')
+
+    Checking the resolution of a Timedelta object:
+
+    >>> pd.Timedelta.resolution
+    Timedelta('0 days 00:00:00.000000001')
     """
 
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
     min = MinMaxReso("min")
+    """Timedelta: The minimum representable value."""
+
     max = MinMaxReso("max")
+    """Timedelta: The maximum representable value."""
+
     resolution = MinMaxReso("resolution")
+    """Timedelta: The smallest representable increment."""
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         if value is _no_input:
