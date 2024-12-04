@@ -1943,7 +1943,7 @@ class Timedelta(_Timedelta):
     Accessing the smallest and largest Timedelta values:
 
     >>> pd.Timedelta.min
-    Timedelta('-106751 days +00:12:44.000000')
+    Timedelta('-106752 days +00:12:43.145224193')
 
     >>> pd.Timedelta.max
     Timedelta('106751 days 23:47:16.854775807')
