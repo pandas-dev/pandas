@@ -18,7 +18,7 @@ from pandas._libs.tslibs import (
     NaTType,
 )
 from pandas._libs.tslibs.timedeltas import (
-    Timedelta,
+    Timedelta as _Timedelta,
     disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
