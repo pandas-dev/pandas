@@ -356,13 +356,15 @@ def test_replace_empty_list(using_copy_on_write):
         assert not df2._mgr._has_no_reference(0)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("value", ["d", None])
-def test_replace_object_list_inplace(using_copy_on_write, value):
-    df = DataFrame({"a": ["a", "b", "c"]})
+def test_replace_object_list_inplace(using_copy_on_write, using_infer_string, value):
+    df = DataFrame({"a": ["a", "b", "c"]}, dtype=object)
     arr = get_array(df, "a")
-    df.replace(["c"], value, inplace=True)
-    if using_copy_on_write or value is None:
+    # with future.infer_string we get warning about object dtype getting cast
+    warning = FutureWarning if using_infer_string and value is not None else None
+    with tm.assert_produces_warning(warning):
+        df.replace(["c"], value, inplace=True)
+    if (using_copy_on_write or value is None) and not warning:
         assert np.shares_memory(arr, get_array(df, "a"))
     else:
         # This could be inplace
