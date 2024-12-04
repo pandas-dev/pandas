@@ -1270,13 +1270,8 @@ class SeriesGroupBy(GroupBy[Series]):
         Name: Max Speed, dtype: float64
         """
 
-        def alt(obj):
-            # This should not be reached since the cython path should raise
-            #  TypeError and not NotImplementedError.
-            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
-
         return self._cython_agg_general(
-            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "skew", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
     def kurt(
@@ -3084,13 +3079,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         mammal   0.204125
         """
 
-        def alt(obj):
-            # This should not be reached since the cython path should raise
-            #  TypeError and not NotImplementedError.
-            raise TypeError(f"'kurt' is not supported for dtype={obj.dtype}")
-
         return self._cython_agg_general(
-            "kurt", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "kurt", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
     @property

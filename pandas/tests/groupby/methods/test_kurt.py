@@ -5,6 +5,7 @@ import pandas._testing as tm
 
 
 def test_groupby_kurt_equivalence():
+    # GH#40139
     # Test that that groupby kurt method (which uses libgroupby.group_kurt)
     #  matches the results of operating group-by-group (which uses nanops.nankurt)
     nrows = 1000
@@ -23,5 +24,59 @@ def test_groupby_kurt_equivalence():
 
     grpwise = [grp.kurt().to_frame(i).T for i, grp in gb]
     expected = pd.concat(grpwise, axis=0)
-    expected.index = expected.index.astype(result.index.dtype)  # 32bit builds
+    expected.index = expected.index.astype(np.intp)  # 32bit builds
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_kurt_arrow_float64():
+    # GH#40139
+    # Test groupby.kurt() with skipna = False
+    df = pd.DataFrame(
+        {
+            "x": [1.0, np.nan, 3.2, 4.8, 2.3, 1.9, 8.9],
+            "y": [1.6, 3.3, 3.2, 6.8, 1.3, 2.9, 9.0],
+        },
+        dtype="float64[pyarrow]",
+    )
+    gb = df.groupby(by=lambda x: 0)
+
+    result = gb.kurt()
+    expected = pd.DataFrame(
+        {"x": [2.1644713], "y": [0.1513969]}, dtype="float64[pyarrow]"
+    )
+    tm.assert_almost_equal(result, expected)
+
+
+def test_groupby_kurt_noskipna():
+    # GH#40139
+    # Test groupby.kurt() with skipna = False
+    df = pd.DataFrame(
+        {
+            "x": [1.0, np.nan, 3.2, 4.8, 2.3, 1.9, 8.9],
+            "y": [1.6, 3.3, 3.2, 6.8, 1.3, 2.9, 9.0],
+        }
+    )
+    gb = df.groupby(by=lambda x: 0)
+
+    result = gb.kurt(skipna=False)
+    expected = pd.DataFrame({"x": [np.nan], "y": [0.1513969]})
+    tm.assert_almost_equal(result, expected)
+
+
+def test_groupby_kurt_all_ones():
+    # GH#40139
+    # Test groupby.kurt() with skipna = False
+    df = pd.DataFrame(
+        {
+            "x": [1.0] * 10,
+        }
+    )
+    gb = df.groupby(by=lambda x: 0)
+
+    result = gb.kurt(skipna=False)
+    expected = pd.DataFrame(
+        {
+            "x": [0.0],  # Same behavior as pd.DataFrame.kurt()
+        }
+    )
+    tm.assert_almost_equal(result, expected)
