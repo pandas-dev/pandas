@@ -1,5 +1,7 @@
 import numpy as np
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -28,6 +30,7 @@ def test_groupby_kurt_equivalence():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
 def test_groupby_kurt_arrow_float64():
     # GH#40139
     # Test groupby.kurt() with float64[pyarrow] dtype
