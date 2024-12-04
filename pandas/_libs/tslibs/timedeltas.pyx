@@ -1031,13 +1031,6 @@ cdef class _Timedelta(timedelta):
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
     #    NPY_DATETIMEUNIT _reso
 
-    """
-    Attributes:
-        min (Timedelta): Minimum allowable value for Timedelta.
-        max (Timedelta): Maximum allowable value for Timedelta.
-        resolution (Timedelta): Resolution of the Timedelta.
-    """
-
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
     min = MinMaxReso("min")
@@ -1901,6 +1894,17 @@ class Timedelta(_Timedelta):
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
+    Attributes
+    ----------
+    min : Timedelta, readonly
+        The minimum representable `Timedelta`, corresponding to the smallest
+        duration supported.
+    max : Timedelta, readonly
+        The maximum representable `Timedelta`, corresponding to the largest
+        duration supported.
+    resolution : Timedelta, readonly
+        The smallest possible difference between non-equal `Timedelta` objects.
+
     See Also
     --------
     Timestamp : Represents a single timestamp in time.
@@ -1939,6 +1943,10 @@ class Timedelta(_Timedelta):
 
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
+
+    min = MinMaxReso("min")
+    max = MinMaxReso("max")
+    resolution = MinMaxReso("resolution")
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         if value is _no_input:
