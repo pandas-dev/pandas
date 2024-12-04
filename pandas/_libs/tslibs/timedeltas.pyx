@@ -1899,12 +1899,28 @@ class Timedelta(_Timedelta):
     min : Timedelta
         The minimum representable `Timedelta`, corresponding to the smallest
         duration supported.
+
+        See Also
+        --------
+        Timedelta.max : The maximum representable `Timedelta`.
+        Timedelta.resolution : The smallest possible difference between non-equal `Timedelta` objects.
+
     max : Timedelta
         The maximum representable `Timedelta`, corresponding to the largest
         duration supported.
+
+        See Also
+        --------
+        Timedelta.min : The minimum representable `Timedelta`.
+        Timedelta.resolution : The smallest possible difference between non-equal `Timedelta` objects.
+
     resolution : Timedelta
-        The smallest possible difference between non-equal `Timedelta` objects,
-        i.e., `Timedelta(nanoseconds=1)`.
+        The smallest possible difference between non-equal `Timedelta` objects.
+
+        See Also
+        --------
+        Timedelta.min : The minimum representable `Timedelta`.
+        Timedelta.max : The maximum representable `Timedelta`.
 
     See Also
     --------
@@ -1940,6 +1956,39 @@ class Timedelta(_Timedelta):
     Timedelta('1 days 00:00:00')
 
     We see that either way we get the same result
+    """
+
+    min = _Timedelta.min
+    max = _Timedelta.max
+    resolution = _Timedelta.resolution
+
+    min.__doc__ = """
+    The minimum representable `Timedelta`, corresponding to the smallest
+    duration supported.
+
+    See Also
+    --------
+    Timedelta.max : The maximum representable `Timedelta`.
+    Timedelta.resolution : The smallest possible difference between non-equal `Timedelta` objects.
+    """
+
+    max.__doc__ = """
+    The maximum representable `Timedelta`, corresponding to the largest
+    duration supported.
+
+    See Also
+    --------
+    Timedelta.min : The minimum representable `Timedelta`.
+    Timedelta.resolution : The smallest possible difference between non-equal `Timedelta` objects.
+    """
+
+    resolution.__doc__ = """
+    The smallest possible difference between non-equal `Timedelta` objects.
+
+    See Also
+    --------
+    Timedelta.min : The minimum representable `Timedelta`.
+    Timedelta.max : The maximum representable `Timedelta`.
     """
 
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
