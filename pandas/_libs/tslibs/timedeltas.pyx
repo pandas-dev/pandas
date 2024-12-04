@@ -1031,6 +1031,19 @@ cdef class _Timedelta(timedelta):
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
     #    NPY_DATETIMEUNIT _reso
 
+    Attributes
+    ----------
+    min : Timedelta
+        The minimum representable `Timedelta`, corresponding to the smallest
+        duration supported.
+
+    max : Timedelta
+        The maximum representable `Timedelta`, corresponding to the largest
+        duration supported.
+
+    resolution : Timedelta
+        The smallest possible difference between non-equal `Timedelta` objects.
+
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
     min = MinMaxReso("min")
@@ -1893,19 +1906,6 @@ class Timedelta(_Timedelta):
         milliseconds, minutes, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
-
-    Attributes
-    ----------
-    min : Timedelta
-        The minimum representable `Timedelta`, corresponding to the smallest
-        duration supported.
-
-    max : Timedelta
-        The maximum representable `Timedelta`, corresponding to the largest
-        duration supported.
-
-    resolution : Timedelta
-        The smallest possible difference between non-equal `Timedelta` objects.
 
     See Also
     --------
