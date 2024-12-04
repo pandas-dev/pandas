@@ -4360,25 +4360,22 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-@pytest.mark.parametrize("dtype_backend", ["pyarrow", "numpy_nullable", lib.no_default])
-def test_bytes_column(sqlite_buildin, dtype_backend):
+@pytest.mark.parametrize("conn", all_connectable)
+def test_bytes_column(conn, request):
+    # GitHub Issue #59242
+    conn = request.getfixturevalue(conn)
     pa = pytest.importorskip("pyarrow")
-    """
-    Regression test for (#59242)
-    Bytes being returned in a column that could not be converted
-    to a string would raise a UnicodeDecodeError
-    when using dtype_backend='pyarrow' or dtype_backend='numpy_nullable'
-    """
-    query = """
-    select cast(x'0123456789abcdef0123456789abcdef' as blob) a
-    """
-    df = pd.read_sql(query, sqlite_buildin, dtype_backend=dtype_backend)
-    expected = DataFrame(
-        [
-            {
-                "a": b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef",
-            }
-        ],
-        dtype=(pd.ArrowDtype(pa.binary()) if dtype_backend == "pyarrow" else "O"),
-    )
-    tm.assert_frame_equal(df, expected)
+    for dtype_backend in ["pyarrow", "numpy_nullable", lib.no_default]:
+        query = """
+        select cast(x'0123456789abcdef0123456789abcdef' as blob) a
+        """
+        df = pd.read_sql(query, conn, dtype_backend=dtype_backend)
+        expected = DataFrame(
+            [
+                {
+                    "a": b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef",
+                }
+            ],
+            dtype=(pd.ArrowDtype(pa.binary()) if dtype_backend == "pyarrow" else "O"),
+        )
+        tm.assert_frame_equal(df, expected)
