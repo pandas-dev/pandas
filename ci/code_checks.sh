@@ -73,8 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
-        -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
@@ -87,7 +85,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.NumpyExtensionArray SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.max PR01,RT03,SA01" \
