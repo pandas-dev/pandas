@@ -4360,22 +4360,33 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
-def test_bytes_column(conn, request):
+@pytest.mark.parametrize("con", all_connectable)
+def test_bytes_column(con, request):
     # GitHub Issue #59242
-    conn = request.getfixturevalue(conn)
+    conn = request.getfixturevalue(con)
     pa = pytest.importorskip("pyarrow")
     for dtype_backend in ["pyarrow", "numpy_nullable", lib.no_default]:
         query = """
         select x'0123456789abcdef0123456789abcdef' a
         """
         df = pd.read_sql(query, conn, dtype_backend=dtype_backend)
+
+        dtype = "O"
+        if dtype_backend == "pyarrow":
+            # sqlite3 + mysql both return a binary type
+            # for the binary literal
+            dtype = pd.ArrowDtype(pa.binary())
+        elif dtype_backend == "pyarrow" and "postgres" in con:
+            # postgres column is a bit type
+            # but converts to a string when returned
+            dtype = pd.ArrowDtype(pa.string())
+
         expected = DataFrame(
             [
                 {
                     "a": b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef",
                 }
             ],
-            dtype=(pd.ArrowDtype(pa.binary()) if dtype_backend == "pyarrow" else "O"),
+            dtype=dtype,
         )
         tm.assert_frame_equal(df, expected)
