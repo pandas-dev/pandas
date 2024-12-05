@@ -500,8 +500,12 @@ def test_array_interface(arr_data, arr):
         # copy=False semantics are only supported in NumPy>=2.
         return
 
-    # for sparse arrays, copy=False is never allowed
-    with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
+    msg = "Starting on NumPy 2.0, the behavior of the 'copy' keyword has changed "
+    "and passing 'copy=False' raises an error when a zero-copy NumPy array "
+    "is not possible, Pandas will follow this behavior starting with "
+    "version 3.0. This conversion to NumPy requires a copy, but "
+    "'copy=False' was passed. Consider using 'np.asarray(..)' instead."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         np.array(arr, copy=False)
 
     # except when there are actually no sparse filled values

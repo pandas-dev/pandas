@@ -1672,8 +1672,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         array(['a', 'b'], dtype=object)
         """
         if copy is False:
-            raise ValueError(
-                "Unable to avoid copy while creating an array as requested."
+            warnings.warn(
+                "Starting on NumPy 2.0, the behavior of the 'copy' keyword has changed "
+                "and passing 'copy=False' raises an error when a zero-copy NumPy array "
+                "is not possible, Pandas will follow this behavior starting with "
+                "version 3.0. This conversion to NumPy requires a copy, but "
+                "'copy=False' was passed. Consider using 'np.asarray(..)' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
 
         ret = take_nd(self.categories._values, self._codes)

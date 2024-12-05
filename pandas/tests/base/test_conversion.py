@@ -380,8 +380,12 @@ def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array):
         return
 
     if not zero_copy:
-        with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
-            # An error is always acceptable for `copy=False`
+        msg = "Starting on NumPy 2.0, the behavior of the 'copy' keyword has changed "
+        "and passing 'copy=False' raises an error when a zero-copy NumPy array "
+        "is not possible, Pandas will follow this behavior starting with "
+        "version 3.0. This conversion to NumPy requires a copy, but "
+        "'copy=False' was passed. Consider using 'np.asarray(..)' instead."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             np.array(thing, copy=False)
 
     else:
