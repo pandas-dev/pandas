@@ -2082,7 +2082,29 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @cache_readonly
     def unit(self) -> str:
-        # e.g. "ns", "us", "ms"
+        """
+        The precision unit of the datetime data.
+
+        Returns the precision unit for the dtype.
+        It means the smallest time frame that can be stored within this dtype.
+
+        Returns
+        -------
+        str
+            Unit string representation (e.g. "ns").
+
+        See Also
+        --------
+        TimelikeOps.as_unit : Converts to a specific unit.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
+        >>> idx.unit
+        'ns'
+        >>> idx.as_unit("s").unit
+        's'
+        """
         # error: Argument 1 to "dtype_to_unit" has incompatible type
         # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]

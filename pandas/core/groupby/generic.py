@@ -1321,8 +1321,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        Index
-            Label of the minimum value.
+        Series
+            Indexes of minima in each group.
 
         Raises
         ------
@@ -1374,8 +1374,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        Index
-            Label of the maximum value.
+        Series
+            Indexes of maxima in each group.
 
         Raises
         ------
@@ -1443,6 +1443,11 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         Series
 
+        See Also
+        --------
+        SeriesGroupBy.is_monotonic_decreasing : Return whether each group's values
+            are monotonically decreasing.
+
         Examples
         --------
         >>> s = pd.Series([2, 1, 3, 4], index=["Falcon", "Falcon", "Parrot", "Parrot"])
@@ -1461,6 +1466,11 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+
+        See Also
+        --------
+        SeriesGroupBy.is_monotonic_increasing : Return whether each group's values
+            are monotonically increasing.
 
         Examples
         --------
@@ -2443,6 +2453,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         nunique: DataFrame
             Counts of unique elements in each position.
 
+        See Also
+        --------
+        DataFrame.nunique : Count number of distinct elements in specified axis.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -2498,8 +2512,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        Series
-            Indexes of maxima in each group.
+        DataFrame
+            Indexes of maxima in each column according to the group.
 
         Raises
         ------
@@ -2509,6 +2523,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         Series.idxmax : Return index of the maximum element.
+        DataFrame.idxmax : Indexes of maxima along the specified axis.
 
         Notes
         -----
@@ -2522,6 +2537,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ...     {
         ...         "consumption": [10.51, 103.11, 55.48],
         ...         "co2_emissions": [37.2, 19.66, 1712],
+        ...         "food_type": ["meat", "plant", "meat"],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -2532,12 +2548,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Wheat Products       103.11         19.66
         Beef                  55.48       1712.00
 
-        By default, it returns the index for the maximum value in each column.
+        By default, it returns the index for the maximum value in each column
+        according to the group.
 
-        >>> df.idxmax()
-        consumption     Wheat Products
-        co2_emissions             Beef
-        dtype: object
+        >>> df.groupby("food_type").idxmax()
+                        consumption   co2_emissions
+        food_type
+        animal                 Beef            Beef
+        plant        Wheat Products  Wheat Products
         """
         return self._idxmax_idxmin("idxmax", numeric_only=numeric_only, skipna=skipna)
 
@@ -2560,8 +2578,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        Series
-            Indexes of minima in each group.
+        DataFrame
+            Indexes of minima in each column according to the group.
 
         Raises
         ------
@@ -2571,6 +2589,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         Series.idxmin : Return index of the minimum element.
+        DataFrame.idxmin : Indexes of minima along the specified axis.
 
         Notes
         -----
@@ -2584,6 +2603,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ...     {
         ...         "consumption": [10.51, 103.11, 55.48],
         ...         "co2_emissions": [37.2, 19.66, 1712],
+        ...         "food_type": ["meat", "plant", "meat"],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -2594,12 +2614,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Wheat Products       103.11         19.66
         Beef                  55.48       1712.00
 
-        By default, it returns the index for the minimum value in each column.
+        By default, it returns the index for the minimum value in each column
+        according to the group.
 
-        >>> df.idxmin()
-        consumption                Pork
-        co2_emissions    Wheat Products
-        dtype: object
+        >>> df.groupby("food_type").idxmin()
+                        consumption   co2_emissions
+        food_type
+        animal                 Pork            Pork
+        plant        Wheat Products  Wheat Products
         """
         return self._idxmax_idxmin("idxmin", numeric_only=numeric_only, skipna=skipna)
 

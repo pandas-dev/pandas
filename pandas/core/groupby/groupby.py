@@ -515,6 +515,15 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Dict {group name -> group indices}.
 
+        See Also
+        --------
+        core.groupby.DataFrameGroupBy.indices : Provides a mapping of group rows to
+            positions of the elements.
+        core.groupby.SeriesGroupBy.indices : Provides a mapping of group rows to
+            positions of the elements.
+        core.resample.Resampler.indices : Provides a mapping of group rows to
+            positions of the elements.
+
         Examples
         --------
 
@@ -706,7 +715,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         Returns
         -------
-        DataFrame or Series
+        Series or DataFrame
+            Get the respective Series or DataFrame corresponding to the group provided.
+
+        See Also
+        --------
+        DataFrameGroupBy.groups: Dictionary representation of the groupings formed
+            during a groupby operation.
+        DataFrameGroupBy.indices: Provides a mapping of group rows to positions
+            of the elements.
+        SeriesGroupBy.groups: Dictionary representation of the groupings formed
+            during a groupby operation.
+        SeriesGroupBy.indices: Provides a mapping of group rows to positions
+            of the elements.
 
         Examples
         --------
@@ -2649,6 +2670,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Standard error of the mean of values within each group.
 
+        See Also
+        --------
+        DataFrame.sem : Return unbiased standard error of the mean over requested axis.
+        Series.sem : Return unbiased standard error of the mean over requested axis.
+
         Examples
         --------
         For SeriesGroupBy:
@@ -3982,19 +4008,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
         before the groupby.
-
-        Parameters
-        ----------
-        n : int, slice or list of ints and slices
-            A single nth value for the row or a list of nth values or slices.
-
-            .. versionchanged:: 1.4.0
-                Added slice and lists containing slices.
-                Added index notation.
-
-        dropna : {'any', 'all', None}, default None
-            Apply the specified dropna operation before counting which row is
-            the nth row. Only supported if n is an int.
 
         Returns
         -------
