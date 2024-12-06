@@ -605,10 +605,10 @@ def boxplot_frame_groupby(
     Returns
     -------
     dict or DataFrame.boxplot return value
-        If ``subplots=True``, returns a dictionary of group keys to the boxplot 
-        return values. If ``subplots=False``, returns the boxplot return value 
+        If ``subplots=True``, returns a dictionary of group keys to the boxplot
+        return values. If ``subplots=False``, returns the boxplot return value
         of a single DataFrame.
-    
+
     See Also
     --------
     pandas.DataFrame.boxplot : Create a box plot from a DataFrame.
