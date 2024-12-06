@@ -326,7 +326,7 @@ This case is handled identically to a dict of arrays.
 
 .. ipython:: python
 
-   data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10")])
+   data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "S10")])
    data[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
    pd.DataFrame(data)
