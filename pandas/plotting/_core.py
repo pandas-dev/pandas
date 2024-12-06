@@ -611,7 +611,7 @@ def boxplot_frame_groupby(
 
     See Also
     --------
-    pandas.DataFrame.boxplot : Create a box plot from a DataFrame.
+    DataFrame.boxplot : Create a box plot from a DataFrame.
     Series.plot : Plot a Series.
 
     Examples
