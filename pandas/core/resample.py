@@ -1158,7 +1158,7 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         core.resample.Resampler.max : Compute max value of group.
         core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
-        core.resample.Resampler.median : Compute median of groups, excluding missing 
+        core.resample.Resampler.median : Compute median of groups, excluding missing
             values.
 
         Examples
