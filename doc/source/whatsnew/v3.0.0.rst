@@ -614,7 +614,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :attr:`is_year_start` where a DateTimeIndex constructed via a date_range with frequency 'MS' wouldn't have the correct year or quarter start attributes (:issue:`57377`)
-- Bug in :class:`ArrowDtype` where `.convert_dtypes(dtype_backend="pyarrow")` stripped timezone information from timezone-aware PyArrow timestamps, resulting in a loss of timezone data. This has been fixed to ensure timezone information is preserved during conversions. (:issue:`60237`)
+- Bug in :class:`ArrowDtype` where ``.convert_dtypes(dtype_backend="pyarrow")`` stripped timezone information from timezone-aware PyArrow timestamps, resulting in a loss of timezone data. This has been fixed to ensure timezone information is preserved during conversions. (:issue:`60237`)
 - Bug in :class:`DataFrame` raising ``ValueError`` when ``dtype`` is ``timedelta64`` and ``data`` is a list containing ``None`` (:issue:`60064`)
 - Bug in :class:`Timestamp` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``tzinfo`` or data (:issue:`48688`)
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
