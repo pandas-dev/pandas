@@ -1472,20 +1472,12 @@ class TestParquetFastParquet(Base):
     def test_bool_multiIndex(self, tmp_path, pa):
         # GH 60508
         df = pd.DataFrame(
-            [
-                [1, 2],
-                [4, 5],
-            ],
-            columns=pd.MultiIndex.from_tuples(
-                [
-                    (True, 'B'),
-                    (False, 'C'),
-                ]
-            )
+            [[1, 2], [4, 5]],
+            columns=pd.MultiIndex.from_tuples([(True, 'B'), (False, 'C')]),
         )
         df.to_parquet(
             path=tmp_path,
             engine=pa,
         )
-        result = pd.read_parquet(tmp_path, engine=pa)
+        result = read_parquet(tmp_path, engine=pa)
         tm.assert_frame_equal(result, df)
