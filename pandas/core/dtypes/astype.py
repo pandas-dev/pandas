@@ -126,8 +126,9 @@ def _astype_nansafe(
         raise ValueError(msg)
 
     if arr.dtype == object and dtype == bool:
-        # If the dtype is bool and the array is object, we need to replace the False and True of the object type in the ndarray with the bool type
-        # to ensure that the type conversion is correct
+        # If the dtype is bool and the array is object, we need to replace
+        # the False and True of the object type in the ndarray with the
+        # bool type to ensure that the type conversion is correct
         arr[arr == "False"] = np.False_
         arr[arr == "True"] = np.True_
         return arr.astype(dtype, copy=copy)
