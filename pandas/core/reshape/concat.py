@@ -710,7 +710,13 @@ def _get_concat_axis_dataframe(
     if keys is None:
         if levels is not None:
             raise ValueError("levels supported only when keys is not None")
-        concat_axis = _concat_indexes(indexes)
+        interesected_indexes = indexes[0].intersection(indexes[1])
+        if interesected_indexes is None:
+            concat_axis = _concat_indexes(indexes)
+        else:
+            indexes = _rename_duplicated_axis_names(indexes, interesected_indexes)
+            concat_axis = _concat_indexes(indexes)
+
     else:
         concat_axis = _make_concat_multiindex(indexes, keys, levels, names)
 
@@ -719,6 +725,27 @@ def _get_concat_axis_dataframe(
         raise ValueError(f"Indexes have overlapping values: {overlap}")
 
     return concat_axis
+
+def _rename_duplicated_axis_names(indexes: list[Index], interesected_indexes: Index) -> list[Index]:
+    """
+    Rename duplicated axis names if there are duplicated values in the indexes.
+
+    Args:
+        indexes (Index): Indexes that should be concatenated and have duplicated values.
+        interesected_indexes (Index): The set of duplicated values in the indexes.
+
+    Returns:
+        list[Index]: New names for axis without duplicated values.
+    """
+    new_indexes = []
+    for number, index in enumerate(indexes):
+        for i in range(len(index)):
+            if index[i] in interesected_indexes:
+                new_index = index.drop(index[i])
+                index = new_index.insert(i, f"{index[i]}_{number}") # New values inserted in the new index
+        new_indexes.append(index)
+
+    return new_indexes
 
 
 def _clean_keys_and_objs(
