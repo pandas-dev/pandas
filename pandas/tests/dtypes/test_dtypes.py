@@ -1104,26 +1104,29 @@ class TestCategoricalDtypeParametrized:
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
 
+import pytest
+
 class TestArrowDtype(Base):
     @pytest.fixture
     def dtype(self):
         """Fixture for ArrowDtype."""
-        import pyarrow as pa
+        pa = pytest.importorskip("pyarrow")
         return ArrowDtype(pa.timestamp("ns", tz="UTC"))
 
     def test_numpy_dtype_preserves_timezone(self, dtype):
+        pa = pytest.importorskip("pyarrow")
         # Test timezone-aware timestamp
         assert dtype.numpy_dtype == dtype.pyarrow_dtype.to_pandas_dtype()
 
     def test_numpy_dtype_naive_timestamp(self):
-        import pyarrow as pa
+        pa = pytest.importorskip("pyarrow")
         arrow_type = pa.timestamp("ns")
         dtype = ArrowDtype(arrow_type)
         assert dtype.numpy_dtype == pa.timestamp("ns").to_pandas_dtype()
 
     @pytest.mark.parametrize("tz", ["UTC", "America/New_York", None])
     def test_numpy_dtype_with_varied_timezones(self, tz):
-        import pyarrow as pa
+        pa = pytest.importorskip("pyarrow")
         arrow_type = pa.timestamp("ns", tz=tz)
         dtype = ArrowDtype(arrow_type)
         if tz:
