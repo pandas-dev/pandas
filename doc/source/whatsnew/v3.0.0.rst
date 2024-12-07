@@ -638,7 +638,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
-- Fixed an issue where `.convert_dtypes(dtype_backend="pyarrow")` stripped timezone information from timezone-aware PyArrow timestamps. Timezone data is now correctly preserved during conversions. (:issue:`60237`)
+- Fixed an issue where ``.convert_dtypes(dtype_backend="pyarrow")`` stripped timezone information from timezone-aware PyArrow timestamps. Timezone data is now correctly preserved during conversions. (:issue:`60237`)
 -
 
 Numeric
