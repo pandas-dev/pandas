@@ -4366,27 +4366,27 @@ def test_bytes_column(con, request):
     conn = request.getfixturevalue(con)
     pa = pytest.importorskip("pyarrow")
     for dtype_backend in ["pyarrow", "numpy_nullable", lib.no_default]:
-        query = """
-        select x'0123456789abcdef0123456789abcdef' a
-        """
-        df = pd.read_sql(query, conn, dtype_backend=dtype_backend)
+        df = pd.read_sql(
+            "select x'0123456789abcdef0123456789abcdef' a",
+            conn,
+            dtype_backend=dtype_backend,
+        )
 
         dtype = "O"
+        val = b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"
         if dtype_backend == "pyarrow" and "postgres" in con:
             # postgres column is a bit type
             # but converts to a string when returned
             dtype = pd.ArrowDtype(pa.string())
+            val = (
+                "0000000100100011010001010110011110001001101010"
+                "11110011011110111100000001001000110100010101100"
+                "11110001001101010111100110111101111"
+            )
         elif dtype_backend == "pyarrow":
             # sqlite3 + mysql both return a binary type
             # for the binary literal
             dtype = pd.ArrowDtype(pa.binary())
 
-        expected = DataFrame(
-            [
-                {
-                    "a": b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef",
-                }
-            ],
-            dtype=dtype,
-        )
+        expected = DataFrame([{"a": val}], dtype=dtype)
         tm.assert_frame_equal(df, expected)
