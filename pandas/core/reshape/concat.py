@@ -710,13 +710,15 @@ def _get_concat_axis_dataframe(
     if keys is None:
         if levels is not None:
             raise ValueError("levels supported only when keys is not None")
-        interesected_indexes = indexes[0].intersection(indexes[1])
-        if interesected_indexes is None:
+        if axis == 0:
             concat_axis = _concat_indexes(indexes)
-        else:
-            indexes = _rename_duplicated_axis_names(indexes, interesected_indexes)
-            concat_axis = _concat_indexes(indexes)
-
+        elif axis == 1:
+            interesected_indexes = indexes[0].intersection(indexes[1])
+            if interesected_indexes is None:
+                concat_axis = _concat_indexes(indexes)
+            else:
+                indexes = _rename_duplicated_axis_names(indexes, interesected_indexes)
+                concat_axis = _concat_indexes(indexes)
     else:
         concat_axis = _make_concat_multiindex(indexes, keys, levels, names)
 
@@ -726,7 +728,10 @@ def _get_concat_axis_dataframe(
 
     return concat_axis
 
-def _rename_duplicated_axis_names(indexes: list[Index], interesected_indexes: Index) -> list[Index]:
+
+def _rename_duplicated_axis_names(
+    indexes: list[Index], interesected_indexes: Index
+) -> list[Index]:
     """
     Rename duplicated axis names if there are duplicated values in the indexes.
 
@@ -742,7 +747,9 @@ def _rename_duplicated_axis_names(indexes: list[Index], interesected_indexes: In
         for i in range(len(index)):
             if index[i] in interesected_indexes:
                 new_index = index.drop(index[i])
-                index = new_index.insert(i, f"{index[i]}_{number}") # New values inserted in the new index
+                index = new_index.insert(
+                    i, f"{index[i]}_{number}"
+                )  # New values inserted in the new index
         new_indexes.append(index)
 
     return new_indexes
