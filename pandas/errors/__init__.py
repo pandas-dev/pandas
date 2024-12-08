@@ -410,10 +410,10 @@ class NumbaUtilError(Exception):
     ... )
     >>> def incorrect_function(x):
     ...     return sum(x) * 2.7
-    >>> df.("key").agg(incorrect_function, engine="numba")
+    >>> df.groupby("key").agg(incorrect_function, engine="numba")
     Traceback (most recent call last):
     NumbaUtilError: The first 2 arguments to incorrect_function
-    must be ['values', 'index']groupby
+    must be ['values', 'index']
     """
 
 
