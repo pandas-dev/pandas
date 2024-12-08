@@ -1476,7 +1476,7 @@ class TestParquetFastParquet(Base):
             columns=pd.MultiIndex.from_tuples([(True, 'B'), (False, 'C')]),
         )
         with tm.ensure_clean("test.parquet") as path:
-            df.to_parquet(f, engine=pa)
+            df.to_parquet(path, engine=pa)
 
             result = read_parquet(path, engine=pa)
         tm.assert_frame_equal(result, df)
