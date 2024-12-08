@@ -84,7 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.IntervalArray.length SA01" \
         -i "pandas.arrays.NumpyExtensionArray SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.max PR01,RT03,SA01" \
