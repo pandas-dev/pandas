@@ -4002,6 +4002,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indices = np.asarray(indices, dtype=np.intp)
         if axis == 0 and indices.ndim == 1 and is_range_indexer(indices, len(self)):
             return self.copy(deep=False)
+        
+        
+        if axis == 1 and indices.ndim == 1 and is_range_indexer(indices, len(self.columns)):
+            # check if index is of type period, sets to object for slicing correct columns
+            if isinstance(self.index, DatetimeIndex) or isinstance(self.index, PeriodIndex): 
+                return self.copy(deep=False).astype('object')
+            return self.copy(deep=False)
 
         new_data = self._mgr.take(
             indices,

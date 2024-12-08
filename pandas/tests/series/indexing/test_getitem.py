@@ -24,6 +24,7 @@ from pandas import (
     Categorical,
     DataFrame,
     DatetimeIndex,
+    PeriodIndex,
     Index,
     Series,
     Timestamp,
@@ -411,7 +412,33 @@ class TestSeriesGetitemListLike:
             ser[key]
         with pytest.raises(KeyError, match="4"):
             ser.loc[key]
-
+    
+    
+    def test_pivot_periodindex_hourly(self):
+        #GH issue 60273
+        pr = period_range('2024-01-01 00:00:00', '2024-01-01 02:00:00', freq='h')
+        df = DataFrame(index=pr)
+        df['date'] = df.index.to_timestamp().floor('D')
+        df['hour'] = df.index.hour
+        df.index.name = 'value'
+        df = df.reset_index()
+        df = df.pivot(index='date', columns='hour', values='value')
+        df=df.astype('object')
+        result = df[[0, 1, 2]]
+        expected = df
+        
+        tm.assert_frame_equal(result, expected)
+        
+    def test_getitem_periodindex_daily(self):
+        # GH issue 60273
+        df = pd.DataFrame(
+            data=[
+                pd.Period("2024-01-01", freq="D"),
+                pd.Period("2024-01-02", freq="D"),
+                pd.Period("2024-01-03", freq="D"),
+            ]
+        ).T
+        tm.assert_frame_equal(df[[0, 1, 2]], df)
 
 class TestGetitemBooleanMask:
     def test_getitem_boolean(self, string_series):
