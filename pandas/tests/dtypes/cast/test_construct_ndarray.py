@@ -34,3 +34,38 @@ def test_construct_1d_ndarray_preserving_na_datetimelike(dtype):
 
     result = sanitize_array(arr, index=None, dtype=np.dtype(object))
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype, expected",
+    [
+        (
+            np.ma.masked_array([1, 2, 3], mask=[False, True, False]),
+            "int64",
+            np.array([1, 2, 3], dtype=np.int64),
+        ),
+        (
+            np.ma.masked_array([1, 2, 3], mask=[False, True, False]),
+            "float64",
+            np.array([1, 2, 3], dtype=np.float64),
+        ),
+        (
+            np.ma.masked_array([1, 2, 3], mask=[False, True, False]),
+            "UInt64",
+            np.array([1, 2, 3], dtype=np.uint64),
+        ),
+        (
+            np.ma.masked_array([1.0, 2.0, 3.0], mask=[False, True, False]),
+            "float64",
+            np.array([1.0, 2.0, 3.0], dtype=np.float64),
+        ),
+        (
+            np.ma.masked_array([1.0, 2.0, 3.0], mask=[False, True, False]),
+            "Int64",
+            np.array([1, 2, 3], dtype=np.int64),
+        ),
+    ],
+)
+def test_sanitize_masked_array_with_masked_ea(values, dtype, expected):
+    result = sanitize_array(values, index=None, dtype=dtype)
+    tm.assert_masked_array_equal(result, expected)
