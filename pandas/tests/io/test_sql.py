@@ -63,6 +63,10 @@ pytestmark = [
     pytest.mark.single_cpu,
 ]
 
+def table_uuid_gen(prefix: str) -> str:
+    """Generate a unique table name with context prefix."""
+    return f"{prefix}_{uuid.uuid4().hex}"
+
 
 @pytest.fixture
 def sql_strings():
@@ -982,8 +986,9 @@ all_connectable_types = (
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
+    table_uuid = table_uuid_gen("test")
     conn = request.getfixturevalue(conn)
-    test_frame1.to_sql(name="test", con=conn, if_exists="append", index=False)
+    test_frame1.to_sql(name=table_uuid, con=conn, if_exists="append", index=False)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -997,8 +1002,9 @@ def test_dataframe_to_sql_empty(conn, test_frame1, request):
 
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test")
     empty_df = test_frame1.iloc[:0]
-    empty_df.to_sql(name="test", con=conn, if_exists="append", index=False)
+    empty_df.to_sql(name=table_uuid, con=conn, if_exists="append", index=False)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1031,8 +1037,9 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         msg = "the 'timedelta'"
 
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_arrow")
     with tm.assert_produces_warning(exp_warning, match=msg, check_stacklevel=False):
-        df.to_sql(name="test_arrow", con=conn, if_exists="replace", index=False)
+        df.to_sql(name=table_uuid, con=conn, if_exists="replace", index=False)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1047,7 +1054,8 @@ def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
         }
     )
     conn = request.getfixturevalue(conn)
-    df.to_sql(name="test_arrow", con=conn, if_exists="replace", index=False)
+    table_uuid = table_uuid_gen("test_arrow")
+    df.to_sql(name=table_uuid, con=conn, if_exists="replace", index=False)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1061,33 +1069,36 @@ def test_to_sql(conn, method, test_frame1, request):
         )
 
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame")
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.to_sql(test_frame1, "test_frame", method=method)
-        assert pandasSQL.has_table("test_frame")
-    assert count_rows(conn, "test_frame") == len(test_frame1)
+        pandasSQL.to_sql(test_frame1, table_uuid, method=method)
+        assert pandasSQL.has_table(table_uuid)
+    assert count_rows(conn, table_uuid) == len(test_frame1)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame")
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
-        pandasSQL.to_sql(test_frame1, "test_frame", if_exists=mode)
-        assert pandasSQL.has_table("test_frame")
-    assert count_rows(conn, "test_frame") == num_row_coef * len(test_frame1)
+        pandasSQL.to_sql(test_frame1, table_uuid, if_exists="fail")
+        pandasSQL.to_sql(test_frame1, table_uuid, if_exists=mode)
+        assert pandasSQL.has_table(table_uuid)
+    assert count_rows(conn, table_uuid) == num_row_coef * len(test_frame1)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame")
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
-        assert pandasSQL.has_table("test_frame")
+        pandasSQL.to_sql(test_frame1, table_uuid, if_exists="fail")
+        assert pandasSQL.has_table(table_uuid)
 
-        msg = "Table 'test_frame' already exists"
+        msg = f"Table '{table_uuid}' already exists"
         with pytest.raises(ValueError, match=msg):
-            pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
+            pandasSQL.to_sql(test_frame1, table_uuid, if_exists="fail")
 
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
@@ -1386,17 +1397,18 @@ def test_to_sql_on_public_schema(conn, request):
         )
 
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_public_schema")
 
     test_data = DataFrame([[1, 2.1, "a"], [2, 3.1, "b"]], columns=list("abc"))
     test_data.to_sql(
-        name="test_public_schema",
+        name=table_uuid,
         con=conn,
         if_exists="append",
         index=False,
         schema="public",
     )
 
-    df_out = sql.read_sql_table("test_public_schema", conn, schema="public")
+    df_out = sql.read_sql_table(table_uuid, conn, schema="public")
     tm.assert_frame_equal(test_data, df_out)
 
 
@@ -1606,43 +1618,46 @@ def test_api_read_sql_with_chunksize_no_result(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_to_sql(conn, request, test_frame1):
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_frame1", conn):
+    table_uuid = table_uuid_gen("test_frame1")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_frame1")
+            pandasSQL.drop_table(table_uuid)
 
-    sql.to_sql(test_frame1, "test_frame1", conn)
-    assert sql.has_table("test_frame1", conn)
+    sql.to_sql(test_frame1, table_uuid, conn)
+    assert sql.has_table(table_uuid, conn)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_to_sql_fail(conn, request, test_frame1):
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_frame2", conn):
+    table_uuid = table_uuid_gen("test_frame2")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_frame2")
+            pandasSQL.drop_table(table_uuid)
 
-    sql.to_sql(test_frame1, "test_frame2", conn, if_exists="fail")
-    assert sql.has_table("test_frame2", conn)
+    sql.to_sql(test_frame1, table_uuid, conn, if_exists="fail")
+    assert sql.has_table(table_uuid, conn)
 
-    msg = "Table 'test_frame2' already exists"
+    msg = f"Table '{table_uuid}' already exists"
     with pytest.raises(ValueError, match=msg):
-        sql.to_sql(test_frame1, "test_frame2", conn, if_exists="fail")
+        sql.to_sql(test_frame1, table_uuid, conn, if_exists="fail")
 
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_to_sql_replace(conn, request, test_frame1):
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_frame3", conn):
+    table_uuid = table_uuid_gen("test_frame3")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_frame3")
+            pandasSQL.drop_table(table_uuid)
 
-    sql.to_sql(test_frame1, "test_frame3", conn, if_exists="fail")
+    sql.to_sql(test_frame1, table_uuid, conn, if_exists="fail")
     # Add to table again
-    sql.to_sql(test_frame1, "test_frame3", conn, if_exists="replace")
-    assert sql.has_table("test_frame3", conn)
+    sql.to_sql(test_frame1, table_uuid, conn, if_exists="replace")
+    assert sql.has_table(table_uuid, conn)
 
     num_entries = len(test_frame1)
-    num_rows = count_rows(conn, "test_frame3")
+    num_rows = count_rows(conn, table_uuid)
 
     assert num_rows == num_entries
 
@@ -1650,18 +1665,19 @@ def test_api_to_sql_replace(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_to_sql_append(conn, request, test_frame1):
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_frame4", conn):
+    table_uuid = table_uuid_gen("test_frame4")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_frame4")
+            pandasSQL.drop_table(table_uuid)
 
-    assert sql.to_sql(test_frame1, "test_frame4", conn, if_exists="fail") == 4
+    assert sql.to_sql(test_frame1, table_uuid, conn, if_exists="fail") == 4
 
     # Add to table again
-    assert sql.to_sql(test_frame1, "test_frame4", conn, if_exists="append") == 4
-    assert sql.has_table("test_frame4", conn)
+    assert sql.to_sql(test_frame1, table_uuid, conn, if_exists="append") == 4
+    assert sql.has_table(table_uuid, conn)
 
     num_entries = 2 * len(test_frame1)
-    num_rows = count_rows(conn, "test_frame4")
+    num_rows = count_rows(conn, table_uuid)
 
     assert num_rows == num_entries
 
@@ -1669,12 +1685,13 @@ def test_api_to_sql_append(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_to_sql_type_mapping(conn, request, test_frame3):
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_frame5", conn):
+    table_uuid = table_uuid_gen("test_frame5")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_frame5")
+            pandasSQL.drop_table(table_uuid)
 
-    sql.to_sql(test_frame3, "test_frame5", conn, index=False)
-    result = sql.read_sql("SELECT * FROM test_frame5", conn)
+    sql.to_sql(test_frame3, table_uuid, conn, index=False)
+    result = sql.read_sql(f"SELECT * FROM {table_uuid}", conn)
 
     tm.assert_frame_equal(test_frame3, result)
 
@@ -1682,13 +1699,14 @@ def test_api_to_sql_type_mapping(conn, request, test_frame3):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_to_sql_series(conn, request):
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_series", conn):
+    table_uuid = table_uuid_gen("test_series")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_series")
+            pandasSQL.drop_table(table_uuid)
 
     s = Series(np.arange(5, dtype="int64"), name="series")
-    sql.to_sql(s, "test_series", conn, index=False)
-    s2 = sql.read_sql_query("SELECT * FROM test_series", conn)
+    sql.to_sql(s, table_uuid, conn, index=False)
+    s2 = sql.read_sql_query(f"SELECT * FROM {table_uuid}", conn)
     tm.assert_frame_equal(s.to_frame(), s2)
 
 
@@ -1696,12 +1714,13 @@ def test_api_to_sql_series(conn, request):
 def test_api_roundtrip(conn, request, test_frame1):
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_frame_roundtrip", conn):
+    table_uuid = table_uuid_gen("test_frame_roundtrip")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_frame_roundtrip")
+            pandasSQL.drop_table(table_uuid)
 
-    sql.to_sql(test_frame1, "test_frame_roundtrip", con=conn)
-    result = sql.read_sql_query("SELECT * FROM test_frame_roundtrip", con=conn)
+    sql.to_sql(test_frame1, table_uuid, con=conn)
+    result = sql.read_sql_query(f"SELECT * FROM {table_uuid}", con=conn)
 
     # HACK!
     if "adbc" in conn_name:
@@ -1718,18 +1737,19 @@ def test_api_roundtrip_chunksize(conn, request, test_frame1):
             pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
         )
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_frame_roundtrip", conn):
+    table_uuid = table_uuid_gen("test_frame_roundtrip")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_frame_roundtrip")
+            pandasSQL.drop_table(table_uuid)
 
     sql.to_sql(
         test_frame1,
-        "test_frame_roundtrip",
+        table_uuid,
         con=conn,
         index=False,
         chunksize=2,
     )
-    result = sql.read_sql_query("SELECT * FROM test_frame_roundtrip", con=conn)
+    result = sql.read_sql_query(f"SELECT * FROM {table_uuid}", con=conn)
     tm.assert_frame_equal(result, test_frame1)
 
 
@@ -1877,9 +1897,10 @@ def test_api_timedelta(conn, request):
     # see #6921
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_timedelta", conn):
+    table_uuid = table_uuid_gen("test_timedelta")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_timedelta")
+            pandasSQL.drop_table(table_uuid)
 
     df = to_timedelta(Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
 
@@ -1899,9 +1920,9 @@ def test_api_timedelta(conn, request):
         exp_warning = UserWarning
 
     with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-        result_count = df.to_sql(name="test_timedelta", con=conn)
+        result_count = df.to_sql(name=table_uuid, con=conn)
     assert result_count == 2
-    result = sql.read_sql_query("SELECT * FROM test_timedelta", conn)
+    result = sql.read_sql_query(f"SELECT * FROM {table_uuid}", conn)
 
     if conn_name == "postgresql_adbc_conn":
         # TODO: Postgres stores an INTERVAL, which ADBC reads as a Month-Day-Nano
@@ -1923,6 +1944,7 @@ def test_api_timedelta(conn, request):
 def test_api_complex_raises(conn, request):
     conn_name = conn
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_complex")
     df = DataFrame({"a": [1 + 1j, 2j]})
 
     if "adbc" in conn_name:
@@ -1930,7 +1952,7 @@ def test_api_complex_raises(conn, request):
     else:
         msg = "Complex datatypes not supported"
     with pytest.raises(ValueError, match=msg):
-        assert df.to_sql("test_complex", con=conn) is None
+        assert df.to_sql(table_uuid, con=conn) is None
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1957,14 +1979,15 @@ def test_api_to_sql_index_label(conn, request, index_name, index_label, expected
             pytest.mark.xfail(reason="index_label argument NotImplemented with ADBC")
         )
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_index_label", conn):
+    table_uuid = table_uuid_gen("test_index_label")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_index_label")
+            pandasSQL.drop_table(table_uuid)
 
     temp_frame = DataFrame({"col1": range(4)})
     temp_frame.index.name = index_name
-    query = "SELECT * FROM test_index_label"
-    sql.to_sql(temp_frame, "test_index_label", conn, index_label=index_label)
+    query = f"SELECT * FROM {table_uuid}"
+    sql.to_sql(temp_frame, table_uuid, conn, index_label=index_label)
     frame = sql.read_sql_query(query, conn)
     assert frame.columns[0] == expected
 
@@ -1984,9 +2007,10 @@ def test_api_to_sql_index_label_multiindex(conn, request):
         )
 
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_index_label", conn):
+    table_uuid = table_uuid_gen("test_index_label")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_index_label")
+            pandasSQL.drop_table(table_uuid)
 
     expected_row_count = 4
     temp_frame = DataFrame(
@@ -1995,48 +2019,48 @@ def test_api_to_sql_index_label_multiindex(conn, request):
     )
 
     # no index name, defaults to 'level_0' and 'level_1'
-    result = sql.to_sql(temp_frame, "test_index_label", conn)
+    result = sql.to_sql(temp_frame, table_uuid, conn)
     assert result == expected_row_count
-    frame = sql.read_sql_query("SELECT * FROM test_index_label", conn)
+    frame = sql.read_sql_query(f"SELECT * FROM table_uuid", conn)
     assert frame.columns[0] == "level_0"
     assert frame.columns[1] == "level_1"
 
     # specifying index_label
     result = sql.to_sql(
         temp_frame,
-        "test_index_label",
+        table_uuid,
         conn,
         if_exists="replace",
         index_label=["A", "B"],
     )
     assert result == expected_row_count
-    frame = sql.read_sql_query("SELECT * FROM test_index_label", conn)
+    frame = sql.read_sql_query(f"SELECT * FROM {table_uuid}", conn)
     assert frame.columns[:2].tolist() == ["A", "B"]
 
     # using the index name
     temp_frame.index.names = ["A", "B"]
-    result = sql.to_sql(temp_frame, "test_index_label", conn, if_exists="replace")
+    result = sql.to_sql(temp_frame, table_uuid, conn, if_exists="replace")
     assert result == expected_row_count
-    frame = sql.read_sql_query("SELECT * FROM test_index_label", conn)
+    frame = sql.read_sql_query(f"SELECT * FROM {table_uuid}", conn)
     assert frame.columns[:2].tolist() == ["A", "B"]
 
     # has index name, but specifying index_label
     result = sql.to_sql(
         temp_frame,
-        "test_index_label",
+        table_uuid,
         conn,
         if_exists="replace",
         index_label=["C", "D"],
     )
     assert result == expected_row_count
-    frame = sql.read_sql_query("SELECT * FROM test_index_label", conn)
+    frame = sql.read_sql_query(f"SELECT * FROM table_uuid", conn)
     assert frame.columns[:2].tolist() == ["C", "D"]
 
     msg = "Length of 'index_label' should match number of levels, which is 2"
     with pytest.raises(ValueError, match=msg):
         sql.to_sql(
             temp_frame,
-            "test_index_label",
+            table_uuid,
             conn,
             if_exists="replace",
             index_label="C",
@@ -2046,9 +2070,10 @@ def test_api_to_sql_index_label_multiindex(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_multiindex_roundtrip(conn, request):
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_multiindex_roundtrip", conn):
+    table_uuid = table_uuid_gen("test_multiindex_roundtrip")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_multiindex_roundtrip")
+            pandasSQL.drop_table(table_uuid)
 
     df = DataFrame.from_records(
         [(1, 2.1, "line1"), (2, 1.5, "line2")],
@@ -2056,9 +2081,9 @@ def test_api_multiindex_roundtrip(conn, request):
         index=["A", "B"],
     )
 
-    df.to_sql(name="test_multiindex_roundtrip", con=conn)
+    df.to_sql(name=table_uuid, con=conn)
     result = sql.read_sql_query(
-        "SELECT * FROM test_multiindex_roundtrip", conn, index_col=["A", "B"]
+        f"SELECT * FROM {table_uuid}", conn, index_col=["A", "B"]
     )
     tm.assert_frame_equal(df, result, check_index_type=True)
 
@@ -2077,19 +2102,20 @@ def test_api_dtype_argument(conn, request, dtype):
     # GH10285 Add dtype argument to read_sql_query
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_dtype_argument", conn):
+    table_uuid = table_uuid_gen("test_dtype_argument")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_dtype_argument")
+            pandasSQL.drop_table(table_uuid)
 
     df = DataFrame([[1.2, 3.4], [5.6, 7.8]], columns=["A", "B"])
-    assert df.to_sql(name="test_dtype_argument", con=conn) == 2
+    assert df.to_sql(name=table_uuid, con=conn) == 2
 
     expected = df.astype(dtype)
 
     if "postgres" in conn_name:
-        query = 'SELECT "A", "B" FROM test_dtype_argument'
+        query = f'SELECT "A", "B" FROM {table_uuid}'
     else:
-        query = "SELECT A, B FROM test_dtype_argument"
+        query = f"SELECT A, B FROM {table_uuid}"
     result = sql.read_sql_query(query, con=conn, dtype=dtype)
 
     tm.assert_frame_equal(result, expected)
@@ -2098,8 +2124,9 @@ def test_api_dtype_argument(conn, request, dtype):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_integer_col_names(conn, request):
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame_integer_col_names")
     df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
-    sql.to_sql(df, "test_frame_integer_col_names", conn, if_exists="replace")
+    sql.to_sql(df, table_uuid, conn, if_exists="replace")
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -2112,7 +2139,8 @@ def test_api_get_schema(conn, request, test_frame1):
             )
         )
     conn = request.getfixturevalue(conn)
-    create_sql = sql.get_schema(test_frame1, "test", con=conn)
+    table_uuid = table_uuid_gen("test")
+    create_sql = sql.get_schema(test_frame1, table_uuid, con=conn)
     assert "CREATE" in create_sql
 
 
@@ -2127,7 +2155,8 @@ def test_api_get_schema_with_schema(conn, request, test_frame1):
             )
         )
     conn = request.getfixturevalue(conn)
-    create_sql = sql.get_schema(test_frame1, "test", con=conn, schema="pypi")
+    table_uuid = table_uuid_gen("test")
+    create_sql = sql.get_schema(test_frame1, table_uuid, con=conn, schema="pypi")
     assert "CREATE TABLE pypi." in create_sql
 
 
@@ -2150,7 +2179,8 @@ def test_api_get_schema_dtypes(conn, request):
         from sqlalchemy import Integer
 
         dtype = Integer
-    create_sql = sql.get_schema(float_frame, "test", con=conn, dtype={"b": dtype})
+    table_uuid = table_uuid_gen("test")
+    create_sql = sql.get_schema(float_frame, table_uuid, con=conn, dtype={"b": dtype})
     assert "CREATE" in create_sql
     assert "INTEGER" in create_sql
 
@@ -2167,20 +2197,21 @@ def test_api_get_schema_keys(conn, request, test_frame1):
     conn_name = conn
     conn = request.getfixturevalue(conn)
     frame = DataFrame({"Col1": [1.1, 1.2], "Col2": [2.1, 2.2]})
-    create_sql = sql.get_schema(frame, "test", con=conn, keys="Col1")
+    table_uuid = table_uuid_gen("test")
+    create_sql = sql.get_schema(frame, table_uuid, con=conn, keys="Col1")
 
     if "mysql" in conn_name:
-        constraint_sentence = "CONSTRAINT test_pk PRIMARY KEY (`Col1`)"
+        constraint_sentence = f"CONSTRAINT {table_uuid}_pk PRIMARY KEY (`Col1`)"
     else:
-        constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("Col1")'
+        constraint_sentence = f'CONSTRAINT {table_uuid}_pk PRIMARY KEY ("Col1")'
     assert constraint_sentence in create_sql
 
     # multiple columns as key (GH10385)
-    create_sql = sql.get_schema(test_frame1, "test", con=conn, keys=["A", "B"])
+    create_sql = sql.get_schema(test_frame1, table_uuid, con=conn, keys=["A", "B"])
     if "mysql" in conn_name:
-        constraint_sentence = "CONSTRAINT test_pk PRIMARY KEY (`A`, `B`)"
+        constraint_sentence = f"CONSTRAINT {table_uuid}_pk PRIMARY KEY (`A`, `B`)"
     else:
-        constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("A", "B")'
+        constraint_sentence = f'CONSTRAINT {table_uuid}_pk PRIMARY KEY ("A", "B")'
     assert constraint_sentence in create_sql
 
 
@@ -2192,24 +2223,25 @@ def test_api_chunksize_read(conn, request):
         )
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_chunksize", conn):
+    table_uuid = table_uuid_gen("test_chunksize")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_chunksize")
+            pandasSQL.drop_table(table_uuid)
 
     df = DataFrame(
         np.random.default_rng(2).standard_normal((22, 5)), columns=list("abcde")
     )
-    df.to_sql(name="test_chunksize", con=conn, index=False)
+    df.to_sql(name=table_uuid, con=conn, index=False)
 
     # reading the query in one time
-    res1 = sql.read_sql_query("select * from test_chunksize", conn)
+    res1 = sql.read_sql_query(f"select * from {table_uuid}", conn)
 
     # reading the query in chunks with read_sql_query
     res2 = DataFrame()
     i = 0
     sizes = [5, 5, 5, 5, 2]
 
-    for chunk in sql.read_sql_query("select * from test_chunksize", conn, chunksize=5):
+    for chunk in sql.read_sql_query(f"select * from {table_uuid}", conn, chunksize=5):
         res2 = concat([res2, chunk], ignore_index=True)
         assert len(chunk) == sizes[i]
         i += 1
@@ -2219,13 +2251,13 @@ def test_api_chunksize_read(conn, request):
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
         with pytest.raises(NotImplementedError, match=""):
-            sql.read_sql_table("test_chunksize", conn, chunksize=5)
+            sql.read_sql_table(table_uuid, conn, chunksize=5)
     else:
         res3 = DataFrame()
         i = 0
         sizes = [5, 5, 5, 5, 2]
 
-        for chunk in sql.read_sql_table("test_chunksize", conn, chunksize=5):
+        for chunk in sql.read_sql_table(table_uuid, conn, chunksize=5):
             res3 = concat([res3, chunk], ignore_index=True)
             assert len(chunk) == sizes[i]
             i += 1
@@ -2247,9 +2279,10 @@ def test_api_categorical(conn, request):
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_categorical", conn):
+    table_uuid = table_uuid_gen("test_categorical")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_categorical")
+            pandasSQL.drop_table(table_uuid)
 
     df = DataFrame(
         {
@@ -2260,8 +2293,8 @@ def test_api_categorical(conn, request):
     df2 = df.copy()
     df2["person_name"] = df2["person_name"].astype("category")
 
-    df2.to_sql(name="test_categorical", con=conn, index=False)
-    res = sql.read_sql_query("SELECT * FROM test_categorical", conn)
+    df2.to_sql(name=table_uuid, con=conn, index=False)
+    res = sql.read_sql_query(f"SELECT * FROM {table_uuid}", conn)
 
     tm.assert_frame_equal(res, df)
 
@@ -2270,12 +2303,13 @@ def test_api_categorical(conn, request):
 def test_api_unicode_column_name(conn, request):
     # GH 11431
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_unicode", conn):
+    table_uuid = table_uuid_gen("test_unicode")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_unicode")
+            pandasSQL.drop_table(table_uuid)
 
     df = DataFrame([[1, 2], [3, 4]], columns=["\xe9", "b"])
-    df.to_sql(name="test_unicode", con=conn, index=False)
+    df.to_sql(name=table_uuid, con=conn, index=False)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -2283,17 +2317,18 @@ def test_api_escaped_table_name(conn, request):
     # GH 13206
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    if sql.has_table("d1187b08-4943-4c8d-a7f6", conn):
+    table_uuid = table_uuid_gen("d1187b08-4943-4c8d-a7f6")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("d1187b08-4943-4c8d-a7f6")
+            pandasSQL.drop_table(table_uuid)
 
     df = DataFrame({"A": [0, 1, 2], "B": [0.2, np.nan, 5.6]})
-    df.to_sql(name="d1187b08-4943-4c8d-a7f6", con=conn, index=False)
+    df.to_sql(name=table_uuid, con=conn, index=False)
 
     if "postgres" in conn_name:
-        query = 'SELECT * FROM "d1187b08-4943-4c8d-a7f6"'
+        query = f'SELECT * FROM "{table_uuid}"'
     else:
-        query = "SELECT * FROM `d1187b08-4943-4c8d-a7f6`"
+        query = f"SELECT * FROM `{table_uuid}`"
     res = sql.read_sql_query(query, conn)
 
     tm.assert_frame_equal(res, df)
@@ -2314,14 +2349,15 @@ def test_api_read_sql_duplicate_columns(conn, request):
                 )
             )
     conn = request.getfixturevalue(conn)
-    if sql.has_table("test_table", conn):
+    table_uuid = table_uuid_gen("test_table")
+    if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("test_table")
+            pandasSQL.drop_table(table_uuid)
 
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": 1})
-    df.to_sql(name="test_table", con=conn, index=False)
+    df.to_sql(name=table_uuid, con=conn, index=False)
 
-    result = pd.read_sql("SELECT a, b, a +1 as a, c FROM test_table", conn)
+    result = pd.read_sql(f"SELECT a, b, a +1 as a, c FROM {table_uuid}", conn)
     expected = DataFrame(
         [[1, 0.1, 2, 1], [2, 0.2, 3, 1], [3, 0.3, 4, 1]],
         columns=["a", "b", "a", "c"],
@@ -2337,11 +2373,12 @@ def test_read_table_columns(conn, request, test_frame1):
         request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
-    sql.to_sql(test_frame1, "test_frame", conn)
+    table_uuid = table_uuid_gen("test_frame")
+    sql.to_sql(test_frame1, table_uuid, conn)
 
     cols = ["A", "B"]
 
-    result = sql.read_sql_table("test_frame", conn, columns=cols)
+    result = sql.read_sql_table(table_uuid, conn, columns=cols)
     assert result.columns.tolist() == cols
 
 
@@ -2353,16 +2390,17 @@ def test_read_table_index_col(conn, request, test_frame1):
         request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
-    sql.to_sql(test_frame1, "test_frame", conn)
+    table_uuid = table_uuid_gen("test_frame")
+    sql.to_sql(test_frame1, table_uuid, conn)
 
-    result = sql.read_sql_table("test_frame", conn, index_col="index")
+    result = sql.read_sql_table(table_uuid, conn, index_col="index")
     assert result.index.names == ["index"]
 
-    result = sql.read_sql_table("test_frame", conn, index_col=["A", "B"])
+    result = sql.read_sql_table(table_uuid, conn, index_col=["A", "B"])
     assert result.index.names == ["A", "B"]
 
     result = sql.read_sql_table(
-        "test_frame", conn, index_col=["A", "B"], columns=["C", "D"]
+        table_uuid, conn, index_col=["A", "B"], columns=["C", "D"]
     )
     assert result.index.names == ["A", "B"]
     assert result.columns.tolist() == ["C", "D"]
@@ -2419,21 +2457,24 @@ def test_warning_case_insensitive_table_name(conn, request, test_frame1):
         request.applymarker(pytest.mark.xfail(reason="Does not raise warning"))
 
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("table")
+    table_uuid_upper = table_uuid.upper()
     # see gh-7815
     with tm.assert_produces_warning(
         UserWarning,
         match=(
-            r"The provided table name 'TABLE1' is not found exactly as such in "
+            r"The provided table name '{}' is not found exactly as such in "
             r"the database after writing the table, possibly due to case "
             r"sensitivity issues. Consider using lower case table names."
-        ),
+        ).format(table_uuid_upper),
     ):
         with sql.SQLDatabase(conn) as db:
-            db.check_case_sensitive("TABLE1", "")
+            db.check_case_sensitive(table_uuid_upper, "")
 
     # Test that the warning is certainly NOT triggered in a normal case.
     with tm.assert_produces_warning(None):
-        test_frame1.to_sql(name="CaseSensitive", con=conn)
+        case_sensitive_uuid = table_uuid_gen("CaseSensitive")
+        test_frame1.to_sql(name=case_sensitive_uuid, con=conn)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -2506,11 +2547,11 @@ def test_database_uri_string(conn, request, test_frame1):
     # "iris": syntax error [SQL: 'iris']
     with tm.ensure_clean() as name:
         db_uri = "sqlite:///" + name
-        table = "iris"
-        test_frame1.to_sql(name=table, con=db_uri, if_exists="replace", index=False)
-        test_frame2 = sql.read_sql(table, db_uri)
-        test_frame3 = sql.read_sql_table(table, db_uri)
-        query = "SELECT * FROM iris"
+        table_uuid = table_uuid_gen("iris")
+        test_frame1.to_sql(name=table_uuid, con=db_uri, if_exists="replace", index=False)
+        test_frame2 = sql.read_sql(table_uuid, db_uri)
+        test_frame3 = sql.read_sql_table(table_uuid, db_uri)
+        query = f"SELECT * FROM {table_uuid}"
         test_frame4 = sql.read_sql_query(query, db_uri)
     tm.assert_frame_equal(test_frame1, test_frame2)
     tm.assert_frame_equal(test_frame1, test_frame3)
@@ -2525,8 +2566,9 @@ def test_pg8000_sqlalchemy_passthrough_error(conn, request):
     # using driver that will not be installed on CI to trigger error
     # in sqlalchemy.create_engine -> test passing of this error to user
     db_uri = "postgresql+pg8000://user:pass@host/dbname"
+    table_uuid = table_uuid_gen("table")
     with pytest.raises(ImportError, match="pg8000"):
-        sql.read_sql("select * from table", db_uri)
+        sql.read_sql(f"select * from {table_uuid}", db_uri)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
@@ -2569,10 +2611,11 @@ def test_column_with_percentage(conn, request):
         request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_column_percentage")
     df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
-    df.to_sql(name="test_column_percentage", con=conn, index=False)
+    df.to_sql(name=table_uuid, con=conn, index=False)
 
-    res = sql.read_sql_table("test_column_percentage", conn)
+    res = sql.read_sql_table(table_uuid, conn)
 
     tm.assert_frame_equal(res, df)
 
@@ -2582,11 +2625,12 @@ def test_sql_open_close(test_frame3):
     # between the writing and reading (as in many real situations).
 
     with tm.ensure_clean() as name:
+        table_uuid = table_uuid_gen("test_frame3_legacy")
         with closing(sqlite3.connect(name)) as conn:
-            assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
+            assert sql.to_sql(test_frame3, table_uuid, conn, index=False) == 4
 
         with closing(sqlite3.connect(name)) as conn:
-            result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
+            result = sql.read_sql_query(f"SELECT * FROM {table_uuid};", conn)
 
     tm.assert_frame_equal(test_frame3, result)
 
@@ -2705,10 +2749,11 @@ def test_roundtrip(conn, request, test_frame1):
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame_roundtrip")
     pandasSQL = pandasSQL_builder(conn)
     with pandasSQL.run_transaction():
-        assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
-        result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
+        assert pandasSQL.to_sql(test_frame1, table_uuid) == 4
+        result = pandasSQL.read_query(f"SELECT * FROM {table_uuid}")
 
     if "adbc" in conn_name:
         result = result.rename(columns={"__index_level_0__": "level_0"})
@@ -3105,7 +3150,7 @@ def test_to_sql_save_index(conn, request):
         [(1, 2.1, "line1"), (2, 1.5, "line2")], columns=["A", "B", "C"], index=["A"]
     )
 
-    tbl_name = "test_to_sql_saves_index"
+    tbl_name = table_uuid_gen("test_to_sql_saves_index")
     with pandasSQL_builder(conn) as pandasSQL:
         with pandasSQL.run_transaction():
             assert pandasSQL.to_sql(df, tbl_name) == 2
@@ -3135,8 +3180,9 @@ def test_to_sql_save_index(conn, request):
 def test_transactions(conn, request):
     conn_name = conn
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_trans")
 
-    stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
+    stmt = f"CREATE TABLE {table_uuid} (A INT, B TEXT)"
     if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
         from sqlalchemy import text
 
@@ -3151,9 +3197,11 @@ def test_transactions(conn, request):
 def test_transaction_rollback(conn, request):
     conn_name = conn
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_trans")
+
     with pandasSQL_builder(conn) as pandasSQL:
         with pandasSQL.run_transaction() as trans:
-            stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
+            stmt = f"CREATE TABLE {table_uuid} (A INT, B TEXT)"
             if "adbc" in conn_name or isinstance(pandasSQL, SQLiteDatabase):
                 trans.execute(stmt)
             else:
@@ -3166,7 +3214,7 @@ def test_transaction_rollback(conn, request):
             pass
 
         # Make sure when transaction is rolled back, no rows get inserted
-        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+        ins_sql = f"INSERT INTO {table_uuid} (A,B) VALUES (1, 'blah')"
         if isinstance(pandasSQL, SQLDatabase):
             from sqlalchemy import text
 
@@ -3179,13 +3227,13 @@ def test_transaction_rollback(conn, request):
             # ignore raised exception
             pass
         with pandasSQL.run_transaction():
-            res = pandasSQL.read_query("SELECT * FROM test_trans")
+            res = pandasSQL.read_query(f"SELECT * FROM {table_uuid}")
         assert len(res) == 0
 
         # Make sure when transaction is committed, rows do get inserted
         with pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
-            res2 = pandasSQL.read_query("SELECT * FROM test_trans")
+            res2 = pandasSQL.read_query(f"SELECT * FROM {table_uuid}")
         assert len(res2) == 1
 
 
@@ -3466,10 +3514,11 @@ def test_invalid_engine(conn, request, test_frame1):
         )
 
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame1")
     msg = "engine must be one of 'auto', 'sqlalchemy'"
     with pandasSQL_builder(conn) as pandasSQL:
         with pytest.raises(ValueError, match=msg):
-            pandasSQL.to_sql(test_frame1, "test_frame1", engine="bad_engine")
+            pandasSQL.to_sql(test_frame1, table_uuid, engine="bad_engine")
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -3477,13 +3526,14 @@ def test_to_sql_with_sql_engine(conn, request, test_frame1):
     """`to_sql` with the `engine` param"""
     # mostly copied from this class's `_to_sql()` method
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame1")
     with pandasSQL_builder(conn) as pandasSQL:
         with pandasSQL.run_transaction():
-            assert pandasSQL.to_sql(test_frame1, "test_frame1", engine="auto") == 4
-            assert pandasSQL.has_table("test_frame1")
+            assert pandasSQL.to_sql(test_frame1, table_uuid, engine="auto") == 4
+            assert pandasSQL.has_table(table_uuid)
 
     num_entries = len(test_frame1)
-    num_rows = count_rows(conn, "test_frame1")
+    num_rows = count_rows(conn, table_uuid)
     assert num_rows == num_entries
 
 
@@ -3506,14 +3556,15 @@ def test_options_sqlalchemy(conn, request, test_frame1):
 def test_options_auto(conn, request, test_frame1):
     # use the set option
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame1")
     with pd.option_context("io.sql.engine", "auto"):
         with pandasSQL_builder(conn) as pandasSQL:
             with pandasSQL.run_transaction():
-                assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
-                assert pandasSQL.has_table("test_frame1")
+                assert pandasSQL.to_sql(test_frame1, table_uuid) == 4
+                assert pandasSQL.has_table(table_uuid)
 
         num_entries = len(test_frame1)
-        num_rows = count_rows(conn, "test_frame1")
+        num_rows = count_rows(conn, table_uuid)
         assert num_rows == num_entries
 
 
@@ -3551,7 +3602,7 @@ def test_read_sql_dtype_backend(
     # GH#50048
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    table = "test"
+    table = table_uuid_gen("test")
     df = dtype_backend_data
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
@@ -3604,7 +3655,7 @@ def test_read_sql_dtype_backend_table(
     # GH#50048
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    table = "test"
+    table = table_uuid_gen("test")
     df = dtype_backend_data
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
@@ -3633,7 +3684,7 @@ def test_read_sql_dtype_backend_table(
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_table", "read_sql_query"])
 def test_read_sql_invalid_dtype_backend_table(conn, request, func, dtype_backend_data):
     conn = request.getfixturevalue(conn)
-    table = "test"
+    table = table_uuid_gen("test")
     df = dtype_backend_data
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
@@ -3714,13 +3765,14 @@ def test_chunksize_empty_dtypes(conn, request):
             pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
         )
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test")
     dtypes = {"a": "int64", "b": "object"}
     df = DataFrame(columns=["a", "b"]).astype(dtypes)
     expected = df.copy()
-    df.to_sql(name="test", con=conn, index=False, if_exists="replace")
+    df.to_sql(name=table_uuid, con=conn, index=False, if_exists="replace")
 
     for result in read_sql_query(
-        "SELECT * FROM test",
+        f"SELECT * FROM {table_uuid}",
         conn,
         dtype=dtypes,
         chunksize=1,
@@ -3734,7 +3786,7 @@ def test_chunksize_empty_dtypes(conn, request):
 def test_read_sql_dtype(conn, request, func, dtype_backend):
     # GH#50797
     conn = request.getfixturevalue(conn)
-    table = "test"
+    table = table_uuid_gen("test")
     df = DataFrame({"a": [1, 2, 3], "b": 5})
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
