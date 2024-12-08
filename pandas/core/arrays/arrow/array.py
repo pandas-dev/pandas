@@ -90,12 +90,12 @@ if not pa_version_under10p1:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and_": pc.and_kleene,
-        "rand_": lambda x, y: pc.and_kleene(y, x),
-        "or_": pc.or_kleene,
-        "ror_": lambda x, y: pc.or_kleene(y, x),
-        "xor": pc.xor,
-        "rxor": lambda x, y: pc.xor(y, x),
+        "and_": lambda x, y: pc.and_kleene(*cast_for_logical(x, y)),
+        "rand_": lambda x, y: pc.and_kleene(*cast_for_logical(y, x)),
+        "or_": lambda x, y: pc.or_kleene(*cast_for_logical(x, y)),
+        "ror_": lambda x, y: pc.or_kleene(*cast_for_logical(y, x)),
+        "xor": lambda x, y: pc.xor(*cast_for_logical(x, y)),
+        "rxor": lambda x, y: pc.xor(*cast_for_logical(y, x)),
     }
 
     ARROW_BIT_WISE_FUNCS = {
@@ -106,6 +106,20 @@ if not pa_version_under10p1:
         "xor": pc.bit_wise_xor,
         "rxor": lambda x, y: pc.bit_wise_xor(y, x),
     }
+
+    def convert_string_to_boolean_array(arr):
+        if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
+            string_to_bool = [bool(value.as_py()) for value in arr]
+            arr = pc.cast(string_to_bool, pa.bool_())
+        return arr
+
+    def cast_for_logical(x, y):
+        is_x_bool = pa.types.is_boolean(x.type)
+        is_y_bool = pa.types.is_boolean(y.type)
+
+        if (is_x_bool ^ is_y_bool):
+            return convert_string_to_boolean_array(x), convert_string_to_boolean_array(y)
+        return x, y
 
     def cast_for_truediv(
         arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
@@ -822,6 +836,13 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other)
         except pa.ArrowNotImplementedError as err:
             raise TypeError(self._op_method_error_message(other_original, op)) from err
+        
+        if (op.__name__ in ARROW_LOGICAL_FUNCS 
+            and (isinstance(self, pa.lib.BooleanArray) ^
+            isinstance(other, pa.lib.BooleanArray))
+            ):
+            return pc.cast(result, pa.bool_())
+        
         return type(self)(result)
 
     def _logical_method(self, other, op) -> Self:
