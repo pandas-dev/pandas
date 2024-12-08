@@ -375,3 +375,24 @@ x,y,1,2
     )
     expected = DataFrame([["x", 1, 2]], columns=cols, index=["y"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_multiindex_empty_values_handling(all_parsers):
+    # GH#59560
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        pytest.skip(
+            "PyArrow engine does not support multiple header rows for MultiIndex cols."
+        )
+
+    data = ", ,a,b,b\n" ", ,, ,b2\n" "i1,,0,1,2\n" "i2,,3,4,5\n"
+    result = parser.read_csv(StringIO(data), header=[0, 1], index_col=[0, 1])
+    expected_columns = MultiIndex.from_tuples(
+        [("a", ""), ("b", ""), ("b", "b2")], names=[None, None]
+    )
+    expected = DataFrame(
+        [[0, 1, 2], [3, 4, 5]],
+        index=MultiIndex.from_tuples([("i1", ""), ("i2", "")]),
+        columns=expected_columns,
+    )
+    tm.assert_frame_equal(result, expected)

@@ -681,6 +681,7 @@ MultiIndex
 - :meth:`DataFrame.melt` would not accept multiple names in ``var_name`` when the columns were a :class:`MultiIndex` (:issue:`58033`)
 - :meth:`MultiIndex.insert` would not insert NA value correctly at unified location of index -1 (:issue:`59003`)
 - :func:`MultiIndex.get_level_values` accessing a :class:`DatetimeIndex` does not carry the frequency attribute along (:issue:`58327`, :issue:`57949`)
+- :func:`read_csv` now handles empty values in :class:`MultiIndex` columns and indexes consistently, replacing them with empty strings instead of "Unnamed: ..." when uniqueness can be ensured. (:issue:`59560`)
 -
 
 I/O
