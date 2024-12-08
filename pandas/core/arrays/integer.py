@@ -105,6 +105,12 @@ class IntegerArray(NumericArray):
     -------
     IntegerArray
 
+    See Also
+    --------
+    array : Create an array using the appropriate dtype, including ``IntegerArray``.
+    Int32Dtype : An ExtensionDtype for int32 integer data.
+    UInt16Dtype : An ExtensionDtype for uint16 integer data.
+
     Examples
     --------
     Create an IntegerArray with :func:`pandas.array`.

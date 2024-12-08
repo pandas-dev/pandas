@@ -364,10 +364,8 @@ class JSONTableWriter(FrameWriter):
             )
 
         # TODO: Do this timedelta properly in objToJSON.c See GH #15137
-        if (
-            (obj.ndim == 1)
-            and (obj.name in set(obj.index.names))
-            or len(obj.columns.intersection(obj.index.names))
+        if ((obj.ndim == 1) and (obj.name in set(obj.index.names))) or len(
+            obj.columns.intersection(obj.index.names)
         ):
             msg = "Overlapping names between the index and columns"
             raise ValueError(msg)

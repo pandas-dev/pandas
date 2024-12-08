@@ -371,10 +371,12 @@ def eval(
                 is_extension_array_dtype(parsed_expr.terms.return_type)
                 and not is_string_dtype(parsed_expr.terms.return_type)
             )
-            or getattr(parsed_expr.terms, "operand_types", None) is not None
-            and any(
-                (is_extension_array_dtype(elem) and not is_string_dtype(elem))
-                for elem in parsed_expr.terms.operand_types
+            or (
+                getattr(parsed_expr.terms, "operand_types", None) is not None
+                and any(
+                    (is_extension_array_dtype(elem) and not is_string_dtype(elem))
+                    for elem in parsed_expr.terms.operand_types
+                )
             )
         ):
             warnings.warn(

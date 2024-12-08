@@ -304,10 +304,6 @@ ignore = [
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
-  # pytest-missing-fixture-name-underscore
-  "PT004",
-  # pytest-incorrect-fixture-name-underscore
-  "PT005",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type

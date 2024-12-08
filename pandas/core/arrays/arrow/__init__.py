@@ -4,4 +4,4 @@ from pandas.core.arrays.arrow.accessors import (
 )
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
-__all__ = ["ArrowExtensionArray", "StructAccessor", "ListAccessor"]
+__all__ = ["ArrowExtensionArray", "ListAccessor", "StructAccessor"]
