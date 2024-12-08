@@ -3298,21 +3298,18 @@ class TestLocSeries:
         expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_matching_index(self, series_with_simple_index):
+    def test_loc_setitem_matching_index(self):
         # GH 25548
-        ser1 = series_with_simple_index.copy()
-        ser1 = ser1[~ser1.index.duplicated(keep="first")]
-        ser2 = ser1.copy()
-        # Testing on upto 2 indices
-        for nsize in range(1, min(len(ser1), 3)):
-            random_sample = ser1.sample(n=nsize)
-            matching_mask = ser1.index.isin(random_sample.index)
-            # Remove values at indices to test assignment
-            ser1.loc[matching_mask] = np.nan
-            ser1.loc[matching_mask] = random_sample
-            tm.assert_series_equal(ser1, ser2)
-            # exclude row and index and test assignment of unmatched indices
-            exclude_mask = ~matching_mask
-            ser2.loc[matching_mask] = ser1.loc[exclude_mask]
-            ser1.loc[matching_mask] = np.nan
-            tm.assert_series_equal(ser2, ser1)
+        s = Series(0.0, index=list("abcd"))
+        s1 = Series(1.0, index=list("ab"))
+        s2 = Series(2.0, index=list("xy"))
+
+        # Test matching indices
+        s.loc[["a", "b"]] = s1
+        tm.assert_series_equal(s[["a", "b"]], s1)
+
+        # Test unmatched indices
+        s.loc[["a", "b"]] = s2
+        tm.assert_series_equal(
+            s[["a", "b"]], Series([np.nan, np.nan], index=["a", "b"])
+        )
