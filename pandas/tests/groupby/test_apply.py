@@ -1484,6 +1484,7 @@ def test_result_name_when_one_group(name):
         ("apply", lambda gb: gb.values[-1]),
         ("apply", lambda gb: gb["b"].iloc[0]),
         ("agg", "skew"),
+        ("agg", "kurt"),
         ("agg", "prod"),
         ("agg", "sum"),
     ],
