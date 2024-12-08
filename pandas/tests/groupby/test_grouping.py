@@ -10,8 +10,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import SpecificationError
 
 import pandas as pd
@@ -779,9 +777,20 @@ class TestGrouping:
         # (not testing other agg fns, because they return
         # different index objects.
         df = DataFrame({1: [], 2: []})
-        g = df.groupby(1, group_keys=False)
+        g = df.groupby(1, group_keys=True)
         result = getattr(g[2], func)(lambda x: x)
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_apply_empty_with_group_keys_false(self):
+        # 60471
+        # test apply'ing empty groups with group_keys False
+        # (not testing other agg fns, because they return
+        # different index objects.
+        df = DataFrame({"A": [], "B": [], "C": []})
+        g = df.groupby("A", group_keys=False)
+        result = g.apply(lambda x: x / x.sum(), include_groups=False)
+        expected = DataFrame({"B": [], "C": []}, index=None)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
@@ -807,7 +816,6 @@ class TestGrouping:
         expected = ["name"]
         assert result == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_groupby_level_index_value_all_na(self):
         # issue 20519
         df = DataFrame(
@@ -817,7 +825,7 @@ class TestGrouping:
         expected = DataFrame(
             data=[],
             index=MultiIndex(
-                levels=[Index(["x"], dtype="object"), Index([], dtype="float64")],
+                levels=[Index(["x"], dtype="str"), Index([], dtype="float64")],
                 codes=[[], []],
                 names=["A", "B"],
             ),
@@ -981,12 +989,13 @@ class TestGetGroup:
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_groupby_with_single_column(self):
         df = DataFrame({"a": list("abssbab")})
         tm.assert_frame_equal(df.groupby("a").get_group("a"), df.iloc[[0, 5]])
         # GH 13530
-        exp = DataFrame(index=Index(["a", "b", "s"], name="a"), columns=[])
+        exp = DataFrame(
+            index=Index(["a", "b", "s"], name="a"), columns=Index([], dtype="str")
+        )
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
 

@@ -24,6 +24,7 @@ html5lib>=1.1
 hypothesis>=6.84.0
 gcsfs>=2022.11.0
 ipython
+pickleshare
 jinja2>=3.1.2
 lxml>=4.9.2
 matplotlib>=3.6.3
@@ -54,7 +55,7 @@ moto
 flask
 asv>=0.6.1
 flake8==7.1.0
-mypy==1.11.2
+mypy==1.13.0
 tokenize-rt
 pre-commit>=4.0.1
 gitpython
@@ -62,7 +63,7 @@ gitdb
 google-auth
 natsort
 numpydoc
-pydata-sphinx-theme==0.14
+pydata-sphinx-theme==0.16
 pytest-cython
 sphinx
 sphinx-design
