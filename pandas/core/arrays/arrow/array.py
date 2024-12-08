@@ -117,7 +117,7 @@ if not pa_version_under10p1:
         is_x_bool = pa.types.is_boolean(x.type)
         is_y_bool = pa.types.is_boolean(y.type)
 
-        if (is_x_bool ^ is_y_bool):
+        if (is_x_bool != is_y_bool):
             return convert_string_to_boolean_array(x), convert_string_to_boolean_array(y)
         return x, y
 
@@ -838,7 +838,7 @@ class ArrowExtensionArray(
             raise TypeError(self._op_method_error_message(other_original, op)) from err
         
         if (op.__name__ in ARROW_LOGICAL_FUNCS 
-            and (isinstance(self, pa.lib.BooleanArray) ^
+            and (isinstance(self, pa.lib.BooleanArray) !=
             isinstance(other, pa.lib.BooleanArray))
             ):
             return pc.cast(result, pa.bool_())
