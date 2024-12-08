@@ -165,7 +165,10 @@ class ListAccessor(ArrowAccessor):
             #     key = pc.add(key, pc.list_value_length(self._pa_array))
             element = pc.list_element(self._pa_array, key)
             return Series(
-                element, dtype=ArrowDtype(element.type), index=self._data.index
+                element,
+                dtype=ArrowDtype(element.type),
+                index=self._data.index,
+                name=self._data.name,
             )
         elif isinstance(key, slice):
             if pa_version_under11p0:

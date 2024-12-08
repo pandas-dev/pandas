@@ -28,7 +28,7 @@ def test_list_getitem(list_dtype):
         name="a",
     )
     actual = ser.list[1]
-    expected = Series([2, None, None], dtype="int64[pyarrow]")
+    expected = Series([2, None, None], dtype="int64[pyarrow]", name="a")
     tm.assert_series_equal(actual, expected)
 
 
