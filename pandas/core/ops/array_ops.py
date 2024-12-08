@@ -435,6 +435,13 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     rvalues = right
 
     if should_extension_dispatch(lvalues, rvalues):
+        # Must cast if logical op between a boolean array and numpy-backed string array
+        if ((lvalues.dtype == np.bool_ and rvalues.dtype == "string[python]")
+            or (lvalues.dtype == "string[python]" and rvalues.dtype == np.bool_)
+        ):
+            lvalues = lvalues.astype(bool)
+            rvalues = rvalues.astype(bool)
+            
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
 

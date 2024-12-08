@@ -767,3 +767,27 @@ def test_xor_pyarrow_string(dtype):
         result = ser1 ^ ser2
         expected = pd.Series([False, True], dtype=bool)
         tm.assert_series_equal(result, expected)
+
+@pytest.mark.parametrize("dtype", ["string[python]"])
+def test_or_numpy_string(dtype):
+    ser1 = pd.Series([False, False])
+    ser2 = pd.Series(["", "b"], dtype=dtype)
+    result = ser1 | ser2
+    expected = pd.Series([False, True], dtype=bool)
+    tm.assert_series_equal(result, expected)
+
+@pytest.mark.parametrize("dtype", ["string[python]"])
+def test_and_numpy_string(dtype):
+    ser1 = pd.Series([False, False])
+    ser2 = pd.Series(["", "b"], dtype=dtype)
+    result = ser1 & ser2
+    expected = pd.Series([False, False], dtype=bool)
+    tm.assert_series_equal(result, expected)
+
+@pytest.mark.parametrize("dtype", ["string[python]"])
+def test_xor_numpy_string(dtype):
+    ser1 = pd.Series([False, False])
+    ser2 = pd.Series(["", "b"], dtype=dtype)
+    result = ser1 ^ ser2
+    expected = pd.Series([False, True], dtype=bool)
+    tm.assert_series_equal(result, expected)
