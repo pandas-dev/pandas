@@ -20,6 +20,16 @@ class IntCastingNaNError(ValueError):
     """
     Exception raised when converting (``astype``) an array with NaN to an integer type.
 
+    This error occurs when attempting to cast a data structure containing non-finite
+    values (such as NaN or infinity) to an integer data type. Integer types do not
+    support non-finite values, so such conversions are explicitly disallowed to
+    prevent silent data corruption or unexpected behavior.
+
+    See Also
+    --------
+    DataFrame.astype : Method to cast a pandas DataFrame object to a specified dtype.
+    Series.astype : Method to cast a pandas Series object to a specified dtype.
+
     Examples
     --------
     >>> pd.DataFrame(np.array([[1, np.nan], [2, 3]]), dtype="i8")
@@ -99,6 +109,11 @@ class UnsortedIndexError(KeyError):
     Error raised when slicing a MultiIndex which has not been lexsorted.
 
     Subclass of `KeyError`.
+
+    See Also
+    --------
+    DataFrame.sort_index : Sort a DataFrame by its index.
+    DataFrame.set_index : Set the DataFrame index using existing columns.
 
     Examples
     --------
@@ -388,6 +403,19 @@ class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
 
+    This error is typically encountered when performing operations on objects
+    with `allows_duplicate_labels=False` and the operation would result in
+    duplicate labels in the index. Duplicate labels can lead to ambiguities
+    in indexing and reduce data integrity.
+
+    See Also
+    --------
+    Series.set_flags : Return a new ``Series`` object with updated flags.
+    DataFrame.set_flags : Return a new ``DataFrame`` object with updated flags.
+    Series.reindex : Conform ``Series`` object to new index with optional filling logic.
+    DataFrame.reindex : Conform ``DataFrame`` object to new index with optional filling
+        logic.
+
     Examples
     --------
     >>> s = pd.Series([0, 1, 2], index=["a", "b", "c"]).set_flags(
@@ -406,6 +434,16 @@ class DuplicateLabelError(ValueError):
 class InvalidIndexError(Exception):
     """
     Exception raised when attempting to use an invalid index key.
+
+    This exception is triggered when a user attempts to access or manipulate
+    data in a pandas DataFrame or Series using an index key that is not valid
+    for the given object. This may occur in cases such as using a malformed
+    slice, a mismatched key for a ``MultiIndex``, or attempting to access an index
+    element that does not exist.
+
+    See Also
+    --------
+    MultiIndex : A multi-level, or hierarchical, index object for pandas objects.
 
     Examples
     --------
@@ -487,6 +525,11 @@ class ChainedAssignmentError(Warning):
     For more information on Copy-on-Write,
     see :ref:`the user guide<copy_on_write>`.
 
+    See Also
+    --------
+    options.mode.copy_on_write : Global setting for enabling or disabling
+        Copy-on-Write behavior.
+
     Examples
     --------
     >>> pd.options.mode.copy_on_write = True
@@ -504,6 +547,11 @@ class NumExprClobberingError(NameError):
     ``eval`` or ``query`` will throw the error if the engine is set
     to 'numexpr'. 'numexpr' is the default engine value for these methods if the
     numexpr package is installed.
+
+    See Also
+    --------
+    eval : Evaluate a Python expression as a string using various backends.
+    DataFrame.query : Query the columns of a DataFrame with a boolean expression.
 
     Examples
     --------
@@ -628,6 +676,15 @@ class PossibleDataLossError(Exception):
     """
     Exception raised when trying to open a HDFStore file when already opened.
 
+    This error is triggered when there is a potential risk of data loss due to
+    conflicting operations on an HDFStore file. It serves to prevent unintended
+    overwrites or data corruption by enforcing exclusive access to the file.
+
+    See Also
+    --------
+    HDFStore : Dict-like IO interface for storing pandas objects in PyTables.
+    HDFStore.open : Open an HDFStore file in the specified mode.
+
     Examples
     --------
     >>> store = pd.HDFStore("my-store", "a")  # doctest: +SKIP
@@ -671,6 +728,12 @@ class AttributeConflictWarning(Warning):
     Occurs when attempting to append an index with a different
     name than the existing index on an HDFStore or attempting to append an index with a
     different frequency than the existing index on an HDFStore.
+
+    See Also
+    --------
+    HDFStore : Dict-like IO interface for storing pandas objects in PyTables.
+    DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
+    read_hdf : Read from an HDF5 file into a DataFrame.
 
     Examples
     --------
@@ -802,28 +865,28 @@ class InvalidComparison(Exception):
 __all__ = [
     "AbstractMethodError",
     "AttributeConflictWarning",
+    "CSSWarning",
     "CategoricalConversionWarning",
     "ChainedAssignmentError",
     "ClosedFileError",
-    "CSSWarning",
-    "DatabaseError",
     "DataError",
+    "DatabaseError",
     "DtypeWarning",
     "DuplicateLabelError",
     "EmptyDataError",
     "IncompatibilityWarning",
+    "IndexingError",
     "IntCastingNaNError",
     "InvalidColumnName",
     "InvalidComparison",
     "InvalidIndexError",
     "InvalidVersion",
-    "IndexingError",
     "LossySetitemError",
     "MergeError",
     "NoBufferPresent",
     "NullFrequencyError",
-    "NumbaUtilError",
     "NumExprClobberingError",
+    "NumbaUtilError",
     "OptionError",
     "OutOfBoundsDatetime",
     "OutOfBoundsTimedelta",
