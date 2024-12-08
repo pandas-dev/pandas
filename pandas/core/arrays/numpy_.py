@@ -71,6 +71,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
     -------
     None
 
+    See Also
+    -------
+    array : Create an array.
+    Series.to_numpy : Convert a Series to a NumPy array.
+
     Examples
     --------
     >>> pd.arrays.NumpyExtensionArray(np.array([0, 1, 2, 3]))
