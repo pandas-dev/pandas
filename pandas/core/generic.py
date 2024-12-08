@@ -666,6 +666,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         ndarray.size : Number of elements in the array.
+            (`ndarray.size <https://numpy.org/doc/stable/reference/generated/numpy.ndarray.size.html>`_)
 
         Examples
         --------
