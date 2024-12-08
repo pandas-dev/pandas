@@ -534,4 +534,3 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 return empty_row
 
         return [f(val) for val in np.asarray(self)]
-    
