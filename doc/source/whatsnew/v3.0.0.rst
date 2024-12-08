@@ -13,6 +13,10 @@ including other versions of pandas.
 
 Enhancements
 ~~~~~~~~~~~~
+- Added a ``sort_columns`` parameter to :meth:`DataFrame.combine_first` to allow
+  control over whether the result's column order should follow the original
+  DataFrame's order or be sorted lexicographically. ([#60427](https://github.com/pandas-dev/pandas/issues/60427))
+
 
 .. _whatsnew_300.enhancements.enhancement1:
 
