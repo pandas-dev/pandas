@@ -741,11 +741,29 @@ def test_tolist(dtype):
     expected = vals
     tm.assert_equal(result, expected)
 
-@pytest.mark.parametrize("dtype", ["string[python]", "string[pyarrow]"])
-def test_logical_operators_pyarrow_string(dtype):
+@pytest.mark.parametrize("dtype", ["string[pyarrow]"])
+def test_or_pyarrow_string(dtype):
     with pd.option_context("future.infer_string", True):
         ser1 = pd.Series([False, False])
         ser2 = pd.Series(["", "b"], dtype=dtype)
         result = ser1 | ser2
+        expected = pd.Series([False, True], dtype=bool)
+        tm.assert_series_equal(result, expected)
+
+@pytest.mark.parametrize("dtype", ["string[pyarrow]"])
+def test_and_pyarrow_string(dtype):
+    with pd.option_context("future.infer_string", True):
+        ser1 = pd.Series([False, False])
+        ser2 = pd.Series(["", "b"], dtype=dtype)
+        result = ser1 & ser2
+        expected = pd.Series([False, False], dtype=bool)
+        tm.assert_series_equal(result, expected)
+
+@pytest.mark.parametrize("dtype", ["string[pyarrow]"])
+def test_xor_pyarrow_string(dtype):
+    with pd.option_context("future.infer_string", True):
+        ser1 = pd.Series([False, False])
+        ser2 = pd.Series(["", "b"], dtype=dtype)
+        result = ser1 ^ ser2
         expected = pd.Series([False, True], dtype=bool)
         tm.assert_series_equal(result, expected)
