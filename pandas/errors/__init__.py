@@ -20,6 +20,16 @@ class IntCastingNaNError(ValueError):
     """
     Exception raised when converting (``astype``) an array with NaN to an integer type.
 
+    This error occurs when attempting to cast a data structure containing non-finite
+    values (such as NaN or infinity) to an integer data type. Integer types do not
+    support non-finite values, so such conversions are explicitly disallowed to
+    prevent silent data corruption or unexpected behavior.
+
+    See Also
+    --------
+    DataFrame.astype : Method to cast a pandas DataFrame object to a specified dtype.
+    Series.astype : Method to cast a pandas Series object to a specified dtype.
+
     Examples
     --------
     >>> pd.DataFrame(np.array([[1, np.nan], [2, 3]]), dtype="i8")
@@ -855,28 +865,28 @@ class InvalidComparison(Exception):
 __all__ = [
     "AbstractMethodError",
     "AttributeConflictWarning",
+    "CSSWarning",
     "CategoricalConversionWarning",
     "ChainedAssignmentError",
     "ClosedFileError",
-    "CSSWarning",
-    "DatabaseError",
     "DataError",
+    "DatabaseError",
     "DtypeWarning",
     "DuplicateLabelError",
     "EmptyDataError",
     "IncompatibilityWarning",
+    "IndexingError",
     "IntCastingNaNError",
     "InvalidColumnName",
     "InvalidComparison",
     "InvalidIndexError",
     "InvalidVersion",
-    "IndexingError",
     "LossySetitemError",
     "MergeError",
     "NoBufferPresent",
     "NullFrequencyError",
-    "NumbaUtilError",
     "NumExprClobberingError",
+    "NumbaUtilError",
     "OptionError",
     "OutOfBoundsDatetime",
     "OutOfBoundsTimedelta",
