@@ -24,6 +24,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
+    ArrowDtype,
 )
 
 import pandas as pd
@@ -1102,7 +1103,6 @@ class TestCategoricalDtypeParametrized:
         msg = "a CategoricalDtype must be passed to perform an update, "
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
-
 
 @pytest.mark.parametrize(
     "dtype", [CategoricalDtype, IntervalDtype, DatetimeTZDtype, PeriodDtype]
