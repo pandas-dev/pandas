@@ -8,13 +8,13 @@ are initialized.
 
 __all__ = [
     "config",
+    "describe_option",
     "detect_console_encoding",
     "get_option",
-    "set_option",
-    "reset_option",
-    "describe_option",
     "option_context",
     "options",
+    "reset_option",
+    "set_option",
 ]
 from pandas._config import config
 from pandas._config import dates  # pyright: ignore[reportUnusedImport]  # noqa: F401

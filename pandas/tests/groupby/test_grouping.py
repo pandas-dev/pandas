@@ -777,9 +777,20 @@ class TestGrouping:
         # (not testing other agg fns, because they return
         # different index objects.
         df = DataFrame({1: [], 2: []})
-        g = df.groupby(1, group_keys=False)
+        g = df.groupby(1, group_keys=True)
         result = getattr(g[2], func)(lambda x: x)
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_apply_empty_with_group_keys_false(self):
+        # 60471
+        # test apply'ing empty groups with group_keys False
+        # (not testing other agg fns, because they return
+        # different index objects.
+        df = DataFrame({"A": [], "B": [], "C": []})
+        g = df.groupby("A", group_keys=False)
+        result = g.apply(lambda x: x / x.sum(), include_groups=False)
+        expected = DataFrame({"B": [], "C": []}, index=None)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190

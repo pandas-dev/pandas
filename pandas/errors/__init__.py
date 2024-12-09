@@ -20,6 +20,16 @@ class IntCastingNaNError(ValueError):
     """
     Exception raised when converting (``astype``) an array with NaN to an integer type.
 
+    This error occurs when attempting to cast a data structure containing non-finite
+    values (such as NaN or infinity) to an integer data type. Integer types do not
+    support non-finite values, so such conversions are explicitly disallowed to
+    prevent silent data corruption or unexpected behavior.
+
+    See Also
+    --------
+    DataFrame.astype : Method to cast a pandas DataFrame object to a specified dtype.
+    Series.astype : Method to cast a pandas Series object to a specified dtype.
+
     Examples
     --------
     >>> pd.DataFrame(np.array([[1, np.nan], [2, 3]]), dtype="i8")
@@ -35,6 +45,11 @@ class NullFrequencyError(ValueError):
     Particularly ``DatetimeIndex.shift``, ``TimedeltaIndex.shift``,
     ``PeriodIndex.shift``.
 
+    See Also
+    --------
+    Index.shift : Shift values of Index.
+    Series.shift : Shift values of Series.
+
     Examples
     --------
     >>> df = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
@@ -47,6 +62,12 @@ class NullFrequencyError(ValueError):
 class PerformanceWarning(Warning):
     """
     Warning raised when there is a possible performance impact.
+
+    See Also
+    --------
+    DataFrame.set_index : Set the DataFrame index using existing columns.
+    DataFrame.loc : Access a group of rows and columns by label(s) \
+    or a boolean array.
 
     Examples
     --------
@@ -374,6 +395,13 @@ class AbstractMethodError(NotImplementedError):
 class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
+
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+    Series.groupby : Group Series using a mapper or by a Series of columns.
+    DataFrame.agg : Aggregate using one or more operations over the specified axis.
+    Series.agg : Aggregate using one or more operations over the specified axis.
 
     Examples
     --------
@@ -855,28 +883,28 @@ class InvalidComparison(Exception):
 __all__ = [
     "AbstractMethodError",
     "AttributeConflictWarning",
+    "CSSWarning",
     "CategoricalConversionWarning",
     "ChainedAssignmentError",
     "ClosedFileError",
-    "CSSWarning",
-    "DatabaseError",
     "DataError",
+    "DatabaseError",
     "DtypeWarning",
     "DuplicateLabelError",
     "EmptyDataError",
     "IncompatibilityWarning",
+    "IndexingError",
     "IntCastingNaNError",
     "InvalidColumnName",
     "InvalidComparison",
     "InvalidIndexError",
     "InvalidVersion",
-    "IndexingError",
     "LossySetitemError",
     "MergeError",
     "NoBufferPresent",
     "NullFrequencyError",
-    "NumbaUtilError",
     "NumExprClobberingError",
+    "NumbaUtilError",
     "OptionError",
     "OutOfBoundsDatetime",
     "OutOfBoundsTimedelta",
