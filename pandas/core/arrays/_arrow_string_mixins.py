@@ -271,17 +271,16 @@ class ArrowStringArrayMixin:
     def _str_isascii(self):
 
     # Use a hypothetical `pc.utf8_is_ascii` if PyArrow has implemented it
-        if hasattr(pc, "utf8_is_ascii"):
-            result = pc.utf8_is_ascii(self._pa_array)
-        else:
+        #if hasattr(pc, "utf8_is_ascii"):
+            #result = pc.utf8_is_ascii(self._pa_array)
+        #else:
             # Fallback: Apply Python's `str.isascii` manually and convert to PyArrow
-            pylist = [
-                True if s == "" else (s.isascii() if isinstance(s, str) else None)
-                #s.isascii() if isinstance(s, str) else None
-                for s in self._pa_array.to_pylist()
-            ]
+        pylist = [
+            s.isascii() if isinstance(s, str) else None
+            for s in self._pa_array.to_pylist()
+        ]
 
-            result = pa.array(pylist, type=pa.bool_())
+        result = pa.array(pylist, type=pa.bool_())
         return self._convert_bool_result(result)
 
     def _str_isdecimal(self):
