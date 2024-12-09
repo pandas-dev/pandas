@@ -1317,16 +1317,17 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
         return expected_count
 
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame")
     expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
     result_count = expected.to_sql(
-        name="test_frame", con=conn, index=False, method=psql_insert_copy
+        name=table_uuid, con=conn, index=False, method=psql_insert_copy
     )
     # GH 46891
     if expected_count is None:
         assert result_count is None
     else:
         assert result_count == expected_count
-    result = sql.read_sql_table("test_frame", conn)
+    result = sql.read_sql_table(table_uuid, conn)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1334,6 +1335,7 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
 def test_insertion_method_on_conflict_do_nothing(conn, request):
     # GH 15988: Example in to_sql docstring
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_insert_conflict")
 
     from sqlalchemy.dialects.postgresql import insert
     from sqlalchemy.engine import Engine
@@ -1350,8 +1352,8 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
         return result.rowcount
 
     create_sql = text(
-        """
-    CREATE TABLE test_insert_conflict (
+        f"""
+    CREATE TABLE {table_uuid} (
         a  integer PRIMARY KEY,
         b  numeric,
         c  text
@@ -1368,24 +1370,24 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
 
     expected = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
     expected.to_sql(
-        name="test_insert_conflict", con=conn, if_exists="append", index=False
+        name=table_uuid, con=conn, if_exists="append", index=False
     )
 
     df_insert = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
     inserted = df_insert.to_sql(
-        name="test_insert_conflict",
+        name=table_uuid,
         con=conn,
         index=False,
         if_exists="append",
         method=insert_on_conflict,
     )
-    result = sql.read_sql_table("test_insert_conflict", conn)
+    result = sql.read_sql_table(table_uuid, conn)
     tm.assert_frame_equal(result, expected)
     assert inserted == 0
 
     # Cleanup
     with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.drop_table("test_insert_conflict")
+        pandasSQL.drop_table(table_uuid)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1474,8 +1476,8 @@ def test_read_view_postgres(conn, request):
     from sqlalchemy.engine import Engine
     from sqlalchemy.sql import text
 
-    table_name = f"group_{uuid.uuid4().hex}"
-    view_name = f"group_view_{uuid.uuid4().hex}"
+    table_name = table_uuid_gen("group")
+    view_name = table_uuid_gen("group_view")
 
     sql_stmt = text(
         f"""
@@ -2864,10 +2866,11 @@ def test_datetime_with_timezone_query(conn, request, parse_dates):
     # to datetime64[ns,psycopg2.tz.FixedOffsetTimezone..], which is ok
     # but should be more natural, so coerce to datetime64[ns] for now
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("datetz")
     expected = create_and_load_postgres_datetz(conn)
 
     # GH11216
-    df = read_sql_query("select * from datetz", conn, parse_dates=parse_dates)
+    df = read_sql_query(f"select * from {table_uuid}", conn, parse_dates=parse_dates)
     col = df.DateColWithTz
     tm.assert_series_equal(col, expected)
 
@@ -2875,10 +2878,11 @@ def test_datetime_with_timezone_query(conn, request, parse_dates):
 @pytest.mark.parametrize("conn", postgresql_connectable)
 def test_datetime_with_timezone_query_chunksize(conn, request):
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("datetz")
     expected = create_and_load_postgres_datetz(conn)
 
     df = concat(
-        list(read_sql_query("select * from datetz", conn, chunksize=1)),
+        list(read_sql_query(f"select * from {table_uuid}", conn, chunksize=1)),
         ignore_index=True,
     )
     col = df.DateColWithTz
@@ -2888,8 +2892,9 @@ def test_datetime_with_timezone_query_chunksize(conn, request):
 @pytest.mark.parametrize("conn", postgresql_connectable)
 def test_datetime_with_timezone_table(conn, request):
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("datetz")
     expected = create_and_load_postgres_datetz(conn)
-    result = sql.read_sql_table("datetz", conn)
+    result = sql.read_sql_table(table_uuid, conn)
 
     exp_frame = expected.to_frame()
     tm.assert_frame_equal(result, exp_frame)
