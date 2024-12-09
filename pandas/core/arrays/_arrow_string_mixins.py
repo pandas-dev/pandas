@@ -277,26 +277,26 @@ class ArrowStringArrayMixin:
     #     result = pa.array(pylist, type=pa.bool_())
     #     return self._convert_bool_result(result)
     
-    # def _str_isascii(self):
-    #     result = all(ord(char) < 128 for char in self)
-    #     return self._convert_bool_result(result)
-    
     def _str_isascii(self):
-    # Handle the case where self might be a pandas StringArray or similar
-    # Check if each value is not NA, and is a string of length 1 (single character)
-        def isna(value):
-            return value is None
-        
-        def check_ascii(value):
-            if isna(value):
-                return False  # Or return True depending on how you want to handle NA values
-            if len(value) != 1:
-                raise ValueError(f"Expected a string of length 1, got: {value}")
-            return ord(value) < 128
-
-    # Apply the check to each element in `self` (assuming `self` is iterable like pandas Series)
-        result = all(check_ascii(char) for char in self)
+        result = all(ord(char) < 128 for char in self)
         return self._convert_bool_result(result)
+    
+    # def _str_isascii(self):
+    # # Handle the case where self might be a pandas StringArray or similar
+    # # Check if each value is not NA, and is a string of length 1 (single character)
+    #     def isna(value):
+    #         return value is None
+        
+    #     def check_ascii(value):
+    #         if isna(value):
+    #             return False  # Or return True depending on how you want to handle NA values
+    #         if len(value) != 1:
+    #             raise ValueError(f"Expected a string of length 1, got: {value}")
+    #         return ord(value) < 128
+
+    # # Apply the check to each element in `self` (assuming `self` is iterable like pandas Series)
+    #     result = all(check_ascii(char) for char in self)
+    #     return self._convert_bool_result(result)
     
     def _str_isdecimal(self):
         result = pc.utf8_is_decimal(self._pa_array)
