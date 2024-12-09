@@ -98,8 +98,14 @@ class TestMergeMulti:
         with option_context("future.infer_string", infer_string):
             icols = ["1st", "2nd", "3rd"]
 
+            def ord_func(x):
+                if infer_string:
+                    # ord(x) return a TypeError if x is a pyarrow.lib.LargeStringScalar
+                    return ord(str(x))
+                return ord(x)
+
             def bind_cols(df):
-                iord = lambda a: 0 if a != a else ord(a)
+                iord = lambda a: 0 if a != a else ord_func(a)
                 f = lambda ts: ts.map(iord) - ord("a")
                 return f(df["1st"]) + f(df["3rd"]) * 1e2 + df["2nd"].fillna(0) * 10
 

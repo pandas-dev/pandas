@@ -231,8 +231,16 @@ def test_map_empty(request, index):
 
     s = Series(index)
     result = s.map({})
+    # If s has a na value equal to NA, we keep the original dtype
+    if hasattr(s.dtype, "na_value") and s.dtype.na_value is pd.NA:
+        na_value = s.dtype.na_value
+        dtype = s.dtype
+    # Else the dtype is always float64
+    else:
+        na_value = np.nan
+        dtype = "float64"
 
-    expected = Series(np.nan, index=s.index)
+    expected = Series(na_value, index=s.index, dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -255,6 +263,45 @@ def test_map_int():
     assert merged.dtype == np.float64
     assert isna(merged["d"])
     assert not isna(merged["c"])
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        Series([pd.NA, 11], dtype="Int64"),
+        Series([pd.NA, 11.0], dtype="Float64"),
+        Series([pd.NA, True], dtype="boolean"),
+    ],
+)
+def test_map_with_pd_na_input(ser):
+    func_return_values_only = (
+        lambda x: ser.dtype.type(1) if x is pd.NA else ser.dtype.type(2 * x)
+    )
+    result = ser.map(func_return_values_only)
+    expected = Series(
+        [func_return_values_only(ser[0]), func_return_values_only(ser[1])],
+        dtype=ser.dtype,
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        Series([pd.NA, 11], dtype="Int64"),
+        Series([pd.NA, 11.0], dtype="Float64"),
+        Series([pd.NA, True], dtype="boolean"),
+        Series([pd.NA, "AAA"], dtype="string"),
+    ],
+)
+def test_map_with_pd_na_output(ser):
+    func_return_value_and_na = lambda x: x if x is pd.NA else ser.dtype.type(2 * x)
+    result = ser.map(func_return_value_and_na)
+    expected = Series(
+        [func_return_value_and_na(ser[0]), func_return_value_and_na(ser[1])],
+        dtype=ser.dtype,
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_map_type_inference():
