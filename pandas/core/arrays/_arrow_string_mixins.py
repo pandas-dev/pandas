@@ -280,7 +280,7 @@ class ArrowStringArrayMixin:
                 for s in self._pa_array.to_pylist()
             ]
 
-            result = pa.array(pylist, type=pa.bool_())
+            result = pa.array(pylist, type=pa.bool_(), from_pandas=True)
         return self._convert_bool_result(result)
 
     def _str_isdecimal(self):
