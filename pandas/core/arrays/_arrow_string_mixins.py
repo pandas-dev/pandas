@@ -257,21 +257,31 @@ class ArrowStringArrayMixin:
         result = pc.ascii_is_ascii(self._pa_array)
         return self._convert_bool_result(result)
     
-    def _str_isascii(self):    
-        if hasattr(pa.compute, "ascii_is_ascii"):
-            # Use PyArrow's implementation if available
-            return pa.compute.ascii_is_ascii(self._data)
+    # def _str_isascii(self):
+    #     if hasattr(pa.compute, "ascii_is_ascii"):
+    #         # If PyArrow adds support in the future, use it
+    #         return pa.compute.ascii_is_ascii(self._data)
+    #     else:
+    #         # Fallback: Use Python's native str.isascii() on each element
+    #         return [
+    #             s.isascii() if isinstance(s, str) else None
+    #             for s in self.to_pylist()
+    #         ]
+
+    def _str_isascii(self):
+
+    # Use a hypothetical `pc.utf8_is_ascii` if PyArrow has implemented it
+        if hasattr(pc, "utf8_is_ascii"):
+            result = pc.utf8_is_ascii(self._pa_array)
         else:
-            # Fallback: Convert chunks to Python lists and apply str.isascii()
-            results = []
-            for chunk in self._data.chunks:  # Access individual PyArrow array chunks
-                results.extend(
-                    [
-                        s.isascii() if isinstance(s, str) else None
-                        for s in chunk.to_pylist()
-                    ]
-                )
-            return results
+            # Fallback: Apply Python's `str.isascii` manually and convert to PyArrow
+            pylist = [
+                s.isascii() if isinstance(s, str) else None
+                for s in self._pa_array.to_pylist()
+            ]
+
+            result = pa.array(pylist, type=pa.bool_())
+        return self._convert_bool_result(result)
 
     def _str_isdecimal(self):
         result = pc.utf8_is_decimal(self._pa_array)
