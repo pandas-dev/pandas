@@ -252,57 +252,10 @@ class ArrowStringArrayMixin:
     def _str_isalpha(self):
         result = pc.utf8_is_alpha(self._pa_array)
         return self._convert_bool_result(result)
-    
-    
-    # def _str_isascii(self):
-    #     if hasattr(pa.compute, "ascii_is_ascii"):
-    #         # If PyArrow adds support in the future, use it
-    #         return pa.compute.ascii_is_ascii(self._data)
-    #     else:
-    #         # Fallback: Use Python's native str.isascii() on each element
-    #         return [
-    #             s.isascii() if isinstance(s, str) else None
-    #             for s in self.to_pylist()
-    #         ]
-
-    # def _str_isascii(self):
-    #     pylist = [
-    #         s.isascii() if isinstance(s, str) else None
-    #         for s in self._pa_array.to_pylist()
-    #     ]
-
-    #     result = pa.array(pylist, type=pa.bool_())
-    #     return self._convert_bool_result(result)
-    
-    # def _str_isascii(self):
-    #     if isinstance(self, str):
-    #         result = all(ord(char) < 128 for char in self)
-    #         return self._convert_bool_result(result)
-    #     return False
         
     def _str_isascii(self):
-    # Check if the array is of string type (or if the implementation should handle it)            # Apply the isascii check element-wise using PyArrow's compute functions
         result = pc.string_is_ascii(self._pa_array)
-
-            # Convert the result to the appropriate format (e.g., PyArrow BooleanArray)
         return self._convert_bool_result(result)
-    
-    # def _str_isascii(self):
-    # # Handle the case where self might be a pandas StringArray or similar
-    # # Check if each value is not NA, and is a string of length 1 (single character)
-    #     def isna(value):
-    #         return value is None
-        
-    #     def check_ascii(value):
-    #         if isna(value):
-    #             return False  # Or return True depending on how you want to handle NA values
-    #         if len(value) != 1:
-    #             raise ValueError(f"Expected a string of length 1, got: {value}")
-    #         return ord(value) < 128
-
-    # # Apply the check to each element in `self` (assuming `self` is iterable like pandas Series)
-    #     result = all(check_ascii(char) for char in self)
-    #     return self._convert_bool_result(result)
     
     def _str_isdecimal(self):
         result = pc.utf8_is_decimal(self._pa_array)
