@@ -268,15 +268,19 @@ class ArrowStringArrayMixin:
     #             for s in self.to_pylist()
     #         ]
 
+    # def _str_isascii(self):
+    #     pylist = [
+    #         s.isascii() if isinstance(s, str) else None
+    #         for s in self._pa_array.to_pylist()
+    #     ]
+
+    #     result = pa.array(pylist, type=pa.bool_())
+    #     return self._convert_bool_result(result)
+    
     def _str_isascii(self):
-        pylist = [
-            s.isascii() if isinstance(s, str) else None
-            for s in self._pa_array.to_pylist()
-        ]
-
-        result = pa.array(pylist, type=pa.bool_())
+        result = all(ord(char) < 128 for char in self)
         return self._convert_bool_result(result)
-
+    
     def _str_isdecimal(self):
         result = pc.utf8_is_decimal(self._pa_array)
         return self._convert_bool_result(result)
