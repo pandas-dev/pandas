@@ -275,8 +275,7 @@ class ArrowStringArrayMixin:
         ]
 
         result = pa.array(pylist, type=pa.bool_())
-        #return self._convert_bool_result(result)
-        return result.to_numpy()
+        return self._convert_bool_result(result)
 
     def _str_isdecimal(self):
         result = pc.utf8_is_decimal(self._pa_array)
