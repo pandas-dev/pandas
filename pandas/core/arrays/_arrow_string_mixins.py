@@ -282,7 +282,7 @@ class ArrowStringArrayMixin:
         
     def _str_isascii(self):
     # Check if the array is of string type (or if the implementation should handle it)            # Apply the isascii check element-wise using PyArrow's compute functions
-        result = pc.ascii_is_ascii(self._pa_array)
+        result = pc.string_is_ascii(self._pa_array)
 
             # Convert the result to the appropriate format (e.g., PyArrow BooleanArray)
         return self._convert_bool_result(result)
