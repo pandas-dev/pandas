@@ -253,9 +253,6 @@ class ArrowStringArrayMixin:
         result = pc.utf8_is_alpha(self._pa_array)
         return self._convert_bool_result(result)
     
-    def _str_isascii(self):
-        result = pc.ascii_is_ascii(self._pa_array)
-        return self._convert_bool_result(result)
     
     # def _str_isascii(self):
     #     if hasattr(pa.compute, "ascii_is_ascii"):
