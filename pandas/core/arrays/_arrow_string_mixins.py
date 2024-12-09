@@ -284,8 +284,11 @@ class ArrowStringArrayMixin:
     def _str_isascii(self):
     # Handle the case where self might be a pandas StringArray or similar
     # Check if each value is not NA, and is a string of length 1 (single character)
+        def isna(value):
+            return value is None
+        
         def check_ascii(value):
-            if pd.isna(value):
+            if isna(value):
                 return False  # Or return True depending on how you want to handle NA values
             if len(value) != 1:
                 raise ValueError(f"Expected a string of length 1, got: {value}")
