@@ -2287,15 +2287,18 @@ class ArrowDtype(StorageExtensionDtype):
             return np.dtype(str)
         try:
             np_dtype = self.pyarrow_dtype.to_pandas_dtype()
-            
+
             if isinstance(np_dtype, object):
                 from pandas.core.indexes.interval import IntervalIndex
-                if hasattr(np_dtype, "categories") and isinstance(np_dtype.categories, IntervalIndex):
+
+                if hasattr(np_dtype, "categories") and isinstance(
+                    np_dtype.categories, IntervalIndex
+                ):
                     return np.dtype(object)
-            
+
             if isinstance(np_dtype, DatetimeTZDtype):
                 return np.dtype(f"datetime64[{np_dtype.unit}]")
-            
+
             return np.dtype(np_dtype)
         except (NotImplementedError, TypeError):
             return np.dtype(object)
