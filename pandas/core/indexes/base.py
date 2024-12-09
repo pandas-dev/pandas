@@ -2958,6 +2958,29 @@ class Index(IndexOpsMixin, PandasObject):
             and self.tz is not None
             and other.tz is not None
         ):
+            if self.tz == other.tz:
+                # GH #60080: Handle union of DatetimeIndex with
+                # the same timezone but different resolutions
+                resolution_order = {
+                    "Y": 1,  # Year
+                    "M": 2,  # Month
+                    "W": 3,  # Week
+                    "D": 4,  # Day
+                    "h": 5,  # Hour
+                    "m": 6,  # Minute
+                    "s": 7,  # Second
+                    "ms": 8,  # Millisecond
+                    "us": 9,  # Microsecond
+                    "ns": 10,  # Nanosecond
+                }
+                # Default to the lowest resolution if unit is unknown
+                self_res = resolution_order.get(self.dtype.unit, 0)
+                other_res = resolution_order.get(other.dtype.unit, 0)
+                # Choose the dtype with higher resolution
+                dtype = self.dtype if self_res >= other_res else other.dtype
+                left = self.astype(dtype, copy=False)
+                right = other.astype(dtype, copy=False)
+                return left, right
             # GH#39328, GH#45357
             left = self.tz_convert("UTC")
             right = other.tz_convert("UTC")
