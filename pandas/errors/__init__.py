@@ -45,6 +45,11 @@ class NullFrequencyError(ValueError):
     Particularly ``DatetimeIndex.shift``, ``TimedeltaIndex.shift``,
     ``PeriodIndex.shift``.
 
+    See Also
+    --------
+    Index.shift : Shift values of Index.
+    Series.shift : Shift values of Series.
+
     Examples
     --------
     >>> df = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
@@ -57,6 +62,12 @@ class NullFrequencyError(ValueError):
 class PerformanceWarning(Warning):
     """
     Warning raised when there is a possible performance impact.
+
+    See Also
+    --------
+    DataFrame.set_index : Set the DataFrame index using existing columns.
+    DataFrame.loc : Access a group of rows and columns by label(s) \
+    or a boolean array.
 
     Examples
     --------
@@ -384,6 +395,13 @@ class AbstractMethodError(NotImplementedError):
 class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
+
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+    Series.groupby : Group Series using a mapper or by a Series of columns.
+    DataFrame.agg : Aggregate using one or more operations over the specified axis.
+    Series.agg : Aggregate using one or more operations over the specified axis.
 
     Examples
     --------
