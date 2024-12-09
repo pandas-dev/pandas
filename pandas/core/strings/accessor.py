@@ -3385,7 +3385,8 @@ class StringMethods(NoNewAttributesMixin):
     #   cases:
     #       upper, lower, title, capitalize, swapcase, casefold
     #   boolean:
-    #     isalpha, isnumeric isalnum isdigit isdecimal isspace islower isupper istitle isascii
+    #     isalpha, isnumeric isalnum isdigit isdecimal isspace islower 
+    #     isupper istitle isascii
     # _doc_args holds dict of strings to use in substituting casemethod docs
     _doc_args: dict[str, dict[str, str]] = {}
     _doc_args["lower"] = {"type": "lowercase", "method": "lower", "version": ""}
@@ -3708,9 +3709,9 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     ------------
-    The ``s5.str.isascii`` method checks for whether all characters are ascii characters,
-    which includes digits 0-9, capital and lowercase letters A-Z, and some other
-    special characters.
+    The ``s5.str.isascii`` method checks for whether all characters are ascii 
+    characters, which includes digits 0-9, capital and lowercase letters A-Z, 
+    and some other special characters.
 
     >>> s5 = pd.Series(['ö', 'see123', 'hello world', ''])
     >>> s5.str.isascii()
