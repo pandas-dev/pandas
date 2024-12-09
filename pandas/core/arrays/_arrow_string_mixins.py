@@ -276,7 +276,8 @@ class ArrowStringArrayMixin:
         else:
             # Fallback: Apply Python's `str.isascii` manually and convert to PyArrow
             pylist = [
-                s.isascii() if isinstance(s, str) else None
+                True if s == "" else (s.isascii() if isinstance(s, str) else None)
+                #s.isascii() if isinstance(s, str) else None
                 for s in self._pa_array.to_pylist()
             ]
 
