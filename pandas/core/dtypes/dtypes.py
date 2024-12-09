@@ -2276,11 +2276,9 @@ class ArrowDtype(StorageExtensionDtype):
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
         if pa.types.is_timestamp(self.pyarrow_dtype):
-            # Preserve timezone information if present
             if self.pyarrow_dtype.tz is not None:
-                # Use PyArrow's to_pandas_dtype method for timezone-aware types
-                return self.pyarrow_dtype.to_pandas_dtype()
-            # Fall back to naive datetime64 for timezone-naive timestamps
+                # Handle timezone-aware timestamps
+                return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
             return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
         if pa.types.is_duration(self.pyarrow_dtype):
             return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
@@ -2289,9 +2287,14 @@ class ArrowDtype(StorageExtensionDtype):
         ):
             return np.dtype(str)
         try:
-            return np.dtype(self.pyarrow_dtype.to_pandas_dtype())
+            np_dtype = self.pyarrow_dtype.to_pandas_dtype()
+            if isinstance(np_dtype, DatetimeTZDtype):
+                # Convert timezone-aware to naive datetime64
+                return np.dtype(f"datetime64[{np_dtype.unit}]")
+            return np.dtype(np_dtype)
         except (NotImplementedError, TypeError):
             return np.dtype(object)
+
 
     @cache_readonly
     def kind(self) -> str:
