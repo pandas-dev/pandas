@@ -1894,6 +1894,17 @@ class Timedelta(_Timedelta):
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
+    Attributes
+    ----------
+    min : Timedelta, readonly
+        The minimum representable `Timedelta`, corresponding to the smallest
+        duration supported.
+    max : Timedelta, readonly
+        The maximum representable `Timedelta`, corresponding to the largest
+        duration supported.
+    resolution : Timedelta, readonly
+        The smallest possible difference between non-equal `Timedelta` objects.
+
     See Also
     --------
     Timestamp : Represents a single timestamp in time.
@@ -1928,6 +1939,19 @@ class Timedelta(_Timedelta):
     Timedelta('1 days 00:00:00')
 
     We see that either way we get the same result
+
+    Accessing the smallest and largest Timedelta values:
+
+    >>> pd.Timedelta.min
+    Timedelta('-106752 days +00:12:43.145224193')
+
+    >>> pd.Timedelta.max
+    Timedelta('106751 days 23:47:16.854775807')
+
+    Checking the resolution of a Timedelta object:
+
+    >>> pd.Timedelta.resolution
+    Timedelta('0 days 00:00:00.000000001')
     """
 
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
@@ -2076,6 +2100,10 @@ class Timedelta(_Timedelta):
             return NaT
 
         return _timedelta_from_value_and_reso(cls, value, NPY_FR_ns)
+
+    min = MinMaxReso("min")
+    max = MinMaxReso("max")
+    resolution = MinMaxReso("resolution")
 
     def __setstate__(self, state):
         if len(state) == 1:
