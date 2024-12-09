@@ -290,7 +290,7 @@ class ArrowStringArrayMixin:
             return self._convert_bool_result(result)
 
     # If the input is not a StringArray, handle accordingly (e.g., return False or None)
-    return False
+        return False
     
     # def _str_isascii(self):
     # # Handle the case where self might be a pandas StringArray or similar
