@@ -651,6 +651,8 @@ Conversion
 - Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
 - Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
+- Bug in :meth:`Ops.logical_op` not correctly casting numpy-backed string arrays to boolean when used in logical operations with other boolean arrays (:issue:`60234`)
+- Bug in :meth:`ArrowExtensionArray._evaluate_op_method` not correctly casting pyarrow-backed string arrays to boolean when used in logical operations with other boolean arrays (:issue:`60234`)
 
 Strings
 ^^^^^^^
