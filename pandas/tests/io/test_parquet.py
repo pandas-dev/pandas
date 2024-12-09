@@ -1468,3 +1468,15 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path)
             with pytest.raises(ValueError, match=msg):
                 read_parquet(path, dtype_backend="numpy")
+
+    def test_bool_multiIndex_roundtrip_through_parquet(self, pa):
+        # GH 60508
+        df = pd.DataFrame(
+            [[1, 2], [4, 5]],
+            columns=pd.MultiIndex.from_tuples([(True, 'B'), (False, 'C')]),
+        )
+        with tm.ensure_clean("test.parquet") as path:
+            df.to_parquet(path, engine=pa)
+
+            result = read_parquet(path, engine=pa)
+        tm.assert_frame_equal(result, df)
