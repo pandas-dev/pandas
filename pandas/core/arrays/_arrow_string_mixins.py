@@ -274,12 +274,23 @@ class ArrowStringArrayMixin:
     #     result = pa.array(pylist, type=pa.bool_())
     #     return self._convert_bool_result(result)
     
-    def _str_isascii(self):
-        if isinstance(self, str):
-            result = all(ord(char) < 128 for char in self)
-            return self._convert_bool_result(result)
-        return False
+    # def _str_isascii(self):
+    #     if isinstance(self, str):
+    #         result = all(ord(char) < 128 for char in self)
+    #         return self._convert_bool_result(result)
+    #     return False
         
+    def _str_isascii(self):
+    # Check if the array is of string type (or if the implementation should handle it)
+        if isinstance(self._pa_array, pa.StringArray):
+            # Apply the isascii check element-wise using PyArrow's compute functions
+            result = pc.ascii_is_ascii(self._pa_array)
+
+            # Convert the result to the appropriate format (e.g., PyArrow BooleanArray)
+            return self._convert_bool_result(result)
+
+    # If the input is not a StringArray, handle accordingly (e.g., return False or None)
+    return False
     
     # def _str_isascii(self):
     # # Handle the case where self might be a pandas StringArray or similar
