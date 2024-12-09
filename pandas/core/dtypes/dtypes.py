@@ -2295,7 +2295,6 @@ class ArrowDtype(StorageExtensionDtype):
         except (NotImplementedError, TypeError):
             return np.dtype(object)
 
-
     @cache_readonly
     def kind(self) -> str:
         if pa.types.is_timestamp(self.pyarrow_dtype):
