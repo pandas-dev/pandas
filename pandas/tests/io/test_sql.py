@@ -4391,6 +4391,8 @@ def test_bytes_column(con, request):
             dtype = (
                 pd.ArrowDtype(pa.string())
                 if "postgres" in con and "adbc" not in con
+                else pd.ArrowDtype(pa.opaque(pa.binary(), "bit", "PostgreSQL"))
+                if "postgres" in con
                 else pd.ArrowDtype(pa.binary())
             )
 
