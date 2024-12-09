@@ -35,6 +35,7 @@ dependencies:
   - hypothesis>=6.84.0
   - gcsfs>=2022.11.0
   - ipython
+  - pickleshare  # Needed for IPython Sphinx directive in the docs GH#60429
   - jinja2>=3.1.2
   - lxml>=4.9.2
   - matplotlib>=3.6.3
@@ -87,7 +88,7 @@ dependencies:
   - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pydata-sphinx-theme=0.14
+  - pydata-sphinx-theme=0.16
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design
