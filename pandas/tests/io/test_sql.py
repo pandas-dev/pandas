@@ -1257,6 +1257,7 @@ def test_default_type_conversion(conn, request):
 @pytest.mark.parametrize("conn", mysql_connectable)
 def test_read_procedure(conn, request):
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_frame")
 
     # GH 7324
     # Although it is more an api test, it is added to the
@@ -1265,14 +1266,14 @@ def test_read_procedure(conn, request):
     from sqlalchemy.engine import Engine
 
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-    df.to_sql(name="test_frame", con=conn, index=False)
+    df.to_sql(name=table_uuid, con=conn, index=False)
 
-    proc = """DROP PROCEDURE IF EXISTS get_testdb;
+    proc = f"""DROP PROCEDURE IF EXISTS get_testdb;
 
     CREATE PROCEDURE get_testdb ()
 
     BEGIN
-        SELECT * FROM test_frame;
+        SELECT * FROM {table_uuid};
     END"""
     proc = text(proc)
     if isinstance(conn, Engine):
@@ -1419,6 +1420,7 @@ def test_to_sql_on_public_schema(conn, request):
 def test_insertion_method_on_conflict_update(conn, request):
     # GH 14553: Example in to_sql docstring
     conn = request.getfixturevalue(conn)
+    table_uuid = table_uuid_gen("test_insert_conflict")
 
     from sqlalchemy.dialects.mysql import insert
     from sqlalchemy.engine import Engine
@@ -1432,8 +1434,8 @@ def test_insertion_method_on_conflict_update(conn, request):
         return result.rowcount
 
     create_sql = text(
-        """
-    CREATE TABLE test_insert_conflict (
+        f"""
+    CREATE TABLE {table_uuid} (
         a INT PRIMARY KEY,
         b FLOAT,
         c VARCHAR(10)
@@ -1449,23 +1451,23 @@ def test_insertion_method_on_conflict_update(conn, request):
             conn.execute(create_sql)
 
     df = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
-    df.to_sql(name="test_insert_conflict", con=conn, if_exists="append", index=False)
+    df.to_sql(name=table_uuid, con=conn, if_exists="append", index=False)
 
     expected = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
     inserted = expected.to_sql(
-        name="test_insert_conflict",
+        name=table_uuid,
         con=conn,
         index=False,
         if_exists="append",
         method=insert_on_conflict,
     )
-    result = sql.read_sql_table("test_insert_conflict", conn)
+    result = sql.read_sql_table(table_uuid, conn)
     tm.assert_frame_equal(result, expected)
     assert inserted == 2
 
     # Cleanup
     with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.drop_table("test_insert_conflict")
+        pandasSQL.drop_table(table_uuid)
 
 
 @pytest.mark.parametrize("conn", postgresql_connectable)
