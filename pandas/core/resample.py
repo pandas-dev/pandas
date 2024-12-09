@@ -694,7 +694,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
+        .. [1] https://en.wikipedia.org/wiki/Imputation_%28statistics%29
 
         Examples
         --------
