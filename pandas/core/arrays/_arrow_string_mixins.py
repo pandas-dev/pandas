@@ -278,8 +278,11 @@ class ArrowStringArrayMixin:
     #     return self._convert_bool_result(result)
     
     def _str_isascii(self):
-        result = all(ord(char) < 128 for char in self)
-        return self._convert_bool_result(result)
+        if isinstance(self, str):
+            result = all(ord(char) < 128 for char in self)
+            return self._convert_bool_result(result)
+        return None
+        
     
     # def _str_isascii(self):
     # # Handle the case where self might be a pandas StringArray or similar
