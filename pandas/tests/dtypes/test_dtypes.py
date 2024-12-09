@@ -20,11 +20,11 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
-    ArrowDtype,
 )
 
 import pandas as pd
