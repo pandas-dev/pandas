@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - ascii_edits
       - 2.3.x
   pull_request:
     branches:
