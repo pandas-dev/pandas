@@ -2275,29 +2275,16 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype."""
-        if pa.types.is_timestamp(self.pyarrow_dtype):
-            if self.pyarrow_dtype.tz is not None:
-                return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
-            return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
-        if pa.types.is_duration(self.pyarrow_dtype):
-            return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
-        if pa.types.is_string(self.pyarrow_dtype) or pa.types.is_large_string(
-            self.pyarrow_dtype
-        ):
+        # For string-like arrow dtypes, pa.string().to_pandas_dtype() = object
+        # so we handle them explicitly.
+        if pa.types.is_string(self.pyarrow_dtype) or pa.types.is_large_string(self.pyarrow_dtype):
             return np.dtype(str)
+
         try:
             np_dtype = self.pyarrow_dtype.to_pandas_dtype()
-            
-            if isinstance(np_dtype, object):
-                from pandas.core.indexes.interval import IntervalIndex
-                if hasattr(np_dtype, "categories") and isinstance(np_dtype.categories, IntervalIndex):
-                    return np.dtype(object)
-            
-            if isinstance(np_dtype, DatetimeTZDtype):
-                return np.dtype(f"datetime64[{np_dtype.unit}]")
-            
             return np.dtype(np_dtype)
         except (NotImplementedError, TypeError):
+            # Fallback if something unexpected happens
             return np.dtype(object)
 
     @cache_readonly
