@@ -108,7 +108,7 @@ def _evaluate_numexpr(op, op_str, left_op, right_op):
         try:
             result = ne.evaluate(
                 f"left_value {op_str} right_value",
-                local_dict={"left_value": left_value, "right_value": right_op},
+                local_dict={"left_value": left_value, "right_value": right_value},
                 casting="safe",
             )
         except TypeError:
