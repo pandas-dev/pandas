@@ -2277,7 +2277,10 @@ class ArrowDtype(StorageExtensionDtype):
         """Return an instance of the related numpy dtype."""
         # For string-like arrow dtypes, pa.string().to_pandas_dtype() = object
         # so we handle them explicitly.
-        if pa.types.is_string(self.pyarrow_dtype) or pa.types.is_large_string(self.pyarrow_dtype):
+        if (
+            pa.types.is_string(self.pyarrow_dtype)
+            or pa.types.is_large_string(self.pyarrow_dtype)
+        ):
             return np.dtype(str)
 
         try:

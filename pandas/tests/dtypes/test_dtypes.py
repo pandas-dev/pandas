@@ -1110,7 +1110,7 @@ class TestArrowDtype:
     )
     def test_pyarrow_timestamp_tz_preserved(self, tz):
         pytest.importorskip("pyarrow")
-        s = pd.Series(
+        s = Series(
             pd.to_datetime(range(5), unit="h", utc=True).tz_convert(tz),
             dtype=f"timestamp[ns, tz={tz}][pyarrow]"
         )
