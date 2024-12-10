@@ -84,7 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.IntervalArray.length SA01" \
         -i "pandas.arrays.NumpyExtensionArray SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.max PR01,RT03,SA01" \
@@ -95,9 +94,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.resample.Resampler.std SA01" \
         -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.var SA01" \
-        -i "pandas.errors.NullFrequencyError SA01" \
-        -i "pandas.errors.NumbaUtilError SA01" \
-        -i "pandas.errors.PerformanceWarning SA01" \
         -i "pandas.errors.UndefinedVariableError PR01,SA01" \
         -i "pandas.errors.ValueLabelTypeMismatch SA01" \
         -i "pandas.io.json.build_table_schema PR07,RT03,SA01" \
