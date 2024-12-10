@@ -1103,16 +1103,16 @@ class TestCategoricalDtypeParametrized:
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
 
+
 class TestArrowDtype:
     @pytest.mark.parametrize(
-        "tz",
-        ["UTC", "America/New_York", "Europe/London", "Asia/Tokyo"]
+        "tz", ["UTC", "America/New_York", "Europe/London", "Asia/Tokyo"]
     )
     def test_pyarrow_timestamp_tz_preserved(self, tz):
         pytest.importorskip("pyarrow")
         s = Series(
             pd.to_datetime(range(5), unit="h", utc=True).tz_convert(tz),
-            dtype=f"timestamp[ns, tz={tz}][pyarrow]"
+            dtype=f"timestamp[ns, tz={tz}][pyarrow]",
         )
 
         result = s.convert_dtypes(dtype_backend="pyarrow")
