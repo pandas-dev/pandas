@@ -274,7 +274,9 @@ class BinOp(ops.BinOp):
             # string quoting
             return TermValue(conv_val, stringify(conv_val), "string")
         else:
-            raise TypeError(f"Cannot compare {conv_val} of type {type(conv_val)} to {kind} column")
+            raise TypeError(
+                f"Cannot compare {conv_val} of type {type(conv_val)} to {kind} column"
+            )
 
     def convert_values(self) -> None:
         pass
