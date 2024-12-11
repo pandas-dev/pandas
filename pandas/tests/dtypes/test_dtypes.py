@@ -1103,6 +1103,7 @@ class TestCategoricalDtypeParametrized:
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
 
+
 @pytest.mark.parametrize(
     "dtype", [CategoricalDtype, IntervalDtype, DatetimeTZDtype, PeriodDtype]
 )

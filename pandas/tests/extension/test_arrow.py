@@ -50,6 +50,10 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
+<<<<<<< HEAD
+=======
+from pandas import Series
+>>>>>>> e0062fa66ce6b25fa06dee1f447d3ed0651031ad
 import pandas._testing as tm
 from pandas.api.extensions import no_default
 from pandas.api.types import (
@@ -3513,7 +3517,7 @@ def test_map_numeric_na_action():
 def test_pyarrow_timestamp_tz_preserved(tz):
     s = pd.Series(
         pd.to_datetime(range(5), unit="h", utc=True).tz_convert(tz),
-        dtype=f"timestamp[ns, tz={tz}][pyarrow]"
+        dtype=f"timestamp[ns, tz={tz}][pyarrow]",
     )
 
     result = s.convert_dtypes(dtype_backend="pyarrow")
