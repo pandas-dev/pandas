@@ -50,10 +50,6 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-<<<<<<< HEAD
-=======
-from pandas import Series
->>>>>>> e0062fa66ce6b25fa06dee1f447d3ed0651031ad
 import pandas._testing as tm
 from pandas.api.extensions import no_default
 from pandas.api.types import (
