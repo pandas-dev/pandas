@@ -258,9 +258,9 @@ def where(cond, left_op, right_op, use_numexpr: bool = True):
     """
     assert _where is not None
     if use_numexpr:
-        return _where_standard(cond, left_op, right_op)
-    else:
         return _where(cond, left_op, right_op)
+    else:
+        return _where_standard(cond, left_op, right_op)
 
 
 def set_test_mode(v: bool = True) -> None:
