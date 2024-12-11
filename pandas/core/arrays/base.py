@@ -2369,6 +2369,20 @@ class ExtensionArray:
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
+            if op.how in [
+                "prod",
+                "mean",
+                "median",
+                "cumsum",
+                "cumprod",
+                "std",
+                "sem",
+                "var",
+                "skew",
+            ]:
+                raise TypeError(
+                    f"dtype '{self.dtype}' does not support operation '{how}'"
+                )
             if op.how not in ["any", "all"]:
                 # Fail early to avoid conversion to object
                 op._get_cython_function(op.kind, op.how, np.dtype(object), False)

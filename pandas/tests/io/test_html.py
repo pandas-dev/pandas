@@ -1381,6 +1381,7 @@ class TestReadHtml:
         expected = DataFrame({"A": [1, 4], "B": [2, 5]})
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_windows()
     @pytest.mark.filterwarnings(
         "ignore:You provided Unicode markup but also provided a value for "
         "from_encoding.*:UserWarning"

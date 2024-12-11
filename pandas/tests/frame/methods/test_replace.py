@@ -289,7 +289,6 @@ class TestDataFrameReplace:
         expected = DataFrame({"first": [".bc", "bc.", "c.b"]}, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_regex_replace_dict_nested_gh4115(self):
         df = DataFrame({"Type": ["Q", "T", "Q", "Q", "T"], "tmp": 2})
         expected = DataFrame({"Type": [0, 1, 0, 0, 1], "tmp": 2})
@@ -529,7 +528,6 @@ class TestDataFrameReplace:
         result = df.replace(s, df.mean())
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_convert(self):
         # gh 3907
         df = DataFrame([["foo", "bar", "bah"], ["bar", "foo", "bah"]])
@@ -905,7 +903,6 @@ class TestDataFrameReplace:
         with pytest.raises(ValueError, match=msg):
             df.replace(to_rep, values[1:])
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_input_formats_scalar(self):
         df = DataFrame(
             {"A": [np.nan, 0, np.inf], "B": [0, 2, 5], "C": ["", "asdf", "fd"]}
@@ -934,7 +931,6 @@ class TestDataFrameReplace:
         # TODO
         pass
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_dict_no_regex(self):
         answer = Series(
             {
@@ -958,7 +954,6 @@ class TestDataFrameReplace:
             result = answer.replace(weights)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_series_no_regex(self):
         answer = Series(
             {
@@ -1077,7 +1072,6 @@ class TestDataFrameReplace:
         expect = DataFrame({"a": ["Y", "N", "Y"]})
         tm.assert_frame_equal(res, expect)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_period(self):
         d = {
             "fname": {
@@ -1114,7 +1108,6 @@ class TestDataFrameReplace:
             result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_datetime(self):
         d = {
             "fname": {
@@ -1340,7 +1333,6 @@ class TestDataFrameReplace:
         result = df.replace(to_replace)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     @pytest.mark.parametrize(
         "replacer",
         [
@@ -1617,7 +1609,6 @@ class TestDataFrameReplaceRegex:
         expected.loc[expected["a"] == ".", "a"] = expected_replace_val
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_frame(self, regex):
         # GH-48644

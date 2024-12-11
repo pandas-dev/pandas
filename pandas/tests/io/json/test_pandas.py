@@ -118,7 +118,7 @@ class TestPandasContainer:
         #  since that doesn't round-trip, see GH#33711
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=30, freq="B"),
         )
         df.index = df.index._with_freq(None)
@@ -203,7 +203,6 @@ class TestPandasContainer:
 
         assert_json_roundtrip_equal(result, expected, orient)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("dtype", [False, np.int64])
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_intframe(self, orient, convert_axes, dtype, int_frame):
@@ -281,7 +280,6 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_timestamp(self, orient, convert_axes, datetime_frame):
         # TODO: improve coverage with date_format parameter
@@ -709,7 +707,6 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("dtype", [False, None])
     def test_series_roundtrip_object(self, orient, dtype, object_series):
         data = StringIO(object_series.to_json(orient=orient))
@@ -720,6 +717,9 @@ class TestPandasContainer:
             expected = expected.reset_index(drop=True)
         if orient != "split":
             expected.name = None
+
+        if using_string_dtype():
+            expected = expected.astype("str")
 
         tm.assert_series_equal(result, expected)
 
@@ -814,7 +814,6 @@ class TestPandasContainer:
                 df.to_json(path)
                 read_json(path)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_axis_dates(self, datetime_series, datetime_frame):
         # frame
         json = StringIO(datetime_frame.to_json())
@@ -827,7 +826,6 @@ class TestPandasContainer:
         tm.assert_series_equal(result, datetime_series, check_names=False)
         assert result.name is None
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_convert_dates(self, datetime_series, datetime_frame):
         # frame
         df = datetime_frame
@@ -898,7 +896,6 @@ class TestPandasContainer:
         result = read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "date,date_unit",
         [
@@ -959,7 +956,6 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             ts.to_json(date_format="iso", date_unit="foo")
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_date_unit(self, unit, datetime_frame):
         df = datetime_frame
@@ -1065,7 +1061,6 @@ class TestPandasContainer:
             res = res.fillna(np.nan, downcast=False)
         tm.assert_frame_equal(res, df)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.network
     @pytest.mark.single_cpu
     @pytest.mark.parametrize(
@@ -1474,7 +1469,6 @@ class TestPandasContainer:
 
         assert size_before == size_after
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "index", [None, [1, 2], [1.0, 2.0], ["a", "b"], ["1", "2"], ["1.", "2."]]
     )
