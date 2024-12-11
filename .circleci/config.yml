@@ -34,7 +34,6 @@ jobs:
             fi
             python -m pip install --no-build-isolation -ve . -Csetup-args="--werror"
             PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
-            sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
             ci/run_tests.sh
   test-linux-musl:
     docker:
