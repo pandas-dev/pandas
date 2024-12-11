@@ -15,7 +15,6 @@ jobs:
       - checkout
       - run: .circleci/setup_env.sh
       - run: |
-          sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
           PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH \
           LD_PRELOAD=$HOME/miniconda3/envs/pandas-dev/lib/libgomp.so.1:$LD_PRELOAD \
           ci/run_tests.sh
