@@ -108,7 +108,7 @@ def _evaluate_numexpr(op, op_str, left_op, right_op):
         try:
             result = ne.evaluate(
                 f"left_value {op_str} right_value",
-                local_dict={"left_value": left_value, "right_value": right_op},
+                local_dict={"left_value": left_value, "right_value": right_value},
                 casting="safe",
             )
         except TypeError:
@@ -257,7 +257,10 @@ def where(cond, left_op, right_op, use_numexpr: bool = True):
         Whether to try to use numexpr.
     """
     assert _where is not None
-    return _where(cond, left_op, right_op) if use_numexpr else _where_standard(cond, left_op, right_op)
+    if use_numexpr:
+        return _where(cond, left_op, right_op)
+    else:
+        return _where_standard(cond, left_op, right_op)
 
 
 def set_test_mode(v: bool = True) -> None:
