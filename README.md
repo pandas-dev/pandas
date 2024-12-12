@@ -57,7 +57,7 @@ Here are just a few of the things that pandas does well:
     into DataFrame objects
   - Intelligent label-based [**slicing**][slicing], [**fancy
     indexing**][fancy-indexing], and [**subsetting**][subsetting] of
-    large data sets
+    large data sets.
   - Intuitive [**merging**][merging] and [**joining**][joining] data
     sets
   - Flexible [**reshaping**][reshape] and [**pivoting**][pivot-table] of
