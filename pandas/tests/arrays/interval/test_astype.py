@@ -5,6 +5,7 @@ from pandas import (
     CategoricalDtype,
     Index,
     IntervalIndex,
+    Series,
 )
 import pandas._testing as tm
 
@@ -26,3 +27,11 @@ class TestAstype:
         result = index.astype(dtype)
         expected = Index(expected)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_astype_str(self, data):
+        result = Series(data[:2]).astype(str)
+        expected = Series([str(x) for x in data[:2]], dtype=str)
+        tm.assert_series_equal(result, expected)

@@ -2404,6 +2404,9 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_constructor_series_nonexact_categoricalindex(self):
         # GH 42424
         ser = Series(range(100))
