@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import itertools
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
@@ -335,15 +334,9 @@ def _hash_ndarray(
             vals = hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "invalid value encountered in cast",
-                    RuntimeWarning,
-                )
-                vals = hash_object_array(
-                    vals.astype(str).astype(object), hash_key, encoding
-                )
+            vals = hash_object_array(
+                vals.astype(str).astype(object), hash_key, encoding
+            )
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
     vals ^= vals >> 30
