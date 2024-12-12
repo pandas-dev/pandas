@@ -981,7 +981,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         """
         self._mean.reset()
 
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         raise NotImplementedError("aggregate is not implemented.")
 
     def std(self, bias: bool = False, *args, **kwargs):
