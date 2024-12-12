@@ -105,7 +105,7 @@ class TestIntervalArray(base.ExtensionTests):
         "ignore:invalid value encountered in cast:RuntimeWarning"
     )
     def test_hash_pandas_object(self, data):
-        super().test_fillna_length_mismatch(data)
+        super().test_hash_pandas_object(data)
 
     @pytest.mark.filterwarnings(
         "ignore:invalid value encountered in cast:RuntimeWarning"
