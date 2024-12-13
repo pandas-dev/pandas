@@ -186,6 +186,12 @@ class TestFloatSubtype(AstypeTests):
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_astype_category(self, index):
+        super().test_astype_category(index)
+
 
 class TestDatetimelikeSubtype(AstypeTests):
     """Tests specific to IntervalIndex with datetime-like subtype"""
