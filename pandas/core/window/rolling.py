@@ -652,7 +652,7 @@ class BaseWindow(SelectionMixin):
     def aggregate(self, func=None, *args, **kwargs):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
-        if (result is not None) and isinstance(result, ABCDataFrame) and relabeling:
+        if isinstance(result, ABCDataFrame) and relabeling:
             result = result.iloc[:, order]
             result.columns = columns
         if result is None:
