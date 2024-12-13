@@ -59,6 +59,9 @@ class TestIntervalIndexRendering:
         expected = "(329.973, 345.137]    1\n(345.137, 360.191]    2\ndtype: int64"
         assert result == expected
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     @pytest.mark.parametrize(
         "tuples, closed, expected_data",
         [
