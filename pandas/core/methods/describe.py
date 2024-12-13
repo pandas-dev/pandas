@@ -351,12 +351,12 @@ def _refine_percentiles(
     # explicit conversion of `percentiles` to list
     percentiles = list(percentiles)
 
+    # median should be included only if blank list is passed
+    if len(percentiles) == 0:
+        percentiles.append(0.5)
+
     # get them all to be in [0, 1]
     validate_percentile(percentiles)
-
-    # median should always be included
-    if 0.5 not in percentiles:
-        percentiles.append(0.5)
 
     percentiles = np.asarray(percentiles)
 
