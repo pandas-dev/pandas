@@ -387,7 +387,7 @@ jobs:
       - name: Build Environment
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel numpy=2.1 meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --upgrade pip setuptools wheel numpy==2.1 meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil pytz tzdata hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
