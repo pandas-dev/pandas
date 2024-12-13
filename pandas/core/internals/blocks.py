@@ -2361,6 +2361,4 @@ def external_values(values: ArrayLike) -> ArrayLike:
         values.flags.writeable = False
 
     # TODO(CoW) we should also mark our ExtensionArrays as read-only
-    if isinstance(values, ExtensionArray):
-        ...  # this is why test_to_dict_of_blocks_item_cache fails
     return values

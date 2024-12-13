@@ -6273,10 +6273,6 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 to_insert = ((self.index, None),)
 
-            if len(new_obj.columns) == 0 and names:
-                target_dtype = Index(names).dtype
-                new_obj.columns = new_obj.columns.astype(target_dtype)
-
             multi_col = isinstance(self.columns, MultiIndex)
             for j, (lev, lab) in enumerate(to_insert, start=1):
                 i = self.index.nlevels - j

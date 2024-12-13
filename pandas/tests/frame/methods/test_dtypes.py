@@ -137,5 +137,5 @@ class TestDataFrameDataTypes:
         # GH 35517
         df = DataFrame([["foo"]])
         result = df.apply(lambda col: np.array("bar"))
-        expected = Series(np.array(["bar"]), dtype=object)
+        expected = Series(np.array("bar"))
         tm.assert_series_equal(result, expected)

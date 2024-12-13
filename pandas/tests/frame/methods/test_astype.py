@@ -765,7 +765,15 @@ class TestAstype:
             item = item.iloc[0]
         if using_infer_string:
             assert item is pd.NA
-        else:
+
+        # Check that Series/DataFrame.astype matches DatetimeArray.astype
+        expected = frame_or_series(dta.astype("str"))
+        tm.assert_equal(result, expected)
+
+        item = result.iloc[0]
+        if frame_or_series is DataFrame:
+            item = item.iloc[0]
+        if using_infer_string:
             assert item is np.nan
 
     def test_astype_td64_to_string(self, frame_or_series):
