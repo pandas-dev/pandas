@@ -6,6 +6,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     MultiIndex,
+    NamedAgg,
     Series,
     Timestamp,
     date_range,
@@ -488,6 +489,36 @@ class TestRolling:
             name="column1",
         )
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_agg_namedagg(self):
+        # GH#28333
+        df = DataFrame(
+            {
+                "kind": ["cat", "dog", "cat", "dog", "cat", "dog"],
+                "height": [9.1, 6.0, 9.5, 34.0, 12.0, 8.0],
+                "weight": [7.9, 7.5, 9.9, 198.0, 10.0, 42.0],
+            }
+        )
+        result = (
+            df.groupby("kind")
+            .rolling(2)
+            .agg(
+                total_weight=NamedAgg(column="weight", aggfunc=sum),
+                min_height=NamedAgg(column="height", aggfunc=min),
+            )
+        )
+        expected = DataFrame(
+            {
+                "total_weight": [np.nan, 17.8, 19.9, np.nan, 205.5, 240.0],
+                "min_height": [np.nan, 9.1, 9.5, np.nan, 6.0, 8.0],
+            },
+            index=MultiIndex(
+                [["cat", "dog"], [0, 1, 2, 3, 4, 5]],
+                [[0, 0, 0, 1, 1, 1], [0, 2, 4, 1, 3, 5]],
+                names=["kind", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_subset_rolling_subset_with_closed(self):
         # GH 35549
@@ -1134,6 +1165,36 @@ class TestExpanding:
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_expanding_agg_namedagg(self):
+        # GH#28333
+        df = DataFrame(
+            {
+                "kind": ["cat", "dog", "cat", "dog", "cat", "dog"],
+                "height": [9.1, 6.0, 9.5, 34.0, 12.0, 8.0],
+                "weight": [7.9, 7.5, 9.9, 198.0, 10.0, 42.0],
+            }
+        )
+        result = (
+            df.groupby("kind")
+            .expanding(1)
+            .agg(
+                total_weight=NamedAgg(column="weight", aggfunc=sum),
+                min_height=NamedAgg(column="height", aggfunc=min),
+            )
+        )
+        expected = DataFrame(
+            {
+                "total_weight": [7.9, 17.8, 27.8, 7.5, 205.5, 247.5],
+                "min_height": [9.1, 9.1, 9.1, 6.0, 6.0, 6.0],
+            },
+            index=MultiIndex(
+                [["cat", "dog"], [0, 1, 2, 3, 4, 5]],
+                [[0, 0, 0, 1, 1, 1], [0, 2, 4, 1, 3, 5]],
+                names=["kind", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestEWM:
     @pytest.mark.parametrize(
@@ -1150,6 +1211,41 @@ class TestEWM:
         result = getattr(df.groupby("A").ewm(com=1.0), method)()
         expected = DataFrame(
             {"B": expected_data},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0),
+                    ("a", 1),
+                    ("a", 2),
+                    ("a", 3),
+                ],
+                names=["A", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_ewm_agg_namedagg(self):
+        # GH#28333
+        df = DataFrame({"A": ["a"] * 4, "B": range(4)})
+        result = (
+            df.groupby("A")
+            .ewm(com=1.0)
+            .agg(
+                B_mean=NamedAgg(column="B", aggfunc="mean"),
+                B_std=NamedAgg(column="B", aggfunc="std"),
+                B_var=NamedAgg(column="B", aggfunc="var"),
+            )
+        )
+        expected = DataFrame(
+            {
+                "B_mean": [
+                    0.0,
+                    0.6666666666666666,
+                    1.4285714285714286,
+                    2.2666666666666666,
+                ],
+                "B_std": [np.nan, 0.707107, 0.963624, 1.177164],
+                "B_var": [np.nan, 0.5, 0.9285714285714286, 1.3857142857142857],
+            },
             index=MultiIndex.from_tuples(
                 [
                     ("a", 0),
