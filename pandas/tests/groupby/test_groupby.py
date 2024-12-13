@@ -3118,6 +3118,7 @@ def test_groupby_numeric_only_std_no_result(numeric_only):
             dfgb.std(numeric_only=numeric_only)
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 def test_grouping_with_categorical_interval_columns():
     # GH#34164
     df = DataFrame({"x": [0.1, 0.2, 0.3, -0.4, 0.5], "w": ["a", "b", "a", "c", "a"]})
