@@ -654,7 +654,7 @@ class BaseWindow(SelectionMixin):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if isinstance(result, ABCDataFrame) and relabeling:
             result = result.iloc[:, order]
-            result.columns = columns
+            result.columns = columns  # type: ignore[union-attr]
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
