@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from pandas.compat import IS_FREE_THREADING
+from pandas.compat.numpy import np_version_gt2p2
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -45,6 +48,10 @@ def test_replace(replace_kwargs):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.skipif(
+    IS_FREE_THREADING and np_version_gt2p2,
+    reason="Segfaults in array_algos.replace.replace_regex",
+)
 def test_replace_regex_inplace_refs():
     df = DataFrame({"a": ["aaa", "bbb"]})
     df_orig = df.copy()

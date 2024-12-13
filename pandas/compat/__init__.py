@@ -17,9 +17,11 @@ from typing import TYPE_CHECKING
 
 from pandas.compat._constants import (
     IS64,
+    IS_FREE_THREADING,
     ISMUSL,
     PY311,
     PY312,
+    PY313,
     PYPY,
     WASM,
 )
@@ -153,8 +155,10 @@ __all__ = [
     "HAS_PYARROW",
     "IS64",
     "ISMUSL",
+    "IS_FREE_THREADING",
     "PY311",
     "PY312",
+    "PY313",
     "PYPY",
     "WASM",
     "is_numpy_dev",
