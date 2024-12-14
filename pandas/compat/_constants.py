@@ -18,7 +18,7 @@ PY312 = sys.version_info >= (3, 12)
 PY313 = sys.version_info >= (3, 13)
 PYPY = platform.python_implementation() == "PyPy"
 WASM = (sys.platform == "emscripten") or (platform.machine() in ["wasm32", "wasm64"])
-IS_FREE_THREADING = False if not PY313 else sys._is_gil_enabled()  # type: ignore[attr-defined]
+IS_FREE_THREADING = False if not PY313 else not sys._is_gil_enabled()  # type: ignore[attr-defined]
 ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
 REF_COUNT = 2 if PY311 else 3
 
