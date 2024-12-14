@@ -74,7 +74,8 @@ def describe_ndframe(
     percentiles : list-like of numbers, optional
         The percentiles to include in the output. All should fall between 0 and 1.
         The default is ``[.25, .5, .75]``, which returns the 25th, 50th, and
-        75th percentiles.
+        75th percentiles.If a blank list is passed, then returns only the
+        50th percentile value.
 
     Returns
     -------
