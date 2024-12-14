@@ -2,7 +2,10 @@ import numpy as np
 import pyarrow as pa
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtype,
+)
 
 from pandas import (
     Categorical,
@@ -12,7 +15,6 @@ from pandas import (
     Series,
     Timestamp,
 )
-from pandas.core.dtypes.dtypes import ArrowDtype
 import pandas._testing as tm
 
 
@@ -141,14 +143,14 @@ class TestCategoricalDtypes:
 
     def test_values_is_index():
         # GH 60563
-        values = Index(['a1', 'a2'], dtype=ArrowDtype(pa.string()))
+        values = Index(["a1", "a2"], dtype=ArrowDtype(pa.string()))
         arr = values._data._pa_array.combine_chunks()
 
         assert arr.equals(values._data._pa_array.combine_chunks())
 
     def test_values_is_not_index():
         # GH 60563
-        values = Series(['a1', 'a2'], dtype=ArrowDtype(pa.string()))
+        values = Series(["a1", "a2"], dtype=ArrowDtype(pa.string()))
         arr = values._pa_array.combine_chunks()
 
         assert arr.equals(values._pa_array.combine_chunks())
