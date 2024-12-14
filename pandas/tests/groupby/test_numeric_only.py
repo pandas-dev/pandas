@@ -278,14 +278,11 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         kernel in ("first", "last")
         or (
             # kernels that work on any dtype and don't have numeric_only arg
-            kernel in ("any", "all", "bfill", "ffill", "fillna", "nth", "nunique")
+            kernel in ("any", "all", "bfill", "ffill", "nth", "nunique")
             and numeric_only is lib.no_default
         )
     ):
-        warn = FutureWarning if kernel == "fillna" else None
-        msg = "DataFrameGroupBy.fillna is deprecated"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = method(*args, **kwargs)
+        result = method(*args, **kwargs)
         assert "b" in result.columns
     elif has_arg:
         assert numeric_only is not True
