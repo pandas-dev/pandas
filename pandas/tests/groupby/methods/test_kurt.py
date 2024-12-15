@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas.util._test_decorators as td
 
@@ -30,23 +31,27 @@ def test_groupby_kurt_equivalence():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("pyarrow")
-def test_groupby_kurt_arrow_float64():
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        "Float64",
+    ],
+)
+def test_groupby_kurt_arrow_float64(dtype):
     # GH#40139
-    # Test groupby.kurt() with float64[pyarrow] dtype
+    # Test groupby.kurt() with float64[pyarrow] and Float64 dtypes
     df = pd.DataFrame(
         {
             "x": [1.0, np.nan, 3.2, 4.8, 2.3, 1.9, 8.9],
             "y": [1.6, 3.3, 3.2, 6.8, 1.3, 2.9, 9.0],
         },
-        dtype="float64[pyarrow]",
+        dtype=dtype,
     )
     gb = df.groupby(by=lambda x: 0)
 
     result = gb.kurt()
-    expected = pd.DataFrame(
-        {"x": [2.1644713], "y": [0.1513969]}, dtype="float64[pyarrow]"
-    )
+    expected = pd.DataFrame({"x": [2.1644713], "y": [0.1513969]}, dtype=dtype)
     tm.assert_almost_equal(result, expected)
 
 
