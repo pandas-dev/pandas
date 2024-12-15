@@ -378,6 +378,7 @@ def read_sql_query(  # pyright: ignore[reportOverlappingOverload]
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame: ...
 
+
 @overload
 def read_sql_query(
     sql,
