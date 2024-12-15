@@ -802,6 +802,7 @@ Other
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
 - Bug in ``Series.list`` methods not preserving the original name. (:issue:`60522`)
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
+- Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
 
 .. ***DO NOT USE THIS SECTION***
 
