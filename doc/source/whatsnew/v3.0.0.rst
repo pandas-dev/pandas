@@ -57,6 +57,7 @@ Other enhancements
 - :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :meth:`DataFrameGroupBy.transform`, :meth:`SeriesGroupBy.transform`, :meth:`DataFrameGroupBy.agg`, :meth:`SeriesGroupBy.agg`, :meth:`RollingGroupby.apply`, :meth:`ExpandingGroupby.apply`, :meth:`Rolling.apply`, :meth:`Expanding.apply`, :meth:`DataFrame.apply` with ``engine="numba"`` now supports positional arguments passed as kwargs (:issue:`58995`)
 - :meth:`DataFrameGroupBy.transform`, :meth:`SeriesGroupBy.transform`, :meth:`DataFrameGroupBy.agg`, :meth:`SeriesGroupBy.agg`, :meth:`SeriesGroupBy.apply`, :meth:`DataFrame.apply` now support ``kurt`` (:issue:`40139`)
+- :meth:`Rolling.agg`, :meth:`Expanding.agg` and :meth:`ExponentialMovingWindow.agg` now accept :class:`NamedAgg` aggregations through ``**kwargs`` (:issue:`28333`)
 - :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - :meth:`str.get_dummies` now accepts a  ``dtype`` parameter to specify the dtype of the resulting DataFrame (:issue:`47872`)
@@ -627,6 +628,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.union` and :meth:`DatetimeIndex.intersection` when ``unit`` was non-nanosecond (:issue:`59036`)
 - Bug in :meth:`Series.dt.microsecond` producing incorrect results for pyarrow backed :class:`Series`. (:issue:`59154`)
 - Bug in :meth:`to_datetime` not respecting dayfirst if an uncommon date string was passed. (:issue:`58859`)
+- Bug in :meth:`to_datetime` on float32 df with year, month, day etc. columns leads to precision issues and incorrect result. (:issue:`60506`)
 - Bug in :meth:`to_datetime` reports incorrect index in case of any failure scenario. (:issue:`58298`)
 - Bug in :meth:`to_datetime` wrongly converts when ``arg`` is a ``np.datetime64`` object with unit of ``ps``. (:issue:`60341`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
@@ -668,7 +670,8 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 - Bug in :meth:`DataFrame.from_records` throwing a ``ValueError`` when passed an empty list in ``index`` (:issue:`58594`)
--
+- Bug in :meth:`MultiIndex.insert` when a new value inserted to a datetime-like level gets cast to ``NaT`` and fails indexing (:issue:`60388`)
+- Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 
 Missing
 ^^^^^^^
@@ -701,6 +704,7 @@ I/O
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
 - Bug in :meth:`read_csv` where the order of the ``na_values`` makes an inconsistency when ``na_values`` is a list non-string values. (:issue:`59303`)
 - Bug in :meth:`read_excel` raising ``ValueError`` when passing array of boolean values when ``dtype="boolean"``. (:issue:`58159`)
+- Bug in :meth:`read_html` where ``rowspan`` in header row causes incorrect conversion to ``DataFrame``. (:issue:`60210`)
 - Bug in :meth:`read_json` not validating the ``typ`` argument to not be exactly ``"frame"`` or ``"series"`` (:issue:`59124`)
 - Bug in :meth:`read_json` where extreme value integers in string format were incorrectly parsed as a different integer number (:issue:`20608`)
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
@@ -732,11 +736,13 @@ Groupby/resample/rolling
 - Bug in :meth:`.Resampler.interpolate` on a :class:`DataFrame` with non-uniform sampling and/or indices not aligning with the resulting resampled index would result in wrong interpolation (:issue:`21351`)
 - Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` when passed ``times`` and aggregation functions other than mean (:issue:`51695`)
 - Bug in :meth:`DataFrameGroupBy.agg` that raises ``AttributeError`` when there is dictionary input and duplicated columns, instead of returning a DataFrame with the aggregation of all duplicate columns. (:issue:`55041`)
+- Bug in :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` for empty data frame with ``group_keys=False`` still creating output index using group keys. (:issue:`60471`)
 - Bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
 - Bug in :meth:`DataFrameGroupBy.apply` with ``as_index=False`` that was returning :class:`MultiIndex` instead of returning :class:`Index`. (:issue:`58291`)
 - Bug in :meth:`DataFrameGroupBy.cumsum` and :meth:`DataFrameGroupBy.cumprod` where ``numeric_only`` parameter was passed indirectly through kwargs instead of passing directly. (:issue:`58811`)
 - Bug in :meth:`DataFrameGroupBy.cumsum` where it did not return the correct dtype when the label contained ``None``. (:issue:`58811`)
 - Bug in :meth:`DataFrameGroupby.transform` and :meth:`SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
+- Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
 - Bug in :meth:`Series.resample` could raise when the the date range ended shortly before a non-existent time. (:issue:`58380`)
 
@@ -762,6 +768,7 @@ ExtensionArray
 - Bug in :meth:`.arrays.ArrowExtensionArray.__setitem__` which caused wrong behavior when using an integer array with repeated values as a key (:issue:`58530`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
 - Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
+- Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)
 - Bug in various :class:`DataFrame` reductions for pyarrow temporal dtypes returning incorrect dtype when result was null (:issue:`59234`)
 
 Styler
@@ -794,6 +801,8 @@ Other
 - Bug in :meth:`read_csv` where chained fsspec TAR file and ``compression="infer"`` fails with ``tarfile.ReadError`` (:issue:`60028`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
+- Bug in ``Series.list`` methods not preserving the original name. (:issue:`60522`)
+- Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 
 .. ***DO NOT USE THIS SECTION***
 

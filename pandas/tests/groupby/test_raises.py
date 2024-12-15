@@ -144,7 +144,6 @@ def test_groupby_raises_string(
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
-        "fillna": (None, ""),
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -213,10 +212,7 @@ def test_groupby_raises_string(
         elif groupby_func == "corrwith":
             msg = "Cannot perform reduction 'mean' with string dtype"
 
-    if groupby_func == "fillna":
-        kind = "Series" if groupby_series else "DataFrame"
-        warn_msg = f"{kind}GroupBy.fillna is deprecated"
-    elif groupby_func == "corrwith":
+    if groupby_func == "corrwith":
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
@@ -303,7 +299,6 @@ def test_groupby_raises_datetime(
         "cumsum": (TypeError, "datetime64 type does not support operation 'cumsum'"),
         "diff": (None, ""),
         "ffill": (None, ""),
-        "fillna": (None, ""),
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -344,10 +339,7 @@ def test_groupby_raises_datetime(
         "var": (TypeError, "datetime64 type does not support operation 'var'"),
     }[groupby_func]
 
-    if groupby_func == "fillna":
-        kind = "Series" if groupby_series else "DataFrame"
-        warn_msg = f"{kind}GroupBy.fillna is deprecated"
-    elif groupby_func == "corrwith":
+    if groupby_func == "corrwith":
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
@@ -468,7 +460,6 @@ def test_groupby_raises_category(
             r"unsupported operand type\(s\) for -: 'Categorical' and 'Categorical'",
         ),
         "ffill": (None, ""),
-        "fillna": (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -552,10 +543,7 @@ def test_groupby_raises_category(
         ),
     }[groupby_func]
 
-    if groupby_func == "fillna":
-        kind = "Series" if groupby_series else "DataFrame"
-        warn_msg = f"{kind}GroupBy.fillna is deprecated"
-    elif groupby_func == "corrwith":
+    if groupby_func == "corrwith":
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
@@ -670,7 +658,6 @@ def test_groupby_raises_category_on_category(
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
-        "fillna": (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (ValueError, "empty group due to unobserved categories")
         if empty_groups
@@ -739,10 +726,7 @@ def test_groupby_raises_category_on_category(
         ),
     }[groupby_func]
 
-    if groupby_func == "fillna":
-        kind = "Series" if groupby_series else "DataFrame"
-        warn_msg = f"{kind}GroupBy.fillna is deprecated"
-    elif groupby_func == "corrwith":
+    if groupby_func == "corrwith":
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""

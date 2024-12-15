@@ -329,9 +329,6 @@ def test_transform_transformation_func(transformation_func):
     if transformation_func == "cumcount":
         test_op = lambda x: x.transform("cumcount")
         mock_op = lambda x: Series(range(len(x)), x.index)
-    elif transformation_func == "fillna":
-        test_op = lambda x: x.transform("fillna", value=0)
-        mock_op = lambda x: x.fillna(value=0)
     elif transformation_func == "ngroup":
         test_op = lambda x: x.transform("ngroup")
         counter = -1
@@ -1436,11 +1433,7 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
         dtype = object if transformation_func in ("any", "all") else None
         buffer.append(Series([np.nan], index=[3], dtype=dtype))
     expected = concat(buffer)
-
-    warn = FutureWarning if transformation_func == "fillna" else None
-    msg = "SeriesGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.transform(transformation_func, *args)
+    result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
 
