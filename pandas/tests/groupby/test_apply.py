@@ -765,7 +765,7 @@ def test_groupby_apply_all_none():
         pass
 
     result = test_df.groupby("groups").apply(test_func)
-    expected = DataFrame(columns=["random_vars"], dtype="intp")
+    expected = DataFrame(columns=["random_vars"], dtype="int64")
     tm.assert_frame_equal(result, expected)
 
 
