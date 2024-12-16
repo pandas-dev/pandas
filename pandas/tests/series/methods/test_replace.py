@@ -3,6 +3,9 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import IS_FREE_THREADING
+from pandas.compat.numpy import np_version_gt2p2
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -510,6 +513,10 @@ class TestSeriesReplace:
         # should not have changed dtype
         tm.assert_equal(obj, result)
 
+    @pytest.mark.skipif(
+        IS_FREE_THREADING and np_version_gt2p2,
+        reason="Segfaults in array_algos.replace.compare_or_regex_search",
+    )
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680
         s = pd.Series(["a", "b", "c"])

@@ -63,6 +63,10 @@ def test_replace_regex_inplace_refs():
     tm.assert_frame_equal(view, df_orig)
 
 
+@pytest.mark.skipif(
+    IS_FREE_THREADING and np_version_gt2p2,
+    reason="Segfaults in array_algos.replace.replace_regex",
+)
 def test_replace_regex_inplace():
     df = DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")

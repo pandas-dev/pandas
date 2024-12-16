@@ -10,6 +10,8 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.compat import IS_FREE_THREADING
+from pandas.compat.numpy import np_version_gt2p2
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -299,6 +301,10 @@ class TestAstype:
         expected = Series(["2010-01-04 00:00:00-05:00"], dtype="str")
         tm.assert_series_equal(res, expected)
 
+    @pytest.mark.skipif(
+        IS_FREE_THREADING and np_version_gt2p2,
+        reason="Segfaults in TimedeltaArray._format_native_types",
+    )
     def test_astype_str_cast_td64(self):
         # see GH#9757
 
@@ -493,6 +499,10 @@ class TestAstype:
 
 
 class TestAstypeString:
+    @pytest.mark.skipif(
+        IS_FREE_THREADING and np_version_gt2p2,
+        reason="Segfaults in TimedeltaArray._format_native_types",
+    )
     @pytest.mark.parametrize(
         "data, dtype",
         [

@@ -10,6 +10,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import IS_FREE_THREADING
+from pandas.compat.numpy import np_version_gt2p2
 from pandas.compat.pyarrow import pa_version_under12p0
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -140,6 +142,10 @@ def test_setitem_with_array_with_missing(dtype):
     tm.assert_numpy_array_equal(value, value_orig)
 
 
+@pytest.mark.skipif(
+    IS_FREE_THREADING and np_version_gt2p2,
+    reason="Segfaults in TimedeltaArray._format_native_types",
+)
 def test_astype_roundtrip(dtype):
     ser = pd.Series(pd.date_range("2000", periods=12))
     ser[0] = None
