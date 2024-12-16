@@ -1955,10 +1955,7 @@ def test_category_order_transformer(
         df = df.set_index(keys)
     args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    warn = FutureWarning if transformation_func == "fillna" else None
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, transformation_func)(*args)
+    op_result = getattr(gb, transformation_func)(*args)
     result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
     tm.assert_index_equal(result, expected)
