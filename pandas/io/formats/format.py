@@ -78,7 +78,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
     check_parent_directory,
@@ -245,7 +244,11 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                _len = len(series)
+                _slice = np.hstack(
+                    [np.arange(row_num), np.arange(_len - row_num, _len)]
+                )
+                series = series.iloc[_slice]
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
