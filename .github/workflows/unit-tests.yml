@@ -385,10 +385,12 @@ jobs:
           nogil: true
 
       - name: Build Environment
+        # TODO: Once numpy 2.2.1 is out, don't install nightly version
+        # Tests segfault with numpy 2.2.0: https://github.com/numpy/numpy/pull/27955
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel numpy meson[ninja]==1.2.1 meson-python==0.13.1
-          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython
+          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil pytz tzdata hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
