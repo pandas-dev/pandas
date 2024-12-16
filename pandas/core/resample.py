@@ -462,7 +462,7 @@ class Resampler(BaseGroupBy, PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = _apply(grouped, how, *args, **kwargs)
+            result = grouped.apply(how, *args, **kwargs)
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -474,7 +474,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
             # we have a non-reducing function
             # try to evaluate
-            result = _apply(grouped, how, *args, **kwargs)
+            result = grouped.apply(how, *args, **kwargs)
 
         return self._wrap_result(result)
 
@@ -1576,7 +1576,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
             return x.apply(f, *args, **kwargs)
 
-        result = _apply(self._groupby, func)
+        result = self._groupby.apply(func)
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -2719,8 +2719,3 @@ def _asfreq_compat(index: FreqIndexT, freq) -> FreqIndexT:
     else:  # pragma: no cover
         raise TypeError(type(index))
     return new_index
-
-
-def _apply(grouped: GroupBy, how: Callable, *args, **kwargs) -> DataFrame:
-    result = grouped.apply(how, *args, **kwargs)
-    return result
