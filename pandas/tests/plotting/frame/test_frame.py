@@ -1071,6 +1071,10 @@ class TestDataFramePlots:
         assert len(ax.lines) == 7 * len(numeric_cols)
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
+    @pytest.mark.xfail(
+        Version(mpl.__version__) >= Version("3.10"),
+        reason="Fails starting with matplotlib 3.10",
+    )
     def test_boxplot_vertical(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
@@ -1088,7 +1092,10 @@ class TestDataFramePlots:
         assert len(ax.lines) == 7 * len(numeric_cols)
 
     @pytest.mark.filterwarnings("ignore::UserWarning")
-    @pytest.mark.xfail(Version(mpl.__version__) > Version("3.10"), reason="TODO")
+    @pytest.mark.xfail(
+        Version(mpl.__version__) >= Version("3.10"),
+        reason="Fails starting with matplotlib version 3.10",
+    )
     def test_boxplot_vertical_subplots(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
@@ -1108,6 +1115,10 @@ class TestDataFramePlots:
             assert len(ax.lines) == 7
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
+    @pytest.mark.xfail(
+        Version(mpl.__version__) >= Version("3.10"),
+        reason="Fails starting with matplotlib 3.10",
+    )
     def test_boxplot_vertical_positions(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns

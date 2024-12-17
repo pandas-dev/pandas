@@ -355,6 +355,7 @@ class TestDataFramePlots:
             assert ax.get_xlabel() == xlabel
             assert ax.get_ylabel() == ylabel
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
@@ -384,7 +385,13 @@ class TestDataFramePlots:
             assert subplot.get_ylabel() == ylabel
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
-    def test_boxplot_group_no_xlabel_ylabel(self, vert):
+    def test_boxplot_group_no_xlabel_ylabel(self, vert, request):
+        if Version(mpl.__version__) >= Version("3.10") and vert == {
+            "orientation": "horizontal"
+        }:
+            request.applymarker(
+                pytest.mark.xfail(reason=f"{vert} fails starting with matplotlib 3.10")
+            )
         df = DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
