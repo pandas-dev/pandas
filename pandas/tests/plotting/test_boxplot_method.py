@@ -326,6 +326,7 @@ class TestDataFramePlots:
 
         assert result[expected][0].get_color() == "C1"
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_plot_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
@@ -367,6 +368,7 @@ class TestDataFramePlots:
         assert ax.get_xlabel() == xlabel
         assert ax.get_ylabel() == ylabel
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_group_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
@@ -381,6 +383,7 @@ class TestDataFramePlots:
             assert subplot.get_xlabel() == xlabel
             assert subplot.get_ylabel() == ylabel
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_group_no_xlabel_ylabel(self, vert):
         df = DataFrame(
             {

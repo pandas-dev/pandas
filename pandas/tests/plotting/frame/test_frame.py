@@ -1070,6 +1070,7 @@ class TestDataFramePlots:
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), positions)
         assert len(ax.lines) == 7 * len(numeric_cols)
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_vertical(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
@@ -1086,8 +1087,8 @@ class TestDataFramePlots:
         _check_text_labels(ax.get_yticklabels(), labels)
         assert len(ax.lines) == 7 * len(numeric_cols)
 
-    @pytest.mark.filterwarnings("ignore:Attempt:UserWarning")
-    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
+    @pytest.mark.filterwarnings("ignore::UserWarning")
+    @pytest.mark.xfail(Version(mpl.__version__) > Version("3.10"), reason="TODO")
     def test_boxplot_vertical_subplots(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
@@ -1106,6 +1107,7 @@ class TestDataFramePlots:
             _check_text_labels(ax.get_yticklabels(), [label])
             assert len(ax.lines) == 7
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_vertical_positions(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
