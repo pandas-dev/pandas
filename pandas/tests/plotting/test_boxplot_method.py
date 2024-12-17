@@ -36,7 +36,7 @@ def _check_ax_limits(col, ax):
     assert y_max >= col.max()
 
 
-if Version(mpl._version__) < Version("3.10"):
+if Version(mpl.__version__) < Version("3.10"):
     verts = [{"vert": False}, {"vert": True}]
 else:
     verts = [{"orientation": "horizontal"}, {"orientation": "vertical"}]
