@@ -1858,10 +1858,7 @@ class TestStackUnstackMultiLevel:
             }
         )
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
-
+        result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
         unstacked = result.unstack()
         restacked = unstacked.stack(future_stack=future_stack)
         tm.assert_series_equal(restacked, result.reindex(restacked.index).astype(float))

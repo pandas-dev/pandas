@@ -1393,7 +1393,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # -----------------------------------------------------------------
     # apply/agg/transform
 
-    def apply(self, func, *args, include_groups: bool = True, **kwargs) -> NDFrameT:
+    def apply(self, func, *args, include_groups: bool = False, **kwargs) -> NDFrameT:
         """
         Apply function ``func`` group-wise and combine the results together.
 
@@ -1419,7 +1419,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         *args : tuple
             Optional positional arguments to pass to ``func``.
 
-        include_groups : bool, default True
+        include_groups : bool, default False
             When True, will attempt to apply ``func`` to the groupings in
             the case that they are columns of the DataFrame. If this raises a
             TypeError, the result will be computed with the groupings excluded.
@@ -1427,10 +1427,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 2.2.0
 
-            .. deprecated:: 2.2.0
+            .. versionchanged:: 3.0.0
 
-            Setting include_groups to True is deprecated. Only the value
-            False will be allowed in a future version of pandas.
+            The default changed from True to False, and True is no longer allowed.
 
         **kwargs : dict
             Optional keyword arguments to pass to ``func``.
@@ -1520,7 +1519,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         each group together into a Series, including setting the index as
         appropriate:
 
-        >>> g1.apply(lambda x: x.C.max() - x.B.min(), include_groups=False)
+        >>> g1.apply(lambda x: x.C.max() - x.B.min())
         A
         a    5
         b    2
@@ -1529,11 +1528,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Example 4: The function passed to ``apply`` returns ``None`` for one of the
         group. This group is filtered from the result:
 
-        >>> g1.apply(lambda x: None if x.iloc[0, 0] == 3 else x, include_groups=False)
+        >>> g1.apply(lambda x: None if x.iloc[0, 0] == 3 else x)
            B  C
         0  1  4
         1  2  6
         """
+        if include_groups:
+            raise ValueError("include_groups=True is no longer allowed.")
         if isinstance(func, str):
             if hasattr(self, func):
                 res = getattr(self, func)
@@ -1560,33 +1561,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             f = func
 
-        if not include_groups:
-            return self._python_apply_general(f, self._obj_with_exclusions)
-
-        try:
-            result = self._python_apply_general(f, self._selected_obj)
-            if (
-                not isinstance(self.obj, Series)
-                and self._selection is None
-                and self._selected_obj.shape != self._obj_with_exclusions.shape
-            ):
-                warnings.warn(
-                    message=_apply_groupings_depr.format(type(self).__name__, "apply"),
-                    category=DeprecationWarning,
-                    stacklevel=find_stack_level(),
-                )
-        except TypeError:
-            # gh-20949
-            # try again, with .apply acting as a filtering
-            # operation, by excluding the grouping column
-            # This would normally not be triggered
-            # except if the udf is trying an operation that
-            # fails on *some* columns, e.g. a numeric operation
-            # on a string grouper column
-
-            return self._python_apply_general(f, self._obj_with_exclusions)
-
-        return result
+        return self._python_apply_general(f, self._obj_with_exclusions)
 
     @final
     def _python_apply_general(
@@ -3424,7 +3399,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def resample(self, rule, *args, include_groups: bool = True, **kwargs) -> Resampler:
+    def resample(
+        self, rule, *args, include_groups: bool = False, **kwargs
+    ) -> Resampler:
         """
         Provide resampling when using a TimeGrouper.
 
@@ -3449,10 +3426,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 2.2.0
 
-            .. deprecated:: 2.2.0
+            .. versionchanged:: 3.0
 
-               Setting include_groups to True is deprecated. Only the value
-               False will be allowed in a future version of pandas.
+               The default was changed to False, and True is no longer allowed.
 
         **kwargs
             Possible arguments are `how`, `fill_method`, `limit`, `kind` and
@@ -3485,7 +3461,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby("a").resample("3min", include_groups=False).sum()
+        >>> df.groupby("a").resample("3min").sum()
                                  b
         a
         0   2000-01-01 00:00:00  2
@@ -3494,7 +3470,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby("a").resample("30s", include_groups=False).sum()
+        >>> df.groupby("a").resample("30s").sum()
                             b
         a
         0   2000-01-01 00:00:00  1
@@ -3508,7 +3484,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Resample by month. Values are assigned to the month of the period.
 
-        >>> df.groupby("a").resample("ME", include_groups=False).sum()
+        >>> df.groupby("a").resample("ME").sum()
                     b
         a
         0   2000-01-31  3
@@ -3517,11 +3493,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> (
-        ...     df.groupby("a")
-        ...     .resample("3min", closed="right", include_groups=False)
-        ...     .sum()
-        ... )
+        >>> (df.groupby("a").resample("3min", closed="right").sum())
                                  b
         a
         0   1999-12-31 23:57:00  1
@@ -3532,11 +3504,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         the bin interval, but label each bin using the right edge instead of
         the left.
 
-        >>> (
-        ...     df.groupby("a")
-        ...     .resample("3min", closed="right", label="right", include_groups=False)
-        ...     .sum()
-        ... )
+        >>> (df.groupby("a").resample("3min", closed="right", label="right").sum())
                                  b
         a
         0   2000-01-01 00:00:00  1
@@ -3545,11 +3513,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         from pandas.core.resample import get_resampler_for_grouping
 
-        # mypy flags that include_groups could be specified via `*args` or `**kwargs`
-        # GH#54961 would resolve.
-        return get_resampler_for_grouping(  # type: ignore[misc]
-            self, rule, *args, include_groups=include_groups, **kwargs
-        )
+        if include_groups:
+            raise ValueError("include_groups=True is no longer allowed.")
+
+        return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
     @final
     def rolling(
@@ -5561,13 +5528,3 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
         mi = MultiIndex(levels=levels, codes=codes, names=[idx.name, None])
 
     return mi
-
-
-# GH#7155
-_apply_groupings_depr = (
-    "{}.{} operated on the grouping columns. This behavior is deprecated, "
-    "and in a future version of pandas the grouping columns will be excluded "
-    "from the operation. Either pass `include_groups=False` to exclude the "
-    "groupings or explicitly select the grouping columns after groupby to silence "
-    "this warning."
-)

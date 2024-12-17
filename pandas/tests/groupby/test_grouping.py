@@ -233,11 +233,7 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = g.apply(lambda x: x.sum())
-        expected["A"] = [0, 2, 4]
-        expected = expected.loc[:, ["A", "B"]]
+        result = g.apply(lambda x: x.sum())
         tm.assert_frame_equal(result, expected)
 
     def test_grouper_creation_bug2(self):
@@ -788,7 +784,7 @@ class TestGrouping:
         # different index objects.
         df = DataFrame({"A": [], "B": [], "C": []})
         g = df.groupby("A", group_keys=False)
-        result = g.apply(lambda x: x / x.sum(), include_groups=False)
+        result = g.apply(lambda x: x / x.sum())
         expected = DataFrame({"B": [], "C": []}, index=None)
         tm.assert_frame_equal(result, expected)
 
@@ -872,9 +868,7 @@ class TestGrouping:
             }
         )
         expected = df.sort_values(by=["category_tuple", "num1"])
-        result = df.groupby("category_tuple").apply(
-            lambda x: x.sort_values(by="num1"), include_groups=False
-        )
+        result = df.groupby("category_tuple").apply(lambda x: x.sort_values(by="num1"))
         expected = expected[result.columns]
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
