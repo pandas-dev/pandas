@@ -531,15 +531,13 @@ def test_transform_mixed_type():
         return group[:1]
 
     grouped = df.groupby("c")
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = grouped.apply(f)
+    result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
     # this is by definition a mutating operation!
     for key, group in grouped:
-        res = f(group)
+        res = f(group.drop(columns="c"))
         tm.assert_frame_equal(res, result.loc[key])
 
 
@@ -685,18 +683,14 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         f = gb[["float", "float_missing"]].apply(targop)
         expected = concat([f, i], axis=1)
     else:
-        if op != "shift" or not isinstance(gb_target.get("by"), (str, list)):
-            warn = None
-        else:
-            warn = DeprecationWarning
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = gb.apply(targop)
+        expected = gb.apply(targop)
 
     expected = expected.sort_index(axis=1)
     if op == "shift":
         expected["string_missing"] = expected["string_missing"].fillna(np.nan)
-        expected["string"] = expected["string"].fillna(np.nan)
+        by = gb_target.get("by")
+        if not isinstance(by, (str, list)) or (by != "string" and "string" not in by):
+            expected["string"] = expected["string"].fillna(np.nan)
 
     result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
     tm.assert_frame_equal(result, expected)

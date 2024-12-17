@@ -101,11 +101,7 @@ class TestRolling:
         r = g.rolling(window=4)
 
         result = getattr(r, f)()
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(lambda x: getattr(x.rolling(4), f)())
-        # groupby.apply doesn't drop the grouped-by column
-        expected = expected.drop("A", axis=1)
+        expected = g.apply(lambda x: getattr(x.rolling(4), f)())
         # GH 39732
         expected_index = MultiIndex.from_arrays([roll_frame["A"], range(40)])
         expected.index = expected_index
@@ -117,11 +113,7 @@ class TestRolling:
         r = g.rolling(window=4)
 
         result = getattr(r, f)(ddof=1)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
-        # groupby.apply doesn't drop the grouped-by column
-        expected = expected.drop("A", axis=1)
+        expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
         # GH 39732
         expected_index = MultiIndex.from_arrays([roll_frame["A"], range(40)])
         expected.index = expected_index
@@ -135,13 +127,9 @@ class TestRolling:
         r = g.rolling(window=4)
 
         result = r.quantile(0.4, interpolation=interpolation)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(
-                lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
-            )
-        # groupby.apply doesn't drop the grouped-by column
-        expected = expected.drop("A", axis=1)
+        expected = g.apply(
+            lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
+        )
         # GH 39732
         expected_index = MultiIndex.from_arrays([roll_frame["A"], range(40)])
         expected.index = expected_index
@@ -182,9 +170,7 @@ class TestRolling:
         def func(x):
             return getattr(x.rolling(4), f)(roll_frame)
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(func)
+        expected = g.apply(func)
         # GH 39591: The grouped column should be all np.nan
         # (groupby.apply inserts 0s for cov)
         expected["A"] = np.nan
@@ -200,9 +186,7 @@ class TestRolling:
         def func(x):
             return getattr(x.B.rolling(4), f)(pairwise=True)
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(func)
+        expected = g.apply(func)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -247,11 +231,7 @@ class TestRolling:
 
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
-        # groupby.apply doesn't drop the grouped-by column
-        expected = expected.drop("A", axis=1)
+        expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
         # GH 39732
         expected_index = MultiIndex.from_arrays([roll_frame["A"], range(40)])
         expected.index = expected_index
@@ -826,13 +806,9 @@ class TestRolling:
     def test_groupby_rolling_object_doesnt_affect_groupby_apply(self, roll_frame):
         # GH 39732
         g = roll_frame.groupby("A", group_keys=False)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(lambda x: x.rolling(4).sum()).index
+        expected = g.apply(lambda x: x.rolling(4).sum()).index
         _ = g.rolling(window=4)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = g.apply(lambda x: x.rolling(4).sum()).index
+        result = g.apply(lambda x: x.rolling(4).sum()).index
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1008,13 +984,11 @@ class TestRolling:
         df["date"] = to_datetime(df["date"])
         df = df.sort_values("date")
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = (
-                df.set_index("date")
-                .groupby("name")
-                .apply(lambda x: x.rolling("180D")["amount"].sum())
-            )
+        expected = (
+            df.set_index("date")
+            .groupby("name")
+            .apply(lambda x: x.rolling("180D")["amount"].sum())
+        )
         result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
         tm.assert_series_equal(result, expected)
 
@@ -1033,13 +1007,9 @@ class TestRolling:
             }
         )
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = (
-                df.set_index("B")
-                .groupby("A")
-                .apply(lambda x: x.rolling("4s")["C"].mean())
-            )
+        expected = (
+            df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
+        )
         result = df.groupby("A").rolling("4s", on="B").C.mean()
         tm.assert_series_equal(result, expected)
 
@@ -1069,11 +1039,7 @@ class TestExpanding:
         r = g.expanding()
 
         result = getattr(r, f)()
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(lambda x: getattr(x.expanding(), f)())
-        # groupby.apply doesn't drop the grouped-by column
-        expected = expected.drop("A", axis=1)
+        expected = g.apply(lambda x: getattr(x.expanding(), f)())
         # GH 39732
         expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
@@ -1085,11 +1051,7 @@ class TestExpanding:
         r = g.expanding()
 
         result = getattr(r, f)(ddof=0)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
-        # groupby.apply doesn't drop the grouped-by column
-        expected = expected.drop("A", axis=1)
+        expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
         # GH 39732
         expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
@@ -1103,13 +1065,9 @@ class TestExpanding:
         r = g.expanding()
 
         result = r.quantile(0.4, interpolation=interpolation)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(
-                lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
-            )
-        # groupby.apply doesn't drop the grouped-by column
-        expected = expected.drop("A", axis=1)
+        expected = g.apply(
+            lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
+        )
         # GH 39732
         expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
@@ -1125,9 +1083,7 @@ class TestExpanding:
         def func_0(x):
             return getattr(x.expanding(), f)(frame)
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(func_0)
+        expected = g.apply(func_0)
         # GH 39591: groupby.apply returns 1 instead of nan for windows
         # with all nan values
         null_idx = list(range(20, 61)) + list(range(72, 113))
@@ -1142,9 +1098,7 @@ class TestExpanding:
         def func_1(x):
             return getattr(x.B.expanding(), f)(pairwise=True)
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(func_1)
+        expected = g.apply(func_1)
         tm.assert_series_equal(result, expected)
 
     def test_expanding_apply(self, raw, frame):
@@ -1153,13 +1107,7 @@ class TestExpanding:
 
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = g.apply(
-                lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw)
-            )
-        # groupby.apply doesn't drop the grouped-by column
-        expected = expected.drop("A", axis=1)
+        expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
         # GH 39732
         expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
