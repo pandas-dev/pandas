@@ -694,7 +694,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
+        .. [1] https://en.wikipedia.org/wiki/Imputation_%28statistics%29
 
         Examples
         --------
@@ -2002,9 +2002,7 @@ class TimeGrouper(Grouper):
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
         if (
-            key is None
-            and obj is not None
-            and isinstance(obj.index, PeriodIndex)  # type: ignore[attr-defined]
+            (key is None and obj is not None and isinstance(obj.index, PeriodIndex))  # type: ignore[attr-defined]
             or (
                 key is not None
                 and obj is not None
