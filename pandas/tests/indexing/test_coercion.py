@@ -831,7 +831,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             raise ValueError
         return replacer
 
-    def test_replace_series(self, how, to_key, from_key, replacer):
+    def test_replace_series(self, how, to_key, from_key, replacer, using_infer_string):
         index = pd.Index([3, 4], name="xxx")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         obj = obj.astype(from_key)
@@ -855,6 +855,10 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         else:
             exp = pd.Series(self.rep[to_key], index=index, name="yyy")
+
+        if using_infer_string and exp.dtype == "string" and obj.dtype == object:
+            # with infer_string, we disable the deprecated downcasting behavior
+            exp = exp.astype(object)
 
         msg = "Downcasting behavior in `replace`"
         warn = FutureWarning
