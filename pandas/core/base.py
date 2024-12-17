@@ -361,8 +361,11 @@ class IndexOpsMixin(OpsMixin):
         # We need this defined here for mypy
         raise AbstractMethodError(self)
 
+    # Temporarily avoid using `-> Literal[1]:` because of an IPython (jedi) bug
+    # https://github.com/ipython/ipython/issues/14412
+    # https://github.com/davidhalter/jedi/issues/1990
     @property
-    def ndim(self) -> Literal[1]:
+    def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
 

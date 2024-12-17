@@ -387,7 +387,6 @@ class TestDataFrameMisc:
 
     def test_inspect_getmembers(self):
         # GH38740
-        pytest.importorskip("jinja2")
         df = DataFrame()
         msg = "DataFrame._data is deprecated"
         with tm.assert_produces_warning(

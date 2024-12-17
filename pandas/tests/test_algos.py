@@ -1283,7 +1283,7 @@ class TestValueCounts:
             result_dt = algos.value_counts(dt)
         tm.assert_series_equal(result_dt, exp_dt)
 
-        exp_td = Series({np.timedelta64(10000): 1}, name="count")
+        exp_td = Series([1], index=[np.timedelta64(10000)], name="count")
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result_td = algos.value_counts(td)
         tm.assert_series_equal(result_td, exp_td)

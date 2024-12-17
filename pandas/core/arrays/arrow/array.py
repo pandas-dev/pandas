@@ -662,7 +662,16 @@ class ArrowExtensionArray(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
-        return self.to_numpy(dtype=dtype)
+        if copy is False:
+            # TODO: By using `zero_copy_only` it may be possible to implement this
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        elif copy is None:
+            # `to_numpy(copy=False)` has the meaning of NumPy `copy=None`.
+            copy = False
+
+        return self.to_numpy(dtype=dtype, copy=copy)
 
     def __invert__(self) -> Self:
         # This is a bit wise op for integer types
@@ -728,7 +737,7 @@ class ArrowExtensionArray(
                 try:
                     result[valid] = op(np_array[valid], other)
                 except TypeError:
-                    result = ops.invalid_comparison(np_array, other, op)
+                    result = ops.invalid_comparison(self, other, op)
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
         else:
@@ -1125,7 +1134,7 @@ class ArrowExtensionArray(
         try:
             fill_value = self._box_pa(value, pa_type=self._pa_array.type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{str(value)}' for dtype {self.dtype}"
+            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
 
         try:
@@ -1624,7 +1633,11 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
-        result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+        try:
+            result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+        except pa.ArrowNotImplementedError as err:
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg) from err
 
         if convert_to_int:
             result = result.cast(pa_dtype)
@@ -2117,7 +2130,7 @@ class ArrowExtensionArray(
         try:
             value = self._box_pa(value, self._pa_array.type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{str(value)}' for dtype {self.dtype}"
+            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
         return value
 
@@ -2276,6 +2289,20 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         if isinstance(self.dtype, StringDtype):
+            if how in [
+                "prod",
+                "mean",
+                "median",
+                "cumsum",
+                "cumprod",
+                "std",
+                "sem",
+                "var",
+                "skew",
+            ]:
+                raise TypeError(
+                    f"dtype '{self.dtype}' does not support operation '{how}'"
+                )
             return super()._groupby_op(
                 how=how,
                 has_dropped_na=has_dropped_na,

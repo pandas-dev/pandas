@@ -305,12 +305,12 @@ def ndarray_to_mgr(
 
     elif isinstance(values, (np.ndarray, ExtensionArray)):
         # drop subclass info
-        _copy = (
-            copy_on_sanitize
-            if (dtype is None or astype_is_view(values.dtype, dtype))
-            else False
-        )
-        values = np.array(values, copy=_copy)
+        if copy_on_sanitize and (dtype is None or astype_is_view(values.dtype, dtype)):
+            # only force a copy now if copy=True was requested
+            # and a subsequent `astype` will not already result in a copy
+            values = np.array(values, copy=True, order="F")
+        else:
+            values = np.asarray(values)
         values = _ensure_2d(values)
 
     else:
@@ -1042,8 +1042,9 @@ def convert_object_array(
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
-                    arr = maybe_infer_to_datetimelike(arr)
-                    if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
+                    convert_to_nullable_dtype = dtype_backend != "numpy"
+                    arr = maybe_infer_to_datetimelike(arr, convert_to_nullable_dtype)
+                    if convert_to_nullable_dtype and arr.dtype == np.dtype("O"):
                         new_dtype = StringDtype()
                         arr_cls = new_dtype.construct_array_type()
                         arr = arr_cls._from_sequence(arr, dtype=new_dtype)

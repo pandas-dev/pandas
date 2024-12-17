@@ -2,8 +2,6 @@ import ctypes
 
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -11,9 +9,8 @@ import pandas as pd
 pa = pytest.importorskip("pyarrow")
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @td.skip_if_no("pyarrow", min_version="14.0")
-def test_dataframe_arrow_interface():
+def test_dataframe_arrow_interface(using_infer_string):
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
     capsule = df.__arrow_c_stream__()
@@ -25,7 +22,8 @@ def test_dataframe_arrow_interface():
     )
 
     table = pa.table(df)
-    expected = pa.table({"a": [1, 2, 3], "b": ["a", "b", "c"]})
+    string_type = pa.large_string() if using_infer_string else pa.string()
+    expected = pa.table({"a": [1, 2, 3], "b": pa.array(["a", "b", "c"], string_type)})
     assert table.equals(expected)
 
     schema = pa.schema([("a", pa.int8()), ("b", pa.string())])
@@ -34,13 +32,13 @@ def test_dataframe_arrow_interface():
     assert table.equals(expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @td.skip_if_no("pyarrow", min_version="15.0")
-def test_dataframe_to_arrow():
+def test_dataframe_to_arrow(using_infer_string):
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
     table = pa.RecordBatchReader.from_stream(df).read_all()
-    expected = pa.table({"a": [1, 2, 3], "b": ["a", "b", "c"]})
+    string_type = pa.large_string() if using_infer_string else pa.string()
+    expected = pa.table({"a": [1, 2, 3], "b": pa.array(["a", "b", "c"], string_type)})
     assert table.equals(expected)
 
     schema = pa.schema([("a", pa.int8()), ("b", pa.string())])

@@ -16,8 +16,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import parsing
 
 import pandas as pd
@@ -1799,7 +1797,6 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
@@ -1807,7 +1804,7 @@ def test_parse_timezone(all_parsers):
 )
 def test_invalid_parse_delimited_date(all_parsers, date_string):
     parser = all_parsers
-    expected = DataFrame({0: [date_string]}, dtype="object")
+    expected = DataFrame({0: [date_string]}, dtype="str")
     result = parser.read_csv(
         StringIO(date_string),
         header=None,
@@ -2054,7 +2051,6 @@ def test_parse_dates_and_keep_original_column(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_dayfirst_warnings():
     # GH 12585
 
@@ -2087,7 +2083,7 @@ def test_dayfirst_warnings():
 
     # first in DD/MM/YYYY, second in MM/DD/YYYY
     input = "date\n31/12/2014\n03/30/2011"
-    expected = Index(["31/12/2014", "03/30/2011"], dtype="object", name="date")
+    expected = Index(["31/12/2014", "03/30/2011"], dtype="str", name="date")
 
     # A. use dayfirst=True
     res5 = read_csv(
@@ -2204,7 +2200,6 @@ def test_parse_dates_and_string_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_parse_dot_separated_dates(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/2586
     parser = all_parsers
@@ -2214,7 +2209,7 @@ def test_parse_dot_separated_dates(all_parsers):
     if parser.engine == "pyarrow":
         expected_index = Index(
             ["27.03.2003 14:55:00.000", "03.08.2003 15:20:00.000"],
-            dtype="object",
+            dtype="str",
             name="a",
         )
         warn = None
