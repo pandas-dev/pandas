@@ -7,6 +7,7 @@ from typing import (
 )
 import warnings
 
+import matplotlib as mpl
 from matplotlib.artist import setp
 import numpy as np
 
