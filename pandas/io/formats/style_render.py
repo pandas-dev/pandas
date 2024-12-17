@@ -956,14 +956,11 @@ class StylerRenderer:
             visible_index_levels: list[int] = [
                 i for i in range(index_levels) if not self.hide_index_[i]
             ]
-            target_index_levels: list[int] = [
-                i
-                for i in range(index_levels)
-                if "invisible" in clines or not self.hide_index_[i]
-            ]
             for rn, r in enumerate(visible_row_indexes):
                 lvln = 0
-                for lvl in target_index_levels:
+                for lvl in range(index_levels):
+                    if self.hide_index_[lvl] and "invisible" not in clines:
+                        continue
                     if lvl == index_levels - 1 and "skip-last" in clines:
                         continue
                     idx_len = d["index_lengths"].get((lvl, r), None)
