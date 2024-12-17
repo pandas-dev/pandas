@@ -1,5 +1,7 @@
 """Test cases for .boxplot method"""
 
+from __future__ import annotations
+
 import itertools
 import string
 
@@ -37,7 +39,7 @@ def _check_ax_limits(col, ax):
 
 
 if Version(mpl.__version__) < Version("3.10"):
-    verts = [{"vert": False}, {"vert": True}]
+    verts: list[dict[str, bool | str]] = [{"vert": False}, {"vert": True}]
 else:
     verts = [{"orientation": "horizontal"}, {"orientation": "vertical"}]
 
@@ -337,6 +339,7 @@ class TestDataFramePlots:
         assert ax.get_xlabel() == xlabel
         assert ax.get_ylabel() == ylabel
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_plot_box(self, vert):
         # GH 54941
         rng = np.random.default_rng(2)
@@ -378,7 +381,6 @@ class TestDataFramePlots:
             assert subplot.get_xlabel() == xlabel
             assert subplot.get_ylabel() == ylabel
 
-    @pytest.mark.parametrize("vert", [True, False])
     def test_boxplot_group_no_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
@@ -387,9 +389,13 @@ class TestDataFramePlots:
                 "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
             }
         )
-        ax = df.boxplot(by="group", vert=vert)
+        ax = df.boxplot(by="group", **vert)
         for subplot in ax:
-            target_label = subplot.get_xlabel() if vert else subplot.get_ylabel()
+            target_label = (
+                subplot.get_xlabel()
+                if vert == {"vert": True} or vert == {"orientation": "vertical"}
+                else subplot.get_ylabel()
+            )
             assert target_label == pprint_thing(["group"])
 
 

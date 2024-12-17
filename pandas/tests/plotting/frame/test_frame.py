@@ -1087,6 +1087,7 @@ class TestDataFramePlots:
         assert len(ax.lines) == 7 * len(numeric_cols)
 
     @pytest.mark.filterwarnings("ignore:Attempt:UserWarning")
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_vertical_subplots(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
