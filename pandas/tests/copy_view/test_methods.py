@@ -960,7 +960,7 @@ def test_infer_objects(using_copy_on_write, using_infer_string):
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-        if using_infer_string and HAS_PYARROW:
+        if using_infer_string:
             assert not tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
         else:
             assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
@@ -1000,7 +1000,7 @@ def test_infer_objects_no_reference(using_copy_on_write, using_infer_string):
     df.iloc[0, 3] = Timestamp("2018-12-31")
     if using_copy_on_write:
         assert np.shares_memory(arr_a, get_array(df, "a"))
-        if using_infer_string and HAS_PYARROW:
+        if using_infer_string:
             # note that the underlying memory of arr_b has been copied anyway
             # because of the assignment, but the EA is updated inplace so still
             # appears the share memory
@@ -1011,7 +1011,7 @@ def test_infer_objects_no_reference(using_copy_on_write, using_infer_string):
         assert np.shares_memory(arr_d, get_array(df, "d"))
 
 
-def test_infer_objects_reference(using_copy_on_write):
+def test_infer_objects_reference(using_copy_on_write, using_infer_string):
     df = DataFrame(
         {
             "a": [1, 2],
@@ -1034,7 +1034,8 @@ def test_infer_objects_reference(using_copy_on_write):
     df.iloc[0, 3] = Timestamp("2018-12-31")
     if using_copy_on_write:
         assert not np.shares_memory(arr_a, get_array(df, "a"))
-        assert not np.shares_memory(arr_b, get_array(df, "b"))
+        if not using_infer_string or HAS_PYARROW:
+            assert not np.shares_memory(arr_b, get_array(df, "b"))
         assert np.shares_memory(arr_d, get_array(df, "d"))
 
 
