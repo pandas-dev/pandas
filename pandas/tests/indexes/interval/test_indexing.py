@@ -341,6 +341,9 @@ class TestGetIndexer:
         expected = index.get_indexer(target)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_get_indexer_categorical_with_nans(self):
         # GH#41934 nans in both index and in target
         ii = IntervalIndex.from_breaks(range(5))

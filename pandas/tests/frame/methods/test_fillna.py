@@ -128,19 +128,15 @@ class TestFillNA:
             [["a", "a", np.nan, "a"], ["b", "b", np.nan, "b"], ["c", "c", np.nan, "c"]]
         )
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.fillna({2: "foo"})
+        result = df.fillna({2: "foo"})
         expected = DataFrame(
             [["a", "a", "foo", "a"], ["b", "b", "foo", "b"], ["c", "c", "foo", "c"]]
         )
         # column is originally float (all-NaN) -> filling with string gives object dtype
-        # expected[2] = expected[2].astype("object")
+        expected[2] = expected[2].astype("object")
         tm.assert_frame_equal(result, expected)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return_value = df.fillna({2: "foo"}, inplace=True)
+        return_value = df.fillna({2: "foo"}, inplace=True)
         tm.assert_frame_equal(df, expected)
         assert return_value is None
 
@@ -379,13 +375,8 @@ class TestFillNA:
 
         # empty block
         df = DataFrame(index=range(3), columns=["A", "B"], dtype="float64")
-        if using_infer_string:
-            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
-                result = df.fillna("nan")
-        else:
-            result = df.fillna("nan")
-        # expected = DataFrame("nan", dtype="object", index=range(3),columns=["A", "B"])
-        expected = DataFrame("nan", index=range(3), columns=["A", "B"])
+        result = df.fillna("nan")
+        expected = DataFrame("nan", index=range(3), columns=["A", "B"], dtype=object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("val", ["", 1, np.nan, 1.0])
