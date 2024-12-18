@@ -2280,7 +2280,8 @@ class ArrowDtype(StorageExtensionDtype):
             # regardless of the pyarrow timestamp units.
             # This can be removed if/when pyarrow addresses it:
             # https://github.com/apache/arrow/issues/34462
-            return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
+            if self.pyarrow_dtype.tz is None:
+                return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
         if pa.types.is_duration(self.pyarrow_dtype):
             # pa.duration(unit).to_pandas_dtype() returns ns units
             # regardless of the pyarrow duration units
