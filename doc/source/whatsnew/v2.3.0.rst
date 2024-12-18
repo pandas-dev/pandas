@@ -134,6 +134,7 @@ MultiIndex
 I/O
 ^^^
 - :meth:`DataFrame.to_excel` was storing decimals as strings instead of numbers (:issue:`49598`)
+- Bug in :func:`read_sql` causing an unintended exception when byte data was being converted to string when using the pyarrow dtype_backend (:issue:`59242`)
 -
 
 Period
