@@ -1068,7 +1068,9 @@ def test_to_sql(conn, method, test_frame1, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
-@pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
+@pytest.mark.parametrize(
+    "mode, num_row_coef", [("replace", 1), ("append", 2), ("delete_rows", 1)]
+)
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
@@ -2696,6 +2698,64 @@ def test_drop_table(conn, request):
         except AttributeError:
             pass
         assert not insp.has_table("temp_frame")
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_delete_rows_success(conn, test_frame1, request):
+    table_name = "temp_frame"
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+
+    with pandasSQL.run_transaction():
+        assert pandasSQL.to_sql(test_frame1, table_name) == test_frame1.shape[0]
+
+    with pandasSQL.run_transaction():
+        assert pandasSQL.delete_rows(table_name) is None
+
+    assert count_rows(conn, table_name) == 0
+    assert pandasSQL.has_table("temp_frame")
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_delete_rows_is_atomic(conn, request):
+    import adbc_driver_manager
+    import sqlalchemy
+
+    if "sqlite" in conn:
+        reason = "This test relies on strict column types, SQLite has a dynamic one"
+        request.applymarker(
+            pytest.mark.xfail(
+                reason=reason,
+                strict=True,
+            )
+        )
+
+    table_name = "temp_frame"
+    original_df = DataFrame({"a": [1, 2, 3]})
+    replacing_df = DataFrame({"a": ["a", "b", "c", "d"]})
+
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+
+    if isinstance(conn, adbc_driver_manager.dbapi.Connection):
+        expected_exception = adbc_driver_manager.ProgrammingError
+    else:
+        expected_exception = sqlalchemy.exc.DataError
+
+    with pandasSQL.run_transaction():
+        pandasSQL.to_sql(original_df, table_name, if_exists="fail", index=False)
+
+    # trying to insert strings in an integer column
+    with pytest.raises(expected_exception):
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(
+                replacing_df, table_name, if_exists="delete_rows", index=False
+            )
+
+    # failed "delete_rows" is rolled back preserving original data
+    with pandasSQL.run_transaction():
+        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name}")
+        tm.assert_frame_equal(result_df, original_df)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
