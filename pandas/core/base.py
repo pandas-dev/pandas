@@ -1463,6 +1463,8 @@ class IndexOpsMixin(OpsMixin):
         return algorithms.duplicated(arr, keep=keep)
 
     def _arith_method(self, other, op):
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.__finalize__(other)
         res_name = ops.get_op_result_name(self, other)
 
         lvalues = self._values

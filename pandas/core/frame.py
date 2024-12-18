@@ -7826,6 +7826,9 @@ class DataFrame(NDFrame, OpsMixin):
     def _cmp_method(self, other, op):
         axis: Literal[1] = 1  # only relevant for Series other case
 
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.__finalize__(other)
+
         self, other = self._align_for_op(other, axis, flex=False, level=None)
 
         # See GH#4537 for discussion of scalar op behavior
@@ -7833,6 +7836,9 @@ class DataFrame(NDFrame, OpsMixin):
         return self._construct_result(new_data)
 
     def _arith_method(self, other, op):
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.__finalize__(other)
+
         if self._should_reindex_frame_op(other, op, 1, None, None):
             return self._arith_method_with_reindex(other, op)
 
@@ -8198,6 +8204,9 @@ class DataFrame(NDFrame, OpsMixin):
 
                 new_data = self._dispatch_frame_op(other, op)
 
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.__finalize__(other)
+
         return self._construct_result(new_data)
 
     def _construct_result(self, result) -> DataFrame:
@@ -8235,6 +8244,9 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis) if axis is not None else 1
 
         self, other = self._align_for_op(other, axis, flex=True, level=level)
+
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.__finalize__(other)
 
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
