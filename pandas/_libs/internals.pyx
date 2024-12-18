@@ -3,9 +3,10 @@ from collections import defaultdict
 cimport cython
 from cpython.object cimport PyObject
 from cpython.pyport cimport PY_SSIZE_T_MAX
+from cpython.ref cimport Py_DECREF
 from cpython.slice cimport PySlice_GetIndicesEx
 from cpython.weakref cimport (
-    PyWeakref_GetObject,
+    PyWeakref_GetRef,
     PyWeakref_NewRef,
 )
 from cython cimport Py_ssize_t
@@ -908,11 +909,18 @@ cdef class BlockValuesRefs:
         # if force=False. Clearing for every insertion causes slowdowns if
         # all these objects stay alive, e.g. df.items() for wide DataFrames
         # see GH#55245 and GH#55008
+        cdef PyObject* pobj
+        cdef bint status
+
         if force or len(self.referenced_blocks) > self.clear_counter:
-            self.referenced_blocks = [
-                ref for ref in self.referenced_blocks
-                if PyWeakref_GetObject(ref) != Py_None
-            ]
+            new_referenced_blocks = []
+            for ref in self.referenced_blocks:
+                status = PyWeakref_GetRef(ref, &pobj)
+                if status == 1:
+                    new_referenced_blocks.append(ref)
+                    Py_DECREF(<object>pobj)
+            self.referenced_blocks = new_referenced_blocks
+
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
                 self.clear_counter = max(self.clear_counter // 2, 500)
@@ -927,8 +935,9 @@ cdef class BlockValuesRefs:
         blk : Block
             The block that the new references should point to.
         """
-        self._clear_dead_references()
-        self.referenced_blocks.append(PyWeakref_NewRef(blk, None))
+        with cython.critical_section(self):
+            self._clear_dead_references()
+            self.referenced_blocks.append(PyWeakref_NewRef(blk, None))
 
     def add_index_reference(self, index: object) -> None:
         """Adds a new reference to our reference collection when creating an index.
@@ -938,8 +947,9 @@ cdef class BlockValuesRefs:
         index : Index
             The index that the new reference should point to.
         """
-        self._clear_dead_references()
-        self.referenced_blocks.append(PyWeakref_NewRef(index, None))
+        with cython.critical_section(self):
+            self._clear_dead_references()
+            self.referenced_blocks.append(PyWeakref_NewRef(index, None))
 
     def has_reference(self) -> bool:
         """Checks if block has foreign references.
@@ -951,6 +961,8 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
-        self._clear_dead_references(force=True)
-        # Checking for more references than block pointing to itself
-        return len(self.referenced_blocks) > 1
+        with cython.critical_section(self):
+            self._clear_dead_references(force=True)
+            # Checking for more references than block pointing to itself
+            has_reference = len(self.referenced_blocks) > 1
+        return has_reference
