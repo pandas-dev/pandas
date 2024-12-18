@@ -87,8 +87,8 @@ from pandas.io._util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Collection,
         Sequence,
-        Sized,
     )
 
     from pandas._typing import (
@@ -1162,6 +1162,7 @@ def convert_dtypes(
 
 def maybe_infer_to_datetimelike(
     value: npt.NDArray[np.object_],
+    convert_to_nullable_dtype: bool = False,
 ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray | IntervalArray:
     """
     we might have a array (or single object) that is datetime like,
@@ -1199,6 +1200,7 @@ def maybe_infer_to_datetimelike(
         #  numpy would have done it for us.
         convert_numeric=False,
         convert_non_numeric=True,
+        convert_to_nullable_dtype=convert_to_nullable_dtype,
         dtype_if_all_nat=np.dtype("M8[s]"),
     )
 
@@ -1579,7 +1581,7 @@ def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     return _maybe_unbox_datetimelike(value, dtype)
 
 
-def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
+def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
     """
     Transform any list-like object in a 1-dimensional numpy array of object
     dtype.
@@ -1597,11 +1599,9 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
     -------
     1-dimensional numpy array of dtype object
     """
-    # numpy will try to interpret nested lists as further dimensions, hence
-    # making a 1D array that contains list-likes is a bit tricky:
-    result = np.empty(len(values), dtype="object")
-    result[:] = values
-    return result
+    # numpy will try to interpret nested lists as further dimensions in np.array(),
+    # hence explicitly making a 1D array using np.fromiter
+    return np.fromiter(values, dtype="object", count=len(values))
 
 
 def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.ndarray:

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 
@@ -392,9 +390,6 @@ def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array):
         assert np.may_share_memory(result_nocopy1, result_nocopy2)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
-)
 @pytest.mark.parametrize("as_series", [True, False])
 @pytest.mark.parametrize(
     "arr", [np.array([1, 2, 3], dtype="int64"), np.array(["a", "b", "c"], dtype=object)]
@@ -406,13 +401,13 @@ def test_to_numpy_copy(arr, as_series, using_infer_string):
 
     # no copy by default
     result = obj.to_numpy()
-    if using_infer_string and arr.dtype == object:
+    if using_infer_string and arr.dtype == object and obj.dtype.storage == "pyarrow":
         assert np.shares_memory(arr, result) is False
     else:
         assert np.shares_memory(arr, result) is True
 
     result = obj.to_numpy(copy=False)
-    if using_infer_string and arr.dtype == object:
+    if using_infer_string and arr.dtype == object and obj.dtype.storage == "pyarrow":
         assert np.shares_memory(arr, result) is False
     else:
         assert np.shares_memory(arr, result) is True

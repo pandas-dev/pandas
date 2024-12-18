@@ -441,7 +441,7 @@ class TestArrowArray(base.ExtensionTests):
             request.applymarker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
-                    raises=NotImplementedError,
+                    raises=TypeError,
                 )
             )
 
@@ -896,9 +896,7 @@ class TestArrowArray(base.ExtensionTests):
                 )
             )
             and pa.types.is_duration(pa_dtype)
-            or opname in ("__sub__", "__rsub__")
-            and pa.types.is_temporal(pa_dtype)
-        )
+        ) or (opname in ("__sub__", "__rsub__") and pa.types.is_temporal(pa_dtype))
 
     def _get_expected_exception(
         self, op_name: str, obj, other
@@ -1649,7 +1647,7 @@ def test_from_arrow_respecting_given_dtype():
 
 def test_from_arrow_respecting_given_dtype_unsafe():
     array = pa.array([1.5, 2.5], type=pa.float64())
-    with pytest.raises(pa.ArrowInvalid, match="Float value 1.5 was truncated"):
+    with tm.external_error_raised(pa.ArrowInvalid):
         array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
 
 

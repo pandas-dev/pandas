@@ -13,8 +13,6 @@ import uuid
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -25,6 +23,7 @@ from pandas import (
     MultiIndex,
     date_range,
     option_context,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -335,6 +334,43 @@ class TestRoundTrip:
             ),
             columns=Index([0]),
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("merge_cells", [True, False, "columns"])
+    def test_excel_round_trip_with_periodindex(self, tmp_excel, merge_cells):
+        # GH#60099
+        df = DataFrame(
+            {"A": [1, 2]},
+            index=MultiIndex.from_arrays(
+                [
+                    period_range(start="2006-10-06", end="2006-10-07", freq="D"),
+                    ["X", "Y"],
+                ],
+                names=["date", "category"],
+            ),
+        )
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        result = pd.read_excel(tmp_excel, index_col=[0, 1])
+        expected = DataFrame(
+            {"A": [1, 2]},
+            MultiIndex.from_arrays(
+                [
+                    [
+                        pd.to_datetime("2006-10-06 00:00:00"),
+                        pd.to_datetime("2006-10-07 00:00:00"),
+                    ],
+                    ["X", "Y"],
+                ],
+                names=["date", "category"],
+            ),
+        )
+        time_format = (
+            "datetime64[s]" if tmp_excel.endswith(".ods") else "datetime64[us]"
+        )
+        expected.index = expected.index.set_levels(
+            expected.index.levels[0].astype(time_format), level=0
+        )
+
         tm.assert_frame_equal(result, expected)
 
 
@@ -764,6 +800,9 @@ class TestExcelWriter:
         # we need to use df_expected to check the result.
         tm.assert_frame_equal(rs2, df_expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_to_excel_interval_no_labels(self, tmp_excel, using_infer_string):
         # see gh-19242
         #
@@ -870,27 +909,49 @@ class TestExcelWriter:
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells
-    def test_to_excel_multiindex_cols(self, merge_cells, frame, tmp_excel):
+    def test_to_excel_multiindex_cols(self, merge_cells, tmp_excel):
+        # GH#11328
+        frame = DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": [7, 8, 9],
+            }
+        )
         arrays = np.arange(len(frame.index) * 2, dtype=np.int64).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
         frame.index = new_index
 
-        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2), (50, 1), (50, 2)])
+        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2), (50, 1)])
         frame.columns = new_cols_index
-        header = [0, 1]
-        if not merge_cells:
-            header = 0
-
-        # round trip
         frame.to_excel(tmp_excel, sheet_name="test1", merge_cells=merge_cells)
+
+        # Check round trip
         with ExcelFile(tmp_excel) as reader:
-            df = pd.read_excel(
-                reader, sheet_name="test1", header=header, index_col=[0, 1]
+            result = pd.read_excel(
+                reader, sheet_name="test1", header=[0, 1], index_col=[0, 1]
             )
+        tm.assert_frame_equal(result, frame)
+
+        # GH#60274
+        # Check with header/index_col None to determine which cells were merged
+        with ExcelFile(tmp_excel) as reader:
+            result = pd.read_excel(
+                reader, sheet_name="test1", header=None, index_col=None
+            )
+        expected = DataFrame(
+            {
+                0: [np.nan, np.nan, "first", 0, 1, 2],
+                1: [np.nan, np.nan, "second", 3, 4, 5],
+                2: [40.0, 1.0, np.nan, 1.0, 2.0, 3.0],
+                3: [np.nan, 2.0, np.nan, 4.0, 5.0, 6.0],
+                4: [50.0, 1.0, np.nan, 7.0, 8.0, 9.0],
+            }
+        )
         if not merge_cells:
-            fm = frame.columns._format_multi(sparsify=False, include_names=False)
-            frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
-        tm.assert_frame_equal(frame, df)
+            # MultiIndex column value is repeated
+            expected.loc[0, 3] = 40.0
+        tm.assert_frame_equal(result, expected)
 
     def test_to_excel_multiindex_dates(self, merge_cells, tmp_excel):
         # try multiindex with dates
@@ -1365,12 +1426,11 @@ class TestExcelWriter:
         result = pd.read_excel(tmp_excel, index_col=0)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_path_path_lib(self, engine, ext):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         writer = partial(df.to_excel, engine=engine)
 

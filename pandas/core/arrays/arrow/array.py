@@ -1446,8 +1446,7 @@ class ArrowExtensionArray(
             pa.types.is_floating(pa_type)
             and (
                 na_value is np.nan
-                or original_na_value is lib.no_default
-                and is_float_dtype(dtype)
+                or (original_na_value is lib.no_default and is_float_dtype(dtype))
             )
         ):
             result = data._pa_array.to_numpy()
@@ -1644,7 +1643,11 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
-        result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+        try:
+            result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
+        except pa.ArrowNotImplementedError as err:
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg) from err
 
         if convert_to_int:
             result = result.cast(pa_dtype)

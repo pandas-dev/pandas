@@ -366,9 +366,11 @@ class StylerRenderer:
         if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
-                table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
+                table_attr = table_attr.replace(
+                    'class="', 'class="tex2jax_ignore mathjax_ignore '
+                )
             else:
-                table_attr += ' class="tex2jax_ignore"'
+                table_attr += ' class="tex2jax_ignore mathjax_ignore"'
         d.update({"table_attributes": table_attr})
 
         if self.tooltips:
@@ -866,7 +868,8 @@ class StylerRenderer:
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         index_levels = self.index.nlevels
-        visible_index_level_n = index_levels - sum(self.hide_index_)
+        # GH 52218
+        visible_index_level_n = max(1, index_levels - sum(self.hide_index_))
         d["head"] = [
             [
                 {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
