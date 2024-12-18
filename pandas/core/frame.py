@@ -5009,7 +5009,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        **kwargs : dict of {str: callable or Series}
+        **kwargs : callable or Series
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
