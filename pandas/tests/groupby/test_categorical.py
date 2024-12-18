@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -69,6 +67,7 @@ _results_for_groupbys_with_missing_categories = {
 }
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 def test_apply_use_categorical_name(df):
     cats = qcut(df.C, 4)
 
@@ -340,14 +339,18 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-def test_observed(observed):
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
+def test_observed(request, using_infer_string, observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
     # gh-10132 (back-compat)
     # gh-8138 (back-compat)
     # gh-8869
+
+    if using_infer_string and not observed:
+        # TODO(infer_string) this fails with filling the string column with 0
+        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     cat1 = Categorical(["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True)
     cat2 = Categorical(["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True)
@@ -1555,6 +1558,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         assert (res.loc[unobserved_cats] == expected).all().all()
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 def test_series_groupby_categorical_aggregation_getitem():
     # GH 8870
     d = {"foo": [10, 8, 4, 1], "bar": [10, 20, 30, 40], "baz": ["d", "c", "d", "c"]}

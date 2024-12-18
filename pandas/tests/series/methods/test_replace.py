@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -403,10 +401,6 @@ class TestSeriesReplace:
         ser = pd.Series(categorical)
         msg = "Downcasting behavior in `replace`"
         msg = "with CategoricalDtype is deprecated"
-        if using_infer_string:
-            with pytest.raises(TypeError, match="Invalid value"):
-                ser.replace({"A": 1, "B": 2})
-            return
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ser.replace({"A": 1, "B": 2})
         expected = pd.Series(numeric).astype("category")
@@ -745,13 +739,13 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("regex", [False, True])
-    def test_replace_regex_dtype_series_string(self, regex, using_infer_string):
-        if not using_infer_string:
-            # then this is object dtype which is already tested above
-            return
+    def test_replace_regex_dtype_series_string(self, regex):
         series = pd.Series(["0"], dtype="str")
-        with pytest.raises(TypeError, match="Invalid value"):
-            series.replace(to_replace="0", value=1, regex=regex)
+        expected = pd.Series([1], dtype="int64")
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = series.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_series_equal(result, expected)
 
     def test_replace_different_int_types(self, any_int_numpy_dtype):
         # GH#45311
@@ -772,7 +766,6 @@ class TestSeriesReplace:
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_change_dtype_series(self):
         # GH#25797
         df = pd.DataFrame({"Test": ["0.5", True, "0.6"]}, dtype=object)
