@@ -560,3 +560,12 @@ def test_combine_first_empty_columns():
     result = left.combine_first(right)
     expected = DataFrame(columns=["a", "b", "c"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_combine_first_column_order():
+    df1 = DataFrame({"B": [1, 2], "A": [3, 4]})
+    df2 = DataFrame({"A": [5]}, index=[1])
+
+    result = df1.combine_first(df2, sort_columns=False)
+    expected = DataFrame({"B": [1, 2], "A": [3, 4]})
+    tm.assert_frame_equal(result, expected)
