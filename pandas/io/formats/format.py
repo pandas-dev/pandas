@@ -78,7 +78,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
     check_parent_directory,
@@ -245,7 +244,11 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                _len = len(series)
+                _slice = np.hstack(
+                    [np.arange(row_num), np.arange(_len - row_num, _len)]
+                )
+                series = series.iloc[_slice]
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -669,9 +672,9 @@ class DataFrameFormatter:
         assert self.max_cols_fitted is not None
         col_num = self.max_cols_fitted // 2
         if col_num >= 1:
-            left = self.tr_frame.iloc[:, :col_num]
-            right = self.tr_frame.iloc[:, -col_num:]
-            self.tr_frame = concat((left, right), axis=1)
+            _len = len(self.tr_frame.columns)
+            _slice = np.hstack([np.arange(col_num), np.arange(_len - col_num, _len)])
+            self.tr_frame = self.tr_frame.iloc[:, _slice]
 
             # truncate formatter
             if isinstance(self.formatters, (list, tuple)):
@@ -682,7 +685,7 @@ class DataFrameFormatter:
         else:
             col_num = cast(int, self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :col_num]
-        self.tr_col_num = col_num
+        self.tr_col_num: int = col_num
 
     def _truncate_vertically(self) -> None:
         """Remove rows, which are not to be displayed.
@@ -1749,7 +1752,7 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         # The split will give [{"", "-"}, "xxx", "+/-", "xxx", "j", ""]
         # Therefore, the imaginary part is the 4th and 3rd last elements,
         # and the real part is everything before the imaginary part
-        trimmed = re.split(r"([j+-])", x)
+        trimmed = re.split(r"(?<!e)([j+-])", x)
         real_part.append("".join(trimmed[:-4]))
         imag_part.append("".join(trimmed[-4:-2]))
 

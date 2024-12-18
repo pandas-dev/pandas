@@ -567,9 +567,9 @@ One must have :math:`0 < \alpha \leq 1`, and while it is possible to pass
 
    \alpha =
     \begin{cases}
-        \frac{2}{s + 1},               & \text{for span}\ s \geq 1\\
-        \frac{1}{1 + c},               & \text{for center of mass}\ c \geq 0\\
-        1 - \exp^{\frac{\log 0.5}{h}}, & \text{for half-life}\ h > 0
+        \frac{2}{s + 1},            & \text{for span}\ s \geq 1\\
+        \frac{1}{1 + c},            & \text{for center of mass}\ c \geq 0\\
+        1 - e^{\frac{\log 0.5}{h}}, & \text{for half-life}\ h > 0
     \end{cases}
 
 One must specify precisely one of **span**, **center of mass**, **half-life**

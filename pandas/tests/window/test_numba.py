@@ -459,6 +459,38 @@ class TestTableMethod:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_table_method_rolling_apply_col_order(self):
+        # GH#59666
+        def f(x):
+            return np.nanmean(x[:, 0] - x[:, 1])
+
+        df = DataFrame(
+            {
+                "a": [1, 2, 3, 4, 5, 6],
+                "b": [6, 7, 8, 5, 6, 7],
+            }
+        )
+        result = df.rolling(3, method="table", min_periods=0)[["a", "b"]].apply(
+            f, raw=True, engine="numba"
+        )
+        expected = DataFrame(
+            {
+                "a": [-5, -5, -5, -3.66667, -2.33333, -1],
+                "b": [-5, -5, -5, -3.66667, -2.33333, -1],
+            }
+        )
+        tm.assert_almost_equal(result, expected)
+        result = df.rolling(3, method="table", min_periods=0)[["b", "a"]].apply(
+            f, raw=True, engine="numba"
+        )
+        expected = DataFrame(
+            {
+                "b": [5, 5, 5, 3.66667, 2.33333, 1],
+                "a": [5, 5, 5, 3.66667, 2.33333, 1],
+            }
+        )
+        tm.assert_almost_equal(result, expected)
+
     def test_table_method_rolling_weighted_mean(self, step):
         def weighted_mean(x):
             arr = np.ones((1, x.shape[1]))

@@ -1004,6 +1004,33 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_rowspan_in_header_overflowing_to_body(self, flavor_read_html):
+        # GH60210
+
+        result = flavor_read_html(
+            StringIO(
+                """
+            <table>
+                <tr>
+                    <th rowspan="2">A</th>
+                    <th>B</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>C</td>
+                    <td>2</td>
+                </tr>
+            </table>
+        """
+            )
+        )[0]
+
+        expected = DataFrame(data=[["A", 1], ["C", 2]], columns=["A", "B"])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_header_inferred_from_rows_with_only_th(self, flavor_read_html):
         # GH17054
         result = flavor_read_html(

@@ -430,7 +430,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
     Check whether an array-like or dtype is of the Period dtype.
 
     .. deprecated:: 2.2.0
-        Use isinstance(dtype, pd.Period) instead.
+        Use isinstance(dtype, pd.PeriodDtype) instead.
 
     Parameters
     ----------
@@ -1889,13 +1889,14 @@ def is_all_strings(value: ArrayLike) -> bool:
 
 
 __all__ = [
-    "classes",
     "DT64NS_DTYPE",
+    "INT64_DTYPE",
+    "TD64NS_DTYPE",
+    "classes",
     "ensure_float64",
     "ensure_python_int",
     "ensure_str",
     "infer_dtype_from_object",
-    "INT64_DTYPE",
     "is_1d_only_ea_dtype",
     "is_all_strings",
     "is_any_real_numeric_dtype",
@@ -1940,6 +1941,5 @@ __all__ = [
     "is_unsigned_integer_dtype",
     "needs_i8_conversion",
     "pandas_dtype",
-    "TD64NS_DTYPE",
     "validate_all_hashable",
 ]

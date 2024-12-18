@@ -9,9 +9,9 @@ from pandas.api import (
 )
 
 __all__ = [
-    "interchange",
     "extensions",
     "indexers",
+    "interchange",
     "types",
     "typing",
 ]

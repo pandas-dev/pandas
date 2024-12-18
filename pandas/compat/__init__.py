@@ -150,6 +150,13 @@ def is_ci_environment() -> bool:
 
 
 __all__ = [
+    "HAS_PYARROW",
+    "IS64",
+    "ISMUSL",
+    "PY311",
+    "PY312",
+    "PYPY",
+    "WASM",
     "is_numpy_dev",
     "pa_version_under10p1",
     "pa_version_under11p0",
@@ -159,11 +166,4 @@ __all__ = [
     "pa_version_under16p0",
     "pa_version_under17p0",
     "pa_version_under18p0",
-    "HAS_PYARROW",
-    "IS64",
-    "ISMUSL",
-    "PY311",
-    "PY312",
-    "PYPY",
-    "WASM",
 ]

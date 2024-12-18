@@ -514,9 +514,8 @@ class Block(PandasObject, libinternals.Block):
             convert_non_numeric=True,
         )
         refs = None
-        if (
-            res_values is values
-            or isinstance(res_values, NumpyExtensionArray)
+        if res_values is values or (
+            isinstance(res_values, NumpyExtensionArray)
             and res_values._ndarray is values
         ):
             refs = self.refs

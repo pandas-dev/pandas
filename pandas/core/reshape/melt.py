@@ -51,9 +51,9 @@ def melt(
     """
     Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
-    This function is useful to massage a DataFrame into a format where one
+    This function is useful to reshape a DataFrame into a format where one
     or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to
+    columns are considered measured variables (`value_vars`), and are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
 

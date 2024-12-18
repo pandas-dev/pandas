@@ -188,6 +188,11 @@ def set_option(*args) -> None:
     """
     Set the value of the specified option or options.
 
+    This method allows fine-grained control over the behavior and display settings
+    of pandas. Options affect various functionalities such as output formatting,
+    display limits, and operational behavior. Settings can be modified at runtime
+    without requiring changes to global configurations or environment variables.
+
     Parameters
     ----------
     *args : str | object
