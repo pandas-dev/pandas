@@ -2527,6 +2527,80 @@ def maybe_convert_numeric(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def _convert_to_pyarrow(
+                        ndarray[object] objects,
+                        ndarray[uint8_t] mask,
+                        object na_value=None) -> "ArrayLike":
+    from pandas.core.dtypes.dtypes import ArrowDtype
+
+    from pandas.core.arrays.string_ import StringDtype
+
+    # pa.array does not support na_value as pd.NA,
+    # so we replace them by None and then restore them after
+    objects[mask] = None
+    pa_array = pa.array(objects)
+
+    # Pyarrow large string are StringDtype (not ArrowDtype)
+    if pa.types.is_large_string(pa_array.type):
+        dtype = StringDtype(storage="pyarrow", na_value=na_value)
+    else:
+        dtype = ArrowDtype(pa_array.type)
+    return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _convert_to_based_masked(
+                            ndarray[object] objects,
+                            object numpy_dtype) -> "ArrayLike":
+    from pandas.core.dtypes.dtypes import BaseMaskedDtype
+
+    from pandas.core.construction import array as pd_array
+
+    dtype = BaseMaskedDtype.from_numpy_dtype(numpy_dtype)
+    return pd_array(objects, dtype=dtype)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _maybe_get_numpy_dtype(Seen seen, object scalar_type):
+    # Numpy scalar type
+    if issubclass(scalar_type, np.generic):
+        return np.dtype(scalar_type)
+    # Native python type
+    elif seen.bool_:
+        return np.dtype(bool)
+    elif seen.uint_:
+        return np.dtype(np.uint)
+    elif seen.int_ or seen.sint_:
+        return np.dtype(int)
+    elif seen.float_:
+        return np.dtype(float)
+    else:
+        return None
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _maybe_get_based_masked_scalar_numpy_dtype(
+        val_types,
+        seen,
+        convert_to_nullable_dtype):
+    # If we have no type or more than one type we cannot build a based masked array
+    if not val_types or len(val_types) > 1:
+        return None
+
+    numpy_dtype = _maybe_get_numpy_dtype(seen, val_types.pop())
+    if (
+            numpy_dtype and numpy_dtype.kind in "biuf"
+            and convert_to_nullable_dtype):
+        return numpy_dtype
+    else:
+        return None
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects,
                           *,
                           bint try_float=False,
@@ -2534,7 +2608,9 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_numeric=True,  # NB: different default!
                           bint convert_to_nullable_dtype=False,
                           bint convert_non_numeric=False,
-                          object dtype_if_all_nat=None) -> "ArrayLike":
+                          object dtype_if_all_nat=None,
+                          str storage=None,
+                          object na_value=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2557,6 +2633,8 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
         Dtype to cast to if we have all-NaT.
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
+        Backend storage
 
     Returns
     -------
@@ -2592,9 +2670,14 @@ def maybe_convert_objects(ndarray[object] objects,
     uints = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT64, 0)
     bools = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT8, 0)
     mask = np.full(n, False)
+    val = None
+    val_types = set()
 
     for i in range(n):
         val = objects[i]
+        if not checknull(val):
+            val_types.add(type(val))
+
         if itemsize_max != -1:
             itemsize = get_itemsize(val)
             if itemsize > itemsize_max or itemsize == -1:
@@ -2728,6 +2811,17 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
             break
 
+    if storage == "pyarrow":
+        return _convert_to_pyarrow(objects, mask, na_value)
+
+    based_masked_scalar_numpy_dtype = _maybe_get_based_masked_scalar_numpy_dtype(
+        val_types,
+        seen,
+        convert_to_nullable_dtype)
+
+    if based_masked_scalar_numpy_dtype:
+        return _convert_to_based_masked(objects, based_masked_scalar_numpy_dtype)
+
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
         if is_datetime_with_singletz_array(objects):
@@ -2789,6 +2883,12 @@ def maybe_convert_objects(ndarray[object] objects,
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype(na_value=np.nan)
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+
+        elif storage == "python":
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype(storage=storage, na_value=na_value)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
@@ -2944,7 +3044,10 @@ def map_infer_mask(
     *,
     bint convert=True,
     object na_value=no_default,
-    cnp.dtype dtype=np.dtype(object)
+    bint convert_to_nullable_dtype=False,
+    convert_non_numeric=False,
+    cnp.dtype dtype=np.dtype(object),
+    str storage=None,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2960,8 +3063,12 @@ def map_infer_mask(
     na_value : Any, optional
         The result value to use for masked values. By default, the
         input value is used.
+    convert_non_numeric : bool, default False
+        Whether to convert datetime, timedelta, period, interval types.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
+        Backend storage
 
     Returns
     -------
@@ -2997,7 +3104,13 @@ def map_infer_mask(
         PyArray_ITER_NEXT(result_it)
 
     if convert:
-        return maybe_convert_objects(result)
+        return maybe_convert_objects(
+            result,
+            convert_to_nullable_dtype=convert_to_nullable_dtype,
+            convert_non_numeric=convert_non_numeric,
+            storage=storage,
+            na_value=na_value,
+        )
     else:
         return result
 
@@ -3005,7 +3118,15 @@ def map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer(
-    ndarray arr, object f, *, bint convert=True, bint ignore_na=False
+    ndarray arr,
+    object f,
+    *,
+    bint convert=True,
+    bint ignore_na=False,
+    const uint8_t[:] mask=None,
+    object na_value=None,
+    bint convert_to_nullable_dtype=False,
+    str storage=None,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -3017,6 +3138,15 @@ def map_infer(
     convert : bint
     ignore_na : bint
         If True, NA values will not have f applied
+    mask : ndarray, optional
+        uint8 dtype ndarray indicating na_value to apply `f` to.
+    na_value : Any, optional
+        The input value to use for masked values.
+    convert_to_nullable_dtype : bool, default False
+        If an array-like object contains only integer or boolean values (and NaN) is
+        encountered, whether to convert and return an Boolean/IntegerArray.
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
+        Backend storage
 
     Returns
     -------
@@ -3033,7 +3163,10 @@ def map_infer(
         if ignore_na and checknull(arr[i]):
             result[i] = arr[i]
             continue
-        val = f(arr[i])
+        elif mask is not None and na_value is not None and mask[i]:
+            val = f(na_value)
+        else:
+            val = f(arr[i])
 
         if cnp.PyArray_IsZeroDim(val):
             # unbox 0-dim arrays, GH#690
@@ -3042,7 +3175,13 @@ def map_infer(
         result[i] = val
 
     if convert:
-        return maybe_convert_objects(result)
+        return maybe_convert_objects(
+            result,
+            convert_to_nullable_dtype=convert_to_nullable_dtype,
+            convert_non_numeric=True,
+            storage=storage,
+            na_value=na_value,
+        )
     else:
         return result
 
