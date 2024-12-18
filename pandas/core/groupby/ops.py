@@ -144,6 +144,7 @@ class WrappedCythonOp:
             "std": functools.partial(libgroupby.group_var, name="std"),
             "sem": functools.partial(libgroupby.group_var, name="sem"),
             "skew": "group_skew",
+            "kurt": "group_kurt",
             "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
@@ -193,7 +194,7 @@ class WrappedCythonOp:
             elif how in ["std", "sem", "idxmin", "idxmax"]:
                 # We have a partial object that does not have __signatures__
                 return f
-            elif how == "skew":
+            elif how in ["skew", "kurt"]:
                 # _get_cython_vals will convert to float64
                 pass
             elif "object" not in f.__signatures__:
@@ -224,7 +225,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["median", "std", "sem", "skew"]:
+        if how in ["median", "std", "sem", "skew", "kurt"]:
             # median only has a float64 implementation
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
@@ -453,7 +454,7 @@ class WrappedCythonOp:
                     **kwargs,
                 )
                 result = result.astype(bool, copy=False)
-            elif self.how in ["skew"]:
+            elif self.how in ["skew", "kurt"]:
                 func(
                     out=result,
                     counts=counts,
@@ -1021,6 +1022,7 @@ class BaseGrouper:
         # getattr pattern for __name__ is needed for functools.partial objects
         if len(group_keys) == 0 and getattr(f, "__name__", None) in [
             "skew",
+            "kurt",
             "sum",
             "prod",
         ]:

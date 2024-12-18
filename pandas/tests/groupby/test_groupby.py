@@ -1710,7 +1710,7 @@ def test_pivot_table_values_key_error():
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
-    "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
+    "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew", "kurt"]
 )
 def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_string):
     # GH8093 & GH26411
@@ -1786,7 +1786,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
             tm.assert_equal(result, expected)
         return
 
-    if op in ["prod", "sum", "skew"]:
+    if op in ["prod", "sum", "skew", "kurt"]:
         # ops that require more than just ordered-ness
         if is_dt64 or is_cat or is_per or (is_str and op != "sum"):
             # GH#41291
@@ -1799,15 +1799,15 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
                 msg = f"dtype 'str' does not support operation '{op}'"
             else:
                 msg = "category type does not support"
-            if op == "skew":
-                msg = "|".join([msg, "does not support operation 'skew'"])
+            if op in ["skew", "kurt"]:
+                msg = "|".join([msg, f"does not support operation '{op}'"])
             with pytest.raises(TypeError, match=msg):
                 get_result()
 
             if not isinstance(columns, list):
                 # i.e. SeriesGroupBy
                 return
-            elif op == "skew":
+            elif op in ["skew", "kurt"]:
                 # TODO: test the numeric_only=True case
                 return
             else:
