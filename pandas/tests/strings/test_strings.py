@@ -159,6 +159,7 @@ def test_empty_str_methods(any_string_dtype):
     # ismethods should always return boolean (GH 29624)
     tm.assert_series_equal(empty_bool, empty.str.isalnum())
     tm.assert_series_equal(empty_bool, empty.str.isalpha())
+    tm.assert_series_equal(empty_bool, empty.str.isascii())
     tm.assert_series_equal(empty_bool, empty.str.isdigit())
     tm.assert_series_equal(empty_bool, empty.str.isspace())
     tm.assert_series_equal(empty_bool, empty.str.islower())
@@ -177,6 +178,7 @@ def test_empty_str_methods(any_string_dtype):
 @pytest.mark.parametrize(
     "method, expected",
     [
+        ("isascii", [True, True, True, True, True, True, True, True, True, True]),
         ("isalnum", [True, True, True, True, True, False, True, True, False, False]),
         ("isalpha", [True, True, True, False, False, False, True, False, False, False]),
         (
