@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -32,8 +30,7 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_combine_first(self, float_frame, using_infer_string):
+    def test_combine_first(self, float_frame):
         # disjoint
         head, tail = float_frame[:5], float_frame[5:]
 
@@ -79,9 +76,7 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(combined["A"].reindex(g.index), g["A"])
 
         # corner cases
-        warning = FutureWarning if using_infer_string else None
-        with tm.assert_produces_warning(warning, match="empty entries"):
-            comb = float_frame.combine_first(DataFrame())
+        comb = float_frame.combine_first(DataFrame())
         tm.assert_frame_equal(comb, float_frame)
 
         comb = DataFrame().combine_first(float_frame)

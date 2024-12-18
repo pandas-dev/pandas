@@ -2361,5 +2361,4 @@ def external_values(values: ArrayLike) -> ArrayLike:
         values.flags.writeable = False
 
     # TODO(CoW) we should also mark our ExtensionArrays as read-only
-
     return values
