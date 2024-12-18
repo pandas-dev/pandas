@@ -466,9 +466,29 @@ def main(
             with open(os.path.join(source_path, fname), encoding="utf-8") as f:
                 content = f.read()
             if extension == ".md":
-                body = markdown.markdown(
-                    content, extensions=context["main"]["markdown_extensions"]
-                )
+                if "pdeps/" in fname:
+                    from markdown.extensions.toc import TocExtension
+
+                    body = markdown.markdown(
+                        content,
+                        extensions=[
+                            # Ignore the title of the PDEP in the table of contents
+                            TocExtension(
+                                title="Table of Contents",
+                                toc_depth="2-3",
+                                permalink=" #",
+                            ),
+                            "tables",
+                            "fenced_code",
+                            "meta",
+                            "footnotes",
+                            "codehilite",
+                        ],
+                    )
+                else:
+                    body = markdown.markdown(
+                        content, extensions=context["main"]["markdown_extensions"]
+                    )
                 # Apply Bootstrap's table formatting manually
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')
