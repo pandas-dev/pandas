@@ -451,6 +451,8 @@ def test_moment_functions_zero_length_pairwise(f):
         lambda x: x.expanding(min_periods=5).corr(x, pairwise=False),
         lambda x: x.expanding(min_periods=5).max(),
         lambda x: x.expanding(min_periods=5).min(),
+        lambda x: x.expanding(min_periods=5).first(),
+        lambda x: x.expanding(min_periods=5).last(),
         lambda x: x.expanding(min_periods=5).sum(),
         lambda x: x.expanding(min_periods=5).mean(),
         lambda x: x.expanding(min_periods=5).std(),
@@ -594,6 +596,104 @@ def test_expanding_corr_pairwise_diff_length():
     tm.assert_frame_equal(result2, expected)
     tm.assert_frame_equal(result3, expected)
     tm.assert_frame_equal(result4, expected)
+
+
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [float("nan"), float("nan"), 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [
+                float("nan"),
+                float("nan"),
+                float("nan"),
+                float("nan"),
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+            ],
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [float("nan"), float("nan"), 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [
+                float("nan"),
+                float("nan"),
+                float("nan"),
+                float("nan"),
+                5.0,
+                5.0,
+                7.0,
+                7.0,
+                9.0,
+                9.0,
+            ],
+        ),
+    ],
+)
+def test_expanding_first_last(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.expanding(3), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.expanding(3), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [1.0] * 10,
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [1.0] * 10,
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0, 9.0],
+        ),
+    ],
+)
+def test_expanding_first_last_no_minp(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.expanding(min_periods=0), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.expanding(min_periods=0), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
 
 
 def test_expanding_apply_args_kwargs(engine_and_raw):

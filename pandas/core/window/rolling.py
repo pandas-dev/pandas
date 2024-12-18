@@ -1705,6 +1705,22 @@ class RollingAndExpandingMixin(BaseWindow):
             numeric_only=numeric_only,
         )
 
+    def first(self, numeric_only: bool = False):
+        window_func = window_aggregations.roll_first
+        return self._apply(
+            window_func,
+            name="first",
+            numeric_only=numeric_only,
+        )
+
+    def last(self, numeric_only: bool = False):
+        window_func = window_aggregations.roll_last
+        return self._apply(
+            window_func,
+            name="last",
+            numeric_only=numeric_only,
+        )
+
     def quantile(
         self,
         q: float,
@@ -2538,6 +2554,64 @@ class Rolling(RollingAndExpandingMixin):
     )
     def kurt(self, numeric_only: bool = False):
         return super().kurt(numeric_only=numeric_only)
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("Examples"),
+        dedent(
+            """
+        The example below will show a rolling calculation with a window size of
+        three.
+
+        >>> s = pd.Series(range(5))
+        >>> s.rolling(3).first()
+        0         NaN
+        1         NaN
+        2         0.0
+        3         1.0
+        4         2.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="First (left-most) element of the window",
+        agg_method="first",
+    )
+    def first(self, numeric_only: bool = False):
+        return super().first(numeric_only=numeric_only)
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("Examples"),
+        dedent(
+            """
+        The example below will show a rolling calculation with a window size of
+        three.
+
+        >>> s = pd.Series(range(5))
+        >>> s.rolling(3).last()
+        0         NaN
+        1         NaN
+        2         2.0
+        3         3.0
+        4         4.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="Last (right-most) element of the window",
+        agg_method="last",
+    )
+    def last(self, numeric_only: bool = False):
+        return super().last(numeric_only=numeric_only)
 
     @doc(
         template_header,
