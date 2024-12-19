@@ -2435,10 +2435,13 @@ def test_not_reflect_all_tables(sqlite_conn):
     from sqlalchemy import text
     from sqlalchemy.engine import Engine
 
+    invalid_uuid = table_uuid_gen("invalid")
+    other_uuid = table_uuid_gen("other_table")
+
     # create invalid table
     query_list = [
-        text("CREATE TABLE invalid (x INTEGER, y UNKNOWN);"),
-        text("CREATE TABLE other_table (x INTEGER, y INTEGER);"),
+        text(f"CREATE TABLE {invalid_uuid} (x INTEGER, y UNKNOWN);"),
+        text(f"CREATE TABLE {other_uuid} (x INTEGER, y INTEGER);"),
     ]
 
     for query in query_list:
@@ -2451,8 +2454,8 @@ def test_not_reflect_all_tables(sqlite_conn):
                 conn.execute(query)
 
     with tm.assert_produces_warning(None):
-        sql.read_sql_table("other_table", conn)
-        sql.read_sql_query("SELECT * FROM other_table", conn)
+        sql.read_sql_table(other_uuid, conn)
+        sql.read_sql_query(f"SELECT * FROM {other_uuid}", conn)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
