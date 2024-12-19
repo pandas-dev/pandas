@@ -292,7 +292,7 @@ class TestDataFrameReplace:
         df = DataFrame(
             {"Type": Series(["Q", "T", "Q", "Q", "T"], dtype=object), "tmp": 2}
         )
-        expected = DataFrame({"Type": Series([0, 1, 0, 0, 1], dtype=object), "tmp": 2})
+        expected = DataFrame({"Type": [0, 1, 0, 0, 1], "tmp": 2})
         msg = "Downcasting behavior in `replace`"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df.replace({"Type": {"Q": 0, "T": 1}})
@@ -304,7 +304,7 @@ class TestDataFrameReplace:
         expec = DataFrame(
             {
                 "a": mix_abc["a"],
-                "b": Series([np.nan] * 4, dtype="str"),
+                "b": [np.nan] * 4,
                 "c": [np.nan, np.nan, np.nan, "d"],
             }
         )
@@ -1633,14 +1633,6 @@ class TestDataFrameReplaceRegex:
         expected_df2 = DataFrame({"A": [1], "B": ["1"]})
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
-
-        if regex:
-            # TODO(infer_string): both string columns get cast to object,
-            # while only needed for column A
-            expected_df2 = DataFrame({"A": [1], "B": ["1"]}, dtype=object)
-        else:
-            expected_df2 = DataFrame({"A": Series([1], dtype=object), "B": ["1"]})
-        result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
         tm.assert_frame_equal(result_df2, expected_df2)
 
     def test_replace_with_value_also_being_replaced(self):
