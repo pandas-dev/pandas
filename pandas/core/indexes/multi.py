@@ -1314,8 +1314,15 @@ class MultiIndex(Index):
         """the array interface, return my values"""
         if copy is False:
             # self.values is always a newly construct array, so raise.
-            raise ValueError(
-                "Unable to avoid copy while creating an array as requested."
+            warnings.warn(
+                "Starting with NumPy 2.0, the behavior of the 'copy' keyword has "
+                "changed and passing 'copy=False' raises an error when returning "
+                "a zero-copy NumPy array is not possible. pandas will follow "
+                "this behavior starting with pandas 3.0.\nThis conversion to "
+                "NumPy requires a copy, but 'copy=False' was passed. Consider "
+                "using 'np.asarray(..)' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
         if copy is True:
             # explicit np.array call to ensure a copy is made and unique objects

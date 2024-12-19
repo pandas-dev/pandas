@@ -82,11 +82,9 @@ class BaseInterfaceTests:
             # copy=False semantics are only supported in NumPy>=2.
             return
 
-        try:
+        msg = "Starting with NumPy 2.0, the behavior of the 'copy' keyword has changed"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result_nocopy1 = np.array(data, copy=False)
-        except ValueError:
-            # An error is always acceptable for `copy=False`
-            return
 
         result_nocopy2 = np.array(data, copy=False)
         # If copy=False was given and did not raise, these must share the same data
