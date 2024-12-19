@@ -3848,12 +3848,13 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
 
 def test_bigint_warning(sqlite_engine):
     conn = sqlite_engine
+    table_uuid = table_uuid_gen("test_bigintwarning")
     # test no warning for BIGINT (to support int64) is raised (GH7433)
     df = DataFrame({"a": [1, 2]}, dtype="int64")
-    assert df.to_sql(name="test_bigintwarning", con=conn, index=False) == 2
+    assert df.to_sql(name=table_uuid, con=conn, index=False) == 2
 
     with tm.assert_produces_warning(None):
-        sql.read_sql_table("test_bigintwarning", conn)
+        sql.read_sql_table(table_uuid, conn)
 
 
 def test_valueerror_exception(sqlite_engine):
@@ -3865,6 +3866,7 @@ def test_valueerror_exception(sqlite_engine):
 
 def test_row_object_is_named_tuple(sqlite_engine):
     conn = sqlite_engine
+    table_uuid = table_uuid_gen("test_frame")
     # GH 40682
     # Test for the is_named_tuple() function
     # Placed here due to its usage of sqlalchemy
@@ -3882,7 +3884,7 @@ def test_row_object_is_named_tuple(sqlite_engine):
     BaseModel = declarative_base()
 
     class Test(BaseModel):
-        __tablename__ = "test_frame"
+        __tablename__ = table_uuid
         id = Column(Integer, primary_key=True)
         string_column = Column(String(50))
 
@@ -3892,7 +3894,7 @@ def test_row_object_is_named_tuple(sqlite_engine):
     with Session() as session:
         df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
         assert (
-            df.to_sql(name="test_frame", con=conn, index=False, if_exists="replace")
+            df.to_sql(name=table_uuid, con=conn, index=False, if_exists="replace")
             == 2
         )
         session.commit()
@@ -3905,7 +3907,7 @@ def test_row_object_is_named_tuple(sqlite_engine):
 def test_read_sql_string_inference(sqlite_engine):
     conn = sqlite_engine
     # GH#54430
-    table = "test"
+    table = table_uuid_gen("test")
     df = DataFrame({"a": ["x", "y"]})
     df.to_sql(table, con=conn, index=False, if_exists="replace")
 
@@ -3922,10 +3924,11 @@ def test_read_sql_string_inference(sqlite_engine):
 
 def test_roundtripping_datetimes(sqlite_engine):
     conn = sqlite_engine
+    table_uuid = table_uuid_gen("test")
     # GH#54877
     df = DataFrame({"t": [datetime(2020, 12, 31, 12)]}, dtype="datetime64[ns]")
-    df.to_sql("test", conn, if_exists="replace", index=False)
-    result = pd.read_sql("select * from test", conn).iloc[0, 0]
+    df.to_sql(table_uuid, conn, if_exists="replace", index=False)
+    result = pd.read_sql(f"select * from {table_uuid}", conn).iloc[0, 0]
     assert result == "2020-12-31 12:00:00.000000"
 
 
@@ -4061,17 +4064,18 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
 
 def test_create_and_drop_table(sqlite_engine):
     conn = sqlite_engine
+    table_uuid = table_uuid_gen("drop_test_frame")
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
     with sql.SQLDatabase(conn) as pandasSQL:
         with pandasSQL.run_transaction():
-            assert pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
+            assert pandasSQL.to_sql(temp_frame, table_uuid) == 4
 
-        assert pandasSQL.has_table("drop_test_frame")
+        assert pandasSQL.has_table(table_uuid)
 
         with pandasSQL.run_transaction():
-            pandasSQL.drop_table("drop_test_frame")
+            pandasSQL.drop_table(table_uuid)
 
-        assert not pandasSQL.has_table("drop_test_frame")
+        assert not pandasSQL.has_table(table_uuid)
 
 
 def test_sqlite_datetime_date(sqlite_buildin):
