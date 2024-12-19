@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -14,7 +10,6 @@ import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "replace_kwargs",
     [
@@ -31,7 +26,7 @@ from pandas.tests.copy_view.util import get_array
     ],
 )
 def test_replace(using_copy_on_write, replace_kwargs):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["foo", "bar", "baz"]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     df_replaced = df.replace(**replace_kwargs)
@@ -39,7 +34,7 @@ def test_replace(using_copy_on_write, replace_kwargs):
     if using_copy_on_write:
         if (df_replaced["b"] == df["b"]).all():
             assert np.shares_memory(get_array(df_replaced, "b"), get_array(df, "b"))
-        assert np.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
+        assert tm.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
 
     # mutating squeezed df triggers a copy-on-write for that column/block
     df_replaced.loc[0, "c"] = -1
@@ -61,26 +56,25 @@ def test_replace_regex_inplace_refs(using_copy_on_write, warn_copy_on_write):
     with tm.assert_cow_warning(warn_copy_on_write):
         df.replace(to_replace=r"^a.*$", value="new", inplace=True, regex=True)
     if using_copy_on_write:
-        assert not np.shares_memory(arr, get_array(df, "a"))
+        assert not tm.shares_memory(arr, get_array(df, "a"))
         assert df._mgr._has_no_reference(0)
         tm.assert_frame_equal(view, df_orig)
     else:
         assert np.shares_memory(arr, get_array(df, "a"))
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_replace_regex_inplace(using_copy_on_write):
     df = DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")
     df.replace(to_replace=r"^a.*$", value="new", inplace=True, regex=True)
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
-    assert np.shares_memory(arr, get_array(df, "a"))
+    assert tm.shares_memory(arr, get_array(df, "a"))
 
     df_orig = df.copy()
     df2 = df.replace(to_replace=r"^b.*$", value="new", regex=True)
     tm.assert_frame_equal(df_orig, df)
-    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
 
 def test_replace_regex_inplace_no_op(using_copy_on_write):
@@ -356,14 +350,13 @@ def test_replace_empty_list(using_copy_on_write):
         assert not df2._mgr._has_no_reference(0)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(using_copy_on_write, value):
-    df = DataFrame({"a": ["a", "b", "c"]})
+    df = DataFrame({"a": ["a", "b", "c"]}, dtype=object)
     arr = get_array(df, "a")
     df.replace(["c"], value, inplace=True)
     if using_copy_on_write or value is None:
-        assert np.shares_memory(arr, get_array(df, "a"))
+        assert tm.shares_memory(arr, get_array(df, "a"))
     else:
         # This could be inplace
         assert not np.shares_memory(arr, get_array(df, "a"))
