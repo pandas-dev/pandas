@@ -82,11 +82,7 @@ class BaseInterfaceTests:
             # copy=False semantics are only supported in NumPy>=2.
             return
 
-        msg = "Starting on NumPy 2.0, the behavior of the 'copy' keyword has changed "
-        "and passing 'copy=False' raises an error when a zero-copy NumPy array "
-        "is not possible, Pandas will follow this behavior starting with "
-        "version 3.0. This conversion to NumPy requires a copy, but "
-        "'copy=False' was passed. Consider using 'np.asarray(..)' instead."
+        msg = "Starting with NumPy 2.0, the behavior of the 'copy' keyword has changed"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result_nocopy1 = np.array(data, copy=False)
 
