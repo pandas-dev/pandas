@@ -1018,7 +1018,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        ndarray.shape : Tuple of array dimensions.
+        numpy.ndarray.shape : Tuple of array dimensions.
 
         Examples
         --------
@@ -3929,8 +3929,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#45316 Return view if key is not duplicated
             # Only use drop_duplicates with duplicates for performance
             if not is_mi and (
-                self.columns.is_unique
-                and key in self.columns
+                (self.columns.is_unique and key in self.columns)
                 or key in self.columns.drop_duplicates(keep=False)
             ):
                 return self._get_item(key)
@@ -5010,7 +5009,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        **kwargs : dict of {str: callable or Series}
+        **kwargs : callable or Series
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
@@ -6776,8 +6775,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
-            or isinstance(subset, tuple)
-            and subset in self.columns
+            or (isinstance(subset, tuple) and subset in self.columns)
         ):
             subset = (subset,)
 
