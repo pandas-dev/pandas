@@ -3967,11 +3967,15 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
             con.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
             con.exec_driver_sql("CREATE SCHEMA other;")
 
+    schema_public_uuid = table_uuid_gen("test_schema_public")
+    schema_public_explicit_uuid = table_uuid_gen("test_schema_public_explicit")
+    schema_other_uuid = table_uuid_gen("test_schema_other")
+
     # write dataframe to different schema's
-    assert df.to_sql(name="test_schema_public", con=conn, index=False) == 2
+    assert df.to_sql(name=schema_public_uuid, con=conn, index=False) == 2
     assert (
         df.to_sql(
-            name="test_schema_public_explicit",
+            name=schema_public_explicit_uuid,
             con=conn,
             index=False,
             schema="public",
@@ -3979,21 +3983,21 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
         == 2
     )
     assert (
-        df.to_sql(name="test_schema_other", con=conn, index=False, schema="other") == 2
+        df.to_sql(name=schema_other_uuid, con=conn, index=False, schema="other") == 2
     )
 
     # read dataframes back in
-    res1 = sql.read_sql_table("test_schema_public", conn)
+    res1 = sql.read_sql_table(schema_public_uuid, conn)
     tm.assert_frame_equal(df, res1)
-    res2 = sql.read_sql_table("test_schema_public_explicit", conn)
+    res2 = sql.read_sql_table(schema_public_explicit_uuid, conn)
     tm.assert_frame_equal(df, res2)
-    res3 = sql.read_sql_table("test_schema_public_explicit", conn, schema="public")
+    res3 = sql.read_sql_table(schema_public_explicit_uuid, conn, schema="public")
     tm.assert_frame_equal(df, res3)
-    res4 = sql.read_sql_table("test_schema_other", conn, schema="other")
+    res4 = sql.read_sql_table(schema_other_uuid, conn, schema="other")
     tm.assert_frame_equal(df, res4)
-    msg = "Table test_schema_other not found"
+    msg = f"Table {schema_other_uuid} not found"
     with pytest.raises(ValueError, match=msg):
-        sql.read_sql_table("test_schema_other", conn, schema="public")
+        sql.read_sql_table(schema_other_uuid, conn, schema="public")
 
     # different if_exists options
 
@@ -4005,10 +4009,10 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
 
     # write dataframe with different if_exists options
     assert (
-        df.to_sql(name="test_schema_other", con=conn, schema="other", index=False) == 2
+        df.to_sql(name=schema_other_uuid, con=conn, schema="other", index=False) == 2
     )
     df.to_sql(
-        name="test_schema_other",
+        name=schema_other_uuid,
         con=conn,
         schema="other",
         index=False,
@@ -4016,7 +4020,7 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     )
     assert (
         df.to_sql(
-            name="test_schema_other",
+            name=schema_other_uuid,
             con=conn,
             schema="other",
             index=False,
@@ -4024,7 +4028,7 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
         )
         == 2
     )
-    res = sql.read_sql_table("test_schema_other", conn, schema="other")
+    res = sql.read_sql_table(schema_other_uuid, conn, schema="other")
     tm.assert_frame_equal(concat([df, df], ignore_index=True), res)
 
 
@@ -4034,15 +4038,17 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
     conn = postgresql_psycopg2_engine
     from sqlalchemy.sql import text
 
+    table_uuid = table_uuid_gen("person")
+
     create_table = text(
-        """
-    CREATE TABLE person
+        f"""
+    CREATE TABLE {table_uuid}
     (
-        id serial constraint person_pkey primary key,
+        id serial constraint {table_uuid}_pkey primary key,
         created_dt timestamp with time zone
     );
 
-    INSERT INTO person
+    INSERT INTO {table_uuid}
         VALUES (1, '2021-01-01T00:00:00Z');
     """
     )
@@ -4051,7 +4057,7 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
             con.execute(create_table)
 
     sql_query = (
-        'SELECT * FROM "person" AS p1 INNER JOIN "person" AS p2 ON p1.id = p2.id;'
+        f'SELECT * FROM "{table_uuid}" AS p1 INNER JOIN "{table_uuid}" AS p2 ON p1.id = p2.id;'
     )
     result = pd.read_sql(sql_query, conn)
     expected = DataFrame(
@@ -4062,7 +4068,7 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
 
     # Cleanup
     with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.drop_table("person")
+        pandasSQL.drop_table(table_uuid)
 
 
 def test_create_and_drop_table(sqlite_engine):
@@ -4083,9 +4089,10 @@ def test_create_and_drop_table(sqlite_engine):
 
 def test_sqlite_datetime_date(sqlite_buildin):
     conn = sqlite_buildin
+    table_uuid = table_uuid_gen("test_date")
     df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
-    assert df.to_sql(name="test_date", con=conn, index=False) == 2
-    res = read_sql_query("SELECT * FROM test_date", conn)
+    assert df.to_sql(name=table_uuid, con=conn, index=False) == 2
+    res = read_sql_query(f"SELECT * FROM {table_uuid}", conn)
     # comes back as strings
     tm.assert_frame_equal(res, df.astype(str))
 
@@ -4093,6 +4100,7 @@ def test_sqlite_datetime_date(sqlite_buildin):
 @pytest.mark.parametrize("tz_aware", [False, True])
 def test_sqlite_datetime_time(tz_aware, sqlite_buildin):
     conn = sqlite_buildin
+    table_uuid = table_uuid_gen("test_time")
     # test support for datetime.time, GH #8341
     if not tz_aware:
         tz_times = [time(9, 0, 0), time(9, 1, 30)]
@@ -4102,8 +4110,8 @@ def test_sqlite_datetime_time(tz_aware, sqlite_buildin):
 
     df = DataFrame(tz_times, columns=["a"])
 
-    assert df.to_sql(name="test_time", con=conn, index=False) == 2
-    res = read_sql_query("SELECT * FROM test_time", conn)
+    assert df.to_sql(name=table_uuid, con=conn, index=False) == 2
+    res = read_sql_query(f"SELECT * FROM {table_uuid}", conn)
     # comes back as strings
     expected = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
     tm.assert_frame_equal(res, expected)
@@ -4119,24 +4127,28 @@ def get_sqlite_column_type(conn, table, column):
 
 def test_sqlite_test_dtype(sqlite_buildin):
     conn = sqlite_buildin
+    table_uuid = table_uuid_gen("dtype_test")
+    table_uuid2 = table_uuid_gen("dtype_test2")
+    table_error = table_uuid_gen("error")
+    table_single = table_uuid_gen("single_dtype_test")
     cols = ["A", "B"]
     data = [(0.8, True), (0.9, None)]
     df = DataFrame(data, columns=cols)
-    assert df.to_sql(name="dtype_test", con=conn) == 2
-    assert df.to_sql(name="dtype_test2", con=conn, dtype={"B": "STRING"}) == 2
+    assert df.to_sql(name=table_uuid, con=conn) == 2
+    assert df.to_sql(name=table_uuid2, con=conn, dtype={"B": "STRING"}) == 2
 
     # sqlite stores Boolean values as INTEGER
-    assert get_sqlite_column_type(conn, "dtype_test", "B") == "INTEGER"
+    assert get_sqlite_column_type(conn, table_uuid, "B") == "INTEGER"
 
-    assert get_sqlite_column_type(conn, "dtype_test2", "B") == "STRING"
+    assert get_sqlite_column_type(conn, table_uuid2, "B") == "STRING"
     msg = r"B \(<class 'bool'>\) not a string"
     with pytest.raises(ValueError, match=msg):
-        df.to_sql(name="error", con=conn, dtype={"B": bool})
+        df.to_sql(name=table_error, con=conn, dtype={"B": bool})
 
     # single dtype
-    assert df.to_sql(name="single_dtype_test", con=conn, dtype="STRING") == 2
-    assert get_sqlite_column_type(conn, "single_dtype_test", "A") == "STRING"
-    assert get_sqlite_column_type(conn, "single_dtype_test", "B") == "STRING"
+    assert df.to_sql(name=table_single, con=conn, dtype="STRING") == 2
+    assert get_sqlite_column_type(conn, table_single, "A") == "STRING"
+    assert get_sqlite_column_type(conn, table_single, "B") == "STRING"
 
 
 def test_sqlite_notna_dtype(sqlite_buildin):
@@ -4149,7 +4161,7 @@ def test_sqlite_notna_dtype(sqlite_buildin):
     }
     df = DataFrame(cols)
 
-    tbl = "notna_dtype_test"
+    tbl = table_uuid_gen("notna_dtype_test")
     assert df.to_sql(name=tbl, con=conn) == 2
 
     assert get_sqlite_column_type(conn, tbl, "Bool") == "INTEGER"
