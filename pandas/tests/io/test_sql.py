@@ -330,7 +330,7 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
             conn.execute(stmt)
 
 
-def create_and_load_postgres_datetz(conn):
+def create_and_load_postgres_datetz(conn, table_name):
     from sqlalchemy import (
         Column,
         DateTime,
@@ -341,7 +341,7 @@ def create_and_load_postgres_datetz(conn):
     from sqlalchemy.engine import Engine
 
     metadata = MetaData()
-    datetz = Table("datetz", metadata, Column("DateColWithTz", DateTime(timezone=True)))
+    datetz = Table(table_name, metadata, Column("DateColWithTz", DateTime(timezone=True)))
     datetz_data = [
         {
             "DateColWithTz": "2000-01-01 00:00:00-08:00",
@@ -2874,7 +2874,7 @@ def test_datetime_with_timezone_query(conn, request, parse_dates):
     # but should be more natural, so coerce to datetime64[ns] for now
     conn = request.getfixturevalue(conn)
     table_uuid = create_unique_table_name("datetz")
-    expected = create_and_load_postgres_datetz(conn)
+    expected = create_and_load_postgres_datetz(conn, table_uuid)
 
     # GH11216
     df = read_sql_query(f"select * from {table_uuid}", conn, parse_dates=parse_dates)
@@ -2886,7 +2886,7 @@ def test_datetime_with_timezone_query(conn, request, parse_dates):
 def test_datetime_with_timezone_query_chunksize(conn, request):
     conn = request.getfixturevalue(conn)
     table_uuid = create_unique_table_name("datetz")
-    expected = create_and_load_postgres_datetz(conn)
+    expected = create_and_load_postgres_datetz(conn, table_uuid)
 
     df = concat(
         list(read_sql_query(f"select * from {table_uuid}", conn, chunksize=1)),
@@ -2900,7 +2900,7 @@ def test_datetime_with_timezone_query_chunksize(conn, request):
 def test_datetime_with_timezone_table(conn, request):
     conn = request.getfixturevalue(conn)
     table_uuid = create_unique_table_name("datetz")
-    expected = create_and_load_postgres_datetz(conn)
+    expected = create_and_load_postgres_datetz(conn, table_uuid)
     result = sql.read_sql_table(table_uuid, conn)
 
     exp_frame = expected.to_frame()
