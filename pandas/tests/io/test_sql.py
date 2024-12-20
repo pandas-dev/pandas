@@ -2026,7 +2026,7 @@ def test_api_to_sql_index_label_multiindex(conn, request):
     # no index name, defaults to 'level_0' and 'level_1'
     result = sql.to_sql(temp_frame, table_uuid, conn)
     assert result == expected_row_count
-    frame = sql.read_sql_query("SELECT * FROM table_uuid", conn)
+    frame = sql.read_sql_query(f"SELECT * FROM {table_uuid}", conn)
     assert frame.columns[0] == "level_0"
     assert frame.columns[1] == "level_1"
 
@@ -2058,7 +2058,7 @@ def test_api_to_sql_index_label_multiindex(conn, request):
         index_label=["C", "D"],
     )
     assert result == expected_row_count
-    frame = sql.read_sql_query("SELECT * FROM table_uuid", conn)
+    frame = sql.read_sql_query(f"SELECT * FROM {table_uuid}", conn)
     assert frame.columns[:2].tolist() == ["C", "D"]
 
     msg = "Length of 'index_label' should match number of levels, which is 2"
