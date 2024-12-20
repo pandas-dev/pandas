@@ -2084,6 +2084,18 @@ class TestToDatetimeDataFrame:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_dataframe_float32_dtype(self, df, cache):
+        # GH#60506
+        # coerce to float64
+        result = to_datetime(df.astype(np.float32), cache=cache)
+        expected = Series(
+            [
+                Timestamp("20150204 06:58:10.001002003"),
+                Timestamp("20160305 07:59:11.001002003"),
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_dataframe_coerce(self, cache):
         # passing coerce
         df2 = DataFrame({"year": [2015, 2016], "month": [2, 20], "day": [4, 5]})
@@ -3668,3 +3680,12 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
                 to_datetime(vec, format="mixed")
             with pytest.raises(ValueError, match=msg):
                 DatetimeIndex(vec)
+
+
+def test_to_datetime_wrapped_datetime64_ps():
+    # GH#60341
+    result = to_datetime([np.datetime64(1901901901901, "ps")])
+    expected = DatetimeIndex(
+        ["1970-01-01 00:00:01.901901901"], dtype="datetime64[ns]", freq=None
+    )
+    tm.assert_index_equal(result, expected)
