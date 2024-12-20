@@ -1508,25 +1508,28 @@ def test_read_view_postgres(conn, request):
 
 def test_read_view_sqlite(sqlite_buildin):
     # GH 52969
-    create_table = """
-CREATE TABLE groups (
+    table_uuid = table_uuid_gen("groups")
+    view_uuid = table_uuid_gen("group_view")
+
+    create_table = f"""
+CREATE TABLE {table_uuid} (
    group_id INTEGER,
    name TEXT
 );
 """
-    insert_into = """
-INSERT INTO groups VALUES
+    insert_into = f"""
+INSERT INTO {table_uuid} VALUES
     (1, 'name');
 """
-    create_view = """
-CREATE VIEW group_view
+    create_view = f"""
+CREATE VIEW {view_uuid}
 AS
-SELECT * FROM groups;
+SELECT * FROM {table_uuid};
 """
     sqlite_buildin.execute(create_table)
     sqlite_buildin.execute(insert_into)
     sqlite_buildin.execute(create_view)
-    result = pd.read_sql("SELECT * FROM group_view", sqlite_buildin)
+    result = pd.read_sql(f"SELECT * FROM {view_uuid}", sqlite_buildin)
     expected = DataFrame({"group_id": [1], "name": "name"})
     tm.assert_frame_equal(result, expected)
 
@@ -3947,9 +3950,10 @@ def sqlite_builtin_detect_types():
 def test_roundtripping_datetimes_detect_types(sqlite_builtin_detect_types):
     # https://github.com/pandas-dev/pandas/issues/55554
     conn = sqlite_builtin_detect_types
+    table_uuid = table_uuid_gen("test")
     df = DataFrame({"t": [datetime(2020, 12, 31, 12)]}, dtype="datetime64[ns]")
-    df.to_sql("test", conn, if_exists="replace", index=False)
-    result = pd.read_sql("select * from test", conn).iloc[0, 0]
+    df.to_sql(table_uuid, conn, if_exists="replace", index=False)
+    result = pd.read_sql(f"select * from {table_uuid}", conn).iloc[0, 0]
     assert result == Timestamp("2020-12-31 12:00:00.000000")
 
 
@@ -4238,8 +4242,10 @@ def test_xsqlite_basic(sqlite_buildin):
         columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
-    assert sql.to_sql(frame, name="test_table", con=sqlite_buildin, index=False) == 10
-    result = sql.read_sql("select * from test_table", sqlite_buildin)
+    table_uuid = table_uuid_gen("test_table")
+    table_uuid2 = table_uuid_gen("test_table2")
+    assert sql.to_sql(frame, name=table_uuid, con=sqlite_buildin, index=False) == 10
+    result = sql.read_sql(f"select * from {table_uuid}", sqlite_buildin)
 
     # HACK! Change this once indexes are handled properly.
     result.index = frame.index
@@ -4251,8 +4257,8 @@ def test_xsqlite_basic(sqlite_buildin):
     frame2 = frame.copy()
     new_idx = Index(np.arange(len(frame2)), dtype=np.int64) + 10
     frame2["Idx"] = new_idx.copy()
-    assert sql.to_sql(frame2, name="test_table2", con=sqlite_buildin, index=False) == 10
-    result = sql.read_sql("select * from test_table2", sqlite_buildin, index_col="Idx")
+    assert sql.to_sql(frame2, name=table_uuid2, con=sqlite_buildin, index=False) == 10
+    result = sql.read_sql(f"select * from {table_uuid2}", sqlite_buildin, index_col="Idx")
     expected = frame.copy()
     expected.index = new_idx
     expected.index.name = "Idx"
