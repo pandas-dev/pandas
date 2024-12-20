@@ -4412,7 +4412,7 @@ def test_xsqlite_if_exists(sqlite_buildin):
     sql.to_sql(
         frame=df_if_exists_1, con=sqlite_buildin, name=table_name, if_exists="fail"
     )
-    msg = "Table 'table_if_exists' already exists"
+    msg = f"Table '{table_name}' already exists"
     with pytest.raises(ValueError, match=msg):
         sql.to_sql(
             frame=df_if_exists_1,
