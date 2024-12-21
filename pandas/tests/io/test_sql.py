@@ -341,7 +341,9 @@ def create_and_load_postgres_datetz(conn, table_name):
     from sqlalchemy.engine import Engine
 
     metadata = MetaData()
-    datetz = Table(table_name, metadata, Column("DateColWithTz", DateTime(timezone=True)))
+    datetz = Table(
+        table_name, metadata, Column("DateColWithTz", DateTime(timezone=True))
+    )
     datetz_data = [
         {
             "DateColWithTz": "2000-01-01 00:00:00-08:00",
@@ -565,8 +567,6 @@ def drop_table(
     table_name: str,
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
 ):
-    import sqlalchemy
-    
     if isinstance(conn, sqlite3.Connection):
         conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
         conn.commit()
@@ -577,12 +577,9 @@ def drop_table(
             with conn.cursor() as cur:
                 cur.execute(f'DROP TABLE IF EXISTS "{table_name}"')
         else:
-            try:
-                with conn.begin() as con:
-                    with sql.SQLDatabase(con) as db:
-                        db.drop_table(table_name)
-            except sqlalchemy.exc.ProgrammingError:
-                pass
+            with conn.begin() as con:
+                with sql.SQLDatabase(con) as db:
+                    db.drop_table(table_name)
 
 
 def drop_view(
@@ -3974,7 +3971,9 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
             con.exec_driver_sql("CREATE SCHEMA other;")
 
     schema_public_uuid = create_unique_table_name("test_schema_public")
-    schema_public_explicit_uuid = create_unique_table_name("test_schema_public_explicit")
+    schema_public_explicit_uuid = create_unique_table_name(
+        "test_schema_public_explicit"
+    )
     schema_other_uuid = create_unique_table_name("test_schema_other")
 
     # write dataframe to different schema's
