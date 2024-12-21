@@ -565,6 +565,8 @@ def drop_table(
     table_name: str,
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
 ):
+    import sqlalchemy
+    
     if isinstance(conn, sqlite3.Connection):
         conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
         conn.commit()
