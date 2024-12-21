@@ -575,9 +575,12 @@ def drop_table(
             with conn.cursor() as cur:
                 cur.execute(f'DROP TABLE IF EXISTS "{table_name}"')
         else:
-            with conn.begin() as con:
-                with sql.SQLDatabase(con) as db:
-                    db.drop_table(table_name)
+            try:
+                with conn.begin() as con:
+                    with sql.SQLDatabase(con) as db:
+                        db.drop_table(table_name)
+            except sqlalchemy.exc.ProgrammingError:
+                pass
 
 
 def drop_view(
