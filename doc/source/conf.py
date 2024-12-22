@@ -240,7 +240,7 @@ else:
 
 html_theme_options = {
     "external_links": [],
-    "footer_start": ["pandas_footer", "sphinx-version"],
+    "footer_start": ["sphinx-version"],  # Remove "pandas_footer"
     "github_url": "https://github.com/pandas-dev/pandas",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",
@@ -388,10 +388,23 @@ header = f"""\
 """
 
 
+from datetime import datetime
+
+footer = f"""
+&copy; {datetime.now().year} pandas via
+<a href="https://numfocus.org">NumFOCUS, Inc.</a>
+Hosted by <a href="https://www.ovhcloud.com">OVHcloud</a>
+"""
+
 html_context = {
     "redirects": dict(moved_api_pages),
     "header": header,
+    "footer": footer,  # Add footer here
 }
+
+# Disable parallel processing to avoid EOFError during builds
+parallel_read_safe = False
+parallel_write_safe = False
 
 # If false, no module index is generated.
 html_use_modindex = True
