@@ -856,7 +856,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         else:
             exp = pd.Series(self.rep[to_key], index=index, name="yyy")
 
-        if using_infer_string and exp.dtype == "string" and obj.dtype == object:
+        if using_infer_string and exp.dtype == "string":
             # with infer_string, we disable the deprecated downcasting behavior
             exp = exp.astype(object)
 
@@ -889,8 +889,9 @@ class TestReplaceSeriesCoercion(CoercionBase):
         assert obj.dtype == from_key
 
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
-        if using_infer_string and to_key == "object":
-            assert exp.dtype == "string"
+        if using_infer_string and exp.dtype == "string":
+            # with infer_string, we disable the deprecated downcasting behavior
+            exp = exp.astype(object)
         else:
             assert exp.dtype == to_key
 
