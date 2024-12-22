@@ -1,7 +1,7 @@
 # PDEP-17: Backwards compatibility and deprecation policy
 
 - Created: 27 June 2024
-- Status: Under discussion
+- Status: Accepted
 - Discussion: [#59125](https://github.com/pandas-dev/pandas/issues/59125)
 - Author: [Abdulaziz Aloqeely](https://github.com/Aloqeely)
 - Revision: 1
