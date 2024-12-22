@@ -8,12 +8,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import (
-    HAS_PYARROW,
-    IS64,
-)
+from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
@@ -862,11 +857,6 @@ class TestIndex:
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     def test_isin_nan_common_object(
         self, nulls_fixture, nulls_fixture2, using_infer_string
     ):
