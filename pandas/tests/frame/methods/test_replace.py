@@ -299,7 +299,7 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_regex_replace_list_to_scalar(self, mix_abc):
+    def test_regex_replace_list_to_scalar(self, mix_abc, using_infer_string):
         df = DataFrame(mix_abc)
         expec = DataFrame(
             {
@@ -308,17 +308,20 @@ class TestDataFrameReplace:
                 "c": [np.nan, np.nan, np.nan, "d"],
             }
         )
+        if using_infer_string:
+            expec["b"] = expec["b"].astype("str")
         msg = "Downcasting behavior in `replace`"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        warn = None if using_infer_string else FutureWarning
+        with tm.assert_produces_warning(warn, match=msg):
             res = df.replace([r"\s*\.\s*", "a|b"], np.nan, regex=True)
         res2 = df.copy()
         res3 = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(warn, match=msg):
             return_value = res2.replace(
                 [r"\s*\.\s*", "a|b"], np.nan, regex=True, inplace=True
             )
         assert return_value is None
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(warn, match=msg):
             return_value = res3.replace(
                 regex=[r"\s*\.\s*", "a|b"], value=np.nan, inplace=True
             )
@@ -338,8 +341,6 @@ class TestDataFrameReplace:
         return_value = res3.replace(regex=r"\s*\.\s*", value=0, inplace=True)
         assert return_value is None
         expec = DataFrame({"a": mix_abc["a"], "b": ["a", "b", 0, 0], "c": mix_abc["c"]})
-        # TODO(infer_string)
-        expec["c"] = expec["c"].astype(object)
         tm.assert_frame_equal(res, expec)
         tm.assert_frame_equal(res2, expec)
         tm.assert_frame_equal(res3, expec)
@@ -626,11 +627,7 @@ class TestDataFrameReplace:
                 "B": Series([0, "foo"], dtype="object"),
             }
         )
-        if using_infer_string:
-            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
-                result = df.replace([1, 2], ["foo", "bar"])
-        else:
-            result = df.replace([1, 2], ["foo", "bar"])
+        result = df.replace([1, 2], ["foo", "bar"])
         tm.assert_frame_equal(result, expected)
 
     def test_replace_mixed3(self):
@@ -1513,13 +1510,11 @@ class TestDataFrameReplace:
         expected = DataFrame(["z", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
-    def test_replace_intervals(self, using_infer_string):
+    def test_replace_intervals(self):
         # https://github.com/pandas-dev/pandas/issues/35931
         df = DataFrame({"a": [pd.Interval(0, 1), pd.Interval(0, 1)]})
-        warning = FutureWarning if using_infer_string else None
-        with tm.assert_produces_warning(warning, match="Downcasting"):
-            result = df.replace({"a": {pd.Interval(0, 1): "x"}})
-        expected = DataFrame({"a": ["x", "x"]})
+        result = df.replace({"a": {pd.Interval(0, 1): "x"}})
+        expected = DataFrame({"a": ["x", "x"]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
     def test_replace_unicode(self):
@@ -1620,7 +1615,7 @@ class TestDataFrameReplaceRegex:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("regex", [False, True])
-    def test_replace_regex_dtype_frame(self, regex):
+    def test_replace_regex_dtype_frame(self, regex, using_infer_string):
         # GH-48644
         df1 = DataFrame({"A": ["0"], "B": ["0"]})
         expected_df1 = DataFrame({"A": [1], "B": [1]})
