@@ -3310,6 +3310,7 @@ class TestLocSeries:
 
         # Test unmatched indices
         s.loc[["a", "b"]] = s2
-        tm.assert_series_equal(
-            s[["a", "b"]], Series([np.nan, np.nan], index=["a", "b"])
-        )
+
+        result = s[["a", "b"]]
+        expected = Series([np.nan, np.nan], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
