@@ -554,6 +554,7 @@ Other Removals
 - Removed the ``method`` keyword in ``ExtensionArray.fillna``, implement ``ExtensionArray._pad_or_backfill`` instead (:issue:`53621`)
 - Removed the attribute ``dtypes`` from :class:`.DataFrameGroupBy` (:issue:`51997`)
 - Enforced deprecation of ``argmin``, ``argmax``, ``idxmin``, and ``idxmax`` returning a result when ``skipna=False`` and an NA value is encountered or all values are NA values; these operations will now raise in such cases (:issue:`33941`, :issue:`51276`)
+- Removed specifying ``include_groups=True`` in :class:`.DataFrameGroupBy.apply` and :class:`.Resampler.apply` (:issue:`7155`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
@@ -802,6 +803,7 @@ Other
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
 - Bug in ``Series.list`` methods not preserving the original name. (:issue:`60522`)
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
+- Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
 
 .. ***DO NOT USE THIS SECTION***
 
