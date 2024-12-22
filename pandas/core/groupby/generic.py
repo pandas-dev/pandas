@@ -583,6 +583,8 @@ class SeriesGroupBy(GroupBy[Series]):
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex
                 res_index = data.index
+            elif not self.group_keys:
+                res_index = None
             else:
                 res_index = self._grouper.result_index
 
@@ -1967,6 +1969,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex
                 res_index = data.index
+            elif not self.group_keys:
+                res_index = None
             else:
                 res_index = self._grouper.result_index
 

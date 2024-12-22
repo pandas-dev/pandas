@@ -233,11 +233,7 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = g.apply(lambda x: x.sum())
-        expected["A"] = [0, 2, 4]
-        expected = expected.loc[:, ["A", "B"]]
+        result = g.apply(lambda x: x.sum())
         tm.assert_frame_equal(result, expected)
 
     def test_grouper_creation_bug2(self):
@@ -777,9 +773,20 @@ class TestGrouping:
         # (not testing other agg fns, because they return
         # different index objects.
         df = DataFrame({1: [], 2: []})
-        g = df.groupby(1, group_keys=False)
+        g = df.groupby(1, group_keys=True)
         result = getattr(g[2], func)(lambda x: x)
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_apply_empty_with_group_keys_false(self):
+        # 60471
+        # test apply'ing empty groups with group_keys False
+        # (not testing other agg fns, because they return
+        # different index objects.
+        df = DataFrame({"A": [], "B": [], "C": []})
+        g = df.groupby("A", group_keys=False)
+        result = g.apply(lambda x: x / x.sum())
+        expected = DataFrame({"B": [], "C": []}, index=None)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
@@ -861,9 +868,7 @@ class TestGrouping:
             }
         )
         expected = df.sort_values(by=["category_tuple", "num1"])
-        result = df.groupby("category_tuple").apply(
-            lambda x: x.sort_values(by="num1"), include_groups=False
-        )
+        result = df.groupby("category_tuple").apply(lambda x: x.sort_values(by="num1"))
         expected = expected[result.columns]
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
