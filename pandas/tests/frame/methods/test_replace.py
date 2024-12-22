@@ -281,20 +281,12 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res3, expec)
         tm.assert_frame_equal(res4, expec)
 
-    def test_regex_replace_dict_nested_non_first_character(
-        self, any_string_dtype, using_infer_string
-    ):
+    def test_regex_replace_dict_nested_non_first_character(self, any_string_dtype):
         # GH 25259
         dtype = any_string_dtype
         df = DataFrame({"first": ["abc", "bca", "cab"]}, dtype=dtype)
-        if using_infer_string and any_string_dtype == "object":
-            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
-                result = df.replace({"a": "."}, regex=True)
-            expected = DataFrame({"first": [".bc", "bc.", "c.b"]})
-
-        else:
-            result = df.replace({"a": "."}, regex=True)
-            expected = DataFrame({"first": [".bc", "bc.", "c.b"]}, dtype=dtype)
+        result = df.replace({"a": "."}, regex=True)
+        expected = DataFrame({"first": [".bc", "bc.", "c.b"]}, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
     def test_regex_replace_dict_nested_gh4115(self):
@@ -429,31 +421,12 @@ class TestDataFrameReplace:
         ],
     )
     def test_regex_replace_string_types(
-        self,
-        data,
-        to_replace,
-        expected,
-        frame_or_series,
-        any_string_dtype,
-        using_infer_string,
-        request,
+        self, data, to_replace, expected, frame_or_series, any_string_dtype
     ):
         # GH-41333, GH-35977
         dtype = any_string_dtype
         obj = frame_or_series(data, dtype=dtype)
-        if using_infer_string and any_string_dtype == "object":
-            if len(to_replace) > 1 and isinstance(obj, DataFrame):
-                request.node.add_marker(
-                    pytest.mark.xfail(
-                        reason="object input array that gets downcasted raises on "
-                        "second pass"
-                    )
-                )
-            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
-                result = obj.replace(to_replace, regex=True)
-                dtype = "str"
-        else:
-            result = obj.replace(to_replace, regex=True)
+        result = obj.replace(to_replace, regex=True)
         expected = frame_or_series(expected, dtype=dtype)
 
         tm.assert_equal(result, expected)

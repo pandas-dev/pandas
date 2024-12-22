@@ -67,6 +67,7 @@ _results_for_groupbys_with_missing_categories = {
 }
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 def test_apply_use_categorical_name(df):
     cats = qcut(df.C, 4)
 
@@ -338,6 +339,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 def test_observed(request, using_infer_string, observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
@@ -1556,6 +1558,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         assert (res.loc[unobserved_cats] == expected).all().all()
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 def test_series_groupby_categorical_aggregation_getitem():
     # GH 8870
     d = {"foo": [10, 8, 4, 1], "bar": [10, 20, 30, 40], "baz": ["d", "c", "d", "c"]}
