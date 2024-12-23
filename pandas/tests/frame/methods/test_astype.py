@@ -767,6 +767,7 @@ class TestAstype:
             assert item is pd.NA
 
         # Check that Series/DataFrame.astype matches DatetimeArray.astype
+        result = obj.astype("str")
         expected = frame_or_series(dta.astype("str"))
         tm.assert_equal(result, expected)
 
