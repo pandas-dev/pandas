@@ -430,7 +430,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
     Check whether an array-like or dtype is of the Period dtype.
 
     .. deprecated:: 2.2.0
-        Use isinstance(dtype, pd.Period) instead.
+        Use isinstance(dtype, pd.PeriodDtype) instead.
 
     Parameters
     ----------

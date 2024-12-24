@@ -323,9 +323,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
 
     df = pd.DataFrame(data)
     gb = df.groupby("groups", dropna=dropna)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
+    result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
 
     mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
     mi = pd.MultiIndex.from_tuples(mi_tuples, names=["groups", None])
