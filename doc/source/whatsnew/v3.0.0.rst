@@ -555,6 +555,7 @@ Other Removals
 - Removed the attribute ``dtypes`` from :class:`.DataFrameGroupBy` (:issue:`51997`)
 - Enforced deprecation of ``argmin``, ``argmax``, ``idxmin``, and ``idxmax`` returning a result when ``skipna=False`` and an NA value is encountered or all values are NA values; these operations will now raise in such cases (:issue:`33941`, :issue:`51276`)
 - Removed specifying ``include_groups=True`` in :class:`.DataFrameGroupBy.apply` and :class:`.Resampler.apply` (:issue:`7155`)
+- Removed the ``pandas/tests`` folder in package distribution to decrease the package size (:issue:`60606`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:

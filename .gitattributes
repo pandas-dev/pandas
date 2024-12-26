@@ -78,10 +78,8 @@ environment.yml export-ignore
 setup.py export-ignore
 
 
-# GH 39321
-# csv_dir_path fixture checks the existence of the directory
-# exclude the whole directory to avoid running related tests in sdist
-pandas/tests/io/parser/data export-ignore
+# Exclude tests folder to decrease the package size
+pandas/tests export-ignore
 
 # Include cibw script in sdist since it's needed for building wheels
 scripts/cibw_before_build.sh -export-ignore

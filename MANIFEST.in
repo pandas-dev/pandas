@@ -4,6 +4,8 @@ prune doc/build
 graft LICENSES
 
 graft pandas
+# Exclude tests folder to decrease the package size
+prune pandas/tests
 
 global-exclude *.bz2
 global-exclude *.csv
@@ -53,11 +55,6 @@ global-exclude *.h
 
 global-exclude *.py[ocd]
 global-exclude *.pxi
-
-# GH 39321
-# csv_dir_path fixture checks the existence of the directory
-# exclude the whole directory to avoid running related tests in sdist
-prune pandas/tests/io/parser/data
 
 # Selectively re-add *.cxx files that were excluded above
 graft pandas/_libs/src
