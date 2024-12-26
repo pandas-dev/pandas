@@ -324,16 +324,17 @@ Dependency                                             Minimum Version    pip ex
 Access data in the cloud
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[fss, aws, gcp]"``
+Installable with ``pip install "pandas[fss, aws, gcp, hf]"``
 
-============================================ ================== =============== ==========================================================
-Dependency                                   Minimum Version    pip extra       Notes
-============================================ ================== =============== ==========================================================
-`fsspec <https://github.com/fsspec>`__       2022.11.0          fss, gcp, aws   Handling files aside from simple local and HTTP (required
-                                                                                dependency of s3fs, gcsfs).
-`gcsfs <https://github.com/fsspec/gcsfs>`__  2022.11.0          gcp             Google Cloud Storage access
-`s3fs <https://github.com/fsspec/s3fs>`__    2022.11.0          aws             Amazon S3 access
-============================================ ================== =============== ==========================================================
+===================================================================== ================== =============== ==========================================================
+Dependency                                                            Minimum Version    pip extra       Notes
+===================================================================== ================== =============== ==========================================================
+`fsspec <https://github.com/fsspec>`__                                2022.11.0          fss, gcp, aws   Handling files aside from simple local and HTTP (required
+                                                                                                         dependency of s3fs, gcsfs).
+`gcsfs <https://github.com/fsspec/gcsfs>`__                           2022.11.0          gcp             Google Cloud Storage access
+`s3fs <https://github.com/fsspec/s3fs>`__                             2022.11.0          aws             Amazon S3 access
+`huggingface-hub <https://github.com/huggingface/huggingface_hub>`__  0.27.0             hf              Hugging Face Hub access
+===================================================================== ================== =============== ==========================================================
 
 Clipboard
 ^^^^^^^^^
