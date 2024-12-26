@@ -929,7 +929,7 @@ class Block(PandasObject, libinternals.Block):
                     blocks = blk.convert(
                         copy=False,
                         using_cow=using_cow,
-                        convert_string=convert_string or self.dtype != _dtype_obj,
+                        convert_string=convert_string or self.dtype == "string",
                     )
                     if len(blocks) > 1 or blocks[0].dtype != blk.dtype:
                         warnings.warn(
@@ -987,7 +987,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         mask=None,
         using_cow: bool = False,
-        convert_string: bool = True,
+        convert_string=None,
         already_warned=None,
     ) -> list[Block]:
         """
@@ -1048,10 +1048,18 @@ class Block(PandasObject, libinternals.Block):
                 already_warned.warned_already = True
 
         nbs = block.convert(
-            copy=False, using_cow=using_cow, convert_string=convert_string
+            copy=False,
+            using_cow=using_cow,
+            convert_string=convert_string or self.dtype == "string",
         )
         opt = get_option("future.no_silent_downcasting")
-        if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
+        if (
+            len(nbs) > 1
+            or (
+                nbs[0].dtype != block.dtype
+                and not (self.dtype == "string" and nbs[0].dtype == "string")
+            )
+        ) and not opt:
             warnings.warn(
                 # GH#54710
                 "Downcasting behavior in `replace` is deprecated and "
@@ -1088,7 +1096,7 @@ class Block(PandasObject, libinternals.Block):
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
 
-        convert_string = self.dtype != _dtype_obj
+        convert_string = self.dtype == "string"
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -2167,6 +2175,13 @@ class EABackedBlock(Block):
                 if isinstance(self.dtype, (IntervalDtype, StringDtype)):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
+                    if (
+                        self.ndim == 2
+                        and isinstance(orig_cond, np.ndarray)
+                        and orig_cond.ndim == 1
+                        and not is_1d_only_ea_dtype(blk.dtype)
+                    ):
+                        orig_cond = orig_cond[:, None]
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
                         nbs, downcast=_downcast, using_cow=using_cow, caller="where"
