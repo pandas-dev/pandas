@@ -1565,7 +1565,7 @@ of header key value mappings to the ``storage_options`` keyword argument as show
 
 All URLs which are not local files or HTTP(s) are handled by
 `fsspec`_, if installed, and its various filesystem implementations
-(including Amazon S3, Google Cloud, SSH, FTP, webHDFS...).
+(including Amazon S3, Google Cloud, Hugging Face, SSH, FTP, webHDFS...).
 Some of these implementations will require additional packages to be
 installed, for example
 S3 URLs require the `s3fs
