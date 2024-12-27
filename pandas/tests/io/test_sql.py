@@ -4361,40 +4361,43 @@ def test_xsqlite_if_exists(sqlite_buildin):
 
 
 @pytest.mark.parametrize("con", all_connectable)
-def test_bytes_column(con, request):
+@pytest.mark.parametrize("dtype_backend", ["pyarrow", "numpy_nullable", lib.no_default])
+def test_bytes_column(con, dtype_backend, request):
     # GitHub Issue #59242
     conn = request.getfixturevalue(con)
     pa = pytest.importorskip("pyarrow")
-    for dtype_backend in ["pyarrow", "numpy_nullable", lib.no_default]:
-        df = pd.read_sql(
-            "select x'0123456789abcdef0123456789abcdef' a",
-            conn,
-            dtype_backend=dtype_backend,
+
+    dtype = "O"
+    val = b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"
+
+    if "postgres" in con:
+        val = (
+            b"\x00\x00\x00\x80\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"
+            if "adbc" in con
+            else "0000000100100011010001010110011110001001101010"
+            "11110011011110111100000001001000110100010101100"
+            "11110001001101010111100110111101111"
         )
-
-        dtype = "O"
-        val = b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"
-
-        if "postgres" in con:
-            val = (
-                b"\x00\x00\x00\x80\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"
-                if "adbc" in con
-                else "0000000100100011010001010110011110001001101010"
-                "11110011011110111100000001001000110100010101100"
-                "11110001001101010111100110111101111"
-            )
-
-            if "psycopg2" in con and dtype_backend == "numpy_nullable":
-                dtype = pd.StringDtype()
-
         if dtype_backend == "pyarrow":
             dtype = (
                 pd.ArrowDtype(pa.string())
-                if "postgres" in con and "adbc" not in con
+                if "adbc" not in con
                 else pd.ArrowDtype(pa.opaque(pa.binary(), "bit", "PostgreSQL"))
-                if "postgres" in con
-                else pd.ArrowDtype(pa.binary())
             )
 
-        expected = DataFrame([{"a": val}], dtype=dtype)
-        tm.assert_frame_equal(df, expected)
+        if "psycopg2" in con:
+            if dtype_backend == "numpy_nullable":
+                dtype = pd.StringDtype()
+            elif dtype_backend == lib.no_default and pd.options.future.infer_string:
+                dtype = pd.StringDtype(storage="pyarrow", na_value=np.nan)
+
+    if "postgres" not in con and dtype_backend == "pyarrow":
+        dtype = pd.ArrowDtype(pa.binary())
+
+    expected = DataFrame([{"a": val}], dtype=dtype)
+    df = pd.read_sql(
+        "select x'0123456789abcdef0123456789abcdef' a",
+        conn,
+        dtype_backend=dtype_backend,
+    )
+    tm.assert_frame_equal(df, expected)
