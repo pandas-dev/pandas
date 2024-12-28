@@ -488,7 +488,7 @@ Post-Release
    for reference):
 
     - The pandas-dev and pydata mailing lists
-    - Twitter, Mastodon, Telegram and LinkedIn
+    - X, Mastodon, Telegram and LinkedIn
 
 7. Update this release instructions to fix anything incorrect and to update about any
    change since the last release.
