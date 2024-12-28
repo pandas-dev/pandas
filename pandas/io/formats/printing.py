@@ -21,6 +21,9 @@ from unicodedata import east_asian_width
 
 from pandas._config import get_option
 
+from numbers import Real  # Real
+from pandas._config import get_option  # display.precision
+
 from pandas.core.dtypes.inference import is_sequence
 
 from pandas.io.formats.console import get_console_size
@@ -168,7 +171,6 @@ def _pprint_dict(
     else:
         return fmt.format(things=", ".join(pairs))
 
-
 def pprint_thing(
     thing: object,
     _nest_lvl: int = 0,
@@ -201,19 +203,25 @@ def pprint_thing(
     """
 
     def as_escaped_string(
-        thing: Any, escape_chars: EscapeChars | None = escape_chars
+            thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
         if isinstance(escape_chars, Mapping):
             if default_escapes:
                 translate.update(escape_chars)
             else:
-                translate = escape_chars  # type: ignore[assignment]
+                translate = escape_chars
             escape_chars = list(escape_chars.keys())
         else:
             escape_chars = escape_chars or ()
 
-        result = str(thing)
+        # Real instance kontrolü ve precision uygulaması
+        if isinstance(thing, Real) and not isinstance(thing, int):
+            precision = get_option("display.precision")
+            result = f"{thing:.{precision}f}"
+        else:
+            result = str(thing)
+
         for c in escape_chars:
             result = result.replace(c, translate[c])
         return result
