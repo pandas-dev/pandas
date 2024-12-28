@@ -2,8 +2,11 @@
 # functions, not the general printing of pandas objects.
 from collections.abc import Mapping
 import string
-
+import numpy as np
 import pytest
+
+from pandas._config.config import option_context  # option_context
+from pandas.io.formats.printing import pprint_thing
 
 import pandas._config.config as cf
 
@@ -154,6 +157,13 @@ c        ff         いいい"""
         assert adj.len("ﾊﾟﾝﾀﾞ") == 5
         assert adj.len("パンダpanda") == 11
         assert adj.len("ﾊﾟﾝﾀﾞpanda") == 10
+
+    def test_pprint_thing_real_precision(self):
+        with option_context('display.precision', 3):
+            assert pprint_thing(3.14159265359) == "3.142"
+        with option_context('display.precision', 2):
+            assert pprint_thing(3.14159265359) == "3.14"
+
 
     def test_ambiguous_width(self):
         adj = printing._EastAsianTextAdjustment()

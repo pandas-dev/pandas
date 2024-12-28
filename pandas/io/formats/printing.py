@@ -180,27 +180,29 @@ def pprint_thing(
     max_seq_items: int | None = None,
 ) -> str:
     """
-    This function is the sanctioned way of converting objects
-    to a string representation and properly handles nested sequences.
+    Convert object to a string representation, respecting display.precision for Real numbers.
 
     Parameters
     ----------
-    thing : anything to be formatted
-    _nest_lvl : internal use only. pprint_thing() is mutually-recursive
-        with pprint_sequence, this argument is used to keep track of the
-        current nesting level, and limit it.
+    thing : object
+        Object to be formatted.
+    _nest_lvl : int, default 0
+        Internal use only. Current nesting level.
     escape_chars : list[str] or Mapping[str, str], optional
-        Characters to escape. If a Mapping is passed the values are the
-        replacements
+        Characters to escape. If a Mapping is passed the values are the replacements.
     default_escapes : bool, default False
-        Whether the input escape characters replaces or adds to the defaults
+        Whether the input escape characters replaces or adds to the defaults.
+    quote_strings : bool, default False
+        Whether to quote strings.
     max_seq_items : int or None, default None
-        Pass through to other pretty printers to limit sequence printing
+        Pass through to other pretty printers to limit sequence printing.
 
     Returns
     -------
     str
+        String representation of the object.
     """
+
 
     def as_escaped_string(
             thing: Any, escape_chars: EscapeChars | None = escape_chars
