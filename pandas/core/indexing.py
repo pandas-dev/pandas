@@ -2353,11 +2353,17 @@ class _iLocIndexer(_LocationIndexer):
 
         if isinstance(indexer, tuple):
             # flatten np.ndarray indexers
+            if (
+                len(indexer) == 2
+                and isinstance(indexer[1], np.ndarray)
+                and indexer[1].dtype == np.bool_
+            ):
+                indexer = (indexer[0], np.where(indexer[1])[0])
+
             def ravel(i):
                 return i.ravel() if isinstance(i, np.ndarray) else i
 
             indexer = tuple(map(ravel, indexer))
-
             aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
