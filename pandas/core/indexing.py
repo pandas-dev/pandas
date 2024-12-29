@@ -1239,8 +1239,10 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, bool) and not (
             is_bool_dtype(ax.dtype)
             or ax.dtype.name == "boolean"
-            or isinstance(ax, MultiIndex)
-            and is_bool_dtype(ax.get_level_values(0).dtype)
+            or (
+                isinstance(ax, MultiIndex)
+                and is_bool_dtype(ax.get_level_values(0).dtype)
+            )
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
@@ -2120,7 +2122,7 @@ class _iLocIndexer(_LocationIndexer):
 
         is_full_setter = com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj))
 
-        is_null_setter = com.is_empty_slice(pi) or is_array_like(pi) and len(pi) == 0
+        is_null_setter = com.is_empty_slice(pi) or (is_array_like(pi) and len(pi) == 0)
 
         if is_null_setter:
             # no-op, don't cast dtype later
@@ -2747,19 +2749,15 @@ def check_dict_or_set_indexers(key) -> None:
     """
     Check if the indexer is or contains a dict or set, which is no longer allowed.
     """
-    if (
-        isinstance(key, set)
-        or isinstance(key, tuple)
-        and any(isinstance(x, set) for x in key)
+    if isinstance(key, set) or (
+        isinstance(key, tuple) and any(isinstance(x, set) for x in key)
     ):
         raise TypeError(
             "Passing a set as an indexer is not supported. Use a list instead."
         )
 
-    if (
-        isinstance(key, dict)
-        or isinstance(key, tuple)
-        and any(isinstance(x, dict) for x in key)
+    if isinstance(key, dict) or (
+        isinstance(key, tuple) and any(isinstance(x, dict) for x in key)
     ):
         raise TypeError(
             "Passing a dict as an indexer is not supported. Use a list instead."
