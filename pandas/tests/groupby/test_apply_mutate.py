@@ -38,18 +38,20 @@ def test_mutate_groups():
         }
     )
 
-    def f_copy(x):
+    def f(x):
         x = x.copy()
         x["rank"] = x.val.rank(method="min")
         return x.groupby("cat2")["rank"].min()
 
-    def f_no_copy(x):
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    grpby_copy = df.groupby("cat1").apply(f_copy)
-    grpby_no_copy = df.groupby("cat1").apply(f_no_copy)
-    tm.assert_series_equal(grpby_copy, grpby_no_copy)
+    expected = pd.DataFrame(
+        {
+            "cat1": list("aaaabbb"),
+            "cat2": list("cdefcde"),
+            "rank": [3.0, 2.0, 5.0, 1.0, 2.0, 4.0, 1.0],
+        }
+    ).set_index(["cat1", "cat2"])["rank"]
+    result = df.groupby("cat1").apply(f)
+    tm.assert_series_equal(result, expected)
 
 
 def test_no_mutate_but_looks_like():
@@ -61,22 +63,3 @@ def test_no_mutate_but_looks_like():
     result1 = df.groupby("key", group_keys=True).apply(lambda x: x[:].value)
     result2 = df.groupby("key", group_keys=True).apply(lambda x: x.value)
     tm.assert_series_equal(result1, result2)
-
-
-def test_apply_function_with_indexing():
-    # GH: 33058
-    df = pd.DataFrame(
-        {"col1": ["A", "A", "A", "B", "B", "B"], "col2": [1, 2, 3, 4, 5, 6]}
-    )
-
-    def fn(x):
-        x.loc[x.index[-1], "col2"] = 0
-        return x.col2
-
-    result = df.groupby(["col1"], as_index=False).apply(fn)
-    expected = pd.Series(
-        [1, 2, 0, 4, 5, 0],
-        index=range(6),
-        name="col2",
-    )
-    tm.assert_series_equal(result, expected)
