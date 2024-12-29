@@ -17,7 +17,6 @@ from pandas.errors import (
     PossibleDataLossError,
 )
 
-import pandas as pd
 from pandas import (
     DataFrame,
     HDFStore,
@@ -35,6 +34,10 @@ from pandas.tests.io.pytables.common import (
 
 from pandas.io import pytables
 from pandas.io.pytables import Term
+
+pytestmark = [
+    pytest.mark.single_cpu,
+]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
@@ -88,9 +91,7 @@ def test_mode(setup_path, tmp_path, mode, using_infer_string):
     else:
         result = read_hdf(path, "df", mode=mode)
         if using_infer_string:
-            df.columns = df.columns.astype(
-                pd.StringDtype(storage="pyarrow", na_value=np.nan)
-            )
+            df.columns = df.columns.astype("str")
         tm.assert_frame_equal(result, df)
 
 
@@ -104,11 +105,10 @@ def test_default_mode(tmp_path, setup_path, using_infer_string):
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", mode="w")
     result = read_hdf(path, "df")
+    expected = df.copy()
     if using_infer_string:
-        df.columns = df.columns.astype(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan)
-        )
-    tm.assert_frame_equal(result, df)
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_reopen_handle(tmp_path, setup_path):
@@ -184,12 +184,8 @@ def test_open_args(setup_path, using_infer_string):
 
         expected = df.copy()
         if using_infer_string:
-            expected.index = expected.index.astype(
-                pd.StringDtype(storage="pyarrow", na_value=np.nan)
-            )
-            expected.columns = expected.columns.astype(
-                pd.StringDtype(storage="pyarrow", na_value=np.nan)
-            )
+            expected.index = expected.index.astype("str")
+            expected.columns = expected.columns.astype("str")
 
         tm.assert_frame_equal(store["df"], expected)
         tm.assert_frame_equal(store["df2"], expected)
@@ -222,12 +218,8 @@ def test_complibs_default_settings(tmp_path, setup_path, using_infer_string):
     result = read_hdf(tmpfile, "df")
     expected = df.copy()
     if using_infer_string:
-        expected.index = expected.index.astype(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan)
-        )
-        expected.columns = expected.columns.astype(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan)
-        )
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
@@ -241,12 +233,8 @@ def test_complibs_default_settings(tmp_path, setup_path, using_infer_string):
     result = read_hdf(tmpfile, "df")
     expected = df.copy()
     if using_infer_string:
-        expected.index = expected.index.astype(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan)
-        )
-        expected.columns = expected.columns.astype(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan)
-        )
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
@@ -260,12 +248,8 @@ def test_complibs_default_settings(tmp_path, setup_path, using_infer_string):
     result = read_hdf(tmpfile, "df")
     expected = df.copy()
     if using_infer_string:
-        expected.index = expected.index.astype(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan)
-        )
-        expected.columns = expected.columns.astype(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan)
-        )
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
@@ -379,7 +363,7 @@ def test_encoding(setup_path):
     ],
 )
 @pytest.mark.parametrize("dtype", ["category", object])
-def test_latin_encoding(tmp_path, setup_path, dtype, val, using_infer_string):
+def test_latin_encoding(tmp_path, setup_path, dtype, val):
     enc = "latin-1"
     nan_rep = ""
     key = "data"
