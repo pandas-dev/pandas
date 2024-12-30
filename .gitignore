@@ -20,8 +20,6 @@
 .vagrant
 .noseids
 .ipynb_checkpoints
-.ipynb
-.csv
 .tags
 .cache/
 .vscode/
