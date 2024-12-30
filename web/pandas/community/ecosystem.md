@@ -492,6 +492,8 @@ To save a dataset on Hugging Face you need to [create a public or private datase
 df.to_parquet("hf://datasets/username/dataset_name/train.parquet")
 ```
 
+You can find more information about the Hugging Face Dataset Hub in the [documentation](https://huggingface.co/docs/hub/en/datasets).
+
 ## Out-of-core
 
 ### [Bodo](https://bodo.ai/)
