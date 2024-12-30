@@ -6,7 +6,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-pytestmark = [td.skip_if_no("bodo")]
+pytestmark = [pytest.mark.skip, td.skip_if_no("bodo")]
 
 
 def test_bodo_vs_python_indexing():
