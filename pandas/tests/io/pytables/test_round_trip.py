@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
 
@@ -28,11 +26,10 @@ from pandas.util import _test_decorators as td
 
 pytestmark = [
     pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
 ]
 
 
-def test_conv_read_write():
+def test_conv_read_write(using_infer_string):
     with tm.ensure_clean() as path:
 
         def roundtrip(key, obj, **kwargs):
@@ -52,13 +49,21 @@ def test_conv_read_write():
             columns=Index(list("ABCD"), dtype=object),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
-        tm.assert_frame_equal(o, roundtrip("frame", o))
+        expected = o
+        if using_infer_string:
+            expected.index = expected.index.astype("str")
+            expected.columns = expected.columns.astype("str")
+        result = roundtrip("frame", o)
+        tm.assert_frame_equal(result, expected)
 
         # table
         df = DataFrame({"A": range(5), "B": range(5)})
         df.to_hdf(path, key="table", append=True)
+        expected = df[df.index > 2]
+        if using_infer_string:
+            expected.columns = expected.columns.astype("str")
         result = read_hdf(path, "table", where=["index>2"])
-        tm.assert_frame_equal(df[df.index > 2], result)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_long_strings(setup_path):
