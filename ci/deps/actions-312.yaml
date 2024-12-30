@@ -1,6 +1,7 @@
 name: pandas-dev-312
 channels:
   - conda-forge
+  - bodo.ai
 dependencies:
   - python=3.12
 

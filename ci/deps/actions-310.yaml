@@ -1,6 +1,7 @@
 name: pandas-dev
 channels:
   - conda-forge
+  - bodo.ai
 dependencies:
   - python=3.10
 
