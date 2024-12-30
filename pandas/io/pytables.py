@@ -1950,6 +1950,7 @@ class HDFStore:
     def _read_group(self, group: Node):
         s = self._create_storer(group)
         s.infer_axes()
+        print(type(s), s)
         return s.read()
 
     def _identify_group(self, key: str, append: bool) -> Node:
@@ -3297,7 +3298,12 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_string_dtype() and is_string_array(values, skipna=True):
+        if (
+            using_string_dtype()
+            and isinstance(values, np.ndarray)
+            and len(values) > 0
+            and is_string_array(values, skipna=True)
+        ):
             result = result.astype(StringDtype(na_value=np.nan))
         return result
 
@@ -3369,6 +3375,7 @@ class BlockManagerFixed(GenericFixed):
             if (
                 using_string_dtype()
                 and isinstance(values, np.ndarray)
+                and len(df) > 0
                 and is_string_array(values, skipna=True)
             ):
                 df = df.astype(StringDtype(na_value=np.nan))
@@ -4747,6 +4754,7 @@ class AppendableFrameTable(AppendableTable):
             if (
                 using_string_dtype()
                 and isinstance(values, np.ndarray)
+                and len(df) > 0
                 and is_string_array(values, skipna=True)
             ):
                 df = df.astype(StringDtype(na_value=np.nan))
