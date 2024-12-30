@@ -57,7 +57,7 @@ VERSIONS = {
     "tzdata": "2022.7",
     "qtpy": "2.3.0",
     "pyqt5": "5.15.9",
-    "bodo": "2024.11",
+    "bodo": "2024.12.3",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
