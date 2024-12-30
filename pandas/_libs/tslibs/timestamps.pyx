@@ -1237,7 +1237,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     # -----------------------------------------------------------------
     # Transformation Methods
-
+    
     def normalize(self) -> "Timestamp":
         """
         Normalize Timestamp to midnight, preserving tz information.
@@ -1264,14 +1264,27 @@ cdef class _Timestamp(ABCTimestamp):
         Timestamp('2020-03-14 00:00:00')
         """
         cdef:
-            local_val = self._maybe_convert_value_to_local()
-            int64_t normalized
-            int64_t ppd = periods_per_day(self._creso)
-            _Timestamp ts
+        local_val = self._maybe_convert_value_to_local()
+        int64_t normalized
+        int64_t ppd = periods_per_day(self._creso)
+        _Timestamp ts
 
-        normalized = normalize_i8_stamp(local_val, ppd)
-        ts = type(self)._from_value_and_reso(normalized, reso=self._creso, tz=None)
-        return ts.tz_localize(self.tzinfo)
+    # Check for potential overflow before normalization
+    if local_val < INT64_MIN or local_val > INT64_MAX:
+        raise OutOfBoundsDatetime(
+            f"Cannot normalize Timestamp {self} without overflow"
+        )
+
+    normalized = normalize_i8_stamp(local_val, ppd)
+    
+    # Additional overflow check after normalization
+    if normalized < INT64_MIN or normalized > INT64_MAX:
+        raise OutOfBoundsDatetime(
+            f"Normalization of {self} would cause an overflow"
+        )
+
+    ts = type(self)._from_value_and_reso(normalized, reso=self._creso, tz=None)
+    return ts.tz_localize(self.tzinfo)
 
     # -----------------------------------------------------------------
     # Pickle Methods
