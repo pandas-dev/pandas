@@ -2,6 +2,7 @@
 name: pandas-dev
 channels:
   - conda-forge
+  - bodo.ai
 dependencies:
   - python=3.10
   - pip
@@ -40,6 +41,7 @@ dependencies:
   - lxml>=4.9.2
   - matplotlib>=3.6.3
   - numba>=0.56.4
+  - bodo>=2024.11
   - numexpr>=2.8.4
   - openpyxl>=3.1.0
   - odfpy>=1.4.1

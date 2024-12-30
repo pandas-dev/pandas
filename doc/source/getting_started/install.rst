@@ -186,6 +186,7 @@ Dependency                                            Minimum Version    pip ext
 `numexpr <https://github.com/pydata/numexpr>`__       2.8.4              performance        Accelerates certain numerical operations by using multiple cores as well as smart chunking and caching to achieve large speedups
 `bottleneck <https://github.com/pydata/bottleneck>`__ 1.3.6              performance        Accelerates certain types of ``nan`` by using specialized cython routines to achieve large speedup.
 `numba <https://github.com/numba/numba>`__            0.56.4             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
+`bodo <https://github.com/bodo-ai/Bodo>`__            2024.11             performance        Alternative execution engine for operations that accept ``engine="bodo"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler and automatically parallelizes uing MPI.
 ===================================================== ================== ================== ===================================================================================================================================================================================
 
 Visualization
