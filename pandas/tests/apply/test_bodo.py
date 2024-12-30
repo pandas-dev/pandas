@@ -59,7 +59,7 @@ def test_bodo_vs_python_str_apply(axis):
 
     func = "mean"
     axis = 1
-    result = df.apply(func, axis)
+    result = df.apply(func, axis, engine="bodo")
     expected = df.apply(func, axis)
 
     tm.assert_series_equal(result, expected, check_series_type=False)
