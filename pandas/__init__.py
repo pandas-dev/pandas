@@ -61,6 +61,7 @@ from pandas.core.api import (
     PeriodDtype,
     IntervalDtype,
     DatetimeTZDtype,
+    ListDtype,
     StringDtype,
     BooleanDtype,
     # missing
@@ -261,6 +262,7 @@ __all__ = [
     "Interval",
     "IntervalDtype",
     "IntervalIndex",
+    "ListDtype",
     "MultiIndex",
     "NaT",
     "NamedAgg",

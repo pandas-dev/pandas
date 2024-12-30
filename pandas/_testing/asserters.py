@@ -54,6 +54,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.list_ import ListDtype
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import safe_sort_index
 
@@ -823,6 +824,11 @@ def assert_extension_array_equal(
         assert np.all(
             [np.isnan(val) for val in right._ndarray[right_na]]  # type: ignore[attr-defined]
         ), "wrong missing value sentinels"
+
+    # TODO: not every array type may be convertible to NumPy; should catch here
+    if isinstance(left.dtype, ListDtype) and isinstance(right.dtype, ListDtype):
+        assert left._pa_array == right._pa_array
+        return
 
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)

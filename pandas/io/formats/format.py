@@ -1103,7 +1103,11 @@ def format_array(
     List[str]
     """
     fmt_klass: type[_GenericArrayFormatter]
-    if lib.is_np_dtype(values.dtype, "M"):
+    if hasattr(values, "type") and values.type == "null":
+        fmt_klass = _NullFormatter
+    if hasattr(values, "type") and str(values.type).startswith("list"):
+        fmt_klass = _ListFormatter
+    elif lib.is_np_dtype(values.dtype, "M"):
         fmt_klass = _Datetime64Formatter
         values = cast(DatetimeArray, values)
     elif isinstance(values.dtype, DatetimeTZDtype):
@@ -1464,6 +1468,27 @@ class _IntArrayFormatter(_GenericArrayFormatter):
             formatter_str = lambda x: f"{x: d}".format(x=x)
         formatter = self.formatter or formatter_str
         fmt_values = [formatter(x) for x in self.values]
+        return fmt_values
+
+
+class _NullFormatter(_GenericArrayFormatter):
+    def _format_strings(self) -> list[str]:
+        fmt_values = [str(x) for x in self.values]
+        return fmt_values
+
+
+class _ListFormatter(_GenericArrayFormatter):
+    def _format_strings(self) -> list[str]:
+        # TODO(wayd): This doesn't seem right - where should missing values
+        # be handled
+        fmt_values = []
+        for x in self.values:
+            pyval = x.as_py()
+            if pyval:
+                fmt_values.append(pyval)
+            else:
+                fmt_values.append("")
+
         return fmt_values
 
 

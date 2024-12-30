@@ -1,11 +1,11 @@
 import pytest
 
 import pandas as pd
-from pandas.tests.extension.list.array import (
+from pandas.core.arrays.list_ import (
     ListArray,
     ListDtype,
-    make_data,
 )
+from pandas.tests.extension.base.constructors import BaseConstructorsTests
 
 
 @pytest.fixture
@@ -16,12 +16,12 @@ def dtype():
 @pytest.fixture
 def data():
     """Length-100 ListArray for semantics test."""
-    data = make_data()
-
-    while len(data[0]) == len(data[1]):
-        data = make_data()
-
+    # TODO: make better random data
+    data = [list("a"), list("ab"), list("abc")] * 33 + [None]
     return ListArray(data)
+
+
+class TestListArray(BaseConstructorsTests): ...
 
 
 def test_to_csv(data):
