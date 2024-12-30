@@ -1,6 +1,6 @@
 # Minimum version of required + optional dependencies
 # Aligned with getting_started/install.rst and compat/_optional.py
-name: pandas-dev
+name: pandas-dev-minimum
 channels:
   - conda-forge
   - bodo.ai
