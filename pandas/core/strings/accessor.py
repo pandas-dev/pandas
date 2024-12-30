@@ -3700,7 +3700,7 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.isupper : Check whether all characters are uppercase.
 
     Examples
-    ------------
+    --------
     The ``s5.str.istitle`` method checks for whether all words are in title
     case (whether only the first letter of each word is capitalized). Words are
     assumed to be as any sequence of non-numeric characters separated by
