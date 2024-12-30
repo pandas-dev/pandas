@@ -190,8 +190,8 @@ def eval(
 
     .. warning::
 
-        ``eval`` can run arbitrary code which can make you vulnerable to code
-         injection and untrusted data.
+        This function can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
 
     Parameters
     ----------
