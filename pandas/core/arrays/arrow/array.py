@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -1619,6 +1620,9 @@ class ArrowExtensionArray(
         ------
         NotImplementedError : subclass does not define accumulations
         """
+        if is_string_dtype(self):
+            return self._str_accumulate(name=name, skipna=skipna, **kwargs)
+
         pyarrow_name = {
             "cummax": "cumulative_max",
             "cummin": "cumulative_min",
@@ -1653,6 +1657,58 @@ class ArrowExtensionArray(
             result = result.cast(pa_dtype)
 
         return type(self)(result)
+
+    def _str_accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ArrowExtensionArray | ExtensionArray:
+        """
+        Accumulate implementation for strings, see `_accumulate` docstring for details.
+
+        pyarrow.compute does not implement these methods for strings.
+        """
+        if name == "cumprod":
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg)
+
+        # When present and skipna is False, we stop of at the first NA value.
+        # as the tail becomes all NA values.
+        head: pa.array | None = None
+        tail: pa.array | None = None
+        pa_array = self._pa_array
+        np_func = {
+            "cumsum": np.cumsum,
+            "cummin": np.minimum.accumulate,
+            "cummax": np.maximum.accumulate,
+        }[name]
+
+        if self._hasna:
+            if skipna:
+                if name == "cumsum":
+                    pa_array = pc.fill_null(pa_array, "")
+                else:
+                    pa_array = pc.fill_null_forward(pa_array)
+                    nulls = pc.is_null(pa_array)
+                    idx = pc.index(nulls, False).as_py()
+                    if idx == -1:
+                        idx = len(pa_array)
+                    if idx > 0:
+                        head = pa.array([""] * idx, type=pa_array.type)
+                        pa_array = pa_array[idx:].combine_chunks()
+            else:
+                nulls = pc.is_null(pa_array)
+                idx = pc.index(nulls, True).as_py()
+                tail = pa.nulls(len(pa_array) - idx, type=pa_array.type)
+                pa_array = pa_array[:idx].combine_chunks()
+
+        pa_result = pa.array(np_func(pa_array), type=pa_array.type)
+
+        if head is not None or tail is not None:
+            head = pa.array([], type=pa_array.type) if head is None else head
+            tail = pa.array([], type=pa_array.type) if tail is None else tail
+            pa_result = pa.concat_arrays([head, pa_result, tail])
+
+        result = type(self)(pa_result)
+        return result
 
     def _reduce_pyarrow(self, name: str, *, skipna: bool = True, **kwargs) -> pa.Scalar:
         """
