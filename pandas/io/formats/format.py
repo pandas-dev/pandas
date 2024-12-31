@@ -1103,11 +1103,7 @@ def format_array(
     List[str]
     """
     fmt_klass: type[_GenericArrayFormatter]
-    if hasattr(values, "type") and values.type == "null":
-        fmt_klass = _NullFormatter
-    if hasattr(values, "type") and str(values.type).startswith("list"):
-        fmt_klass = _ListFormatter
-    elif lib.is_np_dtype(values.dtype, "M"):
+    if lib.is_np_dtype(values.dtype, "M"):
         fmt_klass = _Datetime64Formatter
         values = cast(DatetimeArray, values)
     elif isinstance(values.dtype, DatetimeTZDtype):

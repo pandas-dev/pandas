@@ -576,10 +576,7 @@ class Block(PandasObject, libinternals.Block):
     @final
     @cache_readonly
     def dtype(self) -> DtypeObj:
-        try:
-            return self.values.dtype
-        except AttributeError:  # PyArrow fallback
-            return self.values.type
+        return self.values.dtype
 
     @final
     def astype(
@@ -2237,16 +2234,12 @@ def new_block(
     *,
     ndim: int,
     refs: BlockValuesRefs | None = None,
-    dtype: DtypeObj | None,
 ) -> Block:
     # caller is responsible for ensuring:
     # - values is NOT a NumpyExtensionArray
     # - check_ndim/ensure_block_shape already checked
     # - maybe_coerce_values already called/unnecessary
-    if dtype:
-        klass = get_block_type(dtype)
-    else:
-        klass = get_block_type(values.dtype)
+    klass = get_block_type(values.dtype)
     return klass(values, ndim=ndim, placement=placement, refs=refs)
 
 

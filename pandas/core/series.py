@@ -505,7 +505,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.copy()
         else:
             data = sanitize_array(data, index, dtype, copy)
-            data = SingleBlockManager.from_array(data, dtype, index, refs=refs)
+            data = SingleBlockManager.from_array(data, index, refs=refs)
 
         NDFrame.__init__(self, data)
         self.name = name

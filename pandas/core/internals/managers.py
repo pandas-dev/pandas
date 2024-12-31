@@ -1978,7 +1978,6 @@ class SingleBlockManager(BaseBlockManager):
     def from_array(
         cls,
         array: ArrayLike,
-        dtype: DtypeObj | None,
         index: Index,
         refs: BlockValuesRefs | None = None,
     ) -> SingleBlockManager:
@@ -1987,7 +1986,7 @@ class SingleBlockManager(BaseBlockManager):
         """
         array = maybe_coerce_values(array)
         bp = BlockPlacement(slice(0, len(index)))
-        block = new_block(array, placement=bp, ndim=1, refs=refs, dtype=dtype)
+        block = new_block(array, placement=bp, ndim=1, refs=refs)
         return cls(block, index)
 
     def to_2d_mgr(self, columns: Index) -> BlockManager:
