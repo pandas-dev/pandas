@@ -244,6 +244,7 @@ class TestSeriesCumulativeOps:
     def test_cumsum_pyarrow_strings(
         self, pyarrow_string_dtype, data, skipna, expected_data
     ):
+        # https://github.com/pandas-dev/pandas/pull/60633
         ser = pd.Series(data, dtype=pyarrow_string_dtype)
         expected = pd.Series(expected_data, dtype=pyarrow_string_dtype)
         result = ser.cumsum(skipna=skipna)
@@ -277,6 +278,7 @@ class TestSeriesCumulativeOps:
     def test_cummin_cummax_pyarrow_strings(
         self, pyarrow_string_dtype, data, op, skipna, expected_data
     ):
+        # https://github.com/pandas-dev/pandas/pull/60633
         ser = pd.Series(data, dtype=pyarrow_string_dtype)
         if expected_data is None:
             expected_data = ser.dtype.na_value
@@ -286,6 +288,7 @@ class TestSeriesCumulativeOps:
         tm.assert_series_equal(result, expected)
 
     def test_cumprod_pyarrow_strings(self, pyarrow_string_dtype, skipna):
+        # https://github.com/pandas-dev/pandas/pull/60633
         ser = pd.Series(list("xyz"), dtype=pyarrow_string_dtype)
         msg = f"operation 'cumprod' not supported for dtype '{ser.dtype}'"
         with pytest.raises(TypeError, match=msg):

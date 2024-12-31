@@ -1670,8 +1670,7 @@ class ArrowExtensionArray(
             msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
             raise TypeError(msg)
 
-        # When present and skipna is False, we stop of at the first NA value.
-        # as the tail becomes all NA values.
+        # We may need to strip out leading / trailing NA values
         head: pa.array | None = None
         tail: pa.array | None = None
         pa_array = self._pa_array
