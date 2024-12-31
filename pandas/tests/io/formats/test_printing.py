@@ -82,10 +82,11 @@ class TestPPrintThing:
         assert printing.pprint_thing(MyMapping()) == "{'a': 4, 'b': 4}"
 
     def test_pprint_thing_real_precision(self):
+        from pandas.io.formats.printing import pprint_thing
         with option_context('display.precision', 3):
-            assert printing.pprint_thing(3.14159265359) == "3.142"
+            assert pprint_thing(3.14159265359) == "3.142"
         with option_context('display.precision', 2):
-            assert printing.pprint_thing(3.14159265359) == "3.14"
+            assert pprint_thing(3.14159265359) == "3.14"
 
 
 class TestFormatBase:

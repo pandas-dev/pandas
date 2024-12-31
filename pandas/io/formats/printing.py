@@ -177,7 +177,7 @@ def pprint_thing(
     max_seq_items: int | None = None,
 ) -> str:
     """
-    Convert object to a string representation, respecting display.precision for Real numbers.
+    Convert object to a string representation.
 
     Parameters
     ----------
@@ -199,8 +199,6 @@ def pprint_thing(
     str
         String representation of the object.
     """
-
-
     def as_escaped_string(
             thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
@@ -214,7 +212,6 @@ def pprint_thing(
         else:
             escape_chars = escape_chars or ()
 
-        # is_float kullanımına geçiş yapıyoruz
         if is_float(thing):
             result = f"{thing:.{get_option('display.precision')}f}"
         else:
