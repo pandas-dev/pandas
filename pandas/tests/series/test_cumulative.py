@@ -231,30 +231,18 @@ class TestSeriesCumulativeOps:
             ser.cumprod()
 
     @pytest.mark.parametrize(
-        "data, skipna, expected_data",
-        [
-            ([], True, []),
-            ([], False, []),
-            (["x", "z", "y"], True, ["x", "xz", "xzy"]),
-            (["x", "z", "y"], False, ["x", "xz", "xzy"]),
-            (["x", pd.NA, "y"], True, ["x", "x", "xy"]),
-            (["x", pd.NA, "y"], False, ["x", pd.NA, pd.NA]),
-            ([pd.NA, pd.NA, pd.NA], True, ["", "", ""]),
-            ([pd.NA, pd.NA, pd.NA], False, [pd.NA, pd.NA, pd.NA]),
-        ],
-    )
-    def test_cumsum_pyarrow_strings(
-        self, pyarrow_string_dtype, data, skipna, expected_data
-    ):
-        # https://github.com/pandas-dev/pandas/pull/60633
-        ser = pd.Series(data, dtype=pyarrow_string_dtype)
-        expected = pd.Series(expected_data, dtype=pyarrow_string_dtype)
-        result = ser.cumsum(skipna=skipna)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
         "data, op, skipna, expected_data",
         [
+            ([], "cumsum", True, []),
+            ([], "cumsum", False, []),
+            (["x", "z", "y"], "cumsum", True, ["x", "xz", "xzy"]),
+            (["x", "z", "y"], "cumsum", False, ["x", "xz", "xzy"]),
+            (["x", pd.NA, "y"], "cumsum", True, ["x", "x", "xy"]),
+            (["x", pd.NA, "y"], "cumsum", False, ["x", pd.NA, pd.NA]),
+            ([pd.NA, "x", "y"], "cumsum", True, ["", "x", "xy"]),
+            ([pd.NA, "x", "y"], "cumsum", False, [pd.NA, pd.NA, pd.NA]),
+            ([pd.NA, pd.NA, pd.NA], "cumsum", True, ["", "", ""]),
+            ([pd.NA, pd.NA, pd.NA], "cumsum", False, [pd.NA, pd.NA, pd.NA]),
             ([], "cummin", True, []),
             ([], "cummin", False, []),
             (["y", "z", "x"], "cummin", True, ["y", "y", "x"]),
@@ -277,13 +265,11 @@ class TestSeriesCumulativeOps:
             ([pd.NA, pd.NA, pd.NA], "cummax", False, [pd.NA, pd.NA, pd.NA]),
         ],
     )
-    def test_cummin_cummax_pyarrow_strings(
+    def test_cum_methods_pyarrow_strings(
         self, pyarrow_string_dtype, data, op, skipna, expected_data
     ):
         # https://github.com/pandas-dev/pandas/pull/60633
         ser = pd.Series(data, dtype=pyarrow_string_dtype)
-        if expected_data is None:
-            expected_data = ser.dtype.na_value
         method = getattr(ser, op)
         expected = pd.Series(expected_data, dtype=pyarrow_string_dtype)
         result = method(skipna=skipna)
