@@ -255,19 +255,19 @@ def test_apply_with_mixed_dtype():
             "foo2": ["one", "two", "two", "three", "one", "two"],
         }
     )
-    result = df.apply(lambda x: x, axis=1).dtypes
-    expected = df.dtypes
-    tm.assert_series_equal(result, expected)
+    result = df.apply(lambda x: x, axis=1)
+    expected = df
+    tm.assert_frame_equal(result, expected)
 
     # GH 3610 incorrect dtype conversion with as_index=False
     df = DataFrame({"c1": [1, 2, 6, 6, 8]})
     df["c2"] = df.c1 / 2.0
-    result1 = df.groupby("c2").mean().reset_index().c2
-    result2 = df.groupby("c2", as_index=False).mean().c2
-    tm.assert_series_equal(result1, result2)
+    result1 = df.groupby("c2").mean().reset_index()
+    result2 = df.groupby("c2", as_index=False).mean()
+    tm.assert_frame_equal(result1, result2)
 
 
-def test_groupby_as_index_apply():
+def test_groupby_as_index_apply(as_index):
     # GH #4648 and #3417
     df = DataFrame(
         {
@@ -276,27 +276,35 @@ def test_groupby_as_index_apply():
             "time": range(6),
         }
     )
+    gb = df.groupby("user_id", as_index=as_index)
 
-    g_as = df.groupby("user_id", as_index=True)
-    g_not_as = df.groupby("user_id", as_index=False)
-
-    res_as = g_as.head(2).index
-    res_not_as = g_not_as.head(2).index
-    exp = Index([0, 1, 2, 4])
-    tm.assert_index_equal(res_as, exp)
-    tm.assert_index_equal(res_not_as, exp)
-
-    res_as_apply = g_as.apply(lambda x: x.head(2)).index
-    res_not_as_apply = g_not_as.apply(lambda x: x.head(2)).index
+    expected = DataFrame(
+        {
+            "item_id": ["b", "b", "a", "a"],
+            "user_id": [1, 2, 1, 3],
+            "time": [0, 1, 2, 4],
+        },
+        index=[0, 1, 2, 4],
+    )
+    result = gb.head(2)
+    tm.assert_frame_equal(result, expected)
 
     # apply doesn't maintain the original ordering
     # changed in GH5610 as the as_index=False returns a MI here
-    exp_not_as_apply = Index([0, 2, 1, 4])
-    tp = [(1, 0), (1, 2), (2, 1), (3, 4)]
-    exp_as_apply = MultiIndex.from_tuples(tp, names=["user_id", None])
-
-    tm.assert_index_equal(res_as_apply, exp_as_apply)
-    tm.assert_index_equal(res_not_as_apply, exp_not_as_apply)
+    if as_index:
+        tp = [(1, 0), (1, 2), (2, 1), (3, 4)]
+        index = MultiIndex.from_tuples(tp, names=["user_id", None])
+    else:
+        index = Index([0, 2, 1, 4])
+    expected = DataFrame(
+        {
+            "item_id": list("baba"),
+            "time": [0, 2, 1, 4],
+        },
+        index=index,
+    )
+    result = gb.apply(lambda x: x.head(2))
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_as_index_apply_str():
