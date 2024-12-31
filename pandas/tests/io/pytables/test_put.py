@@ -96,14 +96,14 @@ def test_api_default_format(tmp_path, setup_path):
             assert store.get_storer("df4").is_table
 
 
-def test_put(setup_path, using_infer_string):
+def test_put(setup_path):
     with ensure_clean_store(setup_path) as store:
         ts = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=20, freq="B"),
         )
         store["a"] = ts
@@ -131,8 +131,6 @@ def test_put(setup_path, using_infer_string):
         # overwrite table
         store.put("c", df[:10], format="table", append=False)
         expected = df[:10]
-        if using_infer_string:
-            expected.columns = expected.columns.astype("str")
         result = store["c"]
         tm.assert_frame_equal(result, expected)
 
@@ -163,18 +161,16 @@ def test_put_string_index(setup_path):
         tm.assert_frame_equal(store["b"], df)
 
 
-def test_put_compression(setup_path, using_infer_string):
+def test_put_compression(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
 
         store.put("c", df, format="table", complib="zlib")
         expected = df
-        if using_infer_string:
-            expected.columns = expected.columns.astype("str")
         result = store["c"]
         tm.assert_frame_equal(result, expected)
 
@@ -185,10 +181,10 @@ def test_put_compression(setup_path, using_infer_string):
 
 
 @td.skip_if_windows
-def test_put_compression_blosc(setup_path, using_infer_string):
+def test_put_compression_blosc(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
@@ -200,16 +196,14 @@ def test_put_compression_blosc(setup_path, using_infer_string):
 
         store.put("c", df, format="table", complib="blosc")
         expected = df
-        if using_infer_string:
-            expected.columns = expected.columns.astype("str")
         result = store["c"]
         tm.assert_frame_equal(result, expected)
 
 
-def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
+def test_put_mixed_type(setup_path, performance_warning):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df["obj1"] = "foo"
@@ -233,8 +227,6 @@ def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
             store.put("df", df)
 
         expected = df
-        if using_infer_string:
-            expected.columns = expected.columns.astype("str")
         result = store.get("df")
         tm.assert_frame_equal(result, expected)
 
