@@ -21,10 +21,7 @@ from unicodedata import east_asian_width
 
 from pandas._config import get_option
 
-from numbers import Real  # Real
-from pandas._config import get_option  # display.precision
-
-from pandas.core.dtypes.inference import is_sequence
+from pandas.core.dtypes.inference import is_sequence, is_float
 
 from pandas.io.formats.console import get_console_size
 
@@ -217,10 +214,9 @@ def pprint_thing(
         else:
             escape_chars = escape_chars or ()
 
-        # Real instance kontrolü ve precision uygulaması
-        if isinstance(thing, Real) and not isinstance(thing, int):
-            precision = get_option("display.precision")
-            result = f"{thing:.{precision}f}"
+        # is_float kullanımına geçiş yapıyoruz
+        if is_float(thing):
+            result = f"{thing:.{get_option('display.precision')}f}"
         else:
             result = str(thing)
 
