@@ -23,7 +23,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.arrays import ExtensionArray
 
 if TYPE_CHECKING:
-    from pandas._typing import type_t
+    from pandas._typing import (
+        type_t,
+        Shape,
+    )
 
 import pyarrow as pa
 
@@ -82,8 +85,21 @@ class ListArray(ExtensionArray):
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
         if isinstance(scalars, ListArray):
             return cls(scalars)
+        elif isinstance(scalars, pa.Scalar):
+            scalars = [scalars]
+            return cls(scalars)
 
-        values = pa.array(scalars, from_pandas=True)
+        try:
+            values = pa.array(scalars, from_pandas=True)
+        except TypeError:
+            # TypeError: object of type 'NoneType' has no len() if you have
+            # pa.ListScalar(None). Upstream issue in Arrow - see:
+            # https://github.com/apache/arrow/issues/40319
+            for i in range(len(scalars)):
+                if not scalars[i].is_valid:
+                    scalars[i] = None
+
+            values = pa.array(scalars, from_pandas=True)
         if values.type == "null":
             # TODO(wayd): this is a hack to get the tests to pass, but the overall issue
             # is that our extension types don't support parametrization but the pyarrow
@@ -113,8 +129,35 @@ class ListArray(ExtensionArray):
         # TODO: what do we need to do with allow_fill and fill_value here?
         return type(self)(self._pa_array.take(indexer))
 
+    @classmethod
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+        """
+        Create an ExtensionArray with the given shape and dtype.
+
+        See also
+        --------
+        ExtensionDtype.empty
+            ExtensionDtype.empty is the 'official' public version of this API.
+        """
+        # Implementer note: while ExtensionDtype.empty is the public way to
+        # call this method, it is still required to implement this `_empty`
+        # method as well (it is called internally in pandas)
+        if isinstance(shape, tuple):
+            if len(shape) > 1:
+                raise ValueError("ListArray may only be 1-D")
+            else:
+                length = shape[0]
+        else:
+            length = shape
+        return cls._from_sequence([None] * length, dtype=pa.list_(pa.null()))
+
     def copy(self):
-        return type(self)(self._pa_array.take(pa.array(range(len(self._pa_array)))))
+        mm = pa.default_cpu_memory_manager()
+
+        # TODO(wayd): ChunkedArray does not implement copy_to so this
+        # ends up creating an Array
+        copied = self._pa_array.combine_chunks().copy_to(mm.device)
+        return type(self)(copied)
 
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:

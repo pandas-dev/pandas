@@ -111,6 +111,7 @@ from pandas.core.arrays.arrow import (
     StructAccessor,
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
+from pandas.core.arrays.list_ import ListDtype
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
@@ -494,7 +495,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not is_list_like(data):
                 data = [data]
             index = default_index(len(data))
-        elif is_list_like(data):
+        elif is_list_like(data) and not isinstance(dtype, ListDtype):
             com.require_length_match(data, index)
 
         # create/copy the manager
