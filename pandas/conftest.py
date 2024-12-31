@@ -1319,6 +1319,26 @@ def nullable_string_dtype(request):
 
 @pytest.fixture(
     params=[
+        pytest.param(
+            pd.StringDtype("pyarrow", na_value=np.nan), marks=td.skip_if_no("pyarrow")
+        ),
+        pytest.param(
+            pd.StringDtype("pyarrow", na_value=pd.NA), marks=td.skip_if_no("pyarrow")
+        ),
+    ]
+)
+def pyarrow_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes backed by Pyarrow.
+
+    * 'pd.StringDtype("pyarrow", na_value=np.nan)'
+    * 'pd.StringDtype("pyarrow", na_value=pd.NA)'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
