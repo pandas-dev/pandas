@@ -6,6 +6,8 @@ See also
 tests.frame.test_cumulative
 """
 
+import re
+
 import numpy as np
 import pytest
 
@@ -290,6 +292,6 @@ class TestSeriesCumulativeOps:
     def test_cumprod_pyarrow_strings(self, pyarrow_string_dtype, skipna):
         # https://github.com/pandas-dev/pandas/pull/60633
         ser = pd.Series(list("xyz"), dtype=pyarrow_string_dtype)
-        msg = f"operation 'cumprod' not supported for dtype '{ser.dtype}'"
+        msg = re.escape(f"operation 'cumprod' not supported for dtype '{ser.dtype}'")
         with pytest.raises(TypeError, match=msg):
             ser.cumprod(skipna=skipna)
