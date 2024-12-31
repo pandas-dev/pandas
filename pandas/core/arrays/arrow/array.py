@@ -1685,7 +1685,10 @@ class ArrowExtensionArray(
                 if name == "cumsum":
                     pa_array = pc.fill_null(pa_array, "")
                 else:
+                    # After the first non-NA value we can retain the running min/max
+                    # by forward filling.
                     pa_array = pc.fill_null_forward(pa_array)
+                    # But any leading NA values should result in "".
                     nulls = pc.is_null(pa_array)
                     idx = pc.index(nulls, False).as_py()
                     if idx == -1:
@@ -1694,6 +1697,8 @@ class ArrowExtensionArray(
                         head = pa.array([""] * idx, type=pa_array.type)
                         pa_array = pa_array[idx:].combine_chunks()
             else:
+                # When not skipping NA values, the result should be null from
+                # the first NA value onward.
                 nulls = pc.is_null(pa_array)
                 idx = pc.index(nulls, True).as_py()
                 tail = pa.nulls(len(pa_array) - idx, type=pa_array.type)
@@ -1701,10 +1706,11 @@ class ArrowExtensionArray(
 
         pa_result = pa.array(np_func(pa_array), type=pa_array.type)
 
-        if head is not None or tail is not None:
-            head = pa.array([], type=pa_array.type) if head is None else head
-            tail = pa.array([], type=pa_array.type) if tail is None else tail
-            pa_result = pa.concat_arrays([head, pa_result, tail])
+        assert head is None or tail is None
+        if head is not None:
+            pa_result = pa.concat_arrays([head, pa_result])
+        elif tail is not None:
+            pa_result = pa.concat_arrays([pa_result, tail])
 
         result = type(self)(pa_result)
         return result
