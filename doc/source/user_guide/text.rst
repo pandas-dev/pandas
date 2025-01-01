@@ -11,13 +11,17 @@ Working with text data
 Text data types
 ---------------
 
-There are two ways to store text data in pandas:
+There are three ways to store text data in pandas:
 
 1. ``object`` -dtype NumPy array.
 2. :class:`StringDtype` extension type.
 3. ``str`` -dtype (default from pandas 3.0).
 
+For historical context, see the
+`PDEP for string dtype <https://pandas.pydata.org/pdeps/0014-string-dtype.html>`_.
+
 We recommend using the ``str`` dtype or :class:`StringDtype` to store text data.
+Avoid using the ``object`` dtype for text data.
 
 Prior to pandas 1.0, ``object`` dtype was the only option. This was unfortunate
 for many reasons:
@@ -35,8 +39,9 @@ default for string data. You may still encounter ``object`` dtype for legacy dat
 pandas versions. Use ``.astype("str")`` to explicitly convert these to ``str`` dtype or specify ``dtype="str"``
 when creating new data structures.
 
-Use the nullable :class:`StringDtype` (``"string"``) when handling NA values in your string data. It offers
-additional flexibility for missing values while maintaining compatibility with pandas' nullable types.
+Use the nullable :class:`StringDtype` (``"string"``) or ``str`` dtype when handling NA values in your string data.
+Note that ``StringDtype`` uses ``pd.NA`` for missing values, whereas ``str`` dtype uses ``np.NaN``. ``StringDtype``
+offers additional flexibility for missing values while maintaining compatibility with pandas' nullable types.
 
 Currently, the performance of ``str`` dtype, ``object`` dtype arrays of strings, and
 :class:`arrays.StringArray` are about the same. We expect future enhancements
@@ -125,7 +130,7 @@ Behavior differences
 ^^^^^^^^^^^^^^^^^^^^
 
 These are places where the behavior of ``StringDtype`` or ``str`` objects differ from
-``object`` dtype:
+``object`` dtype.
 
 1. For ``StringDtype`` and ``str``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
@@ -157,8 +162,8 @@ These are places where the behavior of ``StringDtype`` or ``str`` objects differ
 
 2. Some string methods, like :meth:`Series.str.decode`, are not available
    on ``StringArray`` or ``str`` because they only hold strings, not bytes.
-3. In comparison operations, :class:`arrays.StringArray`, ``Series`` backed
-   by a ``StringArray``, and ``str`` dtype will return an object with :class:`BooleanDtype`,
+3. In comparison operations, :class:`arrays.StringArray` and ``Series`` backed
+   by a ``StringArray`` will return an object with :class:`BooleanDtype`,
    rather than a ``bool`` dtype object. Missing values in these types will propagate
    in comparison operations, rather than always comparing unequal like :attr:`numpy.nan`.
 
@@ -431,7 +436,7 @@ Missing values on either side will result in missing values in the result as wel
 Concatenating a Series and something array-like into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The parameter ``others`` can also be two-dimensional. In this case, the number or rows must match the length of the calling ``Series`` (or ``Index``).
+The parameter ``others`` can also be two-dimensional. In this case, the number of rows must match the length of the calling ``Series`` (or ``Index``).
 
 .. ipython:: python
 
