@@ -24,6 +24,8 @@ import pytest
 
 from pandas.compat import HAS_PYARROW
 
+from pandas.core.dtypes.base import StorageExtensionDtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_string_dtype
@@ -193,6 +195,7 @@ class TestStringArray(base.ExtensionTests):
         )
 
     def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        assert isinstance(ser.dtype, StorageExtensionDtype)
         return ser.dtype.storage == "pyarrow" and op_name in [
             "cummin",
             "cummax",
