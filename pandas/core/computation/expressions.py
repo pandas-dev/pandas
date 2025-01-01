@@ -257,17 +257,10 @@ def where(cond, left_op, right_op, use_numexpr: bool = True):
         Whether to try to use numexpr.
     """
     assert _where is not None
-        string
-    return (
-        _where(cond, left_op, right_op)
-        if use_numexpr
-        else _where_standard(cond, left_op, right_op)
-    )
     if use_numexpr:
         return _where(cond, left_op, right_op)
     else:
         return _where_standard(cond, left_op, right_op)
-        main
 
 
 def set_test_mode(v: bool = True) -> None:
