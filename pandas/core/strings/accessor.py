@@ -2536,14 +2536,14 @@ class StringMethods(NoNewAttributesMixin):
             if isinstance(input_dtype, ArrowDtype):
                 import pyarrow as pa
 
-                dtype = ArrowDtype(pa.bool_())
+                dtype = ArrowDtype(pa.bool_())  # type: ignore[assignment]
             elif (
                 isinstance(input_dtype, StringDtype)
                 and input_dtype.na_value is not np.nan
             ):
                 from pandas.core.dtypes.common import pandas_dtype
 
-                dtype = pandas_dtype("boolean")
+                dtype = pandas_dtype("boolean")  # type: ignore[assignment]
             else:
                 dtype = np.bool_
 
