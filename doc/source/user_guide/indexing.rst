@@ -858,9 +858,9 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 
 .. warning::
 
-   While ``loc`` supports two kinds of boolean indexing, ``iloc`` only supports indexing with a 
-   boolean array. If the indexer is a boolean ``Series``, an error will be raised. For instance, 
-   in the following example, ``df.iloc[s.values, 1]`` is ok. The boolean indexer is an array. 
+   While ``loc`` supports two kinds of boolean indexing, ``iloc`` only supports indexing with a
+   boolean array. If the indexer is a boolean ``Series``, an error will be raised. For instance,
+   in the following example, ``df.iloc[s.values, 1]`` is ok. The boolean indexer is an array.
    But ``df.iloc[s, 1]`` would raise ``ValueError``.
 
    .. ipython:: python
