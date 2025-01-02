@@ -331,7 +331,8 @@ class TestDataFrameCorrWith:
         df2["obj"] = "bar"
 
         if using_infer_string:
-            with pytest.raises(TypeError, match="Cannot perform reduction"):
+            msg = "Cannot perform reduction 'mean' with string dtype"
+            with pytest.raises(TypeError, match=msg):
                 df1.corrwith(df2)
         else:
             with pytest.raises(TypeError, match="Could not convert"):

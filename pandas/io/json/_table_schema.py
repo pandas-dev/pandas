@@ -239,9 +239,16 @@ def build_table_schema(
     """
     Create a Table schema from ``data``.
 
+    This method is a utility to generate a JSON-serializable schema
+    representation of a pandas Series or DataFrame, compatible with the
+    Table Schema specification. It enables structured data to be shared
+    and validated in various applications, ensuring consistency and
+    interoperability.
+
     Parameters
     ----------
-    data : Series, DataFrame
+    data : Series or DataFrame
+        The input data for which the table schema is to be created.
     index : bool, default True
         Whether to include ``data.index`` in the schema.
     primary_key : bool or None, default True
@@ -256,6 +263,12 @@ def build_table_schema(
     Returns
     -------
     dict
+        A dictionary representing the Table schema.
+
+    See Also
+    --------
+    DataFrame.to_json : Convert the object to a JSON string.
+    read_json : Convert a JSON string to pandas object.
 
     Notes
     -----
