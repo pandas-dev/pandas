@@ -2619,6 +2619,8 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()  # pylint: disable=missing-kwoa
 
+    # this still fails because columns=None gets passed down to unstack as level=None
+    # while at that point None was converted to NaN
     @pytest.mark.xfail(
         using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
     )
@@ -2637,10 +2639,7 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
-    )
-    def test_pivot_index_is_none(self):
+    def test_pivot_index_is_none(self, using_infer_string):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
 
@@ -2651,11 +2650,10 @@ class TestPivot:
 
         result = df.pivot(columns="b", index=None, values="c")
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
+        if using_infer_string:
+            expected.index.name = np.nan
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
-    )
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
