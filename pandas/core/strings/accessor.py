@@ -2489,7 +2489,7 @@ class StringMethods(NoNewAttributesMixin):
         ----------
         sep : str, default "|"
             String to split on.
-        dtype : dtype, default np.int64
+        dtype : dtype, default bool
             Data type for new columns. Only a single dtype is allowed.
 
         Returns
@@ -2505,27 +2505,48 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
         >>> pd.Series(["a|b", "a", "a|c"]).str.get_dummies()
-           a  b  c
-        0  1  1  0
-        1  1  0  0
-        2  1  0  1
+              a      b      c
+        0  True   True  False
+        1  True  False  False
+        2  True  False   True
 
         >>> pd.Series(["a|b", np.nan, "a|c"]).str.get_dummies()
+               a      b      c
+        0   True   True  False
+        1  False  False  False
+        2   True  False   True
+
+        >>> pd.Series(["a|b", np.nan, "a|c"]).str.get_dummies(dtype=np.int64)
            a  b  c
         0  1  1  0
         1  0  0  0
         2  1  0  1
-
-        >>> pd.Series(["a|b", np.nan, "a|c"]).str.get_dummies(dtype=bool)
-                a      b      c
-        0   True   True    False
-        1   False  False   False
-        2   True   False   True
         """
         from pandas.core.frame import DataFrame
 
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
+        input_dtype = self._data.dtype
+        if dtype is None and not isinstance(input_dtype, ArrowDtype):
+            from pandas.core.arrays.string_ import StringDtype
+
+            if isinstance(input_dtype, CategoricalDtype):
+                input_dtype = input_dtype.categories.dtype
+
+            if isinstance(input_dtype, ArrowDtype):
+                import pyarrow as pa
+
+                dtype = ArrowDtype(pa.bool_())
+            elif (
+                isinstance(input_dtype, StringDtype)
+                and input_dtype.na_value is not np.nan
+            ):
+                from pandas.core.dtypes.common import pandas_dtype
+
+                dtype = pandas_dtype("boolean")
+            else:
+                dtype = np.bool_
+
         result, name = self._data.array._str_get_dummies(sep, dtype)
         if is_extension_array_dtype(dtype) or isinstance(dtype, ArrowDtype):
             return self._wrap_result(

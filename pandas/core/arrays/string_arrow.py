@@ -397,19 +397,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
-            dtype = np.int64
+            dtype = np.bool_
         dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(
             sep, dtype
         )
-        if len(labels) == 0:
-            return np.empty(shape=(0, 0), dtype=dtype), labels
-        dummies = np.vstack(dummies_pa.to_numpy())
         _dtype = pandas_dtype(dtype)
         dummies_dtype: NpDtype
         if isinstance(_dtype, np.dtype):
             dummies_dtype = _dtype
         else:
             dummies_dtype = np.bool_
+        if len(labels) == 0:
+            return np.empty(shape=(0, 0), dtype=dummies_dtype), labels
+        dummies = np.vstack(dummies_pa.to_numpy())
         return dummies.astype(dummies_dtype, copy=False), labels
 
     def _convert_int_result(self, result):
