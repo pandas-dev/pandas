@@ -200,14 +200,15 @@ def test_put_compression_blosc(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_put_mixed_type(setup_path, performance_warning):
+def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df["obj1"] = "foo"
-    df["obj2"] = "bar"
+    df["obj2"] = [pd.NA] + 9 * ["bar"]
+    df["obj2"] = df["obj2"].astype("string")
     df["bool1"] = df["A"] > 0
     df["bool2"] = df["B"] > 0
     df["bool3"] = True
@@ -226,7 +227,11 @@ def test_put_mixed_type(setup_path, performance_warning):
         with tm.assert_produces_warning(performance_warning):
             store.put("df", df)
 
-        expected = df
+        expected = df.copy()
+        if using_infer_string:
+            expected["obj2"] = expected["obj2"].astype("str")
+        else:
+            expected["obj2"] = expected["obj2"].astype("object")
         result = store.get("df")
         tm.assert_frame_equal(result, expected)
 
