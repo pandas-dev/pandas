@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    ClassVar,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._libs import missing as libmissing
 from pandas.compat import HAS_PYARROW
 from pandas.util._decorators import set_module
 
@@ -15,12 +11,9 @@ from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.common import (
-    is_object_dtype,
-    is_string_dtype,
-)
+from pandas.core.dtypes.dtypes import ArrowDtype
 
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -28,28 +21,66 @@ if TYPE_CHECKING:
         Shape,
     )
 
+import re
+
 import pyarrow as pa
+
+
+def string_to_pyarrow_type(string: str) -> pa.DataType:
+    # TODO: combine this with to_pyarrow_type in pandas.core.arrays.arrow ?
+    pater = r"list\[(.*)\]"
+
+    if mtch := re.search(pater, string):
+        value_type = mtch.groups()[0]
+        match value_type:
+            # TODO: is there a pyarrow function get a type from the string?
+            case "string" | "large_string":
+                return pa.large_list(pa.large_string())
+            case "int64":
+                return pa.large_list(pa.int64())
+            # TODO: need to implement many more here, including nested
+
+    raise ValueError(f"Cannot map {string} to a pyarrow list type")
 
 
 @register_extension_dtype
 @set_module("pandas")
-class ListDtype(ExtensionDtype):
+class ListDtype(ArrowDtype):
     """
     An ExtensionDtype suitable for storing homogeneous lists of data.
     """
 
-    type = list
-    name: ClassVar[str] = "list"
+    def __init__(self, value_dtype: pa.DataType) -> None:
+        super().__init__(pa.large_list(value_dtype))
+
+    @classmethod
+    def construct_from_string(cls, string: str):
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+
+        try:
+            pa_type = string_to_pyarrow_type(string)
+        except ValueError as e:
+            raise TypeError(
+                f"Cannot construct a '{cls.__name__}' from '{string}'"
+            ) from e
+
+        return cls(pa_type)
 
     @property
-    def na_value(self) -> libmissing.NAType:
-        return libmissing.NA
+    def name(self) -> str:  # type: ignore[override]
+        """
+        A string identifying the data type.
+        """
+        return f"list[{self.pyarrow_dtype.value_type!s}]"
 
     @property
     def kind(self) -> str:
-        # TODO: our extension interface says this field should be the
+        # TODO(wayd): our extension interface says this field should be the
         # NumPy type character, but no such thing exists for list
-        # this assumes a PyArrow large list
+        # This uses the Arrow C Data exchange code instead
         return "+L"
 
     @classmethod
@@ -64,22 +95,34 @@ class ListDtype(ExtensionDtype):
         return ListArray
 
 
-class ListArray(ExtensionArray):
-    dtype = ListDtype()
+class ListArray(ArrowExtensionArray):
     __array_priority__ = 1000
 
-    def __init__(self, values: pa.Array | pa.ChunkedArray | list | ListArray) -> None:
+    def __init__(
+        self, values: pa.Array | pa.ChunkedArray | list | ListArray, value_type=None
+    ) -> None:
         if not HAS_PYARROW:
             raise NotImplementedError("ListArray requires pyarrow to be installed")
 
         if isinstance(values, type(self)):
             self._pa_array = values._pa_array
-        elif not isinstance(values, pa.ChunkedArray):
-            # To support NA, we need to create an Array first :-(
-            arr = pa.array(values, from_pandas=True)
-            self._pa_array = pa.chunked_array(arr)
         else:
-            self._pa_array = values
+            if value_type is None:
+                if isinstance(values, (pa.Array, pa.ChunkedArray)):
+                    value_type = values.type.value_type
+                else:
+                    value_type = pa.array(values).type.value_type
+
+            if not isinstance(values, pa.ChunkedArray):
+                # To support NA, we need to create an Array first :-(
+                arr = pa.array(values, type=pa.large_list(value_type), from_pandas=True)
+                self._pa_array = pa.chunked_array(arr, type=pa.large_list(value_type))
+            else:
+                self._pa_array = values
+
+    @property
+    def _dtype(self):
+        return ListDtype(self._pa_array.type.value_type)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
@@ -100,10 +143,12 @@ class ListArray(ExtensionArray):
                     scalars[i] = None
 
             values = pa.array(scalars, from_pandas=True)
-        if values.type == "null":
-            # TODO(wayd): this is a hack to get the tests to pass, but the overall issue
-            # is that our extension types don't support parametrization but the pyarrow
-            values = pa.array(values, type=pa.list_(pa.null()))
+
+        if values.type == "null" and dtype is not None:
+            # TODO: the sequencing here seems wrong; just making the tests pass for now
+            # but this needs a comprehensive review
+            pa_type = string_to_pyarrow_type(str(dtype))
+            values = pa.array(values, type=pa_type)
 
         return cls(values)
 
@@ -114,20 +159,12 @@ class ListArray(ExtensionArray):
             pos = np.array(range(len(item)))
             mask = pos[item]
             return type(self)(self._pa_array.take(mask))
-        elif isinstance(item, int):  # scalar case
+        elif isinstance(item, int):
             return self._pa_array[item]
+        elif isinstance(item, list):
+            return type(self)(self._pa_array.take(item))
 
         return type(self)(self._pa_array[item])
-
-    def __len__(self) -> int:
-        return len(self._pa_array)
-
-    def isna(self):
-        return np.array(self._pa_array.is_null())
-
-    def take(self, indexer, allow_fill=False, fill_value=None):
-        # TODO: what do we need to do with allow_fill and fill_value here?
-        return type(self)(self._pa_array.take(indexer))
 
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
@@ -149,32 +186,5 @@ class ListArray(ExtensionArray):
                 length = shape[0]
         else:
             length = shape
-        return cls._from_sequence([None] * length, dtype=pa.list_(pa.null()))
 
-    def copy(self):
-        mm = pa.default_cpu_memory_manager()
-
-        # TODO(wayd): ChunkedArray does not implement copy_to so this
-        # ends up creating an Array
-        copied = self._pa_array.combine_chunks().copy_to(mm.device)
-        return type(self)(copied)
-
-    def astype(self, dtype, copy=True):
-        if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
-            if copy:
-                return self.copy()
-            return self
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # numpy has problems with astype(str) for nested elements
-            # and pyarrow cannot cast from list[string] to string
-            return np.array([str(x) for x in self._pa_array], dtype=dtype)
-
-        if not copy:
-            raise TypeError(f"astype from ListArray to {dtype} requires a copy")
-
-        return np.array(self._pa_array.to_pylist(), dtype=dtype, copy=copy)
-
-    @classmethod
-    def _concat_same_type(cls, to_concat):
-        data = [x._pa_array for x in to_concat]
-        return cls(data)
+        return cls._from_sequence([None] * length, dtype=dtype)

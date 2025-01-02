@@ -821,7 +821,7 @@ class DataFrame(NDFrame, OpsMixin):
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
-                if not isinstance(data, np.ndarray) and treat_as_nested(data):
+                if not isinstance(data, np.ndarray) and treat_as_nested(data, dtype):
                     # exclude ndarray as we may have cast it a few lines above
                     if columns is not None:
                         columns = ensure_index(columns)

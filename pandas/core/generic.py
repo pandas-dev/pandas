@@ -23,6 +23,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import pyarrow as pa
 
 from pandas._config import config
 
@@ -7036,7 +7037,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 value = Series(value)
                 value = value.reindex(self.index)
                 value = value._values
-            elif not is_list_like(value):
+            elif isinstance(value, pa.ListScalar) or not is_list_like(value):
+                # TODO(wayd): maybe is_list_like should return false for ListScalar?
                 pass
             else:
                 raise TypeError(
@@ -7100,7 +7102,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 return result
 
-        elif not is_list_like(value):
+        elif isinstance(value, pa.ListScalar) or not is_list_like(value):
             if axis == 1:
                 result = self.T.fillna(value=value, limit=limit).T
                 new_data = result._mgr
