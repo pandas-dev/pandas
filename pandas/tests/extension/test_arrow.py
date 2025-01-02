@@ -3451,7 +3451,7 @@ def test_string_to_datetime_parsing_cast():
 )
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
-        with pytest.raises(NotImplementedError, match="interpolate is not implemented"):
+        with pytest.raises(ValueError, match="Values must be numeric."):
             pd.Series(data).interpolate()
 
 

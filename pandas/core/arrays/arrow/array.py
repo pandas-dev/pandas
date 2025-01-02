@@ -2160,9 +2160,7 @@ class ArrowExtensionArray(
         """
         # NB: we return type(self) even if copy=False
         if not self.dtype._is_numeric:
-            raise NotImplementedError(
-                f"interpolate is not implemented for dtype={self.dtype}"
-            )
+            raise ValueError("Values must be numeric.")
 
         if (
             not pa_version_under13p0
