@@ -561,23 +561,15 @@ cdef class StringObjectEngine(ObjectEngine):
 
     cdef:
         object na_value
-        bint uses_na
 
     def __init__(self, ndarray values, na_value):
         super().__init__(values)
         self.na_value = na_value
-        self.uses_na = na_value is C_NA
-
-    cdef bint _checknull(self, object val):
-        if self.uses_na:
-            return val is C_NA
-        else:
-            return util.is_nan(val)
 
     cdef _check_type(self, object val):
         if isinstance(val, str):
             return val
-        elif self._checknull(val):
+        elif checknull(val):
             return self.na_value
         else:
             raise KeyError(val)
