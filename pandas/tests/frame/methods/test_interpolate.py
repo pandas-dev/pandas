@@ -84,9 +84,8 @@ class TestDataFrameInterpolate:
             df.interpolate(inplace=True)
 
         # check we DID operate inplace
-        assert np.shares_memory(df["C"]._values, cvalues)
-        if not using_infer_string:
-            assert np.shares_memory(df["D"]._values, dvalues)
+        assert tm.shares_memory(df["C"]._values, cvalues)
+        assert tm.shares_memory(df["D"]._values, dvalues)
 
     @pytest.mark.xfail(
         using_string_dtype(), reason="interpolate doesn't work for string"
