@@ -31,10 +31,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_warning,
-)
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -59,7 +56,6 @@ from pandas.core.generic import (
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
-    _apply_groupings_depr,
     _pipe_template,
     get_groupby,
 )
@@ -167,14 +163,15 @@ class Resampler(BaseGroupBy, PandasObject):
         gpr_index: Index,
         group_keys: bool = False,
         selection=None,
-        include_groups: bool = True,
+        include_groups: bool = False,
     ) -> None:
+        if include_groups:
+            raise ValueError("include_groups=True is no longer allowed.")
         self._timegrouper = timegrouper
         self.keys = None
         self.sort = True
         self.group_keys = group_keys
         self.as_index = True
-        self.include_groups = include_groups
 
         self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
             self._convert_obj(obj), sort=True, gpr_index=gpr_index
@@ -465,9 +462,7 @@ class Resampler(BaseGroupBy, PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = _apply(
-                grouped, how, *args, include_groups=self.include_groups, **kwargs
-            )
+            result = grouped.apply(how, *args, **kwargs)
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -479,21 +474,23 @@ class Resampler(BaseGroupBy, PandasObject):
 
             # we have a non-reducing function
             # try to evaluate
-            result = _apply(
-                grouped, how, *args, include_groups=self.include_groups, **kwargs
-            )
+            result = grouped.apply(how, *args, **kwargs)
 
         return self._wrap_result(result)
 
     @final
     def _get_resampler_for_grouping(
-        self, groupby: GroupBy, key, include_groups: bool = True
+        self,
+        groupby: GroupBy,
+        key,
     ):
         """
         Return the correct class for resampling with groupby.
         """
         return self._resampler_for_grouping(
-            groupby=groupby, key=key, parent=self, include_groups=include_groups
+            groupby=groupby,
+            key=key,
+            parent=self,
         )
 
     def _wrap_result(self, result):
@@ -694,7 +691,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
+        .. [1] https://en.wikipedia.org/wiki/Imputation_%28statistics%29
 
         Examples
         --------
@@ -935,7 +932,7 @@ class Resampler(BaseGroupBy, PandasObject):
                     "supported. If you tried to resample and interpolate on a "
                     "grouped data frame, please use:\n"
                     "`df.groupby(...).apply(lambda x: x.resample(...)."
-                    "interpolate(...), include_groups=False)`"
+                    "interpolate(...))`"
                     "\ninstead, as resampling and interpolation has to be "
                     "performed for each group independently."
                 )
@@ -1616,7 +1613,6 @@ class _GroupByMixin(PandasObject, SelectionMixin):
         groupby: GroupBy,
         key=None,
         selection: IndexLabel | None = None,
-        include_groups: bool = False,
     ) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
@@ -1639,7 +1635,6 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         self.ax = parent.ax
         self.obj = parent.obj
-        self.include_groups = include_groups
 
     @no_type_check
     def _apply(self, f, *args, **kwargs):
@@ -1656,7 +1651,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
             return x.apply(f, *args, **kwargs)
 
-        result = _apply(self._groupby, func, include_groups=self.include_groups)
+        result = self._groupby.apply(func)
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -2012,7 +2007,6 @@ def get_resampler_for_grouping(
     fill_method=None,
     limit: int | None = None,
     on=None,
-    include_groups: bool = True,
     **kwargs,
 ) -> Resampler:
     """
@@ -2021,9 +2015,7 @@ def get_resampler_for_grouping(
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj)
-    return resampler._get_resampler_for_grouping(
-        groupby=groupby, include_groups=include_groups, key=tg.key
-    )
+    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
 
 
 class TimeGrouper(Grouper):
@@ -2802,18 +2794,3 @@ def _asfreq_compat(index: FreqIndexT, freq) -> FreqIndexT:
     else:  # pragma: no cover
         raise TypeError(type(index))
     return new_index
-
-
-def _apply(
-    grouped: GroupBy, how: Callable, *args, include_groups: bool, **kwargs
-) -> DataFrame:
-    # GH#7155 - rewrite warning to appear as if it came from `.resample`
-    target_message = "DataFrameGroupBy.apply operated on the grouping columns"
-    new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
-    with rewrite_warning(
-        target_message=target_message,
-        target_category=DeprecationWarning,
-        new_message=new_message,
-    ):
-        result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)
-    return result
