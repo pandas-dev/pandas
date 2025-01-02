@@ -200,6 +200,16 @@ def test_put_compression_blosc(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
+def test_put_datetime_ser(setup_path, performance_warning, using_infer_string):
+    # https://github.com/pandas-dev/pandas/pull/60625
+    ser = Series(3 * [Timestamp("20010102").as_unit("ns")])
+    with ensure_clean_store(setup_path) as store:
+        store.put("ser", ser)
+        expected = ser.copy()
+        result = store.get("ser")
+        tm.assert_frame_equal(result, expected)
+
+
 def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -207,8 +217,7 @@ def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df["obj1"] = "foo"
-    df["obj2"] = [pd.NA] + 9 * ["bar"]
-    df["obj2"] = df["obj2"].astype("string")
+    df["obj2"] = pd.array([pd.NA] + 9 * ["bar"], dtype="string")
     df["bool1"] = df["A"] > 0
     df["bool2"] = df["B"] > 0
     df["bool3"] = True
@@ -274,6 +283,7 @@ def test_column_multiindex(setup_path, using_infer_string):
 
     with ensure_clean_store(setup_path) as store:
         if using_infer_string:
+            # TODO(infer_string) make this work for string dtype
             msg = "Saving a MultiIndex with an extension dtype is not supported."
             with pytest.raises(NotImplementedError, match=msg):
                 store.put("df", df)

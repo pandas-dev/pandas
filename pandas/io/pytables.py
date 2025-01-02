@@ -3297,7 +3297,11 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_string_dtype() and is_string_array(values, skipna=True):
+        if (
+            using_string_dtype()
+            and isinstance(values, np.ndarray)
+            and is_string_array(values, skipna=True)
+        ):
             result = result.astype(StringDtype(na_value=np.nan))
         return result
 
