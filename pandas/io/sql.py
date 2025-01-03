@@ -2352,7 +2352,6 @@ class ADBCDatabase(PandasSQL):
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
-
         if index_label:
             raise NotImplementedError(
                 "'index_label' is not implemented for ADBC drivers"
@@ -2424,10 +2423,10 @@ class ADBCDatabase(PandasSQL):
         return False
 
     def delete_rows(self, name: str, schema: str | None = None) -> None:
-        delete_sql = f"DELETE FROM {schema}.{name}" if schema else f"DELETE FROM {name}"
+        table_name = f"{schema}.{name}" if schema else name
         if self.has_table(name, schema):
             with self.con.cursor() as cur:
-                cur.execute(delete_sql)
+                cur.execute(f"DELETE FROM {table_name)")
 
     def _create_sql_schema(
         self,
