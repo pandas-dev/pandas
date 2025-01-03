@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -82,13 +84,27 @@ class BaseInterfaceTests:
             # copy=False semantics are only supported in NumPy>=2.
             return
 
+        warning_raised = False
         msg = "Starting with NumPy 2.0, the behavior of the 'copy' keyword has changed"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
             result_nocopy1 = np.array(data, copy=False)
+            assert len(w) <= 1
+            if len(w):
+                warning_raised = True
+                assert msg in str(w[0].message)
 
-        result_nocopy2 = np.array(data, copy=False)
-        # If copy=False was given and did not raise, these must share the same data
-        assert np.may_share_memory(result_nocopy1, result_nocopy2)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result_nocopy2 = np.array(data, copy=False)
+            assert len(w) <= 1
+            if len(w):
+                warning_raised = True
+                assert msg in str(w[0].message)
+
+        if not warning_raised:
+            # If copy=False was given and did not raise, these must share the same data
+            assert np.may_share_memory(result_nocopy1, result_nocopy2)
 
     def test_is_extension_array_dtype(self, data):
         assert is_extension_array_dtype(data)
