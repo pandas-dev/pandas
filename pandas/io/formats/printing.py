@@ -21,7 +21,7 @@ from unicodedata import east_asian_width
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.inference import is_sequence
+from pandas.core.dtypes.inference import is_sequence, is_float
 
 from pandas.io.formats.console import get_console_size
 
@@ -168,7 +168,6 @@ def _pprint_dict(
     else:
         return fmt.format(things=", ".join(pairs))
 
-
 def pprint_thing(
     thing: object,
     _nest_lvl: int = 0,
@@ -178,42 +177,46 @@ def pprint_thing(
     max_seq_items: int | None = None,
 ) -> str:
     """
-    This function is the sanctioned way of converting objects
-    to a string representation and properly handles nested sequences.
+    Convert object to a string representation.
 
     Parameters
     ----------
-    thing : anything to be formatted
-    _nest_lvl : internal use only. pprint_thing() is mutually-recursive
-        with pprint_sequence, this argument is used to keep track of the
-        current nesting level, and limit it.
+    thing : object
+        Object to be formatted.
+    _nest_lvl : int, default 0
+        Internal use only. Current nesting level.
     escape_chars : list[str] or Mapping[str, str], optional
-        Characters to escape. If a Mapping is passed the values are the
-        replacements
+        Characters to escape. If a Mapping is passed the values are the replacements.
     default_escapes : bool, default False
-        Whether the input escape characters replaces or adds to the defaults
+        Whether the input escape characters replaces or adds to the defaults.
+    quote_strings : bool, default False
+        Whether to quote strings.
     max_seq_items : int or None, default None
-        Pass through to other pretty printers to limit sequence printing
+        Pass through to other pretty printers to limit sequence printing.
 
     Returns
     -------
     str
+        String representation of the object.
     """
-
     def as_escaped_string(
-        thing: Any, escape_chars: EscapeChars | None = escape_chars
+            thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
         if isinstance(escape_chars, Mapping):
             if default_escapes:
                 translate.update(escape_chars)
             else:
-                translate = escape_chars  # type: ignore[assignment]
+                translate = escape_chars
             escape_chars = list(escape_chars.keys())
         else:
             escape_chars = escape_chars or ()
 
-        result = str(thing)
+        if is_float(thing):
+            result = f"{thing:.{get_option('display.precision')}f}"
+        else:
+            result = str(thing)
+
         for c in escape_chars:
             result = result.replace(c, translate[c])
         return result
