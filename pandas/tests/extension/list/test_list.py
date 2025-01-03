@@ -15,6 +15,7 @@ from pandas.tests.extension.base.dim2 import (  # noqa: F401
     NDArrayBacked2DTests,
 )
 from pandas.tests.extension.base.dtype import BaseDtypeTests
+from pandas.tests.extension.base.groupby import BaseGroupbyTests
 from pandas.tests.extension.base.index import BaseIndexTests
 from pandas.tests.extension.base.missing import BaseMissingTests
 from pandas.tests.extension.base.ops import (  # noqa: F401
@@ -52,13 +53,22 @@ def data_missing(dtype):
     return arr
 
 
+@pytest.fixture
+def data_for_grouping(dtype):
+    A = ["a"]
+    B = ["a", "b"]
+    NA = None
+    C = ["a", "b", "c"]
+    return ListArray([B, B, NA, NA, A, A, B, C])
+
+
 class TestListArray(
     BaseAccumulateTests,
     BaseCastingTests,
     BaseConstructorsTests,
     BaseDtypeTests,
     # BaseGetitemTests,
-    # BaseGroupbyTests,
+    BaseGroupbyTests,
     BaseIndexTests,
     # BaseInterfaceTests,
     # BaseParsingTests,
@@ -88,6 +98,19 @@ class TestListArray(
 
     def test_kind(self, dtype):
         assert dtype.kind == "+L"
+
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_groupby_extension_agg(self, as_index, data_for_grouping):
+        pytest.skip(reason="ListArray does not implement mean")
+
+    def test_groupby_extension_no_sort(self, data_for_grouping):
+        pytest.skip(reason="ListArray does not implement mean")
+
+    def test_groupby_extension_transform(self, data_for_grouping):
+        pytest.skip(reason="ListArray does not implement dictionary_encode")
+
+    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
+        pytest.skip(reason="ListArray does not implement dictionary_encode")
 
 
 def test_to_csv(data):
