@@ -11,6 +11,7 @@ from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
 )
+from pandas.core.dtypes.common import is_string_dtype
 from pandas.core.dtypes.dtypes import ArrowDtype
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
@@ -18,6 +19,8 @@ from pandas.core.arrays.arrow.array import ArrowExtensionArray
 if TYPE_CHECKING:
     from pandas._typing import (
         type_t,
+        ArrayLike,
+        AstypeArg,
         Shape,
     )
 
@@ -188,3 +191,9 @@ class ListArray(ArrowExtensionArray):
             length = shape
 
         return cls._from_sequence([None] * length, dtype=dtype)
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+        if is_string_dtype(dtype) and not isinstance(dtype, ExtensionDtype):
+            return np.array([str(x) for x in self], dtype=dtype)
+
+        return super().astype(dtype, copy)

@@ -50,9 +50,12 @@ def data_missing(dtype):
     return arr
 
 
+from pandas.tests.extension.base.casting import BaseCastingTests
+
+
 class TestListArray(
     BaseAccumulateTests,
-    # BaseCastingTests,
+    BaseCastingTests,
     BaseConstructorsTests,
     # BaseDtypeTests,
     # BaseGetitemTests,
