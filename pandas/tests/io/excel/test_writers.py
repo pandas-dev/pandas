@@ -800,6 +800,9 @@ class TestExcelWriter:
         # we need to use df_expected to check the result.
         tm.assert_frame_equal(rs2, df_expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_to_excel_interval_no_labels(self, tmp_excel, using_infer_string):
         # see gh-19242
         #

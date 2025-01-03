@@ -3297,3 +3297,23 @@ class TestLocSeries:
         df.loc[Series([False] * 4, index=df.index, name=0), 0] = df[0]
         expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_matching_index(self):
+        # GH 25548
+        s = Series(0.0, index=list("abcd"))
+        s1 = Series(1.0, index=list("ab"))
+        s2 = Series(2.0, index=list("xy"))
+
+        # Test matching indices
+        s.loc[["a", "b"]] = s1
+
+        result = s[["a", "b"]]
+        expected = s1
+        tm.assert_series_equal(result, expected)
+
+        # Test unmatched indices
+        s.loc[["a", "b"]] = s2
+
+        result = s[["a", "b"]]
+        expected = Series([np.nan, np.nan], index=["a", "b"])
+        tm.assert_series_equal(result, expected)

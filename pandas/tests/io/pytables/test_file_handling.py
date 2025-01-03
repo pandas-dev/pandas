@@ -37,12 +37,11 @@ from pandas.io.pytables import Term
 
 pytestmark = [
     pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
 ]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
-def test_mode(setup_path, tmp_path, mode):
+def test_mode(setup_path, tmp_path, mode, using_infer_string):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD"), dtype=object),
@@ -91,10 +90,12 @@ def test_mode(setup_path, tmp_path, mode):
             read_hdf(path, "df", mode=mode)
     else:
         result = read_hdf(path, "df", mode=mode)
+        if using_infer_string:
+            df.columns = df.columns.astype("str")
         tm.assert_frame_equal(result, df)
 
 
-def test_default_mode(tmp_path, setup_path):
+def test_default_mode(tmp_path, setup_path, using_infer_string):
     # read_hdf uses default mode
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -104,7 +105,10 @@ def test_default_mode(tmp_path, setup_path):
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", mode="w")
     result = read_hdf(path, "df")
-    tm.assert_frame_equal(result, df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_reopen_handle(tmp_path, setup_path):
@@ -163,7 +167,7 @@ def test_reopen_handle(tmp_path, setup_path):
     assert not store.is_open
 
 
-def test_open_args(setup_path):
+def test_open_args(setup_path, using_infer_string):
     with tm.ensure_clean(setup_path) as path:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -178,8 +182,13 @@ def test_open_args(setup_path):
         store["df"] = df
         store.append("df2", df)
 
-        tm.assert_frame_equal(store["df"], df)
-        tm.assert_frame_equal(store["df2"], df)
+        expected = df.copy()
+        if using_infer_string:
+            expected.index = expected.index.astype("str")
+            expected.columns = expected.columns.astype("str")
+
+        tm.assert_frame_equal(store["df"], expected)
+        tm.assert_frame_equal(store["df2"], expected)
 
         store.close()
 
@@ -194,7 +203,7 @@ def test_flush(setup_path):
         store.flush(fsync=True)
 
 
-def test_complibs_default_settings(tmp_path, setup_path):
+def test_complibs_default_settings(tmp_path, setup_path, using_infer_string):
     # GH15943
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -207,7 +216,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
     tmpfile = tmp_path / setup_path
     df.to_hdf(tmpfile, key="df", complevel=9)
     result = read_hdf(tmpfile, "df")
-    tm.assert_frame_equal(result, df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
@@ -218,7 +231,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
     tmpfile = tmp_path / setup_path
     df.to_hdf(tmpfile, key="df", complib="zlib")
     result = read_hdf(tmpfile, "df")
-    tm.assert_frame_equal(result, df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
@@ -229,7 +246,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
     tmpfile = tmp_path / setup_path
     df.to_hdf(tmpfile, key="df")
     result = read_hdf(tmpfile, "df")
-    tm.assert_frame_equal(result, df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
@@ -308,6 +329,7 @@ def test_complibs(tmp_path, lvl, lib, request):
                 assert node.filters.complib == lib
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.skipif(
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
@@ -325,6 +347,7 @@ def test_encoding(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "val",
     [

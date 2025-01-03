@@ -525,6 +525,7 @@ class TestSetOps:
         tm.assert_index_equal(inter, diff, exact=True)
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]

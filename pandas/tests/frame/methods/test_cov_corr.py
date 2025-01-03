@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -320,7 +318,6 @@ class TestDataFrameCorrWith:
         for row in index[:4]:
             tm.assert_almost_equal(correls[row], df1.loc[row].corr(df2.loc[row]))
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_corrwith_with_objects(self, using_infer_string):
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
@@ -334,9 +331,8 @@ class TestDataFrameCorrWith:
         df2["obj"] = "bar"
 
         if using_infer_string:
-            import pyarrow as pa
-
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
+            msg = "Cannot perform reduction 'mean' with string dtype"
+            with pytest.raises(TypeError, match=msg):
                 df1.corrwith(df2)
         else:
             with pytest.raises(TypeError, match="Could not convert"):
