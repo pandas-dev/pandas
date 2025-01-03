@@ -80,7 +80,7 @@ class TestListArray(
     BaseMissingTests,
     BaseArithmeticOpsTests,
     BaseComparisonOpsTests,
-    # BaseUnaryOpsTests,
+    BaseUnaryOpsTests,
     BasePrintingTests,
     BaseReduceTests,
     # BaseReshapingTests,
@@ -155,6 +155,9 @@ class TestListArray(
             pytest.skip("Series.combine does not properly handle missing values")
 
         super().test_compare_array(data, comparison_op)
+
+    def test_invert(self, data):
+        pytest.skip("ListArray does not implement invert")
 
 
 def test_to_csv(data):
