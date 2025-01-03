@@ -717,8 +717,12 @@ def group_sum(
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    # the below is equivalent to `np.zeros_like(out)` but faster
-    sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    if sum_t is object:
+        # For object dtype, fill value should not be 0 (#60229)
+        sumx = np.empty((<object>out).shape, dtype=object)
+    else:
+        # the below is equivalent to `np.zeros_like(out)` but faster
+        sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
