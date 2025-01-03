@@ -207,6 +207,10 @@ class ListArray(ArrowExtensionArray):
 
         return type(self)(self._pa_array[item])
 
+    def __setitem__(self, key, value) -> None:
+        msg = "ListArray does not support item assignment via setitem"
+        raise TypeError(msg)
+
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
         """

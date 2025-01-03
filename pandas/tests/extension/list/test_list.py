@@ -32,6 +32,7 @@ from pandas.tests.extension.base.ops import (  # noqa: F401
 from pandas.tests.extension.base.printing import BasePrintingTests
 from pandas.tests.extension.base.reduce import BaseReduceTests
 from pandas.tests.extension.base.reshaping import BaseReshapingTests
+from pandas.tests.extension.base.setitem import BaseSetitemTests
 
 # TODO(wayd): This is copied from string tests - is it required here?
 # @pytest.fixture(params=[True, False])
@@ -86,7 +87,7 @@ class TestListArray(
     BasePrintingTests,
     BaseReduceTests,
     BaseReshapingTests,
-    # BaseSetitemTests,
+    BaseSetitemTests,
     Dim2CompatTests,
 ):
     # TODO(wayd): The tests here are copied from test_arrow.py
