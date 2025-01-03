@@ -3402,13 +3402,6 @@ def test_to_sql_with_negative_npinf(conn, request, input):
         # GH 36465
         # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
         # for pymysql version >= 0.10
-        # TODO(GH#36465): remove this version check after GH 36465 is fixed
-        pymysql = pytest.importorskip("pymysql")
-
-        if Version(pymysql.__version__) < Version("1.0.3") and "infe0" in df.columns:
-            mark = pytest.mark.xfail(reason="GH 36465")
-            request.applymarker(mark)
-
         msg = "inf cannot be used with MySQL"
         with pytest.raises(ValueError, match=msg):
             df.to_sql(name="foobar", con=conn, index=False)
