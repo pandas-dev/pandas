@@ -2788,6 +2788,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -2844,6 +2845,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        prefixes : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
 
         Returns
         -------
@@ -3017,6 +3021,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             chunksize=chunksize,
             dtype=dtype,
             method=method,
+            prefixes=prefixes,
         )
 
     @final

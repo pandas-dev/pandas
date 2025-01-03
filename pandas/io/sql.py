@@ -72,6 +72,7 @@ if TYPE_CHECKING:
         Generator,
         Iterator,
         Mapping,
+        Sequence,
     )
 
     from sqlalchemy import Table
@@ -744,6 +745,7 @@ def to_sql(
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
+    prefixes: Sequence[str] | None = None,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -791,6 +793,9 @@ def to_sql(
 
         Details and a sample callable implementation can be found in the
         section :ref:`insert method <io.sql.method>`.
+    prefixes : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
     engine : {'auto', 'sqlalchemy'}, default 'auto'
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -839,6 +844,7 @@ def to_sql(
             chunksize=chunksize,
             dtype=dtype,
             method=method,
+            prefixes=prefixes,
             engine=engine,
             **engine_kwargs,
         )
@@ -932,6 +938,7 @@ class SQLTable(PandasObject):
         schema=None,
         keys=None,
         dtype: DtypeArg | None = None,
+        prefixes: Sequence[str] | None = None,
     ) -> None:
         self.name = name
         self.pd_sql = pandas_sql_engine
@@ -942,6 +949,11 @@ class SQLTable(PandasObject):
         self.if_exists = if_exists
         self.keys = keys
         self.dtype = dtype
+        self.prefixes = prefixes
+        # check if the table to be created is a temporary table
+        self.is_temporary = self.prefixes is not None and "TEMPORARY".casefold() in [
+            prefix.casefold() for prefix in self.prefixes
+        ]
 
         if frame is not None:
             # We want to initialize based on a dataframe
@@ -956,8 +968,42 @@ class SQLTable(PandasObject):
         if not len(self.name):
             raise ValueError("Empty table name specified")
 
+    def _drop_temporary_table(self):
+        """Drop a temporary table. Temporary tables are not in a database's meta data
+        and need to be dropped hard coded."""
+        if self.schema is None:
+            query = f"DROP TABLE {self.name}"
+        else:
+            query = f"DROP TABLE {self.schema}.{self.name}"
+        self.pd_sql.execute(query)
+
+    def _exists_temporary(self):
+        """Check if a temporary table exists. Temporary tables are not in a database's
+        meta data. The existence is duck tested by a SELECT statement."""
+        from sqlalchemy.exc import (
+            OperationalError,
+            ProgrammingError,
+        )
+
+        if self.schema is None:
+            query = f"SELECT * FROM {self.name} LIMIT 1"
+        else:
+            query = f"SELECT * FROM {self.schema}.{self.name} LIMIT 1"
+        try:
+            _ = self.pd_sql.read_query(query)
+            return True
+        except ProgrammingError:
+            # Some DBMS (e.g. postgres) require a rollback after a caught exception
+            self.pd_sql.execute("rollback")
+            return False
+        except OperationalError:
+            return False
+
     def exists(self):
-        return self.pd_sql.has_table(self.name, self.schema)
+        if self.is_temporary:
+            return self._exists_temporary()
+        else:
+            return self.pd_sql.has_table(self.name, self.schema)
 
     def sql_schema(self) -> str:
         from sqlalchemy.schema import CreateTable
@@ -966,7 +1012,9 @@ class SQLTable(PandasObject):
 
     def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
-        self.table = self.table.to_metadata(self.pd_sql.meta)
+        if not self.is_temporary:
+            # only insert into meta data, if table is not temporary
+            self.table = self.table.to_metadata(self.pd_sql.meta)
         with self.pd_sql.run_transaction():
             self.table.create(bind=self.pd_sql.con)
 
@@ -975,7 +1023,10 @@ class SQLTable(PandasObject):
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
             if self.if_exists == "replace":
-                self.pd_sql.drop_table(self.name, self.schema)
+                if self.is_temporary:
+                    self._drop_temporary_table()
+                else:
+                    self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
             elif self.if_exists == "append":
                 pass
@@ -1269,7 +1320,7 @@ class SQLTable(PandasObject):
         # At this point, attach to new metadata, only attach to self.meta
         # once table is created.
         meta = MetaData()
-        return Table(self.name, meta, *columns, schema=schema)
+        return Table(self.name, meta, *columns, schema=schema, prefixes=self.prefixes)
 
     def _harmonize_columns(
         self,
@@ -1487,6 +1538,7 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1871,6 +1923,7 @@ class SQLDatabase(PandasSQL):
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
+        prefixes: Sequence[str] | None = None,
     ) -> SQLTable:
         """
         Prepares table in the database for data insertion. Creates it if needed, etc.
@@ -1906,6 +1959,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
+            prefixes=prefixes,
         )
         table.create()
         return table
@@ -1950,6 +2004,7 @@ class SQLDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1991,6 +2046,9 @@ class SQLDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        prefixes : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -2011,6 +2069,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
+            prefixes=prefixes,
         )
 
         total_inserted = sql_engine.insert_records(
@@ -2025,7 +2084,9 @@ class SQLDatabase(PandasSQL):
             **engine_kwargs,
         )
 
-        self.check_case_sensitive(name=name, schema=schema)
+        # only check case sensitivity for non temporary tables
+        if not table.is_temporary:
+            self.check_case_sensitive(name=name, schema=schema)
         return total_inserted
 
     @property
@@ -2303,6 +2364,7 @@ class ADBCDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2332,6 +2394,9 @@ class ADBCDatabase(PandasSQL):
             Raises NotImplementedError
         method : {None', 'multi', callable}, default None
             Raises NotImplementedError
+        prefixes : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
@@ -2350,6 +2415,11 @@ class ADBCDatabase(PandasSQL):
                 "engine != 'auto' not implemented for ADBC drivers"
             )
 
+        # check if the table to be created is a temporary table
+        temporary = prefixes is not None and "TEMPORARY".casefold() in [
+            prefix.casefold() for prefix in prefixes
+        ]
+
         if schema:
             table_name = f"{schema}.{name}"
         else:
@@ -2360,7 +2430,14 @@ class ADBCDatabase(PandasSQL):
         # as applicable modes, so the semantics get blurred across
         # the libraries
         mode = "create"
-        if self.has_table(name, schema):
+
+        # for temporary tables use duck testing for existence check
+        if temporary:
+            exists = self._has_table_temporary(name, schema)
+        else:
+            exists = self.has_table(name, schema)
+
+        if exists:
             if if_exists == "fail":
                 raise ValueError(f"Table '{table_name}' already exists.")
             elif if_exists == "replace":
@@ -2378,11 +2455,40 @@ class ADBCDatabase(PandasSQL):
 
         with self.con.cursor() as cur:
             total_inserted = cur.adbc_ingest(
-                table_name=name, data=tbl, mode=mode, db_schema_name=schema
+                table_name=name,
+                data=tbl,
+                mode=mode,
+                db_schema_name=schema,
+                temporary=temporary,
             )
 
         self.con.commit()
         return total_inserted
+
+    def _has_table_temporary(self, name: str, schema: str | None = None) -> bool:
+        """Check if a temporary table exists. Temporary tables are not in a database's
+        meta data. The existence is duck tested by a SELECT statement."""
+        from adbc_driver_manager import ProgrammingError
+
+        # sqlite doesn't allow a rollback at this point
+        rollback = (
+            True if not self.con.adbc_get_info()["vendor_name"] == "SQLite" else False
+        )
+
+        if schema is None:
+            query = f"SELECT * FROM {name} LIMIT 1"
+        else:
+            query = f"SELECT * FROM {schema}.{name} LIMIT 1"
+        try:
+            with self.con.cursor() as cur:
+                cur.execute(query)
+            return True
+        except ProgrammingError:
+            if rollback:
+                # Some DBMS (e.g. postgres) require a rollback after a caught exception
+                with self.con.cursor() as cur:
+                    cur.execute("rollback")
+            return False
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
@@ -2758,6 +2864,7 @@ class SQLiteDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        prefixes: Sequence[str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2798,6 +2905,9 @@ class SQLiteDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        prefixes : sequence, optional
+            A list of strings to insert after CREATE in the CREATE TABLE statement.
+            They will be separated by spaces.
         """
         if dtype:
             if not is_dict_like(dtype):
@@ -2823,6 +2933,7 @@ class SQLiteDatabase(PandasSQL):
             if_exists=if_exists,
             index_label=index_label,
             dtype=dtype,
+            prefixes=prefixes,
         )
         table.create()
         return table.insert(chunksize, method)

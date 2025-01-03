@@ -39,6 +39,7 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
+from pandas.testing import assert_frame_equal
 from pandas.util.version import Version
 
 from pandas.io import sql
@@ -618,6 +619,22 @@ def mysql_pymysql_engine():
 
 
 @pytest.fixture
+def mysql_pymysql_engine_default_pool():
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    pymysql = pytest.importorskip("pymysql")
+    engine = sqlalchemy.create_engine(
+        "mysql+pymysql://root@localhost:3306/pandas",
+        connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
+    )
+    yield engine
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
+    engine.dispose()
+
+
+@pytest.fixture
 def mysql_pymysql_engine_iris(mysql_pymysql_engine, iris_path):
     create_and_load_iris(mysql_pymysql_engine, iris_path)
     create_and_load_iris_view(mysql_pymysql_engine)
@@ -633,6 +650,12 @@ def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
 @pytest.fixture
 def mysql_pymysql_conn(mysql_pymysql_engine):
     with mysql_pymysql_engine.connect() as conn:
+        yield conn
+
+
+@pytest.fixture
+def mysql_pymysql_conn_default_pool(mysql_pymysql_engine_default_pool):
+    with mysql_pymysql_engine_default_pool.connect() as conn:
         yield conn
 
 
@@ -665,6 +688,21 @@ def postgresql_psycopg2_engine():
 
 
 @pytest.fixture
+def postgresql_psycopg2_engine_default_pool():
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    pytest.importorskip("psycopg2")
+    engine = sqlalchemy.create_engine(
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
+    )
+    yield engine
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
+    engine.dispose()
+
+
+@pytest.fixture
 def postgresql_psycopg2_engine_iris(postgresql_psycopg2_engine, iris_path):
     create_and_load_iris(postgresql_psycopg2_engine, iris_path)
     create_and_load_iris_view(postgresql_psycopg2_engine)
@@ -680,6 +718,12 @@ def postgresql_psycopg2_engine_types(postgresql_psycopg2_engine, types_data):
 @pytest.fixture
 def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
     with postgresql_psycopg2_engine.connect() as conn:
+        yield conn
+
+
+@pytest.fixture
+def postgresql_psycopg2_conn_default_pool(postgresql_psycopg2_engine_default_pool):
+    with postgresql_psycopg2_engine_default_pool.connect() as conn:
         yield conn
 
 
@@ -767,8 +811,26 @@ def sqlite_engine(sqlite_str):
 
 
 @pytest.fixture
+def sqlite_engine_default_pool(sqlite_str):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine(sqlite_str)
+    yield engine
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
+    engine.dispose()
+
+
+@pytest.fixture
 def sqlite_conn(sqlite_engine):
     with sqlite_engine.connect() as conn:
+        yield conn
+
+
+@pytest.fixture
+def sqlite_conn_default_pool(sqlite_engine_default_pool):
+    with sqlite_engine_default_pool.connect() as conn:
         yield conn
 
 
@@ -899,6 +961,11 @@ mysql_connectable = [
     pytest.param("mysql_pymysql_conn", marks=pytest.mark.db),
 ]
 
+mysql_connectable_default_pool = [
+    pytest.param("mysql_pymysql_engine_default_pool", marks=pytest.mark.db),
+    pytest.param("mysql_pymysql_conn_default_pool", marks=pytest.mark.db),
+]
+
 mysql_connectable_iris = [
     pytest.param("mysql_pymysql_engine_iris", marks=pytest.mark.db),
     pytest.param("mysql_pymysql_conn_iris", marks=pytest.mark.db),
@@ -912,6 +979,11 @@ mysql_connectable_types = [
 postgresql_connectable = [
     pytest.param("postgresql_psycopg2_engine", marks=pytest.mark.db),
     pytest.param("postgresql_psycopg2_conn", marks=pytest.mark.db),
+]
+
+postgresql_connectable_default_pool = [
+    pytest.param("postgresql_psycopg2_engine_default_pool", marks=pytest.mark.db),
+    pytest.param("postgresql_psycopg2_conn_default_pool", marks=pytest.mark.db),
 ]
 
 postgresql_connectable_iris = [
@@ -930,6 +1002,11 @@ sqlite_connectable = [
     "sqlite_str",
 ]
 
+sqlite_connectable_default_pool = [
+    "sqlite_engine_default_pool",
+    "sqlite_conn_default_pool",
+]
+
 sqlite_connectable_iris = [
     "sqlite_engine_iris",
     "sqlite_conn_iris",
@@ -943,6 +1020,12 @@ sqlite_connectable_types = [
 ]
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
+
+sqlalchemy_connectable_default_pool = (
+    mysql_connectable_default_pool
+    + postgresql_connectable_default_pool
+    + sqlite_connectable_default_pool
+)
 
 sqlalchemy_connectable_iris = (
     mysql_connectable_iris + postgresql_connectable_iris + sqlite_connectable_iris
@@ -977,6 +1060,8 @@ all_connectable_iris = (
 all_connectable_types = (
     sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
 )
+
+temporary_connectable = sqlalchemy_connectable_default_pool + adbc_connectable
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -4358,3 +4443,98 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_default_pool)
+def test_exists_temporary_table(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+
+    pandas_sql = pandasSQL_builder(conn, schema=None, need_transaction=True)
+    table = sql.SQLTable(
+        name="test_frame1",
+        pandas_sql_engine=pandas_sql,
+        frame=test_frame1,
+        index=False,
+        if_exists="fail",
+        prefixes=["TEMPORARY"],
+    )
+
+    table.create()
+
+    assert True if table.exists() else False
+
+
+@pytest.mark.parametrize("conn", temporary_connectable)
+def test_to_sql_temporary_table_replace(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+
+    test_frame1.to_sql(
+        name="test_frame1",
+        con=conn,
+        if_exists="fail",
+        index=False,
+        prefixes=["TEMPORARY"],
+    )
+
+    test_frame1.to_sql(
+        name="test_frame1",
+        con=conn,
+        if_exists="replace",
+        index=False,
+        prefixes=["TEMPORARY"],
+    )
+
+    df_test = pd.read_sql("SELECT * FROM test_frame1", conn)
+
+    assert_frame_equal(test_frame1, df_test)
+
+
+@pytest.mark.parametrize("conn", temporary_connectable)
+def test_to_sql_temporary_table_fail(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+
+    test_frame1.to_sql(
+        name="test_frame1",
+        con=conn,
+        if_exists="fail",
+        index=False,
+        prefixes=["TEMPORARY"],
+    )
+
+    with pytest.raises(ValueError, match=r"Table 'test_frame1' already exists."):
+        test_frame1.to_sql(
+            name="test_frame1",
+            con=conn,
+            if_exists="fail",
+            index=False,
+            prefixes=["TEMPORARY"],
+        )
+
+
+@pytest.mark.parametrize("conn", temporary_connectable)
+def test_to_sql_temporary_table_append(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+
+    test_frame1.to_sql(
+        name="test_frame1",
+        con=conn,
+        if_exists="fail",
+        index=False,
+        prefixes=["TEMPORARY"],
+    )
+
+    test_frame1.to_sql(
+        name="test_frame1",
+        con=conn,
+        if_exists="append",
+        index=False,
+        prefixes=["TEMPORARY"],
+    )
+
+    df_test = pd.read_sql("SELECT * FROM test_frame1", conn)
+
+    df_true = concat([test_frame1, test_frame1], axis=0, ignore_index=True).reset_index(
+        drop=True
+    )
+
+    assert_frame_equal(df_true, df_test)
