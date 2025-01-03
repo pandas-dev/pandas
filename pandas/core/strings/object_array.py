@@ -416,7 +416,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         from pandas import Series
 
         if dtype is None:
-            dtype = np.int64
+            dtype = np.bool_
         arr = Series(self).fillna("")
         try:
             arr = sep + arr + sep

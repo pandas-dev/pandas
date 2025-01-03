@@ -2206,6 +2206,16 @@ def test_get_dummies():
     )
     tm.assert_frame_equal(result, expected)
 
+    ser = pd.Series(
+        ["a", "b"],
+        dtype=pd.CategoricalDtype(pd.Index(["a", "b"], dtype=ArrowDtype(pa.string()))),
+    )
+    result = ser.str.get_dummies()
+    expected = pd.DataFrame(
+        [[True, False], [False, True]], dtype=ArrowDtype(pa.bool_()), columns=["a", "b"]
+    )
+    tm.assert_frame_equal(result, expected)
+
 
 def test_str_partition():
     ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.string()))

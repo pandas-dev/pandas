@@ -6,6 +6,8 @@ from pandas._config import using_string_dtype
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
+    CategoricalDtype,
     DataFrame,
     Index,
     MultiIndex,
@@ -22,19 +24,28 @@ except ImportError:
 def test_get_dummies(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
     result = s.str.get_dummies("|")
-    expected = DataFrame([[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"))
+    exp_dtype = (
+        "boolean"
+        if any_string_dtype == "string" and any_string_dtype.na_value is NA
+        else "bool"
+    )
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=exp_dtype
+    )
     tm.assert_frame_equal(result, expected)
 
     s = Series(["a;b", "a", 7], dtype=any_string_dtype)
     result = s.str.get_dummies(";")
-    expected = DataFrame([[0, 1, 1], [0, 1, 0], [1, 0, 0]], columns=list("7ab"))
+    expected = DataFrame(
+        [[0, 1, 1], [0, 1, 0], [1, 0, 0]], columns=list("7ab"), dtype=exp_dtype
+    )
     tm.assert_frame_equal(result, expected)
 
 
 def test_get_dummies_index():
     # GH9980, GH8028
     idx = Index(["a|b", "a|c", "b|c"])
-    result = idx.str.get_dummies("|")
+    result = idx.str.get_dummies("|", dtype=np.int64)
 
     expected = MultiIndex.from_tuples(
         [(1, 1, 0), (1, 0, 1), (0, 1, 1)], names=("a", "b", "c")
@@ -124,4 +135,16 @@ def test_get_dummies_with_pa_str_dtype(any_string_dtype):
         columns=list("abc"),
         dtype="str[pyarrow]",
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_type", ["string", "category"])
+def test_get_dummies_ea_dtype(dtype_type, string_dtype_no_object):
+    dtype = string_dtype_no_object
+    exp_dtype = "boolean" if dtype.na_value is NA else "bool"
+    if dtype_type == "category":
+        dtype = CategoricalDtype(Index(["a", "b"], dtype))
+    s = Series(["a", "b"], dtype=dtype)
+    result = s.str.get_dummies()
+    expected = DataFrame([[1, 0], [0, 1]], columns=list("ab"), dtype=exp_dtype)
     tm.assert_frame_equal(result, expected)
