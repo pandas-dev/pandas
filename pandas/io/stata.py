@@ -2611,7 +2611,7 @@ class StataWriter(StataParser):
         # Check date conversion, and fix key if needed
         if self._convert_dates:
             for c, o in zip(columns, original_columns):
-                if c != o:
+                if c != o and o in self._convert_dates:
                     self._convert_dates[c] = self._convert_dates[o]
                     del self._convert_dates[o]
 
