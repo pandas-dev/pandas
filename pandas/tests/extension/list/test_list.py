@@ -1,3 +1,5 @@
+import operator
+
 import pyarrow as pa
 import pytest
 
@@ -77,7 +79,7 @@ class TestListArray(
     # BaseMethodsTests,
     BaseMissingTests,
     BaseArithmeticOpsTests,
-    # BaseComparisonOpsTests,
+    BaseComparisonOpsTests,
     # BaseUnaryOpsTests,
     BasePrintingTests,
     BaseReduceTests,
@@ -141,6 +143,18 @@ class TestListArray(
 
     def test_divmod(self, data):
         pytest.skip("ListArray does not implement divmod")
+
+    def test_compare_scalar(self, data, comparison_op):
+        if comparison_op in (operator.eq, operator.ne):
+            pytest.skip("Series.combine does not properly handle missing values")
+
+        super().test_compare_scalar(data, comparison_op)
+
+    def test_compare_array(self, data, comparison_op):
+        if comparison_op in (operator.eq, operator.ne):
+            pytest.skip("Series.combine does not properly handle missing values")
+
+        super().test_compare_array(data, comparison_op)
 
 
 def test_to_csv(data):
