@@ -292,6 +292,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
         See NDFrame.interpolate.__doc__.
         """
         # NB: we return type(self) even if copy=False
+        if not self.dtype._is_numeric:
+            raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
+
         if not copy:
             out_data = self._ndarray
         else:
