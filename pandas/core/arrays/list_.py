@@ -17,6 +17,7 @@ from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pandas._typing import (
         type_t,
         ArrayLike,
@@ -45,6 +46,20 @@ def string_to_pyarrow_type(string: str) -> pa.DataType:
             # TODO: need to implement many more here, including nested
 
     raise ValueError(f"Cannot map {string} to a pyarrow list type")
+
+
+def transpose_homogeneous_list(
+    arrays: Sequence[ListArray],
+) -> list[ListArray]:
+    # TODO: this is the same as transpose_homogeneous_pyarrow
+    # but returns the ListArray instead of an ArrowExtensionArray
+    # should consolidate these
+    arrays = list(arrays)
+    nrows, ncols = len(arrays[0]), len(arrays)
+    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.reshape(-1)
+    arr = pa.chunked_array([chunk for arr in arrays for chunk in arr._pa_array.chunks])
+    arr = arr.take(indices)
+    return [ListArray(arr.slice(i * ncols, ncols)) for i in range(nrows)]
 
 
 @register_extension_dtype
@@ -80,7 +95,10 @@ class ListDtype(ArrowDtype):
         """
         A string identifying the data type.
         """
-        return f"list[{self.pyarrow_dtype.value_type!s}]"
+        # TODO: reshaping tests require the name list to match the large_list
+        # implementation; assumedly there are some astype(str(dtype)) casts
+        # going on. Should fix so this can just be "list[...]" for end user
+        return f"large_list[{self.pyarrow_dtype.value_type!s}]"
 
     @property
     def kind(self) -> str:
@@ -131,6 +149,10 @@ class ListArray(ArrowExtensionArray):
                     value_type = values.type.value_type
                 else:
                     value_type = pa.array(values).type.value_type
+
+                # Internally always use large_string instead of string
+                if value_type == pa.string():
+                    value_type = pa.large_string()
 
             if not isinstance(values, pa.ChunkedArray):
                 # To support NA, we need to create an Array first :-(
