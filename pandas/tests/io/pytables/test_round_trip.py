@@ -28,11 +28,10 @@ from pandas.util import _test_decorators as td
 
 pytestmark = [
     pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
 ]
 
 
-def test_conv_read_write():
+def test_conv_read_write(using_infer_string):
     with tm.ensure_clean() as path:
 
         def roundtrip(key, obj, **kwargs):
@@ -52,15 +51,24 @@ def test_conv_read_write():
             columns=Index(list("ABCD"), dtype=object),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
-        tm.assert_frame_equal(o, roundtrip("frame", o))
+        expected = o
+        if using_infer_string:
+            expected.index = expected.index.astype("str")
+            expected.columns = expected.columns.astype("str")
+        result = roundtrip("frame", o)
+        tm.assert_frame_equal(result, expected)
 
         # table
         df = DataFrame({"A": range(5), "B": range(5)})
         df.to_hdf(path, key="table", append=True)
+        expected = df[df.index > 2]
+        if using_infer_string:
+            expected.columns = expected.columns.astype("str")
         result = read_hdf(path, "table", where=["index>2"])
-        tm.assert_frame_equal(df[df.index > 2], result)
+        tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_long_strings(setup_path):
     # GH6166
     data = ["a" * 50] * 10
@@ -201,6 +209,7 @@ def test_put_integer(setup_path):
     _check_roundtrip(df, tm.assert_frame_equal, setup_path)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_table_values_dtypes_roundtrip(setup_path):
     with ensure_clean_store(setup_path) as store:
         df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
@@ -370,7 +379,7 @@ def test_timeseries_preepoch(setup_path, request):
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
-def test_frame(compression, setup_path):
+def test_frame(compression, setup_path, using_infer_string):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD"), dtype=object),
@@ -381,11 +390,24 @@ def test_frame(compression, setup_path):
     df.iloc[0, 0] = np.nan
     df.iloc[5, 3] = np.nan
 
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+
     _check_roundtrip_table(
-        df, tm.assert_frame_equal, path=setup_path, compression=compression
+        df,
+        tm.assert_frame_equal,
+        path=setup_path,
+        compression=compression,
+        expected=expected,
     )
     _check_roundtrip(
-        df, tm.assert_frame_equal, path=setup_path, compression=compression
+        df,
+        tm.assert_frame_equal,
+        path=setup_path,
+        compression=compression,
+        expected=expected,
     )
 
     tdf = DataFrame(
@@ -393,8 +415,15 @@ def test_frame(compression, setup_path):
         columns=Index(list("ABCD"), dtype=object),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
+    expected = tdf.copy()
+    if using_infer_string:
+        expected.columns = expected.columns.astype("str")
     _check_roundtrip(
-        tdf, tm.assert_frame_equal, path=setup_path, compression=compression
+        tdf,
+        tm.assert_frame_equal,
+        path=setup_path,
+        compression=compression,
+        expected=expected,
     )
 
     with ensure_clean_store(setup_path) as store:
@@ -405,7 +434,10 @@ def test_frame(compression, setup_path):
         assert recons._mgr.is_consolidated()
 
     # empty
-    _check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
+    expected = df[:0]
+    if using_infer_string:
+        expected.columns = expected.columns.astype("str")
+    _check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path, expected=expected)
 
 
 def test_empty_series_frame(setup_path):
@@ -437,8 +469,20 @@ def test_can_serialize_dates(setup_path):
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
 
 
-def test_store_hierarchical(setup_path, multiindex_dataframe_random_data):
+def test_store_hierarchical(
+    setup_path, multiindex_dataframe_random_data, using_infer_string
+):
     frame = multiindex_dataframe_random_data
+
+    if using_infer_string:
+        msg = "Saving a MultiIndex with an extension dtype is not supported."
+        with pytest.raises(NotImplementedError, match=msg):
+            _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
+        with pytest.raises(NotImplementedError, match=msg):
+            _check_roundtrip(frame.T, tm.assert_frame_equal, path=setup_path)
+        with pytest.raises(NotImplementedError, match=msg):
+            _check_roundtrip(frame["A"], tm.assert_series_equal, path=setup_path)
+        return
 
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
     _check_roundtrip(frame.T, tm.assert_frame_equal, path=setup_path)
@@ -454,7 +498,7 @@ def test_store_hierarchical(setup_path, multiindex_dataframe_random_data):
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
-def test_store_mixed(compression, setup_path):
+def test_store_mixed(compression, setup_path, using_infer_string):
     def _make_one():
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -472,57 +516,91 @@ def test_store_mixed(compression, setup_path):
     df1 = _make_one()
     df2 = _make_one()
 
-    _check_roundtrip(df1, tm.assert_frame_equal, path=setup_path)
-    _check_roundtrip(df2, tm.assert_frame_equal, path=setup_path)
+    expected = df1.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+    _check_roundtrip(df1, tm.assert_frame_equal, path=setup_path, expected=expected)
+
+    expected = df2.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+    _check_roundtrip(df2, tm.assert_frame_equal, path=setup_path, expected=expected)
 
     with ensure_clean_store(setup_path) as store:
         store["obj"] = df1
-        tm.assert_frame_equal(store["obj"], df1)
+        expected = df1.copy()
+        if using_infer_string:
+            expected.index = expected.index.astype("str")
+            expected.columns = expected.columns.astype("str")
+        tm.assert_frame_equal(store["obj"], expected)
+
         store["obj"] = df2
-        tm.assert_frame_equal(store["obj"], df2)
+        expected = df2.copy()
+        if using_infer_string:
+            expected.index = expected.index.astype("str")
+            expected.columns = expected.columns.astype("str")
+        tm.assert_frame_equal(store["obj"], expected)
 
     # check that can store Series of all of these types
+    expected = df1["obj1"]
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
     _check_roundtrip(
         df1["obj1"],
         tm.assert_series_equal,
         path=setup_path,
         compression=compression,
+        expected=expected,
     )
+    expected = df1["bool1"]
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
     _check_roundtrip(
         df1["bool1"],
         tm.assert_series_equal,
         path=setup_path,
         compression=compression,
+        expected=expected,
     )
+    expected = df1["int1"]
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
     _check_roundtrip(
         df1["int1"],
         tm.assert_series_equal,
         path=setup_path,
         compression=compression,
+        expected=expected,
     )
 
 
-def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
+def _check_roundtrip(obj, comparator, path, compression=False, expected=None, **kwargs):
     options = {}
     if compression:
         options["complib"] = "blosc"
+    if expected is None:
+        expected = obj
 
     with ensure_clean_store(path, "w", **options) as store:
         store["obj"] = obj
         retrieved = store["obj"]
-        comparator(retrieved, obj, **kwargs)
+        comparator(retrieved, expected, **kwargs)
 
 
-def _check_roundtrip_table(obj, comparator, path, compression=False):
+def _check_roundtrip_table(obj, comparator, path, compression=False, expected=None):
     options = {}
     if compression:
         options["complib"] = "blosc"
+    if expected is None:
+        expected = obj
 
     with ensure_clean_store(path, "w", **options) as store:
         store.put("obj", obj, format="table")
         retrieved = store["obj"]
 
-        comparator(retrieved, obj)
+        comparator(retrieved, expected)
 
 
 def test_unicode_index(setup_path):
@@ -535,6 +613,7 @@ def test_unicode_index(setup_path):
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_unicode_longer_encoded(setup_path):
     # GH 11234
     char = "\u0394"
@@ -560,6 +639,7 @@ def test_store_datetime_mixed(setup_path):
     _check_roundtrip(df, tm.assert_frame_equal, path=setup_path)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_round_trip_equals(tmp_path, setup_path):
     # GH 9330
     df = DataFrame({"B": [1, 2], "A": ["x", "y"]})

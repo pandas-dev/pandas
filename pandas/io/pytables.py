@@ -86,6 +86,7 @@ from pandas.core.arrays import (
     PeriodArray,
 )
 from pandas.core.arrays.datetimes import tz_to_dtype
+from pandas.core.arrays.string_ import BaseStringArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import (
     PyTablesExpr,
@@ -1949,6 +1950,7 @@ class HDFStore:
     def _read_group(self, group: Node):
         s = self._create_storer(group)
         s.infer_axes()
+        print(type(s), s)
         return s.read()
 
     def _identify_group(self, key: str, append: bool) -> Node:
@@ -3185,6 +3187,8 @@ class GenericFixed(Fixed):
         #  both self._filters and EA
 
         value = extract_array(obj, extract_numpy=True)
+        if isinstance(value, BaseStringArray):
+            value = value.to_numpy()
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
@@ -3294,7 +3298,12 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_string_dtype() and is_string_array(values, skipna=True):
+        if (
+            using_string_dtype()
+            and isinstance(values, np.ndarray)
+            and len(values) > 0
+            and is_string_array(values, skipna=True)
+        ):
             result = result.astype(StringDtype(na_value=np.nan))
         return result
 
@@ -3363,7 +3372,12 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if using_string_dtype() and is_string_array(values, skipna=True):
+            if (
+                using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and len(df) > 0
+                and is_string_array(values, skipna=True)
+            ):
                 df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
@@ -4737,9 +4751,11 @@ class AppendableFrameTable(AppendableTable):
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
             if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_string_dtype() and is_string_array(
-                values,  # type: ignore[arg-type]
-                skipna=True,
+            if (
+                using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and len(df) > 0
+                and is_string_array(values, skipna=True)
             ):
                 df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
