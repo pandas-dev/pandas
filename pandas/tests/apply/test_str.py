@@ -4,7 +4,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import WASM
+from pandas.compat import (
+    HAS_PYARROW,
+    WASM,
+)
 
 from pandas.core.dtypes.common import is_number
 
@@ -163,10 +166,10 @@ def test_agg_cython_table_transform_series(request, series, func, expected):
     # GH21224
     # test transforming functions in
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    if series.dtype == "string" and func == "cumsum":
+    if series.dtype == "string" and func == "cumsum" and not HAS_PYARROW:
         request.applymarker(
             pytest.mark.xfail(
-                raises=(TypeError, NotImplementedError),
+                raises=NotImplementedError,
                 reason="TODO(infer_string) cumsum not yet implemented for string",
             )
         )
