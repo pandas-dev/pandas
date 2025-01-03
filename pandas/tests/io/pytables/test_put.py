@@ -207,7 +207,7 @@ def test_put_datetime_ser(setup_path, performance_warning, using_infer_string):
         store.put("ser", ser)
         expected = ser.copy()
         result = store.get("ser")
-        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
