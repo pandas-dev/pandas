@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
