@@ -2150,6 +2150,9 @@ class ArrowExtensionArray(
         See NDFrame.interpolate.__doc__.
         """
         # NB: we return type(self) even if copy=False
+        if not self.dtype._is_numeric:
+            raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
+
         mask = self.isna()
         if self.dtype.kind == "f":
             data = self._pa_array.to_numpy()
