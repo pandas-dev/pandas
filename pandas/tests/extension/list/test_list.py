@@ -76,7 +76,7 @@ class TestListArray(
     BaseParsingTests,
     # BaseMethodsTests,
     BaseMissingTests,
-    # BaseArithmeticOpsTests,
+    BaseArithmeticOpsTests,
     # BaseComparisonOpsTests,
     # BaseUnaryOpsTests,
     BasePrintingTests,
@@ -120,6 +120,27 @@ class TestListArray(
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
         pytest.skip(reason="ListArray has not implemented parsing from string")
+
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
+        if all_arithmetic_operators in ("__mod__", "__rmod__"):
+            pytest.skip("ListArray does not implement __mod__ or __rmod__")
+
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+        if all_arithmetic_operators in ("__mod__", "__rmod__"):
+            pytest.skip("ListArray does not implement __mod__ or __rmod__")
+
+        super().test_arith_series_with_array(data, all_arithmetic_operators)
+
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        if all_arithmetic_operators in ("__mod__", "__rmod__"):
+            pytest.skip("ListArray does not implement __mod__ or __rmod__")
+
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
+    def test_divmod(self, data):
+        pytest.skip("ListArray does not implement divmod")
 
 
 def test_to_csv(data):
