@@ -11,10 +11,15 @@ from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_integer_dtype,
+    is_string_dtype,
+)
 from pandas.core.dtypes.dtypes import ArrowDtype
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -146,6 +151,15 @@ class ListArray(ArrowExtensionArray):
         else:
             if value_type is None:
                 if isinstance(values, (pa.Array, pa.ChunkedArray)):
+                    parent_type = values.type
+                    if not isinstance(parent_type, (pa.ListType, pa.LargeListType)):
+                        # Ideally could cast here, but I don't think pyarrow implements
+                        # many list casts
+                        new_values = [
+                            [x.as_py()] if x.is_valid else None for x in values
+                        ]
+                        values = pa.array(new_values, type=pa.large_list(parent_type))
+
                     value_type = values.type.value_type
                 else:
                     value_type = pa.array(values).type.value_type
@@ -193,19 +207,89 @@ class ListArray(ArrowExtensionArray):
 
         return cls(values)
 
+    @classmethod
+    def _box_pa(
+        cls, value, pa_type: pa.DataType | None = None
+    ) -> pa.Array | pa.ChunkedArray | pa.Scalar:
+        """
+        Box value into a pyarrow Array, ChunkedArray or Scalar.
+
+        Parameters
+        ----------
+        value : any
+        pa_type : pa.DataType | None
+
+        Returns
+        -------
+        pa.Array or pa.ChunkedArray or pa.Scalar
+        """
+        if (
+            isinstance(value, (pa.ListScalar, pa.LargeListScalar))
+            or isinstance(value, list)
+            or value is None
+        ):
+            return cls._box_pa_scalar(value, pa_type)
+        return cls._box_pa_array(value, pa_type)
+
     def __getitem__(self, item):
         # PyArrow does not support NumPy's selection with an equal length
         # mask, so let's convert those to integral positions if needed
-        if isinstance(item, np.ndarray) and item.dtype == bool:
-            pos = np.array(range(len(item)))
-            mask = pos[item]
-            return type(self)(self._pa_array.take(mask))
-        elif isinstance(item, int):
-            return self._pa_array[item]
-        elif isinstance(item, list):
-            return type(self)(self._pa_array.take(item))
+        if isinstance(item, (np.ndarray, ExtensionArray)):
+            if is_bool_dtype(item.dtype):
+                mask_len = len(item)
+                if mask_len != len(self):
+                    raise IndexError(
+                        f"Boolean index has wrong length: {mask_len} "
+                        f"instead of {len(self)}"
+                    )
+                pos = np.array(range(len(item)))
 
-        return type(self)(self._pa_array[item])
+                if isinstance(item, ExtensionArray):
+                    mask = pos[item.fillna(False)]
+                else:
+                    mask = pos[item]
+                return type(self)(self._pa_array.take(mask))
+            elif is_integer_dtype(item.dtype):
+                if isinstance(item, ExtensionArray) and item.isna().any():
+                    msg = "Cannot index with an integer indexer containing NA values"
+                    raise ValueError(msg)
+
+                indexer = pa.array(item)
+                return type(self)(self._pa_array.take(indexer))
+        elif isinstance(item, int):
+            value = self._pa_array[item]
+            if value.is_valid:
+                return value.as_py()
+            else:
+                return self.dtype.na_value
+        elif isinstance(item, list):
+            # pyarrow does not support taking yet from an empty list
+            # https://github.com/apache/arrow/issues/39917
+            if item:
+                try:
+                    result = self._pa_array.take(item)
+                except pa.lib.ArrowInvalid as e:
+                    if "Could not convert <NA>" in str(e):
+                        msg = (
+                            "Cannot index with an integer indexer containing NA values"
+                        )
+                        raise ValueError(msg) from e
+                    raise e
+            else:
+                result = pa.array([], type=self._pa_array.type)
+
+            return type(self)(result)
+
+        try:
+            result = type(self)(self._pa_array[item])
+        except TypeError as e:
+            msg = (
+                "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                "(`None`) and integer or boolean arrays are valid indices"
+            )
+            raise IndexError(msg) from e
+
+        return result
 
     def __setitem__(self, key, value) -> None:
         msg = "ListArray does not support item assignment via setitem"
@@ -241,7 +325,13 @@ class ListArray(ArrowExtensionArray):
         return super().astype(dtype, copy)
 
     def __eq__(self, other):
-        if isinstance(other, (pa.ListScalar, pa.LargeListScalar)):
+        if isinstance(other, list):
+            from pandas.arrays import BooleanArray
+
+            mask = np.array([False] * len(self))
+            values = np.array([x.as_py() == other for x in self._pa_array])
+            return BooleanArray(values, mask)
+        elif isinstance(other, (pa.ListScalar, pa.LargeListScalar)):
             from pandas.arrays import BooleanArray
 
             # TODO: pyarrow.compute does not implement broadcasting equality

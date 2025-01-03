@@ -23,7 +23,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import pyarrow as pa
 
 from pandas._config import config
 
@@ -150,6 +149,7 @@ from pandas.core import (
 )
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.list_ import ListDtype
 from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
 from pandas.core.flags import Flags
@@ -7013,11 +7013,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
+        holds_list_array = False
+        if isinstance(self, ABCSeries) and isinstance(self.dtype, ListDtype):
+            holds_list_array = True
+        elif isinstance(self, ABCDataFrame) and any(
+            isinstance(x, ListDtype) for x in self.dtypes
+        ):
+            holds_list_array = True
+
         if isinstance(value, (list, tuple)):
-            raise TypeError(
-                '"value" parameter must be a scalar or dict, but '
-                f'you passed a "{type(value).__name__}"'
-            )
+            if not holds_list_array:
+                raise TypeError(
+                    '"value" parameter must be a scalar or dict, but '
+                    f'you passed a "{type(value).__name__}"'
+                )
 
         # set the default here, so functions examining the signature
         # can detect if something was set (e.g. in groupby) (GH9221)
@@ -7037,8 +7046,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 value = Series(value)
                 value = value.reindex(self.index)
                 value = value._values
-            elif isinstance(value, pa.ListScalar) or not is_list_like(value):
-                # TODO(wayd): maybe is_list_like should return false for ListScalar?
+            elif (
+                isinstance(value, list) and isinstance(self.dtype, ListDtype)
+            ) or not is_list_like(value):
                 pass
             else:
                 raise TypeError(
@@ -7102,7 +7112,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 return result
 
-        elif isinstance(value, pa.ListScalar) or not is_list_like(value):
+        elif holds_list_array or not is_list_like(value):
             if axis == 1:
                 result = self.T.fillna(value=value, limit=limit).T
                 new_data = result._mgr

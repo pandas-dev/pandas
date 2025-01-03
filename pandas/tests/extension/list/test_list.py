@@ -18,6 +18,7 @@ from pandas.tests.extension.base.dim2 import (  # noqa: F401
     NDArrayBacked2DTests,
 )
 from pandas.tests.extension.base.dtype import BaseDtypeTests
+from pandas.tests.extension.base.getitem import BaseGetitemTests
 from pandas.tests.extension.base.groupby import BaseGroupbyTests
 from pandas.tests.extension.base.index import BaseIndexTests
 from pandas.tests.extension.base.interface import BaseInterfaceTests
@@ -49,7 +50,7 @@ def dtype():
 def data():
     """Length-100 ListArray for semantics test."""
     # TODO: make better random data
-    data = [list("a"), list("ab"), list("abc")] * 33 + [None]
+    data = [list("a"), list("ab"), list("abc")] * 33 + [list("a")]
     return ListArray(data)
 
 
@@ -74,7 +75,7 @@ class TestListArray(
     BaseCastingTests,
     BaseConstructorsTests,
     BaseDtypeTests,
-    # BaseGetitemTests,
+    BaseGetitemTests,
     BaseGroupbyTests,
     BaseIndexTests,
     BaseInterfaceTests,
@@ -90,12 +91,12 @@ class TestListArray(
     BaseSetitemTests,
     Dim2CompatTests,
 ):
-    # TODO(wayd): The tests here are copied from test_arrow.py
-    # It appears the TestArrowArray class has different expectations around
-    # when copies should be made then the base.ExtensionTests
-    # Assuming intentional, maybe in the long term this should just
-    # inherit from TestArrowArray
     def test_fillna_no_op_returns_copy(self, data):
+        # TODO(wayd): This test is copied from test_arrow.py
+        # It appears the TestArrowArray class has different expectations around
+        # when copies should be made then the base.ExtensionTests
+        # Assuming intentional, maybe in the long term this should just
+        # inherit from TestArrowArray
         data = data[~data.isna()]
 
         valid = data[0]
@@ -154,10 +155,7 @@ class TestListArray(
         super().test_compare_scalar(data, comparison_op)
 
     def test_compare_array(self, data, comparison_op):
-        if comparison_op in (operator.eq, operator.ne):
-            pytest.skip("Series.combine does not properly handle missing values")
-
-        super().test_compare_array(data, comparison_op)
+        pytest.skip("ListArray comparison ops are not implemented")
 
     def test_invert(self, data):
         pytest.skip("ListArray does not implement invert")
@@ -228,6 +226,9 @@ class TestListArray(
 
             # result = result.astype(object)
             tm.assert_frame_equal(result, expected)
+
+    def test_getitem_ellipsis_and_slice(self, data):
+        pytest.skip("ListArray does not support NumPy style ellipsis slicing nor 2-D")
 
 
 def test_to_csv(data):

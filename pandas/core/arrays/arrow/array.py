@@ -428,7 +428,7 @@ class ArrowExtensionArray(
         """
         if isinstance(value, pa.Scalar):
             pa_scalar = value
-        elif isna(value):
+        elif not is_list_like(value) and isna(value):
             pa_scalar = pa.scalar(None, type=pa_type)
         else:
             # Workaround https://github.com/apache/arrow/issues/37291
@@ -1350,7 +1350,16 @@ class ArrowExtensionArray(
                 # TODO(ARROW-9433): Treat negative indices as NULL
                 indices_array = pa.array(indices_array, mask=fill_mask)
                 result = self._pa_array.take(indices_array)
-                if isna(fill_value):
+                if is_list_like(fill_value):
+                    # TODO: this should be hit by ListArray. Ideally we do:
+                    # pc.replace_with_mask(result, fill_mask, pa.scalar(fill_value))
+                    # but pyarrow does not yet implement that for list types
+                    new_values = [
+                        fill_value if should_fill else x.as_py()
+                        for x, should_fill in zip(result, fill_mask)
+                    ]
+                    return type(self)(new_values)
+                elif isna(fill_value):
                     return type(self)(result)
                 # TODO: ArrowNotImplementedError: Function fill_null has no
                 # kernel matching input types (array[string], scalar[string])
