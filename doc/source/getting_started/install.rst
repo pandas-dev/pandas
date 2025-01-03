@@ -210,7 +210,7 @@ Installable with ``pip install "pandas[computation]"``.
 Dependency                                     Minimum Version    pip extra       Notes
 ============================================== ================== =============== =======================================
 `SciPy <https://github.com/scipy/scipy>`__     1.12.0             computation     Miscellaneous statistical functions
-`xarray <https://github.com/pydata/xarray>`__  2024.1.1          computation     pandas-like API for N-dimensional data
+`xarray <https://github.com/pydata/xarray>`__  2024.1.1           computation     pandas-like API for N-dimensional data
 ============================================== ================== =============== =======================================
 
 .. _install.excel_dependencies:
