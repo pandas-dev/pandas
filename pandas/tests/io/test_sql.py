@@ -1068,7 +1068,9 @@ def test_to_sql(conn, method, test_frame1, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
-@pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
+@pytest.mark.parametrize(
+    "mode, num_row_coef", [("replace", 1), ("append", 2), ("delete_rows", 1)]
+)
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
@@ -2696,6 +2698,68 @@ def test_drop_table(conn, request):
         except AttributeError:
             pass
         assert not insp.has_table("temp_frame")
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_delete_rows_success(conn, test_frame1, request):
+    table_name = "temp_frame"
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+
+    with pandasSQL.run_transaction():
+        assert pandasSQL.to_sql(test_frame1, table_name) == test_frame1.shape[0]
+
+    with pandasSQL.run_transaction():
+        assert pandasSQL.delete_rows(table_name) is None
+
+    assert count_rows(conn, table_name) == 0
+    assert pandasSQL.has_table("temp_frame")
+
+
+@pytest.mark.parametrize("conn_name", all_connectable)
+def test_delete_rows_is_atomic(conn_name, request):
+    adbc_driver_manager = pytest.importorskip("adbc_driver_manager")
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+
+    table_name = "temp_frame"
+    table_stmt = f"CREATE TABLE {table_name} (a INTEGER, b INTEGER UNIQUE NOT NULL)"
+
+    if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
+        table_stmt = sqlalchemy.text(table_stmt)
+
+    # setting dtype is mandatory for adbc related tests
+    original_df = DataFrame({"a": [1, 2], "b": [3, 4]}, dtype="int32")
+    replacing_df = DataFrame({"a": [5, 6], "b": [7, 7]}, dtype="int32")
+
+    conn = request.getfixturevalue(conn_name)
+    pandasSQL = pandasSQL_builder(conn)
+
+    with pandasSQL.run_transaction() as cur:
+        cur.execute(table_stmt)
+
+    if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
+        expected_exception = sqlalchemy.exc.IntegrityError
+    elif "adbc" in conn_name and "sqlite" in conn_name:
+        expected_exception = adbc_driver_manager.InternalError
+    elif "adbc" in conn_name and "postgres" in conn_name:
+        expected_exception = adbc_driver_manager.ProgrammingError
+    elif conn_name == "sqlite_buildin":
+        expected_exception = sqlite3.IntegrityError
+
+    with pandasSQL.run_transaction():
+        pandasSQL.to_sql(original_df, table_name, if_exists="append", index=False)
+
+    # inserting duplicated values in a UNIQUE constraint column
+    with pytest.raises(expected_exception):
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(
+                replacing_df, table_name, if_exists="delete_rows", index=False
+            )
+
+    # failed "delete_rows" is rolled back preserving original data
+    with pandasSQL.run_transaction():
+        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name}", dtype="int32")
+        tm.assert_frame_equal(result_df, original_df)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
