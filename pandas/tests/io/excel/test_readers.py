@@ -16,8 +16,6 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -591,7 +589,6 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_dtype_backend(self, read_ext, dtype_backend, engine):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -656,9 +653,6 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="infer_string takes precedence", strict=False
-    )
     def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
