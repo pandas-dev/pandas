@@ -2587,3 +2587,30 @@ def test_many_strl(temp_file, version):
     lbls = ["".join(v) for v in itertools.product(*([string.ascii_letters] * 3))]
     value_labels = {"col": {i: lbls[i] for i in range(n)}}
     df.to_stata(temp_file, value_labels=value_labels, version=version)
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+def test_convert_dates_key_handling(tmp_path, version):
+    temp_file = tmp_path / "test.dta"
+    df = DataFrame({"old_name": [1, 2, 3], "some_other_name": [4, 5, 6]})
+    writer = StataWriter(temp_file, df)
+
+    # Case 1: Key exists in _convert_dates
+    writer._convert_dates = {"old_name": "converted_date"}
+    columns = ["new_name"]
+    original_columns = ["old_name"]
+    for c, o in zip(columns, original_columns):
+        if c != o and o in writer._convert_dates:
+            writer._convert_dates[c] = writer._convert_dates[o]
+            del writer._convert_dates[o]
+    assert writer._convert_dates == {"new_name": "converted_date"}
+
+    # Case 2: Key does not exist in _convert_dates
+    writer._convert_dates = {"some_other_name": "converted_date"}
+    columns = ["new_name"]
+    original_columns = ["old_name"]
+    for c, o in zip(columns, original_columns):
+        if c != o and o in writer._convert_dates:
+            writer._convert_dates[c] = writer._convert_dates[o]
+            del writer._convert_dates[o]
+    assert writer._convert_dates == {"some_other_name": "converted_date"}
