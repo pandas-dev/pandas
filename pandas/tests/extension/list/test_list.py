@@ -17,6 +17,7 @@ from pandas.tests.extension.base.dim2 import (  # noqa: F401
 from pandas.tests.extension.base.dtype import BaseDtypeTests
 from pandas.tests.extension.base.groupby import BaseGroupbyTests
 from pandas.tests.extension.base.index import BaseIndexTests
+from pandas.tests.extension.base.interface import BaseInterfaceTests
 from pandas.tests.extension.base.missing import BaseMissingTests
 from pandas.tests.extension.base.ops import (  # noqa: F401
     BaseArithmeticOpsTests,
@@ -70,7 +71,7 @@ class TestListArray(
     # BaseGetitemTests,
     BaseGroupbyTests,
     BaseIndexTests,
-    # BaseInterfaceTests,
+    BaseInterfaceTests,
     # BaseParsingTests,
     # BaseMethodsTests,
     BaseMissingTests,
@@ -111,6 +112,9 @@ class TestListArray(
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         pytest.skip(reason="ListArray does not implement dictionary_encode")
+
+    def test_array_interface(self, data):
+        pytest.skip(reason="ListArrayScalar does not compare to numpy object-dtype")
 
 
 def test_to_csv(data):

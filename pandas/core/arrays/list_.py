@@ -54,6 +54,8 @@ class ListDtype(ArrowDtype):
     An ExtensionDtype suitable for storing homogeneous lists of data.
     """
 
+    _is_immutable = True  # TODO(wayd): should we allow mutability?
+
     def __init__(self, value_dtype: pa.DataType) -> None:
         super().__init__(pa.large_list(value_dtype))
 
@@ -211,3 +213,19 @@ class ListArray(ArrowExtensionArray):
             return np.array([str(x) for x in self], dtype=dtype)
 
         return super().astype(dtype, copy)
+
+    def __eq__(self, other):
+        if isinstance(other, (pa.ListScalar, pa.LargeListScalar)):
+            from pandas.arrays import BooleanArray
+
+            # TODO: pyarrow.compute does not implement broadcasting equality
+            # for an array of lists to a listscalar
+            # TODO: pyarrow doesn't compare missing values as missing???
+            # arr = pa.array([1, 2, None])
+            # pc.equal(arr, arr[2]) returns all nulls but
+            # arr[2] == arr[2] returns True
+            mask = np.array([False] * len(self))
+            values = np.array([x == other for x in self._pa_array])
+            return BooleanArray(values, mask)
+
+        return super().__eq__(other)
