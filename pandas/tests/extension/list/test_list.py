@@ -18,6 +18,7 @@ from pandas.tests.extension.base.dtype import BaseDtypeTests
 from pandas.tests.extension.base.groupby import BaseGroupbyTests
 from pandas.tests.extension.base.index import BaseIndexTests
 from pandas.tests.extension.base.interface import BaseInterfaceTests
+from pandas.tests.extension.base.io import BaseParsingTests
 from pandas.tests.extension.base.missing import BaseMissingTests
 from pandas.tests.extension.base.ops import (  # noqa: F401
     BaseArithmeticOpsTests,
@@ -72,7 +73,7 @@ class TestListArray(
     BaseGroupbyTests,
     BaseIndexTests,
     BaseInterfaceTests,
-    # BaseParsingTests,
+    BaseParsingTests,
     # BaseMethodsTests,
     BaseMissingTests,
     # BaseArithmeticOpsTests,
@@ -115,6 +116,10 @@ class TestListArray(
 
     def test_array_interface(self, data):
         pytest.skip(reason="ListArrayScalar does not compare to numpy object-dtype")
+
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    def test_EA_types(self, engine, data, request):
+        pytest.skip(reason="ListArray has not implemented parsing from string")
 
 
 def test_to_csv(data):
