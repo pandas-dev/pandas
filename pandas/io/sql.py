@@ -750,6 +750,12 @@ def to_sql(
     """
     Write records stored in a DataFrame to a SQL database.
 
+    .. warning::
+        The pandas library does not attempt to sanitize inputs provided via a to_sql call.
+        Please refer to the documentation for the underlying database driver to see if it
+        will properly prevent injection, or alternatively be advised of a security risk when
+        executing arbitrary commands in a to_sql call.
+
     Parameters
     ----------
     frame : DataFrame, Series
