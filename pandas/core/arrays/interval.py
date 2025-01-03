@@ -42,6 +42,7 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     LossySetitemError,
@@ -1575,8 +1576,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         objects (with dtype='object')
         """
         if copy is False:
-            raise ValueError(
-                "Unable to avoid copy while creating an array as requested."
+            warnings.warn(
+                "Starting with NumPy 2.0, the behavior of the 'copy' keyword has "
+                "changed and passing 'copy=False' raises an error when returning "
+                "a zero-copy NumPy array is not possible. pandas will follow "
+                "this behavior starting with pandas 3.0.\nThis conversion to "
+                "NumPy requires a copy, but 'copy=False' was passed. Consider "
+                "using 'np.asarray(..)' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
 
         left = self._left

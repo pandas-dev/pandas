@@ -187,7 +187,8 @@ def test_dataframe_multiple_numpy_dtypes():
     if np_version_gt2:
         # copy=False semantics are only supported in NumPy>=2.
 
-        with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
+        msg = "Starting with NumPy 2.0, the behavior of the 'copy' keyword has changed"
+        with pytest.raises(FutureWarning, match=msg):
             arr = np.array(df, copy=False)
 
     arr = np.array(df, copy=True)

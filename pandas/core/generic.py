@@ -2151,9 +2151,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> np.ndarray:
         if copy is False and not self._mgr.is_single_block and not self.empty:
             # check this manually, otherwise ._values will already return a copy
-            # and np.array(values, copy=False) will not raise an error
-            raise ValueError(
-                "Unable to avoid copy while creating an array as requested."
+            # and np.array(values, copy=False) will not raise a warning
+            warnings.warn(
+                "Starting with NumPy 2.0, the behavior of the 'copy' keyword has "
+                "changed and passing 'copy=False' raises an error when returning "
+                "a zero-copy NumPy array is not possible. pandas will follow "
+                "this behavior starting with pandas 3.0.\nThis conversion to "
+                "NumPy requires a copy, but 'copy=False' was passed. Consider "
+                "using 'np.asarray(..)' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
         values = self._values
         if copy is None:

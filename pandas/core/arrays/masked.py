@@ -38,6 +38,7 @@ from pandas.compat import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -604,8 +605,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if not self._hasna:
                 # special case, here we can simply return the underlying data
                 return np.array(self._data, dtype=dtype, copy=copy)
-            raise ValueError(
-                "Unable to avoid copy while creating an array as requested."
+
+            warnings.warn(
+                "Starting with NumPy 2.0, the behavior of the 'copy' keyword has "
+                "changed and passing 'copy=False' raises an error when returning "
+                "a zero-copy NumPy array is not possible. pandas will follow "
+                "this behavior starting with pandas 3.0.\nThis conversion to "
+                "NumPy requires a copy, but 'copy=False' was passed. Consider "
+                "using 'np.asarray(..)' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
 
         if copy is None:
