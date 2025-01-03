@@ -259,7 +259,9 @@ select = [
   # flake8-slots
   "SLOT",
   # flake8-raise
-  "RSE"
+  "RSE",
+  # flake8-rst-docstrings
+  "RST"
 ]
 
 ignore = [
