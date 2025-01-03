@@ -2716,36 +2716,40 @@ def test_delete_rows_success(conn, test_frame1, request):
     assert pandasSQL.has_table("temp_frame")
 
 
-@pytest.mark.parametrize("conn", all_connectable)
-def test_delete_rows_is_atomic(conn, request):
+@pytest.mark.parametrize("conn_name", all_connectable)
+def test_delete_rows_is_atomic(conn_name, request):
     adbc_driver_manager = pytest.importorskip("adbc_driver_manager")
     sqlalchemy = pytest.importorskip("sqlalchemy")
 
-    if "sqlite" in conn:
-        reason = "This test relies on strict column types, SQLite has a dynamic one"
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=reason,
-                strict=True,
-            )
-        )
-
     table_name = "temp_frame"
-    original_df = DataFrame({"a": [1, 2, 3]})
-    replacing_df = DataFrame({"a": ["a", "b", "c", "d"]})
+    table_stmt = f"CREATE TABLE {table_name} (a INTEGER, b INTEGER UNIQUE NOT NULL)"
 
-    conn = request.getfixturevalue(conn)
+    if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
+        table_stmt = sqlalchemy.text(table_stmt)
+
+    # setting dtype is mandatory for adbc related tests
+    original_df = DataFrame({"a": [1, 2], "b": [3, 4]}, dtype="int32")
+    replacing_df = DataFrame({"a": [5, 6], "b": [7, 7]}, dtype="int32")
+
+    conn = request.getfixturevalue(conn_name)
     pandasSQL = pandasSQL_builder(conn)
 
-    if isinstance(conn, adbc_driver_manager.dbapi.Connection):
+    with pandasSQL.run_transaction() as cur:
+        cur.execute(table_stmt)
+
+    if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
+        expected_exception = sqlalchemy.exc.IntegrityError
+    elif "adbc" in conn_name and "sqlite" in conn_name:
+        expected_exception = adbc_driver_manager.InternalError
+    elif "adbc" in conn_name and "postgres" in conn_name:
         expected_exception = adbc_driver_manager.ProgrammingError
-    else:
-        expected_exception = sqlalchemy.exc.DataError
+    elif conn_name == "sqlite_buildin":
+        expected_exception = sqlite3.IntegrityError
 
     with pandasSQL.run_transaction():
-        pandasSQL.to_sql(original_df, table_name, if_exists="fail", index=False)
+        pandasSQL.to_sql(original_df, table_name, if_exists="append", index=False)
 
-    # trying to insert strings in an integer column
+    # inserting duplicated values in a UNIQUE constraint column
     with pytest.raises(expected_exception):
         with pandasSQL.run_transaction():
             pandasSQL.to_sql(
@@ -2754,7 +2758,7 @@ def test_delete_rows_is_atomic(conn, request):
 
     # failed "delete_rows" is rolled back preserving original data
     with pandasSQL.run_transaction():
-        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name}")
+        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name}", dtype="int32")
         tm.assert_frame_equal(result_df, original_df)
 
 

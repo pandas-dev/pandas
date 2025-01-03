@@ -2426,7 +2426,7 @@ class ADBCDatabase(PandasSQL):
         table_name = f"{schema}.{name}" if schema else name
         if self.has_table(name, schema):
             with self.con.cursor() as cur:
-                cur.execute(f"DELETE FROM {table_name)")
+                cur.execute(f"DELETE FROM {table_name}")
 
     def _create_sql_schema(
         self,
@@ -2878,8 +2878,7 @@ class SQLiteDatabase(PandasSQL):
     def delete_rows(self, name: str, schema: str | None = None) -> None:
         delete_sql = f"DELETE FROM {_get_valid_sqlite_name(name)}"
         if self.has_table(name, schema):
-            with self.run_transaction() as cur:
-                cur.execute(delete_sql)
+            self.execute(delete_sql)
 
     def _create_sql_schema(
         self,
