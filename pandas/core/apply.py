@@ -598,9 +598,9 @@ class Apply(metaclass=abc.ABCMeta):
             Result when self.func is a list-like or dict-like, None otherwise.
         """
 
-        if self.engine == "numba":
+        if self.engine in ("numba", "bodo"):
             raise NotImplementedError(
-                "The 'numba' engine doesn't support list-like/"
+                f"The '{self.engine}' engine doesn't support list-like/"
                 "dict likes of callables yet."
             )
 
@@ -853,9 +853,9 @@ class FrameApply(NDFrameApply):
 
         # dispatch to handle list-like or dict-like
         if is_list_like(self.func):
-            if self.engine == "numba":
+            if self.engine in ("numba", "bodo"):
                 raise NotImplementedError(
-                    "the 'numba' engine doesn't support lists of callables yet"
+                    f"the '{self.engine}' engine doesn't support lists of callables yet"
                 )
             return self.apply_list_or_dict_like()
 
@@ -870,13 +870,16 @@ class FrameApply(NDFrameApply):
                     "the 'numba' engine doesn't support using "
                     "a string as the callable function"
                 )
+            if self.engine == "bodo":
+                return self.apply_series_bodo()
+
             return self.apply_str()
 
         # ufunc
         elif isinstance(self.func, np.ufunc):
-            if self.engine == "numba":
+            if self.engine in ("numba", "bodo"):
                 raise NotImplementedError(
-                    "the 'numba' engine doesn't support "
+                    f"the '{self.engine}' engine doesn't support "
                     "using a numpy ufunc as the callable function"
                 )
             with np.errstate(all="ignore"):
@@ -886,9 +889,10 @@ class FrameApply(NDFrameApply):
 
         # broadcasting
         if self.result_type == "broadcast":
-            if self.engine == "numba":
+            if self.engine in ("numba", "bodo"):
                 raise NotImplementedError(
-                    "the 'numba' engine doesn't support result_type='broadcast'"
+                    f"the '{self.engine}' engine doesn't support "
+                    "result_type='broadcast'"
                 )
             return self.apply_broadcast(self.obj)
 
@@ -1007,6 +1011,8 @@ class FrameApply(NDFrameApply):
             result = nb_looper(self.values, self.axis, *args)
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
+        elif self.engine == "bodo":
+            raise NotImplementedError("the 'bodo' engine does not support raw=True.")
         else:
             result = np.apply_along_axis(
                 wrap_function(self.func),
@@ -1053,8 +1059,11 @@ class FrameApply(NDFrameApply):
     def apply_standard(self):
         if self.engine == "python":
             results, res_index = self.apply_series_generator()
-        else:
+        elif self.engine == "numba":
             results, res_index = self.apply_series_numba()
+        else:
+            # bodo engine
+            return self.apply_series_bodo()
 
         # wrap results
         return self.wrap_results(results, res_index)
@@ -1088,6 +1097,26 @@ class FrameApply(NDFrameApply):
         self.validate_values_for_numba()
         results = self.apply_with_numba()
         return results, self.result_index
+
+    def apply_series_bodo(self) -> DataFrame | Series:
+        bodo = import_optional_dependency("bodo")
+
+        if self.result_type is not None:
+            raise NotImplementedError(
+                "the 'bodo' engine does not support result_type yet."
+            )
+
+        if self.axis != 1 and not isinstance(self.func, str):
+            raise NotImplementedError(
+                "the 'bodo' engine only supports axis=1 for user-defined functions."
+            )
+
+        @bodo.jit
+        def do_apply(obj, func, axis):
+            return obj.apply(func, axis)
+
+        result = do_apply(self.obj, self.func, self.axis)
+        return result
 
     def wrap_results(self, results: ResType, res_index: Index) -> DataFrame | Series:
         from pandas import Series

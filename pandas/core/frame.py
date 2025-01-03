@@ -10210,7 +10210,7 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
-        engine: Literal["python", "numba"] = "python",
+        engine: Literal["python", "numba", "bodo"] = "python",
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
@@ -10272,7 +10272,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 2.1.0
 
-        engine : {'python', 'numba'}, default 'python'
+        engine : {'python', 'numba', 'bodo'}, default 'python'
             Choose between the python (default) engine or the numba engine in apply.
 
             The numba engine will attempt to JIT compile the passed function,
@@ -10294,6 +10294,8 @@ class DataFrame(NDFrame, OpsMixin):
             and `supported numpy features
             <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
             in numba to learn what you can or cannot use in the passed function.
+
+            TODO: describe bodo
 
             .. versionadded:: 2.2.0
 
