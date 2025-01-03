@@ -1088,13 +1088,13 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
     func = reduction_func
 
     obj = DataFrame(
-        {"a": [0, 0, 0, 1, 1, 1], "b": range(6)},
-        index=["A", "B", "C", "D", "E", "F"],
+        {"a": [0, 0, 0, 0, 1, 1, 1, 1], "b": range(8)},
+        index=["A", "B", "C", "D", "E", "F", "G", "H"],
     )
     if frame_or_series is Series:
         obj = obj["a"]
 
-    g = obj.groupby(np.repeat([0, 1], 3))
+    g = obj.groupby(np.repeat([0, 1], 4))
 
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         # TODO: implement SeriesGroupBy.corrwith
@@ -1119,7 +1119,7 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
-    assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
+    assert len(set(DataFrame(result).iloc[-4:, -1])) == 1
 
 
 def test_transform_lambda_with_datetimetz():
