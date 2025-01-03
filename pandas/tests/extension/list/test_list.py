@@ -8,11 +8,13 @@ from pandas.core.arrays.list_ import (
     ListDtype,
 )
 from pandas.tests.extension.base.accumulate import BaseAccumulateTests
+from pandas.tests.extension.base.casting import BaseCastingTests
 from pandas.tests.extension.base.constructors import BaseConstructorsTests
 from pandas.tests.extension.base.dim2 import (  # noqa: F401
     Dim2CompatTests,
     NDArrayBacked2DTests,
 )
+from pandas.tests.extension.base.dtype import BaseDtypeTests
 from pandas.tests.extension.base.index import BaseIndexTests
 from pandas.tests.extension.base.missing import BaseMissingTests
 from pandas.tests.extension.base.ops import (  # noqa: F401
@@ -50,14 +52,11 @@ def data_missing(dtype):
     return arr
 
 
-from pandas.tests.extension.base.casting import BaseCastingTests
-
-
 class TestListArray(
     BaseAccumulateTests,
     BaseCastingTests,
     BaseConstructorsTests,
-    # BaseDtypeTests,
+    BaseDtypeTests,
     # BaseGetitemTests,
     # BaseGroupbyTests,
     BaseIndexTests,
@@ -86,6 +85,9 @@ class TestListArray(
         result = data.fillna(valid)
         assert result is not data
         tm.assert_extension_array_equal(result, data)
+
+    def test_kind(self, dtype):
+        assert dtype.kind == "+L"
 
 
 def test_to_csv(data):

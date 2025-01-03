@@ -21,6 +21,7 @@ if TYPE_CHECKING:
         type_t,
         ArrayLike,
         AstypeArg,
+        DtypeObj,
         Shape,
     )
 
@@ -96,6 +97,19 @@ class ListDtype(ArrowDtype):
         type
         """
         return ListArray
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # TODO(wayd): should we implemented value type support?
+        for dtype in dtypes:
+            if (
+                isinstance(dtype, ListDtype)
+                and self.pyarrow_dtype.value_type == dtype.pyarrow_dtype.value_type
+            ):
+                continue
+            else:
+                return None
+
+        return ListDtype(self.pyarrow_dtype.value_type)
 
 
 class ListArray(ArrowExtensionArray):
