@@ -4,6 +4,7 @@ import pytest
 
 from pandas import (
     ArrowDtype,
+    ListDtype,
     Series,
 )
 import pandas._testing as tm
@@ -16,15 +17,16 @@ from pandas.compat import pa_version_under11p0
 @pytest.mark.parametrize(
     "list_dtype",
     (
-        pa.list_(pa.int64()),
-        pa.list_(pa.int64(), list_size=3),
-        pa.large_list(pa.int64()),
+        ArrowDtype(pa.list_(pa.int64())),
+        ArrowDtype(pa.list_(pa.int64(), list_size=3)),
+        ArrowDtype(pa.large_list(pa.int64())),
+        ListDtype(pa.int64()),
     ),
 )
 def test_list_getitem(list_dtype):
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(list_dtype),
+        dtype=list_dtype,
         name="a",
     )
     actual = ser.list[1]
@@ -36,7 +38,7 @@ def test_list_getitem_index():
     # GH 58425
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=ListDtype(pa.int64()),
         index=[1, 3, 7],
         name="a",
     )
@@ -53,7 +55,7 @@ def test_list_getitem_index():
 def test_list_getitem_slice():
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=ListDtype(pa.int64()),
         index=[1, 3, 7],
         name="a",
     )
@@ -66,7 +68,7 @@ def test_list_getitem_slice():
         actual = ser.list[1:None:None]
         expected = Series(
             [[2, 3], [None, 5], None],
-            dtype=ArrowDtype(pa.list_(pa.int64())),
+            dtype=ListDtype(pa.int64()),
             index=[1, 3, 7],
             name="a",
         )
@@ -76,18 +78,18 @@ def test_list_getitem_slice():
 def test_list_len():
     ser = Series(
         [[1, 2, 3], [4, None], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=ListDtype(pa.int64()),
         name="a",
     )
     actual = ser.list.len()
-    expected = Series([3, 2, None], dtype=ArrowDtype(pa.int32()), name="a")
+    expected = Series([3, 2, None], dtype=ArrowDtype(pa.int64()), name="a")
     tm.assert_series_equal(actual, expected)
 
 
 def test_list_flatten():
     ser = Series(
         [[1, 2, 3], None, [4, None], [], [7, 8]],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=ListDtype(pa.int64()),
         name="a",
     )
     actual = ser.list.flatten()
@@ -103,7 +105,7 @@ def test_list_flatten():
 def test_list_getitem_slice_invalid():
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=ListDtype(pa.int64()),
     )
     if pa_version_under11p0:
         with pytest.raises(
@@ -133,15 +135,16 @@ def test_list_accessor_non_list_dtype():
 @pytest.mark.parametrize(
     "list_dtype",
     (
-        pa.list_(pa.int64()),
-        pa.list_(pa.int64(), list_size=3),
-        pa.large_list(pa.int64()),
+        ArrowDtype(pa.list_(pa.int64())),
+        ArrowDtype(pa.list_(pa.int64(), list_size=3)),
+        ArrowDtype(pa.large_list(pa.int64())),
+        ListDtype(pa.int64()),
     ),
 )
 def test_list_getitem_invalid_index(list_dtype):
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(list_dtype),
+        dtype=list_dtype,
     )
     with pytest.raises(pa.lib.ArrowInvalid, match="Index -1 is out of bounds"):
         ser.list[-1]
@@ -154,7 +157,7 @@ def test_list_getitem_invalid_index(list_dtype):
 def test_list_accessor_not_iterable():
     ser = Series(
         [[1, 2, 3], [4, None], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=ListDtype(pa.int64()),
     )
     with pytest.raises(TypeError, match="'ListAccessor' object is not iterable"):
         iter(ser.list)

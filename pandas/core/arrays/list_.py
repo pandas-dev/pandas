@@ -186,11 +186,7 @@ class ListArray(ArrowExtensionArray):
             # TypeError: object of type 'NoneType' has no len() if you have
             # pa.ListScalar(None). Upstream issue in Arrow - see:
             # https://github.com/apache/arrow/issues/40319
-            for i in range(len(scalars)):
-                if not scalars[i].is_valid:
-                    scalars[i] = None
-
-            values = pa.array(scalars, from_pandas=True)
+            values = pa.array(scalars.to_pylist(), from_pandas=True)
 
         if values.type == "null" and dtype is not None:
             pa_type = string_to_pyarrow_type(str(dtype))
