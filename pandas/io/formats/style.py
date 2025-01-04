@@ -620,7 +620,7 @@ class Styler(StylerRenderer):
         position: str | None = ...,
         position_float: str | None = ...,
         hrules: bool | None = ...,
-        clines: str | None = ...,
+        clines: str | tuple | None = ...,
         label: str | None = ...,
         caption: str | tuple | None = ...,
         sparse_index: bool | None = ...,
@@ -642,7 +642,7 @@ class Styler(StylerRenderer):
         position: str | None = ...,
         position_float: str | None = ...,
         hrules: bool | None = ...,
-        clines: str | None = ...,
+        clines: str | tuple | None = ...,
         label: str | None = ...,
         caption: str | tuple | None = ...,
         sparse_index: bool | None = ...,
@@ -663,7 +663,7 @@ class Styler(StylerRenderer):
         position: str | None = None,
         position_float: str | None = None,
         hrules: bool | None = None,
-        clines: str | None = None,
+        clines: str | tuple | None = None,
         label: str | None = None,
         caption: str | tuple | None = None,
         sparse_index: bool | None = None,
@@ -712,32 +712,36 @@ class Styler(StylerRenderer):
             Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
 
             .. versionchanged:: 1.4.0
-        clines : str, optional
+        clines : str, tuple, optional
             Use to control adding \\cline commands for the index labels separation.
-            Possible values are:
+            If `None`, then no cline commands are added (default).
+
+            If a tuple is passed, the following elements are recognised:
+              - `"rule-data"`: if present, clines are added for both the index and data.
+                Otherwise, they are only drawn for the index.
+              - `"skip-last"`: if present, the last index level is omitted when deciding
+                where to add clines. Otherwise, all index levels are used.
+              - `"include-hidden"`: if present, hidden index levels are included when
+                deciding where to add clines. Otherwise, only visible index levels are
+                used.
+
+            If a str is passed, possible values are:
 
               - `None`: no cline commands are added (default).
               - `"all;data"`: a cline is added for every visible index value extending
                 the width of the table, including data entries.
               - `"all;index"`: as above with lines extending only the width of the
                 index entries.
-              - `"all-invisible;data"`: a cline is added for every index value,
-                including hidden indexes, extending the full width of the table,
-                including data entries.
-              - `"all-invisible;index"`: as above with lines extending only the width
-                of the index entries.
               - `"skip-last;data"`: a cline is added for each visible index value except
                 the last level (which is never sparsified), extending the widtn of the
                 table.
               - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
-              - `"skip-last-invisible;data"`: a cline is added for each index value,
-                including hidden index levels, but excluding the last (which is never
-                sparsified), extending the width of the table.
-              - `"skip-last-invisible;index"`: as above with lines extending only the
-                width of the index entries.
 
             .. versionchanged:: 3.0.0
+            .. deprecated:: 3.0.0
+                Passing a str is deprecated and will be removed in a future version,
+                please use a tuple instead.
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
@@ -1090,7 +1094,7 @@ class Styler(StylerRenderer):
 
         >>> styler.to_latex(
         ...     caption="Selected stock correlation and simple statistics.",
-        ...     clines="skip-last;data",
+        ...     clines=("skip-last", "across-data"),
         ...     convert_css=True,
         ...     position_float="centering",
         ...     multicol_align="|c|",

@@ -16,6 +16,7 @@ from typing import (
     Union,
 )
 from uuid import uuid4
+import warnings
 
 import numpy as np
 
@@ -23,6 +24,7 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_complex,
@@ -218,7 +220,11 @@ class StylerRenderer:
         )
 
     def _render_latex(
-        self, sparse_index: bool, sparse_columns: bool, clines: str | None, **kwargs
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        clines: str | tuple | None,
+        **kwargs,
     ) -> str:
         """
         Render a Styler in latex format
@@ -857,7 +863,33 @@ class StylerRenderer:
 
         return index_headers + data
 
-    def _translate_latex(self, d: dict, clines: str | None) -> None:
+    def _convert_clines_to_tuple(self, clines: str | tuple | None) -> tuple | None:
+        if not isinstance(clines, str):
+            return clines
+
+        msg = (
+            "Passing a string argument to the clines parameter is deprecated and will "
+            "be removed in a future version, please use a tuple instead, "
+            "e.g. ('rule-data', 'skip-last') instead of 'skip-last;data'."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
+        if clines not in ["all;data", "all;index", "skip-last;data", "skip-last;index"]:
+            raise ValueError(
+                f"`clines` value of {clines} is invalid. Should either be None, "
+                "a tuple, or one of 'all;data', 'all;index', 'skip-last;data', "
+                "'skip-last;index'."
+            )
+
+        result = ()
+        if "data" in clines:
+            result += ("rule-data",)
+        if "skip-last" in clines:
+            result += ("skip-last",)
+
+        return result
+
+    def _translate_latex(self, d: dict, clines: str | tuple | None) -> None:
         r"""
         Post-process the default render dict for the LaTeX template format.
 
@@ -867,6 +899,7 @@ class StylerRenderer:
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
+        clines = self._convert_clines_to_tuple(clines)
         index_levels = self.index.nlevels
         # GH 52218
         visible_index_level_n = max(1, index_levels - sum(self.hide_index_))
@@ -929,25 +962,15 @@ class StylerRenderer:
 
         # clines are determined from info on index_lengths and hidden_rows and input
         # to a dict defining which row clines should be added in the template.
-        if clines not in [
-            None,
-            "all;data",
-            "all;index",
-            "all-invisible;data",
-            "all-invisible;index",
-            "skip-last;data",
-            "skip-last;index",
-            "skip-last-invisible;data",
-            "skip-last-invisible;index",
-        ]:
-            raise ValueError(
-                f"`clines` value of {clines} is invalid. Should either be None or one "
-                f"of 'all;data', 'all;index', 'all-invisible;data', "
-                f"'all-invisible;index', 'skip-last;data', 'skip-last;index', "
-                f"'skip-last-invisible;data', 'skip-last-invisible;index'."
-            )
         if clines is not None:
-            data_len = len(row_body_cells) if "data" in clines and d["body"] else 0
+            valid_clines_options = ["skip-last", "rule-data", "include-hidden"]
+            for option in clines:
+                if option not in valid_clines_options:
+                    raise ValueError(
+                        f"`clines` option of {option} is invalid. "
+                        f"Choose one of {valid_clines_options}"
+                    )
+            data_len = len(row_body_cells) if "rule-data" in clines and d["body"] else 0
 
             d["clines"] = defaultdict(list)
             visible_row_indexes: list[int] = [
@@ -959,7 +982,7 @@ class StylerRenderer:
             for rn, r in enumerate(visible_row_indexes):
                 lvln = 0
                 for lvl in range(index_levels):
-                    if self.hide_index_[lvl] and "invisible" not in clines:
+                    if self.hide_index_[lvl] and "include-hidden" not in clines:
                         continue
                     if lvl == index_levels - 1 and "skip-last" in clines:
                         continue
