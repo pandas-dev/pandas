@@ -834,8 +834,7 @@ cpdef ndarray[object] ensure_string_array(
             if isinstance(val, bytes):
                 # GH#49658 discussion of desired behavior here
                 result[i] = val.decode()
-            elif isinstance(val, np.ndarray):
-                # TODO(wayd): is_float_object actually returns true for this...
+            elif util.is_array(val):
                 result[i] = str(val.tolist())
             elif not util.is_float_object(val):
                 # f"{val}" is faster than str(val)
