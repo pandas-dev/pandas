@@ -334,7 +334,6 @@ class TestDataFrameReplace:
         return_value = res3.replace(regex=r"\s*\.\s*", value=0, inplace=True)
         assert return_value is None
         expec = DataFrame({"a": mix_abc["a"], "b": ["a", "b", 0, 0], "c": mix_abc["c"]})
-        # TODO(infer_string)
         expec["c"] = expec["c"].astype(object)
         tm.assert_frame_equal(res, expec)
         tm.assert_frame_equal(res2, expec)
@@ -1478,8 +1477,6 @@ class TestDataFrameReplaceRegex:
 
         df2 = DataFrame({"A": ["0"], "B": ["1"]})
         if regex:
-            # TODO(infer_string): both string columns get cast to object,
-            # while only needed for column A
             expected_df2 = DataFrame({"A": [1], "B": ["1"]}, dtype=object)
         else:
             expected_df2 = DataFrame({"A": Series([1], dtype=object), "B": ["1"]})
