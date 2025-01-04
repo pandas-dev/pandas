@@ -137,3 +137,9 @@ doc/source/savefig/
 # Interactive terminal generated files #
 ########################################
 .jupyterlite.doit.db
+
+# meson subproject files #
+##########################
+subprojects/*
+!subprojects/packagefiles
+!subprojects/*.wrap

@@ -122,6 +122,16 @@ foreach ext_name, ext_dict : libs_sources
     )
 endforeach
 
+nanobind_dep = dependency('nanobind')
+nanoarrow_dep = dependency('nanoarrow')
+py.extension_module(
+    'arrow_string_accumulations',
+    sources: ['arrow_string_accumulations.cc'],
+    dependencies: [nanobind_dep, nanoarrow_dep],
+    subdir: 'pandas/_libs',
+    install: true,
+)
+
 # Basically just __init__.py and the .pyi files
 sources_to_install = [
     '__init__.py',

@@ -98,7 +98,7 @@ repos:
     rev: v19.1.6
     hooks:
     - id: clang-format
-      files: ^pandas/_libs/src|^pandas/_libs/include
+      files: ^pandas/_libs|pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
 -   repo: local
