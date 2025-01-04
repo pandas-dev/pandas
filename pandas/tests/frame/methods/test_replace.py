@@ -1468,18 +1468,23 @@ class TestDataFrameReplaceRegex:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("regex", [False, True])
-    def test_replace_regex_dtype_frame(self, regex):
+    @pytest.mark.parametrize("value", [1, "1"])
+    def test_replace_regex_dtype_frame(self, regex, value):
         # GH-48644
         df1 = DataFrame({"A": ["0"], "B": ["0"]})
-        expected_df1 = DataFrame({"A": [1], "B": [1]}, dtype=object)
-        result_df1 = df1.replace(to_replace="0", value=1, regex=regex)
+        # When value is an integer, coerce result to object.
+        # When value is a string, infer the correct string dtype.
+        dtype = object if value == 1 else None
+
+        expected_df1 = DataFrame({"A": [value], "B": [value]}, dtype=dtype)
+        result_df1 = df1.replace(to_replace="0", value=value, regex=regex)
         tm.assert_frame_equal(result_df1, expected_df1)
 
         df2 = DataFrame({"A": ["0"], "B": ["1"]})
         if regex:
-            expected_df2 = DataFrame({"A": [1], "B": ["1"]}, dtype=object)
+            expected_df2 = DataFrame({"A": [1], "B": ["1"]}, dtype=dtype)
         else:
-            expected_df2 = DataFrame({"A": Series([1], dtype=object), "B": ["1"]})
+            expected_df2 = DataFrame({"A": Series([1], dtype=dtype), "B": ["1"]})
         result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
         tm.assert_frame_equal(result_df2, expected_df2)
 
