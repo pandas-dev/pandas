@@ -135,6 +135,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.list_ import ListDtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -821,7 +822,7 @@ class DataFrame(NDFrame, OpsMixin):
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
-                if not isinstance(data, np.ndarray) and treat_as_nested(data):
+                if not isinstance(data, np.ndarray) and treat_as_nested(data, dtype):
                     # exclude ndarray as we may have cast it a few lines above
                     if columns is not None:
                         columns = ensure_index(columns)
@@ -3799,6 +3800,15 @@ class DataFrame(NDFrame, OpsMixin):
 
                 new_values = transpose_homogeneous_masked_arrays(
                     cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
+                )
+            elif isinstance(first_dtype, ListDtype):
+                from pandas.core.arrays.list_ import (
+                    ListArray,
+                    transpose_homogeneous_list,
+                )
+
+                new_values = transpose_homogeneous_list(
+                    cast(Sequence[ListArray], self._iter_column_arrays())
                 )
             elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.

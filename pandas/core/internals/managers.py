@@ -1976,7 +1976,10 @@ class SingleBlockManager(BaseBlockManager):
 
     @classmethod
     def from_array(
-        cls, array: ArrayLike, index: Index, refs: BlockValuesRefs | None = None
+        cls,
+        array: ArrayLike,
+        index: Index,
+        refs: BlockValuesRefs | None = None,
     ) -> SingleBlockManager:
         """
         Constructor for if we have an array that is not yet a Block.
