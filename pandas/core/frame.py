@@ -4476,8 +4476,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
-        This method can run arbitrary code which can make you vulnerable to code
-        injection if you pass user input to this function.
+        .. warning::
+
+            This method can run arbitrary code which can make you vulnerable to code
+            injection if you pass user input to this function.
 
         Parameters
         ----------
@@ -4633,6 +4635,11 @@ class DataFrame(NDFrame, OpsMixin):
     def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
+
+        .. warning::
+
+            This method can run arbitrary code which can make you vulnerable to code
+            injection if you pass user input to this function.
 
         Operates on columns only, not specific rows or elements.  This allows
         `eval` to run arbitrary code, which can make you vulnerable to code
