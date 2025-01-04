@@ -23,6 +23,7 @@ from pandas.tests.extension.base.groupby import BaseGroupbyTests
 from pandas.tests.extension.base.index import BaseIndexTests
 from pandas.tests.extension.base.interface import BaseInterfaceTests
 from pandas.tests.extension.base.io import BaseParsingTests
+from pandas.tests.extension.base.methods import BaseMethodsTests
 from pandas.tests.extension.base.missing import BaseMissingTests
 from pandas.tests.extension.base.ops import (  # noqa: F401
     BaseArithmeticOpsTests,
@@ -62,6 +63,28 @@ def data_missing(dtype):
 
 
 @pytest.fixture
+def data_for_sorting(data_for_grouping):
+    """
+    Length-3 array with a known sort order.
+
+    This should be three items [B, C, A] with
+    A < B < C
+    """
+    pytest.skip("ListArray does not support sorting")
+
+
+@pytest.fixture
+def data_missing_for_sorting(data_for_grouping):
+    """
+    Length-3 array with a known sort order.
+
+    This should be three items [B, NA, A] with
+    A < B and NA missing.
+    """
+    pytest.skip("ListArray does not support sorting")
+
+
+@pytest.fixture
 def data_for_grouping(dtype):
     A = ["a"]
     B = ["a", "b"]
@@ -80,7 +103,7 @@ class TestListArray(
     BaseIndexTests,
     BaseInterfaceTests,
     BaseParsingTests,
-    # BaseMethodsTests,
+    BaseMethodsTests,
     BaseMissingTests,
     BaseArithmeticOpsTests,
     BaseComparisonOpsTests,
@@ -229,6 +252,77 @@ class TestListArray(
 
     def test_getitem_ellipsis_and_slice(self, data):
         pytest.skip("ListArray does not support NumPy style ellipsis slicing nor 2-D")
+
+    def test_hash_pandas_object(self, data):
+        pytest.skip("ListArray does not support this")
+
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts(self, all_data, dropna):
+        pytest.skip("ListArray does not support this")
+
+    def test_value_counts_with_normalize(self, data):
+        pytest.skip("ListArray does not support this")
+
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data_missing, na_action):
+        pytest.skip("ListArray does not support this")
+
+    @pytest.mark.parametrize("keep", ["first", "last", False])
+    def test_duplicated(self, data, keep):
+        pytest.skip("ListArray does not support this")
+
+    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
+    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
+    def test_unique(self, data, box, method):
+        pytest.skip("ListArray does not support this")
+
+    def test_factorize(self, data_for_grouping):
+        pytest.skip("ListArray does not support this")
+
+    def test_factorize_equivalence(self, data_for_grouping):
+        pytest.skip("ListArray does not support this")
+
+    def test_factorize_empty(self, data):
+        pytest.skip("ListArray does not support this")
+
+    def test_fillna_limit_frame(self, data_missing):
+        pytest.skip("Needs review - can assignment be avoided?")
+
+    def test_fillna_limit_series(self, data_missing):
+        pytest.skip("Needs review - can assignment be avoided?")
+
+    def test_fillna_copy_frame(self, data_missing):
+        pytest.skip("Needs review - can assignment be avoided?")
+
+    def test_fillna_copy_series(self, data_missing):
+        pytest.skip("Needs review - can assignment be avoided?")
+
+    def test_combine_le(self, data_repeated):
+        pytest.skip("Needs review - can assignment be avoided?")
+
+    def test_combine_first(self, data):
+        pytest.skip("Needs review - can assignment be avoided?")
+
+    def test_shift_0_periods(self, data):
+        pytest.skip("Needs review - can assignment be avoided?")
+
+    def test_hash_pandas_object_works(self, data, as_frame):
+        pytest.skip("ListArray does not support this")
+
+    def test_where_series(self, data, na_value, as_frame):
+        pytest.skip("Needs review - can assignment be avoided?")
+
+    def test_argsort(self, data_for_sorting):
+        pytest.skip("ListArray does not support this")
+
+    def test_argsort_missing_array(self, data_missing_for_sorting):
+        pytest.skip("ListArray does not support this")
+
+    def test_argsort_missing(self, data_missing_for_sorting):
+        pytest.skip("ListArray does not support this")
+
+    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
+        pytest.skip("ListArray does not support this")
 
 
 def test_to_csv(data):
