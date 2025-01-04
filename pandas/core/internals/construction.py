@@ -13,7 +13,6 @@ from typing import (
 
 import numpy as np
 from numpy import ma
-import pyarrow as pa
 
 from pandas._config import using_string_dtype
 
@@ -462,8 +461,6 @@ def treat_as_nested(data, dtype) -> bool:
         len(data) > 0
         and is_list_like(data[0])
         and getattr(data[0], "ndim", 1) == 1
-        # TODO(wayd): hack so pyarrow list elements don't expand
-        and not isinstance(data[0], pa.ListScalar)
         and not isinstance(dtype, ListDtype)
         and not (isinstance(data, ExtensionArray) and data.ndim == 2)
     )

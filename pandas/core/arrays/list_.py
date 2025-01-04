@@ -74,7 +74,7 @@ class ListDtype(ArrowDtype):
     An ExtensionDtype suitable for storing homogeneous lists of data.
     """
 
-    _is_immutable = True  # TODO(wayd): should we allow mutability?
+    _is_immutable = True
 
     def __init__(self, value_dtype: pa.DataType) -> None:
         super().__init__(pa.large_list(value_dtype))
@@ -100,10 +100,7 @@ class ListDtype(ArrowDtype):
         """
         A string identifying the data type.
         """
-        # TODO: reshaping tests require the name list to match the large_list
-        # implementation; assumedly there are some astype(str(dtype)) casts
-        # going on. Should fix so this can just be "list[...]" for end user
-        return f"large_list[{self.pyarrow_dtype.value_type!s}]"
+        return f"list[{self.pyarrow_dtype.value_type!s}]"
 
     @property
     def kind(self) -> str:
@@ -124,7 +121,6 @@ class ListDtype(ArrowDtype):
         return ListArray
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        # TODO(wayd): should we implemented value type support?
         for dtype in dtypes:
             if (
                 isinstance(dtype, ListDtype)
@@ -153,8 +149,7 @@ class ListArray(ArrowExtensionArray):
                 if isinstance(values, (pa.Array, pa.ChunkedArray)):
                     parent_type = values.type
                     if not isinstance(parent_type, (pa.ListType, pa.LargeListType)):
-                        # Ideally could cast here, but I don't think pyarrow implements
-                        # many list casts
+                        # TODO: maybe implement native casts in pyarrow
                         new_values = [
                             [x.as_py()] if x.is_valid else None for x in values
                         ]
@@ -164,12 +159,10 @@ class ListArray(ArrowExtensionArray):
                 else:
                     value_type = pa.array(values).type.value_type
 
-                # Internally always use large_string instead of string
                 if value_type == pa.string():
                     value_type = pa.large_string()
 
             if not isinstance(values, pa.ChunkedArray):
-                # To support NA, we need to create an Array first :-(
                 arr = pa.array(values, type=pa.large_list(value_type), from_pandas=True)
                 self._pa_array = pa.chunked_array(arr, type=pa.large_list(value_type))
             else:
@@ -200,8 +193,6 @@ class ListArray(ArrowExtensionArray):
             values = pa.array(scalars, from_pandas=True)
 
         if values.type == "null" and dtype is not None:
-            # TODO: the sequencing here seems wrong; just making the tests pass for now
-            # but this needs a comprehensive review
             pa_type = string_to_pyarrow_type(str(dtype))
             values = pa.array(values, type=pa_type)
 
@@ -232,8 +223,6 @@ class ListArray(ArrowExtensionArray):
         return cls._box_pa_array(value, pa_type)
 
     def __getitem__(self, item):
-        # PyArrow does not support NumPy's selection with an equal length
-        # mask, so let's convert those to integral positions if needed
         if isinstance(item, (np.ndarray, ExtensionArray)):
             if is_bool_dtype(item.dtype):
                 mask_len = len(item)
@@ -305,9 +294,6 @@ class ListArray(ArrowExtensionArray):
         ExtensionDtype.empty
             ExtensionDtype.empty is the 'official' public version of this API.
         """
-        # Implementer note: while ExtensionDtype.empty is the public way to
-        # call this method, it is still required to implement this `_empty`
-        # method as well (it is called internally in pandas)
         if isinstance(shape, tuple):
             if len(shape) > 1:
                 raise ValueError("ListArray may only be 1-D")
@@ -334,9 +320,9 @@ class ListArray(ArrowExtensionArray):
         elif isinstance(other, (pa.ListScalar, pa.LargeListScalar)):
             from pandas.arrays import BooleanArray
 
-            # TODO: pyarrow.compute does not implement broadcasting equality
-            # for an array of lists to a listscalar
-            # TODO: pyarrow doesn't compare missing values as missing???
+            # TODO: pyarrow.compute does not implement equal for lists
+            # https://github.com/apache/arrow/issues/45167
+            # TODO: pyarrow doesn't compare missing values in Python as missing???
             # arr = pa.array([1, 2, None])
             # pc.equal(arr, arr[2]) returns all nulls but
             # arr[2] == arr[2] returns True
