@@ -4779,7 +4779,7 @@ class AppendableFrameTable(AppendableTable):
                 using_string_dtype()
                 and isinstance(values, np.ndarray)
                 and is_string_array(
-                    values,  # type: ignore[arg-type]
+                    values,
                     skipna=True,
                 )
             ):
