@@ -114,7 +114,7 @@ def test_get_dummies_with_str_dtype(any_string_dtype):
 @td.skip_if_no("pyarrow")
 def test_get_dummies_with_pa_str_dtype(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    result = s.str.get_dummies("|", dtype="str[pyarrow]")
+    result = s.str.get_dummies("|", dtype="string[pyarrow]")
     expected = DataFrame(
         [
             ["true", "true", "false"],
@@ -122,6 +122,6 @@ def test_get_dummies_with_pa_str_dtype(any_string_dtype):
             ["false", "false", "false"],
         ],
         columns=list("abc"),
-        dtype="str[pyarrow]",
+        dtype="string[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
