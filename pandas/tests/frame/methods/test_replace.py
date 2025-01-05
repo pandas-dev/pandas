@@ -1482,10 +1482,10 @@ class TestDataFrameReplaceRegex:
 
         df2 = DataFrame({"A": ["0"], "B": ["1"]})
         if regex:
-            expected_df2 = DataFrame({"A": [1], "B": ["1"]}, dtype=dtype)
+            expected_df2 = DataFrame({"A": [value], "B": ["1"]}, dtype=dtype)
         else:
-            expected_df2 = DataFrame({"A": Series([1], dtype=dtype), "B": ["1"]})
-        result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
+            expected_df2 = DataFrame({"A": Series([value], dtype=dtype), "B": ["1"]})
+        result_df2 = df2.replace(to_replace="0", value=value, regex=regex)
         tm.assert_frame_equal(result_df2, expected_df2)
 
     def test_replace_with_value_also_being_replaced(self):
