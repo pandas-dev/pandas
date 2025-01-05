@@ -303,11 +303,3 @@ repos:
         language: python
         files: ^doc/source/whatsnew/v
         exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)
-    -   id: flake8-rst-docstrings
-        name: flake8-rst-docstrings
-        description: Run flake8 on code snippets in docstrings or RST files
-        language: python
-        entry: flake8-rst-docstrings
-        types: [rst]
-        args: [--filename=*.rst]
-        additional_dependencies: [flake8-rst-docstrings==0.1.0, flake8==3.7.9]
