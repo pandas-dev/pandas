@@ -881,7 +881,7 @@ class StylerRenderer:
                 "'skip-last;index'."
             )
 
-        result = ()
+        result: tuple[str, ...] = ()
         if "data" in clines:
             result += ("rule-data",)
         if "skip-last" in clines:
