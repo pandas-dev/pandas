@@ -1670,9 +1670,9 @@ class ArrowExtensionArray(
             msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
             raise TypeError(msg)
 
-        # We may need to strip out leading / trailing NA values
-        head: pa.array | None = None
+        # We may need to strip out trailing NA values
         tail: pa.array | None = None
+        na_mask: pa.array | None = None
         pa_array = self._pa_array
         np_func = {
             "cumsum": np.cumsum,
@@ -1681,37 +1681,30 @@ class ArrowExtensionArray(
         }[name]
 
         if self._hasna:
+            na_mask = pc.is_null(pa_array)
+            if pc.all(na_mask) == pa.scalar(True):
+                return type(self)(pa_array)
             if skipna:
                 if name == "cumsum":
                     pa_array = pc.fill_null(pa_array, "")
                 else:
-                    # After the first non-NA value we can retain the running min/max
-                    # by forward filling.
+                    # We can retain the running min/max by forward/backward filling.
                     pa_array = pc.fill_null_forward(pa_array)
-                    # But any leading NA values should result in "".
-                    nulls = pc.is_null(pa_array)
-                    idx = pc.index(nulls, False).as_py()
-                    if idx == -1:
-                        idx = len(pa_array)
-                    if idx > 0:
-                        head = pa.array([""] * idx, type=pa_array.type)
-                        pa_array = pa_array[idx:].combine_chunks()
+                    pa_array = pc.fill_null_backward(pa_array)
             else:
                 # When not skipping NA values, the result should be null from
                 # the first NA value onward.
-                nulls = pc.is_null(pa_array)
-                idx = pc.index(nulls, True).as_py()
+                idx = pc.index(na_mask, True).as_py()
                 tail = pa.nulls(len(pa_array) - idx, type=pa_array.type)
                 pa_array = pa_array[:idx].combine_chunks()
 
         # error: Cannot call function of unknown type
         pa_result = pa.array(np_func(pa_array), type=pa_array.type)  # type: ignore[operator]
 
-        assert head is None or tail is None
-        if head is not None:
-            pa_result = pa.concat_arrays([head, pa_result])
-        elif tail is not None:
+        if tail is not None:
             pa_result = pa.concat_arrays([pa_result, tail])
+        elif na_mask is not None:
+            pa_result = pc.if_else(na_mask, None, pa_result)
 
         result = type(self)(pa_result)
         return result
