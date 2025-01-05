@@ -1696,7 +1696,7 @@ class ArrowExtensionArray(
                 # the first NA value onward.
                 idx = pc.index(na_mask, True).as_py()
                 tail = pa.nulls(len(pa_array) - idx, type=pa_array.type)
-                pa_array = pa_array[:idx].combine_chunks()
+                pa_array = pa_array[:idx]
 
         # error: Cannot call function of unknown type
         pa_result = pa.array(np_func(pa_array), type=pa_array.type)  # type: ignore[operator]
