@@ -87,6 +87,7 @@ from pandas.core.arrays import (
     PeriodArray,
 )
 from pandas.core.arrays.datetimes import tz_to_dtype
+from pandas.core.arrays.string_ import BaseStringArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import (
     PyTablesExpr,
@@ -3225,8 +3226,6 @@ class GenericFixed(Fixed):
             with suppress(ValueError):
                 # get the atom for this datatype
                 atom = _tables().Atom.from_dtype(value.dtype)
-
-        from pandas.core.arrays.string_ import BaseStringArray
 
         if atom is not None:
             # We only get here if self._filters is non-None and

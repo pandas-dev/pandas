@@ -195,7 +195,7 @@ def test_put_compression_blosc(setup_path):
 
 
 def test_put_datetime_ser(setup_path, performance_warning, using_infer_string):
-    # https://github.com/pandas-dev/pandas/pull/???
+    # https://github.com/pandas-dev/pandas/pull/60663
     ser = Series(3 * [Timestamp("20010102").as_unit("ns")])
     with ensure_clean_store(setup_path) as store:
         store.put("ser", ser)
@@ -236,6 +236,7 @@ def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
 
 
 def test_put_str_frame(setup_path, performance_warning, string_dtype_arguments):
+    # https://github.com/pandas-dev/pandas/pull/60663
     dtype = pd.StringDtype(*string_dtype_arguments)
     df = DataFrame({"a": pd.array(["x", pd.NA, "y"], dtype=dtype)})
     with ensure_clean_store(setup_path) as store:
@@ -248,6 +249,7 @@ def test_put_str_frame(setup_path, performance_warning, string_dtype_arguments):
 
 
 def test_put_str_series(setup_path, performance_warning, string_dtype_arguments):
+    # https://github.com/pandas-dev/pandas/pull/60663
     dtype = pd.StringDtype(*string_dtype_arguments)
     ser = Series(["x", pd.NA, "y"], dtype=dtype)
     with ensure_clean_store(setup_path) as store:
