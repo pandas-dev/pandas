@@ -38,6 +38,7 @@ from pandas._libs import (
     writers as libwriters,
 )
 from pandas._libs.lib import is_string_array
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import timezones
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -91,7 +92,10 @@ from pandas.core.computation.pytables import (
     PyTablesExpr,
     maybe_expression,
 )
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    array as pd_array,
+    extract_array,
+)
 from pandas.core.indexes.api import ensure_index
 
 from pandas.io.common import stringify_path
@@ -3023,6 +3027,18 @@ class GenericFixed(Fixed):
 
         if isinstance(node, tables.VLArray):
             ret = node[0][start:stop]
+            dtype = getattr(attrs, "value_type", None)
+            if dtype is not None:
+                if dtype == "str[python]":
+                    dtype = StringDtype("python", np.nan)
+                elif dtype == "string[python]":
+                    dtype = StringDtype("python", NA)
+                elif dtype == "str[pyarrow]":
+                    dtype = StringDtype("pyarrow", np.nan)
+                else:
+                    assert dtype == "string[pyarrow]"
+                    dtype = StringDtype("pyarrow", NA)
+                ret = pd_array(ret, dtype=dtype)
         else:
             dtype = getattr(attrs, "value_type", None)
             shape = getattr(attrs, "shape", None)
@@ -3210,6 +3226,8 @@ class GenericFixed(Fixed):
                 # get the atom for this datatype
                 atom = _tables().Atom.from_dtype(value.dtype)
 
+        from pandas.core.arrays.string_ import BaseStringArray
+
         if atom is not None:
             # We only get here if self._filters is non-None and
             #  the Atom.from_dtype call succeeded
@@ -3262,6 +3280,19 @@ class GenericFixed(Fixed):
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+        elif isinstance(value, BaseStringArray):
+            vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
+            vlarr.append(value.to_numpy())
+            node = getattr(self.group, key)
+            if value.dtype == StringDtype("python", np.nan):
+                node._v_attrs.value_type = "str[python]"
+            elif value.dtype == StringDtype("python", NA):
+                node._v_attrs.value_type = "string[python]"
+            elif value.dtype == StringDtype("pyarrow", np.nan):
+                node._v_attrs.value_type = "str[pyarrow]"
+            else:
+                assert value.dtype == StringDtype("pyarrow", NA)
+                node._v_attrs.value_type = "string[pyarrow]"
         elif empty_array:
             self.write_array_empty(key, value)
         else:
@@ -3294,7 +3325,11 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_string_dtype() and is_string_array(values, skipna=True):
+        if (
+            using_string_dtype()
+            and isinstance(values, np.ndarray)
+            and is_string_array(values, skipna=True)
+        ):
             result = result.astype(StringDtype(na_value=np.nan))
         return result
 
@@ -3363,7 +3398,11 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if using_string_dtype() and is_string_array(values, skipna=True):
+            if (
+                using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and is_string_array(values, skipna=True)
+            ):
                 df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
@@ -4737,9 +4776,13 @@ class AppendableFrameTable(AppendableTable):
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
             if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_string_dtype() and is_string_array(
-                values,  # type: ignore[arg-type]
-                skipna=True,
+            if (
+                using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and is_string_array(
+                    values,  # type: ignore[arg-type]
+                    skipna=True,
+                )
             ):
                 df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
