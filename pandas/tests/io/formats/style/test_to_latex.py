@@ -1293,10 +1293,5 @@ def test_concat_chain():
 def test_empty_clines(columns, expected: str, clines: str):
     # GH 47203
     df = DataFrame(columns=columns)
-    warn = None
-    if isinstance(clines, str):
-        warn = FutureWarning
-    msg = "Passing a string argument to the clines parameter is deprecated."
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.style.to_latex(clines=clines)
+    result = df.style.to_latex(clines=clines)
     assert result == expected
