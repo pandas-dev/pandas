@@ -838,10 +838,10 @@ def test_pandas_dtype_string_dtypes(string_storage):
 
 
 def test_pandas_dtype_string_dtype_alias_with_storage():
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="not understood"):
         pandas_dtype("str[python]")
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="not understood"):
         pandas_dtype("str[pyarrow]")
 
     result = pandas_dtype("string[python]")
