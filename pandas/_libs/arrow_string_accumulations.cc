@@ -53,12 +53,12 @@ static auto CumSum(const struct ArrowArrayView *array_view,
   }
 }
 
-template <typename T>
-concept MinOrMaxOp =
-    std::same_as<T, std::less<>> || std::same_as<T, std::greater<>>;
+// template <typename T>
+// concept MinOrMaxOp =
+//     std::same_as<T, std::less<>> || std::same_as<T, std::greater<>>;
 
 template <auto Op>
-  requires MinOrMaxOp<decltype(Op)>
+//  requires MinOrMaxOp<decltype(Op)>
 static auto CumMinOrMax(const struct ArrowArrayView *array_view,
                         struct ArrowArray *out, bool skipna) {
   bool seen_na = false;
