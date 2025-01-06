@@ -1671,7 +1671,6 @@ class ArrowExtensionArray(
             msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
             raise TypeError(msg)
 
-        # TODO: we can use arrow_c_stream instead of arrow_c_array
         pa_result = pa.array(sa.ArrowStringAccumulation(self._pa_array, name, skipna))
         result = type(self)(pa_result)
         return result
