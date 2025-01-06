@@ -10,7 +10,7 @@ dependencies:
   - versioneer
   - cython~=3.0.5
   - meson>=1.3.0
-  - meson-python>=0.13.1
+  - meson-python>=0.14.0
 
   # test dependencies
   - pytest>=7.3.2
