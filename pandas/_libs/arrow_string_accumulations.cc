@@ -143,7 +143,7 @@ public:
     ArrowArrayStreamMove(stream, stream_.get());
   }
 
-  std::pair<nb::capsule, nb::capsule> Accumulate(nb::object requested_schema) {
+  std::pair<nb::capsule, nb::capsule> Accumulate(nb::object) {
     struct ArrowSchemaView schema_view{};
     NANOARROW_THROW_NOT_OK(
         ArrowSchemaViewInit(&schema_view, schema_.get(), nullptr));

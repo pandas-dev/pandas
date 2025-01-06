@@ -11,6 +11,8 @@ project(
         'cpp_std=c++20',
         'warning_level=2',
         'default_library=static',
+        # TODO: how can we only set this for nanobind?
+        'cpp_args=-Wno-sign-compare'
     ]
 )
 
