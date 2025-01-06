@@ -37,7 +37,7 @@ VERSIONS = {
     "numexpr": "2.9.0",
     "odfpy": "1.4.1",
     "openpyxl": "3.1.2",
-    "psycopg2": "2.9.9",  # (dt dec pq3 ext lo64)
+    "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.1.0",
     "pyarrow": "10.0.1",
     "pyreadstat": "1.2.6",
