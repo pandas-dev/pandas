@@ -70,7 +70,7 @@ parquet = ['pyarrow>=10.0.1']
 feather = ['pyarrow>=10.0.1']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
         #'blosc>=1.20.1',
-        'tables>=3.9.2']
+        'tables>=3.8.0']
 spss = ['pyreadstat>=1.2.6']
 postgresql = ['SQLAlchemy>=2.0.25', 'psycopg2>=2.9.6', 'adbc-driver-postgresql>=0.10.0']
 mysql = ['SQLAlchemy>=2.0.25', 'pymysql>=1.1.0']
@@ -114,7 +114,7 @@ all = ['adbc-driver-postgresql>=0.10.0',
        'scipy>=1.12.0',
        's3fs>=2024.2.0',
        'SQLAlchemy>=2.0.25',
-       'tables>=3.9.2',
+       'tables>=3.8.0',
        'tabulate>=0.9.0',
        'xarray>=2024.1.1',
        'xlrd>=2.0.1',
