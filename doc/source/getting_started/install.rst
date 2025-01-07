@@ -241,7 +241,7 @@ Dependency                                                      Minimum Version 
 =============================================================== ================== =============== ==========================
 `BeautifulSoup4 <https://github.com/wention/BeautifulSoup4>`__  4.12.3             html            HTML parser for read_html
 `html5lib <https://github.com/html5lib/html5lib-python>`__      1.1                html            HTML parser for read_html
-`lxml <https://github.com/lxml/lxml>`__                         5.0.1              html            HTML parser for read_html
+`lxml <https://github.com/lxml/lxml>`__                         4.9.2              html            HTML parser for read_html
 =============================================================== ================== =============== ==========================
 
 One of the following combinations of libraries is needed to use the
@@ -276,7 +276,7 @@ Installable with ``pip install "pandas[xml]"``.
 ======================================== ================== =============== ====================================================
 Dependency                               Minimum Version    pip extra       Notes
 ======================================== ================== =============== ====================================================
-`lxml <https://github.com/lxml/lxml>`__  5.0.1              xml             XML parser for read_xml and tree builder for to_xml
+`lxml <https://github.com/lxml/lxml>`__  4.9.2              xml             XML parser for read_xml and tree builder for to_xml
 ======================================== ================== =============== ====================================================
 
 SQL databases
@@ -287,7 +287,7 @@ Traditional drivers are installable with ``pip install "pandas[postgresql, mysql
 ================================================================== ================== =============== ============================================
 Dependency                                                         Minimum Version    pip extra       Notes
 ================================================================== ================== =============== ============================================
-`SQLAlchemy <https://github.com/sqlalchemy/sqlalchemy>`__          2.0.0             postgresql,     SQL support for databases other than sqlite
+`SQLAlchemy <https://github.com/sqlalchemy/sqlalchemy>`__          2.0.0              postgresql,     SQL support for databases other than sqlite
                                                                                       mysql,
                                                                                       sql-other
 `psycopg2 <https://github.com/psycopg/psycopg2>`__                 2.9.6              postgresql      PostgreSQL engine for sqlalchemy
@@ -305,7 +305,7 @@ Installable with ``pip install "pandas[hdf5, parquet, feather, spss, excel]"``
 Dependency                                             Minimum Version    pip extra        Notes
 ====================================================== ================== ================ ==========================================================
 `PyTables <https://github.com/PyTables/PyTables>`__    3.8.0              hdf5             HDF5-based reading / writing
-`blosc <https://github.com/Blosc/c-blosc>`__           1.21.6             hdf5             Compression for HDF5; only available on ``conda``
+`blosc <https://github.com/Blosc/c-blosc>`__           1.21.3             hdf5             Compression for HDF5; only available on ``conda``
 `zlib <https://github.com/madler/zlib>`__                                 hdf5             Compression for HDF5
 `fastparquet <https://github.com/dask/fastparquet>`__  2024.2.0           -                Parquet reading / writing (pyarrow is default)
 `pyarrow <https://github.com/apache/arrow>`__          10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
