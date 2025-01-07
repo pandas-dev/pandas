@@ -253,6 +253,10 @@ class ArrowStringArrayMixin:
         result = pc.utf8_is_alpha(self._pa_array)
         return self._convert_bool_result(result)
 
+    def _str_isascii(self):
+        result = pc.string_is_ascii(self._pa_array)
+        return self._convert_bool_result(result)
+
     def _str_isdecimal(self):
         result = pc.utf8_is_decimal(self._pa_array)
         return self._convert_bool_result(result)
