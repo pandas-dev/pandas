@@ -76,9 +76,9 @@ static auto CumSum(struct ArrowArrayStream *array_stream,
 // template <typename T>
 // concept MinOrMaxOp =
 //     std::same_as<T, std::less<>> || std::same_as<T, std::greater<>>;
-
-template <size_t OffsetSize, auto Op>
+// template <size_t OffsetSize, auto Op>
 //  requires MinOrMaxOp<decltype(Op)>
+template <size_t OffsetSize, template <typename...> typename CompareOp>
 static auto CumMinOrMax(struct ArrowArrayStream *array_stream,
                         struct ArrowArray *out, bool skipna) {
   bool seen_na = false;
@@ -113,7 +113,7 @@ static auto CumMinOrMax(struct ArrowArrayStream *array_stream,
                                 static_cast<size_t>((*sv).size_bytes)};
             if (current_str) {
               const nb::str pycurrent{current_str->data(), current_str->size()};
-              if (Op(pyval, pycurrent)) {
+              if (CompareOp<const nb::str &>{}(pyval, pycurrent)) {
                 current_str = std::string{
                     (*sv).data, static_cast<size_t>((*sv).size_bytes)};
               }
@@ -204,17 +204,15 @@ public:
 
     } else if (accumulation_ == "cummin") {
       if (schema_view.type == NANOARROW_TYPE_STRING) {
-        CumMinOrMax<32, std::less{}>(stream_.get(), uarray_out.get(), skipna_);
+        CumMinOrMax<32, std::less>(stream_.get(), uarray_out.get(), skipna_);
       } else {
-        CumMinOrMax<64, std::less{}>(stream_.get(), uarray_out.get(), skipna_);
+        CumMinOrMax<64, std::less>(stream_.get(), uarray_out.get(), skipna_);
       }
     } else if (accumulation_ == "cummax") {
       if (schema_view.type == NANOARROW_TYPE_STRING) {
-        CumMinOrMax<32, std::greater{}>(stream_.get(), uarray_out.get(),
-                                        skipna_);
+        CumMinOrMax<32, std::greater>(stream_.get(), uarray_out.get(), skipna_);
       } else {
-        CumMinOrMax<64, std::greater{}>(stream_.get(), uarray_out.get(),
-                                        skipna_);
+        CumMinOrMax<64, std::greater>(stream_.get(), uarray_out.get(), skipna_);
       }
     } else {
       throw std::runtime_error("Unexpected branch");

@@ -8,7 +8,7 @@ project(
     default_options: [
         'buildtype=release',
         'c_std=c11',
-        'cpp_std=c++20',
+        'cpp_std=c++17',
         'warning_level=2',
         'default_library=static',
         # TODO: how can we only set this for nanobind?
