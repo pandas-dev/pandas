@@ -4423,6 +4423,8 @@ cdef class CustomBusinessDay(BusinessDay):
         offset=timedelta(0),
     ):
         BusinessDay.__init__(self, n, normalize, offset)
+        if (calendar is not None) and not isinstance(calendar, np.busdaycalendar):
+            warnings.warn("Warning: `calendar` is expected to be either an instance of `np.busdaycalendar` or `None`.")
         self._init_custom(weekmask, holidays, calendar)
 
     cpdef __setstate__(self, state):
