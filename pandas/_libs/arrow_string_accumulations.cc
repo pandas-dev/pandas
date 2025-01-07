@@ -30,68 +30,73 @@ static auto ReleaseArrowSchema(void *ptr) noexcept -> void {
   delete schema;
 }
 
-static auto CumSum(const struct ArrowArrayView *array_view,
+template <size_t OffsetSize>
+static auto CumSum(struct ArrowArrayStream *array_stream,
                    struct ArrowArray *out, bool skipna) {
   bool seen_na = false;
   std::stringstream ss{};
 
-  for (int64_t i = 0; i < array_view->length; i++) {
-    const bool isna = ArrowArrayViewIsNull(array_view, i);
-    if (!skipna && (seen_na || isna)) {
-      seen_na = true;
-      ArrowArrayAppendNull(out, 1);
-    } else {
-      if (!isna) {
-        const auto std_sv = ArrowArrayViewGetStringUnsafe(array_view, i);
-        ss << std::string_view{std_sv.data,
-                               static_cast<size_t>(std_sv.size_bytes)};
+  nanoarrow::ViewArrayStream array_stream_view(array_stream);
+  for (const auto &array : array_stream_view) {
+    for (const auto &sv : nanoarrow::ViewArrayAsBytes<OffsetSize>(&array)) {
+      if ((!sv || seen_na) && !skipna) {
+        seen_na = true;
+        ArrowArrayAppendNull(out, 1);
+      } else {
+        if (sv) {
+          ss << std::string_view{(*sv).data,
+                                 static_cast<size_t>((*sv).size_bytes)};
+        }
+        const auto str = ss.str();
+        const ArrowStringView asv{str.c_str(),
+                                  static_cast<int64_t>(str.size())};
+        NANOARROW_THROW_NOT_OK(ArrowArrayAppendString(out, asv));
       }
-      const auto str = ss.str();
-      const ArrowStringView asv{str.c_str(), static_cast<int64_t>(str.size())};
-      NANOARROW_THROW_NOT_OK(ArrowArrayAppendString(out, asv));
     }
   }
 }
 
+// TODO: doesn't seem like all compilers in CI support this?
 // template <typename T>
 // concept MinOrMaxOp =
 //     std::same_as<T, std::less<>> || std::same_as<T, std::greater<>>;
 
-template <auto Op>
+template <size_t OffsetSize, auto Op>
 //  requires MinOrMaxOp<decltype(Op)>
-static auto CumMinOrMax(const struct ArrowArrayView *array_view,
+static auto CumMinOrMax(struct ArrowArrayStream *array_stream,
                         struct ArrowArray *out, bool skipna) {
   bool seen_na = false;
   std::optional<std::string> current_str{};
 
-  for (int64_t i = 0; i < array_view->length; i++) {
-    const bool isna = ArrowArrayViewIsNull(array_view, i);
-    if (!skipna && (seen_na || isna)) {
-      seen_na = true;
-      ArrowArrayAppendNull(out, 1);
-    } else {
-      if (!isna || current_str) {
-        if (!isna) {
-          const auto asv = ArrowArrayViewGetStringUnsafe(array_view, i);
-          const nb::str pyval{asv.data, static_cast<size_t>(asv.size_bytes)};
-
-          if (current_str) {
-            const nb::str pycurrent{current_str->data(), current_str->size()};
-            if (Op(pyval, pycurrent)) {
-              current_str =
-                  std::string{asv.data, static_cast<size_t>(asv.size_bytes)};
-            }
-          } else {
-            current_str =
-                std::string{asv.data, static_cast<size_t>(asv.size_bytes)};
-          }
-        }
-
-        struct ArrowStringView out_sv{
-            current_str->data(), static_cast<int64_t>(current_str->size())};
-        NANOARROW_THROW_NOT_OK(ArrowArrayAppendString(out, out_sv));
+  nanoarrow::ViewArrayStream array_stream_view(array_stream);
+  for (const auto &array : array_stream_view) {
+    for (const auto &sv : nanoarrow::ViewArrayAsBytes<OffsetSize>(&array)) {
+      if ((!sv || seen_na) && !skipna) {
+        seen_na = true;
+        ArrowArrayAppendNull(out, 1);
       } else {
-        ArrowArrayAppendEmpty(out, 1);
+        if (sv || current_str) {
+          if (sv) {
+            const nb::str pyval{(*sv).data,
+                                static_cast<size_t>((*sv).size_bytes)};
+            if (current_str) {
+              const nb::str pycurrent{current_str->data(), current_str->size()};
+              if (Op(pyval, pycurrent)) {
+                current_str = std::string{
+                    (*sv).data, static_cast<size_t>((*sv).size_bytes)};
+              }
+            } else {
+              current_str = std::string{(*sv).data,
+                                        static_cast<size_t>((*sv).size_bytes)};
+            }
+          }
+
+          struct ArrowStringView out_sv{
+              current_str->data(), static_cast<int64_t>(current_str->size())};
+          NANOARROW_THROW_NOT_OK(ArrowArrayAppendString(out, out_sv));
+        } else {
+          ArrowArrayAppendEmpty(out, 1);
+        }
       }
     }
   }
@@ -131,7 +136,6 @@ public:
     switch (schema_view.type) {
     case NANOARROW_TYPE_STRING:
     case NANOARROW_TYPE_LARGE_STRING:
-    case NANOARROW_TYPE_STRING_VIEW:
       break;
     default:
       const auto error_message =
@@ -159,30 +163,29 @@ public:
 
     NANOARROW_THROW_NOT_OK(ArrowArrayStartAppending(uarray_out.get()));
 
-    nanoarrow::UniqueArray chunk{};
-    int errcode{};
-
-    while ((errcode = ArrowArrayStreamGetNext(stream_.get(), chunk.get(),
-                                              nullptr) == 0) &&
-           chunk->release != nullptr) {
-      struct ArrowArrayView array_view{};
-      NANOARROW_THROW_NOT_OK(
-          ArrowArrayViewInitFromSchema(&array_view, schema_.get(), nullptr));
-
-      NANOARROW_THROW_NOT_OK(
-          ArrowArrayViewSetArray(&array_view, chunk.get(), nullptr));
-
-      if (accumulation_ == "cumsum") {
-        CumSum(&array_view, uarray_out.get(), skipna_);
-      } else if (accumulation_ == "cummin") {
-        CumMinOrMax<std::less{}>(&array_view, uarray_out.get(), skipna_);
-      } else if (accumulation_ == "cummax") {
-        CumMinOrMax<std::greater{}>(&array_view, uarray_out.get(), skipna_);
+    if (accumulation_ == "cumsum") {
+      if (schema_view.type == NANOARROW_TYPE_STRING) {
+        CumSum<32>(stream_.get(), uarray_out.get(), skipna_);
       } else {
-        throw std::runtime_error("Unexpected branch");
+        CumSum<64>(stream_.get(), uarray_out.get(), skipna_);
       }
 
-      chunk.reset();
+    } else if (accumulation_ == "cummin") {
+      if (schema_view.type == NANOARROW_TYPE_STRING) {
+        CumMinOrMax<32, std::less{}>(stream_.get(), uarray_out.get(), skipna_);
+      } else {
+        CumMinOrMax<64, std::less{}>(stream_.get(), uarray_out.get(), skipna_);
+      }
+    } else if (accumulation_ == "cummax") {
+      if (schema_view.type == NANOARROW_TYPE_STRING) {
+        CumMinOrMax<32, std::greater{}>(stream_.get(), uarray_out.get(),
+                                        skipna_);
+      } else {
+        CumMinOrMax<64, std::greater{}>(stream_.get(), uarray_out.get(),
+                                        skipna_);
+      }
+    } else {
+      throw std::runtime_error("Unexpected branch");
     }
 
     NANOARROW_THROW_NOT_OK(
