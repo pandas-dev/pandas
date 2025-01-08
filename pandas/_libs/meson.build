@@ -84,7 +84,10 @@ libs_sources = {
         'sources': ['join.pyx', _khash_primitive_helper],
         'deps': _khash_primitive_helper_dep,
     },
-    'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c']},
+    'lib': {
+        'sources': ['lib.pyx', 'src/parser/tokenizer.c'],
+        'c_args': ['-Wno-unused-function'],  # cython issue 6603
+    },
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
         'sources': [
@@ -117,7 +120,10 @@ libs_sources = {
     'ops': {'sources': ['ops.pyx']},
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
     'properties': {'sources': ['properties.pyx']},
-    'reshape': {'sources': ['reshape.pyx']},
+    'reshape': {
+        'sources': ['reshape.pyx'],
+        'c_args': ['-Wno-unused-function'],  # cython issue 6603
+    },
     'sas': {'sources': ['sas.pyx']},
     'byteswap': {'sources': ['byteswap.pyx']},
     'sparse': {'sources': ['sparse.pyx', _sparse_op_helper]},
@@ -142,6 +148,7 @@ foreach ext_name, ext_dict : libs_sources
         cython_args: cython_args,
         include_directories: [inc_np, inc_pd],
         dependencies: ext_dict.get('deps', ''),
+        c_args: ext_dict.get('c_args', []),
         subdir: 'pandas/_libs',
         install: true,
     )
