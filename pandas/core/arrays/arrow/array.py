@@ -16,6 +16,7 @@ import unicodedata
 import numpy as np
 
 from pandas._libs import lib
+import pandas._libs.arrow_string_accumulations as sa
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
@@ -41,6 +42,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -1619,6 +1621,9 @@ class ArrowExtensionArray(
         ------
         NotImplementedError : subclass does not define accumulations
         """
+        if is_string_dtype(self):
+            return self._str_accumulate(name=name, skipna=skipna, **kwargs)
+
         pyarrow_name = {
             "cummax": "cumulative_max",
             "cummin": "cumulative_min",
@@ -1653,6 +1658,22 @@ class ArrowExtensionArray(
             result = result.cast(pa_dtype)
 
         return type(self)(result)
+
+    def _str_accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ArrowExtensionArray | ExtensionArray:
+        """
+        Accumulate implementation for strings, see `_accumulate` docstring for details.
+
+        pyarrow.compute does not implement these methods for strings.
+        """
+        if name == "cumprod":
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg)
+
+        pa_result = pa.array(sa.ArrowStringAccumulation(self._pa_array, name, skipna))
+        result = type(self)(pa_result)
+        return result
 
     def _reduce_pyarrow(self, name: str, *, skipna: bool = True, **kwargs) -> pa.Scalar:
         """
