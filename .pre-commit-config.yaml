@@ -303,3 +303,9 @@ repos:
         language: python
         files: ^doc/source/whatsnew/v
         exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)
+    -   id: meson-format
+        name: meson-format
+        language: python
+        additional_dependencies: ['meson>=1.6.0']
+        entry: meson format -i
+        files: meson.build
