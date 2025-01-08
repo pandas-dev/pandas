@@ -15,19 +15,25 @@ py = import('python').find_installation(pure: false)
 tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
 
+cc = meson.get_compiler('c')
+cp = meson.get_compiler('cpp')
 
-add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'c')
-add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'cpp')
-
-# Allow supporting older numpys than the version compiled against
-# Set the define to the min supported version of numpy for pandas
-# e.g. right now this is targeting numpy 1.21+
-add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language: 'c')
-add_project_arguments(
+project_args = [
+    '-DNPY_NO_DEPRECATED_API=0',
+    # Allow supporting older numpys than the version compiled against
+    # Set the define to the min supported version of numpy for pandas
+    # e.g. right now this is targeting numpy 1.21+
     '-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION',
-    language: 'cpp',
-)
+    # ignore some MSVC warnings for narrowing
+    '/wd4244',
+    '/wd4267',
+]
 
+c_args = cc.get_supported_arguments(project_args)
+cpp_args = cp.get_supported_arguments(project_args)
+
+add_project_arguments(c_args, language: 'c')
+add_project_arguments(cpp_args, language: 'cpp')
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', subdir: 'pandas')
