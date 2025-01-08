@@ -36,25 +36,13 @@ static auto CumSum(struct ArrowArrayStream *array_stream,
   bool seen_na = false;
   std::stringstream ss{};
 
-  // TODO: we can simplify this further if we just iterate on the array
-  // and not the array view, but there is an upstream bug in nanoarrow
-  // that prevents that
-  // https://github.com/apache/arrow-nanoarrow/issues/701
-  nanoarrow::UniqueArrayView array_view{};
   nanoarrow::UniqueSchema schema{};
   NANOARROW_THROW_NOT_OK(
       ArrowArrayStreamGetSchema(array_stream, schema.get(), nullptr));
 
   nanoarrow::ViewArrayStream array_stream_view(array_stream);
   for (const auto &array : array_stream_view) {
-    array_view.reset();
-    NANOARROW_THROW_NOT_OK(
-        ArrowArrayViewInitFromSchema(array_view.get(), schema.get(), nullptr));
-    NANOARROW_THROW_NOT_OK(
-        ArrowArrayViewSetArray(array_view.get(), &array, nullptr));
-
-    for (const auto &sv :
-         nanoarrow::ViewArrayAsBytes<OffsetSize>(array_view.get())) {
+    for (const auto &sv : nanoarrow::ViewArrayAsBytes<OffsetSize>(&array)) {
       if ((!sv || seen_na) && !skipna) {
         seen_na = true;
         ArrowArrayAppendNull(out, 1);
@@ -84,25 +72,13 @@ static auto CumMinOrMax(struct ArrowArrayStream *array_stream,
   bool seen_na = false;
   std::optional<std::string> current_str{};
 
-  // TODO: we can simplify this further if we just iterate on the array
-  // and not the array view, but there is an upstream bug in nanoarrow
-  // that prevents that
-  // https://github.com/apache/arrow-nanoarrow/issues/701
-  nanoarrow::UniqueArrayView array_view{};
   nanoarrow::UniqueSchema schema{};
   NANOARROW_THROW_NOT_OK(
       ArrowArrayStreamGetSchema(array_stream, schema.get(), nullptr));
 
   nanoarrow::ViewArrayStream array_stream_view(array_stream);
   for (const auto &array : array_stream_view) {
-    array_view.reset();
-    NANOARROW_THROW_NOT_OK(
-        ArrowArrayViewInitFromSchema(array_view.get(), schema.get(), nullptr));
-    NANOARROW_THROW_NOT_OK(
-        ArrowArrayViewSetArray(array_view.get(), &array, nullptr));
-
-    for (const auto &sv :
-         nanoarrow::ViewArrayAsBytes<OffsetSize>(array_view.get())) {
+    for (const auto &sv : nanoarrow::ViewArrayAsBytes<OffsetSize>(&array)) {
       if ((!sv || seen_na) && !skipna) {
         seen_na = true;
         ArrowArrayAppendNull(out, 1);
