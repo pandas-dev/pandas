@@ -114,6 +114,7 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         result_counts[i] = table.vals[k]
 
     if na_counter > 0:
+        assert n > 0  # val will be uninitialized without this
         result_counts[table.size] = na_counter
         result_keys.append(val)
 
