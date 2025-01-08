@@ -233,7 +233,7 @@ jobs:
         run: |
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.3.2 meson-python==0.14.0
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja] meson-python
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
           python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
@@ -272,7 +272,7 @@ jobs:
         run: |
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.14.0 meson[ninja]==1.3.2
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python  meson[ninja]
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
@@ -344,7 +344,7 @@ jobs:
       - name: Build Environment
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.3.2 meson-python==0.14.0
+          python -m pip install --upgrade pip setuptools wheel meson[ninja] meson-python
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil tzdata cython hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
@@ -389,7 +389,7 @@ jobs:
         # Tests segfault with numpy 2.2.0: https://github.com/numpy/numpy/pull/27955
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.3.2 meson-python==0.14.0
+          python -m pip install --upgrade pip setuptools wheel meson[ninja] meson-python
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil pytz tzdata hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov

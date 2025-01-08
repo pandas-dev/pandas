@@ -9,8 +9,8 @@ dependencies:
   # build dependencies
   - versioneer
   - cython>=0.29.33
-  - meson=1.3.2
-  - meson-python=0.14.0
+  - meson
+  - meson-python
 
   # test dependencies
   - pytest>=7.3.2
