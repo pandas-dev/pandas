@@ -734,7 +734,7 @@ class TestDataFrameToCSV:
         df2 = self.read_csv(path)
         tm.assert_frame_equal(df2, df)
 
-    def test_to_csv_mixed(self, temp_file, using_infer_string):
+    def test_to_csv_mixed(self, temp_file):
         def create_cols(name):
             return [f"{name}{i:03d}" for i in range(5)]
 
