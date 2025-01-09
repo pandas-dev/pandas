@@ -1,9 +1,5 @@
 name: Build pandas
 description: Rebuilds the C extensions and installs pandas
-inputs:
-  editable:
-    description: Whether to build pandas in editable mode (default true)
-    default: true
 runs:
   using: composite
   steps:
@@ -24,11 +20,6 @@ runs:
 
     - name: Build Pandas
       run: |
-        if [[ ${{ inputs.editable }} == "true" ]]; then
-          pip install -e . --no-build-isolation -v --no-deps \
-            -Csetup-args="--werror"
-        else
           pip install . --no-build-isolation -v --no-deps \
             -Csetup-args="--werror"
-        fi
       shell: bash -el {0}
