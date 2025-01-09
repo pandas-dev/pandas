@@ -27,6 +27,7 @@ project_args = [
     # ignore some MSVC warnings for narrowing
     '/wd4244',
     '/wd4267',
+    '/wd4551',
 ]
 
 c_args = cc.get_supported_arguments(project_args)
