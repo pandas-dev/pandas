@@ -644,7 +644,7 @@ class TestResetIndex:
         tm.assert_frame_equal(res, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) - GH#60338")
 @pytest.mark.parametrize(
     "array, dtype",
     [
