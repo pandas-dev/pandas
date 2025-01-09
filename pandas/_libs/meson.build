@@ -86,7 +86,8 @@ libs_sources = {
     },
     'lib': {
         'sources': ['lib.pyx', 'src/parser/tokenizer.c'],
-        'c_args': ['-Wno-unused-function'],  # cython issue 6603
+        # cython issue 6603
+        'c_args': cc.get_supported_arguments(['-Wno-unused-function']),
     },
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
@@ -122,7 +123,8 @@ libs_sources = {
     'properties': {'sources': ['properties.pyx']},
     'reshape': {
         'sources': ['reshape.pyx'],
-        'c_args': ['-Wno-unused-function'],  # cython issue 6603
+        # cython issue 6603
+        'c_args': cc.get_supported_arguments(['-Wno-unused-function']),
     },
     'sas': {'sources': ['sas.pyx']},
     'byteswap': {'sources': ['byteswap.pyx']},
