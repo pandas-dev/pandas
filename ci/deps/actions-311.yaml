@@ -8,7 +8,7 @@ dependencies:
   - versioneer
   - cython>=0.29.33
   - meson>=1.2.1
-  - meson-python>=0.13.1, <0.16.0
+  - meson-python>=0.13.1
 
   # test dependencies
   - pytest>=7.3.2
