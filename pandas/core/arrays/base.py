@@ -2618,6 +2618,7 @@ class ExtensionArray:
                 "sem",
                 "var",
                 "skew",
+                "kurt",
             ]:
                 raise TypeError(
                     f"dtype '{self.dtype}' does not support operation '{how}'"

@@ -1656,7 +1656,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         dtype = self.dtype
         if dtype.kind == "M":
             # Adding/multiplying datetimes is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod", "var", "skew"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "var", "skew", "kurt"]:
                 raise TypeError(f"datetime64 type does not support operation '{how}'")
             if how in ["any", "all"]:
                 # GH#34479
@@ -1667,7 +1667,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         elif isinstance(dtype, PeriodDtype):
             # Adding/multiplying Periods is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod", "var", "skew"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "var", "skew", "kurt"]:
                 raise TypeError(f"Period type does not support {how} operations")
             if how in ["any", "all"]:
                 # GH#34479
@@ -1677,7 +1677,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 )
         else:
             # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod", "skew", "var"]:
+            if how in ["prod", "cumprod", "skew", "kurt", "var"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
         # All of the functions implemented here are ordinal, so we can
