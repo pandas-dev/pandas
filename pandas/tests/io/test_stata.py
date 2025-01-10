@@ -2593,24 +2593,32 @@ def test_many_strl(temp_file, version):
 def test_convert_dates_key_handling(tmp_path, version):
     temp_file = tmp_path / "test.dta"
     df = DataFrame({"old_name": [1, 2, 3], "some_other_name": [4, 5, 6]})
-    writer = StataWriter(temp_file, df)
 
     # Case 1: Key exists in _convert_dates
-    writer._convert_dates = {"old_name": "converted_date"}
-    columns = ["new_name"]
-    original_columns = ["old_name"]
-    for c, o in zip(columns, original_columns):
-        if c != o and o in writer._convert_dates:
-            writer._convert_dates[c] = writer._convert_dates[o]
-            del writer._convert_dates[o]
-    assert writer._convert_dates == {"new_name": "converted_date"}
+    convert_dates = {"old_name": "converted_date"}
+    df.rename(columns={"old_name": "new_name"}, inplace=True)
+    with StataWriter(
+        temp_file,
+        df,
+        convert_dates=convert_dates,
+        version=version,
+    ) as writer:
+        writer.write_file()
+    result = read_stata(temp_file)
+    assert list(result.columns) == ["new_name", "some_other_name"]
+    assert "converted_date" in result.columns
 
     # Case 2: Key does not exist in _convert_dates
-    writer._convert_dates = {"some_other_name": "converted_date"}
-    columns = ["new_name"]
-    original_columns = ["old_name"]
-    for c, o in zip(columns, original_columns):
-        if c != o and o in writer._convert_dates:
-            writer._convert_dates[c] = writer._convert_dates[o]
-            del writer._convert_dates[o]
-    assert writer._convert_dates == {"some_other_name": "converted_date"}
+    df = DataFrame({"old_name": [1, 2, 3], "some_other_name": [4, 5, 6]})
+    convert_dates = {"some_other_name": "converted_date"}
+    df.rename(columns={"old_name": "new_name"}, inplace=True)
+    with StataWriter(
+        temp_file,
+        df,
+        convert_dates=convert_dates,
+        version=version,
+    ) as writer:
+        writer.write_file()
+    result = read_stata(temp_file)
+    assert list(result.columns) == ["new_name", "some_other_name"]
+    assert "converted_date" in result.columns
