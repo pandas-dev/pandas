@@ -413,3 +413,34 @@ class TestDataFrameDescribe:
             dtype=pd.ArrowDtype(pa.float64()),
         )
         tm.assert_frame_equal(result, expected)
+    
+    def test_refine_percentiles(self):
+        # GH#60550
+        df = DataFrame({"a" : np.arange(0, 10, 1)})
+
+        # the default behavior is to return [0.25, 0.5, 0.75]
+        result = df.describe()
+        expected = DataFrame(
+            {"a" : [10, df.a.mean(), df.a.std(), 0, 2.25, 4.5, 6.75, 9]},
+            index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"]
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+        # if an empty list is passed, it should return [0.5]
+        result = df.describe(percentiles=[])
+        expected = DataFrame(
+            {"a" : [10, df.a.mean(), df.a.std(), 0, 4.5, 9]},
+            index=["count", "mean", "std", "min", "50%", "max"]
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+        # if a list is passed, it should return with the same values
+        result = df.describe(percentiles=[0.2])
+        expected = DataFrame(
+            {"a" : [10, df.a.mean(), df.a.std(), 0, 1.8, 9]},
+            index=["count", "mean", "std", "min", "20%", "max"]
+        )
+
+        tm.assert_frame_equal(result, expected)
