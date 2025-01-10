@@ -2591,6 +2591,7 @@ def test_many_strl(temp_file, version):
 
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 def test_convert_dates_key_handling(tmp_path, version):
+    # GH 60536
     temp_file = tmp_path / "test.dta"
     df = DataFrame({"old_name": [1, 2, 3], "some_other_name": [4, 5, 6]})
 
