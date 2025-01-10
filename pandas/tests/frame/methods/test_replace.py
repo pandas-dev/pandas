@@ -713,6 +713,13 @@ class TestDataFrameReplace:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_all_NA(self):
+        # GH#60688
+        df = DataFrame({"ticker": ["#1234#"], "name": [None]})
+        result = df.replace({col: {r"^#": "$"} for col in df.columns}, regex=True)
+        expected = DataFrame({"ticker": ["$1234#"], "name": [None]})
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]

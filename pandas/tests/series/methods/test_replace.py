@@ -708,3 +708,10 @@ class TestSeriesReplace:
         expected = ser.copy()
         result = ser.replace(0.0, True)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_all_NA(self):
+        # GH#60688
+        df = pd.Series([pd.NA, pd.NA])
+        result = df.replace({r"^#": "$"}, regex=True)
+        expected = pd.Series([pd.NA, pd.NA])
+        tm.assert_series_equal(result, expected)
