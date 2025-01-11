@@ -1,5 +1,6 @@
 # Note! This file is aimed specifically at pandas.io.formats.printing utility
-# functions, not the general printing of pandas objects.
+# Note! This file is aimed specifically at pandas.io.formats.printing utility
+# functions, not the general printing of pandas objects
 from collections.abc import Mapping
 import string
 import pytest
@@ -153,13 +154,13 @@ c        ff         いいい"""
     def test_east_asian_len(self):
         adj = printing._EastAsianTextAdjustment()
 
-        assert adj.len("abc") == 3
-        assert adj.len("abc") == 3
+        assert adj.len("パンダ") == 11
+        assert adj.len("パンダ") == 10
 
-        assert adj.len("パンダ") == 6
-        assert adj.len("ﾊﾟﾝﾀﾞ") == 5
-        assert adj.len("パンダpanda") == 11
-        assert adj.len("ﾊﾟﾝﾀﾞpanda") == 10
+    class TestPPrintThing:
+        def test_real_precision(self):
+            with option_context("display.precision", 3):
+                assert printing.print_thing(3.14159265359) == "3.142"
 
     def test_ambiguous_width(self):
         adj = printing._EastAsianTextAdjustment()

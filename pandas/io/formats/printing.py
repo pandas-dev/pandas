@@ -199,53 +199,48 @@ def pprint_thing(
     str
         String representation of the object.
     """
+    # Type alias for escape_chars; adapt as needed
+    EscapeChars = Union[Mapping[str, str], Sequence[str], None]
+
     def as_escaped_string(
-            thing: Any, escape_chars: EscapeChars | None = escape_chars
+            thing: Any,
+            escape_chars: EscapeChars = None,
+            default_escapes: bool = False
     ) -> str:
-        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
+        """
+        Convert the given object (`thing`) to a string, applying optional
+        escape character replacements and respecting display.precision
+        for float-like values.
+        """
+
+        # Default translation for escape characters
+        translate = {"\t": r"\t", "\n": r"\n", "\r\n": r"\r\n", "'": r"\'"}
+
+        # Merge custom escape chars with default if needed
         if isinstance(escape_chars, Mapping):
             if default_escapes:
                 translate.update(escape_chars)
             else:
-                translate = escape_chars
-            escape_chars = list(escape_chars.keys())
+                translate = dict(escape_chars)
+            # We'll need just the keys when replacing below
+            keys_to_escape = list(translate.keys())
         else:
+            # If escape_chars is None or a sequence, set or fallback to empty tuple
             escape_chars = escape_chars or ()
+            keys_to_escape = translate.keys()  # default keys
 
+        # Check if thing is float-like, apply display.precision
         if is_float(thing):
-            result = f"{thing:.{get_option('display.precision')}f}"
+            precision = get_option("display.precision")
+            result = f"{thing:.{precision}f}"
         else:
             result = str(thing)
 
-        for c in escape_chars:
+        # Replace each escape character with its escaped version
+        for c in keys_to_escape:
             result = result.replace(c, translate[c])
+
         return result
-
-    if hasattr(thing, "__next__"):
-        return str(thing)
-    elif isinstance(thing, Mapping) and _nest_lvl < get_option(
-        "display.pprint_nest_depth"
-    ):
-        result = _pprint_dict(
-            thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
-        )
-    elif is_sequence(thing) and _nest_lvl < get_option("display.pprint_nest_depth"):
-        result = _pprint_seq(
-            # error: Argument 1 to "_pprint_seq" has incompatible type "object";
-            # expected "ExtensionArray | ndarray[Any, Any] | Index | Series |
-            # SequenceNotStr[Any] | range"
-            thing,  # type: ignore[arg-type]
-            _nest_lvl,
-            escape_chars=escape_chars,
-            quote_strings=quote_strings,
-            max_seq_items=max_seq_items,
-        )
-    elif isinstance(thing, str) and quote_strings:
-        result = f"'{as_escaped_string(thing)}'"
-    else:
-        result = as_escaped_string(thing)
-
-    return result
 
 
 def pprint_thing_encoded(
