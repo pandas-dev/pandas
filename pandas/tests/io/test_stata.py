@@ -2591,35 +2591,26 @@ def test_many_strl(temp_file, version):
 
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 def test_convert_dates_key_handling(tmp_path, version):
-    # GH 60536
+
     temp_file = tmp_path / "test.dta"
     df = DataFrame({"old_name": [1, 2, 3], "some_other_name": [4, 5, 6]})
 
-    # Case 1: Key exists in _convert_dates
+    # Case 1: Key exists in convert_dates
     convert_dates = {"old_name": "converted_date"}
-    df.rename(columns={"old_name": "new_name"}, inplace=True)
-    with StataWriter(
-        temp_file,
-        df,
-        convert_dates=convert_dates,
-        version=version,
-    ) as writer:
-        writer.write_file()
-    result = read_stata(temp_file)
-    assert list(result.columns) == ["new_name", "some_other_name"]
-    assert "converted_date" in result.columns
+    df_renamed = df.rename(columns={"old_name": "new_name"})  # Mimic column renaming
+    df_renamed.to_stata(temp_file, convert_dates=convert_dates)
 
-    # Case 2: Key does not exist in _convert_dates
-    df = DataFrame({"old_name": [1, 2, 3], "some_other_name": [4, 5, 6]})
-    convert_dates = {"some_other_name": "converted_date"}
-    df.rename(columns={"old_name": "new_name"}, inplace=True)
-    with StataWriter(
-        temp_file,
-        df,
-        convert_dates=convert_dates,
-        version=version,
-    ) as writer:
-        writer.write_file()
     result = read_stata(temp_file)
-    assert list(result.columns) == ["new_name", "some_other_name"]
-    assert "converted_date" in result.columns
+    assert "new_name" in result.columns
+    assert "old_name" not in result.columns
+    assert result["new_name"].tolist() == ["converted_date", "converted_date", "converted_date"]
+
+    # Case 2: Key does not exist in convert_dates
+    convert_dates = {"some_other_name": "converted_date"}
+    df_renamed = df.rename(columns={"old_name": "new_name"})  # Mimic column renaming
+    df_renamed.to_stata(temp_file, convert_dates=convert_dates)
+
+    result = read_stata(temp_file)
+    assert "new_name" not in result.columns
+    assert "old_name" in result.columns
+    assert result["some_other_name"].tolist() == ["converted_date", "converted_date", "converted_date"]
