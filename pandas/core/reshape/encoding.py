@@ -565,7 +565,7 @@ def from_dummies(
                     and not isinstance(value, str)
                     and (is_list_like(value) or not isna(value))
                 ):
-                    # GH#???
+                    # https://github.com/pandas-dev/pandas/pull/60694
                     # `value` is not a string or NA.
                     # Using data.columns.dtype would coerce `value` into a string.
                     dtype = "object"

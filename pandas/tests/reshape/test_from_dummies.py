@@ -449,7 +449,7 @@ def test_maintain_original_index():
 
 
 def test_int_columns_with_float_default():
-    # GH#???
+    # https://github.com/pandas-dev/pandas/pull/60694
     df = DataFrame(
         {
             3: [1, 0, 0],
@@ -461,7 +461,7 @@ def test_int_columns_with_float_default():
 
 
 def test_object_dtype_preserved():
-    # GH#???
+    # https://github.com/pandas-dev/pandas/pull/60694
     # When the input has object dtype, the result should as
     # well even when infer_string is True.
     df = DataFrame(
