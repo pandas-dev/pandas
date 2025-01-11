@@ -61,6 +61,7 @@ _results_for_groupbys_with_missing_categories = {
     "sem": np.nan,
     "size": 0,
     "skew": np.nan,
+    "kurt": np.nan,
     "std": np.nan,
     "sum": 0,
     "var": np.nan,
@@ -127,10 +128,8 @@ def test_basic_string(using_infer_string):
     def f(x):
         return x.drop_duplicates("person_name").iloc[0]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = g.apply(f)
-    expected = x.iloc[[0, 1]].copy()
+    result = g.apply(f)
+    expected = x[["person_name"]].iloc[[0, 1]]
     expected.index = Index([1, 2], name="person_id")
     dtype = "str" if using_infer_string else object
     expected["person_name"] = expected["person_name"].astype(dtype)
@@ -314,9 +313,7 @@ def test_apply(ordered):
     # but for transform we should still get back the original index
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = Series(1, index=idx)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = grouped.apply(lambda x: 1)
+    result = grouped.apply(lambda x: 1)
     tm.assert_series_equal(result, expected)
 
 
@@ -1357,11 +1354,7 @@ def test_get_nonexistent_category():
     # Accessing a Category that is not in the dataframe
     df = DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
     with pytest.raises(KeyError, match="'vau'"):
-        df.groupby("var").apply(
-            lambda rows: DataFrame(
-                {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
-            )
-        )
+        df.groupby("var").apply(lambda rows: DataFrame({"val": [rows.iloc[-1]["vau"]]}))
 
 
 def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed):
@@ -1963,10 +1956,7 @@ def test_category_order_transformer(
         df = df.set_index(keys)
     args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    warn = FutureWarning if transformation_func == "fillna" else None
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, transformation_func)(*args)
+    op_result = getattr(gb, transformation_func)(*args)
     result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
     tm.assert_index_equal(result, expected)
@@ -2037,10 +2027,7 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
         df["a2"] = df["a"]
         df = df.set_index(keys)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    warn = DeprecationWarning if method == "apply" and index_kind == "range" else None
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))
+    op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))
     if (method == "transform" or not as_index) and index_kind == "range":
         result = op_result["a"].cat.categories
     else:

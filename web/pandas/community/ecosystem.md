@@ -468,6 +468,31 @@ df.dtypes
 
 ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/query_builder/).
 
+### [Hugging Face](https://huggingface.co/datasets)
+
+The Hugging Face Dataset Hub provides a large collection of ready-to-use datasets for machine learning shared by the community. The platform offers a user-friendly interface to explore, discover and visualize datasets, and provides tools to easily load and work with these datasets in Python thanks to the [huggingface_hub](https://github.com/huggingface/huggingface_hub) library.
+
+You can access datasets on Hugging Face using `hf://` paths in pandas, in the form `hf://datasets/username/dataset_name/...`.
+
+For example, here is how to load the [stanfordnlp/imdb dataset](https://huggingface.co/datasets/stanfordnlp/imdb):
+
+```python
+import pandas as pd
+
+# Load the IMDB dataset
+df = pd.read_parquet("hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet")
+```
+
+Tip: on a dataset page, click on "Use this dataset" to get the code to load it in pandas.
+
+To save a dataset on Hugging Face you need to [create a public or private dataset](https://huggingface.co/new-dataset) and [login](https://huggingface.co/docs/huggingface_hub/quick-start#login-command), and then you can use `df.to_csv/to_json/to_parquet`:
+
+```python
+# Save the dataset to my Hugging Face account
+df.to_parquet("hf://datasets/username/dataset_name/train.parquet")
+```
+
+You can find more information about the Hugging Face Dataset Hub in the [documentation](https://huggingface.co/docs/hub/en/datasets).
 
 ## Out-of-core
 

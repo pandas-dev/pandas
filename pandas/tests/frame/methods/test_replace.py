@@ -334,7 +334,6 @@ class TestDataFrameReplace:
         return_value = res3.replace(regex=r"\s*\.\s*", value=0, inplace=True)
         assert return_value is None
         expec = DataFrame({"a": mix_abc["a"], "b": ["a", "b", 0, 0], "c": mix_abc["c"]})
-        # TODO(infer_string)
         expec["c"] = expec["c"].astype(object)
         tm.assert_frame_equal(res, expec)
         tm.assert_frame_equal(res2, expec)
@@ -711,6 +710,13 @@ class TestDataFrameReplace:
                 "col": cat_series,
             }
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_all_NA(self):
+        # GH#60688
+        df = DataFrame({"ticker": ["#1234#"], "name": [None]})
+        result = df.replace({col: {r"^#": "$"} for col in df.columns}, regex=True)
+        expected = DataFrame({"ticker": ["$1234#"], "name": [None]})
         tm.assert_frame_equal(result, expected)
 
     def test_replace_value_is_none(self, datetime_frame):
@@ -1469,21 +1475,24 @@ class TestDataFrameReplaceRegex:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("regex", [False, True])
-    def test_replace_regex_dtype_frame(self, regex):
+    @pytest.mark.parametrize("value", [1, "1"])
+    def test_replace_regex_dtype_frame(self, regex, value):
         # GH-48644
         df1 = DataFrame({"A": ["0"], "B": ["0"]})
-        expected_df1 = DataFrame({"A": [1], "B": [1]}, dtype=object)
-        result_df1 = df1.replace(to_replace="0", value=1, regex=regex)
+        # When value is an integer, coerce result to object.
+        # When value is a string, infer the correct string dtype.
+        dtype = object if value == 1 else None
+
+        expected_df1 = DataFrame({"A": [value], "B": [value]}, dtype=dtype)
+        result_df1 = df1.replace(to_replace="0", value=value, regex=regex)
         tm.assert_frame_equal(result_df1, expected_df1)
 
         df2 = DataFrame({"A": ["0"], "B": ["1"]})
         if regex:
-            # TODO(infer_string): both string columns get cast to object,
-            # while only needed for column A
-            expected_df2 = DataFrame({"A": [1], "B": ["1"]}, dtype=object)
+            expected_df2 = DataFrame({"A": [value], "B": ["1"]}, dtype=dtype)
         else:
-            expected_df2 = DataFrame({"A": Series([1], dtype=object), "B": ["1"]})
-        result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
+            expected_df2 = DataFrame({"A": Series([value], dtype=dtype), "B": ["1"]})
+        result_df2 = df2.replace(to_replace="0", value=value, regex=regex)
         tm.assert_frame_equal(result_df2, expected_df2)
 
     def test_replace_with_value_also_being_replaced(self):

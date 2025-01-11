@@ -1114,6 +1114,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
         "median",
         "mean",
         "skew",
+        "kurt",
         "std",
         "var",
         "sem",
@@ -1127,8 +1128,8 @@ def test_regression_allowlist_methods(op, skipna, sort):
 
     grouped = frame.groupby(level=0, sort=sort)
 
-    if op == "skew":
-        # skew has skipna
+    if op in ["skew", "kurt"]:
+        # skew and kurt have skipna
         result = getattr(grouped, op)(skipna=skipna)
         expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(skipna=skipna))
         if sort:

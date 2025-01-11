@@ -1647,7 +1647,7 @@ def test_from_arrow_respecting_given_dtype():
 
 def test_from_arrow_respecting_given_dtype_unsafe():
     array = pa.array([1.5, 2.5], type=pa.float64())
-    with pytest.raises(pa.ArrowInvalid, match="Float value 1.5 was truncated"):
+    with tm.external_error_raised(pa.ArrowInvalid):
         array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
 
 
@@ -3451,7 +3451,9 @@ def test_string_to_datetime_parsing_cast():
 )
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
-        with pytest.raises(ValueError, match="Values must be numeric."):
+        ser = pd.Series(data)
+        msg = re.escape(f"Cannot interpolate with {ser.dtype} dtype")
+        with pytest.raises(TypeError, match=msg):
             pd.Series(data).interpolate()
 
 

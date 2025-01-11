@@ -329,9 +329,6 @@ def test_transform_transformation_func(transformation_func):
     if transformation_func == "cumcount":
         test_op = lambda x: x.transform("cumcount")
         mock_op = lambda x: Series(range(len(x)), x.index)
-    elif transformation_func == "fillna":
-        test_op = lambda x: x.transform("fillna", value=0)
-        mock_op = lambda x: x.fillna(value=0)
     elif transformation_func == "ngroup":
         test_op = lambda x: x.transform("ngroup")
         counter = -1
@@ -534,15 +531,13 @@ def test_transform_mixed_type():
         return group[:1]
 
     grouped = df.groupby("c")
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = grouped.apply(f)
+    result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
     # this is by definition a mutating operation!
     for key, group in grouped:
-        res = f(group)
+        res = f(group.drop(columns="c"))
         tm.assert_frame_equal(res, result.loc[key])
 
 
@@ -688,18 +683,14 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         f = gb[["float", "float_missing"]].apply(targop)
         expected = concat([f, i], axis=1)
     else:
-        if op != "shift" or not isinstance(gb_target.get("by"), (str, list)):
-            warn = None
-        else:
-            warn = DeprecationWarning
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = gb.apply(targop)
+        expected = gb.apply(targop)
 
     expected = expected.sort_index(axis=1)
     if op == "shift":
         expected["string_missing"] = expected["string_missing"].fillna(np.nan)
-        expected["string"] = expected["string"].fillna(np.nan)
+        by = gb_target.get("by")
+        if not isinstance(by, (str, list)) or (by != "string" and "string" not in by):
+            expected["string"] = expected["string"].fillna(np.nan)
 
     result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
     tm.assert_frame_equal(result, expected)
@@ -1097,13 +1088,13 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
     func = reduction_func
 
     obj = DataFrame(
-        {"a": [0, 0, 0, 1, 1, 1], "b": range(6)},
-        index=["A", "B", "C", "D", "E", "F"],
+        {"a": [0, 0, 0, 0, 1, 1, 1, 1], "b": range(8)},
+        index=["A", "B", "C", "D", "E", "F", "G", "H"],
     )
     if frame_or_series is Series:
         obj = obj["a"]
 
-    g = obj.groupby(np.repeat([0, 1], 3))
+    g = obj.groupby(np.repeat([0, 1], 4))
 
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         # TODO: implement SeriesGroupBy.corrwith
@@ -1128,7 +1119,7 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
-    assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
+    assert len(set(DataFrame(result).iloc[-4:, -1])) == 1
 
 
 def test_transform_lambda_with_datetimetz():
@@ -1436,11 +1427,7 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
         dtype = object if transformation_func in ("any", "all") else None
         buffer.append(Series([np.nan], index=[3], dtype=dtype))
     expected = concat(buffer)
-
-    warn = FutureWarning if transformation_func == "fillna" else None
-    msg = "SeriesGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.transform(transformation_func, *args)
+    result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
 
