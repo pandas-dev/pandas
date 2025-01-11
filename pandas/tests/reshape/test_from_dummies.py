@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
+import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -336,8 +335,6 @@ def test_no_prefix_string_cats_default_category(
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
     result = from_dummies(dummies, default_category=default_category)
     expected = DataFrame(expected)
-    if using_infer_string:
-        expected[""] = expected[""].astype("str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -364,7 +361,6 @@ def test_with_prefix_contains_get_dummies_NaN_column():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "default_category, expected",
     [
@@ -450,3 +446,32 @@ def test_maintain_original_index():
     result = from_dummies(df)
     expected = DataFrame({"": list("abca")}, index=list("abcd"))
     tm.assert_frame_equal(result, expected)
+
+
+def test_int_columns_with_float_default():
+    # GH#???
+    df = DataFrame(
+        {
+            3: [1, 0, 0],
+            4: [0, 1, 0],
+        },
+    )
+    with pytest.raises(ValueError, match="Trying to coerce float values to integers"):
+        from_dummies(df, default_category=0.5)
+
+
+def test_object_dtype_preserved():
+    # GH#???
+    # When the input has object dtype, the result should as
+    # well even when infer_string is True.
+    df = DataFrame(
+        {
+            "x": [1, 0, 0],
+            "y": [0, 1, 0],
+        },
+    )
+    df.columns = df.columns.astype("object")
+    with pd.option_context("future.infer_string", True):
+        result = from_dummies(df, default_category="z")
+        expected = DataFrame({"": ["x", "y", "z"]}, dtype="object")
+        tm.assert_frame_equal(result, expected)

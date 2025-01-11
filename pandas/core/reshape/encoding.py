@@ -17,12 +17,14 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtype,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
@@ -554,9 +556,20 @@ def from_dummies(
                 "Dummy DataFrame contains multi-assignment(s); "
                 f"First instance in row: {assigned.idxmax()}"
             )
+        dtype = data.columns.dtype
         if any(assigned == 0):
             if isinstance(default_category, dict):
-                cats.append(default_category[prefix])
+                value = default_category[prefix]
+                if (
+                    is_string_dtype(data.columns.dtype)
+                    and not isinstance(value, str)
+                    and (is_list_like(value) or not isna(value))
+                ):
+                    # GH#???
+                    # `value` is not a string or NA.
+                    # Using data.columns.dtype would coerce `value` into a string.
+                    dtype = "object"
+                cats.append(value)
             else:
                 raise ValueError(
                     "Dummy DataFrame contains unassigned value(s); "
@@ -567,7 +580,7 @@ def from_dummies(
             )
         else:
             data_slice = data_to_decode.loc[:, prefix_slice]
-        cats_array = data._constructor_sliced(cats, dtype=data.columns.dtype)
+        cats_array = data._constructor_sliced(cats, dtype=dtype)
         # get indices of True entries along axis=1
         true_values = data_slice.idxmax(axis=1)
         indexer = data_slice.columns.get_indexer_for(true_values)
