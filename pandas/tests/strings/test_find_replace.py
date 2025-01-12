@@ -293,23 +293,12 @@ def test_startswith_endswith_validate_na(any_string_dtype):
         dtype=any_string_dtype,
     )
 
-    dtype = ser.dtype
-    if (isinstance(dtype, pd.StringDtype)) or dtype == np.dtype("object"):
-        msg = "Allowing a non-bool 'na' in obj.str.startswith is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.str.startswith("kapow", na="baz")
-        msg = "Allowing a non-bool 'na' in obj.str.endswith is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser.str.endswith("bar", na="baz")
-    else:
-        # TODO(infer_string): don't surface pyarrow errors
-        import pyarrow as pa
-
-        msg = "Could not convert 'baz' with type str: tried to convert to boolean"
-        with pytest.raises(pa.lib.ArrowInvalid, match=msg):
-            ser.str.startswith("kapow", na="baz")
-        with pytest.raises(pa.lib.ArrowInvalid, match=msg):
-            ser.str.endswith("kapow", na="baz")
+    msg = "Allowing a non-bool 'na' in obj.str.startswith is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser.str.startswith("kapow", na="baz")
+    msg = "Allowing a non-bool 'na' in obj.str.endswith is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser.str.endswith("bar", na="baz")
 
 
 @pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
