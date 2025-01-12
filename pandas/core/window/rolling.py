@@ -1540,6 +1540,22 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return apply_func
 
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T: ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T: ...
+
     def pipe(
         self,
         func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
