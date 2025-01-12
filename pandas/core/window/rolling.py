@@ -14,6 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    final,
+    overload,
 )
 
 import numpy as np
@@ -26,7 +28,11 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -81,6 +87,7 @@ from pandas.core.window.doc import (
     kwargs_scipy,
     numba_notes,
     template_header,
+    template_pipe,
     template_returns,
     template_see_also,
     window_agg_numba_parameters,
@@ -102,8 +109,12 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        Concatenate,
         NDFrameT,
         QuantileInterpolation,
+        P,
+        Self,
+        T,
         WindowingRankType,
         npt,
     )
@@ -1529,6 +1540,14 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return apply_func
 
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        return com.pipe(self, func, *args, **kwargs)
+
     def sum(
         self,
         numeric_only: bool = False,
@@ -2043,6 +2062,54 @@ class Rolling(RollingAndExpandingMixin):
             args=args,
             kwargs=kwargs,
         )
+
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T: ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T: ...
+
+    @final
+    @Substitution(
+        klass="Rolling",
+        examples="""
+    >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+    ...                   index=pd.date_range('2012-08-02', periods=4))
+    >>> df
+                A
+    2012-08-02  1
+    2012-08-03  2
+    2012-08-04  3
+    2012-08-05  4
+
+    To get the difference between each rolling 2-day window's maximum and minimum
+    value in one pass, you can do
+
+    >>> df.rolling('2D').pipe(lambda x: x.max() - x.min())
+                A
+    2012-08-02  0
+    2012-08-03  1
+    2012-08-04  1
+    2012-08-05  1""",
+    )
+    @Appender(template_pipe)
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        return super().pipe(func, *args, **kwargs)
 
     @doc(
         template_header,
