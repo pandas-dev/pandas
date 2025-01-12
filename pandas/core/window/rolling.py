@@ -2112,11 +2112,11 @@ class Rolling(RollingAndExpandingMixin):
     value in one pass, you can do
 
     >>> df.rolling('2D').pipe(lambda x: x.max() - x.min())
-                A
-    2012-08-02  0
-    2012-08-03  1
-    2012-08-04  1
-    2012-08-05  1""",
+                  A
+    2012-08-02  0.0
+    2012-08-03  1.0
+    2012-08-04  1.0
+    2012-08-05  1.0""",
     )
     @Appender(template_pipe)
     def pipe(

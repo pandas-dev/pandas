@@ -285,11 +285,11 @@ class Expanding(RollingAndExpandingMixin):
     value in one pass, you can do
 
     >>> df.expanding().pipe(lambda x: x.max() - x.min())
-                A
-    2012-08-02  0
-    2012-08-03  1
-    2012-08-04  2
-    2012-08-05  3""",
+                  A
+    2012-08-02  0.0
+    2012-08-03  1.0
+    2012-08-04  2.0
+    2012-08-05  3.0""",
     )
     @Appender(template_pipe)
     def pipe(
