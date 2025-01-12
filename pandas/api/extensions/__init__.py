@@ -2,7 +2,10 @@
 Public API for extending pandas objects.
 """
 
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    NoDefault,
+    no_default,
+)
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -24,6 +27,7 @@ __all__ = [
     "ExtensionArray",
     "ExtensionDtype",
     "ExtensionScalarOpsMixin",
+    "NoDefault",
     "no_default",
     "register_dataframe_accessor",
     "register_extension_dtype",

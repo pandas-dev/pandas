@@ -328,6 +328,7 @@ class TestApi(Base):
     ]
     allowed_api_extensions = [
         "no_default",
+        "NoDefault",
         "ExtensionDtype",
         "register_extension_dtype",
         "register_dataframe_accessor",
