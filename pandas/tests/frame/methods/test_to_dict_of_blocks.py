@@ -39,9 +39,8 @@ def test_to_dict_of_blocks_item_cache():
 
     df._to_dict_of_blocks()
 
-    values = ser.values
     with pytest.raises(ValueError, match="read-only"):
-        values[0] = "foo"
+        ser.values[0] = "foo"
 
 
 def test_set_change_dtype_slice():
