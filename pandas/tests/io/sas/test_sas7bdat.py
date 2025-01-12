@@ -7,8 +7,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat._constants import (
     IS64,
     WASM,
@@ -19,10 +17,6 @@ import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.sas.sas7bdat import SAS7BDATReader
-
-pytestmark = pytest.mark.xfail(
-    using_string_dtype(), reason="TODO(infer_string)", strict=False
-)
 
 
 @pytest.fixture

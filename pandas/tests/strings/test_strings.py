@@ -566,7 +566,7 @@ def test_string_slice_out_of_bounds(any_string_dtype):
 def test_encode_decode(any_string_dtype):
     ser = Series(["a", "b", "a\xe4"], dtype=any_string_dtype).str.encode("utf-8")
     result = ser.str.decode("utf-8")
-    expected = ser.map(lambda x: x.decode("utf-8")).astype(object)
+    expected = Series(["a", "b", "a\xe4"], dtype="str")
     tm.assert_series_equal(result, expected)
 
 
