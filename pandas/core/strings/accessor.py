@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_re,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -2522,8 +2523,6 @@ class StringMethods(NoNewAttributesMixin):
         1   False  False   False
         2   True   False   True
         """
-        from pandas.core.dtypes.common import is_string_dtype
-
         from pandas.core.frame import DataFrame
 
         if is_string_dtype(dtype):
