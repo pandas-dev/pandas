@@ -679,7 +679,7 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
     c_date.tm_yday = get_day_of_year(dts.year, dts.month, dts.day) - 1
     c_date.tm_isdst = -1
 
-    result = <char*>malloc(result_len * sizeof(char))
+    result = <char*>malloc(result_len)
     if result is NULL:
         raise MemoryError()
 
