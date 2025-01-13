@@ -556,6 +556,7 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_from_string(using_infer_string):
     # not roundtrip,  but starting with pyarrow table without pandas metadata
     pa = pytest.importorskip("pyarrow")
