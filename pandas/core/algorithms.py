@@ -1053,7 +1053,7 @@ def mode(
         return npresult, res_mask  # type: ignore[return-value]
 
     try:
-        npresult = np.sort(npresult)
+        npresult = safe_sort(npresult)
     except TypeError as err:
         warnings.warn(
             f"Unable to sort modes: {err}",
