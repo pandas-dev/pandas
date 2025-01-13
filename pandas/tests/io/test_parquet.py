@@ -17,6 +17,7 @@ from pandas.compat.pyarrow import (
     pa_version_under13p0,
     pa_version_under15p0,
     pa_version_under17p0,
+    pa_version_under19p0,
 )
 
 import pandas as pd
@@ -254,8 +255,10 @@ def test_invalid_engine(df_compat):
         check_round_trip(df_compat, "foo", "bar")
 
 
-def test_options_py(df_compat, pa):
+def test_options_py(df_compat, pa, using_infer_string):
     # use the set option
+    if using_infer_string and not pa_version_under19p0:
+        df_compat.columns = df_compat.columns.astype("str")
 
     with pd.option_context("io.parquet.engine", "pyarrow"):
         check_round_trip(df_compat)
@@ -784,18 +787,21 @@ class TestParquetPyArrow(Base):
 
     def test_categorical(self, pa):
         # supported in >= 0.7.0
-        df = pd.DataFrame()
-        df["a"] = pd.Categorical(list("abcdef"))
-
-        # test for null, out-of-order values, and unobserved category
-        df["b"] = pd.Categorical(
-            ["bar", "foo", "foo", "bar", None, "bar"],
-            dtype=pd.CategoricalDtype(["foo", "bar", "baz"]),
-        )
-
-        # test for ordered flag
-        df["c"] = pd.Categorical(
-            ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
+        df = pd.DataFrame(
+            {
+                "a": pd.Categorical(list("abcdef")),
+                # test for null, out-of-order values, and unobserved category
+                "b": pd.Categorical(
+                    ["bar", "foo", "foo", "bar", None, "bar"],
+                    dtype=pd.CategoricalDtype(["foo", "bar", "baz"]),
+                ),
+                # test for ordered flag
+                "c": pd.Categorical(
+                    ["a", "b", "c", "a", "c", "b"],
+                    categories=["b", "c", "d"],
+                    ordered=True,
+                ),
+            }
         )
 
         check_round_trip(df, pa)
@@ -858,11 +864,13 @@ class TestParquetPyArrow(Base):
             repeat=1,
         )
 
-    def test_read_file_like_obj_support(self, df_compat):
+    def test_read_file_like_obj_support(self, df_compat, using_infer_string):
         pytest.importorskip("pyarrow")
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
         df_from_buf = read_parquet(buffer)
+        if using_infer_string and not pa_version_under19p0:
+            df_compat.columns = df_compat.columns.astype("str")
         tm.assert_frame_equal(df_compat, df_from_buf)
 
     def test_expand_user(self, df_compat, monkeypatch):
@@ -929,7 +937,7 @@ class TestParquetPyArrow(Base):
                 "c": pd.Series(["a", None, "c"], dtype="string"),
             }
         )
-        if using_infer_string:
+        if using_infer_string and pa_version_under19p0:
             check_round_trip(df, pa, expected=df.astype({"c": "str"}))
         else:
             check_round_trip(df, pa)
@@ -943,7 +951,10 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
         with pd.option_context("string_storage", string_storage):
             if using_infer_string:
-                expected = df.astype("str")
+                if pa_version_under19p0:
+                    expected = df.astype("str")
+                else:
+                    expected = df.astype(f"string[{string_storage}]")
                 expected.columns = expected.columns.astype("str")
             else:
                 expected = df.astype(f"string[{string_storage}]")
