@@ -85,6 +85,63 @@ window_apply_parameters = dedent(
     """
 ).replace("\n", "", 1)
 
+template_pipe = """
+Apply a ``func`` with arguments to this %(klass)s object and return its result.
+
+Use `.pipe` when you want to improve readability by chaining together
+functions that expect Series, DataFrames, GroupBy, Rolling, Expanding or Resampler
+objects.
+Instead of writing
+
+>>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
+>>> g = lambda x, arg1: x * 5 / arg1
+>>> f = lambda x: x ** 4
+>>> df = pd.DataFrame({'A': [1, 2, 3, 4]}, index=pd.date_range('2012-08-02', periods=4))
+>>> h(g(f(df.rolling('2D')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
+
+You can write
+
+>>> (df.rolling('2D')
+...    .pipe(f)
+...    .pipe(g, arg1=1)
+...    .pipe(h, arg2=2, arg3=3))  # doctest: +SKIP
+
+which is much more readable.
+
+Parameters
+----------
+func : callable or tuple of (callable, str)
+    Function to apply to this %(klass)s object or, alternatively,
+    a `(callable, data_keyword)` tuple where `data_keyword` is a
+    string indicating the keyword of `callable` that expects the
+    %(klass)s object.
+*args : iterable, optional
+       Positional arguments passed into `func`.
+**kwargs : dict, optional
+         A dictionary of keyword arguments passed into `func`.
+
+Returns
+-------
+%(klass)s
+    The original object with the function `func` applied.
+
+See Also
+--------
+Series.pipe : Apply a function with arguments to a series.
+DataFrame.pipe: Apply a function with arguments to a dataframe.
+apply : Apply function to each group instead of to the
+    full %(klass)s object.
+
+Notes
+-----
+See more `here
+<https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+
+Examples
+--------
+%(examples)s
+"""
+
 numba_notes = (
     "See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for "
     "extended documentation and performance considerations for the Numba engine.\n\n"
