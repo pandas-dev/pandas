@@ -47,7 +47,8 @@ def test_array_interface(idx):
         return
 
     # for MultiIndex, copy=False is never allowed
-    with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
+    msg = "Starting with NumPy 2.0, the behavior of the 'copy' keyword has changed"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         np.array(idx, copy=False)
 
 

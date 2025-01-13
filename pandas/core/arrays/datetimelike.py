@@ -359,9 +359,17 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             if copy is False:
-                raise ValueError(
-                    "Unable to avoid copy while creating an array as requested."
+                warnings.warn(
+                    "Starting with NumPy 2.0, the behavior of the 'copy' keyword has "
+                    "changed and passing 'copy=False' raises an error when returning "
+                    "a zero-copy NumPy array is not possible. pandas will follow this "
+                    "behavior starting with pandas 3.0.\nThis conversion to NumPy "
+                    "requires a copy, but 'copy=False' was passed. Consider using "
+                    "'np.asarray(..)' instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
                 )
+
             return np.array(list(self), dtype=object)
 
         if copy is True:

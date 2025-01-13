@@ -6,6 +6,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
@@ -288,6 +290,24 @@ class TestDecimalArray(base.ExtensionTests):
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
         super().test_unary_ufunc_dunder_equivalence(data, ufunc)
+
+    def test_array_interface_copy(self, data):
+        result_copy1 = np.array(data, copy=True)
+        result_copy2 = np.array(data, copy=True)
+        assert not np.may_share_memory(result_copy1, result_copy2)
+        if not np_version_gt2:
+            # copy=False semantics are only supported in NumPy>=2.
+            return
+
+        try:
+            result_nocopy1 = np.array(data, copy=False)
+        except ValueError:
+            # An error is always acceptable for `copy=False`
+            return
+
+        result_nocopy2 = np.array(data, copy=False)
+        # If copy=False was given and did not raise, these must share the same data
+        assert np.may_share_memory(result_nocopy1, result_nocopy2)
 
 
 def test_take_na_value_other_decimal():
