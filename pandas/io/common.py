@@ -584,6 +584,9 @@ def infer_compression(
     # Infer compression
     if compression == "infer":
         # Convert all path types (e.g. pathlib.Path) to strings
+        if isinstance(filepath_or_buffer, str) and "::" in filepath_or_buffer:
+            # chained URLs contain ::
+            filepath_or_buffer = filepath_or_buffer.split("::")[0]
         filepath_or_buffer = stringify_path(filepath_or_buffer, convert_file_like=True)
         if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
@@ -910,10 +913,10 @@ def get_handle(
             or not hasattr(handle, "seekable")
         ):
             handle = _IOWrapper(handle)
-        # error: Argument 1 to "TextIOWrapper" has incompatible type
-        # "_IOWrapper"; expected "IO[bytes]"
+        # error: Value of type variable "_BufferT_co" of "TextIOWrapper" cannot
+        # be "_IOWrapper | BaseBuffer" [type-var]
         handle = TextIOWrapper(
-            handle,  # type: ignore[arg-type]
+            handle,  # type: ignore[type-var]
             encoding=ioargs.encoding,
             errors=errors,
             newline="",

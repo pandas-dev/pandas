@@ -428,7 +428,7 @@ is returned:
     >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
     ...                      return_type='axes')
     >>> type(boxplot)
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
 
 If ``return_type`` is `None`, a NumPy array of axes with the same shape
 as ``layout`` is returned:
@@ -570,18 +570,23 @@ def boxplot_frame_groupby(
 
     Parameters
     ----------
-    grouped : Grouped DataFrame
+    grouped : DataFrameGroupBy
+        The grouped DataFrame object over which to create the box plots.
     subplots : bool
         * ``False`` - no subplots will be used
         * ``True`` - create a subplot for each group.
-
     column : column name or list of names, or vector
         Can be any valid input to groupby.
     fontsize : float or str
-    rot : label rotation angle
-    grid : Setting this to True will show the grid
+        Font size for the labels.
+    rot : float
+        Rotation angle of labels (in degrees) on the x-axis.
+    grid : bool
+        Whether to show grid lines on the plot.
     ax : Matplotlib axis object, default None
-    figsize : A tuple (width, height) in inches
+        The axes on which to draw the plots. If None, uses the current axes.
+    figsize : tuple of (float, float)
+        The figure size in inches (width, height).
     layout : tuple (optional)
         The layout of the plot: (rows, columns).
     sharex : bool, default False
@@ -599,8 +604,15 @@ def boxplot_frame_groupby(
 
     Returns
     -------
-    dict of key/value = group key/DataFrame.boxplot return value
-    or DataFrame.boxplot return value in case subplots=figures=False
+    dict or DataFrame.boxplot return value
+        If ``subplots=True``, returns a dictionary of group keys to the boxplot
+        return values. If ``subplots=False``, returns the boxplot return value
+        of a single DataFrame.
+
+    See Also
+    --------
+    DataFrame.boxplot : Create a box plot from a DataFrame.
+    Series.plot : Plot a Series.
 
     Examples
     --------
@@ -1038,7 +1050,9 @@ class PlotAccessor(PandasObject):
                     label_name = label_kw or y
                     data.name = label_name
                 else:
-                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    # error: Argument 1 to "len" has incompatible type "Any | bool";
+                    # expected "Sized"  [arg-type]
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)  # type: ignore[arg-type]
                     if label_kw and not match:
                         raise ValueError(
                             "label should be list-like and same length as y"

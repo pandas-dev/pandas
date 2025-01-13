@@ -35,7 +35,7 @@ These are some neat pandas ``idioms``
    )
    df
 
-if-then...
+If-then...
 **********
 
 An if-then on one column
@@ -176,7 +176,7 @@ One could hard code:
 Selection
 ---------
 
-Dataframes
+DataFrames
 **********
 
 The :ref:`indexing <indexing>` docs.
@@ -459,7 +459,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df
 
    # List the size of the animals with the highest weight.
-   df.groupby("animal").apply(lambda subf: subf["size"][subf["weight"].idxmax()], include_groups=False)
+   df.groupby("animal").apply(lambda subf: subf["size"][subf["weight"].idxmax()])
 
 `Using get_group
 <https://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__
@@ -482,7 +482,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
        return pd.Series(["L", avg_weight, True], index=["size", "weight", "adult"])
 
 
-   expected_df = gb.apply(GrowUp, include_groups=False)
+   expected_df = gb.apply(GrowUp)
    expected_df
 
 `Expanding apply
@@ -1489,7 +1489,7 @@ of the data values:
    )
    df
 
-Constant series
+Constant Series
 ---------------
 
 To assess if a series has a constant value, we can check if ``series.nunique() <= 1``.

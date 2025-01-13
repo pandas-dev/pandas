@@ -56,7 +56,7 @@ def format_date_labels(ax: Axes, rot) -> None:
     fig = ax.get_figure()
     if fig is not None:
         # should always be a Figure but can technically be None
-        maybe_adjust_figure(fig, bottom=0.2)
+        maybe_adjust_figure(fig, bottom=0.2)  # type: ignore[arg-type]
 
 
 def table(
@@ -442,7 +442,7 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Axes | Iterable[Axes]) -> Generator[Axes, None, None]:
+def flatten_axes(axes: Axes | Iterable[Axes]) -> Generator[Axes]:
     if not is_list_like(axes):
         yield axes  # type: ignore[misc]
     elif isinstance(axes, (np.ndarray, ABCIndex)):

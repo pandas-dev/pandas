@@ -5,8 +5,6 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -470,8 +468,7 @@ def test_max_min_non_numeric():
     assert "ss" in result
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_max_min_object_multiple_columns():
+def test_max_min_object_multiple_columns(using_infer_string):
     # GH#41111 case where the aggregation is valid for some columns but not
     # others; we split object blocks column-wise, consistent with
     # DataFrame._reduce
@@ -484,7 +481,7 @@ def test_max_min_object_multiple_columns():
         }
     )
     df._consolidate_inplace()  # should already be consolidate, but double-check
-    assert len(df._mgr.blocks) == 2
+    assert len(df._mgr.blocks) == 3 if using_infer_string else 2
 
     gb = df.groupby("A")
 
@@ -1117,6 +1114,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
         "median",
         "mean",
         "skew",
+        "kurt",
         "std",
         "var",
         "sem",
@@ -1130,8 +1128,8 @@ def test_regression_allowlist_methods(op, skipna, sort):
 
     grouped = frame.groupby(level=0, sort=sort)
 
-    if op == "skew":
-        # skew has skipna
+    if op in ["skew", "kurt"]:
+        # skew and kurt have skipna
         result = getattr(grouped, op)(skipna=skipna)
         expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(skipna=skipna))
         if sort:

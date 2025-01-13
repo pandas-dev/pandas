@@ -44,7 +44,10 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
-from pandas.core.apply import ResamplerWindowApply
+from pandas.core.apply import (
+    ResamplerWindowApply,
+    reconstruct_func,
+)
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
@@ -65,6 +68,7 @@ from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
+    prepare_function_arguments,
 )
 from pandas.core.window.common import (
     flex_binary_moment,
@@ -268,7 +272,7 @@ class BaseWindow(SelectionMixin):
         """
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
-            obj = obj.reindex(columns=obj.columns.difference([self.on]))
+            obj = obj.reindex(columns=obj.columns.difference([self.on], sort=False))
         if obj.ndim > 1 and numeric_only:
             obj = self._make_numeric_only(obj)
         return obj
@@ -645,8 +649,12 @@ class BaseWindow(SelectionMixin):
             out = obj._constructor(result, index=index, columns=columns)
             return self._resolve_output(out, obj)
 
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        if isinstance(result, ABCDataFrame) and relabeling:
+            result = result.iloc[:, order]
+            result.columns = columns  # type: ignore[union-attr]
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
@@ -1238,7 +1246,7 @@ class Window(BaseWindow):
         klass="Series/DataFrame",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             # these must apply directly
@@ -1472,14 +1480,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            numba_args = args
+            numba_args, kwargs = prepare_function_arguments(
+                func, args, kwargs, num_required_args=1
+            )
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    func, **get_jit_arguments(engine_kwargs, kwargs)
+                    func, **get_jit_arguments(engine_kwargs)
                 )
             else:
                 apply_func = generate_numba_table_func(
-                    func, **get_jit_arguments(engine_kwargs, kwargs)
+                    func, **get_jit_arguments(engine_kwargs)
                 )
         elif engine in ("cython", None):
             if engine_kwargs is not None:
@@ -1507,7 +1517,7 @@ class RollingAndExpandingMixin(BaseWindow):
             window_aggregations.roll_apply,
             args=args,
             kwargs=kwargs,
-            raw=raw,
+            raw=bool(raw),
             function=function,
         )
 
@@ -1948,7 +1958,7 @@ class Rolling(RollingAndExpandingMixin):
         klass="Series/Dataframe",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate

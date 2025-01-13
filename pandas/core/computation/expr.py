@@ -168,7 +168,7 @@ def _preparse(
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), "f must be callable"
-    return tokenize.untokenize(f(x) for x in tokenize_string(source))
+    return tokenize.untokenize(f(x) for x in tokenize_string(source))  # pyright: ignore[reportArgumentType]
 
 
 def _is_type(t):
@@ -512,8 +512,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             )
 
         if self.engine != "pytables" and (
-            res.op in CMP_OPS_SYMS
-            and getattr(lhs, "is_datetime", False)
+            (res.op in CMP_OPS_SYMS and getattr(lhs, "is_datetime", False))
             or getattr(rhs, "is_datetime", False)
         ):
             # all date ops must be done in python bc numexpr doesn't work

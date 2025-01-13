@@ -718,7 +718,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
+                    stacklevel=2,
                 )
 
             data = data.copy(deep=False)
@@ -1018,7 +1018,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        ndarray.shape : Tuple of array dimensions.
+        numpy.ndarray.shape : Tuple of array dimensions.
 
         Examples
         --------
@@ -1397,6 +1397,11 @@ class DataFrame(NDFrame, OpsMixin):
         Please see
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
+        # Raise AttributeError so that inspect works even if jinja2 is not installed.
+        has_jinja2 = import_optional_dependency("jinja2", errors="ignore")
+        if not has_jinja2:
+            raise AttributeError("The '.style' accessor requires jinja2")
+
         from pandas.io.formats.style import Styler
 
         return Styler(self)
@@ -2110,8 +2115,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Convert structured or record ndarray to DataFrame.
 
-        Creates a DataFrame object from a structured ndarray, sequence of
-        tuples or dicts, or DataFrame.
+        Creates a DataFrame object from a structured ndarray, or sequence of
+        tuples or dicts.
 
         Parameters
         ----------
@@ -2306,7 +2311,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if any(exclude):
             arr_exclude = (x for x in exclude if x in arr_columns)
-            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}
+            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}  # pyright: ignore[reportUnhashable]
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
             columns = columns.drop(exclude)
@@ -3924,8 +3929,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#45316 Return view if key is not duplicated
             # Only use drop_duplicates with duplicates for performance
             if not is_mi and (
-                self.columns.is_unique
-                and key in self.columns
+                (self.columns.is_unique and key in self.columns)
                 or key in self.columns.drop_duplicates(keep=False)
             ):
                 return self._get_item(key)
@@ -4472,8 +4476,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
-        This method can run arbitrary code which can make you vulnerable to code
-        injection if you pass user input to this function.
+        .. warning::
+
+            This method can run arbitrary code which can make you vulnerable to code
+            injection if you pass user input to this function.
 
         Parameters
         ----------
@@ -4630,6 +4636,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Evaluate a string describing operations on DataFrame columns.
 
+        .. warning::
+
+            This method can run arbitrary code which can make you vulnerable to code
+            injection if you pass user input to this function.
+
         Operates on columns only, not specific rows or elements.  This allows
         `eval` to run arbitrary code, which can make you vulnerable to code
         injection if you pass user input to this function.
@@ -4737,7 +4748,8 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4    7   8  0
         4  5   2    6   7  3
 
-        For columns with spaces in their name, you can use backtick quoting.
+        For columns with spaces or other disallowed characters in their name, you can
+        use backtick quoting.
 
         >>> df.eval("B * `C&C`")
         0    100
@@ -5004,7 +5016,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        **kwargs : dict of {str: callable or Series}
+        **kwargs : callable or Series
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
@@ -5705,7 +5717,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if self.empty:
+        if self.empty and freq is None:
             return self.copy()
 
         axis = self._get_axis_number(axis)
@@ -6770,8 +6782,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
-            or isinstance(subset, tuple)
-            and subset in self.columns
+            or (isinstance(subset, tuple) and subset in self.columns)
         ):
             subset = (subset,)
 
@@ -10823,7 +10834,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, decimals: int | dict[IndexLabel, int] | Series = 0, *args, **kwargs
     ) -> DataFrame:
         """
-        Round a DataFrame to a variable number of decimal places.
+        Round numeric columns in a DataFrame to a variable number of decimal places.
 
         Parameters
         ----------

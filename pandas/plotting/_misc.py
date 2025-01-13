@@ -178,14 +178,21 @@ def scatter_matrix(
     """
     Draw a matrix of scatter plots.
 
+    Each pair of numeric columns in the DataFrame is plotted against each other,
+    resulting in a matrix of scatter plots. The diagonal plots can display either
+    histograms or Kernel Density Estimation (KDE) plots for each variable.
+
     Parameters
     ----------
     frame : DataFrame
+        The data to be plotted.
     alpha : float, optional
         Amount of transparency applied.
     figsize : (float,float), optional
         A tuple (width, height) in inches.
     ax : Matplotlib axis object, optional
+        An existing Matplotlib axis object for the plots. If None, a new axis is
+        created.
     grid : bool, optional
         Setting this to True will show the grid.
     diagonal : {'hist', 'kde'}
@@ -207,6 +214,14 @@ def scatter_matrix(
     -------
     numpy.ndarray
         A matrix of scatter plots.
+
+    See Also
+    --------
+    plotting.parallel_coordinates : Plots parallel coordinates for multivariate data.
+    plotting.andrews_curves : Generates Andrews curves for visualizing clusters of
+        multivariate data.
+    plotting.radviz : Creates a RadViz visualization.
+    plotting.bootstrap_plot : Visualizes uncertainty in data via bootstrap sampling.
 
     Examples
     --------
@@ -549,6 +564,10 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     """
     Lag plot for time series.
 
+    A lag plot is a scatter plot of a time series against a lag of itself. It helps
+    in visualizing the temporal dependence between observations by plotting the values
+    at time `t` on the x-axis and the values at time `t + lag` on the y-axis.
+
     Parameters
     ----------
     series : Series
@@ -563,6 +582,13 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib Axes object containing the lag plot.
+
+    See Also
+    --------
+    plotting.autocorrelation_plot : Autocorrelation plot for time series.
+    matplotlib.pyplot.scatter : A scatter plot of y vs. x with varying marker size
+        and/or color in Matplotlib.
 
     Examples
     --------
@@ -704,7 +730,7 @@ class _Options(dict):
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value) -> Generator[_Options, None, None]:
+    def use(self, key, value) -> Generator[_Options]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.

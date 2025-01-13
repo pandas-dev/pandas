@@ -2404,6 +2404,9 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_constructor_series_nonexact_categoricalindex(self):
         # GH 42424
         ser = Series(range(100))
@@ -2771,6 +2774,14 @@ class TestDataFrameConstructors:
         obj2 = cons([ts2])
         res_dtype2 = tm.get_dtype(obj2)
         assert res_dtype2 == "M8[us, US/Pacific]", res_dtype2
+
+    def test_construction_nan_value_timedelta64_dtype(self):
+        # GH#60064
+        result = DataFrame([None, 1], dtype="timedelta64[ns]")
+        expected = DataFrame(
+            ["NaT", "0 days 00:00:00.000000001"], dtype="timedelta64[ns]"
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameConstructorIndexInference:

@@ -159,6 +159,7 @@ def test_empty_str_methods(any_string_dtype):
     # ismethods should always return boolean (GH 29624)
     tm.assert_series_equal(empty_bool, empty.str.isalnum())
     tm.assert_series_equal(empty_bool, empty.str.isalpha())
+    tm.assert_series_equal(empty_bool, empty.str.isascii())
     tm.assert_series_equal(empty_bool, empty.str.isdigit())
     tm.assert_series_equal(empty_bool, empty.str.isspace())
     tm.assert_series_equal(empty_bool, empty.str.islower())
@@ -177,6 +178,7 @@ def test_empty_str_methods(any_string_dtype):
 @pytest.mark.parametrize(
     "method, expected",
     [
+        ("isascii", [True, True, True, True, True, True, True, True, True, True]),
         ("isalnum", [True, True, True, True, True, False, True, True, False, False]),
         ("isalpha", [True, True, True, False, False, False, True, False, False, False]),
         (
@@ -217,8 +219,21 @@ def test_ismethods(method, expected, any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     # compare with standard library
-    expected = [getattr(item, method)() for item in ser]
-    assert list(result) == expected
+    expected_stdlib = [getattr(item, method)() for item in ser]
+    assert list(result) == expected_stdlib
+
+    # with missing value
+    ser.iloc[[1, 2, 3, 4]] = np.nan
+    result = getattr(ser.str, method)()
+    if ser.dtype == "object":
+        expected = expected.astype(object)
+        expected.iloc[[1, 2, 3, 4]] = np.nan
+    elif ser.dtype == "str":
+        # NaN propagates as False
+        expected.iloc[[1, 2, 3, 4]] = False
+    else:
+        # nullable dtypes propagate NaN
+        expected.iloc[[1, 2, 3, 4]] = np.nan
 
 
 @pytest.mark.parametrize(
@@ -259,10 +274,14 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
 def test_isnumeric_unicode_missing(method, expected, any_string_dtype):
     values = ["A", np.nan, "¼", "★", np.nan, "３", "four"]  # noqa: RUF001
     ser = Series(values, dtype=any_string_dtype)
-    expected_dtype = (
-        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
-    expected = Series(expected, dtype=expected_dtype)
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected = Series(expected, dtype=object).fillna(False).astype(bool)
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+        expected = Series(expected, dtype=expected_dtype)
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
 

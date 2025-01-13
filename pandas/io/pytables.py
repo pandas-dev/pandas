@@ -126,8 +126,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.internals.blocks import Block
-
+    from pandas.core.internals import Block
 
 # versioning attribute
 _version = "0.15.2"
@@ -5298,6 +5297,8 @@ def _dtype_to_kind(dtype_str: str) -> str:
         kind = "integer"
     elif dtype_str == "object":
         kind = "object"
+    elif dtype_str == "str":
+        kind = "str"
     else:
         raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
 

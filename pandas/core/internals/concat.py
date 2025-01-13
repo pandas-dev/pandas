@@ -250,7 +250,7 @@ def _concat_homogeneous_fastpath(
 
 def _get_combined_plan(
     mgrs: list[BlockManager],
-) -> Generator[tuple[BlockPlacement, list[JoinUnit]], None, None]:
+) -> Generator[tuple[BlockPlacement, list[JoinUnit]]]:
     max_len = mgrs[0].shape[0]
 
     blknos_list = [mgr.blknos for mgr in mgrs]

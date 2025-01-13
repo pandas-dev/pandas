@@ -105,6 +105,10 @@ class OptionError(AttributeError, KeyError):
 
     Backwards compatible with KeyError checks.
 
+    See Also
+    --------
+    options : Access and modify global pandas settings.
+
     Examples
     --------
     >>> pd.options.context
@@ -183,6 +187,11 @@ def get_option(pat: str) -> Any:
 def set_option(*args) -> None:
     """
     Set the value of the specified option or options.
+
+    This method allows fine-grained control over the behavior and display settings
+    of pandas. Options affect various functionalities such as output formatting,
+    display limits, and operational behavior. Settings can be modified at runtime
+    without requiring changes to global configurations or environment variables.
 
     Parameters
     ----------
@@ -411,7 +420,7 @@ options = DictWrapper(_global_config)
 
 
 @contextmanager
-def option_context(*args) -> Generator[None, None, None]:
+def option_context(*args) -> Generator[None]:
     """
     Context manager to temporarily set options in a ``with`` statement.
 
@@ -718,7 +727,7 @@ def _build_option_description(k: str) -> str:
 
 
 @contextmanager
-def config_prefix(prefix: str) -> Generator[None, None, None]:
+def config_prefix(prefix: str) -> Generator[None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

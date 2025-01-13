@@ -324,12 +324,9 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        warn = DeprecationWarning if groupby == "column" else None
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = gp.apply(
-                _frame_value_counts, ["gender", "education"], normalize, sort, ascending
-            )
+        expected = gp.apply(
+            _frame_value_counts, ["gender", "education"], normalize, sort, ascending
+        )
 
         if as_index:
             tm.assert_series_equal(result, expected)
@@ -1217,5 +1214,27 @@ def test_value_counts_sort_categorical(sort, vc_sort, normalize):
     else:
         taker = [2, 1, 0, 3]
     expected = expected.take(taker)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("groupby_sort", [True, False])
+def test_value_counts_all_na(sort, dropna, groupby_sort):
+    # GH#59989
+    df = DataFrame({"a": [2, 1, 1], "b": np.nan})
+    gb = df.groupby("a", sort=groupby_sort)
+    result = gb.value_counts(sort=sort, dropna=dropna)
+
+    kwargs = {"levels": [[1, 2], [np.nan]], "names": ["a", "b"]}
+    if dropna:
+        data = []
+        index = MultiIndex(codes=[[], []], **kwargs)
+    elif not groupby_sort and not sort:
+        data = [1, 2]
+        index = MultiIndex(codes=[[1, 0], [0, 0]], **kwargs)
+    else:
+        data = [2, 1]
+        index = MultiIndex(codes=[[0, 1], [0, 0]], **kwargs)
+    expected = Series(data, index=index, dtype="int64", name="count")
 
     tm.assert_series_equal(result, expected)

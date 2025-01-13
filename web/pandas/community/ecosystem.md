@@ -239,6 +239,17 @@ Console](https://docs.spyder-ide.org/current/panes/ipythonconsole.html), and Spy
 render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
 
+### [marimo](https://marimo.io)
+
+marimo is a reactive notebook for Python and SQL that enhances productivity when working with dataframes. It provides several features to make data manipulation and visualization more interactive and fun:
+
+1. Rich, interactive displays: marimo can display pandas dataframes in interactive tables or charts with filtering and sorting capabilities.
+2. Data selection: Users can select data in tables or pandas-backed plots, and the selections are automatically sent to Python as pandas dataframes.
+3. No-code transformations: Users can interactively transform pandas dataframes using a GUI, without writing code. The generated code can be copied and pasted into the notebook.
+4. Custom filters: marimo allows the creation of pandas-backed filters using UI elements like sliders and dropdowns.
+5. Dataset explorer: marimo automatically discovers and displays all dataframes in the notebook, allowing users to explore and visualize data interactively.
+6. SQL integration: marimo allows users to write SQL queries against any pandas dataframes existing in memory.
+
 ## API
 
 ### [pandas-datareader](https://github.com/pydata/pandas-datareader)
@@ -457,6 +468,31 @@ df.dtypes
 
 ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/query_builder/).
 
+### [Hugging Face](https://huggingface.co/datasets)
+
+The Hugging Face Dataset Hub provides a large collection of ready-to-use datasets for machine learning shared by the community. The platform offers a user-friendly interface to explore, discover and visualize datasets, and provides tools to easily load and work with these datasets in Python thanks to the [huggingface_hub](https://github.com/huggingface/huggingface_hub) library.
+
+You can access datasets on Hugging Face using `hf://` paths in pandas, in the form `hf://datasets/username/dataset_name/...`.
+
+For example, here is how to load the [stanfordnlp/imdb dataset](https://huggingface.co/datasets/stanfordnlp/imdb):
+
+```python
+import pandas as pd
+
+# Load the IMDB dataset
+df = pd.read_parquet("hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet")
+```
+
+Tip: on a dataset page, click on "Use this dataset" to get the code to load it in pandas.
+
+To save a dataset on Hugging Face you need to [create a public or private dataset](https://huggingface.co/new-dataset) and [login](https://huggingface.co/docs/huggingface_hub/quick-start#login-command), and then you can use `df.to_csv/to_json/to_parquet`:
+
+```python
+# Save the dataset to my Hugging Face account
+df.to_parquet("hf://datasets/username/dataset_name/train.parquet")
+```
+
+You can find more information about the Hugging Face Dataset Hub in the [documentation](https://huggingface.co/docs/hub/en/datasets).
 
 ## Out-of-core
 
