@@ -72,7 +72,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.RangeIndex.from_range PR01,SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
@@ -80,13 +79,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.tzinfo GL08" \
-        -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
-        -i "pandas.arrays.TimedeltaArray PR07,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
-        -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
-        -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.n GL08" \
@@ -150,7 +145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.holidays GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthBegin.is_on_offset SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.n GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.normalize GL08" \
@@ -158,7 +152,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.holidays GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthEnd.is_on_offset SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.n GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.normalize GL08" \
@@ -195,7 +188,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Hour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Hour.n GL08" \
         -i "pandas.tseries.offsets.Hour.normalize GL08" \
-        -i "pandas.tseries.offsets.LastWeekOfMonth SA01" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.n GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.normalize GL08" \

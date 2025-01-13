@@ -160,7 +160,7 @@ class IndexingMixin:
 
         .. versionchanged:: 3.0
 
-           Returning a tuple from a callable is deprecated.
+           Callables which return a tuple are deprecated as input.
 
         ``.iloc[]`` is primarily integer position based (from ``0`` to
         ``length-1`` of the axis), but may also be used with a boolean
@@ -975,8 +975,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 self._validate_key(k, i)
             except ValueError as err:
                 raise ValueError(
-                    "Location based indexing can only have "
-                    f"[{self._valid_types}] types"
+                    f"Location based indexing can only have [{self._valid_types}] types"
                 ) from err
         return key
 
@@ -1589,8 +1588,7 @@ class _iLocIndexer(_LocationIndexer):
                         "is not available"
                     )
                 raise ValueError(
-                    "iLocation based boolean indexing cannot use "
-                    "an indexable as a mask"
+                    "iLocation based boolean indexing cannot use an indexable as a mask"
                 )
             return
 
@@ -1994,8 +1992,7 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer((pi, info_axis[0]), value[0])
 
                 raise ValueError(
-                    "Must have equal len keys and value "
-                    "when setting with an iterable"
+                    "Must have equal len keys and value when setting with an iterable"
                 )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
@@ -2023,8 +2020,7 @@ class _iLocIndexer(_LocationIndexer):
 
             else:
                 raise ValueError(
-                    "Must have equal len keys and value "
-                    "when setting with an iterable"
+                    "Must have equal len keys and value when setting with an iterable"
                 )
 
         else:

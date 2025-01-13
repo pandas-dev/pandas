@@ -1,6 +1,5 @@
 import datetime
 from datetime import timedelta
-from decimal import Decimal
 from io import StringIO
 import json
 import os
@@ -1268,9 +1267,7 @@ class TestPandasContainer:
             columns=["a", "b"],
         )
         expected = (
-            '[["(1+0j)","(nan+0j)"],'
-            '["(2.3+0j)","(nan+0j)"],'
-            '["(4-5j)","(1.2+0j)"]]'
+            '[["(1+0j)","(nan+0j)"],["(2.3+0j)","(nan+0j)"],["(4-5j)","(1.2+0j)"]]'
         )
         assert df.to_json(default_handler=str, orient="values") == expected
 
@@ -1373,11 +1370,7 @@ class TestPandasContainer:
     )
     def test_tz_range_is_utc(self, tz_range):
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
-        dfexp = (
-            '{"DT":{'
-            '"0":"2013-01-01T05:00:00.000Z",'
-            '"1":"2013-01-02T05:00:00.000Z"}}'
-        )
+        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}}'
 
         assert ujson_dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
@@ -1413,6 +1406,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.single_cpu
+    @pytest.mark.network
     @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
         # GH17200
@@ -1775,7 +1769,7 @@ class TestPandasContainer:
     )
     def test_read_json_with_very_long_file_path(self, compression):
         # GH 46718
-        long_json_path = f'{"a" * 1000}.json{compression}'
+        long_json_path = f"{'a' * 1000}.json{compression}"
         with pytest.raises(
             FileNotFoundError, match=f"File {long_json_path} does not exist"
         ):
@@ -2012,6 +2006,7 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.single_cpu
+    @pytest.mark.network
     def test_to_s3(self, s3_public_bucket, s3so):
         # GH 28375
         mock_bucket_name, target_file = s3_public_bucket.name, "test.json"
@@ -2025,12 +2020,8 @@ class TestPandasContainer:
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
 
-    def test_json_pandas_nulls(self, nulls_fixture, request):
+    def test_json_pandas_nulls(self, nulls_fixture):
         # GH 31615
-        if isinstance(nulls_fixture, Decimal):
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.applymarker(mark)
-
         expected_warning = None
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "

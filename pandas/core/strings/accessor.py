@@ -12,6 +12,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._typing import (
     AlignJoin,
@@ -29,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_re,
 )
@@ -399,7 +402,9 @@ class StringMethods(NoNewAttributesMixin):
             # This is a mess.
             _dtype: DtypeObj | str | None = dtype
             vdtype = getattr(result, "dtype", None)
-            if self._is_string:
+            if _dtype is not None:
+                pass
+            elif self._is_string:
                 if is_bool_dtype(vdtype):
                     _dtype = result.dtype
                 elif returns_string:
@@ -2140,9 +2145,9 @@ class StringMethods(NoNewAttributesMixin):
             decoder = codecs.getdecoder(encoding)
             f = lambda x: decoder(x, errors)[0]
         arr = self._data.array
-        # assert isinstance(arr, (StringArray,))
         result = arr._str_map(f)
-        return self._wrap_result(result)
+        dtype = "str" if get_option("future.infer_string") else None
+        return self._wrap_result(result, dtype=dtype)
 
     @forbid_nonstring_types(["bytes"])
     def encode(self, encoding, errors: str = "strict"):
@@ -2524,10 +2529,12 @@ class StringMethods(NoNewAttributesMixin):
         """
         from pandas.core.frame import DataFrame
 
+        if dtype is not None and not (is_numeric_dtype(dtype) or is_bool_dtype(dtype)):
+            raise ValueError("Only numeric or boolean dtypes are supported for 'dtype'")
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
         result, name = self._data.array._str_get_dummies(sep, dtype)
-        if is_extension_array_dtype(dtype) or isinstance(dtype, ArrowDtype):
+        if is_extension_array_dtype(dtype):
             return self._wrap_result(
                 DataFrame(result, columns=name, dtype=dtype),
                 name=name,
