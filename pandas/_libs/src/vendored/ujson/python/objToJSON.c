@@ -376,25 +376,21 @@ static char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, size_t *outLen) {
 static char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
                                      size_t *len) {
   PyObject *obj = (PyObject *)_obj;
-  PyObject *str = PyObject_Str(obj);
+  PyObject *format_spec = PyUnicode_FromStringAndSize("f", 1);
+  PyObject *str = PyObject_Format(obj, format_spec);
+  Py_DECREF(format_spec);
+
   if (str == NULL) {
-    *len = 0;
-    if (!PyErr_Occurred()) {
-      PyErr_SetString(PyExc_ValueError, "Failed to convert decimal");
-    }
     ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
     return NULL;
-  }
-  if (PyUnicode_Check(str)) {
-    PyObject *tmp = str;
-    str = PyUnicode_AsUTF8String(str);
-    Py_DECREF(tmp);
   }
 
   GET_TC(tc)->newObj = str;
 
-  *len = PyBytes_GET_SIZE(str);
-  char *outValue = PyBytes_AS_STRING(str);
+  Py_ssize_t s_len;
+  char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
+  *len = s_len;
+
   return outValue;
 }
 
