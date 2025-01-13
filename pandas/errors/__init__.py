@@ -820,6 +820,16 @@ class ValueLabelTypeMismatch(Warning):
     """
     Warning raised by to_stata on a category column that contains non-string values.
 
+    When exporting data to Stata format using the `to_stata` method, category columns
+    must have string values as labels. If a category column contains non-string values
+    (e.g., integers, floats, or other types), this warning is raised to indicate that
+    the Stata file may not correctly represent the data.
+
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+    Series.cat : Accessor for categorical properties of the Series values.
+
     Examples
     --------
     >>> df = pd.DataFrame({"categories": pd.Series(["a", 2], dtype="category")})

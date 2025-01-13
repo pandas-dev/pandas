@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.1
+    rev: v0.8.6
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -34,7 +34,7 @@ repos:
     -   id: ruff-format
         exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.13'
+    rev: 'v2.14'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -74,7 +74,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.0
+    rev: v3.19.1
     hooks:
     -   id: pyupgrade
         args: [--py310-plus]
@@ -95,12 +95,17 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v19.1.4
+    rev: v19.1.6
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
+-   repo: https://github.com/trim21/pre-commit-mirror-meson
+    rev: v1.6.1
+    hooks:
+    - id: meson-fmt
+      args: ['--inplace']
 -   repo: local
     hooks:
     -   id: pyright

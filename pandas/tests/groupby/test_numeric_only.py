@@ -244,6 +244,7 @@ class TestNumericOnly:
         ("quantile", True),
         ("sem", True),
         ("skew", True),
+        ("kurt", True),
         ("std", True),
         ("sum", True),
         ("var", True),
@@ -378,6 +379,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "max",
         "prod",
         "skew",
+        "kurt",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
@@ -407,6 +409,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "quantile",
         "sem",
         "skew",
+        "kurt",
         "std",
         "sum",
         "var",

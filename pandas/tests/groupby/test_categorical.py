@@ -61,6 +61,7 @@ _results_for_groupbys_with_missing_categories = {
     "sem": np.nan,
     "size": 0,
     "skew": np.nan,
+    "kurt": np.nan,
     "std": np.nan,
     "sum": 0,
     "var": np.nan,
