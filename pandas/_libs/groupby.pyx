@@ -910,7 +910,7 @@ def group_var(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-@cython.cpow
+@cython.cpow(True)
 def group_skew(
     float64_t[:, ::1] out,
     int64_t[::1] counts,
@@ -961,7 +961,7 @@ def group_skew(
                     isna_entry = _treat_as_na(val, False)
 
                 if not isna_entry:
-                    # Based on RunningStats::Push from
+                    # Running stats update based on RunningStats::Push from
                     #  https://www.johndcook.com/blog/skewness_kurtosis/
                     n1 = nobs[lab, j]
                     n = n1 + 1
@@ -993,6 +993,100 @@ def group_skew(
                         (ct * (ct - 1) ** 0.5 / (ct - 2))
                         * (M3[i, j] / M2[i, j] ** 1.5)
                     )
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+@cython.cpow(True)
+def group_kurt(
+    float64_t[:, ::1] out,
+    int64_t[::1] counts,
+    ndarray[float64_t, ndim=2] values,
+    const intp_t[::1] labels,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
+) -> None:
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        int64_t[:, ::1] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = mask is not None
+        float64_t[:, ::1] M1, M2, M3, M4
+        float64_t delta, delta_n, delta_n2, term1, val
+        int64_t n1, n
+        float64_t ct, num, den, adj
+
+    if len_values != len_labels:
+        raise ValueError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    # M1, M2, M3 and M4 correspond to 1st, 2nd, 3rd and 4th Moments
+    M1 = np.zeros((<object>out).shape, dtype=np.float64)
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    M3 = np.zeros((<object>out).shape, dtype=np.float64)
+    M4 = np.zeros((<object>out).shape, dtype=np.float64)
+
+    N, K = (<object>values).shape
+
+    out[:, :] = 0.0
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
+
+                if not isna_entry:
+                    # Running stats update based on RunningStats::Push from
+                    #  https://www.johndcook.com/blog/skewness_kurtosis/
+                    n1 = nobs[lab, j]
+                    n = n1 + 1
+
+                    nobs[lab, j] = n
+                    delta = val - M1[lab, j]
+                    delta_n = delta / n
+                    delta_n2 = delta_n * delta_n
+                    term1 = delta * delta_n * n1
+
+                    M1[lab, j] += delta_n
+                    M4[lab, j] += (term1 * delta_n2 * (n*n - 3*n + 3)
+                                   + 6 * delta_n2 * M2[lab, j]
+                                   - 4 * delta_n * M3[lab, j])
+                    M3[lab, j] += term1 * delta_n * (n - 2) - 3 * delta_n * M2[lab, j]
+                    M2[lab, j] += term1
+                elif not skipna:
+                    M1[lab, j] = NaN
+                    M2[lab, j] = NaN
+                    M3[lab, j] = NaN
+                    M4[lab, j] = NaN
+
+        for i in range(ngroups):
+            for j in range(K):
+                ct = <float64_t>nobs[i, j]
+                if ct < 4:
+                    if result_mask is not None:
+                        result_mask[i, j] = 1
+                    out[i, j] = NaN
+                elif M2[i, j] == 0:
+                    out[i, j] = 0
+                else:
+                    num = ct * (ct + 1) * (ct - 1) * M4[i, j]
+                    den = (ct - 2) * (ct - 3) * M2[i, j] ** 2
+                    adj = 3.0 * (ct - 1) ** 2 / ((ct - 2) * (ct - 3))
+                    out[i, j] = num / den - adj
 
 
 @cython.wraparound(False)

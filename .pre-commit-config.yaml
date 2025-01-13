@@ -101,6 +101,11 @@ repos:
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
+-   repo: https://github.com/trim21/pre-commit-mirror-meson
+    rev: v1.6.1
+    hooks:
+    - id: meson-fmt
+      args: ['--inplace']
 -   repo: local
     hooks:
     -   id: pyright
