@@ -35,6 +35,7 @@ Rolling window functions
    Rolling.skew
    Rolling.kurt
    Rolling.apply
+   Rolling.pipe
    Rolling.aggregate
    Rolling.quantile
    Rolling.sem
@@ -76,6 +77,7 @@ Expanding window functions
    Expanding.skew
    Expanding.kurt
    Expanding.apply
+   Expanding.pipe
    Expanding.aggregate
    Expanding.quantile
    Expanding.sem
