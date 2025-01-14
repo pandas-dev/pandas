@@ -373,6 +373,27 @@ static char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, size_t *outLen) {
   return outValue;
 }
 
+static char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
+                                     size_t *len) {
+  PyObject *obj = (PyObject *)_obj;
+  PyObject *format_spec = PyUnicode_FromStringAndSize("f", 1);
+  PyObject *str = PyObject_Format(obj, format_spec);
+  Py_DECREF(format_spec);
+
+  if (str == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
+
+  GET_TC(tc)->newObj = str;
+
+  Py_ssize_t s_len;
+  char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
+  *len = s_len;
+
+  return outValue;
+}
+
 //=============================================================================
 // Numpy array iteration functions
 //=============================================================================
@@ -1467,8 +1488,18 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     tc->type = JT_UTF8;
     return;
   } else if (object_is_decimal_type(obj)) {
-    pc->doubleValue = PyFloat_AsDouble(obj);
-    tc->type = JT_DOUBLE;
+    PyObject *is_nan_py = PyObject_RichCompare(obj, obj, Py_NE);
+    if (is_nan_py == NULL) {
+      goto INVALID;
+    }
+    int is_nan = (is_nan_py == Py_True);
+    Py_DECREF(is_nan_py);
+    if (is_nan) {
+      tc->type = JT_NULL;
+      return;
+    }
+    pc->PyTypeToUTF8 = PyDecimalToUTF8Callback;
+    tc->type = JT_UTF8;
     return;
   } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
     if (object_is_nat_type(obj)) {
