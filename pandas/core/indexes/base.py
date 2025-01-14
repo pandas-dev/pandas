@@ -7758,10 +7758,11 @@ def get_values_for_csv(
             if not quoting:
                 values = values.astype(str)
             else:
-                values = np.array(values, dtype="object")
+                values = np.array(values, dtype="str")   # Convert float16 -> string
+                values = values.astype(float, copy=False)   # Parse string -> Python float64
 
-            values[mask] = na_rep
             values = values.astype(object, copy=False)
+            values[mask] = na_rep
             return values
 
         from pandas.io.formats.format import FloatArrayFormatter
