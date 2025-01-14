@@ -9,8 +9,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
@@ -2670,10 +2668,10 @@ class TestPivot:
 
     # this still fails because columns=None gets passed down to unstack as level=None
     # while at that point None was converted to NaN
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
-    )
-    def test_pivot_columns_is_none(self):
+    # @pytest.mark.xfail(
+    #     using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    # )
+    def test_pivot_columns_is_none(self, using_infer_string):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
         result = df.pivot(columns=None)
@@ -2686,6 +2684,8 @@ class TestPivot:
 
         result = df.pivot(columns=None, index="b", values="c")
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
+        if using_infer_string:
+            expected.columns.name = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_index_is_none(self, using_infer_string):
