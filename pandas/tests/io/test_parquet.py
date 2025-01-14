@@ -1117,10 +1117,12 @@ class TestParquetPyArrow(Base):
         df.to_parquet(path, engine="pyarrow")
         with pd.option_context("future.infer_string", True):
             result = read_parquet(path, engine="pyarrow")
+        dtype = pd.StringDtype(na_value=np.nan)
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
-            dtype=pd.StringDtype(na_value=np.nan),
-            index=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+            dtype=dtype,
+            index=pd.Index(["a", "b"], dtype=dtype),
+            columns=pd.Index(["a"], dtype=object if pa_version_under19p0 else dtype),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1133,7 +1135,10 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="string[pyarrow]")
         df.to_parquet(path, schema=pa.schema([("a", pa.decimal128(5))]))
         result = read_parquet(path)
-        expected = pd.DataFrame({"a": ["123"]}, dtype="string[python]")
+        if pa_version_under19p0:
+            expected = pd.DataFrame({"a": ["123"]}, dtype="string[python]")
+        else:
+            expected = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="object")
         tm.assert_frame_equal(result, expected)
 
     def test_infer_string_large_string_type(self, tmp_path, pa):
