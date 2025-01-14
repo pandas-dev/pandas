@@ -4,7 +4,6 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
-    Never,
     Union,
 )
 import warnings
@@ -482,7 +481,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 return result.to_numpy(np.bool_, na_value=False)
         return result
 
-    def __pos__(self) -> Never:
+    def __pos__(self) -> None:
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
 
