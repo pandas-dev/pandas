@@ -2242,7 +2242,7 @@ class ArrowDtype(StorageExtensionDtype):
             )
         if not string.endswith("[pyarrow]"):
             raise TypeError(f"'{string}' must end with '[pyarrow]'")
-        if string == "string[pyarrow]":
+        if string in ("string[pyarrow]", "str[pyarrow]"):
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
 
