@@ -7969,8 +7969,13 @@ class DataFrame(NDFrame, OpsMixin):
         new_right = right if rcol_indexer is None else right.iloc[:, rcol_indexer]
 
         # GH#60498 For MultiIndex column alignment
-        new_left.columns = cols
-        new_right.columns = cols
+        if isinstance(cols, MultiIndex):
+            # When overwriting column names, make a shallow copy so as to not modify
+            # the input DFs
+            new_left = new_left.copy(deep=False)
+            new_right = new_right.copy(deep=False)
+            new_left.columns = cols
+            new_right.columns = cols
 
         result = op(new_left, new_right)
 
