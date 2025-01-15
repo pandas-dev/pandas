@@ -1,6 +1,5 @@
 import datetime
 from datetime import timedelta
-from decimal import Decimal
 from io import StringIO
 import json
 import os
@@ -2025,12 +2024,8 @@ class TestPandasContainer:
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
 
-    def test_json_pandas_nulls(self, nulls_fixture, request):
+    def test_json_pandas_nulls(self, nulls_fixture):
         # GH 31615
-        if isinstance(nulls_fixture, Decimal):
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.applymarker(mark)
-
         expected_warning = None
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "

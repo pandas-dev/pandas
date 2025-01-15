@@ -4476,8 +4476,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
-        This method can run arbitrary code which can make you vulnerable to code
-        injection if you pass user input to this function.
+        .. warning::
+
+            This method can run arbitrary code which can make you vulnerable to code
+            injection if you pass user input to this function.
 
         Parameters
         ----------
@@ -4633,6 +4635,11 @@ class DataFrame(NDFrame, OpsMixin):
     def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
+
+        .. warning::
+
+            This method can run arbitrary code which can make you vulnerable to code
+            injection if you pass user input to this function.
 
         Operates on columns only, not specific rows or elements.  This allows
         `eval` to run arbitrary code, which can make you vulnerable to code
@@ -7960,6 +7967,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         new_left = left if lcol_indexer is None else left.iloc[:, lcol_indexer]
         new_right = right if rcol_indexer is None else right.iloc[:, rcol_indexer]
+
+        # GH#60498 For MultiIndex column alignment
+        if isinstance(cols, MultiIndex):
+            # When overwriting column names, make a shallow copy so as to not modify
+            # the input DFs
+            new_left = new_left.copy(deep=False)
+            new_right = new_right.copy(deep=False)
+            new_left.columns = cols
+            new_right.columns = cols
+
         result = op(new_left, new_right)
 
         # Do the join on the columns instead of using left._align_for_op
@@ -7989,6 +8006,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not isinstance(right, DataFrame):
             return False
+
+        if (
+            isinstance(self.columns, MultiIndex)
+            or isinstance(right.columns, MultiIndex)
+        ) and not self.columns.equals(right.columns):
+            # GH#60498 Reindex if MultiIndexe columns are not matching
+            return True
 
         if fill_value is None and level is None and axis == 1:
             # TODO: any other cases we should handle here?

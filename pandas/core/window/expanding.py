@@ -5,9 +5,15 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    final,
+    overload,
 )
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
 
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -20,6 +26,7 @@ from pandas.core.window.doc import (
     kwargs_numeric_only,
     numba_notes,
     template_header,
+    template_pipe,
     template_returns,
     template_see_also,
     window_agg_numba_parameters,
@@ -34,7 +41,11 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pandas._typing import (
+        Concatenate,
+        P,
         QuantileInterpolation,
+        Self,
+        T,
         WindowingRankType,
     )
 
@@ -240,6 +251,54 @@ class Expanding(RollingAndExpandingMixin):
             args=args,
             kwargs=kwargs,
         )
+
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T: ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T: ...
+
+    @final
+    @Substitution(
+        klass="Expanding",
+        examples="""
+    >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+    ...                   index=pd.date_range('2012-08-02', periods=4))
+    >>> df
+                A
+    2012-08-02  1
+    2012-08-03  2
+    2012-08-04  3
+    2012-08-05  4
+
+    To get the difference between each expanding window's maximum and minimum
+    value in one pass, you can do
+
+    >>> df.expanding().pipe(lambda x: x.max() - x.min())
+                  A
+    2012-08-02  0.0
+    2012-08-03  1.0
+    2012-08-04  2.0
+    2012-08-05  3.0""",
+    )
+    @Appender(template_pipe)
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        return super().pipe(func, *args, **kwargs)
 
     @doc(
         template_header,

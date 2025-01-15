@@ -373,6 +373,27 @@ static char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, size_t *outLen) {
   return outValue;
 }
 
+static char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
+                                     size_t *len) {
+  PyObject *obj = (PyObject *)_obj;
+  PyObject *format_spec = PyUnicode_FromStringAndSize("f", 1);
+  PyObject *str = PyObject_Format(obj, format_spec);
+  Py_DECREF(format_spec);
+
+  if (str == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
+
+  GET_TC(tc)->newObj = str;
+
+  Py_ssize_t s_len;
+  char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
+  *len = s_len;
+
+  return outValue;
+}
+
 //=============================================================================
 // Numpy array iteration functions
 //=============================================================================
@@ -984,7 +1005,7 @@ static char *List_iterGetName(JSOBJ Py_UNUSED(obj),
 //=============================================================================
 static void Index_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   GET_TC(tc)->index = 0;
-  GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
+  GET_TC(tc)->cStr = PyObject_Malloc(20);
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
   }
@@ -998,10 +1019,10 @@ static int Index_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   const Py_ssize_t index = GET_TC(tc)->index;
   Py_XDECREF(GET_TC(tc)->itemValue);
   if (index == 0) {
-    memcpy(GET_TC(tc)->cStr, "name", sizeof(char) * 5);
+    memcpy(GET_TC(tc)->cStr, "name", 5);
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "name");
   } else if (index == 1) {
-    memcpy(GET_TC(tc)->cStr, "data", sizeof(char) * 5);
+    memcpy(GET_TC(tc)->cStr, "data", 5);
     GET_TC(tc)->itemValue = get_values(obj);
     if (!GET_TC(tc)->itemValue) {
       return 0;
@@ -1033,7 +1054,7 @@ static char *Index_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
 static void Series_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   GET_TC(tc)->index = 0;
-  GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
+  GET_TC(tc)->cStr = PyObject_Malloc(20);
   enc->outputFormat = VALUES; // for contained series
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
@@ -1048,13 +1069,13 @@ static int Series_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   const Py_ssize_t index = GET_TC(tc)->index;
   Py_XDECREF(GET_TC(tc)->itemValue);
   if (index == 0) {
-    memcpy(GET_TC(tc)->cStr, "name", sizeof(char) * 5);
+    memcpy(GET_TC(tc)->cStr, "name", 5);
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "name");
   } else if (index == 1) {
-    memcpy(GET_TC(tc)->cStr, "index", sizeof(char) * 6);
+    memcpy(GET_TC(tc)->cStr, "index", 6);
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
   } else if (index == 2) {
-    memcpy(GET_TC(tc)->cStr, "data", sizeof(char) * 5);
+    memcpy(GET_TC(tc)->cStr, "data", 5);
     GET_TC(tc)->itemValue = get_values(obj);
     if (!GET_TC(tc)->itemValue) {
       return 0;
@@ -1088,7 +1109,7 @@ static char *Series_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
 static void DataFrame_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   GET_TC(tc)->index = 0;
-  GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
+  GET_TC(tc)->cStr = PyObject_Malloc(20);
   enc->outputFormat = VALUES; // for contained series & index
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
@@ -1103,13 +1124,13 @@ static int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   const Py_ssize_t index = GET_TC(tc)->index;
   Py_XDECREF(GET_TC(tc)->itemValue);
   if (index == 0) {
-    memcpy(GET_TC(tc)->cStr, "columns", sizeof(char) * 8);
+    memcpy(GET_TC(tc)->cStr, "columns", 8);
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "columns");
   } else if (index == 1) {
-    memcpy(GET_TC(tc)->cStr, "index", sizeof(char) * 6);
+    memcpy(GET_TC(tc)->cStr, "index", 6);
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
   } else if (index == 2) {
-    memcpy(GET_TC(tc)->cStr, "data", sizeof(char) * 5);
+    memcpy(GET_TC(tc)->cStr, "data", 5);
     Py_INCREF(obj);
     GET_TC(tc)->itemValue = obj;
   } else {
@@ -1467,8 +1488,18 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     tc->type = JT_UTF8;
     return;
   } else if (object_is_decimal_type(obj)) {
-    pc->doubleValue = PyFloat_AsDouble(obj);
-    tc->type = JT_DOUBLE;
+    PyObject *is_nan_py = PyObject_RichCompare(obj, obj, Py_NE);
+    if (is_nan_py == NULL) {
+      goto INVALID;
+    }
+    int is_nan = (is_nan_py == Py_True);
+    Py_DECREF(is_nan_py);
+    if (is_nan) {
+      tc->type = JT_NULL;
+      return;
+    }
+    pc->PyTypeToUTF8 = PyDecimalToUTF8Callback;
+    tc->type = JT_UTF8;
     return;
   } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
     if (object_is_nat_type(obj)) {
