@@ -30,6 +30,8 @@ Rolling window functions
    Rolling.std
    Rolling.min
    Rolling.max
+   Rolling.first
+   Rolling.last
    Rolling.corr
    Rolling.cov
    Rolling.skew
@@ -71,6 +73,8 @@ Expanding window functions
    Expanding.std
    Expanding.min
    Expanding.max
+   Expanding.first
+   Expanding.last
    Expanding.corr
    Expanding.cov
    Expanding.skew
