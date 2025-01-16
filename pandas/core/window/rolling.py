@@ -2567,7 +2567,7 @@ class Rolling(RollingAndExpandingMixin):
         GroupBy.first : Similar method for GroupBy objects
         Rolling.last : Method to get the last element in each window
         """
-        ),
+        ).replace("\n", "", 1),
         create_section_header("Examples"),
         dedent(
             """
@@ -2603,7 +2603,7 @@ class Rolling(RollingAndExpandingMixin):
         GroupBy.last : Similar method for GroupBy objects
         Rolling.first : Method to get the first element in each window
         """
-        ),
+        ).replace("\n", "", 1),
         create_section_header("Examples"),
         dedent(
             """
