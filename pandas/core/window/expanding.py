@@ -674,7 +674,7 @@ class Expanding(RollingAndExpandingMixin):
         dedent(
             """
         GroupBy.first : Similar method for GroupBy objects
-        Expanding.last : Method to get the last element in each window
+        Expanding.last : Method to get the last element in each window\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -710,7 +710,7 @@ class Expanding(RollingAndExpandingMixin):
         dedent(
             """
         GroupBy.last : Similar method for GroupBy objects
-        Expanding.first : Method to get the first element in each window
+        Expanding.first : Method to get the first element in each window\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
