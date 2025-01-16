@@ -2561,6 +2561,13 @@ class Rolling(RollingAndExpandingMixin):
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
+        create_section_header("See Also"),
+        dedent(
+            """
+        GroupBy.first : Similar method for GroupBy objects
+        Rolling.last : Method to get the last element in each window
+        """
+        ),
         create_section_header("Examples"),
         dedent(
             """
@@ -2590,6 +2597,13 @@ class Rolling(RollingAndExpandingMixin):
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
+        create_section_header("See Also"),
+        dedent(
+            """
+        GroupBy.last : Similar method for GroupBy objects
+        Rolling.first : Method to get the first element in each window
+        """
+        ),
         create_section_header("Examples"),
         dedent(
             """
