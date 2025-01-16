@@ -1412,6 +1412,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.single_cpu
+    @pytest.mark.network
     @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
         # GH17200
@@ -2011,6 +2012,7 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.single_cpu
+    @pytest.mark.network
     def test_to_s3(self, s3_public_bucket, s3so):
         # GH 28375
         mock_bucket_name, target_file = s3_public_bucket.name, "test.json"
