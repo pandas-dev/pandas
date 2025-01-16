@@ -22,10 +22,11 @@ defaults:
 
 jobs:
   ubuntu:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.platform }}
     timeout-minutes: 90
     strategy:
       matrix:
+        platform: [ubuntu-22.04, ubuntu-24.04-arm]
         env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
