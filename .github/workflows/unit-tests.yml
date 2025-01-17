@@ -77,7 +77,7 @@ jobs:
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
       fail-fast: false
-    name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
+    name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}-${{ matrix.platform }}
     env:
       PATTERN: ${{ matrix.pattern }}
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
@@ -92,7 +92,7 @@ jobs:
       REMOVE_PYARROW: ${{ matrix.name == 'Future infer strings (without pyarrow)' && '1' || '0' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
       cancel-in-progress: true
 
     services:

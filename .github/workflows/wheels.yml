@@ -173,8 +173,6 @@ jobs:
             wheel
           cache-downloads: true
           cache-environment: true
-          cache-environment-key: ${{ matrix.buildplat[0] }}
-          cache-downloads-key: ${{ matrix.buildplat[0] }}
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
