@@ -104,6 +104,7 @@ Function application
    DataFrameGroupBy.shift
    DataFrameGroupBy.size
    DataFrameGroupBy.skew
+   DataFrameGroupBy.kurt
    DataFrameGroupBy.std
    DataFrameGroupBy.sum
    DataFrameGroupBy.var
@@ -159,6 +160,7 @@ Function application
    SeriesGroupBy.shift
    SeriesGroupBy.size
    SeriesGroupBy.skew
+   SeriesGroupBy.kurt
    SeriesGroupBy.std
    SeriesGroupBy.sum
    SeriesGroupBy.var
