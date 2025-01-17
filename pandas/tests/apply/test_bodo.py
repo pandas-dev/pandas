@@ -6,7 +6,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-pytestmark = [pytest.mark.skip, td.skip_if_no("bodo")]
+pytestmark = [pytest.mark.single_cpu, td.skip_if_no("bodo")]
 
 
 def test_bodo_vs_python_indexing():
@@ -97,7 +97,9 @@ def test_bodo_result_type_unsupported():
     frame = pd.DataFrame(
         {"a": [1, 2, 3]},
     )
-    f = lambda a: 1
+
+    def f(a):
+        return 1
 
     with pytest.raises(
         NotImplementedError, match="the 'bodo' engine does not support result_type yet."

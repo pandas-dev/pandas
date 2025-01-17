@@ -870,7 +870,7 @@ class FrameApply(NDFrameApply):
                     "the 'numba' engine doesn't support using "
                     "a string as the callable function"
                 )
-            if self.engine == "bodo":
+            elif self.engine == "bodo":
                 return self.apply_series_bodo()
 
             return self.apply_str()
@@ -1057,13 +1057,17 @@ class FrameApply(NDFrameApply):
         return result
 
     def apply_standard(self):
-        if self.engine == "python":
-            results, res_index = self.apply_series_generator()
-        elif self.engine == "numba":
+        if self.engine == "numba":
             results, res_index = self.apply_series_numba()
-        else:
-            # bodo engine
+        elif self.engine == "bodo":
             return self.apply_series_bodo()
+        elif self.engine == "python":
+            results, res_index = self.apply_series_generator()
+        else:
+            raise ValueError(
+                "invalid value for engine, must be one "
+                "of {'python', 'numba', 'bodo'}"
+            )
 
         # wrap results
         return self.wrap_results(results, res_index)
@@ -1099,8 +1103,6 @@ class FrameApply(NDFrameApply):
         return results, self.result_index
 
     def apply_series_bodo(self) -> DataFrame | Series:
-        bodo = import_optional_dependency("bodo")
-
         if self.result_type is not None:
             raise NotImplementedError(
                 "the 'bodo' engine does not support result_type yet."
@@ -1110,6 +1112,8 @@ class FrameApply(NDFrameApply):
             raise NotImplementedError(
                 "the 'bodo' engine only supports axis=1 for user-defined functions."
             )
+
+        bodo = import_optional_dependency("bodo")
 
         @bodo.jit
         def do_apply(obj, func, axis):
