@@ -1034,7 +1034,7 @@ class _MergeOperation:
 
     def _validate_how(
         self, how: JoinHow | Literal["left_anti", "right_anti", "asof"]
-    ) -> tuple[JoinHow, bool]:
+    ) -> tuple[JoinHow | Literal["asof"], bool]:
         """
         Validate the 'how' parameter and return the actual join type and whether
         this is an anti join.
@@ -1059,6 +1059,7 @@ class _MergeOperation:
         if how in {"left_anti", "right_anti"}:
             how = how.split("_")[0]  # type: ignore[assignment]
             anti_join = True
+        how = cast(JoinHow | Literal["asof"], how)
         return how, anti_join
 
     def _maybe_require_matching_dtypes(
