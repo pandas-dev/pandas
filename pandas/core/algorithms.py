@@ -552,9 +552,8 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     # Ensure values don't contain <NA>, otherwise it throws exception with np.in1d
     values_contains_NA = False
     
-    if values.size != 0:  
-        vectorized_check = np.vectorize(lambda v: v is NA)
-        values_contains_NA = vectorized_check(values).any()
+    if comps_array.dtype != object and len(values) <= 26:  
+        values_contains_NA = any(v is NA for v in values)
 
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN

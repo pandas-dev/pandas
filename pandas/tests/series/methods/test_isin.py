@@ -214,7 +214,9 @@ def test_isin_large_series_mixed_dtypes_and_nan(monkeypatch):
 @pytest.mark.parametrize("dtype, data, values, expected", [
     ("boolean", [pd.NA, False, True], [False, pd.NA], [True, True, False]),
     ("Int64", [pd.NA, 2, 1], [1, pd.NA], [True, False, True]),
-    ("Float64", [20.0, 30.0, pd.NA], [pd.NA], [False, False, True])
+    ("boolean", [pd.NA, False, True], [pd.NA, True, 'a', 20], [True, False, True]),
+    ("boolean", [pd.NA, False, True], [], [False, False, False]),
+    ("Float64", [20.0, 30.0, pd.NA], [pd.NA], [False, False, True]),
 ])
 def test_isin_large_series_and_pdNA(dtype, data, values, expected, monkeypatch):
     # https://github.com/pandas-dev/pandas/issues/60678
