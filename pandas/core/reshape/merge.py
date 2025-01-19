@@ -938,7 +938,7 @@ class _MergeOperation:
     """
 
     _merge_type = "merge"
-    how: JoinHow | Literal["asof"]
+    how: JoinHow | Literal["left_anti", "right_anti", "asof"]
     on: IndexLabel | None
     # left_on/right_on may be None when passed, but in validate_specification
     #  get replaced with non-None.
