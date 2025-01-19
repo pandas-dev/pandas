@@ -958,7 +958,7 @@ class _MergeOperation:
         self,
         left: DataFrame | Series,
         right: DataFrame | Series,
-        how: JoinHow | Literal["asof"] = "inner",
+        how: JoinHow | Literal["left_anti", "right_anti", "asof"] = "inner",
         on: IndexLabel | AnyArrayLike | None = None,
         left_on: IndexLabel | AnyArrayLike | None = None,
         right_on: IndexLabel | AnyArrayLike | None = None,
@@ -1021,7 +1021,7 @@ class _MergeOperation:
                 f"left, right, inner, outer, cross, asof"
             )
         if self.how in {"left_anti", "right_anti"}:
-            self.how = self.how.split("_")[0]
+            self.how = self.how.split("_")[0]  # type: ignore[assignment]
             self.anti_join = True
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
