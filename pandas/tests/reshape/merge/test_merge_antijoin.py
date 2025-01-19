@@ -27,8 +27,12 @@ class TestMergeAntiJoin:
         tm.assert_frame_equal(result, expected)
 
     def test_merge_antijoin_on_different_columns(self):
-        left = DataFrame({"A": [1.0, 2.0, 3.0], "B": ["a", "b", "c"]})
-        right = DataFrame({"C": [1.0, 2.0, 4.0], "D": ["a", "d", "b"]})
+        left = DataFrame({"A": [1.0, 2.0, 3.0], "B": ["a", "b", "c"]}).astype(
+            {"B": object}
+        )
+        right = DataFrame({"C": [1.0, 2.0, 4.0], "D": ["a", "d", "b"]}).astype(
+            {"D": object}
+        )
 
         result = merge(left, right, how="left_anti", left_on="B", right_on="D")
         expected = DataFrame(
@@ -36,7 +40,7 @@ class TestMergeAntiJoin:
                 "A": [3.0],
                 "B": ["c"],
                 "C": [np.nan],
-                "D": np.array([np.nan], dtype=right.D.dtype),
+                "D": np.array([np.nan], dtype=object),
             },
             index=[2],
         )
@@ -46,7 +50,7 @@ class TestMergeAntiJoin:
         expected = DataFrame(
             {
                 "A": [np.nan],
-                "B": np.array([np.nan], dtype=left.B.dtype),
+                "B": np.array([np.nan], dtype=object),
                 "C": [2.0],
                 "D": ["d"],
             },
@@ -55,8 +59,12 @@ class TestMergeAntiJoin:
         tm.assert_frame_equal(result, expected)
 
     def test_merge_antijoin_nonunique_keys(self):
-        left = DataFrame({"A": [1.0, 2.0, 3.0], "B": ["a", "b", "b"]})
-        right = DataFrame({"C": [1.0, 2.0, 4.0], "D": ["b", "d", "d"]})
+        left = DataFrame({"A": [1.0, 2.0, 3.0], "B": ["a", "b", "b"]}).astype(
+            {"B": object}
+        )
+        right = DataFrame({"C": [1.0, 2.0, 4.0], "D": ["b", "d", "d"]}).astype(
+            {"D": object}
+        )
 
         result = merge(left, right, how="left_anti", left_on="B", right_on="D")
         expected = DataFrame(
@@ -64,7 +72,7 @@ class TestMergeAntiJoin:
                 "A": [1.0],
                 "B": ["a"],
                 "C": [np.nan],
-                "D": np.array([np.nan], dtype=right.D.dtype),
+                "D": np.array([np.nan], dtype=object),
             },
             index=[0],
         )
@@ -74,7 +82,7 @@ class TestMergeAntiJoin:
         expected = DataFrame(
             {
                 "A": [np.nan, np.nan],
-                "B": np.array([np.nan, np.nan], dtype=left.B.dtype),
+                "B": np.array([np.nan, np.nan], dtype=object),
                 "C": [2.0, 4.0],
                 "D": ["d", "d"],
             },
@@ -89,11 +97,15 @@ class TestMergeAntiJoin:
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_merge_antijoin_nans(self):
-        left = DataFrame({"A": [1.0, 2.0, np.nan], "C": ["a", "b", "c"]})
-        right = DataFrame({"A": [3.0, 2.0, np.nan], "D": ["d", "e", "f"]})
+        left = DataFrame({"A": [1.0, 2.0, np.nan], "C": ["a", "b", "c"]}).astype(
+            {"C": object}
+        )
+        right = DataFrame({"A": [3.0, 2.0, np.nan], "D": ["d", "e", "f"]}).astype(
+            {"D": object}
+        )
         result = merge(left, right, how="left_anti", on="A")
         expected = DataFrame(
-            {"A": [1.0], "C": ["a"], "D": np.array([np.nan], dtype=right.D.dtype)}
+            {"A": [1.0], "C": ["a"], "D": np.array([np.nan], dtype=object)}
         )
         tm.assert_frame_equal(result, expected)
 
