@@ -33,6 +33,7 @@ Other enhancements
 - :class:`pandas.api.typing.NoDefault` is available for typing ``no_default``
 - :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
 - :func:`pandas.merge` now validates the ``how`` parameter input (merge type) (:issue:`59435`)
+- :func:`pandas.merge`, :meth:`DataFrame.merge` and :meth:`DataFrame.join` now support anti joins (``left_anti`` and ``right_anti``) in the ``how`` parameter (:issue:`42916`)
 - :func:`read_spss` now supports kwargs to be passed to pyreadstat (:issue:`56356`)
 - :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`55642`)
 - :meth:`DataFrame.agg` called with ``axis=1`` and a ``func`` which relabels the result index now raises a ``NotImplementedError`` (:issue:`58807`).

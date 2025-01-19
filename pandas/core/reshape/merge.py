@@ -180,7 +180,8 @@ def merge(
         First pandas object to merge.
     right : DataFrame or named Series
         Second pandas object to merge.
-    how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
+    how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti},
+        default 'inner'
         Type of merge to be performed.
 
         * left: use only keys from left frame, similar to a SQL left outer join;
@@ -193,6 +194,10 @@ def merge(
           join; preserve the order of the left keys.
         * cross: creates the cartesian product from both frames, preserves the order
           of the left keys.
+        * left_anti: use only keys from left frame that are not in right frame, similar
+          to SQL left anti join; preserve key order.
+        * right_anti: use only keys from right frame that are not in left frame, similar
+          to SQL right anti join; preserve key order.
     on : label or list
         Column or index level names to join on. These must be found in both
         DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -969,6 +974,7 @@ class _MergeOperation:
         self.left = self.orig_left = _left
         self.right = self.orig_right = _right
         self.how = how
+        self.anti_join = False
 
         self.on = com.maybe_make_list(on)
 
@@ -999,12 +1005,24 @@ class _MergeOperation:
             raise MergeError(msg)
 
         # GH 59435: raise when "how" is not a valid Merge type
-        merge_type = {"left", "right", "inner", "outer", "cross", "asof"}
+        merge_type = {
+            "left",
+            "right",
+            "inner",
+            "outer",
+            "left_anti",
+            "right_anti",
+            "cross",
+            "asof",
+        }
         if how not in merge_type:
             raise ValueError(
                 f"'{how}' is not a valid Merge type: "
                 f"left, right, inner, outer, cross, asof"
             )
+        if self.how in {"left_anti", "right_anti"}:
+            self.how = self.how.split("_")[0]
+            self.anti_join = True
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
@@ -1405,6 +1423,11 @@ class _MergeOperation:
                 n = len(left_ax) if left_indexer is None else len(left_indexer)
                 join_index = default_index(n)
 
+        if self.anti_join:
+            join_index, left_indexer, right_indexer = self._handle_anti_join(
+                join_index, left_indexer, right_indexer
+            )
+
         return join_index, left_indexer, right_indexer
 
     @final
@@ -1446,6 +1469,48 @@ class _MergeOperation:
         if indexer is None:
             return index.copy()
         return index.take(indexer)
+
+    @final
+    def _handle_anti_join(
+        self,
+        join_index: Index,
+        left_indexer: npt.NDArray[np.intp] | None,
+        right_indexer: npt.NDArray[np.intp] | None,
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        """
+        Handle anti join by returning the correct join index and indexers
+
+        Parameters
+        ----------
+        join_index : Index
+            join index
+        left_indexer : np.ndarray[np.intp] or None
+            left indexer
+        right_indexer : np.ndarray[np.intp] or None
+            right indexer
+
+        Returns
+        -------
+        Index, np.ndarray[np.intp] or None, np.ndarray[np.intp] or None
+        """
+        # Make sure indexers are not None
+        if left_indexer is None:
+            left_indexer = np.arange(len(self.left))
+        if right_indexer is None:
+            right_indexer = np.arange(len(self.right))
+
+        assert self.how in {"left", "right"}
+        if self.how == "left":
+            # Filter to rows where left keys are not in right keys
+            filt = right_indexer == -1
+        else:
+            # Filter to rows where right keys are not in left keys
+            filt = left_indexer == -1
+        join_index = join_index[filt]
+        left_indexer = left_indexer[filt]
+        right_indexer = right_indexer[filt]
+
+        return join_index, left_indexer, right_indexer
 
     @final
     def _get_merge_keys(
