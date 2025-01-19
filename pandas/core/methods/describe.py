@@ -74,8 +74,7 @@ def describe_ndframe(
     percentiles : list-like of numbers, optional
         The percentiles to include in the output. All should fall between 0 and 1.
         The default is ``[.25, .5, .75]``, which returns the 25th, 50th, and
-        75th percentiles. If a blank list is passed, then returns only the
-        50th percentile value.
+        75th percentiles.
 
     Returns
     -------
@@ -352,9 +351,9 @@ def _refine_percentiles(
     # explicit conversion of `percentiles` to list
     percentiles = list(percentiles)
 
-    # median should be included only if blank iterable is passed
+    # percentiles are removed if an user explictly pass blank list
     if len(percentiles) == 0:
-        return np.array([0.5])
+        return np.array([])
 
     # get them all to be in [0, 1]
     validate_percentile(percentiles)
