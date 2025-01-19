@@ -23,6 +23,9 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+
+from pandas._libs.missing import NA
+
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -544,10 +547,20 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # isin is faster for small sizes
+    
+    # GH60678
+    # Ensure values don't contain <NA>, otherwise it throws exception with np.in1d
+    values_contains_NA = False
+    
+    if values.size != 0:  
+        vectorized_check = np.vectorize(lambda v: v is NA)
+        values_contains_NA = vectorized_check(values).any()
+
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
+        and values_contains_NA == False
     ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
