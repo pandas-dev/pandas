@@ -1032,6 +1032,7 @@ class _MergeOperation:
         if validate is not None:
             self._validate_validate_kwd(validate)
 
+    @final
     def _validate_how(
         self, how: JoinHow | Literal["left_anti", "right_anti", "asof"]
     ) -> tuple[JoinHow | Literal["asof"], bool]:
