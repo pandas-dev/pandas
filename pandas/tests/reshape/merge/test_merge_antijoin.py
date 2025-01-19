@@ -40,22 +40,22 @@ class TestMergeAntiJoin:
                 "A": [3.0],
                 "B": ["c"],
                 "C": [np.nan],
-                "D": np.array([np.nan], dtype=object),
+                "D": [np.nan],
             },
             index=[2],
-        )
+        ).astype({"B": object, "D": object})
         tm.assert_frame_equal(result, expected)
 
         result = merge(left, right, how="right_anti", left_on="B", right_on="D")
         expected = DataFrame(
             {
                 "A": [np.nan],
-                "B": np.array([np.nan], dtype=object),
+                "B": [np.nan],
                 "C": [2.0],
                 "D": ["d"],
             },
             index=[1],
-        )
+        ).astype({"B": object, "D": object})
         tm.assert_frame_equal(result, expected)
 
     def test_merge_antijoin_nonunique_keys(self):
@@ -72,22 +72,22 @@ class TestMergeAntiJoin:
                 "A": [1.0],
                 "B": ["a"],
                 "C": [np.nan],
-                "D": np.array([np.nan], dtype=object),
+                "D": [np.nan],
             },
             index=[0],
-        )
+        ).astype({"B": object, "D": object})
         tm.assert_frame_equal(result, expected)
 
         result = merge(left, right, how="right_anti", left_on="B", right_on="D")
         expected = DataFrame(
             {
                 "A": [np.nan, np.nan],
-                "B": np.array([np.nan, np.nan], dtype=object),
+                "B": [np.nan, np.nan],
                 "C": [2.0, 4.0],
                 "D": ["d", "d"],
             },
             index=[2, 3],
-        )
+        ).astype({"B": object, "D": object})
         tm.assert_frame_equal(result, expected)
 
     def test_merge_antijoin_same_df(self):
@@ -104,8 +104,8 @@ class TestMergeAntiJoin:
             {"D": object}
         )
         result = merge(left, right, how="left_anti", on="A")
-        expected = DataFrame(
-            {"A": [1.0], "C": ["a"], "D": np.array([np.nan], dtype=object)}
+        expected = DataFrame({"A": [1.0], "C": ["a"], "D": [np.nan]}).astype(
+            {"C": object, "D": object}
         )
         tm.assert_frame_equal(result, expected)
 
