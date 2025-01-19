@@ -1787,7 +1787,8 @@ def _handle_integer_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
 
     Raises
     ------
-    LossySetitemError: If the element cannot be losslessly stored in the given integer dtype.
+    LossySetitemError: If the element cannot be
+    losslessly stored in the given integer dtype.
     """
     if isinstance(element, range):
         if _dtype_can_hold_range(element, dtype):
@@ -1822,7 +1823,7 @@ def _handle_integer_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
             raise LossySetitemError
 
         elif isinstance(element, ABCExtensionArray) and isinstance(
-                element.dtype, CategoricalDtype
+            element.dtype, CategoricalDtype
         ):
             # GH#52927 setting Categorical value into non-EA frame
             # TODO: general-case for EAs?
@@ -1842,9 +1843,9 @@ def _handle_integer_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
         raise LossySetitemError
 
     if (
-            dtype.kind == "u"
-            and isinstance(element, np.ndarray)
-            and element.dtype.kind == "i"
+        dtype.kind == "u"
+        and isinstance(element, np.ndarray)
+        and element.dtype.kind == "i"
     ):
         # see test_where_uint64
         casted = element.astype(dtype)
@@ -1863,6 +1864,7 @@ def _handle_integer_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
             raise LossySetitemError
         return element
     return element
+
 
 def _handle_float_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
     """
@@ -1884,7 +1886,8 @@ def _handle_float_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
 
     Raises
     ------
-    LossySetitemError: If the element cannot be losslessly stored in the given float dtype.
+    LossySetitemError: If the element cannot be losslessly
+    stored in the given float dtype.
     """
     if lib.is_integer(element) or lib.is_float(element):
         casted = dtype.type(element)
@@ -1916,6 +1919,7 @@ def _handle_float_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
 
     return element
 
+
 def _handle_complex_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
     """
     Handles casting or validation of an element for complex dtypes.
@@ -1936,7 +1940,8 @@ def _handle_complex_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
 
     Raises
     ------
-    LossySetitemError: If the element cannot be losslessly stored in the given complex dtype.
+    LossySetitemError: If the element cannot be
+    losslessly stored in the given complex dtype.
     """
     if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
         if np.isnan(element):
@@ -1955,6 +1960,7 @@ def _handle_complex_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
     if tipo.kind in "iufc":
         return element
     raise LossySetitemError
+
 
 def _handle_boolean_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
     """
@@ -1976,7 +1982,8 @@ def _handle_boolean_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
 
     Raises
     ------
-    LossySetitemError: If the element cannot be losslessly stored in the given boolean dtype.
+    LossySetitemError: If the element cannot be
+    losslessly stored in the given boolean dtype.
     """
     if lib.is_bool(element):
         return element
@@ -1990,6 +1997,7 @@ def _handle_boolean_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
                 raise LossySetitemError
         return element
     raise LossySetitemError
+
 
 def _handle_string_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
     """
@@ -2011,7 +2019,8 @@ def _handle_string_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
 
     Raises
     ------
-    LossySetitemError: If the element cannot be losslessly stored in the given string dtype.
+    LossySetitemError: If the element cannot be
+    losslessly stored in the given string dtype.
     """
     # TODO: test tests.frame.methods.test_replace tests get here,
     #  need more targeted tests.  xref phofl has a PR about this
@@ -2022,6 +2031,7 @@ def _handle_string_dtype(dtype: np.dtype, element: Any, tipo: np.dtype) -> Any:
     if tipo.kind == "S" and tipo.itemsize <= dtype.itemsize:
         return element
     raise LossySetitemError
+
 
 def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
     """
@@ -2060,7 +2070,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise LossySetitemError
 
     raise NotImplementedError(dtype)
-
 
 
 def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
