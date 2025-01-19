@@ -938,7 +938,7 @@ class _MergeOperation:
     """
 
     _merge_type = "merge"
-    how: JoinHow | Literal["left_anti", "right_anti", "asof"]
+    how: JoinHow | Literal["asof"]
     on: IndexLabel | None
     # left_on/right_on may be None when passed, but in validate_specification
     #  get replaced with non-None.
@@ -973,8 +973,7 @@ class _MergeOperation:
         _right = _validate_operand(right)
         self.left = self.orig_left = _left
         self.right = self.orig_right = _right
-        self.how = how
-        self.anti_join = False
+        self.how, self.anti_join = self._validate_how(how)
 
         self.on = com.maybe_make_list(on)
 
@@ -1004,26 +1003,6 @@ class _MergeOperation:
             )
             raise MergeError(msg)
 
-        # GH 59435: raise when "how" is not a valid Merge type
-        merge_type = {
-            "left",
-            "right",
-            "inner",
-            "outer",
-            "left_anti",
-            "right_anti",
-            "cross",
-            "asof",
-        }
-        if how not in merge_type:
-            raise ValueError(
-                f"'{how}' is not a valid Merge type: "
-                f"left, right, inner, outer, cross, asof"
-            )
-        if self.how in {"left_anti", "right_anti"}:
-            self.how = self.how.split("_")[0]  # type: ignore[assignment]
-            self.anti_join = True
-
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
         (
@@ -1052,6 +1031,35 @@ class _MergeOperation:
         # are in fact unique.
         if validate is not None:
             self._validate_validate_kwd(validate)
+
+    def _validate_how(
+        self, how: JoinHow | Literal["left_anti", "right_anti", "asof"]
+    ) -> tuple[JoinHow, bool]:
+        """
+        Validate the 'how' parameter and return the actual join type and whether
+        this is an anti join.
+        """
+        # GH 59435: raise when "how" is not a valid Merge type
+        merge_type = {
+            "left",
+            "right",
+            "inner",
+            "outer",
+            "left_anti",
+            "right_anti",
+            "cross",
+            "asof",
+        }
+        if how not in merge_type:
+            raise ValueError(
+                f"'{how}' is not a valid Merge type: "
+                f"left, right, inner, outer, left_anti, right_anti, cross, asof"
+            )
+        anti_join = False
+        if how in {"left_anti", "right_anti"}:
+            how = how.split("_")[0]  # type: ignore[assignment]
+            anti_join = True
+        return how, anti_join
 
     def _maybe_require_matching_dtypes(
         self, left_join_keys: list[ArrayLike], right_join_keys: list[ArrayLike]
