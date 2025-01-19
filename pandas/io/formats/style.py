@@ -1266,6 +1266,8 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in Typst format.
 
+        .. versionadded:: 2.3.0
+
         Parameters
         ----------
         %(buf)s
