@@ -427,11 +427,11 @@ class TestDataFrameDescribe:
 
         tm.assert_frame_equal(result, expected)
 
-        # if an empty list is passed, it should return [0.5]
+        # no percentiles if an user explictly pass blank list
         result = df.describe(percentiles=[])
         expected = DataFrame(
-            {"a" : [10, df.a.mean(), df.a.std(), 0, 4.5, 9]},
-            index=["count", "mean", "std", "min", "50%", "max"]
+            {"a" : [10, df.a.mean(), df.a.std(), 0, 9]},
+            index=["count", "mean", "std", "min", "max"]
         )
 
         tm.assert_frame_equal(result, expected)
