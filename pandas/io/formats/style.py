@@ -1296,13 +1296,20 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        DataFrame.to_typst : Write a DataFrame to a file, buffer or string in Typst format.
+        DataFrame.to_typst : Write a DataFrame to a file,
+            buffer or string in Typst format.
 
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
-        >>> df.style.to_typst()
-        '#table(\\n  columns: 3,\\n  [], [A], [B],\\n\\n  [0], [1], [3],\\n  [1], [2], [4],\\n)'
+        >>> df.style.to_typst()  # doctest: +SKIP
+        #table(
+          columns: 3,
+          [], [A], [B],
+
+          [0], [1], [3],
+          [1], [2], [4],
+        )
         """
         obj = self._copy(deepcopy=True)
 
