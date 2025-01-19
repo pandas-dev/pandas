@@ -36,8 +36,6 @@ Other enhancements
   when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
   updated to work correctly with NumPy >= 2 (:issue:`57739`)
 - The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
-- Median percentile is only included in :meth:`~Series.describe` when a blank
-  list is passed (:issue:`60550`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.notable_bug_fixes:
