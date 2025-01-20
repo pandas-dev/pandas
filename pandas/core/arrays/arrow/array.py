@@ -1207,10 +1207,9 @@ class ArrowExtensionArray(
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
             data = data.cast(pa.int64())
 
-        if pa.types.is_dictionary(data.type):
-            encoded = data
-        else:
-            encoded = data.dictionary_encode(null_encoding=null_encoding)
+        if pa.types.is_dictionary(data.type) and null_encoding == "encode":
+            data = data.cast(data.type.value_type)
+        encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
             uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))

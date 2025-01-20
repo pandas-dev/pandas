@@ -3329,6 +3329,19 @@ def test_factorize_chunked_dictionary():
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
+def test_factorize_dictionary_with_na():
+    # Test that factorize properly handles NA values in dictionary arrays
+    arr = pd.array(
+        ["a1", pd.NA], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+    )
+    # Test with use_na_sentinel=False
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([0, 1], dtype=np.intp)
+    expected_uniques = pd.array(["a1", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
 def test_dictionary_astype_categorical():
     # GH#56672
     arrs = [
