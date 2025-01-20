@@ -69,11 +69,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    # TODO(infer_string) raise proper TypeError in case of string dtype
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="interpolate doesn't work for string"
-    )
-    def test_interp_basic(self, using_copy_on_write):
+    def test_interp_basic(self, using_copy_on_write, using_infer_string):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -90,6 +86,13 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
+        if using_infer_string:
+            dtype = "str" if using_infer_string else "object"
+            msg = f"[Cc]annot interpolate with {dtype} dtype"
+            with pytest.raises(TypeError, match=msg):
+                df.interpolate()
+            return
+
         msg = "DataFrame.interpolate with object dtype"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df.interpolate()
@@ -111,8 +114,8 @@ class TestDataFrameInterpolate:
         tm.assert_frame_equal(df, expected)
 
         # check we DID operate inplace
-        assert np.shares_memory(df["C"]._values, cvalues)
-        assert np.shares_memory(df["D"]._values, dvalues)
+        assert tm.shares_memory(df["C"]._values, cvalues)
+        assert tm.shares_memory(df["D"]._values, dvalues)
 
     @pytest.mark.xfail(
         using_string_dtype(), reason="interpolate doesn't work for string"
