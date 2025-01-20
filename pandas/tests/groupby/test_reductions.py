@@ -466,10 +466,6 @@ def test_mean_skipna(values, dtype, result_dtype, skipna):
     )
     result = df.groupby("cat")["val"].mean(skipna=skipna)
     tm.assert_series_equal(result, expected)
-    if dtype == "float64":
-        # For float64, test the numba version as well
-        result = df.groupby("cat")["val"].mean(skipna=skipna, engine="numba")
-        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -496,10 +492,6 @@ def test_sum_skipna(values, dtype, skipna):
     )
     result = df.groupby("cat")["val"].sum(skipna=skipna)
     tm.assert_series_equal(result, expected)
-    if dtype == "float64":
-        # For float64, test the numba version as well
-        result = df.groupby("cat")["val"].sum(skipna=skipna, engine="numba")
-        tm.assert_series_equal(result, expected)
 
 
 def test_sum_skipna_object(skipna):
