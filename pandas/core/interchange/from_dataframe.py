@@ -99,7 +99,10 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
             # fallback to _from_dataframe
             pass
         else:
-            return pa.table(df).to_pandas(zero_copy_only=not allow_copy)
+            try:
+                return pa.table(df).to_pandas(zero_copy_only=not allow_copy)
+            except pa.ArrowInvalid as e:
+                raise RuntimeError(e) from e
 
     if not hasattr(df, "__dataframe__"):
         raise ValueError("`df` does not support __dataframe__")
