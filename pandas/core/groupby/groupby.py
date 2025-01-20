@@ -2091,6 +2091,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def mean(
         self,
         numeric_only: bool = False,
+        skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
@@ -2105,6 +2106,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only no longer accepts ``None`` and defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values. If the entire group is NA and ``skipna`` is
+            True, the result will be NA.
+
+            -- versionadded:: 3.0.0
 
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
@@ -2172,12 +2179,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 executor.float_dtype_mapping,
                 engine_kwargs,
                 min_periods=0,
+                skipna=skipna,
             )
         else:
             result = self._cython_agg_general(
                 "mean",
-                alt=lambda x: Series(x, copy=False).mean(numeric_only=numeric_only),
+                alt=lambda x: Series(x, copy=False).mean(
+                    numeric_only=numeric_only, skipna=skipna
+                ),
                 numeric_only=numeric_only,
+                skipna=skipna,
             )
             return result.__finalize__(self.obj, method="groupby")
 
@@ -2862,6 +2873,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
+        skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
@@ -2873,6 +2885,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 executor.default_dtype_mapping,
                 engine_kwargs,
                 min_periods=min_count,
+                skipna=skipna,
             )
         else:
             # If we are grouping on categoricals we want unobserved categories to
@@ -2884,6 +2897,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     min_count=min_count,
                     alias="sum",
                     npfunc=np.sum,
+                    skipna=skipna,
                 )
 
             return result
