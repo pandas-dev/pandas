@@ -712,7 +712,7 @@ def group_sum(
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
-        bint isna_entry
+        bint isna_entry, isna_result
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -744,20 +744,18 @@ def group_sum(
             for j in range(K):
                 val = values[i, j]
 
-                if not skipna and (
-                    (uses_mask and result_mask[lab, j]) or
-                    (is_datetimelike and sumx[lab, j] == NPY_NAT) or
-                    _treat_as_na(sumx[lab, j], False)
-                ):
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                    isna_result = result_mask[lab, j]
+                else:
+                    isna_entry = _treat_as_na(val, is_datetimelike)
+                    isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
+
+                if not skipna and isna_result:
                     # If sum is already NA, don't add to it. This is important for
                     # datetimelikebecause adding a value to NPY_NAT may not result
                     # in a NPY_NAT
                     continue
-
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not isna_entry:
                     nobs[lab, j] += 1
