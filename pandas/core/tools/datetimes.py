@@ -482,6 +482,11 @@ def _array_strptime_with_fallback(
 def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> DatetimeIndex:
     """
     to_datetime specialized to the case where a 'unit' is passed.
+
+    Note: This function currently treats values at the upper bound differently
+    from values at the lower bound.
+    For upper bound, it raises OutOfBoundsDatetime.
+    For lower bound, it returns NaT.
     """
     arg = extract_array(arg, extract_numpy=True)
     # Fix GH#60677
