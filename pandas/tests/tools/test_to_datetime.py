@@ -1,7 +1,6 @@
 """test to_datetime"""
 
 import calendar
-import locale
 from collections import deque
 from datetime import (
     date,
@@ -10,12 +9,12 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import locale
 import zoneinfo
 
-import numpy as np
-import pandas as pd
-import pytest
 from dateutil.parser import parse
+import numpy as np
+import pytest
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import (
@@ -30,6 +29,8 @@ from pandas.errors import (
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
+
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -3688,7 +3689,7 @@ def test_to_datetime_wrapped_datetime64_ps():
         ["1970-01-01 00:00:01.901901901"], dtype="datetime64[ns]", freq=None
     )
     tm.assert_index_equal(result, expected)
-    
+
 
 def test_to_datetime_scalar_out_of_bounds():
     """Ensure pd.to_datetime raises an error for out-of-bounds scalar values."""
@@ -3696,14 +3697,13 @@ def test_to_datetime_scalar_out_of_bounds():
 
     # Expect an OverflowError when passing uint64_max as a scalar
     with pytest.raises(OutOfBoundsDatetime):
-        pd.to_datetime(uint64_max, unit="ns")
+        to_datetime(uint64_max, unit="ns")
 
     # Expect the same behavior when passing it as a list
     with pytest.raises(OutOfBoundsDatetime):
-        pd.to_datetime([uint64_max], unit="ns")
+        to_datetime([uint64_max], unit="ns")
 
     # Test a valid value (should not raise an error)
     valid_timestamp = 1_700_000_000_000_000_000  # A reasonable nanosecond timestamp
-    result = pd.to_datetime(valid_timestamp, unit="ns")
-    assert isinstance(result, pd.Timestamp)
-  
+    result = to_datetime(valid_timestamp, unit="ns")
+    assert isinstance(result, Timestamp)
