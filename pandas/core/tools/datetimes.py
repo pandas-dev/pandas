@@ -487,6 +487,8 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> DatetimeI
     Fixes a bug where scalar out-of-bounds values were not raising
     an error consistently.
     """
+    import pdb; pdb.set_trace()
+
     # Ensure we handle both array-likes and scalars the same way.
     # extract_array can return a scalar if 'arg' is scalar-like;
     # so we force everything into at least 1D shape.
