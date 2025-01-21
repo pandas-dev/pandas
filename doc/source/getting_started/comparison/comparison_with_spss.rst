@@ -26,21 +26,21 @@ General terminology translation
     :class:`NaN`, system-missing
 
 :class:`DataFrame`
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 A :class:`DataFrame` in pandas is analogous to an SPSS data file - a two-dimensional
 data source with labeled columns that can be of different types. As will be shown in this
 document, almost any operation that can be performed in SPSS can also be accomplished in pandas.
 
 :class:`Series`
-~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 A :class:`Series` is the data structure that represents one column of a :class:`DataFrame`. SPSS doesn't have a
 separate data structure for a single variable, but in general, working with a :class:`Series` is analogous
 to working with a variable in SPSS.
 
 :class:`Index`
-~~~~~~~~~
+~~~~~~~~~~~~~~
 
 Every :class:`DataFrame` and :class:`Series` has an :class:`Index` -- labels on the *rows* of the data. SPSS does not
 have an exact analogue, as cases are simply numbered sequentially from 1. In pandas, if no index is
