@@ -4,7 +4,7 @@
 
 Comparison with SPSS
 ********************
-For potential users coming from `SPSS <https://www.ibm.com/spss>`__, this page is meant to demonstrate 
+For potential users coming from `SPSS <https://www.ibm.com/spss>`__, this page is meant to demonstrate
 how various SPSS operations would be performed using pandas.
 
 .. include:: includes/introduction.rst
@@ -20,7 +20,7 @@ General terminology translation
     :widths: 20, 20
 
     ``DataFrame``, data file
-    column, variable 
+    column, variable
     row, case
     groupby, split file
     ``NaN``, system-missing
@@ -29,7 +29,7 @@ General terminology translation
 ~~~~~~~~~~~~~
 
 A ``DataFrame`` in pandas is analogous to an SPSS data file - a two-dimensional
-data source with labeled columns that can be of different types. As will be shown in this 
+data source with labeled columns that can be of different types. As will be shown in this
 document, almost any operation that can be performed in SPSS can also be accomplished in pandas.
 
 ``Series``
@@ -42,13 +42,13 @@ to working with a variable in SPSS.
 ``Index``
 ~~~~~~~~~
 
-Every ``DataFrame`` and ``Series`` has an ``Index`` -- labels on the *rows* of the data. SPSS does not 
-have an exact analogue, as cases are simply numbered sequentially from 1. In pandas, if no index is 
+Every ``DataFrame`` and ``Series`` has an ``Index`` -- labels on the *rows* of the data. SPSS does not
+have an exact analogue, as cases are simply numbered sequentially from 1. In pandas, if no index is
 specified, a ``RangeIndex`` is used by default (first row = 0, second row = 1, and so on).
 
-While using a labeled ``Index`` or ``MultiIndex`` can enable sophisticated analyses and is ultimately an 
-important part of pandas to understand, for this comparison we will essentially ignore the ``Index`` and 
-just treat the ``DataFrame`` as a collection of columns. Please see the :ref:`indexing documentation<indexing>` 
+While using a labeled ``Index`` or ``MultiIndex`` can enable sophisticated analyses and is ultimately an
+important part of pandas to understand, for this comparison we will essentially ignore the ``Index`` and
+just treat the ``DataFrame`` as a collection of columns. Please see the :ref:`indexing documentation<indexing>`
 for much more on how to use an ``Index`` effectively.
 
 
@@ -64,7 +64,7 @@ Data input / output
 Reading external data
 ~~~~~~~~~~~~~~~~~~~~
 
-Like SPSS, pandas provides utilities for reading in data from many formats. The ``tips`` dataset, found within 
+Like SPSS, pandas provides utilities for reading in data from many formats. The ``tips`` dataset, found within
 the pandas tests (`csv <https://raw.githubusercontent.com/pandas-dev/pandas/main/pandas/tests/io/data/csv/tips.csv>`_)
 will be used in many of the following examples.
 
