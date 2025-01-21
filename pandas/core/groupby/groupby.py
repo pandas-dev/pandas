@@ -214,6 +214,61 @@ Examples
 {example}
 """
 
+_groupby_agg_method_skipna_engine_template = """
+Compute {fname} of group values.
+
+Parameters
+----------
+numeric_only : bool, default {no}
+    Include only float, int, boolean columns.
+
+    .. versionchanged:: 2.0.0
+
+        numeric_only no longer accepts ``None``.
+
+min_count : int, default {mc}
+    The required number of valid values to perform the operation. If fewer
+    than ``min_count`` non-NA values are present the result will be NA.
+
+skipna : bool, default {s}
+    Exclude NA/null values. If the entire group is NA and ``skipna`` is
+    ``True``, the result will be NA.
+
+    .. versionchanged:: 3.0.0
+
+engine : str, default None {e}
+    * ``'cython'`` : Runs rolling apply through C-extensions from cython.
+    * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
+        Only available when ``raw`` is set to ``True``.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+engine_kwargs : dict, default None {ek}
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+        and ``parallel`` dictionary keys. The values must either be ``True`` or
+        ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+        ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+        applied to both the ``func`` and the ``apply`` groupby aggregation.
+
+Returns
+-------
+Series or DataFrame
+    Computed {fname} of values within each group.
+
+See Also
+--------
+SeriesGroupBy.min : Return the min of the group values.
+DataFrameGroupBy.min : Return the min of the group values.
+SeriesGroupBy.max : Return the max of the group values.
+DataFrameGroupBy.max : Return the max of the group values.
+SeriesGroupBy.sum : Return the sum of the group values.
+DataFrameGroupBy.sum : Return the sum of the group values.
+
+Examples
+--------
+{example}
+"""
+
 _pipe_template = """
 Apply a ``func`` with arguments to this %(klass)s object and return its result.
 
@@ -2108,10 +2163,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only no longer accepts ``None`` and defaults to ``False``.
 
         skipna : bool, default True
-            Exclude NA/null values. If the entire group is NA and ``skipna`` is
-            True, the result will be NA.
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
 
-            -- versionadded:: 3.0.0
+            .. versionadded:: 3.0.0
 
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
@@ -2828,10 +2883,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @doc(
-        _groupby_agg_method_engine_template,
+        _groupby_agg_method_skipna_engine_template,
         fname="sum",
         no=False,
         mc=0,
+        s=True,
         e=None,
         ek=None,
         example=dedent(
