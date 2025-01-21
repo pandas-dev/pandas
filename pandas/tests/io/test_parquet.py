@@ -1110,11 +1110,11 @@ class TestParquetPyArrow(Base):
         new_df = read_parquet(path, engine=pa)
         assert new_df.attrs == df.attrs
 
-    def test_string_inference(self, tmp_path, pa):
+    def test_string_inference(self, tmp_path, pa, using_infer_string):
         # GH#54431
         path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
-        df.to_parquet(path, engine="pyarrow")
+        df.to_parquet(path, engine=pa)
         with pd.option_context("future.infer_string", True):
             result = read_parquet(path, engine="pyarrow")
         dtype = pd.StringDtype(na_value=np.nan)
@@ -1122,7 +1122,12 @@ class TestParquetPyArrow(Base):
             data={"a": ["x", "y"]},
             dtype=dtype,
             index=pd.Index(["a", "b"], dtype=dtype),
-            columns=pd.Index(["a"], dtype=object if pa_version_under19p0 else dtype),
+            columns=pd.Index(
+                ["a"],
+                dtype=object
+                if pa_version_under19p0 and not using_infer_string
+                else dtype,
+            ),
         )
         tm.assert_frame_equal(result, expected)
 
