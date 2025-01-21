@@ -53,16 +53,16 @@ for much more on how to use an ``Index`` effectively.
 
 
 Copies vs. in place operations
------------------------------
+------------------------------
 
 .. include:: includes/copies.rst
 
 
 Data input / output
-------------------
+-------------------
 
 Reading external data
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 Like SPSS, pandas provides utilities for reading in data from many formats. The ``tips`` dataset, found within
 the pandas tests (`csv <https://raw.githubusercontent.com/pandas-dev/pandas/main/pandas/tests/io/data/csv/tips.csv>`_)
@@ -96,7 +96,7 @@ For example, if the data was instead tab delimited, and did not have column name
 .. code-block:: python
 
    tips = pd.read_csv("tips.csv", sep="\t", header=None)
-   
+
    # alternatively, read_table is an alias to read_csv with tab delimiter
    tips = pd.read_table("tips.csv", header=None)
 
@@ -139,10 +139,10 @@ In pandas, this would be written as:
 
 
 String processing
-----------------
+-----------------
 
 Finding length of string
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 In SPSS:
 
@@ -155,7 +155,7 @@ In SPSS:
 
 
 Changing case
-~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 In SPSS:
 
@@ -178,10 +178,10 @@ In SPSS, merging data files is done through Data > Merge Files.
 
 
 GroupBy operations
-----------------
+------------------
 
 Split-file processing
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 In SPSS, split-file analysis is done through Data > Split File:
 
@@ -200,7 +200,7 @@ The pandas equivalent would be:
 
 
 Missing data
------------
+------------
 
 SPSS uses the period (``.``) for numeric missing values and blank spaces for string missing values.
 pandas uses ``NaN`` (Not a Number) for numeric missing values and ``None`` or ``NaN`` for string
@@ -210,10 +210,10 @@ missing values.
 
 
 Other considerations
-------------------
+--------------------
 
 Output management
-~~~~~~~~~~~~~~~
+-----------------
 
 While pandas does not have a direct equivalent to SPSS's Output Management System (OMS), you can
 capture and export results in various ways:
