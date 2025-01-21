@@ -27,6 +27,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.util.version import Version
 
 import pandas.io.common as icom
 
@@ -139,6 +140,7 @@ Look,a snake,🐍"""
 
     # Test that pyarrow can handle a file opened with get_handle
     def test_get_handle_pyarrow_compat(self):
+        pa = pytest.importorskip("pyarrow")
         pa_csv = pytest.importorskip("pyarrow.csv")
 
         # Test latin1, ucs-2, and ucs-4 chars
@@ -152,8 +154,8 @@ Look,a snake,🐍"""
         s = StringIO(data)
         with icom.get_handle(s, "rb", is_text=False) as handles:
             df = pa_csv.read_csv(handles.handle).to_pandas()
-            # TODO will have to update this when pyarrow' to_pandas() is fixed
-            expected = expected.astype("object")
+            if Version(pa.__version__) < Version("19.0"):
+                expected = expected.astype("object")
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 
