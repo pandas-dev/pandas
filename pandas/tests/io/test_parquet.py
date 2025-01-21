@@ -1116,7 +1116,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
         df.to_parquet(path, engine=pa)
         with pd.option_context("future.infer_string", True):
-            result = read_parquet(path, engine="pyarrow")
+            result = read_parquet(path, engine=pa)
         dtype = pd.StringDtype(na_value=np.nan)
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
