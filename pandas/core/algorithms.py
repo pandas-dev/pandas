@@ -541,24 +541,19 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     elif isinstance(values.dtype, ExtensionDtype):
         return isin(np.asarray(comps_array), np.asarray(values))
 
-    # GH60678
-    # Ensure values don't contain <NA>, otherwise it throws exception with np.in1d
-
-    values_contains_NA = False
-
-    if comps_array.dtype != object and len(values) <= 26:
-        values_contains_NA = any(v is NA for v in values)
-
     # GH16012
     # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # isin is faster for small sizes
 
+    # GH60678
+    # Ensure values don't contain <NA>, otherwise it throws exception with np.in1d
+
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
-        and not values_contains_NA
+        and not any(v is NA for v in values)
     ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
