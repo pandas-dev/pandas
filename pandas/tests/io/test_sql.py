@@ -4389,6 +4389,8 @@ def test_bytes_column(con, dtype_backend, request):
         if "postgres" in con and "psycopg2" in con:
             if dtype_backend == "numpy_nullable":
                 dtype = pd.StringDtype()
+            elif dtype_backend == lib.no_default and pd.options.future.infer_string:
+                dtype = pd.StringDtype(storage="pyarrow", na_value=np.nan)
 
     expected = DataFrame([{"a": val}], dtype=dtype)
     df = pd.read_sql(
