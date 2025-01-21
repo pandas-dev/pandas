@@ -19,37 +19,37 @@ General terminology translation
     :header: "pandas", "SPSS"
     :widths: 20, 20
 
-    ``DataFrame``, data file
+    :class:`DataFrame`, data file
     column, variable
     row, case
     groupby, split file
-    ``NaN``, system-missing
+    :class:`NaN`, system-missing
 
-``DataFrame``
+:class:`DataFrame`
 ~~~~~~~~~~~~~
 
-A ``DataFrame`` in pandas is analogous to an SPSS data file - a two-dimensional
+A :class:`DataFrame` in pandas is analogous to an SPSS data file - a two-dimensional
 data source with labeled columns that can be of different types. As will be shown in this
 document, almost any operation that can be performed in SPSS can also be accomplished in pandas.
 
-``Series``
+:class:`Series`
 ~~~~~~~~~~
 
-A ``Series`` is the data structure that represents one column of a ``DataFrame``. SPSS doesn't have a
-separate data structure for a single variable, but in general, working with a ``Series`` is analogous
+A :class:`Series` is the data structure that represents one column of a :class:`DataFrame`. SPSS doesn't have a
+separate data structure for a single variable, but in general, working with a :class:`Series` is analogous
 to working with a variable in SPSS.
 
-``Index``
+:class:`Index`
 ~~~~~~~~~
 
-Every ``DataFrame`` and ``Series`` has an ``Index`` -- labels on the *rows* of the data. SPSS does not
+Every :class:`DataFrame` and :class:`Series` has an :class:`Index` -- labels on the *rows* of the data. SPSS does not
 have an exact analogue, as cases are simply numbered sequentially from 1. In pandas, if no index is
-specified, a ``RangeIndex`` is used by default (first row = 0, second row = 1, and so on).
+specified, a :class:`RangeIndex` is used by default (first row = 0, second row = 1, and so on).
 
-While using a labeled ``Index`` or ``MultiIndex`` can enable sophisticated analyses and is ultimately an
-important part of pandas to understand, for this comparison we will essentially ignore the ``Index`` and
-just treat the ``DataFrame`` as a collection of columns. Please see the :ref:`indexing documentation<indexing>`
-for much more on how to use an ``Index`` effectively.
+While using a labeled :class:`Index` or :class:`MultiIndex` can enable sophisticated analyses and is ultimately an
+important part of pandas to understand, for this comparison we will essentially ignore the :class:`Index` and
+just treat the :class:`DataFrame` as a collection of columns. Please see the :ref:`indexing documentation<indexing>`
+for much more on how to use an :class:`Index` effectively.
 
 
 Copies vs. in place operations
@@ -81,7 +81,7 @@ In SPSS, you would use File > Open > Data to import a CSV file:
 
 The pandas equivalent would use :func:`read_csv`:
 
-.. ipython:: python
+.. code-block:: python
 
    url = (
        "https://raw.githubusercontent.com/pandas-dev"
@@ -116,7 +116,7 @@ In SPSS, filtering is done through Data > Select Cases:
 
 In pandas, boolean indexing can be used:
 
-.. ipython:: python
+.. code-block:: python
 
     tips[tips["total_bill"] > 10]
 
@@ -133,7 +133,7 @@ In SPSS, sorting is done through Data > Sort Cases:
 
 In pandas, this would be written as:
 
-.. ipython:: python
+.. code-block:: python
 
     tips.sort_values(["sex", "total_bill"])
 
@@ -194,7 +194,7 @@ In SPSS, split-file analysis is done through Data > Split File:
 
 The pandas equivalent would be:
 
-.. ipython:: python
+.. code-block:: python
 
     tips.groupby("sex")[["total_bill", "tip"]].agg(["mean", "std", "min", "max"])
 
