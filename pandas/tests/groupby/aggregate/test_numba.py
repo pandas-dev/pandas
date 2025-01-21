@@ -186,6 +186,23 @@ def test_multifunc_numba_vs_cython_frame(agg_kwargs):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("func", ["sum", "mean"])
+def test_multifunc_numba_vs_cython_frame_noskipna(func):
+    pytest.importorskip("numba")
+    data = DataFrame(
+        {
+            0: ["a", "a", "b", "b", "a"],
+            1: [1.0, np.nan, 3.0, 4.0, 5.0],
+            2: [1, 2, 3, 4, 5],
+        },
+        columns=[0, 1, 2],
+    )
+    grouped = data.groupby(0)
+    result = grouped.agg(func, skipna=False, engine="numba")
+    expected = grouped.agg(func, skipna=False, engine="cython")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "agg_kwargs,expected_func",
     [

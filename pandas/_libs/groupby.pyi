@@ -66,6 +66,7 @@ def group_sum(
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_prod(
     out: np.ndarray,  # int64float_t[:, ::1]
@@ -115,6 +116,7 @@ def group_mean(
     is_datetimelike: bool = ...,  # bint
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_ohlc(
     out: np.ndarray,  # floatingintuint_t[:, ::1]
