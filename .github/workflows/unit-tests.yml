@@ -107,7 +107,7 @@ jobs:
 
     services:
       mysql:
-        image: mysql:8
+        image: mysql:9
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: pandas
@@ -120,7 +120,7 @@ jobs:
           - 3306:3306
 
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           PGUSER: postgres
           POSTGRES_USER: postgres
@@ -135,7 +135,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:5.0.0
+        image: motoserver/moto:5.0.27
         env:
           AWS_ACCESS_KEY_ID: foobar_key
           AWS_SECRET_ACCESS_KEY: foobar_secret
@@ -242,15 +242,14 @@ jobs:
       - name: Build environment and Run Tests
         # https://github.com/numpy/numpy/issues/24703#issuecomment-1722379388
         run: |
-          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
+          /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
           python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
-          export PANDAS_CI=1
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
@@ -259,7 +258,7 @@ jobs:
   Linux-Musl:
     runs-on: ubuntu-22.04
     container:
-      image: quay.io/pypa/musllinux_1_1_x86_64
+      image: quay.io/pypa/musllinux_1_2_x86_64
     steps:
       - name: Checkout pandas Repo
         # actions/checkout does not work since it requires node
@@ -281,7 +280,7 @@ jobs:
           apk add musl-locales
       - name: Build environment
         run: |
-          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
+          /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
@@ -291,8 +290,7 @@ jobs:
       - name: Run Tests
         run: |
           . ~/virtualenvs/pandas-dev/bin/activate
-          export PANDAS_CI=1
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
@@ -350,15 +348,14 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13-dev'
+          python-version: '3.14-dev'
 
       - name: Build Environment
         run: |
           python --version
           python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
-          python -m pip install versioneer[toml]
-          python -m pip install python-dateutil tzdata cython hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
+          python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
           python -m pip list
 
@@ -375,7 +372,7 @@ jobs:
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-python-freethreading-dev
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-python-freethreading-dev
       cancel-in-progress: true
 
     env:
@@ -396,14 +393,11 @@ jobs:
           nogil: true
 
       - name: Build Environment
-        # TODO: Once numpy 2.2.1 is out, don't install nightly version
-        # Tests segfault with numpy 2.2.0: https://github.com/numpy/numpy/pull/27955
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
-          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy
-          python -m pip install versioneer[toml]
-          python -m pip install python-dateutil pytz tzdata hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
+          python -m pip install --upgrade pip setuptools wheel numpy meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython
+          python -m pip install versioneer[toml] python-dateutil pytz tzdata hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
           python -m pip list
 
