@@ -83,7 +83,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
         -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
-        -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.n GL08" \
