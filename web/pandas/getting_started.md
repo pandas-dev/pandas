@@ -22,7 +22,7 @@ by [Wes McKinney](https://wesmckinney.com/), creator of pandas.
 
 ## Videos
 
-<iframe 
+<iframe
   src="https://www.youtube.com/embed/_T8LGqJtuGc"
   style="width: 100%; max-width: 560px; height: 315px;"
   frameborder="0"
