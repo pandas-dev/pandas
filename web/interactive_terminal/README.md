@@ -28,7 +28,8 @@ This folder contains configuration files for the interactive terminal powered by
 - `jupyter_lite_config.json`: build time configuration, used when building the assets with the `jupyter lite build` command
 - `jupyter-lite.json` run time configuration applied when launching the application in the browser
 
-The interactive `pandas` terminal application enables a couple of optimizations to only include the `repl` app in the generated static assets.
+This interactive `pandas` JupyterLite deployment enables a couple of optimizations to only include the `repl` app in the generated static assets, and disables source maps, which can make the assets smaller and faster to load, at the cost of
+debugging capabilities.
 
 To learn more about it, check out the JupyterLite documentation:
 
