@@ -22,10 +22,13 @@ by [Wes McKinney](https://wesmckinney.com/), creator of pandas.
 
 ## Videos
 
-<iframe width="560" height="315" frameborder="0"
-src="https://www.youtube.com/embed/_T8LGqJtuGc"
-allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-allowfullscreen></iframe>
+<iframe 
+  src="https://www.youtube.com/embed/_T8LGqJtuGc"
+  style="width: 100%; max-width: 560px; height: 315px;"
+  frameborder="0"
+  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+  allowfullscreen
+></iframe>
 
 ## Cheat sheet
 
