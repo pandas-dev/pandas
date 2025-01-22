@@ -38,7 +38,6 @@ from pandas._libs import (
     writers as libwriters,
 )
 from pandas._libs.lib import is_string_array
-from pandas._libs.missing import NA
 from pandas._libs.tslibs import timezones
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -3030,15 +3029,6 @@ class GenericFixed(Fixed):
             ret = node[0][start:stop]
             dtype = getattr(attrs, "value_type", None)
             if dtype is not None:
-                if dtype == "str[python]":
-                    dtype = StringDtype("python", np.nan)
-                elif dtype == "string[python]":
-                    dtype = StringDtype("python", NA)
-                elif dtype == "str[pyarrow]":
-                    dtype = StringDtype("pyarrow", np.nan)
-                else:
-                    assert dtype == "string[pyarrow]"
-                    dtype = StringDtype("pyarrow", NA)
                 ret = pd_array(ret, dtype=dtype)
         else:
             dtype = getattr(attrs, "value_type", None)
@@ -3283,15 +3273,7 @@ class GenericFixed(Fixed):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value.to_numpy())
             node = getattr(self.group, key)
-            if value.dtype == StringDtype("python", np.nan):
-                node._v_attrs.value_type = "str[python]"
-            elif value.dtype == StringDtype("python", NA):
-                node._v_attrs.value_type = "string[python]"
-            elif value.dtype == StringDtype("pyarrow", np.nan):
-                node._v_attrs.value_type = "str[pyarrow]"
-            else:
-                assert value.dtype == StringDtype("pyarrow", NA)
-                node._v_attrs.value_type = "string[pyarrow]"
+            node._v_attrs.value_type = str(value.dtype)
         elif empty_array:
             self.write_array_empty(key, value)
         else:

@@ -243,7 +243,8 @@ def test_put_str_frame(setup_path, performance_warning, string_dtype_arguments):
         _maybe_remove(store, "df")
 
         store.put("df", df)
-        expected = df
+        expected_dtype = "str" if dtype.na_value is np.nan else "string"
+        expected = df.astype(expected_dtype)
         result = store.get("df")
         tm.assert_frame_equal(result, expected)
 
@@ -256,7 +257,8 @@ def test_put_str_series(setup_path, performance_warning, string_dtype_arguments)
         _maybe_remove(store, "df")
 
         store.put("ser", ser)
-        expected = ser
+        expected_dtype = "str" if dtype.na_value is np.nan else "string"
+        expected = ser.astype(expected_dtype)
         result = store.get("ser")
         tm.assert_series_equal(result, expected)
 
