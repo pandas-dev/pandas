@@ -700,18 +700,19 @@ def group_sum(
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
     bint is_datetimelike=False,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0 using Kahan summation
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        sum_t val, t, y
+        sum_t val, t, y, nan_val
         sum_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
-        bint isna_entry
+        bint isna_entry, isna_result
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -722,6 +723,15 @@ def group_sum(
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
+    if uses_mask:
+        nan_val = 0
+    elif is_datetimelike:
+        nan_val = NPY_NAT
+    elif sum_t is int64_t or sum_t is uint64_t:
+        # This has no effect as int64 can't be nan. Setting to 0 to avoid type error
+        nan_val = 0
+    else:
+        nan_val = NAN
 
     with nogil(sum_t is not object):
         for i in range(N):
@@ -736,8 +746,16 @@ def group_sum(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
+                    isna_result = result_mask[lab, j]
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
+                    isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
+
+                if not skipna and isna_result:
+                    # If sum is already NA, don't add to it. This is important for
+                    # datetimelikebecause adding a value to NPY_NAT may not result
+                    # in a NPY_NAT
+                    continue
 
                 if not isna_entry:
                     nobs[lab, j] += 1
@@ -765,6 +783,11 @@ def group_sum(
                             # because of no gil
                             compensation[lab, j] = 0
                         sumx[lab, j] = t
+                elif not skipna:
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        sumx[lab, j] = nan_val
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, sumx
@@ -910,7 +933,7 @@ def group_var(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-@cython.cpow
+@cython.cpow(True)
 def group_skew(
     float64_t[:, ::1] out,
     int64_t[::1] counts,
@@ -961,7 +984,7 @@ def group_skew(
                     isna_entry = _treat_as_na(val, False)
 
                 if not isna_entry:
-                    # Based on RunningStats::Push from
+                    # Running stats update based on RunningStats::Push from
                     #  https://www.johndcook.com/blog/skewness_kurtosis/
                     n1 = nobs[lab, j]
                     n = n1 + 1
@@ -997,6 +1020,100 @@ def group_skew(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
+@cython.cpow(True)
+def group_kurt(
+    float64_t[:, ::1] out,
+    int64_t[::1] counts,
+    ndarray[float64_t, ndim=2] values,
+    const intp_t[::1] labels,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
+) -> None:
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        int64_t[:, ::1] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = mask is not None
+        float64_t[:, ::1] M1, M2, M3, M4
+        float64_t delta, delta_n, delta_n2, term1, val
+        int64_t n1, n
+        float64_t ct, num, den, adj
+
+    if len_values != len_labels:
+        raise ValueError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    # M1, M2, M3 and M4 correspond to 1st, 2nd, 3rd and 4th Moments
+    M1 = np.zeros((<object>out).shape, dtype=np.float64)
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    M3 = np.zeros((<object>out).shape, dtype=np.float64)
+    M4 = np.zeros((<object>out).shape, dtype=np.float64)
+
+    N, K = (<object>values).shape
+
+    out[:, :] = 0.0
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
+
+                if not isna_entry:
+                    # Running stats update based on RunningStats::Push from
+                    #  https://www.johndcook.com/blog/skewness_kurtosis/
+                    n1 = nobs[lab, j]
+                    n = n1 + 1
+
+                    nobs[lab, j] = n
+                    delta = val - M1[lab, j]
+                    delta_n = delta / n
+                    delta_n2 = delta_n * delta_n
+                    term1 = delta * delta_n * n1
+
+                    M1[lab, j] += delta_n
+                    M4[lab, j] += (term1 * delta_n2 * (n*n - 3*n + 3)
+                                   + 6 * delta_n2 * M2[lab, j]
+                                   - 4 * delta_n * M3[lab, j])
+                    M3[lab, j] += term1 * delta_n * (n - 2) - 3 * delta_n * M2[lab, j]
+                    M2[lab, j] += term1
+                elif not skipna:
+                    M1[lab, j] = NaN
+                    M2[lab, j] = NaN
+                    M3[lab, j] = NaN
+                    M4[lab, j] = NaN
+
+        for i in range(ngroups):
+            for j in range(K):
+                ct = <float64_t>nobs[i, j]
+                if ct < 4:
+                    if result_mask is not None:
+                        result_mask[i, j] = 1
+                    out[i, j] = NaN
+                elif M2[i, j] == 0:
+                    out[i, j] = 0
+                else:
+                    num = ct * (ct + 1) * (ct - 1) * M4[i, j]
+                    den = (ct - 2) * (ct - 3) * M2[i, j] ** 2
+                    adj = 3.0 * (ct - 1) ** 2 / ((ct - 2) * (ct - 3))
+                    out[i, j] = num / den - adj
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_mean(
     mean_t[:, ::1] out,
     int64_t[::1] counts,
@@ -1006,6 +1123,7 @@ def group_mean(
     bint is_datetimelike=False,
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
 ) -> None:
     """
     Compute the mean per label given a label assignment for each value.
@@ -1031,6 +1149,8 @@ def group_mean(
         Mask of the input values.
     result_mask : ndarray[bool, ndim=2], optional
         Mask of the out array
+    skipna : bool, optional
+        If True, ignore nans in `values`.
 
     Notes
     -----
@@ -1074,6 +1194,16 @@ def group_mean(
             for j in range(K):
                 val = values[i, j]
 
+                if not skipna and (
+                    (uses_mask and result_mask[lab, j]) or
+                    (is_datetimelike and sumx[lab, j] == NPY_NAT) or
+                    _treat_as_na(sumx[lab, j], False)
+                ):
+                    # If sum is already NA, don't add to it. This is important for
+                    # datetimelike because adding a value to NPY_NAT may not result
+                    # in NPY_NAT
+                    continue
+
                 if uses_mask:
                     isna_entry = mask[i, j]
                 elif is_datetimelike:
@@ -1097,6 +1227,14 @@ def group_mean(
                         # because of no gil
                         compensation[lab, j] = 0.
                     sumx[lab, j] = t
+                elif not skipna:
+                    # Set the nobs to 0 so that in case of datetimelike,
+                    # dividing NPY_NAT by nobs may not result in a NPY_NAT
+                    nobs[lab, j] = 0
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        sumx[lab, j] = nan_val
 
         for i in range(ncounts):
             for j in range(K):
