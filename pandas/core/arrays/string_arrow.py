@@ -481,7 +481,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 return result.to_numpy(np.bool_, na_value=False)
         return result
 
-    def __pos__(self) -> None:
+    def __pos__(self) -> Self:
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
 
