@@ -422,6 +422,98 @@ def test_mean_on_timedelta():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, dtype, result_dtype",
+    [
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "float64", "float64"),
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "Float64", "Float64"),
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "Int64", "Float64"),
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "timedelta64[ns]", "timedelta64[ns]"),
+        (
+            pd.to_datetime(
+                [
+                    "2019-05-09",
+                    pd.NaT,
+                    "2019-05-11",
+                    "2019-05-12",
+                    "2019-05-13",
+                    "2019-05-14",
+                    "2019-05-15",
+                    "2019-05-16",
+                    "2019-05-17",
+                    "2019-05-18",
+                ]
+            ),
+            "datetime64[ns]",
+            "datetime64[ns]",
+        ),
+    ],
+)
+def test_mean_skipna(values, dtype, result_dtype, skipna):
+    # GH#15675
+    df = DataFrame(
+        {
+            "val": values,
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": dtype})
+    # We need to recast the expected values to the result_dtype because
+    # Series.mean() changes the dtype to float64/object depending on the input dtype
+    expected = (
+        df.groupby("cat")["val"]
+        .apply(lambda x: x.mean(skipna=skipna))
+        .astype(result_dtype)
+    )
+    result = df.groupby("cat")["val"].mean(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "float64"),
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "Float64"),
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "Int64"),
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "timedelta64[ns]"),
+    ],
+)
+def test_sum_skipna(values, dtype, skipna):
+    # GH#15675
+    df = DataFrame(
+        {
+            "val": values,
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": dtype})
+    # We need to recast the expected values to the original dtype because
+    # Series.sum() changes the dtype
+    expected = (
+        df.groupby("cat")["val"].apply(lambda x: x.sum(skipna=skipna)).astype(dtype)
+    )
+    result = df.groupby("cat")["val"].sum(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+def test_sum_skipna_object(skipna):
+    # GH#15675
+    df = DataFrame(
+        {
+            "val": ["a", "b", np.nan, "d", "e", "f", "g", "h", "i", "j"],
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": object})
+    if skipna:
+        expected = Series(
+            ["aegi", "bdfhj"], index=pd.Index(["A", "B"], name="cat"), name="val"
+        ).astype(object)
+    else:
+        expected = Series(
+            [np.nan, "bdfhj"], index=pd.Index(["A", "B"], name="cat"), name="val"
+        ).astype(object)
+    result = df.groupby("cat")["val"].sum(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
 def test_cython_median():
     arr = np.random.default_rng(2).standard_normal(1000)
     arr[::2] = np.nan
@@ -1114,6 +1206,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
         "median",
         "mean",
         "skew",
+        "kurt",
         "std",
         "var",
         "sem",
@@ -1127,8 +1220,8 @@ def test_regression_allowlist_methods(op, skipna, sort):
 
     grouped = frame.groupby(level=0, sort=sort)
 
-    if op == "skew":
-        # skew has skipna
+    if op in ["skew", "kurt", "sum", "mean"]:
+        # skew, kurt, sum, mean have skipna
         result = getattr(grouped, op)(skipna=skipna)
         expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(skipna=skipna))
         if sort:
