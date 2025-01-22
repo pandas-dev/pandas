@@ -136,8 +136,8 @@ class TestFeather:
     def test_path_pathlib(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
@@ -145,8 +145,8 @@ class TestFeather:
     def test_path_localpath(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
