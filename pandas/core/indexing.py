@@ -160,7 +160,7 @@ class IndexingMixin:
 
         .. versionchanged:: 3.0
 
-           Returning a tuple from a callable is deprecated.
+           Callables which return a tuple are deprecated as input.
 
         ``.iloc[]`` is primarily integer position based (from ``0`` to
         ``length-1`` of the axis), but may also be used with a boolean

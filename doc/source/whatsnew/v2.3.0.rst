@@ -36,6 +36,7 @@ Other enhancements
   when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
   updated to work correctly with NumPy >= 2 (:issue:`57739`)
 - :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype`` (:issue:`60663`)
+- The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns when backed by PyArrow (:issue:`60633`)
 - The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
 
 .. ---------------------------------------------------------------------------
@@ -175,7 +176,6 @@ Other
 ^^^^^
 - Fixed usage of ``inspect`` when the optional dependencies ``pyarrow`` or ``jinja2``
   are not installed (:issue:`60196`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.contributors:

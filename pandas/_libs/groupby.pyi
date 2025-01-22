@@ -66,6 +66,7 @@ def group_sum(
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_prod(
     out: np.ndarray,  # int64float_t[:, ::1]
@@ -97,6 +98,15 @@ def group_skew(
     result_mask: np.ndarray | None = ...,
     skipna: bool = ...,
 ) -> None: ...
+def group_kurt(
+    out: np.ndarray,  # float64_t[:, ::1]
+    counts: np.ndarray,  # int64_t[::1]
+    values: np.ndarray,  # ndarray[float64_T, ndim=2]
+    labels: np.ndarray,  # const intp_t[::1]
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
+) -> None: ...
 def group_mean(
     out: np.ndarray,  # floating[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
@@ -106,6 +116,7 @@ def group_mean(
     is_datetimelike: bool = ...,  # bint
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_ohlc(
     out: np.ndarray,  # floatingintuint_t[:, ::1]

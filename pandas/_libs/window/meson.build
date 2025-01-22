@@ -4,8 +4,8 @@ py.extension_module(
     cython_args: ['-X always_allow_keywords=true'],
     include_directories: [inc_np, inc_pd],
     subdir: 'pandas/_libs/window',
-    override_options : ['cython_language=cpp'],
-    install: true
+    override_options: ['cython_language=cpp'],
+    install: true,
 )
 
 py.extension_module(
@@ -14,18 +14,11 @@ py.extension_module(
     cython_args: ['-X always_allow_keywords=true'],
     include_directories: [inc_np, inc_pd],
     subdir: 'pandas/_libs/window',
-    install: true
+    install: true,
 )
 
-sources_to_install = [
-    '__init__.py',
-    'aggregations.pyi',
-    'indexers.pyi'
-]
+sources_to_install = ['__init__.py', 'aggregations.pyi', 'indexers.pyi']
 
-foreach source: sources_to_install
-    py.install_sources(
-        source,
-        subdir: 'pandas/_libs/window'
-    )
+foreach source : sources_to_install
+    py.install_sources(source, subdir: 'pandas/_libs/window')
 endforeach
