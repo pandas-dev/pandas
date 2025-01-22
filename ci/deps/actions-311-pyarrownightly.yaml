@@ -23,7 +23,7 @@ dependencies:
 
   - pip:
     - "tzdata>=2022.7"
-    - "--extra-index-url https://pypi.fury.io/arrow-nightlies/"
+    - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--prefer-binary"
     - "--pre"
     - "pyarrow"

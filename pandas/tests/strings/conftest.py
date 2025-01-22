@@ -68,6 +68,7 @@ _any_string_method = [
             "get_dummies",
             "isalnum",
             "isalpha",
+            "isascii",
             "isdecimal",
             "isdigit",
             "islower",
