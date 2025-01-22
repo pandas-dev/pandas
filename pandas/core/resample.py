@@ -1440,12 +1440,61 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @final
-    @doc(GroupBy.sem)
     def sem(
         self,
         ddof: int = 1,
         numeric_only: bool = False,
     ):
+        """
+        Compute standard error of the mean of groups, excluding missing values.
+
+        For multiple groupings, the result index will be a MultiIndex.
+
+        Parameters
+        ----------
+        ddof : int, default 1
+            Degrees of freedom.
+
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
+
+        Returns
+        -------
+        Series or DataFrame
+            Standard error of the mean of values within each group.
+
+        See Also
+        --------
+        DataFrame.sem : Return unbiased standard error of the mean over requested axis.
+        Series.sem : Return unbiased standard error of the mean over requested axis.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 8],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").sem()
+        2023-01-01    0.577350
+        2023-02-01    1.527525
+        Freq: MS, dtype: float64
+        """
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
     @final
