@@ -12,6 +12,7 @@ First make sure `jupyterlite` and a kernel are installed:
 
 ```bash
 python -m pip install jupyterlite
+python -m pip install jupyterlite-pyodide-kernel
 ```
 
 Then in `web/interactive_terminal`, run the following command:
