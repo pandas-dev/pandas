@@ -258,6 +258,7 @@ class ArrowExtensionArray(
     Parameters
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray
+        The input data to initialize the ArrowExtensionArray.
 
     Attributes
     ----------
@@ -270,6 +271,12 @@ class ArrowExtensionArray(
     Returns
     -------
     ArrowExtensionArray
+
+    See Also
+    --------
+    array : Create a Pandas array with a specified dtype.
+    DataFrame.to_feather : Write a DataFrame to the binary Feather format.
+    read_feather : Load a feather-format object from the file path.
 
     Notes
     -----
