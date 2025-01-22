@@ -455,7 +455,10 @@ jobs:
           node-version: '20'
 
       - name: Set up Pyodide virtual environment
+        env:
+          pyodide-version: '0.27.1'
         run: |
+          pyodide xbuildenv install ${{ env.pyodide-version }}
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
           pip install dist/*.whl
