@@ -479,7 +479,7 @@ def _array_strptime_with_fallback(
     return Index(result, dtype=result.dtype, name=name)
 
 
-def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> DatetimeIndex:
+def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     """
     to_datetime specialized to the case where a 'unit' is passed.
 
