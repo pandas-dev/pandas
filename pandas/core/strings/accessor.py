@@ -29,9 +29,9 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_re,
-    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -2525,8 +2525,8 @@ class StringMethods(NoNewAttributesMixin):
         """
         from pandas.core.frame import DataFrame
 
-        if is_string_dtype(dtype):
-            raise ValueError("string dtype not supported, please use a numeric dtype")
+        if dtype is not None and not (is_numeric_dtype(dtype) or is_bool_dtype(dtype)):
+            raise ValueError("Only numeric or boolean dtypes are supported for 'dtype'")
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
         result, name = self._data.array._str_get_dummies(sep, dtype)
