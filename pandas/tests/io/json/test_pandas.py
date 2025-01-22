@@ -1,6 +1,5 @@
 import datetime
 from datetime import timedelta
-from decimal import Decimal
 from io import StringIO
 import json
 import os
@@ -1413,6 +1412,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.single_cpu
+    @pytest.mark.network
     @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
         # GH17200
@@ -2012,6 +2012,7 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.single_cpu
+    @pytest.mark.network
     def test_to_s3(self, s3_public_bucket, s3so):
         # GH 28375
         mock_bucket_name, target_file = s3_public_bucket.name, "test.json"
@@ -2025,12 +2026,8 @@ class TestPandasContainer:
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
 
-    def test_json_pandas_nulls(self, nulls_fixture, request):
+    def test_json_pandas_nulls(self, nulls_fixture):
         # GH 31615
-        if isinstance(nulls_fixture, Decimal):
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.applymarker(mark)
-
         expected_warning = None
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "

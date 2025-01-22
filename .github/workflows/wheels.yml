@@ -94,6 +94,7 @@ jobs:
         buildplat:
         - [ubuntu-22.04, manylinux_x86_64]
         - [ubuntu-22.04, musllinux_x86_64]
+        - [ubuntu-24.04-arm, manylinux_aarch64]
         - [macos-13, macosx_x86_64]
         # Note: M1 images on Github Actions start from macOS 14
         - [macos-14, macosx_arm64]
