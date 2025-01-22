@@ -3,7 +3,6 @@
   "jupyter-config-data": {
     "appName": "Pandas REPL",
     "appUrl": "./repl",
-    "disabledExtensions": ["@jupyter-widgets/jupyterlab-manager"],
     "enableMemoryStorage": true,
     "settingsStorageDrivers": ["memoryStorageDriver"],
     "contentsStorageDrivers": ["memoryStorageDriver"]
