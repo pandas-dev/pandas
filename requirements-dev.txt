@@ -84,12 +84,9 @@ markdown
 feedparser
 pyyaml
 requests
-
-# keep in sync with environment.yml
-jupyterlite-core>=0.5.0,<0.6,0
-jupyterlite-pyodide-kernel==0.5.2
-
 pygments
+jupyterlite-core>=0.5.0,<0.6.0
+jupyterlite-pyodide-kernel==0.5.2
 adbc-driver-postgresql>=0.10.0
 adbc-driver-sqlite>=0.8.0
 typing_extensions; python_version<"3.11"
