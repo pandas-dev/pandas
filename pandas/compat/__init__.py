@@ -14,18 +14,9 @@ import platform
 import sys
 from typing import TYPE_CHECKING
 
-from pandas.compat._constants import (
-    IS64,
-    ISMUSL,
-    PY310,
-    PY311,
-    PY312,
-    PYPY,
-)
 import pandas.compat.compressors
 from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (
-    HAS_PYARROW,
     pa_version_under10p1,
     pa_version_under11p0,
     pa_version_under13p0,
@@ -34,6 +25,7 @@ from pandas.compat.pyarrow import (
     pa_version_under16p0,
     pa_version_under17p0,
     pa_version_under18p0,
+    pa_version_under19p0,
 )
 
 if TYPE_CHECKING:
@@ -193,11 +185,5 @@ __all__ = [
     "pa_version_under16p0",
     "pa_version_under17p0",
     "pa_version_under18p0",
-    "HAS_PYARROW",
-    "IS64",
-    "ISMUSL",
-    "PY310",
-    "PY311",
-    "PY312",
-    "PYPY",
+    "pa_version_under19p0",
 ]
