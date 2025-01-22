@@ -84,6 +84,7 @@ jobs:
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
+            pandas_future_infer_string: "1"
             platform: ubuntu-22.04
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.env_file) }}
