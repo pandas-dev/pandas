@@ -763,8 +763,8 @@ class TestAstype:
         item = result.iloc[0]
         if frame_or_series is DataFrame:
             item = item.iloc[0]
-        if using_infer_string:
-            assert item is pd.NA
+
+        assert item is pd.NA
 
         # Check that Series/DataFrame.astype matches DatetimeArray.astype
         result = obj.astype("str")
