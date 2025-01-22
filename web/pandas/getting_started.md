@@ -31,12 +31,13 @@ allowfullscreen></iframe>
 
 [pandas cheat sheet](https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf)
 
-## (Experimental): try `pandas` in your browser
+## Try pandas in your browser (experimental)
 
-You can try `pandas` in your browser with the following interactive shell
-without needing to install anything on your computer.
+You can try pandas in your browser with the following interactive shell
+without needing to install anything on your system.
 
 **Please note it can take a while before the shell is initialised and ready to run commands.**
+
 **Running it requires a reasonable amount of bandwidth and resources, so it may not work properly on all devices or networks.**
 
 <iframe
