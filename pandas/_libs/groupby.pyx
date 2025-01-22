@@ -831,13 +831,7 @@ def group_prod(
     prodx = np.ones((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
-    if uses_mask:
-        nan_val = 0
-    elif int64float_t is int64_t or int64float_t is uint64_t:
-        # This has no effect as int64 can't be nan. Setting to 0 to avoid type error
-        nan_val = 0
-    else:
-        nan_val = NAN
+    nan_val = _get_na_val(<int64float_t>0, False)
 
     with nogil:
         for i in range(N):
