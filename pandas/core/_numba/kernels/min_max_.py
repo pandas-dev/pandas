@@ -80,7 +80,7 @@ def sliding_min_max(
     return output, na_pos
 
 
-@numba.jit(nopython=True, nogil=False, parallel=False)
+@numba.jit(nopython=True, nogil=True, parallel=False)
 def grouped_min_max(
     values: np.ndarray,
     result_dtype: np.dtype,
