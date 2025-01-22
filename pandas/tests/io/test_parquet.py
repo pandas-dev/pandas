@@ -104,10 +104,7 @@ def fp(request):
 
 @pytest.fixture
 def df_compat():
-    # TODO(infer_string) should this give str columns?
-    return pd.DataFrame(
-        {"A": [1, 2, 3], "B": "foo"}, columns=pd.Index(["A", "B"], dtype=object)
-    )
+    return pd.DataFrame({"A": [1, 2, 3], "B": "foo"}, columns=pd.Index(["A", "B"]))
 
 
 @pytest.fixture
