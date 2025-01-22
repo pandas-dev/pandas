@@ -2531,8 +2531,6 @@ class ArrowExtensionArray(
         else:
             dummies_dtype = np.bool_
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
-        if dtype == str:
-            dummies[:] = False
         dummies[indices] = True
         dummies = dummies.reshape((n_rows, n_cols))
         result = type(self)(pa.array(list(dummies)))
