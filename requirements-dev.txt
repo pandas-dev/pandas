@@ -86,7 +86,7 @@ pyyaml
 requests
 
 # keep in sync with environment.yml
-jupyterlite-core>0.5.0,<0.6,0
+jupyterlite-core>=0.5.0,<0.6,0
 jupyterlite-pyodide-kernel==0.5.2
 
 pygments

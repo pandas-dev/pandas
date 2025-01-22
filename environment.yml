@@ -122,7 +122,7 @@ dependencies:
   # 1. https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/#compatibility
   # 2. https://pyodide.org/en/stable/usage/packages-in-pyodide.html
   # We constrain/pin here to avoid breaking changes on rebuilds.
-  - jupyterlite-core>0.5.0,<0.6.0
+  - jupyterlite-core>=0.5.0,<0.6.0
   - jupyterlite-pyodide-kernel==0.5.2
 
   - pip:
