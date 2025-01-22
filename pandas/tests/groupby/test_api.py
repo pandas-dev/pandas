@@ -174,7 +174,7 @@ def test_frame_consistency(groupby_func):
     elif groupby_func in ("nunique",):
         exclude_expected = {"axis"}
     elif groupby_func in ("max", "min"):
-        exclude_expected = {"axis", "kwargs", "skipna"}
+        exclude_expected = {"axis", "kwargs"}
         exclude_result = {"min_count", "engine", "engine_kwargs"}
     elif groupby_func in ("sum", "mean", "std", "var"):
         exclude_expected = {"axis", "kwargs"}
@@ -234,7 +234,7 @@ def test_series_consistency(request, groupby_func):
     if groupby_func in ("any", "all"):
         exclude_expected = {"kwargs", "bool_only", "axis"}
     elif groupby_func in ("max", "min"):
-        exclude_expected = {"axis", "kwargs", "skipna"}
+        exclude_expected = {"axis", "kwargs"}
         exclude_result = {"min_count", "engine", "engine_kwargs"}
     elif groupby_func in ("sum", "mean", "std", "var"):
         exclude_expected = {"axis", "kwargs"}

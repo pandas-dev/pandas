@@ -3068,12 +3068,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @doc(
-        _groupby_agg_method_engine_template,
+        _groupby_agg_method_skipna_engine_template,
         fname="min",
         no=False,
         mc=-1,
         e=None,
         ek=None,
+        s=True,
         example=dedent(
             """\
         For SeriesGroupBy:
@@ -3113,6 +3114,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         numeric_only: bool = False,
         min_count: int = -1,
+        skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
@@ -3125,23 +3127,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 engine_kwargs,
                 min_periods=min_count,
                 is_max=False,
+                skipna=skipna,
             )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
+                skipna=skipna,
                 alias="min",
                 npfunc=np.min,
             )
 
     @final
     @doc(
-        _groupby_agg_method_engine_template,
+        _groupby_agg_method_skipna_engine_template,
         fname="max",
         no=False,
         mc=-1,
         e=None,
         ek=None,
+        s=True,
         example=dedent(
             """\
         For SeriesGroupBy:
@@ -3181,6 +3186,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         numeric_only: bool = False,
         min_count: int = -1,
+        skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
@@ -3193,11 +3199,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 engine_kwargs,
                 min_periods=min_count,
                 is_max=True,
+                skipna=skipna,
             )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
+                skipna=skipna,
                 alias="max",
                 npfunc=np.max,
             )

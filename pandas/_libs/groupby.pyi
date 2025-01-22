@@ -185,6 +185,7 @@ def group_max(
     is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_min(
     out: np.ndarray,  # groupby_t[:, ::1]
@@ -195,6 +196,7 @@ def group_min(
     is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_idxmin_idxmax(
     out: npt.NDArray[np.intp],

@@ -529,6 +529,62 @@ def test_sum_skipna_object(skipna):
         ("sem", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
         ("sem", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Float64", "Float64"),
         ("sem", [0, -1, 3, 4, 5, -6, 7, 8, 9, np.nan], "Int64", "Float64"),
+        ("min", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
+        ("min", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Float64", "Float64"),
+        ("min", [0, -1, 3, 4, 5, -6, 7, 8, 9, np.nan], "Int64", "Int64"),
+        (
+            "min",
+            [0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9],
+            "timedelta64[ns]",
+            "timedelta64[ns]",
+        ),
+        (
+            "min",
+            pd.to_datetime(
+                [
+                    "2019-05-09",
+                    pd.NaT,
+                    "2019-05-11",
+                    "2019-05-12",
+                    "2019-05-13",
+                    "2019-05-14",
+                    "2019-05-15",
+                    "2019-05-16",
+                    "2019-05-17",
+                    "2019-05-18",
+                ]
+            ),
+            "datetime64[ns]",
+            "datetime64[ns]",
+        ),
+        ("max", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
+        ("max", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Float64", "Float64"),
+        ("max", [0, -1, 3, 4, 5, -6, 7, 8, 9, np.nan], "Int64", "Int64"),
+        (
+            "max",
+            [0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9],
+            "timedelta64[ns]",
+            "timedelta64[ns]",
+        ),
+        (
+            "max",
+            pd.to_datetime(
+                [
+                    "2019-05-09",
+                    pd.NaT,
+                    "2019-05-11",
+                    "2019-05-12",
+                    "2019-05-13",
+                    "2019-05-14",
+                    "2019-05-15",
+                    "2019-05-16",
+                    "2019-05-17",
+                    "2019-05-18",
+                ]
+            ),
+            "datetime64[ns]",
+            "datetime64[ns]",
+        ),
     ],
 )
 def test_multifunc_skipna(func, values, dtype, result_dtype, skipna):
