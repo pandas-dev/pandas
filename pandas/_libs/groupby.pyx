@@ -62,7 +62,12 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept nogil:
+cdef float64_t median_linear_mask(
+    float64_t* a,
+    int n,
+    uint8_t* mask,
+    bint skipna=True
+) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -77,7 +82,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
             na_count += 1
 
     if na_count:
-        if na_count == n:
+        if na_count == n or not skipna:
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
@@ -104,7 +109,8 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
 cdef float64_t median_linear(
     float64_t* a,
     int n,
-    bint is_datetimelike=False
+    bint is_datetimelike=False,
+    bint skipna=True,
 ) noexcept nogil:
     cdef:
         int i, j, na_count = 0
@@ -125,7 +131,7 @@ cdef float64_t median_linear(
                 na_count += 1
 
     if na_count:
-        if na_count == n:
+        if na_count == n or not skipna:
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
@@ -186,6 +192,7 @@ def group_median_float64(
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint is_datetimelike=False,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -229,7 +236,7 @@ def group_median_float64(
 
                 for j in range(ngroups):
                     size = _counts[j + 1]
-                    result = median_linear_mask(ptr, size, ptr_mask)
+                    result = median_linear_mask(ptr, size, ptr_mask, skipna)
                     out[j, i] = result
 
                     if result != result:
@@ -244,7 +251,7 @@ def group_median_float64(
                 ptr += _counts[0]
                 for j in range(ngroups):
                     size = _counts[j + 1]
-                    out[j, i] = median_linear(ptr, size, is_datetimelike)
+                    out[j, i] = median_linear(ptr, size, is_datetimelike, skipna)
                     ptr += size
 
 

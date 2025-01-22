@@ -179,9 +179,7 @@ def test_frame_consistency(groupby_func):
     elif groupby_func in ("sum", "mean", "std", "var"):
         exclude_expected = {"axis", "kwargs"}
         exclude_result = {"engine", "engine_kwargs"}
-    elif groupby_func in ("median"):
-        exclude_expected = {"axis", "kwargs", "skipna"}
-    elif groupby_func in ("prod", "sem"):
+    elif groupby_func in ("median", "prod", "sem"):
         exclude_expected = {"axis", "kwargs"}
     elif groupby_func in ("bfill", "ffill"):
         exclude_expected = {"inplace", "axis", "limit_area"}
@@ -239,9 +237,7 @@ def test_series_consistency(request, groupby_func):
     elif groupby_func in ("sum", "mean", "std", "var"):
         exclude_expected = {"axis", "kwargs"}
         exclude_result = {"engine", "engine_kwargs"}
-    elif groupby_func in ("median"):
-        exclude_expected = {"axis", "kwargs", "skipna"}
-    elif groupby_func in ("prod", "sem"):
+    elif groupby_func in ("median", "prod", "sem"):
         exclude_expected = {"axis", "kwargs"}
     elif groupby_func in ("bfill", "ffill"):
         exclude_expected = {"inplace", "axis", "limit_area"}

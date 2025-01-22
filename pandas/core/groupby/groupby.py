@@ -2248,7 +2248,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="groupby")
 
     @final
-    def median(self, numeric_only: bool = False) -> NDFrameT:
+    def median(self, numeric_only: bool = False, skipna: bool = True) -> NDFrameT:
         """
         Compute median of groups, excluding missing values.
 
@@ -2262,6 +2262,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only no longer accepts ``None`` and defaults to False.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -2335,8 +2341,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x, copy=False).median(numeric_only=numeric_only),
+            alt=lambda x: Series(x, copy=False).median(
+                numeric_only=numeric_only, skipna=skipna
+            ),
             numeric_only=numeric_only,
+            skipna=skipna,
         )
         return result.__finalize__(self.obj, method="groupby")
 

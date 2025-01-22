@@ -13,6 +13,7 @@ def group_median_float64(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
     is_datetimelike: bool = ...,  # bint
+    skipna: bool = ...,
 ) -> None: ...
 def group_cumprod(
     out: np.ndarray,  # float64_t[:, ::1]
