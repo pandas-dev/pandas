@@ -1305,13 +1305,16 @@ class Styler(StylerRenderer):
         --------
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         >>> df.style.to_typst()  # doctest: +SKIP
-        #table(
-          columns: 3,
-          [], [A], [B],
 
-          [0], [1], [3],
-          [1], [2], [4],
-        )
+        .. code-block:: typst
+
+            #table(
+              columns: 3,
+              [], [A], [B],
+
+              [0], [1], [3],
+              [1], [2], [4],
+            )
         """
         obj = self._copy(deepcopy=True)
 
