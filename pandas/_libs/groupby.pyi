@@ -76,6 +76,7 @@ def group_prod(
     mask: np.ndarray | None,
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_var(
     out: np.ndarray,  # floating[:, ::1]
@@ -88,6 +89,7 @@ def group_var(
     result_mask: np.ndarray | None = ...,
     is_datetimelike: bool = ...,
     name: str = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_skew(
     out: np.ndarray,  # float64_t[:, ::1]

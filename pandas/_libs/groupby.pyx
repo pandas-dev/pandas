@@ -806,13 +806,14 @@ def group_prod(
     const uint8_t[:, ::1] mask,
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        int64float_t val
+        int64float_t val, nan_val
         int64float_t[:, ::1] prodx
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
@@ -825,6 +826,13 @@ def group_prod(
     prodx = np.ones((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
+    if uses_mask:
+        nan_val = 0
+    elif int64float_t is int64_t or int64float_t is uint64_t:
+        # This has no effect as int64 can't be nan. Setting to 0 to avoid type error
+        nan_val = 0
+    else:
+        nan_val = NAN
 
     with nogil:
         for i in range(N):
@@ -836,6 +844,13 @@ def group_prod(
             for j in range(K):
                 val = values[i, j]
 
+                if not skipna and (
+                    (uses_mask and result_mask[lab, j]) or
+                    _treat_as_na(prodx[lab, j], False)
+                ):
+                    # If prod is already NA, no need to update it
+                    continue
+
                 if uses_mask:
                     isna_entry = mask[i, j]
                 else:
@@ -844,6 +859,11 @@ def group_prod(
                 if not isna_entry:
                     nobs[lab, j] += 1
                     prodx[lab, j] *= val
+                elif not skipna:
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        prodx[lab, j] = nan_val
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, prodx
@@ -864,6 +884,7 @@ def group_var(
     uint8_t[:, ::1] result_mask=None,
     bint is_datetimelike=False,
     str name="var",
+    bint skipna=True,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -898,6 +919,16 @@ def group_var(
             for j in range(K):
                 val = values[i, j]
 
+                if not skipna and (
+                    (uses_mask and result_mask[lab, j]) or
+                    (is_datetimelike and out[lab, j] == NPY_NAT) or
+                    _treat_as_na(out[lab, j], False)
+                ):
+                    # If aggregate is already NA, don't add to it. This is important for
+                    # datetimelike because adding a value to NPY_NAT may not result
+                    # in a NPY_NAT
+                    continue
+
                 if uses_mask:
                     isna_entry = mask[i, j]
                 elif is_datetimelike:
@@ -913,6 +944,12 @@ def group_var(
                     oldmean = mean[lab, j]
                     mean[lab, j] += (val - oldmean) / nobs[lab, j]
                     out[lab, j] += (val - mean[lab, j]) * (val - oldmean)
+                elif not skipna:
+                    nobs[lab, j] = 0
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        out[lab, j] = NAN
 
         for i in range(ncounts):
             for j in range(K):

@@ -514,6 +514,42 @@ def test_sum_skipna_object(skipna):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "func, values, dtype, result_dtype",
+    [
+        ("prod", [0, 1, 3, np.nan, 4, 5, 6, 7, -8, 9], "float64", "float64"),
+        ("prod", [0, -1, 3, 4, 5, np.nan, 6, 7, 8, 9], "Float64", "Float64"),
+        ("prod", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Int64", "Int64"),
+        ("var", [0, -1, 3, 4, np.nan, 5, 6, 7, 8, 9], "float64", "float64"),
+        ("var", [0, 1, 3, -4, 5, 6, 7, -8, 9, np.nan], "Float64", "Float64"),
+        ("var", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "Int64", "Float64"),
+        ("std", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "float64", "float64"),
+        ("std", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "Float64", "Float64"),
+        ("std", [0, 1, 3, -4, 5, 6, 7, -8, 9, np.nan], "Int64", "Float64"),
+        ("sem", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
+        ("sem", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Float64", "Float64"),
+        ("sem", [0, -1, 3, 4, 5, -6, 7, 8, 9, np.nan], "Int64", "Float64"),
+    ],
+)
+def test_multifunc_skipna(func, values, dtype, result_dtype, skipna):
+    # GH#15675
+    df = DataFrame(
+        {
+            "val": values,
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": dtype})
+    # We need to recast the expected values to the result_dtype as some operations
+    # change the dtype
+    expected = (
+        df.groupby("cat")["val"]
+        .apply(lambda x: getattr(x, func)(skipna=skipna))
+        .astype(result_dtype)
+    )
+    result = getattr(df.groupby("cat")["val"], func)(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
 def test_cython_median():
     arr = np.random.default_rng(2).standard_normal(1000)
     arr[::2] = np.nan

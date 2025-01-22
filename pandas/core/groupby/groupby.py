@@ -2349,6 +2349,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
+        skipna: bool = True,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -2386,6 +2387,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -2441,14 +2448,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     engine_kwargs,
                     min_periods=0,
                     ddof=ddof,
+                    skipna=skipna,
                 )
             )
         else:
             return self._cython_agg_general(
                 "std",
-                alt=lambda x: Series(x, copy=False).std(ddof=ddof),
+                alt=lambda x: Series(x, copy=False).std(ddof=ddof, skipna=skipna),
                 numeric_only=numeric_only,
                 ddof=ddof,
+                skipna=skipna,
             )
 
     @final
@@ -2460,6 +2469,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
+        skipna: bool = True,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -2496,6 +2506,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -2550,13 +2566,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 engine_kwargs,
                 min_periods=0,
                 ddof=ddof,
+                skipna=skipna,
             )
         else:
             return self._cython_agg_general(
                 "var",
-                alt=lambda x: Series(x, copy=False).var(ddof=ddof),
+                alt=lambda x: Series(x, copy=False).var(ddof=ddof, skipna=skipna),
                 numeric_only=numeric_only,
                 ddof=ddof,
+                skipna=skipna,
             )
 
     @final
@@ -2686,7 +2704,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="value_counts")
 
     @final
-    def sem(self, ddof: int = 1, numeric_only: bool = False) -> NDFrameT:
+    def sem(
+        self, ddof: int = 1, numeric_only: bool = False, skipna: bool = True
+    ) -> NDFrameT:
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -2705,6 +2725,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -2780,9 +2806,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
         return self._cython_agg_general(
             "sem",
-            alt=lambda x: Series(x, copy=False).sem(ddof=ddof),
+            alt=lambda x: Series(x, copy=False).sem(ddof=ddof, skipna=skipna),
             numeric_only=numeric_only,
             ddof=ddof,
+            skipna=skipna,
         )
 
     @final
@@ -2959,7 +2986,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
     @final
-    def prod(self, numeric_only: bool = False, min_count: int = 0) -> NDFrameT:
+    def prod(
+        self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True
+    ) -> NDFrameT:
         """
         Compute prod of group values.
 
@@ -2975,6 +3004,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -3024,7 +3059,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   30   72
         """
         return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
+            numeric_only=numeric_only,
+            min_count=min_count,
+            skipna=skipna,
+            alias="prod",
+            npfunc=np.prod,
         )
 
     @final
