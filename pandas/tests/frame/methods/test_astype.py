@@ -744,7 +744,10 @@ class TestAstype:
         tm.assert_frame_equal(result, expected)
 
     def test_astype_dt64_to_string(
-        self, frame_or_series, tz_naive_fixture, using_infer_string
+        self,
+        frame_or_series,
+        tz_naive_fixture,
+        string_dtype_no_object,
     ):
         # GH#41409
         tz = tz_naive_fixture
@@ -754,28 +757,17 @@ class TestAstype:
         dta[0] = NaT
 
         obj = frame_or_series(dta)
-        result = obj.astype("string")
+        result = obj.astype(string_dtype_no_object)
 
         # Check that Series/DataFrame.astype matches DatetimeArray.astype
-        expected = frame_or_series(dta.astype("string"))
+        expected = frame_or_series(dta.astype(string_dtype_no_object))
         tm.assert_equal(result, expected)
 
         item = result.iloc[0]
         if frame_or_series is DataFrame:
             item = item.iloc[0]
 
-        assert item is pd.NA
-
-        # Check that Series/DataFrame.astype matches DatetimeArray.astype
-        result = obj.astype("str")
-        expected = frame_or_series(dta.astype("str"))
-        tm.assert_equal(result, expected)
-
-        item = result.iloc[0]
-        if frame_or_series is DataFrame:
-            item = item.iloc[0]
-        if using_infer_string:
-            assert item is np.nan
+        assert item is string_dtype_no_object.na_value
 
     def test_astype_td64_to_string(self, frame_or_series):
         # GH#41409
