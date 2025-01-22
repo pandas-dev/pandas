@@ -137,3 +137,7 @@ doc/source/savefig/
 # Interactive terminal generated files #
 ########################################
 .jupyterlite.doit.db
+
+# Pyodide/WASM related files #
+##############################
+/.pyodide-xbuildenv-*

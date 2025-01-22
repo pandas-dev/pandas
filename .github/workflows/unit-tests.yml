@@ -430,20 +430,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python for Pyodide
+      - name: Set up Python for pyodide-build
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11.3'
+          python-version: '3.12'
 
       - name: Set up Emscripten toolchain
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: '3.1.46'
+          version: '3.1.58'
           actions-cache-folder: emsdk-cache
 
       - name: Install pyodide-build
-        run: pip install "pyodide-build==0.25.1"
+        run: pip install "pyodide-build>=0.29.2"
 
       - name: Build pandas for Pyodide
         run: |
@@ -452,10 +452,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Set up Pyodide virtual environment
+        env:
+          pyodide-version: '0.27.1'
         run: |
+          pyodide xbuildenv install ${{ env.pyodide-version }}
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
           pip install dist/*.whl
