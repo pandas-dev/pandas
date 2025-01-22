@@ -316,7 +316,8 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    # if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+     # Uncomment below to freeze the workflow, comment it to unfreeze
+    if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
