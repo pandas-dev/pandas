@@ -86,7 +86,7 @@ jobs:
             pattern: "not slow and not network and not single_cpu"
             platform: ubuntu-22.04
       fail-fast: false
-    name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}-${{ matrix.platform }}
+    name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.env_file) }}
     env:
       PATTERN: ${{ matrix.pattern }}
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
