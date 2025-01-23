@@ -74,7 +74,7 @@ html = ['beautifulsoup4>=4.9.3', 'html5lib>=1.1', 'lxml>=4.6.3']
 xml = ['lxml>=4.6.3']
 plot = ['matplotlib>=3.6.1']
 output_formatting = ['jinja2>=3.0.0', 'tabulate>=0.8.9']
-clipboard = ['PySide6>=6.8.1', 'qtpy>=2.3.0']
+clipboard = ['PyQt5>=5.15.1', 'qtpy>=2.3.0']
 compression = ['zstandard>=0.15.2']
 all = ['beautifulsoup4>=5.9.3',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
@@ -95,7 +95,7 @@ all = ['beautifulsoup4>=5.9.3',
        'psycopg2>=2.8.6',
        'pyarrow>=7.0.0',
        'pymysql>=1.0.2',
-       'PySide6>=6.8.1',
+       'PyQt5>=5.15.1',
        'pyreadstat>=1.1.2',
        'pytest>=7.3.2',
        'pytest-xdist>=3.4.0',

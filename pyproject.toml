@@ -79,7 +79,7 @@ html = ['beautifulsoup4>=4.11.2', 'html5lib>=1.1', 'lxml>=4.9.2']
 xml = ['lxml>=4.9.2']
 plot = ['matplotlib>=3.6.3']
 output-formatting = ['jinja2>=3.1.2', 'tabulate>=0.9.0']
-clipboard = ['PySide6>=6.8.1', 'qtpy>=2.3.0']
+clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.3.0']
 compression = ['zstandard>=0.19.0']
 timezone = ['pytz>=2023.4']
 all = ['adbc-driver-postgresql>=0.10.0',
@@ -103,7 +103,7 @@ all = ['adbc-driver-postgresql>=0.10.0',
        'psycopg2>=2.9.6',
        'pyarrow>=10.0.1',
        'pymysql>=1.0.2',
-       'PySide6>=6.8.1',
+       'PyQt5>=5.15.9',
        'pyreadstat>=1.2.0',
        'pytest>=7.3.2',
        'pytest-xdist>=3.4.0',

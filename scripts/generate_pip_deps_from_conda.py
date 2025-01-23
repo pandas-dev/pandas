@@ -33,7 +33,7 @@ CONDA_TO_PIP = {
     "dask-core": "dask",
     "seaborn-base": "seaborn",
     "sqlalchemy": "SQLAlchemy",
-    "pyside6": "PySide6",
+    "pyqt": "PyQt5",
 }
 
 

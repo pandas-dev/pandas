@@ -42,7 +42,7 @@ dependencies:
   - psycopg2>=2.9.6
   - pyarrow>=10.0.1
   - pymysql>=1.0.2
-  - pyside6>=6.8.1
+  - pyqt>=5.15.9
   - pyreadstat>=1.2.0
   - pytables>=3.8.0
   - python-calamine>=0.1.7
