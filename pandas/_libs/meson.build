@@ -54,7 +54,7 @@ _free_threading_config = configure_file(
     input: 'free_threading_config.pxi.in',
     output: 'free_threading_config.pxi',
     configuration: cdata,
-    install: false
+    install: false,
 )
 
 subdir('tslibs')

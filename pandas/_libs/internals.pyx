@@ -29,8 +29,8 @@ from pandas._libs.util cimport (
 include "free_threading_config.pxi"
 
 IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-    from cpython.weakref cimport PyWeakref_GetRef
     from cpython.ref cimport Py_DECREF
+    from cpython.weakref cimport PyWeakref_GetRef
 ELSE:
     from cpython.weakref cimport PyWeakref_GetObject
 
