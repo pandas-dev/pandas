@@ -390,9 +390,10 @@ def test_nonconsolidated_item_cache_take():
     df = DataFrame(
         {
             "col1": Series(["a"], dtype=object),
-            "col2": Series([0], dtype=object),
         }
     )
+    df["col2"] = Series([0], dtype=object)
+    assert not df._mgr.is_consolidated()
 
     # access column (item cache)
     df["col1"] == "A"
