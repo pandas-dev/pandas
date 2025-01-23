@@ -3710,6 +3710,15 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
         - 5 is Saturday
         - 6 is Sunday.
 
+    See Also
+    --------
+    tseries.offsets.WeekOfMonth :
+        Date offset for a specific weekday in a month.
+    tseries.offsets.MonthEnd :
+        Date offset for the end of the month.
+    tseries.offsets.BMonthEnd :
+        Date offset for the last business day of the month.
+
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
