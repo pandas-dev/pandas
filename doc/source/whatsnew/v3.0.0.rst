@@ -625,6 +625,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :meth:`ArrowExtensionArray.factorize` where NA values were dropped when input was dictionary-encoded even when dropna was set to False(:issue:`60567`)
+
 
 Categorical
 ^^^^^^^^^^^
