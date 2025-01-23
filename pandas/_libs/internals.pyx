@@ -3,12 +3,8 @@ from collections import defaultdict
 cimport cython
 from cpython.object cimport PyObject
 from cpython.pyport cimport PY_SSIZE_T_MAX
-from cpython.ref cimport Py_DECREF
 from cpython.slice cimport PySlice_GetIndicesEx
-from cpython.weakref cimport (
-    PyWeakref_GetRef,
-    PyWeakref_NewRef,
-)
+from cpython.weakref cimport PyWeakref_NewRef
 from cython cimport Py_ssize_t
 
 import numpy as np
@@ -29,6 +25,14 @@ from pandas._libs.util cimport (
     is_array,
     is_integer_object,
 )
+
+include "free_threading_config.pxi"
+
+IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+    from cpython.weakref cimport PyWeakref_GetRef
+    from cpython.ref cimport Py_DECREF
+ELSE:
+    from cpython.weakref cimport PyWeakref_GetObject
 
 
 cdef extern from "Python.h":
@@ -909,23 +913,34 @@ cdef class BlockValuesRefs:
         # if force=False. Clearing for every insertion causes slowdowns if
         # all these objects stay alive, e.g. df.items() for wide DataFrames
         # see GH#55245 and GH#55008
-        cdef PyObject* pobj
-        cdef bint status
+        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+            cdef PyObject* pobj
+            cdef bint status
 
         if force or len(self.referenced_blocks) > self.clear_counter:
-            new_referenced_blocks = []
-            for ref in self.referenced_blocks:
-                status = PyWeakref_GetRef(ref, &pobj)
-                if status == 1:
-                    new_referenced_blocks.append(ref)
-                    Py_DECREF(<object>pobj)
-            self.referenced_blocks = new_referenced_blocks
+            IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+                new_referenced_blocks = []
+                for ref in self.referenced_blocks:
+                    status = PyWeakref_GetRef(ref, &pobj)
+                    if status == 1:
+                        new_referenced_blocks.append(ref)
+                        Py_DECREF(<object>pobj)
+                self.referenced_blocks = new_referenced_blocks
+            ELSE:
+                self.referenced_blocks = [
+                    ref for ref in self.referenced_blocks
+                    if PyWeakref_GetObject(ref) != Py_None
+                ]
 
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
                 self.clear_counter = max(self.clear_counter // 2, 500)
             elif nr_of_refs > self.clear_counter:
                 self.clear_counter = max(self.clear_counter * 2, nr_of_refs)
+
+    cpdef _add_reference_maybe_locked(self, Block blk):
+        self._clear_dead_references()
+        self.referenced_blocks.append(PyWeakref_NewRef(blk, None))
 
     cpdef add_reference(self, Block blk):
         """Adds a new reference to our reference collection.
@@ -935,9 +950,15 @@ cdef class BlockValuesRefs:
         blk : Block
             The block that the new references should point to.
         """
-        with cython.critical_section(self):
-            self._clear_dead_references()
-            self.referenced_blocks.append(PyWeakref_NewRef(blk, None))
+        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+            with cython.critical_section(self):
+                self._add_reference_maybe_locked(blk)
+        ELSE:
+            self._add_reference_maybe_locked(blk)
+
+    def _add_index_reference_maybe_locked(self, index: object) -> None:
+        self._clear_dead_references()
+        self.referenced_blocks.append(PyWeakref_NewRef(index, None))
 
     def add_index_reference(self, index: object) -> None:
         """Adds a new reference to our reference collection when creating an index.
@@ -947,9 +968,16 @@ cdef class BlockValuesRefs:
         index : Index
             The index that the new reference should point to.
         """
-        with cython.critical_section(self):
-            self._clear_dead_references()
-            self.referenced_blocks.append(PyWeakref_NewRef(index, None))
+        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+            with cython.critical_section(self):
+                self._add_index_reference_maybe_locked(index)
+        ELSE:
+            self._add_index_reference_maybe_locked(index)
+
+    def _has_reference_maybe_locked(self) -> bool:
+        self._clear_dead_references(force=True)
+        # Checking for more references than block pointing to itself
+        return len(self.referenced_blocks) > 1
 
     def has_reference(self) -> bool:
         """Checks if block has foreign references.
@@ -961,8 +989,8 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
-        with cython.critical_section(self):
-            self._clear_dead_references(force=True)
-            # Checking for more references than block pointing to itself
-            has_reference = len(self.referenced_blocks) > 1
-        return has_reference
+        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+            with cython.critical_section(self):
+                return self._has_reference_maybe_locked()
+        ELSE:
+            return self._has_reference_maybe_locked()
