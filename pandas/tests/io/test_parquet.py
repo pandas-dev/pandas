@@ -104,10 +104,7 @@ def fp(request):
 
 @pytest.fixture
 def df_compat():
-    # TODO(infer_string) should this give str columns?
-    return pd.DataFrame(
-        {"A": [1, 2, 3], "B": "foo"}, columns=pd.Index(["A", "B"], dtype=object)
-    )
+    return pd.DataFrame({"A": [1, 2, 3], "B": "foo"}, columns=pd.Index(["A", "B"]))
 
 
 @pytest.fixture
@@ -686,7 +683,11 @@ class TestBasic(Base):
         with open(datapath("io", "data", "parquet", "simple.parquet"), mode="rb") as f:
             httpserver.serve_content(content=f.read())
             df = read_parquet(httpserver.url, engine=engine)
-        tm.assert_frame_equal(df, df_compat)
+
+        expected = df_compat
+        if pa_version_under19p0:
+            expected.columns = expected.columns.astype(object)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestParquetPyArrow(Base):
