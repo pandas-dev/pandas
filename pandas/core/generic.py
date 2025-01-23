@@ -9676,6 +9676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # We should not be filling NA. See GH#60729
         if isinstance(cond, np.ndarray):
+            cond = np.array(cond)
             cond[np.isnan(cond)] = True
         elif isinstance(cond, NDFrame):
             cond = cond.fillna(True)
