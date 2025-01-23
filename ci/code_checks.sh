@@ -189,7 +189,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Hour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Hour.n GL08" \
         -i "pandas.tseries.offsets.Hour.normalize GL08" \
-        -i "pandas.tseries.offsets.LastWeekOfMonth SA01" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.n GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.normalize GL08" \
