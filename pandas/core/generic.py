@@ -665,7 +665,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        ndarray.size : Number of elements in the array.
+        numpy.ndarray.size : Number of elements in the array.
 
         Examples
         --------
@@ -4884,7 +4884,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return a Series with the same shape as the input.
-            It will be applied to each column in `by` independently.
+            It will be applied to each column in `by` independently. The values in the
+            returned Series will be used as the keys for sorting.
 
         Returns
         -------

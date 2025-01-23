@@ -704,7 +704,7 @@ class NaTType(_NaT):
         difference between the current timezone and UTC.
 
         Returns
-        --------
+        -------
         timedelta
             The difference between UTC and the local time as a `timedelta` object.
 
