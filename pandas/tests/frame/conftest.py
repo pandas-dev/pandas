@@ -33,7 +33,7 @@ def float_string_frame():
     df = DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
         index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
     )
     df["foo"] = "bar"
     return df
