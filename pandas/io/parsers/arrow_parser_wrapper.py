@@ -165,7 +165,8 @@ class ArrowParserWrapper(ParserBase):
                 # The only way self.names is not the same length as number of cols is
                 # if we have int index_col. We should just pad the names(they will get
                 # removed anyways) to expected length then.
-                self.names = list(range(num_cols - len(self.names))) + self.names
+                columns_prefix = [str(x) for x in range(num_cols - len(self.names))]
+                self.names = columns_prefix + self.names
                 multi_index_named = False
             frame.columns = self.names
 
