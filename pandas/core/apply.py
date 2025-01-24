@@ -1113,9 +1113,15 @@ class FrameApply(NDFrameApply):
                 "the 'bodo' engine only supports axis=1 for user-defined functions."
             )
 
+        if self.args or self.kwargs:
+            raise NotImplementedError(
+                "the 'bodo' engine does not support passing additional args/kwargs "
+                "to apply function yet."
+            )
+
         bodo = import_optional_dependency("bodo")
 
-        @bodo.jit
+        @bodo.jit(**self.engine_kwargs)
         def do_apply(obj, func, axis):
             return obj.apply(func, axis)
 

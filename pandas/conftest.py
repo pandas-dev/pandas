@@ -127,6 +127,22 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
         item.add_marker(pytest.mark.filterwarnings(f"ignore:{message}"))
 
 
+def run_bodo_udf_engine_tests_last(items: list[pytest.Item]) -> None:
+    """Always run tests related to bodo UDF engine last to avoid installing
+    extensions that might change behavior of some tests.
+
+    Parameters
+    ----------
+    item : list[pytest.Item]
+        The collection of pytest test items to modify in place.
+    """
+    bodo_tests = [item for item in items if "bodo_udf_engine" in item.keywords]
+    non_bodo_tests = [item for item in items if "bodo_udf_engine" not in item.keywords]
+
+    # Run bodo tests last to avoid conflicting names when installing extensions
+    items[:] = non_bodo_tests + bodo_tests
+
+
 def pytest_collection_modifyitems(items, config) -> None:
     is_doctest = config.getoption("--doctest-modules") or config.getoption(
         "--doctest-cython", default=False
@@ -174,6 +190,8 @@ def pytest_collection_modifyitems(items, config) -> None:
         for item in items:
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
+
+    run_bodo_udf_engine_tests_last(items)
 
 
 hypothesis_health_checks = [
