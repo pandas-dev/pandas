@@ -2317,7 +2317,10 @@ class DataFrame(NDFrame, OpsMixin):
             columns = columns.drop(exclude)
 
         mgr = arrays_to_mgr(arrays, columns, result_index)
-        return cls._from_mgr(mgr, axes=mgr.axes)
+        df = DataFrame._from_mgr(mgr, axes=mgr.axes)
+        if cls is not DataFrame:
+            return cls(df, copy=False)
+        return df
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -6887,7 +6890,8 @@ class DataFrame(NDFrame, OpsMixin):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return a Series with the same shape as the input.
-            It will be applied to each column in `by` independently.
+            It will be applied to each column in `by` independently. The values in the
+            returned Series will be used as the keys for sorting.
 
         Returns
         -------
