@@ -394,7 +394,7 @@ def boxplot(
                         result[key_to_index[key]] = value
                     else:
                         raise ValueError(
-                            f"Invalid key '{key}' in color dictionary. Expected one of {valid_keys}. Please refer to documentation."
+                            f"color dict contains invalid key '{key}'. The key must be either {valid_keys}"
                         )
             else:
                 result.fill(colors)
