@@ -5210,10 +5210,7 @@ def _unconvert_string_array(
 
         if isinstance(data[0], bytes):
             ser = Series(data, copy=False).str.decode(encoding, errors=errors)
-            if get_option("future.infer_string"):
-                data = ser.to_numpy()
-            else:
-                data = ser._values
+            data = ser.to_numpy()
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
