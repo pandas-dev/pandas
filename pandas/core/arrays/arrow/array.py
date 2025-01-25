@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -257,6 +258,7 @@ class ArrowExtensionArray(
     Parameters
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray
+        The input data to initialize the ArrowExtensionArray.
 
     Attributes
     ----------
@@ -269,6 +271,12 @@ class ArrowExtensionArray(
     Returns
     -------
     ArrowExtensionArray
+
+    See Also
+    --------
+    array : Create a Pandas array with a specified dtype.
+    DataFrame.to_feather : Write a DataFrame to the binary Feather format.
+    read_feather : Load a feather-format object from the file path.
 
     Notes
     -----
@@ -1390,7 +1398,7 @@ class ArrowExtensionArray(
         np_dtype = np.dtype(f"M8[{pa_type.unit}]")
         dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
         np_array = self._pa_array.to_numpy()
-        np_array = np_array.astype(np_dtype)
+        np_array = np_array.astype(np_dtype, copy=False)
         return DatetimeArray._simple_new(np_array, dtype=dtype)
 
     def _to_timedeltaarray(self) -> TimedeltaArray:
@@ -1401,7 +1409,7 @@ class ArrowExtensionArray(
         assert pa.types.is_duration(pa_type)
         np_dtype = np.dtype(f"m8[{pa_type.unit}]")
         np_array = self._pa_array.to_numpy()
-        np_array = np_array.astype(np_dtype)
+        np_array = np_array.astype(np_dtype, copy=False)
         return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
 
     def _values_for_json(self) -> np.ndarray:
@@ -1619,6 +1627,9 @@ class ArrowExtensionArray(
         ------
         NotImplementedError : subclass does not define accumulations
         """
+        if is_string_dtype(self):
+            return self._str_accumulate(name=name, skipna=skipna, **kwargs)
+
         pyarrow_name = {
             "cummax": "cumulative_max",
             "cummin": "cumulative_min",
@@ -1653,6 +1664,57 @@ class ArrowExtensionArray(
             result = result.cast(pa_dtype)
 
         return type(self)(result)
+
+    def _str_accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ArrowExtensionArray | ExtensionArray:
+        """
+        Accumulate implementation for strings, see `_accumulate` docstring for details.
+
+        pyarrow.compute does not implement these methods for strings.
+        """
+        if name == "cumprod":
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg)
+
+        # We may need to strip out trailing NA values
+        tail: pa.array | None = None
+        na_mask: pa.array | None = None
+        pa_array = self._pa_array
+        np_func = {
+            "cumsum": np.cumsum,
+            "cummin": np.minimum.accumulate,
+            "cummax": np.maximum.accumulate,
+        }[name]
+
+        if self._hasna:
+            na_mask = pc.is_null(pa_array)
+            if pc.all(na_mask) == pa.scalar(True):
+                return type(self)(pa_array)
+            if skipna:
+                if name == "cumsum":
+                    pa_array = pc.fill_null(pa_array, "")
+                else:
+                    # We can retain the running min/max by forward/backward filling.
+                    pa_array = pc.fill_null_forward(pa_array)
+                    pa_array = pc.fill_null_backward(pa_array)
+            else:
+                # When not skipping NA values, the result should be null from
+                # the first NA value onward.
+                idx = pc.index(na_mask, True).as_py()
+                tail = pa.nulls(len(pa_array) - idx, type=pa_array.type)
+                pa_array = pa_array[:idx]
+
+        # error: Cannot call function of unknown type
+        pa_result = pa.array(np_func(pa_array), type=pa_array.type)  # type: ignore[operator]
+
+        if tail is not None:
+            pa_result = pa.concat_arrays([pa_result, tail])
+        elif na_mask is not None:
+            pa_result = pc.if_else(na_mask, None, pa_result)
+
+        result = type(self)(pa_result)
+        return result
 
     def _reduce_pyarrow(self, name: str, *, skipna: bool = True, **kwargs) -> pa.Scalar:
         """
@@ -2469,8 +2531,6 @@ class ArrowExtensionArray(
         else:
             dummies_dtype = np.bool_
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
-        if dtype == str:
-            dummies[:] = False
         dummies[indices] = True
         dummies = dummies.reshape((n_rows, n_cols))
         result = type(self)(pa.array(list(dummies)))
