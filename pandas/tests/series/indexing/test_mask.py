@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Series
+from pandas import (
+    Int64Dtype,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -71,15 +74,8 @@ def test_mask_inplace():
 
 def test_mask_na():
     # We should not be filling pd.NA. See GH#60729
-    series = Series([None, 1, 2, None, 3, 4, None])
-    series = series.convert_dtypes()
-    cond = series <= 2
+    series = Series([None, 1, 2, None, 3, 4, None], dtype=Int64Dtype())
+    result = series.mask(series <= 2, -99)
+    expected = Series([None, 1, 2, None, -99, -99, None], dtype=Int64Dtype())
 
-    maskres = series.mask(cond, -99)
-    whereres = series.where(~(cond), -99)
-
-    expected = Series([None, -99, -99, None, 3, 4, None])
-    expected = expected.convert_dtypes()
-
-    tm.assert_series_equal(maskres, expected)
-    tm.assert_series_equal(maskres, whereres)
+    tm.assert_series_equal(result, expected)
