@@ -112,7 +112,7 @@ Various tutorials
 
 * `Wes McKinney's (pandas BDFL) blog <https://wesmckinney.com/archives.html>`_
 * `Statistical analysis made easy in Python with SciPy and pandas DataFrames, by Randal Olson <http://www.randalolson.com/2012/08/06/statistical-analysis-made-easy-in-python/>`_
-* `Statistical Data Analysis in Python, tutorial videos, by Christopher Fonnesbeck from SciPy 2013 <https://conference.scipy.org/scipy2013/tutorial_detail.php?id=109>`_
+* `Statistical Data Analysis in Python, tutorial by Christopher Fonnesbeck from SciPy 2013 <https://github.com/fonnesbeck/statistical-analysis-python-tutorial>`_
 * `Financial analysis in Python, by Thomas Wiecki <https://nbviewer.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_
 * `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
 * `Pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
