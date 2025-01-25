@@ -177,6 +177,38 @@ def test_agg_nested_dicts():
         r.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
 
 
+@pytest.mark.parametrize(
+    "func,window_size",
+    [
+        (
+            "rolling",
+            2,
+        ),
+        (
+            "expanding",
+            None,
+        ),
+    ],
+)
+def test_pipe(func, window_size):
+    # Issue #57076
+    df = DataFrame(
+        {
+            "B": np.random.default_rng(2).standard_normal(10),
+            "C": np.random.default_rng(2).standard_normal(10),
+        }
+    )
+    r = getattr(df, func)(window_size)
+
+    expected = r.max() - r.mean()
+    result = r.pipe(lambda x: x.max() - x.mean())
+    tm.assert_frame_equal(result, expected)
+
+    expected = r.max() - 2 * r.min()
+    result = r.pipe(lambda x, k: x.max() - k * x.min(), k=2)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_count_nonnumeric_types(step):
     # GH12541
     cols = [
