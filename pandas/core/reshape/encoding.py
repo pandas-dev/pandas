@@ -37,7 +37,10 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
-    from pandas._typing import NpDtype
+    from pandas._typing import (
+        DtypeObj,
+        NpDtype,
+    )
 
 
 def get_dummies(
@@ -556,7 +559,7 @@ def from_dummies(
                 "Dummy DataFrame contains multi-assignment(s); "
                 f"First instance in row: {assigned.idxmax()}"
             )
-        dtype = data.columns.dtype
+        dtype: str | DtypeObj = data.columns.dtype
         if any(assigned == 0):
             if isinstance(default_category, dict):
                 value = default_category[prefix]
