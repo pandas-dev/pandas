@@ -76,6 +76,6 @@ def test_mask_na():
     # We should not be filling pd.NA. See GH#60729
     series = Series([None, 1, 2, None, 3, 4, None], dtype=Int64Dtype())
     result = series.mask(series <= 2, -99)
-    expected = Series([None, 1, 2, None, -99, -99, None], dtype=Int64Dtype())
+    expected = Series([None, -99, -99, None, 3, 4, None], dtype=Int64Dtype())
 
     tm.assert_series_equal(result, expected)
