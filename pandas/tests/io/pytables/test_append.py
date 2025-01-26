@@ -696,12 +696,8 @@ def test_append_misc(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(
-                list("ABCD"),
-            ),
-            index=Index(
-                [f"i-{i}" for i in range(30)],
-            ),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         store.append("df", df, chunksize=1)
         result = store.select("df")
@@ -717,12 +713,8 @@ def test_append_misc_chunksize(setup_path, chunksize):
     # more chunksize in append tests
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(
-            list("ABCD"),
-        ),
-        index=Index(
-            [f"i-{i}" for i in range(30)],
-        ),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df["string"] = "foo"
     df["float322"] = 1.0
@@ -765,12 +757,8 @@ def test_append_raise(setup_path, using_infer_string):
         # list in column
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(
-                list("ABCD"),
-            ),
-            index=Index(
-                [f"i-{i}" for i in range(30)],
-            ),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         df["invalid"] = [["a"]] * len(df)
         assert df.dtypes["invalid"] == np.object_
@@ -822,12 +810,8 @@ because its data contents are not [string] but [mixed] object dtype"""
         # appending an incompatible table
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(
-                list("ABCD"),
-            ),
-            index=Index(
-                [f"i-{i}" for i in range(30)],
-            ),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         store.append("df", df)
 
@@ -908,9 +892,7 @@ def test_append_with_timedelta(setup_path):
 def test_append_to_multiple(setup_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(
-            list("ABCD"),
-        ),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
@@ -947,16 +929,12 @@ def test_append_to_multiple(setup_path):
 def test_append_to_multiple_dropna(setup_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(
-            list("ABCD"),
-        ),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(
-            list("ABCD"),
-        ),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     ).rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
@@ -976,9 +954,7 @@ def test_append_to_multiple_dropna(setup_path):
 def test_append_to_multiple_dropna_false(setup_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(
-            list("ABCD"),
-        ),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)

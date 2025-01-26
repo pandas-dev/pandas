@@ -46,12 +46,8 @@ def test_conv_read_write():
 
         o = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(
-                list("ABCD"),
-            ),
-            index=Index(
-                [f"i-{i}" for i in range(30)],
-            ),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         tm.assert_frame_equal(o, roundtrip("frame", o))
 
@@ -151,12 +147,8 @@ def test_api_invalid(tmp_path, setup_path):
     # Invalid.
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(
-            list("ABCD"),
-        ),
-        index=Index(
-            [f"i-{i}" for i in range(30)],
-        ),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     msg = "Can only append to Tables"
@@ -288,20 +280,11 @@ def test_series(setup_path):
 
     ts2 = Series(
         ts.index,
-        Index(
-            ts.index,
-        ),
+        Index(ts.index),
     )
     _check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
 
-    ts3 = Series(
-        ts.values,
-        Index(
-            np.asarray(
-                ts.index,
-            ),
-        ),
-    )
+    ts3 = Series(ts.values, Index(np.asarray(ts.index)))
     _check_roundtrip(
         ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
     )
@@ -391,12 +374,8 @@ def test_timeseries_preepoch(setup_path, request):
 def test_frame(compression, setup_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(
-            list("ABCD"),
-        ),
-        index=Index(
-            [f"i-{i}" for i in range(30)],
-        ),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     # put in some random NAs
@@ -412,9 +391,7 @@ def test_frame(compression, setup_path):
 
     tdf = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(
-            list("ABCD"),
-        ),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     _check_roundtrip(
@@ -493,12 +470,8 @@ def test_store_mixed(compression, setup_path):
     def _make_one():
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(
-                list("ABCD"),
-            ),
-            index=Index(
-                [f"i-{i}" for i in range(30)],
-            ),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         df["obj1"] = "foo"
         df["obj2"] = "bar"
