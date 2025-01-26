@@ -172,7 +172,8 @@ class BoxPlot(LinePlot):
     def _get_colors(
         self,
         num_colors=None,
-        color_kwds: Optional[Union[dict[str, MatplotlibColor], MatplotlibColor, Collection[MatplotlibColor]]] = "color",
+        color_kwds: Optional[Union[dict[str, MatplotlibColor], 
+        MatplotlibColor, Collection[MatplotlibColor]]] = "color",
     ) -> None:
         pass
 
