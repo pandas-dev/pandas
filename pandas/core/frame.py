@@ -8672,6 +8672,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         other_idxlen = len(other.index)  # save for compare
 
+        # preserve column order
+        new_columns = self.columns.union(other.columns, sort=False)
+
         this, other = self.align(other)
         new_index = this.index
 
@@ -8681,8 +8684,6 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible; otherwise align above ensures that these are set-equal
-        new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
         result = {}
         for col in new_columns:
@@ -8806,10 +8807,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
             combined = combined.astype(other.dtypes)
         else:
-            # preserve column order
-            new_columns = self.columns.union(other.columns, sort=False)
             combined = self.combine(other, combiner, overwrite=False)
-            combined = combined.reindex(columns=new_columns)
 
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
