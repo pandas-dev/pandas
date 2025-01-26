@@ -386,7 +386,7 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
 
 @pytest.mark.xfail(
     using_string_dtype(),
-    reason="'utf-8' can't encode '\ud800': surrogates not allowed",
+    reason="TODO(infer_string): can't encode '\ud800': surrogates not allowed",
 )
 @pytest.mark.parametrize("format", ["fixed", "table"])
 def test_to_hdf_errors(tmp_path, format, setup_path):

@@ -276,10 +276,7 @@ def test_series(setup_path):
     )
     _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
 
-    ts2 = Series(
-        ts.index,
-        Index(ts.index),
-    )
+    ts2 = Series(ts.index, Index(ts.index))
     _check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
 
     ts3 = Series(ts.values, Index(np.asarray(ts.index)))
@@ -405,7 +402,7 @@ def test_frame(compression, setup_path):
 
     # empty
     df2 = df[:0]
-    # df2 has inferred_type as string
+    # Prevent df2 from having index with inferred_type as string
     df2.index = Index([])
     _check_roundtrip(df2[:0], tm.assert_frame_equal, path=setup_path)
 
