@@ -30,11 +30,14 @@ Rolling window functions
    Rolling.std
    Rolling.min
    Rolling.max
+   Rolling.first
+   Rolling.last
    Rolling.corr
    Rolling.cov
    Rolling.skew
    Rolling.kurt
    Rolling.apply
+   Rolling.pipe
    Rolling.aggregate
    Rolling.quantile
    Rolling.sem
@@ -71,11 +74,14 @@ Expanding window functions
    Expanding.std
    Expanding.min
    Expanding.max
+   Expanding.first
+   Expanding.last
    Expanding.corr
    Expanding.cov
    Expanding.skew
    Expanding.kurt
    Expanding.apply
+   Expanding.pipe
    Expanding.aggregate
    Expanding.quantile
    Expanding.sem

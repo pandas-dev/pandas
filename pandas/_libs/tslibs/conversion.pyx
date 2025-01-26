@@ -149,18 +149,18 @@ def cast_from_unit_vectorized(
     if p:
         frac = np.round(frac, p)
 
-    try:
-        for i in range(len(values)):
+    for i in range(len(values)):
+        try:
             if base[i] == NPY_NAT:
                 out[i] = NPY_NAT
             else:
                 out[i] = <int64_t>(base[i] * m) + <int64_t>(frac[i] * m)
-    except (OverflowError, FloatingPointError) as err:
-        # FloatingPointError can be issued if we have float dtype and have
-        #  set np.errstate(over="raise")
-        raise OutOfBoundsDatetime(
-            f"cannot convert input {values[i]} with the unit '{unit}'"
-        ) from err
+        except (OverflowError, FloatingPointError) as err:
+            # FloatingPointError can be issued if we have float dtype and have
+            #  set np.errstate(over="raise")
+            raise OutOfBoundsDatetime(
+                f"cannot convert input {values[i]} with the unit '{unit}'"
+            ) from err
     return out
 
 
