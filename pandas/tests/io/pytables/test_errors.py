@@ -5,8 +5,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -26,7 +24,6 @@ from pandas.io.pytables import (
 
 pytestmark = [
     pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
 ]
 
 
@@ -93,9 +90,14 @@ def test_unimplemented_dtypes_table_columns(setup_path):
 
     with ensure_clean_store(setup_path) as store:
         # this fails because we have a date in the object block......
-        msg = re.escape(
-            """Cannot serialize the column [datetime1]
-because its data contents are not [string] but [date] object dtype"""
+        msg = "|".join(
+            [
+                re.escape(
+                    "Cannot serialize the column [datetime1] because its data contents "
+                    "are not [string] but [date] object dtype"
+                ),
+                re.escape("[date] is not implemented as a table column"),
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             store.append("df_unimplemented", df)

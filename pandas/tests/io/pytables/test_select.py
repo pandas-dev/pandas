@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import PY312
 
@@ -29,7 +27,6 @@ from pandas.io.pytables import Term
 
 pytestmark = [
     pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
 ]
 
 
@@ -138,7 +135,9 @@ def test_select(setup_path):
         # select with columns=
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         _maybe_remove(store, "df")
@@ -278,8 +277,12 @@ def test_select_dtypes(setup_path, request):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
+            index=Index(
+                [f"i-{i}" for i in range(30)],
+            ),
         )
 
         expected = df[df["A"] > 0]
@@ -350,7 +353,9 @@ def test_select_iterator(tmp_path, setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         _maybe_remove(store, "df")
@@ -375,7 +380,9 @@ def test_select_iterator(tmp_path, setup_path):
 
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(
+            list("ABCD"),
+        ),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df.to_hdf(path, key="df_non_table")
@@ -391,7 +398,9 @@ def test_select_iterator(tmp_path, setup_path):
 
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(
+            list("ABCD"),
+        ),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df.to_hdf(path, key="df", format="table")
@@ -408,7 +417,9 @@ def test_select_iterator(tmp_path, setup_path):
     with ensure_clean_store(setup_path) as store:
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         store.append("df1", df1, data_columns=True)
@@ -436,7 +447,9 @@ def test_select_iterator_complete_8014(setup_path):
     with ensure_clean_store(setup_path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=100064, freq="s"),
         )
         _maybe_remove(store, "df")
@@ -471,7 +484,9 @@ def test_select_iterator_complete_8014(setup_path):
     with ensure_clean_store(setup_path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=100064, freq="s"),
         )
         _maybe_remove(store, "df")
@@ -513,7 +528,9 @@ def test_select_iterator_non_complete_8014(setup_path):
     with ensure_clean_store(setup_path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=100064, freq="s"),
         )
         _maybe_remove(store, "df")
@@ -547,7 +564,9 @@ def test_select_iterator_non_complete_8014(setup_path):
     with ensure_clean_store(setup_path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=100064, freq="s"),
         )
         _maybe_remove(store, "df")
@@ -571,7 +590,9 @@ def test_select_iterator_many_empty_frames(setup_path):
     with ensure_clean_store(setup_path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=100064, freq="s"),
         )
         _maybe_remove(store, "df")
@@ -623,7 +644,9 @@ def test_select_iterator_many_empty_frames(setup_path):
 def test_frame_select(setup_path, request):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(
+            list("ABCD"),
+        ),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
@@ -655,7 +678,9 @@ def test_frame_select(setup_path, request):
         # invalid terms
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         store.append("df_time", df)
@@ -674,7 +699,9 @@ def test_frame_select_complex(setup_path):
 
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(
+            list("ABCD"),
+        ),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df["string"] = "foo"
@@ -791,7 +818,9 @@ def test_invalid_filtering(setup_path):
 
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(
+            list("ABCD"),
+        ),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
@@ -813,7 +842,9 @@ def test_string_select(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(
+                list("ABCD"),
+            ),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
 
@@ -857,7 +888,9 @@ def test_string_select(setup_path):
 def test_select_as_multiple(setup_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(
+            list("ABCD"),
+        ),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)

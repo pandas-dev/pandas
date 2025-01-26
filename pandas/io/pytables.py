@@ -3382,6 +3382,8 @@ class BlockManagerFixed(GenericFixed):
             if (
                 using_string_dtype()
                 and isinstance(values, np.ndarray)
+                # TODO: Should is_string_array return True for an empty object ndarray?
+                and values.size != 0
                 and is_string_array(values, skipna=True)
             ):
                 df = df.astype(StringDtype(na_value=np.nan))
@@ -4148,6 +4150,9 @@ class Table(Fixed):
                 meta = "category"
                 metadata = np.asarray(data_converted.categories).ravel()
 
+            if isinstance(blk.dtype, StringDtype):
+                meta = str(blk.dtype)
+
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
             col = klass(
@@ -4407,7 +4412,8 @@ class Table(Fixed):
                     errors=self.errors,
                 )
                 cvs = col_values[1]
-                return Series(cvs, name=column, copy=False)
+                dtype = getattr(self.table.attrs, f"{column}_meta")
+                return Series(cvs, name=column, copy=False, dtype=dtype)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4523,7 +4529,6 @@ class AppendableTable(Table):
                 mask = isna(a.data).all(axis=0)
                 if isinstance(mask, np.ndarray):
                     masks.append(mask.astype("u1", copy=False))
-
         # consolidate masks
         if len(masks):
             mask = masks[0]
@@ -5112,6 +5117,8 @@ def _maybe_convert_for_string_atom(
     errors,
     columns: list[str],
 ):
+    if isinstance(bvalues.dtype, StringDtype):
+        bvalues = bvalues.to_numpy()
     if bvalues.dtype != object:
         return bvalues
 
