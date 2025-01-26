@@ -33,9 +33,7 @@ from pandas.tests.io.pytables.common import (
 from pandas.io import pytables
 from pandas.io.pytables import Term
 
-pytestmark = [
-    pytest.mark.single_cpu,
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])

@@ -25,9 +25,7 @@ from pandas.tests.io.pytables.common import (
 
 from pandas.io.pytables import Term
 
-pytestmark = [
-    pytest.mark.single_cpu,
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 def test_select_columns_in_where(setup_path):

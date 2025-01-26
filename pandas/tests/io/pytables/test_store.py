@@ -35,9 +35,7 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-pytestmark = [
-    pytest.mark.single_cpu,
-]
+pytestmark = [pytest.mark.single_cpu]
 
 tables = pytest.importorskip("tables")
 

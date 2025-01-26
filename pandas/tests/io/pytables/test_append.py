@@ -23,9 +23,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = [
-    pytest.mark.single_cpu,
-]
+pytestmark = [pytest.mark.single_cpu]
 
 tables = pytest.importorskip("tables")
 
@@ -778,12 +776,8 @@ because its data contents are not [string] but [mixed] object dtype"""
         # datetime with embedded nans as object
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(
-                list("ABCD"),
-            ),
-            index=Index(
-                [f"i-{i}" for i in range(30)],
-            ),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         s = Series(datetime.datetime(2001, 1, 2), index=df.index)
         s = s.astype(object)
