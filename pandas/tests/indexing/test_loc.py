@@ -2000,7 +2000,6 @@ class TestLocSetitemWithExpansion:
         df.loc[conv(dt1), "one"] = 100
         df.loc[conv(dt2), "one"] = 200
 
-        # breakpoint()
         expected = DataFrame(
             {"one": [100.0, 200.0]},
             index=Index(
