@@ -1598,6 +1598,7 @@ class TestTypeInference:
         ],
     )
     def test_is_dtype_array_empty_obj(self, func):
+        # https://github.com/pandas-dev/pandas/pull/60796
         func = getattr(lib, func)
 
         arr = np.empty((2, 0), dtype=object)
