@@ -339,9 +339,8 @@ class TestDataFrameCorrWith:
         df2["obj"] = "bar"
 
         if using_infer_string:
-            import pyarrow as pa
-
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
+            msg = "Cannot perform reduction 'mean' with string dtype"
+            with pytest.raises(TypeError, match=msg):
                 df1.corrwith(df2)
         else:
             with pytest.raises(TypeError, match="Could not convert"):

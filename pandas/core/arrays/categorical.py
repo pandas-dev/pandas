@@ -577,11 +577,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError("Cannot convert float NaN to integer")
 
         elif len(self.codes) == 0 or len(self.categories) == 0:
-            result = np.array(
-                self,
-                dtype=dtype,
-                copy=copy,
-            )
+            # For NumPy 1.x compatibility we cannot use copy=None.  And
+            # `copy=False` has the meaning of `copy=None` here:
+            if not copy:
+                result = np.asarray(self, dtype=dtype)
+            else:
+                result = np.array(self, dtype=dtype)
 
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
@@ -1642,6 +1643,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         The numpy array interface.
 
+        Users should not call this directly. Rather, it is invoked by
+        :func:`numpy.array` and :func:`numpy.asarray`.
+
+        Parameters
+        ----------
+        dtype : np.dtype or None
+            Specifies the the dtype for the array.
+
+        copy : bool or None, optional
+            See :func:`numpy.asarray`.
+
         Returns
         -------
         numpy.array
@@ -1659,13 +1671,25 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> np.asarray(cat)
         array(['a', 'b'], dtype=object)
         """
+        if copy is False:
+            warnings.warn(
+                "Starting with NumPy 2.0, the behavior of the 'copy' keyword has "
+                "changed and passing 'copy=False' raises an error when returning "
+                "a zero-copy NumPy array is not possible. pandas will follow "
+                "this behavior starting with pandas 3.0.\nThis conversion to "
+                "NumPy requires a copy, but 'copy=False' was passed. Consider "
+                "using 'np.asarray(..)' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         ret = take_nd(self.categories._values, self._codes)
-        if dtype and np.dtype(dtype) != self.categories.dtype:
-            return np.asarray(ret, dtype)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
         # ndarray.
-        return np.asarray(ret)
+
+        # `take_nd` should already make a copy, so don't force again.
+        return np.asarray(ret, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
@@ -2475,11 +2499,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # pylint: disable=useless-parent-delegation
         return super().unique()
 
-    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
-        # make sure we have correct itemsize for resulting codes
-        assert res_values.dtype == self._ndarray.dtype
-        return res_values
-
     def equals(self, other: object) -> bool:
         """
         Returns True if categorical arrays are equal.
@@ -2680,23 +2699,37 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------------
     # String methods interface
     def _str_map(
-        self, f, na_value=np.nan, dtype=np.dtype("object"), convert: bool = True
+        self, f, na_value=lib.no_default, dtype=np.dtype("object"), convert: bool = True
     ):
         # Optimization to apply the callable `f` to the categories once
         # and rebuild the result by `take`ing from the result with the codes.
         # Returns the same type as the object-dtype implementation though.
-        from pandas.core.arrays import NumpyExtensionArray
-
         categories = self.categories
         codes = self.codes
-        result = NumpyExtensionArray(categories.to_numpy())._str_map(f, na_value, dtype)
+        if categories.dtype == "string":
+            result = categories.array._str_map(f, na_value, dtype)  # type: ignore[attr-defined]
+            if (
+                categories.dtype.na_value is np.nan  # type: ignore[union-attr]
+                and is_bool_dtype(dtype)
+                and (na_value is lib.no_default or isna(na_value))
+            ):
+                # NaN propagates as False for functions with boolean return type
+                na_value = False
+        else:
+            from pandas.core.arrays import NumpyExtensionArray
+
+            result = NumpyExtensionArray(categories.to_numpy())._str_map(
+                f, na_value, dtype
+            )
         return take_nd(result, codes, fill_value=na_value)
 
     def _str_get_dummies(self, sep: str = "|"):
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import NumpyExtensionArray
 
-        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
+        return NumpyExtensionArray(self.to_numpy(str, na_value="NaN"))._str_get_dummies(
+            sep
+        )
 
     # ------------------------------------------------------------------------
     # GroupBy Methods

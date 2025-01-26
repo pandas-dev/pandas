@@ -65,6 +65,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -1311,6 +1312,22 @@ class MultiIndex(Index):
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
+        if copy is False:
+            # self.values is always a newly construct array, so raise.
+            warnings.warn(
+                "Starting with NumPy 2.0, the behavior of the 'copy' keyword has "
+                "changed and passing 'copy=False' raises an error when returning "
+                "a zero-copy NumPy array is not possible. pandas will follow "
+                "this behavior starting with pandas 3.0.\nThis conversion to "
+                "NumPy requires a copy, but 'copy=False' was passed. Consider "
+                "using 'np.asarray(..)' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if copy is True:
+            # explicit np.array call to ensure a copy is made and unique objects
+            # are returned, because self.values is cached
+            return np.array(self.values, dtype=dtype)
         return self.values
 
     def view(self, cls=None) -> Self:
@@ -1335,10 +1352,12 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """return a boolean if we need a qualified .info display"""
 
-        def f(level) -> bool:
-            return "mixed" in level or "string" in level or "unicode" in level
+        def f(dtype) -> bool:
+            return is_object_dtype(dtype) or (
+                is_string_dtype(dtype) and dtype.storage == "python"
+            )
 
-        return any(f(level) for level in self._inferred_type_levels)
+        return any(f(level.dtype) for level in self.levels)
 
     # Cannot determine type of "memory_usage"
     @doc(Index.memory_usage)  # type: ignore[has-type]

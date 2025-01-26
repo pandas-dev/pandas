@@ -9,7 +9,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.errors import PerformanceWarning
 
@@ -948,12 +948,14 @@ class TestPivotTable:
         for value_col in table.columns.levels[0]:
             self._check_output(table[value_col], value_col, data)
 
-    def test_no_col(self, data):
+    def test_no_col(self, data, using_infer_string):
         # no col
 
         # to help with a buglet
         data.columns = [k * 2 for k in data.columns]
         msg = re.escape("agg function failed [how->mean,dtype->")
+        if using_infer_string:
+            msg = "dtype 'str' does not support operation 'mean'"
         with pytest.raises(TypeError, match=msg):
             data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         table = data.drop(columns="CC").pivot_table(
@@ -1003,7 +1005,7 @@ class TestPivotTable:
         ],
     )
     def test_margin_with_only_columns_defined(
-        self, columns, aggfunc, values, expected_columns
+        self, columns, aggfunc, values, expected_columns, using_infer_string
     ):
         # GH 31016
         df = DataFrame(
@@ -1027,6 +1029,8 @@ class TestPivotTable:
         )
         if aggfunc != "sum":
             msg = re.escape("agg function failed [how->mean,dtype->")
+            if using_infer_string:
+                msg = "dtype 'str' does not support operation 'mean'"
             with pytest.raises(TypeError, match=msg):
                 df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         if "B" not in columns:
@@ -1090,7 +1094,7 @@ class TestPivotTable:
         expected = DataFrame(
             [[4.0, 5.0, 6.0]],
             columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-            index=Index(["v"], dtype=object),
+            index=Index(["v"], dtype="str" if cols == ("a", "b") else "object"),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -2524,12 +2528,16 @@ class TestPivot:
         expected = DataFrame(index=[], columns=[])
         tm.assert_frame_equal(result, expected, check_names=False)
 
-    @pytest.mark.parametrize("dtype", [object, "string"])
-    def test_pivot_integer_bug(self, dtype):
-        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=dtype)
+    def test_pivot_integer_bug(self, any_string_dtype):
+        df = DataFrame(
+            data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=any_string_dtype
+        )
 
         result = df.pivot(index=1, columns=0, values=2)
-        tm.assert_index_equal(result.columns, Index(["A", "B"], name=0, dtype=dtype))
+        expected_columns = Index(["A", "B"], name=0, dtype=any_string_dtype)
+        if any_string_dtype == "object":
+            expected_columns = expected_columns.astype("str")
+        tm.assert_index_equal(result.columns, expected_columns)
 
     def test_pivot_index_none(self):
         # GH#3962
@@ -2611,7 +2619,11 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()  # pylint: disable=missing-kwoa
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    # this still fails because columns=None gets passed down to unstack as level=None
+    # while at that point None was converted to NaN
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_columns_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2627,8 +2639,7 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
-    def test_pivot_index_is_none(self):
+    def test_pivot_index_is_none(self, using_infer_string):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
 
@@ -2639,9 +2650,10 @@ class TestPivot:
 
         result = df.pivot(columns="b", index=None, values="c")
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
+        if using_infer_string:
+            expected.index.name = np.nan
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})

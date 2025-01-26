@@ -272,13 +272,25 @@ def test_timedelta_assignment():
     # GH 8209
     s = Series([], dtype=object)
     s.loc["B"] = timedelta(1)
-    tm.assert_series_equal(s, Series(Timedelta("1 days"), index=["B"]))
+    expected = Series(
+        Timedelta("1 days"), dtype="timedelta64[ns]", index=Index(["B"], dtype=object)
+    )
+    tm.assert_series_equal(s, expected)
 
     s = s.reindex(s.index.insert(0, "A"))
-    tm.assert_series_equal(s, Series([np.nan, Timedelta("1 days")], index=["A", "B"]))
+    expected = Series(
+        [np.nan, Timedelta("1 days")],
+        dtype="timedelta64[ns]",
+        index=Index(["A", "B"], dtype=object),
+    )
+    tm.assert_series_equal(s, expected)
 
     s.loc["A"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), index=["A", "B"])
+    expected = Series(
+        Timedelta("1 days"),
+        dtype="timedelta64[ns]",
+        index=Index(["A", "B"], dtype=object),
+    )
     tm.assert_series_equal(s, expected)
 
 

@@ -3,8 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import warnings
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -16,17 +14,13 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.inference import is_integer
 
-import pandas as pd
-from pandas import DataFrame
-
-from pandas.io._util import (
-    _arrow_dtype_mapping,
-    arrow_string_types_mapper,
-)
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
     from pandas._typing import ReadBuffer
+
+    from pandas import DataFrame
 
 
 class ArrowParserWrapper(ParserBase):
@@ -171,7 +165,8 @@ class ArrowParserWrapper(ParserBase):
                 # The only way self.names is not the same length as number of cols is
                 # if we have int index_col. We should just pad the names(they will get
                 # removed anyways) to expected length then.
-                self.names = list(range(num_cols - len(self.names))) + self.names
+                columns_prefix = [str(x) for x in range(num_cols - len(self.names))]
+                self.names = columns_prefix + self.names
                 multi_index_named = False
             frame.columns = self.names
         # we only need the frame not the names
@@ -287,17 +282,14 @@ class ArrowParserWrapper(ParserBase):
 
             table = table.cast(new_schema)
 
-        if dtype_backend == "pyarrow":
-            frame = table.to_pandas(types_mapper=pd.ArrowDtype)
-        elif dtype_backend == "numpy_nullable":
-            # Modify the default mapping to also
-            # map null to Int64 (to match other engines)
-            dtype_mapping = _arrow_dtype_mapping()
-            dtype_mapping[pa.null()] = pd.Int64Dtype()
-            frame = table.to_pandas(types_mapper=dtype_mapping.get)
-        elif using_pyarrow_string_dtype():
-            frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "make_block is deprecated",
+                DeprecationWarning,
+            )
+            frame = arrow_table_to_pandas(
+                table, dtype_backend=dtype_backend, null_to_int64=True
+            )
 
-        else:
-            frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

@@ -9,16 +9,13 @@ from typing import (
     Literal,
 )
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._validators import check_dtype_backend
 
-import pandas as pd
 from pandas.core.indexes.api import default_index
 
-from pandas.io._util import arrow_string_types_mapper
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
@@ -117,21 +114,7 @@ def read_orc(
         pa_table = orc.read_table(
             source=source, columns=columns, filesystem=filesystem, **kwargs
         )
-    if dtype_backend is not lib.no_default:
-        if dtype_backend == "pyarrow":
-            df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
-        else:
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping()
-            df = pa_table.to_pandas(types_mapper=mapping.get)
-        return df
-    else:
-        if using_pyarrow_string_dtype():
-            types_mapper = arrow_string_types_mapper()
-        else:
-            types_mapper = None
-        return pa_table.to_pandas(types_mapper=types_mapper)
+    return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
 
 def to_orc(

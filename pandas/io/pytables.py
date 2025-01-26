@@ -31,7 +31,7 @@ from pandas._config import (
     config,
     get_option,
     using_copy_on_write,
-    using_pyarrow_string_dtype,
+    using_string_dtype,
 )
 
 from pandas._libs import (
@@ -76,6 +76,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     concat,
     isna,
@@ -85,12 +86,16 @@ from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
 )
+from pandas.core.arrays.string_ import BaseStringArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import (
     PyTablesExpr,
     maybe_expression,
 )
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    array as pd_array,
+    extract_array,
+)
 from pandas.core.indexes.api import ensure_index
 from pandas.core.internals import (
     ArrayManager,
@@ -2954,6 +2959,9 @@ class GenericFixed(Fixed):
 
         if isinstance(node, tables.VLArray):
             ret = node[0][start:stop]
+            dtype = getattr(attrs, "value_type", None)
+            if dtype is not None:
+                ret = pd_array(ret, dtype=dtype)
         else:
             dtype = _ensure_decoded(getattr(attrs, "value_type", None))
             shape = getattr(attrs, "shape", None)
@@ -3192,6 +3200,11 @@ class GenericFixed(Fixed):
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+        elif isinstance(value, BaseStringArray):
+            vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
+            vlarr.append(value.to_numpy())
+            node = getattr(self.group, key)
+            node._v_attrs.value_type = str(value.dtype)
         elif empty_array:
             self.write_array_empty(key, value)
         else:
@@ -3224,8 +3237,12 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-            result = result.astype("string[pyarrow_numpy]")
+        if (
+            using_string_dtype()
+            and isinstance(values, np.ndarray)
+            and is_string_array(values, skipna=True)
+        ):
+            result = result.astype(StringDtype(na_value=np.nan))
         return result
 
     def write(self, obj, **kwargs) -> None:
@@ -3293,8 +3310,12 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-                df = df.astype("string[pyarrow_numpy]")
+            if (
+                using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and is_string_array(values, skipna=True)
+            ):
+                df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -4679,13 +4700,17 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            if not (using_pyarrow_string_dtype() and values.dtype.kind == "O"):
+            if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_pyarrow_string_dtype() and is_string_array(
-                values,  # type: ignore[arg-type]
-                skipna=True,
+            if (
+                using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and is_string_array(
+                    values,
+                    skipna=True,
+                )
             ):
-                df = df.astype("string[pyarrow_numpy]")
+                df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
 
         if len(frames) == 1:
@@ -5273,6 +5298,8 @@ def _dtype_to_kind(dtype_str: str) -> str:
         kind = "integer"
     elif dtype_str == "object":
         kind = "object"
+    elif dtype_str == "str":
+        kind = "str"
     else:
         raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
 

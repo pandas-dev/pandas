@@ -238,7 +238,7 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = g.apply(lambda x: x.sum())
         expected["A"] = [0, 2, 4]
         expected = expected.loc[:, ["A", "B"]]
@@ -851,7 +851,7 @@ class TestGrouping:
         expected = DataFrame(
             data=[],
             index=MultiIndex(
-                levels=[Index(["x"], dtype="object"), Index([], dtype="float64")],
+                levels=[Index(["x"], dtype="str"), Index([], dtype="float64")],
                 codes=[[], []],
                 names=["A", "B"],
             ),
@@ -990,7 +990,9 @@ class TestGetGroup:
         df = DataFrame({"a": list("abssbab")})
         tm.assert_frame_equal(df.groupby("a").get_group("a"), df.iloc[[0, 5]])
         # GH 13530
-        exp = DataFrame(index=Index(["a", "b", "s"], name="a"), columns=[])
+        exp = DataFrame(
+            index=Index(["a", "b", "s"], name="a"), columns=Index([], dtype="str")
+        )
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
 

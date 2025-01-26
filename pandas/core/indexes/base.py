@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import (
     get_option,
     using_copy_on_write,
-    using_pyarrow_string_dtype,
+    using_string_dtype,
 )
 
 from pandas._libs import (
@@ -506,7 +506,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
-            pass
+            if isinstance(data, (set, frozenset)):
+                data = list(data)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
             pass
@@ -883,6 +884,8 @@ class Index(IndexOpsMixin, PandasObject):
             # error: Item "ExtensionArray" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
             target_values = self._data._ndarray  # type: ignore[union-attr]
+        elif is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
+            return libindex.StringObjectEngine(target_values, self.dtype.na_value)  # type: ignore[union-attr]
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
@@ -916,7 +919,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The array interface, return my values.
         """
-        return np.asarray(self._data, dtype=dtype)
+        if copy is None:
+            # Note, that the if branch exists for NumPy 1.x support
+            return np.asarray(self._data, dtype=dtype)
+
+        return np.array(self._data, dtype=dtype, copy=copy)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str_t, *inputs, **kwargs):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
@@ -5072,7 +5079,10 @@ class Index(IndexOpsMixin, PandasObject):
             return (
                 isinstance(self.dtype, np.dtype)
                 or isinstance(self._values, (ArrowExtensionArray, BaseMaskedArray))
-                or self.dtype == "string[python]"
+                or (
+                    isinstance(self.dtype, StringDtype)
+                    and self.dtype.storage == "python"
+                )
             )
         # Exclude index types where the conversion to numpy converts to object dtype,
         #  which negates the performance benefit of libjoin
@@ -5318,7 +5328,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a boolean if we need a qualified .info display.
         """
-        return is_object_dtype(self.dtype)
+        return is_object_dtype(self.dtype) or (
+            is_string_dtype(self.dtype) and self.dtype.storage == "python"  # type: ignore[union-attr]
+        )
 
     def __contains__(self, key: Any) -> bool:
         """
@@ -5620,9 +5632,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if (
             isinstance(self.dtype, StringDtype)
-            and self.dtype.storage == "pyarrow_numpy"
+            and self.dtype.na_value is np.nan
             and other.dtype != self.dtype
         ):
+            # TODO(infer_string) can we avoid this special case?
             # special case for object behavior
             return other.equals(self.astype(object))
 
@@ -6122,7 +6135,6 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer_non_unique(
         self, target
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        target = ensure_index(target)
         target = self._maybe_cast_listlike_indexer(target)
 
         if not self._should_compare(target) and not self._should_partial_index(target):
@@ -6410,7 +6422,11 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
         dtype = _unpack_nested_dtype(other)
-        return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
+        return (
+            self._is_comparable_dtype(dtype)
+            or is_object_dtype(dtype)
+            or is_string_dtype(dtype)
+        )
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -6680,7 +6696,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
         """
-        return ensure_index(target)
+        target_index = ensure_index(target)
+        if (
+            not hasattr(target, "dtype")
+            and self.dtype == object
+            and target_index.dtype == "string"
+        ):
+            # If we started with a list-like, avoid inference to string dtype if self
+            # is object dtype (coercing to string dtype will alter the missing values)
+            target_index = Index(target, dtype=self.dtype)
+        return target_index
 
     @final
     def _validate_indexer(
@@ -6991,6 +7016,9 @@ class Index(IndexOpsMixin, PandasObject):
             #  We cannot keep the same dtype, so cast to the (often object)
             #  minimal shared dtype before doing the insert.
             dtype = self._find_common_type_compat(item)
+            if dtype == self.dtype:
+                # EA's might run into recursion errors if loc is invalid
+                raise
             return self.astype(dtype).insert(loc, item)
 
         if arr.dtype != object or not isinstance(
@@ -7011,7 +7039,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         out = Index._with_infer(new_values, name=self.name)
         if (
-            using_pyarrow_string_dtype()
+            using_string_dtype()
             and is_string_dtype(out.dtype)
             and new_values.dtype == object
         ):

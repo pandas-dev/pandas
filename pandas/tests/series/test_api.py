@@ -169,7 +169,6 @@ class TestSeriesMisc:
 
     def test_inspect_getmembers(self):
         # GH38782
-        pytest.importorskip("jinja2")
         ser = Series(dtype=object)
         msg = "Series._data is deprecated"
         with tm.assert_produces_warning(

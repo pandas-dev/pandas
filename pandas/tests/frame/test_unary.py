@@ -51,22 +51,13 @@ class TestDataFrameUnaryOperators:
     def test_neg_raises(self, df, using_infer_string):
         msg = (
             "bad operand type for unary -: 'str'|"
-            r"bad operand type for unary -: 'DatetimeArray'"
+            r"bad operand type for unary -: 'DatetimeArray'|"
+            "unary '-' not supported for dtype"
         )
-        if using_infer_string and df.dtypes.iloc[0] == "string":
-            import pyarrow as pa
-
-            msg = "has no kernel"
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                (-df)
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                (-df["a"])
-
-        else:
-            with pytest.raises(TypeError, match=msg):
-                (-df)
-            with pytest.raises(TypeError, match=msg):
-                (-df["a"])
+        with pytest.raises(TypeError, match=msg):
+            (-df)
+        with pytest.raises(TypeError, match=msg):
+            (-df["a"])
 
     def test_invert(self, float_frame):
         df = float_frame

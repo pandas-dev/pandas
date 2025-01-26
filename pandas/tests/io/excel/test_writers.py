@@ -753,6 +753,9 @@ class TestExcelWriter:
         # we need to use df_expected to check the result.
         tm.assert_frame_equal(rs2, df_expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_to_excel_interval_no_labels(self, path, using_infer_string):
         # see gh-19242
         #
@@ -764,7 +767,7 @@ class TestExcelWriter:
 
         df["new"] = pd.cut(df[0], 10)
         expected["new"] = pd.cut(expected[0], 10).astype(
-            str if not using_infer_string else "string[pyarrow_numpy]"
+            str if not using_infer_string else "str"
         )
 
         df.to_excel(path, sheet_name="test1")
@@ -1315,7 +1318,7 @@ class TestExcelWriter:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         writer = partial(df.to_excel, engine=engine)
 

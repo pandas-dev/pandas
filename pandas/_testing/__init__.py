@@ -8,12 +8,12 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     ContextManager,
-    cast,
 )
 import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
 from pandas._config.localization import (
     can_set_locale,
     get_locales,
@@ -21,8 +21,6 @@ from pandas._config.localization import (
 )
 
 from pandas.compat import pa_version_under10p1
-
-from pandas.core.dtypes.common import is_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -82,8 +80,8 @@ from pandas._testing.contexts import (
     with_csv_dialect,
 )
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
-    ExtensionArray,
     NumpyExtensionArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -95,7 +93,6 @@ if TYPE_CHECKING:
         NpDtype,
     )
 
-    from pandas.core.arrays import ArrowExtensionArray
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
@@ -110,7 +107,10 @@ FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
 ALL_FLOAT_DTYPES: list[Dtype] = [*FLOAT_NUMPY_DTYPES, *FLOAT_EA_DTYPES]
 
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
-STRING_DTYPES: list[Dtype] = [str, "str", "U"]
+if using_string_dtype():
+    STRING_DTYPES: list[Dtype] = ["U"]
+else:
+    STRING_DTYPES: list[Dtype] = [str, "str", "U"]  # type: ignore[no-redef]
 COMPLEX_FLOAT_DTYPES: list[Dtype] = [*COMPLEX_DTYPES, *FLOAT_NUMPY_DTYPES]
 
 DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
@@ -515,6 +515,8 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, MultiIndex):
         return shares_memory(left._codes, right)
     if isinstance(left, (Index, Series)):
+        if isinstance(right, (Index, Series)):
+            return shares_memory(left._values, right._values)
         return shares_memory(left._values, right)
 
     if isinstance(left, NDArrayBackedExtensionArray):
@@ -524,24 +526,18 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, pd.core.arrays.IntervalArray):
         return shares_memory(left._left, right) or shares_memory(left._right, right)
 
-    if (
-        isinstance(left, ExtensionArray)
-        and is_string_dtype(left.dtype)
-        and left.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]
-    ):
-        # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
-        left = cast("ArrowExtensionArray", left)
-        if (
-            isinstance(right, ExtensionArray)
-            and is_string_dtype(right.dtype)
-            and right.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]
-        ):
-            right = cast("ArrowExtensionArray", right)
+    if isinstance(left, ArrowExtensionArray):
+        if isinstance(right, ArrowExtensionArray):
+            # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
             left_pa_data = left._pa_array
             right_pa_data = right._pa_array
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
-            return left_buf1 == right_buf1
+            return left_buf1.address == right_buf1.address
+        else:
+            # if we have one one ArrowExtensionArray and one other array, assume
+            # they can only share memory if they share the same numpy buffer
+            return np.shares_memory(left, right)
 
     if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
         # By convention, we'll say these share memory if they share *either*

@@ -84,6 +84,7 @@ from pandas.core.dtypes.generic import (
     ABCNumpyExtensionArray,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_re
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -115,6 +116,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -476,7 +478,9 @@ class Block(PandasObject, libinternals.Block):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other, warn_on_upcast: bool = False) -> Block:
+    def coerce_to_target_dtype(
+        self, other, warn_on_upcast: bool = False, using_cow: bool = False
+    ) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -528,7 +532,14 @@ class Block(PandasObject, libinternals.Block):
                 f"{self.values.dtype}. Please report a bug at "
                 "https://github.com/pandas-dev/pandas/issues."
             )
-        return self.astype(new_dtype, copy=False)
+        copy = False
+        if (
+            not using_cow
+            and isinstance(self.dtype, StringDtype)
+            and self.dtype.storage == "python"
+        ):
+            copy = True
+        return self.astype(new_dtype, copy=copy, using_cow=using_cow)
 
     @final
     def _maybe_downcast(
@@ -552,7 +563,12 @@ class Block(PandasObject, libinternals.Block):
                 return blocks
 
             nbs = extend_blocks(
-                [blk.convert(using_cow=using_cow, copy=not using_cow) for blk in blocks]
+                [
+                    blk.convert(
+                        using_cow=using_cow, copy=not using_cow, convert_string=False
+                    )
+                    for blk in blocks
+                ]
             )
             if caller == "fillna":
                 if len(nbs) != len(blocks) or not all(
@@ -625,6 +641,7 @@ class Block(PandasObject, libinternals.Block):
         *,
         copy: bool = True,
         using_cow: bool = False,
+        convert_string: bool = True,
     ) -> list[Block]:
         """
         Attempt to coerce any object types to better types. Return a copy
@@ -637,7 +654,10 @@ class Block(PandasObject, libinternals.Block):
 
         if self.ndim != 1 and self.shape[0] != 1:
             blocks = self.split_and_operate(
-                Block.convert, copy=copy, using_cow=using_cow
+                Block.convert,
+                copy=copy,
+                using_cow=using_cow,
+                convert_string=convert_string,
             )
             if all(blk.dtype.kind == "O" for blk in blocks):
                 # Avoid fragmenting the block if convert is a no-op
@@ -655,10 +675,16 @@ class Block(PandasObject, libinternals.Block):
         res_values = lib.maybe_convert_objects(
             values,  # type: ignore[arg-type]
             convert_non_numeric=True,
+            convert_string=convert_string,
         )
         refs = None
-        if copy and res_values is values:
-            res_values = values.copy()
+        if (
+            copy
+            and res_values is values
+            or isinstance(res_values, NumpyExtensionArray)
+            and res_values._ndarray is values
+        ):
+            res_values = res_values.copy()
         elif res_values is values:
             refs = self.refs
 
@@ -835,6 +861,7 @@ class Block(PandasObject, libinternals.Block):
         mask: npt.NDArray[np.bool_] | None = None,
         using_cow: bool = False,
         already_warned=None,
+        convert_string=None,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
@@ -874,7 +901,7 @@ class Block(PandasObject, libinternals.Block):
             else:
                 return [self] if inplace else [self.copy()]
 
-        elif self._can_hold_element(value):
+        elif self._can_hold_element(value) or (self.dtype == "string" and is_re(value)):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
             blk = self._maybe_copy(using_cow, inplace)
@@ -899,7 +926,11 @@ class Block(PandasObject, libinternals.Block):
                 if get_option("future.no_silent_downcasting") is True:
                     blocks = [blk]
                 else:
-                    blocks = blk.convert(copy=False, using_cow=using_cow)
+                    blocks = blk.convert(
+                        copy=False,
+                        using_cow=using_cow,
+                        convert_string=convert_string or self.dtype == "string",
+                    )
                     if len(blocks) > 1 or blocks[0].dtype != blk.dtype:
                         warnings.warn(
                             # GH#54710
@@ -921,12 +952,14 @@ class Block(PandasObject, libinternals.Block):
             if value is None or value is NA:
                 blk = self.astype(np.dtype(object))
             else:
-                blk = self.coerce_to_target_dtype(value)
+                blk = self.coerce_to_target_dtype(value, using_cow=using_cow)
             return blk.replace(
                 to_replace=to_replace,
                 value=value,
                 inplace=True,
                 mask=mask,
+                using_cow=using_cow,
+                convert_string=convert_string,
             )
 
         else:
@@ -941,6 +974,7 @@ class Block(PandasObject, libinternals.Block):
                         inplace=True,
                         mask=mask[i : i + 1],
                         using_cow=using_cow,
+                        convert_string=convert_string,
                     )
                 )
             return blocks
@@ -953,6 +987,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         mask=None,
         using_cow: bool = False,
+        convert_string=None,
         already_warned=None,
     ) -> list[Block]:
         """
@@ -975,16 +1010,26 @@ class Block(PandasObject, libinternals.Block):
         -------
         List[Block]
         """
-        if not self._can_hold_element(to_replace):
+        if not is_re(to_replace) and not self._can_hold_element(to_replace):
             # i.e. only if self.is_object is True, but could in principle include a
             #  String ExtensionBlock
             if using_cow:
                 return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
-        rx = re.compile(to_replace)
+        if is_re(to_replace) and self.dtype not in [object, "string"]:
+            # only object or string dtype can hold strings, and a regex object
+            # will only match strings
+            return [self.copy(deep=False)]
 
-        block = self._maybe_copy(using_cow, inplace)
+        if not (
+            self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
+        ):
+            block = self.astype(np.dtype(object))
+        else:
+            block = self._maybe_copy(using_cow, inplace)
+
+        rx = re.compile(to_replace)
 
         replace_regex(block.values, rx, value, mask)
 
@@ -1002,9 +1047,19 @@ class Block(PandasObject, libinternals.Block):
                 )
                 already_warned.warned_already = True
 
-        nbs = block.convert(copy=False, using_cow=using_cow)
+        nbs = block.convert(
+            copy=False,
+            using_cow=using_cow,
+            convert_string=convert_string or self.dtype == "string",
+        )
         opt = get_option("future.no_silent_downcasting")
-        if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
+        if (
+            len(nbs) > 1
+            or (
+                nbs[0].dtype != block.dtype
+                and not (self.dtype == "string" and nbs[0].dtype == "string")
+            )
+        ) and not opt:
             warnings.warn(
                 # GH#54710
                 "Downcasting behavior in `replace` is deprecated and "
@@ -1041,9 +1096,13 @@ class Block(PandasObject, libinternals.Block):
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
 
+        convert_string = self.dtype == "string"
+
         # Exclude anything that we know we won't contain
         pairs = [
-            (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
+            (x, y)
+            for x, y in zip(src_list, dest_list)
+            if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
         if not len(pairs):
             if using_cow:
@@ -1123,6 +1182,7 @@ class Block(PandasObject, libinternals.Block):
                     inplace=inplace,
                     regex=regex,
                     using_cow=using_cow,
+                    convert_string=convert_string,
                 )
 
                 if using_cow and i != src_len:
@@ -1145,7 +1205,9 @@ class Block(PandasObject, libinternals.Block):
                     nbs = []
                     for res_blk in result:
                         converted = res_blk.convert(
-                            copy=True and not using_cow, using_cow=using_cow
+                            copy=True and not using_cow,
+                            using_cow=using_cow,
+                            convert_string=convert_string,
                         )
                         if len(converted) > 1 or converted[0].dtype != res_blk.dtype:
                             warnings.warn(
@@ -1175,6 +1237,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = True,
         regex: bool = False,
         using_cow: bool = False,
+        convert_string: bool = True,
     ) -> list[Block]:
         """
         Replace value corresponding to the given boolean array with another
@@ -1203,6 +1266,8 @@ class Block(PandasObject, libinternals.Block):
                 value,
                 inplace=inplace,
                 mask=mask,
+                using_cow=using_cow,
+                convert_string=convert_string,
             )
         else:
             if value is None:
@@ -1226,6 +1291,7 @@ class Block(PandasObject, libinternals.Block):
                 inplace=inplace,
                 mask=mask,
                 using_cow=using_cow,
+                convert_string=convert_string,
             )
 
     # ---------------------------------------------------------------------
@@ -1680,7 +1746,7 @@ class Block(PandasObject, libinternals.Block):
                 return nbs
 
         if limit is not None:
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
+            mask[mask.cumsum(self.values.ndim - 1) > limit] = False
 
         if inplace:
             nbs = self.putmask(
@@ -2106,9 +2172,16 @@ class EABackedBlock(Block):
             res_values = arr._where(cond, other).T
         except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
-                if isinstance(self.dtype, IntervalDtype):
+                if isinstance(self.dtype, (IntervalDtype, StringDtype)):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
+                    if (
+                        self.ndim == 2
+                        and isinstance(orig_cond, np.ndarray)
+                        and orig_cond.ndim == 1
+                        and not is_1d_only_ea_dtype(blk.dtype)
+                    ):
+                        orig_cond = orig_cond[:, None]
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
                         nbs, downcast=_downcast, using_cow=using_cow, caller="where"
@@ -2308,7 +2381,7 @@ class ExtensionBlock(EABackedBlock):
         using_cow: bool = False,
         already_warned=None,
     ) -> list[Block]:
-        if isinstance(self.dtype, IntervalDtype):
+        if isinstance(self.dtype, (IntervalDtype, StringDtype)):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
                 value=value,

@@ -86,6 +86,7 @@ def maybe_convert_objects(
     safe: bool = ...,
     convert_numeric: bool = ...,
     convert_non_numeric: Literal[False] = ...,
+    convert_string: Literal[False] = ...,
     convert_to_nullable_dtype: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> npt.NDArray[np.object_ | np.number]: ...
@@ -97,6 +98,7 @@ def maybe_convert_objects(
     safe: bool = ...,
     convert_numeric: bool = ...,
     convert_non_numeric: bool = ...,
+    convert_string: bool = ...,
     convert_to_nullable_dtype: Literal[True] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
@@ -108,6 +110,7 @@ def maybe_convert_objects(
     safe: bool = ...,
     convert_numeric: bool = ...,
     convert_non_numeric: bool = ...,
+    convert_string: bool = ...,
     convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...

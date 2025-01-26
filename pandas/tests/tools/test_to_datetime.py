@@ -1207,10 +1207,8 @@ class TestToDatetime:
         # GH#12424
         msg = "errors='ignore' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = to_datetime(
-                Series(["2362-01-01", np.nan], dtype=object), errors="ignore"
-            )
-        exp = Series(["2362-01-01", np.nan], dtype=object)
+            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        exp = Series(["2362-01-01", np.nan])
         tm.assert_series_equal(res, exp)
 
     def test_to_datetime_tz(self, cache):
@@ -1494,7 +1492,9 @@ class TestToDatetime:
             warn, match="Could not infer format", raise_on_extra_warnings=False
         ):
             res = to_datetime(values, errors="ignore", format=format)
-        tm.assert_index_equal(res, Index(values, dtype=object))
+        tm.assert_index_equal(
+            res, Index(values, dtype="object" if format is None else "str")
+        )
 
         with tm.assert_produces_warning(
             warn, match="Could not infer format", raise_on_extra_warnings=False
@@ -3715,7 +3715,7 @@ def test_to_datetime_mixed_not_necessarily_iso8601_raise():
     ("errors", "expected"),
     [
         ("coerce", DatetimeIndex(["2020-01-01 00:00:00", NaT])),
-        ("ignore", Index(["2020-01-01", "01-01-2000"], dtype=object)),
+        ("ignore", Index(["2020-01-01", "01-01-2000"], dtype="str")),
     ],
 )
 def test_to_datetime_mixed_not_necessarily_iso8601_coerce(errors, expected):

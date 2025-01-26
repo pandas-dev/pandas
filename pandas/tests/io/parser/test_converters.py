@@ -202,7 +202,7 @@ def test_converter_index_col_bug(all_parsers, conv_f):
         StringIO(data), sep=";", index_col="A", converters={"A": conv_f}
     )
 
-    xp = DataFrame({"B": [2, 4]}, index=Index(["1", "3"], name="A", dtype="object"))
+    xp = DataFrame({"B": [2, 4]}, index=Index(["1", "3"], name="A"))
     tm.assert_frame_equal(rs, xp)
 
 

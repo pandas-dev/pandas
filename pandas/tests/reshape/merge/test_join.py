@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -156,7 +158,7 @@ class TestJoin:
         # overlap
         source_copy = source.copy()
         msg = (
-            "You are trying to merge on float64 and object|string columns for key "
+            "You are trying to merge on float64 and object|str columns for key "
             "'A'. If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
@@ -341,6 +343,8 @@ class TestJoin:
         expected = _join_by_hand(df1, df2)
         tm.assert_frame_equal(joined, expected)
 
+    # triggers warning about empty entries
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_join_empty_bug(self):
         # generated an exception in 0.4.3
         x = DataFrame()
@@ -621,7 +625,7 @@ class TestJoin:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_mixed_type_join_with_suffix(self):
+    def test_mixed_type_join_with_suffix(self, using_infer_string):
         # GH #916
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 6)),
@@ -632,6 +636,8 @@ class TestJoin:
 
         grouped = df.groupby("id")
         msg = re.escape("agg function failed [how->mean,dtype->")
+        if using_infer_string:
+            msg = "dtype 'str' does not support operation 'mean'"
         with pytest.raises(TypeError, match=msg):
             grouped.mean()
         mn = grouped.mean(numeric_only=True)

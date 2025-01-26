@@ -4,6 +4,8 @@ import struct
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
@@ -63,6 +65,7 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
@@ -1280,7 +1283,7 @@ class TestValueCounts:
             result_dt = algos.value_counts(dt)
         tm.assert_series_equal(result_dt, exp_dt)
 
-        exp_td = Series({np.timedelta64(10000): 1}, name="count")
+        exp_td = Series([1], index=[np.timedelta64(10000)], name="count")
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result_td = algos.value_counts(td)
         tm.assert_series_equal(result_td, exp_td)
@@ -1704,8 +1707,14 @@ class TestHashTable:
     @pytest.mark.parametrize(
         "htable, data",
         [
-            (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
-            (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
+            (
+                ht.PyObjectHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
+            (
+                ht.StringHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
             (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
             (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
             (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
@@ -1713,7 +1722,7 @@ class TestHashTable:
     )
     def test_hashtable_unique(self, htable, data, writable):
         # output of maker has guaranteed unique elements
-        s = Series(data)
+        s = Series(data, dtype=data.dtype)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1743,8 +1752,14 @@ class TestHashTable:
     @pytest.mark.parametrize(
         "htable, data",
         [
-            (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
-            (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
+            (
+                ht.PyObjectHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
+            (
+                ht.StringHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
             (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
             (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
             (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
@@ -1752,7 +1767,7 @@ class TestHashTable:
     )
     def test_hashtable_factorize(self, htable, writable, data):
         # output of maker has guaranteed unique elements
-        s = Series(data)
+        s = Series(data, dtype=data.dtype)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1896,13 +1911,16 @@ class TestMode:
         tm.assert_series_equal(ser.mode(), exp)
 
     @pytest.mark.parametrize("dt", [str, object])
-    def test_strobj_multi_char(self, dt):
+    def test_strobj_multi_char(self, dt, using_infer_string):
         exp = ["bar"]
         data = ["foo"] * 2 + ["bar"] * 3
 
         ser = Series(data, dtype=dt)
         exp = Series(exp, dtype=dt)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        if using_infer_string and dt is str:
+            tm.assert_extension_array_equal(algos.mode(ser.values), exp.values)
+        else:
+            tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_datelike_mode(self):

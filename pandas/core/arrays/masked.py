@@ -38,6 +38,7 @@ from pandas.compat import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -302,7 +303,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
-        raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
+        raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
 
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
@@ -600,7 +601,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        return self.to_numpy(dtype=dtype)
+        if copy is False:
+            if not self._hasna:
+                # special case, here we can simply return the underlying data
+                return np.array(self._data, dtype=dtype, copy=copy)
+
+            warnings.warn(
+                "Starting with NumPy 2.0, the behavior of the 'copy' keyword has "
+                "changed and passing 'copy=False' raises an error when returning "
+                "a zero-copy NumPy array is not possible. pandas will follow "
+                "this behavior starting with pandas 3.0.\nThis conversion to "
+                "NumPy requires a copy, but 'copy=False' was passed. Consider "
+                "using 'np.asarray(..)' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if copy is None:
+            copy = False  # The NumPy copy=False meaning is different here.
+        return self.to_numpy(dtype=dtype, copy=copy)
 
     _HANDLED_TYPES: tuple[type, ...]
 

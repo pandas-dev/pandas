@@ -6,8 +6,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
@@ -27,6 +25,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     isna,
     period_range,
@@ -261,7 +260,7 @@ class TestBase:
                 "RangeIndex cannot be initialized from data, "
                 "MultiIndex and CategoricalIndex are tested separately"
             )
-        elif index.dtype == object and index.inferred_type == "boolean":
+        elif index.dtype == object and index.inferred_type in ["boolean", "string"]:
             init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
@@ -295,12 +294,17 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._mask, result._values._mask, check_same="same"
                 )
-            elif index.dtype == "string[python]":
+            elif (
+                isinstance(index.dtype, StringDtype) and index.dtype.storage == "python"
+            ):
                 assert np.shares_memory(index._values._ndarray, result._values._ndarray)
                 tm.assert_numpy_array_equal(
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
-            elif index.dtype in ("string[pyarrow]", "string[pyarrow_numpy]"):
+            elif (
+                isinstance(index.dtype, StringDtype)
+                and index.dtype.storage == "pyarrow"
+            ):
                 assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)
@@ -425,11 +429,7 @@ class TestBase:
             result = trimmed.insert(0, index[0])
         assert index[0:4].equals(result)
 
-    @pytest.mark.skipif(
-        using_pyarrow_string_dtype(),
-        reason="completely different behavior, tested elsewher",
-    )
-    def test_insert_out_of_bounds(self, index):
+    def test_insert_out_of_bounds(self, index, using_infer_string):
         # TypeError/IndexError matches what np.insert raises in these cases
 
         if len(index) > 0:
@@ -441,6 +441,12 @@ class TestBase:
             msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
+
+        if using_infer_string and (
+            index.dtype == "string" or index.dtype == "category"  # noqa: PLR1714
+        ):
+            msg = "loc must be an integer between"
+
         with pytest.raises(err, match=msg):
             index.insert(0.5, "foo")
 
@@ -479,6 +485,7 @@ class TestBase:
         with pytest.raises(IndexError, match=msg):
             index.delete(length)
 
+    @pytest.mark.filterwarnings(r"ignore:Dtype inference:FutureWarning")
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_equals(self, index):
         if isinstance(index, IntervalIndex):
@@ -859,21 +866,14 @@ class TestBase:
             tm.assert_series_equal(res2, Series(expected))
         else:
             if idx.dtype.kind == "f":
-                err = TypeError
                 msg = "ufunc 'invert' not supported for the input types"
-            elif using_infer_string and idx.dtype == "string":
-                import pyarrow as pa
-
-                err = pa.lib.ArrowNotImplementedError
-                msg = "has no kernel"
             else:
-                err = TypeError
-                msg = "bad operand"
-            with pytest.raises(err, match=msg):
+                msg = "bad operand|__invert__ is not supported for string dtype"
+            with pytest.raises(TypeError, match=msg):
                 ~idx
 
             # check that we get the same behavior with Series
-            with pytest.raises(err, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 ~Series(idx)
 
     def test_is_boolean_is_deprecated(self, simple_index):

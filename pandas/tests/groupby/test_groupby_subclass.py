@@ -74,7 +74,7 @@ def test_groupby_preserves_metadata():
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(
-        DeprecationWarning,
+        FutureWarning,
         match=msg,
         raise_on_extra_warnings=False,
         check_stacklevel=False,
@@ -109,7 +109,7 @@ def test_groupby_resample_preserves_subclass(obj):
 
     df = obj(
         {
-            "Buyer": "Carl Carl Carl Carl Joe Carl".split(),
+            "Buyer": Series("Carl Carl Carl Carl Joe Carl".split(), dtype=object),
             "Quantity": [18, 3, 5, 1, 9, 3],
             "Date": [
                 datetime(2013, 9, 1, 13, 0),
@@ -126,7 +126,7 @@ def test_groupby_resample_preserves_subclass(obj):
     # Confirm groupby.resample() preserves dataframe type
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
     with tm.assert_produces_warning(
-        DeprecationWarning,
+        FutureWarning,
         match=msg,
         raise_on_extra_warnings=False,
         check_stacklevel=False,

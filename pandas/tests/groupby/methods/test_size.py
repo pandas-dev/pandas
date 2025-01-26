@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_integer_dtype
 
 from pandas import (
@@ -108,22 +106,16 @@ def test_size_series_masked_type_returns_Int64(dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        object,
-        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ],
-)
-def test_size_strings(dtype):
+def test_size_strings(any_string_dtype, using_infer_string):
     # GH#55627
+    dtype = any_string_dtype
     df = DataFrame({"a": ["a", "a", "b"], "b": "a"}, dtype=dtype)
     result = df.groupby("a")["b"].size()
     exp_dtype = "Int64" if dtype == "string[pyarrow]" else "int64"
+    exp_index_dtype = "str" if using_infer_string and dtype == "object" else dtype
     expected = Series(
         [2, 1],
-        index=Index(["a", "b"], name="a", dtype=dtype),
+        index=Index(["a", "b"], name="a", dtype=exp_index_dtype),
         name="b",
         dtype=exp_dtype,
     )

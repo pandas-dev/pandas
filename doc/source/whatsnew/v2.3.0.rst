@@ -1,0 +1,187 @@
+.. _whatsnew_230:
+
+What's new in 2.3.0 (Month XX, 2024)
+------------------------------------
+
+These are the changes in pandas 2.3.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_230.upcoming_changes:
+
+Upcoming changes in pandas 3.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. _whatsnew_230.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_230.enhancements.enhancement1:
+
+enhancement1
+^^^^^^^^^^^^
+
+
+.. _whatsnew_230.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- The semantics for the ``copy`` keyword in ``__array__`` methods (i.e. called
+  when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
+  updated to raise FutureWarning with NumPy >= 2 (:issue:`60340`)
+- :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
+- The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns when backed by PyArrow (:issue:`60633`)
+- The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
+
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+- Deprecated allowing non-``bool`` values for ``na`` in :meth:`.str.contains`, :meth:`.str.startswith`, and :meth:`.str.endswith` for dtypes that do not already disallow these (:issue:`59615`)
+- Deprecated the ``"pyarrow_numpy"`` storage option for :class:`StringDtype` (:issue:`60152`)
+- The deprecation of setting the argument ``include_groups`` to ``True`` in :meth:`DataFrameGroupBy.apply` has been promoted from a ``DeprecationWarning`` to ``FutureWarning``; only ``False`` will be allowed (:issue:`7155`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+-
+-
+
+Timedelta
+^^^^^^^^^
+-
+-
+
+Timezones
+^^^^^^^^^
+-
+-
+
+Numeric
+^^^^^^^
+- Enabled :class:`Series.mode` and :class:`DataFrame.mode` with ``dropna=False`` to sort the result for all dtypes in the presence of NA values; previously only certain dtypes would sort (:issue:`60702`)
+-
+
+Conversion
+^^^^^^^^^^
+-
+-
+
+Strings
+^^^^^^^
+- Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` did not raise for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
+- Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` incorrectly returning integer results in case of ``method="average"`` and raising an error if it would truncate results (:issue:`59768`)
+- Bug in :meth:`Series.replace` with :class:`StringDtype` when replacing with a non-string value was not upcasting to ``object`` dtype (:issue:`60282`)
+- Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`59628`)
+- Bug in ``ser.str.slice`` with negative ``step`` with :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"`` giving incorrect results (:issue:`59710`)
+- Bug in the ``center`` method on :class:`Series` and :class:`Index` object ``str`` accessors with pyarrow-backed dtype not matching the python behavior in corner cases with an odd number of fill characters (:issue:`54792`)
+
+Interval
+^^^^^^^^
+-
+-
+
+Indexing
+^^^^^^^^
+- Fixed bug in :meth:`Index.get_indexer` round-tripping through string dtype when ``infer_string`` is enabled (:issue:`55834`)
+-
+
+Missing
+^^^^^^^
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+-
+-
+
+I/O
+^^^
+-
+-
+
+Period
+^^^^^^
+-
+-
+
+Plotting
+^^^^^^^^
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+-
+-
+
+Reshaping
+^^^^^^^^^
+-
+-
+
+Sparse
+^^^^^^
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+-
+-
+
+Styler
+^^^^^^
+-
+-
+
+Other
+^^^^^
+- Fixed usage of ``inspect`` when the optional dependencies ``pyarrow`` or ``jinja2``
+  are not installed (:issue:`60196`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.contributors:
+
+Contributors
+~~~~~~~~~~~~

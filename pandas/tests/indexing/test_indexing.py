@@ -8,8 +8,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import (
@@ -294,7 +292,7 @@ class TestFancy:
             with pytest.raises(
                 KeyError,
                 match=re.escape(
-                    "\"None of [Index(['E'], dtype='string')] are in the [index]\""
+                    "\"None of [Index(['E'], dtype='str')] are in the [index]\""
                 ),
             ):
                 dfnu.loc[["E"]]
@@ -461,9 +459,6 @@ class TestFancy:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't multiply arrow strings"
-    )
     def test_multi_assign(self):
         # GH 3626, an assignment of a sub-df to a df
         # set float64 to avoid upcast when setting nan
@@ -571,6 +566,7 @@ class TestFancy:
         df_orig = DataFrame(
             [["1", "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        df_orig[list("ABCDG")] = df_orig[list("ABCDG")].astype(object)
 
         df = df_orig.copy()
 
@@ -580,9 +576,9 @@ class TestFancy:
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["A"] = expected["A"].astype(object)
-            expected["B"] = expected["B"].astype(object)
+        expected[list("CDG")] = expected[list("CDG")].astype(object)
+        expected["A"] = expected["A"].astype(object)
+        expected["B"] = expected["B"].astype(object)
         tm.assert_frame_equal(df, expected)
 
         # GH5702 (loc)
@@ -591,18 +587,16 @@ class TestFancy:
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["A"] = expected["A"].astype(object)
+        expected[list("ABCDG")] = expected[list("ABCDG")].astype(object)
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
+
         df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["B"] = expected["B"].astype(object)
-            expected["C"] = expected["C"].astype(object)
+        expected[list("ABCDG")] = expected[list("ABCDG")].astype(object)
         tm.assert_frame_equal(df, expected)
 
     def test_astype_assignment_full_replacements(self):
@@ -689,8 +683,7 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set int into string")
-    def test_rhs_alignment(self):
+    def test_rhs_alignment(self, using_infer_string):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
         def run_tests(df, rhs, right_loc, right_iloc):
@@ -734,8 +727,15 @@ class TestMisc:
             frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            run_tests(df, rhs, right_loc, right_iloc)
+        if using_infer_string:
+            with pytest.raises(TypeError, match="Invalid value"):
+                with tm.assert_produces_warning(
+                    FutureWarning, match="incompatible dtype"
+                ):
+                    run_tests(df, rhs, right_loc, right_iloc)
+        else:
+            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+                run_tests(df, rhs, right_loc, right_iloc)
 
     @pytest.mark.parametrize(
         "idx", [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]

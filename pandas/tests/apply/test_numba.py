@@ -3,6 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -26,11 +27,10 @@ def test_numba_vs_python_noop(float_frame, apply_axis):
 
 def test_numba_vs_python_string_index():
     # GH#56189
-    pytest.importorskip("pyarrow")
     df = DataFrame(
         1,
-        index=Index(["a", "b"], dtype="string[pyarrow_numpy]"),
-        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+        index=Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     func = lambda x: x
     result = df.apply(func, engine="numba", axis=0)
@@ -100,13 +100,14 @@ def test_numba_nonunique_unsupported(apply_axis):
 
 
 def test_numba_unsupported_dtypes(apply_axis):
+    pytest.importorskip("pyarrow")
     f = lambda x: x
     df = DataFrame({"a": [1, 2], "b": ["a", "b"], "c": [4, 5]})
     df["c"] = df["c"].astype("double[pyarrow]")
 
     with pytest.raises(
         ValueError,
-        match="Column b must have a numeric dtype. Found 'object|string' instead",
+        match="Column b must have a numeric dtype. Found 'object|str' instead",
     ):
         df.apply(f, engine="numba", axis=apply_axis)
 

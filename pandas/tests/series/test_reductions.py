@@ -166,19 +166,15 @@ def test_validate_stat_keepdims():
 def test_mean_with_convertible_string_raises(using_array_manager, using_infer_string):
     # GH#44008
     ser = Series(["1", "2"])
-    if using_infer_string:
-        msg = "does not support"
-        with pytest.raises(TypeError, match=msg):
-            ser.sum()
-    else:
-        assert ser.sum() == "12"
-    msg = "Could not convert string '12' to numeric|does not support"
+    assert ser.sum() == "12"
+
+    msg = "Could not convert string '12' to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         ser.mean()
 
     df = ser.to_frame()
     if not using_array_manager:
-        msg = r"Could not convert \['12'\] to numeric|does not support"
+        msg = r"Could not convert \['12'\] to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
@@ -189,30 +185,33 @@ def test_mean_dont_convert_j_to_complex(using_array_manager):
     if using_array_manager:
         msg = "Could not convert string 'J' to numeric"
     else:
-        msg = r"Could not convert \['J'\] to numeric|does not support"
+        msg = r"Could not convert \['J'\] to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
     with pytest.raises(TypeError, match=msg):
         df.agg("mean")
 
-    msg = "Could not convert string 'J' to numeric|does not support"
+    msg = "Could not convert string 'J' to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
-    msg = "Could not convert string 'J' to numeric|ufunc 'divide'"
+    msg = "Could not convert string 'J' to numeric|ufunc 'divide'|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
 
 def test_median_with_convertible_string_raises(using_array_manager):
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
-    msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support"
+    msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support|Cannot perform"
     ser = Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
     if not using_array_manager:
-        msg = r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support"
+        msg = (
+            r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support"
+            "|Cannot perform"
+        )
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):
         df.median()

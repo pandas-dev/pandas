@@ -145,8 +145,8 @@ def test_compression_binary(compression_only):
     """
     df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=pd.Index(list("ABCD"), dtype=object),
-        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
 
     # with a file
@@ -177,8 +177,8 @@ def test_gzip_reproducibility_file_name():
     """
     df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=pd.Index(list("ABCD"), dtype=object),
-        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     compression_options = {"method": "gzip", "mtime": 1}
 
@@ -200,8 +200,8 @@ def test_gzip_reproducibility_file_object():
     """
     df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=pd.Index(list("ABCD"), dtype=object),
-        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     compression_options = {"method": "gzip", "mtime": 1}
 

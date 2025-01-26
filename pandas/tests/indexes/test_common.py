@@ -147,6 +147,7 @@ class TestCommon:
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
+    @pytest.mark.filterwarnings(r"ignore:Dtype inference:FutureWarning")
     def test_copy_name(self, index_flat):
         # GH#12309: Check that the "name" argument
         # passed at initialization is honored.

@@ -4,10 +4,14 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     Series,
+    StringDtype,
     bdate_range,
 )
 import pandas._testing as tm
@@ -146,7 +150,7 @@ class TestSeriesLogicalOps:
         expected = Series([False, True, True, True])
         tm.assert_series_equal(result, expected)
 
-    def test_logical_operators_int_dtype_with_object(self, using_infer_string):
+    def test_logical_operators_int_dtype_with_object(self):
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
@@ -155,14 +159,10 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.nan, "d"])
-        if using_infer_string:
-            import pyarrow as pa
-
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
-                s_0123 & s_abNd
-        else:
-            with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
-                s_0123 & s_abNd
+        with pytest.raises(
+            TypeError, match="unsupported.* 'int' and 'str'|'rand_' not supported"
+        ):
+            s_0123 & s_abNd
 
     def test_logical_operators_bool_dtype_with_int(self):
         index = list("bca")
@@ -360,6 +360,7 @@ class TestSeriesLogicalOps:
         result = op(ser, idx)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_logical_ops_label_based(self, using_infer_string):
         # GH#4947
         # logical ops should be label based
@@ -428,15 +429,13 @@ class TestSeriesLogicalOps:
                 tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
-            warn = FutureWarning if using_infer_string else None
             if using_infer_string:
-                import pyarrow as pa
-
-                with tm.assert_produces_warning(warn, match="Operation between non"):
-                    with pytest.raises(
-                        pa.lib.ArrowNotImplementedError, match="has no kernel"
-                    ):
-                        result = a[a | e]
+                # TODO(infer_string) should this behave differently?
+                # -> https://github.com/pandas-dev/pandas/issues/60234
+                with pytest.raises(
+                    TypeError, match="not supported for dtype|unsupported operand type"
+                ):
+                    result = a[a | e]
             else:
                 result = a[a | e]
             tm.assert_series_equal(result, a[a])
@@ -531,18 +530,38 @@ class TestSeriesLogicalOps:
         result = ser1 ^ ser2
         tm.assert_series_equal(result, expected)
 
+    # TODO: this belongs in comparison tests
     def test_pyarrow_numpy_string_invalid(self):
         # GH#56008
-        pytest.importorskip("pyarrow")
+        pa = pytest.importorskip("pyarrow")
         ser = Series([False, True])
-        ser2 = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        ser2 = Series(["a", "b"], dtype=StringDtype(na_value=np.nan))
         result = ser == ser2
-        expected = Series(False, index=ser.index)
-        tm.assert_series_equal(result, expected)
+        expected_eq = Series(False, index=ser.index)
+        tm.assert_series_equal(result, expected_eq)
 
         result = ser != ser2
-        expected = Series(True, index=ser.index)
-        tm.assert_series_equal(result, expected)
+        expected_ne = Series(True, index=ser.index)
+        tm.assert_series_equal(result, expected_ne)
 
         with pytest.raises(TypeError, match="Invalid comparison"):
             ser > ser2
+
+        # GH#59505
+        ser3 = ser2.astype("string[pyarrow]")
+        result3_eq = ser3 == ser
+        tm.assert_series_equal(result3_eq, expected_eq.astype("bool[pyarrow]"))
+        result3_ne = ser3 != ser
+        tm.assert_series_equal(result3_ne, expected_ne.astype("bool[pyarrow]"))
+
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser > ser3
+
+        ser4 = ser2.astype(ArrowDtype(pa.string()))
+        result4_eq = ser4 == ser
+        tm.assert_series_equal(result4_eq, expected_eq.astype("bool[pyarrow]"))
+        result4_ne = ser4 != ser
+        tm.assert_series_equal(result4_ne, expected_ne.astype("bool[pyarrow]"))
+
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser > ser4

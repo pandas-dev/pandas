@@ -763,7 +763,7 @@ def test_union_with_na_when_constructing_dataframe():
     series1 = Series(
         (1,),
         index=MultiIndex.from_arrays(
-            [Series([None], dtype="string"), Series([None], dtype="string")]
+            [Series([None], dtype="str"), Series([None], dtype="str")]
         ),
     )
     series2 = Series((10, 20), index=MultiIndex.from_tuples(((None, None), ("a", "b"))))

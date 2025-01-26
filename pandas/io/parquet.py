@@ -10,9 +10,11 @@ from typing import (
     Literal,
 )
 import warnings
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
 
-from pandas._config import using_pyarrow_string_dtype
 from pandas._config.config import _get_option
 
 from pandas._libs import lib
@@ -22,14 +24,13 @@ from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
-import pandas as pd
 from pandas import (
     DataFrame,
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io._util import arrow_string_types_mapper
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
     IOHandles,
     get_handle,
@@ -250,20 +251,10 @@ class PyArrowImpl(BaseImpl):
         kwargs["use_pandas_metadata"] = True
 
         to_pandas_kwargs = {}
-        if dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping()
-            to_pandas_kwargs["types_mapper"] = mapping.get
-        elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
-        elif using_pyarrow_string_dtype():
-            to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
         manager = _get_option("mode.data_manager", silent=True)
         if manager == "array":
-            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
-
+            to_pandas_kwargs["split_blocks"] = True
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
@@ -278,7 +269,18 @@ class PyArrowImpl(BaseImpl):
                 filters=filters,
                 **kwargs,
             )
-            result = pa_table.to_pandas(**to_pandas_kwargs)
+
+            with catch_warnings():
+                filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+                result = arrow_table_to_pandas(
+                    pa_table,
+                    dtype_backend=dtype_backend,
+                    to_pandas_kwargs=to_pandas_kwargs,
+                )
 
             if manager == "array":
                 result = result._as_manager("array", copy=False)

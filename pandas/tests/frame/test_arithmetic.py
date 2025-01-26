@@ -11,7 +11,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -253,9 +253,6 @@ class TestFrameComparisons:
             with pytest.raises(TypeError, match=msg):
                 right_f(pd.Timestamp("nat"), df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't compare string and int"
-    )
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
@@ -1572,7 +1569,12 @@ class TestFrameArithmeticUnsorted:
         )
 
         f = getattr(operator, compare_operators_no_eq_ne)
-        msg = "'[<>]=?' not supported between instances of 'str' and 'int'"
+        msg = "|".join(
+            [
+                "'[<>]=?' not supported between instances of 'str' and 'int'",
+                "Invalid comparison between dtype=str and int",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             f(df, 0)
 
@@ -2126,6 +2128,7 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_mixed_col_index_dtype():
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])

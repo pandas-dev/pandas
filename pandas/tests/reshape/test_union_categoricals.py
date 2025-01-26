@@ -126,7 +126,11 @@ class TestUnionCategoricals:
     def test_union_categoricals_empty(self, val, request, using_infer_string):
         # GH 13759
         if using_infer_string and val == ["1"]:
-            request.applymarker(pytest.mark.xfail("object and strings dont match"))
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="TDOD(infer_string) object and strings dont match"
+                )
+            )
         res = union_categoricals([Categorical([]), Categorical(val)])
         exp = Categorical(val)
         tm.assert_categorical_equal(res, exp)

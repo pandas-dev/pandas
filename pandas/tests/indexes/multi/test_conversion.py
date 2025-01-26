@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -13,6 +15,41 @@ def test_to_numpy(idx):
     result = idx.to_numpy()
     exp = idx.values
     tm.assert_numpy_array_equal(result, exp)
+
+
+def test_array_interface(idx):
+    # https://github.com/pandas-dev/pandas/pull/60046
+    result = np.asarray(idx)
+    expected = np.empty((6,), dtype=object)
+    expected[:] = [
+        ("foo", "one"),
+        ("foo", "two"),
+        ("bar", "one"),
+        ("baz", "two"),
+        ("qux", "one"),
+        ("qux", "two"),
+    ]
+    tm.assert_numpy_array_equal(result, expected)
+
+    # it always gives a copy by default, but the values are cached, so results
+    # are still sharing memory
+    result_copy1 = np.asarray(idx)
+    result_copy2 = np.asarray(idx)
+    assert np.may_share_memory(result_copy1, result_copy2)
+
+    # with explicit copy=True, then it is an actual copy
+    result_copy1 = np.array(idx, copy=True)
+    result_copy2 = np.array(idx, copy=True)
+    assert not np.may_share_memory(result_copy1, result_copy2)
+
+    if not np_version_gt2:
+        # copy=False semantics are only supported in NumPy>=2.
+        return
+
+    # for MultiIndex, copy=False is never allowed
+    msg = "Starting with NumPy 2.0, the behavior of the 'copy' keyword has changed"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        np.array(idx, copy=False)
 
 
 def test_to_frame():

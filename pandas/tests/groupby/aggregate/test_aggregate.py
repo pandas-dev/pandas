@@ -337,7 +337,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == object:
+        if ser.dtype in (object, "string"):
             raise TypeError("Test error message")
         return ser.sum()
 
@@ -1109,7 +1109,7 @@ def test_aggregate_mixed_types():
     expected = DataFrame(
         expected_data,
         index=Index([2, "group 1"], dtype="object", name="grouping"),
-        columns=Index(["X", "Y", "Z"], dtype="object"),
+        columns=Index(["X", "Y", "Z"]),
     )
     tm.assert_frame_equal(result, expected)
 

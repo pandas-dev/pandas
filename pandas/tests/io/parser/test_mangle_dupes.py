@@ -7,7 +7,10 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -129,7 +132,7 @@ def test_mangled_unnamed_placeholders(all_parsers):
 
     # This test recursively updates `df`.
     for i in range(3):
-        expected = DataFrame()
+        expected = DataFrame(columns=Index([], dtype="str"))
 
         for j in range(i + 1):
             col_name = "Unnamed: 0" + f".{1*j}" * min(j, 1)

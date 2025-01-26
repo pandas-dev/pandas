@@ -29,7 +29,8 @@ class TestNumericOnly:
                 "group": [1, 1, 2],
                 "int": [1, 2, 3],
                 "float": [4.0, 5.0, 6.0],
-                "string": list("abc"),
+                "string": Series(["a", "b", "c"], dtype="str"),
+                "object": Series(["a", "b", "c"], dtype=object),
                 "category_string": Series(list("abc")).astype("category"),
                 "category_int": [7, 8, 9],
                 "datetime": date_range("20130101", periods=3),
@@ -41,6 +42,7 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "string",
+                "object",
                 "category_string",
                 "category_int",
                 "datetime",
@@ -113,6 +115,7 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "string",
+                "object",
                 "category_string",
                 "category_int",
                 "datetime",
@@ -160,7 +163,9 @@ class TestNumericOnly:
 
         # object dtypes for transformations are not implemented in Cython and
         # have no Python fallback
-        exception = NotImplementedError if method.startswith("cum") else TypeError
+        exception = (
+            (NotImplementedError, TypeError) if method.startswith("cum") else TypeError
+        )
 
         if method in ("min", "max", "cummin", "cummax", "cumsum", "cumprod"):
             # The methods default to numeric_only=False and raise TypeError
@@ -171,6 +176,7 @@ class TestNumericOnly:
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     # cumsum/cummin/cummax/cumprod
                     "function is not implemented for this dtype",
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -181,6 +187,7 @@ class TestNumericOnly:
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -198,6 +205,7 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -271,9 +279,10 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only, using_infer_str
             # cumsum, diff, pct_change
             "unsupported operand type",
             "has no kernel",
+            "operation 'sub' not supported for dtype 'str' with dtype 'float64'",
         )
         if using_infer_string:
-            import pyarrow as pa
+            pa = pytest.importorskip("pyarrow")
 
             errs = (TypeError, pa.lib.ArrowNotImplementedError)
         else:
@@ -381,7 +390,9 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
-        if kernel == "idxmin":
+        if kernel == "quantile":
+            msg = "dtype 'object' does not support operation 'quantile'"
+        elif kernel == "idxmin":
             msg = "'<' not supported between instances of 'type' and 'type'"
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
@@ -455,7 +466,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # that succeed should not be allowed to fail (without deprecation, at least)
     if groupby_func in fails_on_numeric_object and dtype is object:
         if groupby_func == "quantile":
-            msg = "cannot be performed against 'object' dtypes"
+            msg = "dtype 'object' does not support operation 'quantile'"
         else:
             msg = "is not supported for object dtype"
         warn = FutureWarning if groupby_func == "fillna" else None

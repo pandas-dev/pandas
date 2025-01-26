@@ -146,8 +146,5 @@ class TestDataFrameDataTypes:
         # GH 35517
         df = DataFrame([["foo"]])
         result = df.apply(lambda col: np.array("bar"))
-        if using_infer_string:
-            expected = Series([np.array(["bar"])])
-        else:
-            expected = Series(["bar"])
+        expected = Series(np.array("bar"))
         tm.assert_series_equal(result, expected)

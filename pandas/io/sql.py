@@ -32,7 +32,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -46,11 +46,10 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_list_like,
+    is_object_dtype,
+    is_string_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    DatetimeTZDtype,
-)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas import get_option
@@ -59,11 +58,14 @@ from pandas.core.api import (
     Series,
 )
 from pandas.core.arrays import ArrowExtensionArray
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
+
+from pandas.io._util import arrow_table_to_pandas
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -1331,7 +1333,12 @@ class SQLTable(PandasObject):
                 elif dtype_backend == "numpy" and col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type, copy=False)
-
+                elif (
+                    using_string_dtype()
+                    and is_string_dtype(col_type)
+                    and is_object_dtype(self.frame[col_name])
+                ):
+                    self.frame[col_name] = df_col.astype(col_type, copy=False)
                 elif dtype_backend == "numpy" and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
@@ -1418,6 +1425,7 @@ class SQLTable(PandasObject):
             DateTime,
             Float,
             Integer,
+            String,
         )
 
         if isinstance(sqltype, Float):
@@ -1437,6 +1445,10 @@ class SQLTable(PandasObject):
             return date
         elif isinstance(sqltype, Boolean):
             return bool
+        elif isinstance(sqltype, String):
+            if using_string_dtype():
+                return StringDtype(na_value=np.nan)
+
         return object
 
 
@@ -2208,23 +2220,10 @@ class ADBCDatabase(PandasSQL):
         else:
             stmt = f"SELECT {select_list} FROM {table_name}"
 
-        mapping: type[ArrowDtype] | None | Callable
-        if dtype_backend == "pyarrow":
-            mapping = ArrowDtype
-        elif dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping().get
-        elif using_pyarrow_string_dtype():
-            from pandas.io._util import arrow_string_types_mapper
-
-            arrow_string_types_mapper()
-        else:
-            mapping = None
-
         with self.con.cursor() as cur:
             cur.execute(stmt)
-            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+            pa_table = cur.fetch_arrow_table()
+            df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
         return _wrap_result_adbc(
             df,
@@ -2292,19 +2291,10 @@ class ADBCDatabase(PandasSQL):
         if chunksize:
             raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
 
-        mapping: type[ArrowDtype] | None | Callable
-        if dtype_backend == "pyarrow":
-            mapping = ArrowDtype
-        elif dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping().get
-        else:
-            mapping = None
-
         with self.con.cursor() as cur:
             cur.execute(sql)
-            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+            pa_table = cur.fetch_arrow_table()
+            df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
         return _wrap_result_adbc(
             df,

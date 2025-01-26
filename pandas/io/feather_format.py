@@ -6,18 +6,17 @@ from typing import (
     Any,
 )
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
-import pandas as pd
 from pandas.core.api import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io._util import arrow_string_types_mapper
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
@@ -120,7 +119,7 @@ def read_feather(
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
-        if dtype_backend is lib.no_default and not using_pyarrow_string_dtype():
+        if dtype_backend is lib.no_default and not using_string_dtype():
             return feather.read_feather(
                 handles.handle, columns=columns, use_threads=bool(use_threads)
             )
@@ -128,16 +127,4 @@ def read_feather(
         pa_table = feather.read_table(
             handles.handle, columns=columns, use_threads=bool(use_threads)
         )
-
-        if dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            return pa_table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
-
-        elif dtype_backend == "pyarrow":
-            return pa_table.to_pandas(types_mapper=pd.ArrowDtype)
-
-        elif using_pyarrow_string_dtype():
-            return pa_table.to_pandas(types_mapper=arrow_string_types_mapper())
-        else:
-            raise NotImplementedError
+        return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)

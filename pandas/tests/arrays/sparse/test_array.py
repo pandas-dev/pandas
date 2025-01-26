@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.compat.numpy import np_version_gt2
 
 import pandas as pd
 from pandas import (
@@ -478,3 +479,33 @@ def test_zero_sparse_column():
 
     expected = pd.DataFrame({"A": SparseArray([0, 0]), "B": [1, 3]}, index=[0, 2])
     tm.assert_frame_equal(result, expected)
+
+
+def test_array_interface(arr_data, arr):
+    # https://github.com/pandas-dev/pandas/pull/60046
+    result = np.asarray(arr)
+    tm.assert_numpy_array_equal(result, arr_data)
+
+    # it always gives a copy by default
+    result_copy1 = np.asarray(arr)
+    result_copy2 = np.asarray(arr)
+    assert not np.may_share_memory(result_copy1, result_copy2)
+
+    # or with explicit copy=True
+    result_copy1 = np.array(arr, copy=True)
+    result_copy2 = np.array(arr, copy=True)
+    assert not np.may_share_memory(result_copy1, result_copy2)
+
+    if not np_version_gt2:
+        # copy=False semantics are only supported in NumPy>=2.
+        return
+
+    msg = "Starting with NumPy 2.0, the behavior of the 'copy' keyword has changed"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        np.array(arr, copy=False)
+
+    # except when there are actually no sparse filled values
+    arr2 = SparseArray(np.array([1, 2, 3]))
+    result_nocopy1 = np.array(arr2, copy=False)
+    result_nocopy2 = np.array(arr2, copy=False)
+    assert np.may_share_memory(result_nocopy1, result_nocopy2)

@@ -41,7 +41,7 @@ def test_get_dtypes(using_infer_string):
         names=["int", "string", "dt"],
     )
 
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "int": np.dtype("int64"),
@@ -61,7 +61,7 @@ def test_get_dtypes_no_level_name(using_infer_string):
             pd.date_range("20200101", periods=2, tz="UTC"),
         ],
     )
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "level_0": np.dtype("int64"),
@@ -82,7 +82,7 @@ def test_get_dtypes_duplicate_level_names(using_infer_string):
         ],
         names=["A", "A", "A"],
     ).dtypes
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         [np.dtype("int64"), exp, DatetimeTZDtype(tz="utc")],
         index=["A", "A", "A"],

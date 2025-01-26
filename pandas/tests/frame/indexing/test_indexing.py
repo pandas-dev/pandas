@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
@@ -334,7 +336,7 @@ class TestDataFrameIndexing:
                 smaller["col10"] = ["1", "2"]
 
         if using_infer_string:
-            assert smaller["col10"].dtype == "string"
+            assert smaller["col10"].dtype == "str"
         else:
             assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
@@ -469,13 +471,13 @@ class TestDataFrameIndexing:
         del dm["foo"]
         dm["foo"] = "bar"
         if using_infer_string:
-            assert dm["foo"].dtype == "string"
+            assert dm["foo"].dtype == "str"
         else:
             assert dm["foo"].dtype == np.object_
 
         dm["coercible"] = ["1", "2", "3"]
         if using_infer_string:
-            assert dm["coercible"].dtype == "string"
+            assert dm["coercible"].dtype == "str"
         else:
             assert dm["coercible"].dtype == np.object_
 
@@ -511,21 +513,20 @@ class TestDataFrameIndexing:
         dm[2] = uncoercable_series
         assert len(dm.columns) == 3
         if using_infer_string:
-            assert dm[2].dtype == "string"
+            assert dm[2].dtype == "str"
         else:
             assert dm[2].dtype == np.object_
 
-    def test_setitem_None(self, float_frame, using_infer_string):
+    def test_setitem_None(self, float_frame):
         # GH #766
         float_frame[None] = float_frame["A"]
-        key = None if not using_infer_string else np.nan
         tm.assert_series_equal(
             float_frame.iloc[:, -1], float_frame["A"], check_names=False
         )
         tm.assert_series_equal(
-            float_frame.loc[:, key], float_frame["A"], check_names=False
+            float_frame.loc[:, None], float_frame["A"], check_names=False
         )
-        tm.assert_series_equal(float_frame[key], float_frame["A"], check_names=False)
+        tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
 
     def test_loc_setitem_boolean_mask_allfalse(self):
         # GH 9596
@@ -901,6 +902,8 @@ class TestDataFrameIndexing:
         expected = piece.values
         tm.assert_almost_equal(result, expected)
 
+    # dtype inference
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_frame_mixed(self, float_string_frame):
         # GH 3216
 
@@ -913,6 +916,8 @@ class TestDataFrameIndexing:
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
+    # dtype inference
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_frame_mixed_rows_unaligned(self, float_string_frame):
         # GH#3216 rows unaligned
         f = float_string_frame.copy()
@@ -927,6 +932,8 @@ class TestDataFrameIndexing:
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
         )
 
+    # dtype inference
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_frame_mixed_key_unaligned(self, float_string_frame):
         # GH#3216 key is unaligned with values
         f = float_string_frame.copy()
@@ -1199,7 +1206,7 @@ class TestDataFrameIndexing:
         result = df.dtypes
         expected = Series(
             [np.dtype("timedelta64[ns]")] * 6 + [np.dtype("datetime64[ns]")] * 2,
-            index=list("ABCDEFGH"),
+            index=Index(list("ABCDEFGH"), dtype=object),
         )
         tm.assert_series_equal(result, expected)
 
@@ -1244,7 +1251,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df2, expected)
 
         df["foo"] = "test"
-        msg = "not supported between instances|unorderable types"
+        msg = "not supported between instances|unorderable types|Invalid comparison"
 
         with pytest.raises(TypeError, match=msg):
             df[df > 0.3] = 1
@@ -1332,7 +1339,7 @@ class TestDataFrameIndexing:
                 r"timedelta64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 "'values' contains non-numeric NA",
-                r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
+                r"Invalid value '.*' for dtype '(U?Int|Float)\d{1,2}'",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -1940,13 +1947,11 @@ def test_adding_new_conditional_column() -> None:
     ("dtype", "infer_string"),
     [
         (object, False),
-        ("string[pyarrow_numpy]", True),
+        (pd.StringDtype(na_value=np.nan), True),
     ],
 )
 def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
     # https://github.com/pandas-dev/pandas/issues/56204
-    pytest.importorskip("pyarrow")
-
     df = DataFrame({"a": [1, 2], "b": [3, 4]})
     with pd.option_context("future.infer_string", infer_string):
         df.loc[df["a"] == 1, "c"] = "1"
@@ -1958,13 +1963,12 @@ def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
 
 def test_add_new_column_infer_string():
     # GH#55366
-    pytest.importorskip("pyarrow")
     df = DataFrame({"x": [1]})
     with pd.option_context("future.infer_string", True):
         df.loc[df["x"] == 1, "y"] = "1"
     expected = DataFrame(
-        {"x": [1], "y": Series(["1"], dtype="string[pyarrow_numpy]")},
-        columns=Index(["x", "y"], dtype=object),
+        {"x": [1], "y": Series(["1"], dtype=pd.StringDtype(na_value=np.nan))},
+        columns=Index(["x", "y"], dtype="str"),
     )
     tm.assert_frame_equal(df, expected)
 

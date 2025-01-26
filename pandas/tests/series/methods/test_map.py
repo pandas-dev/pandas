@@ -101,16 +101,16 @@ def test_map_series_stringdtype(any_string_dtype, using_infer_string):
 
     expected = Series(data=["rabbit", "dog", "cat", item], dtype=any_string_dtype)
     if using_infer_string and any_string_dtype == "object":
-        expected = expected.astype("string[pyarrow_numpy]")
+        expected = expected.astype("str")
 
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "data, expected_dtype",
-    [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], object)],
+    [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], "str")],
 )
-def test_map_categorical_with_nan_values(data, expected_dtype, using_infer_string):
+def test_map_categorical_with_nan_values(data, expected_dtype):
     # GH 20714 bug fixed in: GH 24275
     def func(val):
         return val.split("-")[0]
@@ -118,8 +118,6 @@ def test_map_categorical_with_nan_values(data, expected_dtype, using_infer_strin
     s = Series(data, dtype="category")
 
     result = s.map(func, na_action="ignore")
-    if using_infer_string and expected_dtype == object:
-        expected_dtype = "string[pyarrow_numpy]"
     expected = Series(["1", "1", np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -145,9 +143,7 @@ def test_map_simple_str_callables_same_as_astype(
     # test that we are evaluating row-by-row first
     # before vectorized evaluation
     result = string_series.map(func)
-    expected = string_series.astype(
-        str if not using_infer_string else "string[pyarrow_numpy]"
-    )
+    expected = string_series.astype(str if not using_infer_string else "str")
     tm.assert_series_equal(result, expected)
 
 
@@ -225,6 +221,7 @@ def test_map_category_string():
     tm.assert_series_equal(a.map(c), exp)
 
 
+@pytest.mark.filterwarnings(r"ignore:Dtype inference:FutureWarning")
 def test_map_empty(request, index):
     if isinstance(index, MultiIndex):
         request.applymarker(
@@ -497,7 +494,7 @@ def test_map_categorical(na_action, using_infer_string):
     result = s.map(lambda x: "A", na_action=na_action)
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object if not using_infer_string else "string"
+    assert result.dtype == object if not using_infer_string else "str"
 
 
 @pytest.mark.parametrize(
@@ -557,13 +554,11 @@ def test_map_datetimetz():
         (list(range(3)), {0: 42}, [42] + [np.nan] * 3),
     ],
 )
-def test_map_missing_mixed(vals, mapping, exp, using_infer_string):
+def test_map_missing_mixed(vals, mapping, exp):
     # GH20495
     s = Series(vals + [np.nan])
     result = s.map(mapping)
     exp = Series(exp)
-    if using_infer_string and mapping == {np.nan: "not NaN"}:
-        exp.iloc[-1] = np.nan
     tm.assert_series_equal(result, exp)
 
 

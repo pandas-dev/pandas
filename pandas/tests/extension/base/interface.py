@@ -1,5 +1,9 @@
+import warnings
+
 import numpy as np
 import pytest
+
+from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_extension_array_dtype
@@ -70,6 +74,37 @@ class BaseInterfaceTests:
             # nested data, explicitly construct as 1D
             expected = construct_1d_object_array_from_listlike(list(data))
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_array_interface_copy(self, data):
+        result_copy1 = np.array(data, copy=True)
+        result_copy2 = np.array(data, copy=True)
+        assert not np.may_share_memory(result_copy1, result_copy2)
+
+        if not np_version_gt2:
+            # copy=False semantics are only supported in NumPy>=2.
+            return
+
+        warning_raised = False
+        msg = "Starting with NumPy 2.0, the behavior of the 'copy' keyword has changed"
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result_nocopy1 = np.array(data, copy=False)
+            assert len(w) <= 1
+            if len(w):
+                warning_raised = True
+                assert msg in str(w[0].message)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result_nocopy2 = np.array(data, copy=False)
+            assert len(w) <= 1
+            if len(w):
+                warning_raised = True
+                assert msg in str(w[0].message)
+
+        if not warning_raised:
+            # If copy=False was given and did not raise, these must share the same data
+            assert np.may_share_memory(result_nocopy1, result_nocopy2)
 
     def test_is_extension_array_dtype(self, data):
         assert is_extension_array_dtype(data)

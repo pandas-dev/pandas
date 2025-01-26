@@ -16,8 +16,6 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -30,10 +28,6 @@ from pandas import (
     read_csv,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 if is_platform_windows():
     pytestmark = pytest.mark.single_cpu
@@ -554,7 +548,7 @@ class TestReaders:
 
         expected["a"] = expected["a"].astype("float64")
         expected["b"] = expected["b"].astype("float32")
-        expected["c"] = Series(["001", "002", "003", "004"], dtype=object)
+        expected["c"] = Series(["001", "002", "003", "004"], dtype="str")
         tm.assert_frame_equal(actual, expected)
 
         msg = "Unable to convert column d to type int64"
@@ -581,9 +575,9 @@ class TestReaders:
                     {
                         "a": Series([1, 2, 3, 4], dtype="float64"),
                         "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
-                        "c": Series(["001", "002", "003", "004"], dtype=object),
-                        "d": Series(["1", "2", np.nan, "4"], dtype=object),
-                    }
+                        "c": Series(["001", "002", "003", "004"], dtype="str"),
+                        "d": Series(["1", "2", np.nan, "4"], dtype="str"),
+                    },
                 ),
             ),
         ],
@@ -659,15 +653,10 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="infer_string takes precedence"
-    )
     def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
-
-        pa = pytest.importorskip("pyarrow")
 
         with pd.option_context("mode.string_storage", string_storage):
             df = DataFrame(
@@ -676,27 +665,22 @@ class TestReaders:
                     "b": np.array(["x", pd.NA], dtype=np.object_),
                 }
             )
+
             with tm.ensure_clean(read_ext) as file_path:
                 df.to_excel(file_path, sheet_name="test", index=False)
                 result = pd.read_excel(
                     file_path, sheet_name="test", dtype_backend="numpy_nullable"
                 )
 
-            if string_storage == "python":
-                expected = DataFrame(
-                    {
-                        "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
-                        "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
-                    }
-                )
-            else:
-                expected = DataFrame(
-                    {
-                        "a": ArrowStringArray(pa.array(["a", "b"])),
-                        "b": ArrowStringArray(pa.array(["x", None])),
-                    }
-                )
-            tm.assert_frame_equal(result, expected)
+            expected = DataFrame(
+                {
+                    "a": Series(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                    "b": Series(["x", None], dtype=pd.StringDtype(string_storage)),
+                }
+            )
+            # the storage of the str columns' Index is also affected by the
+            # string_storage setting -> ignore that for checking the result
+            tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.parametrize("dtypes, exp_value", [({}, 1), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):

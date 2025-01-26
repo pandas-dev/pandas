@@ -2913,7 +2913,7 @@ def _apply(
     new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
     with rewrite_warning(
         target_message=target_message,
-        target_category=DeprecationWarning,
+        target_category=FutureWarning,
         new_message=new_message,
     ):
         result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)

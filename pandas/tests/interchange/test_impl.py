@@ -423,7 +423,7 @@ def test_large_string():
     pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
-    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    expected = pd.DataFrame({"a": ["x"]}, dtype="str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -444,7 +444,7 @@ def test_non_str_names_w_duplicates():
             "Expected a Series, got a DataFrame. This likely happened because you "
             "called __dataframe__ on a DataFrame which, after converting column "
             r"names to string, resulted in duplicated names: Index\(\['0', '0'\], "
-            r"dtype='object'\). Please rename these columns before using the "
+            r"dtype='(str|object)'\). Please rename these columns before using the "
             "interchange protocol."
         ),
     ):
@@ -472,7 +472,7 @@ def test_non_str_names_w_duplicates():
         ([1.0, 2.25, None], "Float32[pyarrow]", "float32"),
         ([True, False, None], "boolean", "bool"),
         ([True, False, None], "boolean[pyarrow]", "bool"),
-        (["much ado", "about", None], "string[pyarrow_numpy]", "large_string"),
+        (["much ado", "about", None], pd.StringDtype(na_value=np.nan), "large_string"),
         (["much ado", "about", None], "string[pyarrow]", "large_string"),
         (
             [datetime(2020, 1, 1), datetime(2020, 1, 2), None],
@@ -535,7 +535,11 @@ def test_pandas_nullable_with_missing_values(
         ([1.0, 2.25, 5.0], "Float32[pyarrow]", "float32"),
         ([True, False, False], "boolean", "bool"),
         ([True, False, False], "boolean[pyarrow]", "bool"),
-        (["much ado", "about", "nothing"], "string[pyarrow_numpy]", "large_string"),
+        (
+            ["much ado", "about", "nothing"],
+            pd.StringDtype(na_value=np.nan),
+            "large_string",
+        ),
         (["much ado", "about", "nothing"], "string[pyarrow]", "large_string"),
         (
             [datetime(2020, 1, 1), datetime(2020, 1, 2), datetime(2020, 1, 3)],

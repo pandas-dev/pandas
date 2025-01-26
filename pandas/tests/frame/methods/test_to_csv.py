@@ -426,7 +426,7 @@ class TestDataFrameToCSV:
         rows = chunksize // 2 + 1
         df = DataFrame(
             np.ones((rows, 2)),
-            columns=Index(list("ab"), dtype=object),
+            columns=Index(list("ab")),
             index=MultiIndex.from_arrays([range(rows) for _ in range(2)]),
         )
         result, expected = self._return_result_expected(df, chunksize, rnlvl=2)
@@ -460,7 +460,7 @@ class TestDataFrameToCSV:
                 for _ in range(df_params["c_idx_nlevels"])
             )
         else:
-            columns = Index([f"i-{i}" for i in range(ncols)], dtype=object)
+            columns = Index([f"i-{i}" for i in range(ncols)])
         df = DataFrame(np.ones((nrows, ncols)), index=index, columns=columns)
         result, expected = self._return_result_expected(df, 1000, **func_params)
         tm.assert_frame_equal(result, expected, check_names=False)
@@ -692,10 +692,7 @@ class TestDataFrameToCSV:
 
             # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
             expected = df.copy()
-            if using_infer_string:
-                expected.index = expected.index.astype("string[pyarrow_numpy]")
-            else:
-                expected.index = expected.index.astype(str)
+            expected.index = expected.index.astype("str")
 
             tm.assert_frame_equal(result, expected)
 
@@ -737,7 +734,7 @@ class TestDataFrameToCSV:
         )
         df_bool = DataFrame(True, index=df_float.index, columns=create_cols("bool"))
         df_object = DataFrame(
-            "foo", index=df_float.index, columns=create_cols("object")
+            "foo", index=df_float.index, columns=create_cols("object"), dtype="object"
         )
         df_dt = DataFrame(
             Timestamp("20010101").as_unit("ns"),
@@ -815,7 +812,7 @@ class TestDataFrameToCSV:
         df = DataFrame(
             np.ones((5, 3)),
             index=Index([f"i-{i}" for i in range(5)], name="foo"),
-            columns=Index(["a", "a", "b"], dtype=object),
+            columns=Index(["a", "a", "b"]),
         )
 
         with tm.ensure_clean() as filename:

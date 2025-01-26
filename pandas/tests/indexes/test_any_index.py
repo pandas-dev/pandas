@@ -45,7 +45,7 @@ def test_map_identity_mapping(index, request):
     # GH#12766
 
     result = index.map(lambda x: x)
-    if index.dtype == object and result.dtype == bool:
+    if index.dtype == object and result.dtype in [bool, "string"]:
         assert (index == result).all()
         # TODO: could work that into the 'exact="equiv"'?
         return  # FIXME: doesn't belong in this file anymore!

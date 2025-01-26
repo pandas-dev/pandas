@@ -355,7 +355,8 @@ def test_series_agg_multi_pure_python():
     )
 
     def bad(x):
-        assert len(x.values.base) > 0
+        if isinstance(x.values, np.ndarray):
+            assert len(x.values.base) > 0
         return "foo"
 
     result = data.groupby(["A", "B"]).agg(bad)
@@ -502,7 +503,7 @@ def test_agg_timezone_round_trip():
 
     # GH#27110 applying iloc should return a DataFrame
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
 
     ts = df["B"].iloc[2]
@@ -510,7 +511,7 @@ def test_agg_timezone_round_trip():
 
     # GH#27110 applying iloc should return a DataFrame
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
 
 

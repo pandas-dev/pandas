@@ -228,7 +228,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     assert result.a.dtype == float
 
 
-def test_warn_if_chunks_have_mismatched_type(all_parsers):
+def test_warn_if_chunks_have_mismatched_type(all_parsers, using_infer_string):
     warning_type = None
     parser = all_parsers
     size = 10000
@@ -256,8 +256,12 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
             "Specify dtype option on import or set low_memory=False.",
             buf,
         )
-
-    assert df.a.dtype == object
+    if parser.engine == "c" and parser.low_memory:
+        assert df.a.dtype == object
+    elif using_infer_string:
+        assert df.a.dtype == "str"
+    else:
+        assert df.a.dtype == object
 
 
 @pytest.mark.parametrize("iterator", [True, False])

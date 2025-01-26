@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import (
     Interval,
@@ -87,8 +87,8 @@ from pandas.io._util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Collection,
         Sequence,
-        Sized,
     )
 
     from pandas._typing import (
@@ -798,10 +798,10 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
-        if using_pyarrow_string_dtype():
+        if using_string_dtype():
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(storage="pyarrow_numpy")
+            dtype = StringDtype(na_value=np.nan)
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
@@ -1025,6 +1025,8 @@ def convert_dtypes(
     -------
     np.dtype, or ExtensionDtype
     """
+    from pandas.core.arrays.string_ import StringDtype
+
     inferred_dtype: str | DtypeObj
 
     if (
@@ -1103,12 +1105,18 @@ def convert_dtypes(
             # If we couldn't do anything else, then we retain the dtype
             inferred_dtype = input_array.dtype
 
+    elif (
+        convert_string
+        and isinstance(input_array.dtype, StringDtype)
+        and input_array.dtype.na_value is np.nan
+    ):
+        inferred_dtype = pandas_dtype_func("string")
+
     else:
         inferred_dtype = input_array.dtype
 
     if dtype_backend == "pyarrow":
         from pandas.core.arrays.arrow.array import to_pyarrow_type
-        from pandas.core.arrays.string_ import StringDtype
 
         assert not isinstance(inferred_dtype, str)
 
@@ -1155,6 +1163,7 @@ def convert_dtypes(
 
 def maybe_infer_to_datetimelike(
     value: npt.NDArray[np.object_],
+    convert_to_nullable_dtype: bool = False,
 ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray | IntervalArray:
     """
     we might have a array (or single object) that is datetime like,
@@ -1192,6 +1201,7 @@ def maybe_infer_to_datetimelike(
         #  numpy would have done it for us.
         convert_numeric=False,
         convert_non_numeric=True,
+        convert_to_nullable_dtype=convert_to_nullable_dtype,
         dtype_if_all_nat=np.dtype("M8[ns]"),
     )
 
@@ -1576,7 +1586,7 @@ def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     return _maybe_unbox_datetimelike(value, dtype)
 
 
-def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
+def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
     """
     Transform any list-like object in a 1-dimensional numpy array of object
     dtype.
@@ -1594,10 +1604,11 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
     -------
     1-dimensional numpy array of dtype object
     """
-    # numpy will try to interpret nested lists as further dimensions, hence
-    # making a 1D array that contains list-likes is a bit tricky:
+    # numpy will try to interpret nested lists as further dimensions in np.array(),
+    # hence explicitly making a 1D array using np.fromiter
     result = np.empty(len(values), dtype="object")
-    result[:] = values
+    for i, obj in enumerate(values):
+        result[i] = obj
     return result
 
 
@@ -1742,6 +1753,13 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
             )
             try:
                 arr._validate_setitem_value(element)
+                return True
+            except (ValueError, TypeError):
+                return False
+
+        if dtype == "string":
+            try:
+                arr._maybe_convert_setitem_value(element)  # type: ignore[union-attr]
                 return True
             except (ValueError, TypeError):
                 return False

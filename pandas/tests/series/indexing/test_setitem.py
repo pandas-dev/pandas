@@ -567,7 +567,10 @@ class TestSetitemWithExpansion:
         ser["a"] = Timestamp("2016-01-01")
         ser["b"] = 3.0
         ser["c"] = "foo"
-        expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
+        expected = Series(
+            [Timestamp("2016-01-01"), 3.0, "foo"],
+            index=Index(["a", "b", "c"], dtype=object),
+        )
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_not_contained(self, string_series):
@@ -620,7 +623,7 @@ class TestSetitemWithExpansion:
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
         dtype = (
-            "string[pyarrow_numpy]"
+            "str"
             if using_infer_string and not isinstance(nulls_fixture, Decimal)
             else object
         )
@@ -873,28 +876,20 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    def test_index_where(self, obj, key, expected, warn, val, using_infer_string):
+    def test_index_where(self, obj, key, expected, warn, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if using_infer_string and obj.dtype == object:
-            with pytest.raises(TypeError, match="Scalar must"):
-                Index(obj).where(~mask, val)
-        else:
-            res = Index(obj).where(~mask, val)
-            expected_idx = Index(expected, dtype=expected.dtype)
-            tm.assert_index_equal(res, expected_idx)
+        res = Index(obj, dtype=obj.dtype).where(~mask, val)
+        expected_idx = Index(expected, dtype=expected.dtype)
+        tm.assert_index_equal(res, expected_idx)
 
-    def test_index_putmask(self, obj, key, expected, warn, val, using_infer_string):
+    def test_index_putmask(self, obj, key, expected, warn, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if using_infer_string and obj.dtype == object:
-            with pytest.raises(TypeError, match="Scalar must"):
-                Index(obj).putmask(mask, val)
-        else:
-            res = Index(obj).putmask(mask, val)
-            tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        res = Index(obj, dtype=obj.dtype).putmask(mask, val)
+        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
 
 @pytest.mark.parametrize(
