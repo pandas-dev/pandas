@@ -6248,8 +6248,10 @@ class Index(IndexOpsMixin, PandasObject):
                 isinstance(self, RangeIndex) or self.dtype == np.object_
             ):
                 return target_dtype
-            if len(target) == 0 and (
-                isinstance(target, RangeIndex) or target_dtype == np.object_
+            if (
+                isinstance(target, Index)
+                and len(target) == 0
+                and (isinstance(target, RangeIndex) or target_dtype == np.object_)
             ):
                 return self.dtype
 
