@@ -3382,6 +3382,8 @@ class BlockManagerFixed(GenericFixed):
             if (
                 using_string_dtype()
                 and isinstance(values, np.ndarray)
+                # TODO: Should is_string_array return True for an empty object ndarray?
+                and values.size != 0
                 and is_string_array(values, skipna=True)
             ):
                 df = df.astype(StringDtype(na_value=np.nan))
@@ -5112,6 +5114,8 @@ def _maybe_convert_for_string_atom(
     errors,
     columns: list[str],
 ):
+    if isinstance(bvalues.dtype, StringDtype):
+        bvalues = bvalues.to_numpy()
     if bvalues.dtype != object:
         return bvalues
 
