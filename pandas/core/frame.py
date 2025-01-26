@@ -8806,7 +8806,10 @@ class DataFrame(NDFrame, OpsMixin):
             )
             combined = combined.astype(other.dtypes)
         else:
+            # preserve column order
+            new_columns = self.columns.union(other.columns, sort=False)
             combined = self.combine(other, combiner, overwrite=False)
+            combined = combined.reindex(columns=new_columns)
 
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
