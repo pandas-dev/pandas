@@ -52,6 +52,12 @@ These are bug fixes that might have notable behavior changes.
 notable_bug_fix1
 ^^^^^^^^^^^^^^^^
 
+
+Increased minimum version for Python
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas 2.3.0 supports Python 3.10 and higher.
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.deprecations:
 
