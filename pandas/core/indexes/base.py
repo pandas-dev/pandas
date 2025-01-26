@@ -19,7 +19,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs import (
     NaT,
@@ -6233,7 +6236,15 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
+        # breakpoint()
         target_dtype, _ = infer_dtype_from(target)
+
+        if using_string_dtype():
+            from pandas.core.indexes.range import RangeIndex
+
+            if len(self) == 0 or self.isna().all():
+                if isinstance(self, RangeIndex) or self.dtype == np.object_:
+                    return target_dtype
 
         # special case: if one dtype is uint64 and the other a signed int, return object
         # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
