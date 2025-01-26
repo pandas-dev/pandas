@@ -6236,15 +6236,22 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        # breakpoint()
         target_dtype, _ = infer_dtype_from(target)
 
         if using_string_dtype():
+            # special case: if left or right is a zero-length RangeIndex or
+            # Index[object], those can be created by the default empty constructors
+            # -> for that case ignore this dtype and always return the other
             from pandas.core.indexes.range import RangeIndex
 
-            if len(self) == 0 or self.isna().all():
-                if isinstance(self, RangeIndex) or self.dtype == np.object_:
-                    return target_dtype
+            if len(self) == 0 and (
+                isinstance(self, RangeIndex) or self.dtype == np.object_
+            ):
+                return target_dtype
+            if len(target) == 0 and (
+                isinstance(target, RangeIndex) or target_dtype == np.object_
+            ):
+                return self.dtype
 
         # special case: if one dtype is uint64 and the other a signed int, return object
         # See https://github.com/pandas-dev/pandas/issues/26778 for discussion

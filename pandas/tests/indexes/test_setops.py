@@ -539,10 +539,14 @@ def test_setop_with_categorical(index_flat, sort, method):
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
+    if index.empty and method in ("union", "symmetric_difference"):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
+    if index.empty and method in ("union", "symmetric_difference"):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
 

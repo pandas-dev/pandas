@@ -150,9 +150,7 @@ class TestDataFrameSetItem:
         df["X"] = df.index
         df["X"] = ["x", "y", "z"]
         exp = DataFrame(
-            data={"X": ["x", "y", "z"]},
-            index=["A", "B", "C"],
-            columns=Index(["X"], dtype=object),
+            data={"X": ["x", "y", "z"]}, index=["A", "B", "C"], columns=["X"]
         )
         tm.assert_frame_equal(df, exp)
 
@@ -169,9 +167,7 @@ class TestDataFrameSetItem:
         df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
-            [[Timestamp("20130101", tz="UTC")]] * 3,
-            index=range(3),
-            columns=Index(["now"], dtype=object),
+            [[Timestamp("20130101", tz="UTC")]] * 3, index=range(3), columns=["now"]
         )
         tm.assert_frame_equal(df, expected)
 
@@ -210,7 +206,7 @@ class TestDataFrameSetItem:
         result = DataFrame([])
         result["a"] = data
 
-        expected = DataFrame({"a": data}, columns=Index(["a"], dtype=object))
+        expected = DataFrame({"a": data}, columns=["a"])
 
         tm.assert_frame_equal(result, expected)
 
@@ -930,7 +926,7 @@ class TestDataFrameSetItemWithExpansion:
         # GH#16823 / GH#17894
         df = DataFrame()
         df["foo"] = 1
-        expected = DataFrame(columns=Index(["foo"], dtype=object)).astype(np.int64)
+        expected = DataFrame(columns=["foo"]).astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_newcol_tuple_key(self, float_frame):
