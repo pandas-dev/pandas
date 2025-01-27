@@ -1,23 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 from pandas import (
-    ArrowDtype,
     DataFrame,
     Index,
     MultiIndex,
     Series,
     _testing as tm,
 )
-
-try:
-    import pyarrow as pa
-except ImportError:
-    pa = None
 
 
 def test_get_dummies(any_string_dtype):
@@ -99,32 +91,12 @@ def test_get_dummies_with_pyarrow_dtype(any_string_dtype, dtype):
 
 
 # GH#47872
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_get_dummies_with_str_dtype(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    result = s.str.get_dummies("|", dtype=str)
-    expected = DataFrame(
-        [["T", "T", "F"], ["T", "F", "T"], ["F", "F", "F"]],
-        columns=list("abc"),
-        dtype=str,
-    )
-    tm.assert_frame_equal(result, expected)
 
+    msg = "Only numeric or boolean dtypes are supported for 'dtype'"
+    with pytest.raises(ValueError, match=msg):
+        s.str.get_dummies("|", dtype=str)
 
-# GH#47872
-@td.skip_if_no("pyarrow")
-def test_get_dummies_with_pa_str_dtype(any_string_dtype):
-    import pyarrow as pa
-
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.string()))
-    expected = DataFrame(
-        [
-            ["true", "true", "false"],
-            ["true", "false", "true"],
-            ["false", "false", "false"],
-        ],
-        columns=list("abc"),
-        dtype=ArrowDtype(pa.string()),
-    )
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        s.str.get_dummies("|", dtype="datetime64[ns]")
