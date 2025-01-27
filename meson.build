@@ -45,12 +45,8 @@ else
 endif
 
 cy = meson.get_compiler('cython')
-cdata = configuration_data()
 if cy.version().version_compare('>=3.1.0')
     add_project_arguments('-Xfreethreading_compatible=true', language: 'cython')
-    cdata.set('freethreading_compatible', '1')
-else
-    cdata.set('freethreading_compatible', '0')
 endif
 
 # Needed by pandas.test() when it looks for the pytest ini options
