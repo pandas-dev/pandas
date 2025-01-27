@@ -1353,8 +1353,11 @@ class TestIndex:
 
     def test_string_array_view_type_error(self):
         arr = pd.array(["a", "b", "c"], dtype="string")
-        with pytest.raises(TypeError, match="Cannot change data-type for string array."):
+        with pytest.raises(
+            TypeError, match="Cannot change data-type for string array."
+        ):
             arr.view("i8")
+
 
 class TestMixedIntIndex:
     # Mostly the tests from common.py for which the results differ
