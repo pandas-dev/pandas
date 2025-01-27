@@ -3,9 +3,24 @@ inputs:
   environment-file:
     description: Conda environment file to use.
     default: environment.yml
+  os:
+    description: The operating system to assume when creating Conda.
+    default: not specified
 runs:
   using: composite
   steps:
+    # Remove bodo from Window's environment for now until it supports Windows.
+    - name: Remove bodo on Windows
+      if: ${{ inputs.os == 'windows-latest' }}
+      run: |
+
+        sed '/bodo/d' "$ENVIRONMENT_FILE" > tmp.txt
+        cat tmp.txt > "$ENVIRONMENT_FILE"
+        rm tmp.txt
+      env:
+        ENVIRONMENT_FILE: ${{ inputs.environment-file }}
+      shell: bash -el {0}
+
     - name: Install ${{ inputs.environment-file }}
       uses: mamba-org/setup-micromamba@v1
       with:
