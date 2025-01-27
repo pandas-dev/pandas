@@ -37,7 +37,6 @@ dependencies:
   - lxml=4.9.2
   - matplotlib=3.6.3
   - numba=0.56.4
-  - bodo=2025.1
   - numexpr=2.8.4
   - odfpy=1.4.1
   - qtpy=2.3.0
