@@ -922,7 +922,9 @@ cdef class BlockValuesRefs:
                 new_referenced_blocks = []
                 for ref in self.referenced_blocks:
                     status = PyWeakref_GetRef(ref, &pobj)
-                    if status == 1:
+                    if status == -1:
+                        return
+                    elif status == 1:
                         new_referenced_blocks.append(ref)
                         Py_DECREF(<object>pobj)
                 self.referenced_blocks = new_referenced_blocks
