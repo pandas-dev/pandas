@@ -10320,7 +10320,7 @@ class DataFrame(NDFrame, OpsMixin):
             multiple workers and apply the function in parallel over the Dataframe,
             which may result in a speedup for large DataFrames.
 
-            Bodo supports a subset of valid Python, numpy, pandas and sci-kit learn.
+            Bodo supports a subset of valid Python, numpy, pandas and scikit-learn.
             Please refer to the `bodo documentation
             <https://docs.bodo.ai/latest/api_docs/>`_ to learn more about which
             operations and APIs are supported inside JIT compiled functions.
