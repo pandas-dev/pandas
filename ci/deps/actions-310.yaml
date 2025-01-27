@@ -36,7 +36,7 @@ dependencies:
   - lxml>=4.9.2
   - matplotlib>=3.6.3
   - numba>=0.56.4
-  # - bodo>=2025.1 # [not win]
+  - bodo>=2025.1 # [not win]
   - numexpr>=2.8.4
   - odfpy>=1.4.1
   - qtpy>=2.3.0
@@ -60,6 +60,7 @@ dependencies:
   - zstandard>=0.19.0
 
   - pip:
+    - bodo>=2025.1; platform_system != "Windows"
     - adbc-driver-postgresql>=0.10.0
     - adbc-driver-sqlite>=0.8.0
     - tzdata>=2022.7
