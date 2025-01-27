@@ -1316,37 +1316,68 @@ class TestDataFrameToCSV:
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(quoting=csv.QUOTE_ALL) == expected
 
-    @pytest.mark.parametrize("data, dtype, expected_rows", 
+    @pytest.mark.parametrize(
+        "data, dtype, expected_rows",
         [
             # Test Case 1: float16 precision
             (
                 {"col": [8.57, 0.156, -0.312, 123.3, -54.5, np.nan]},
                 "float16",
-                ['"","col"', '0,8.57', '1,0.156', '2,-0.312', '3,123.3', '4,-54.5', '5,""']
+                [
+                    '"","col"',
+                    "0,8.57",
+                    "1,0.156",
+                    "2,-0.312",
+                    "3,123.3",
+                    "4,-54.5",
+                    '5,""',
+                ],
             ),
-
             # Test Case 2: float32 precision
             (
-                {"col": [8.57, 1.234567, -2.345678, 1e6, -1.5e6, np.nan]}, 
+                {"col": [8.57, 1.234567, -2.345678, 1e6, -1.5e6, np.nan]},
                 "float32",
-                ['"","col"', '0,8.57', '1,1.234567', '2,-2.345678', '3,1000000.0', '4,-1500000.0', '5,""']
+                [
+                    '"","col"',
+                    "0,8.57",
+                    "1,1.234567",
+                    "2,-2.345678",
+                    "3,1000000.0",
+                    "4,-1500000.0",
+                    '5,""',
+                ],
             ),
-
             # Test Case 3: float64 precision
             (
-                {"col": [8.57, 3.141592653589793, -2.718281828459045, 1.01e12, -5.67e11, np.nan]},
+                {
+                    "col": [
+                        8.57,
+                        3.141592653589793,
+                        -2.718281828459045,
+                        1.01e12,
+                        -5.67e11,
+                        np.nan,
+                    ]
+                },
                 "float64",
-                ['"","col"', '0,8.57', '1,3.141592653589793', '2,-2.718281828459045', 
-                '3,1010000000000.0', '4,-567000000000.0', '5,""']
+                [
+                    '"","col"',
+                    "0,8.57",
+                    "1,3.141592653589793",
+                    "2,-2.718281828459045",
+                    "3,1010000000000.0",
+                    "4,-567000000000.0",
+                    '5,""',
+                ],
             ),
-        ]
+        ],
     )
     def test_to_csv_decimal_and_nonnumeric_quoting(self, data, dtype, expected_rows):
         # https://github.com/pandas-dev/pandas/issues/60699
-        # combination of float dtype, no special formatting and 
+        # combination of float dtype, no special formatting and
         # quoting is specified (quoting=csv.QUOTE_NONNUMERIC)
-        df = pd.DataFrame(data, dtype=dtype)
-        result = df.to_csv(quoting=csv.QUOTE_NONNUMERIC) 
+        df = DataFrame(data, dtype=dtype)
+        result = df.to_csv(quoting=csv.QUOTE_NONNUMERIC)
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 

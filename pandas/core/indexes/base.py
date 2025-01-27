@@ -7756,11 +7756,12 @@ def get_values_for_csv(
             mask = isna(values)
 
             # GH60699
-            # Ensure quoting don't add extra decimal places in output for float16, float32 
+            # Ensure quoting don't add extra decimal places in output
+            # for float16, float32
             if values.dtype in [np.float16, np.float32]:
-                values = np.array(values, dtype="str")  
-                values = values.astype(float, copy=False)  
-            
+                values = np.array(values, dtype="str")
+                values = values.astype(float, copy=False)
+
             values = values.astype(object, copy=False)
             values[mask] = na_rep
             return values
