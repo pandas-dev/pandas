@@ -1398,7 +1398,7 @@ class ArrowExtensionArray(
         np_dtype = np.dtype(f"M8[{pa_type.unit}]")
         dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
         np_array = self._pa_array.to_numpy()
-        np_array = np_array.astype(np_dtype)
+        np_array = np_array.astype(np_dtype, copy=False)
         return DatetimeArray._simple_new(np_array, dtype=dtype)
 
     def _to_timedeltaarray(self) -> TimedeltaArray:
@@ -1409,7 +1409,7 @@ class ArrowExtensionArray(
         assert pa.types.is_duration(pa_type)
         np_dtype = np.dtype(f"m8[{pa_type.unit}]")
         np_array = self._pa_array.to_numpy()
-        np_array = np_array.astype(np_dtype)
+        np_array = np_array.astype(np_dtype, copy=False)
         return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
 
     def _values_for_json(self) -> np.ndarray:
