@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import ExecutionError
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -129,3 +131,15 @@ def test_bodo_result_type_unsupported(engine):
         NotImplementedError, match="the 'bodo' engine does not support result_type yet."
     ):
         frame.apply(f, engine="bodo", axis=1, result_type="reduce")
+
+
+def test_bodo_engine_execution_error(engine):
+    frame = pd.DataFrame(
+        {"a": [1, 2, 3], "b": ["1", "2", "3"]},
+    )
+
+    def f(x):
+        return x.a + x.b
+
+    with pytest.raises(ExecutionError, match="Execution with engine='bodo' failed."):
+        frame.apply(f, engine="bodo", axis=1)

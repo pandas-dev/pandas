@@ -35,6 +35,7 @@ Exceptions and warnings
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError
+   errors.ExecutionError
    errors.IncompatibilityWarning
    errors.IndexingError
    errors.InvalidColumnName

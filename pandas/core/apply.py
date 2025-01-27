@@ -27,7 +27,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    ExecutionError,
+    SpecificationError,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -1125,7 +1128,11 @@ class FrameApply(NDFrameApply):
         def do_apply(obj, func, axis):
             return obj.apply(func, axis)
 
-        result = do_apply(self.obj, self.func, self.axis)
+        try:
+            result = do_apply(self.obj, self.func, self.axis)
+        except bodo.utils.typing.BodoError as e:
+            raise ExecutionError("Execution with engine='bodo' failed.") from e
+
         return result
 
     def wrap_results(self, results: ResType, res_index: Index) -> DataFrame | Series:
