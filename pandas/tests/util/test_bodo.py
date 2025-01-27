@@ -9,7 +9,9 @@ pytestmark = pytest.mark.bodo_udf_engine
 
 def test_bodo_not_installed_df_apply():
     "Test that importing bodo when not installed results in ImportError."
-    td.skip_if_installed("bodo")
+    bodo_installed = bool(td.import_optional_dependency("bodo", errors="ignore"))
+    if bodo_installed:
+        pytest.skip("bodo is installed.")
 
     df = DataFrame({"A": [1, 2, 3, 4, 5]})
 
@@ -17,4 +19,4 @@ def test_bodo_not_installed_df_apply():
         return 1
 
     with pytest.raises(ImportError, match="Missing optional"):
-        df.apply(f, engine="bodo")
+        df.apply(f, engine="bodo", axis=1)

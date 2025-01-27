@@ -10316,7 +10316,18 @@ class DataFrame(NDFrame, OpsMixin):
             <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
             in numba to learn what you can or cannot use in the passed function.
 
-            TODO: describe bodo
+            The bodo engine will attempt to JIT compile the passed function, spawn
+            multiple workers and apply the function in parallel over the Dataframe,
+            which may result in a speedup for large DataFrames.
+
+            Bodo supports a subset of valid Python, numpy, pandas and sci-kit learn.
+            Please refer to the `bodo documentation
+            <https://docs.bodo.ai/latest/api_docs/>`_ to learn more about which
+            operations and APIs are supported inside JIT compiled functions.
+
+            Code that does not have JIT support yet can still utilize Bodo's parallel
+            constructs by decorating the function with `@wrap_python
+            <https://docs.bodo.ai/latest/objmode/?h=wrap_py>`_.
 
             .. versionadded:: 2.2.0
 

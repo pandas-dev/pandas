@@ -1,21 +1,24 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
 pytestmark = [pytest.mark.single_cpu, pytest.mark.bodo_udf_engine]
 
 
-@pytest.fixture
-def skip_if_no_bodo():
-    """Avoid using in test decorator which will cause bodo import immediately."""
-    td.skip_if_no("bodo")
+@pytest.fixture(params=["bodo"])
+def engine(request):
+    """Test bodo engine by itself to avoid extensions conflicting with numba.
+
+    Note: Using a fixture here to avoid importing at the start of the session.
+    """
+    if request.param == "bodo":
+        pytest.importorskip("bodo")
+    return request.param
 
 
-def test_bodo_vs_python_indexing(skip_if_no_bodo):
+def test_bodo_vs_python_indexing(engine):
     frame = pd.DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7.0, 8.0, 9.0]},
     )
@@ -33,14 +36,14 @@ def test_bodo_vs_python_indexing(skip_if_no_bodo):
     "reduction",
     [lambda x: x.mean(), lambda x: x.min(), lambda x: x.max(), lambda x: x.sum()],
 )
-def test_bodo_vs_python_reductions(reduction, skip_if_no_bodo):
+def test_bodo_vs_python_reductions(reduction, engine):
     df = pd.DataFrame(np.ones((4, 4), dtype=np.float64))
     result = df.apply(reduction, engine="bodo", axis=1)
     expected = df.apply(reduction, engine="python", axis=1)
     tm.assert_series_equal(result, expected, check_series_type=False)
 
 
-def test_bodo_vs_python_df_output(skip_if_no_bodo):
+def test_bodo_vs_python_df_output(engine):
     df = pd.DataFrame({"A": np.arange(20), "B": ["hi", "there"] * 10})
 
     def f(a):
@@ -52,7 +55,7 @@ def test_bodo_vs_python_df_output(skip_if_no_bodo):
     tm.assert_frame_equal(result, expected, check_frame_type=False, check_dtype=False)
 
 
-def test_bodo_vs_python_args(skip_if_no_bodo):
+def test_bodo_vs_python_args(engine):
     msg = (
         "the 'bodo' engine does not support passing additional args/kwargs "
         "to apply function yet."
@@ -71,7 +74,7 @@ def test_bodo_vs_python_args(skip_if_no_bodo):
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_bodo_vs_python_str_apply(axis, skip_if_no_bodo):
+def test_bodo_vs_python_str_apply(axis, engine):
     df = pd.DataFrame({"A": np.arange(20)})
 
     func = "mean"
@@ -82,7 +85,7 @@ def test_bodo_vs_python_str_apply(axis, skip_if_no_bodo):
     tm.assert_series_equal(result, expected, check_series_type=False)
 
 
-def test_bodo_unsupported_axis(skip_if_no_bodo):
+def test_bodo_unsupported_axis(engine):
     """Tests that a BodoError is raised when trying to apply UDF column-wise"""
     frame = pd.DataFrame(
         {"a": [1, 2, 3]},
@@ -98,7 +101,7 @@ def test_bodo_unsupported_axis(skip_if_no_bodo):
         frame.apply(f, engine="bodo", axis=0)
 
 
-def test_bodo_raw_unsupported(skip_if_no_bodo):
+def test_bodo_raw_unsupported(engine):
     """Tests that error gets raised when using raw=True"""
     frame = pd.DataFrame(
         {"a": [1, 2, 3]},
@@ -113,7 +116,7 @@ def test_bodo_raw_unsupported(skip_if_no_bodo):
         frame.apply(f, engine="bodo", raw=True, axis=1)
 
 
-def test_bodo_result_type_unsupported(skip_if_no_bodo):
+def test_bodo_result_type_unsupported(engine):
     """Tests that error gets raised when passing any value to result_type"""
     frame = pd.DataFrame(
         {"a": [1, 2, 3]},
