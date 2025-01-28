@@ -2510,9 +2510,9 @@ class SQLiteTable(SQLTable):
         return str(";\n".join(self.table))
 
     def _execute_create(self) -> None:
-        with self.pd_sql.run_transaction():
+        with self.pd_sql.run_transaction() as cur:
             for stmt in self.table:
-                self.pd_sql.execute(stmt).close()
+                cur.execute(stmt)
 
     def insert_statement(self, *, num_rows: int) -> str:
         names = list(map(str, self.frame.columns))
