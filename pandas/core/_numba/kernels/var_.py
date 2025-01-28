@@ -196,9 +196,6 @@ def grouped_var(
 
         if not skipna and np.isnan(val):
             output[lab] = np.nan
-            comp_arr[lab] = np.nan
-            consecutive_counts[lab] = 1
-            prev_vals[lab] = np.nan
             continue
 
         mean_x = means[lab]
