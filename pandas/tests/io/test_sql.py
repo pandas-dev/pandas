@@ -4456,7 +4456,7 @@ def test_exists_temporary_table(conn, test_frame1, request):
         frame=test_frame1,
         index=False,
         if_exists="fail",
-        prefixes=["TEMPORARY"],
+        temporary=True,
     )
 
     table.create()
@@ -4473,7 +4473,7 @@ def test_to_sql_temporary_table_replace(conn, test_frame1, request):
         con=conn,
         if_exists="fail",
         index=False,
-        prefixes=["TEMPORARY"],
+        temporary=True,
     )
 
     test_frame1.to_sql(
@@ -4481,7 +4481,7 @@ def test_to_sql_temporary_table_replace(conn, test_frame1, request):
         con=conn,
         if_exists="replace",
         index=False,
-        prefixes=["TEMPORARY"],
+        temporary=True,
     )
 
     df_test = pd.read_sql("SELECT * FROM test_frame1", conn)
@@ -4498,7 +4498,7 @@ def test_to_sql_temporary_table_fail(conn, test_frame1, request):
         con=conn,
         if_exists="fail",
         index=False,
-        prefixes=["TEMPORARY"],
+        temporary=True,
     )
 
     with pytest.raises(ValueError, match=r"Table 'test_frame1' already exists."):
@@ -4507,7 +4507,7 @@ def test_to_sql_temporary_table_fail(conn, test_frame1, request):
             con=conn,
             if_exists="fail",
             index=False,
-            prefixes=["TEMPORARY"],
+            temporary=True,
         )
 
 
@@ -4520,7 +4520,7 @@ def test_to_sql_temporary_table_append(conn, test_frame1, request):
         con=conn,
         if_exists="fail",
         index=False,
-        prefixes=["TEMPORARY"],
+        temporary=True,
     )
 
     test_frame1.to_sql(
@@ -4528,7 +4528,7 @@ def test_to_sql_temporary_table_append(conn, test_frame1, request):
         con=conn,
         if_exists="append",
         index=False,
-        prefixes=["TEMPORARY"],
+        temporary=True,
     )
 
     df_test = pd.read_sql("SELECT * FROM test_frame1", conn)

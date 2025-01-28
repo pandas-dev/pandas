@@ -72,7 +72,6 @@ if TYPE_CHECKING:
         Generator,
         Iterator,
         Mapping,
-        Sequence,
     )
 
     from sqlalchemy import Table
@@ -745,7 +744,7 @@ def to_sql(
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
-    prefixes: Sequence[str] | None = None,
+    temporary: bool = False,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -793,9 +792,8 @@ def to_sql(
 
         Details and a sample callable implementation can be found in the
         section :ref:`insert method <io.sql.method>`.
-    prefixes : sequence, optional
-            A list of strings to insert after CREATE in the CREATE TABLE statement.
-            They will be separated by spaces.
+    temporary : bool, default False
+            Indicates if the created, replaced or appended table is temporary.
     engine : {'auto', 'sqlalchemy'}, default 'auto'
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -844,7 +842,7 @@ def to_sql(
             chunksize=chunksize,
             dtype=dtype,
             method=method,
-            prefixes=prefixes,
+            temporary=temporary,
             engine=engine,
             **engine_kwargs,
         )
@@ -938,7 +936,7 @@ class SQLTable(PandasObject):
         schema=None,
         keys=None,
         dtype: DtypeArg | None = None,
-        prefixes: Sequence[str] | None = None,
+        temporary: bool = False,
     ) -> None:
         self.name = name
         self.pd_sql = pandas_sql_engine
@@ -949,11 +947,7 @@ class SQLTable(PandasObject):
         self.if_exists = if_exists
         self.keys = keys
         self.dtype = dtype
-        self.prefixes = prefixes
-        # check if the table to be created is a temporary table
-        self.is_temporary = self.prefixes is not None and "TEMPORARY".casefold() in [
-            prefix.casefold() for prefix in self.prefixes
-        ]
+        self.temporary = temporary
 
         if frame is not None:
             # We want to initialize based on a dataframe
@@ -1000,7 +994,7 @@ class SQLTable(PandasObject):
             return False
 
     def exists(self):
-        if self.is_temporary:
+        if self.temporary:
             return self._exists_temporary()
         else:
             return self.pd_sql.has_table(self.name, self.schema)
@@ -1012,7 +1006,7 @@ class SQLTable(PandasObject):
 
     def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
-        if not self.is_temporary:
+        if not self.temporary:
             # only insert into meta data, if table is not temporary
             self.table = self.table.to_metadata(self.pd_sql.meta)
         with self.pd_sql.run_transaction():
@@ -1023,7 +1017,7 @@ class SQLTable(PandasObject):
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
             if self.if_exists == "replace":
-                if self.is_temporary:
+                if self.temporary:
                     self._drop_temporary_table()
                 else:
                     self.pd_sql.drop_table(self.name, self.schema)
@@ -1317,10 +1311,16 @@ class SQLTable(PandasObject):
 
         schema = self.schema or self.pd_sql.meta.schema
 
+        # check if table is temporary
+        if self.temporary:
+            prefixes = ["TEMPORARY"]
+        else:
+            prefixes = None
+
         # At this point, attach to new metadata, only attach to self.meta
         # once table is created.
         meta = MetaData()
-        return Table(self.name, meta, *columns, schema=schema, prefixes=self.prefixes)
+        return Table(self.name, meta, *columns, schema=schema, prefixes=prefixes)
 
     def _harmonize_columns(
         self,
@@ -1538,7 +1538,7 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        prefixes: Sequence[str] | None = None,
+        temporary: bool = False,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1923,7 +1923,7 @@ class SQLDatabase(PandasSQL):
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
-        prefixes: Sequence[str] | None = None,
+        temporary: bool = False,
     ) -> SQLTable:
         """
         Prepares table in the database for data insertion. Creates it if needed, etc.
@@ -1959,7 +1959,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
-            prefixes=prefixes,
+            temporary=temporary,
         )
         table.create()
         return table
@@ -2004,7 +2004,7 @@ class SQLDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        prefixes: Sequence[str] | None = None,
+        temporary: bool = False,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2046,9 +2046,8 @@ class SQLDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-        prefixes : sequence, optional
-            A list of strings to insert after CREATE in the CREATE TABLE statement.
-            They will be separated by spaces.
+        temporary : bool, default False
+            Indicates if the created, replaced or appended table is temporary.
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -2069,7 +2068,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
-            prefixes=prefixes,
+            temporary=temporary,
         )
 
         total_inserted = sql_engine.insert_records(
@@ -2085,7 +2084,7 @@ class SQLDatabase(PandasSQL):
         )
 
         # only check case sensitivity for non temporary tables
-        if not table.is_temporary:
+        if not table.temporary:
             self.check_case_sensitive(name=name, schema=schema)
         return total_inserted
 
@@ -2364,7 +2363,7 @@ class ADBCDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        prefixes: Sequence[str] | None = None,
+        temporary: bool = False,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2394,9 +2393,8 @@ class ADBCDatabase(PandasSQL):
             Raises NotImplementedError
         method : {None', 'multi', callable}, default None
             Raises NotImplementedError
-        prefixes : sequence, optional
-            A list of strings to insert after CREATE in the CREATE TABLE statement.
-            They will be separated by spaces.
+        temporary : bool, default False
+            Indicates if the created, replaced or appended table is temporary.
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
@@ -2414,11 +2412,6 @@ class ADBCDatabase(PandasSQL):
             raise NotImplementedError(
                 "engine != 'auto' not implemented for ADBC drivers"
             )
-
-        # check if the table to be created is a temporary table
-        temporary = prefixes is not None and "TEMPORARY".casefold() in [
-            prefix.casefold() for prefix in prefixes
-        ]
 
         if schema:
             table_name = f"{schema}.{name}"
@@ -2864,7 +2857,7 @@ class SQLiteDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        prefixes: Sequence[str] | None = None,
+        temporary: bool = False,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2905,9 +2898,8 @@ class SQLiteDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-        prefixes : sequence, optional
-            A list of strings to insert after CREATE in the CREATE TABLE statement.
-            They will be separated by spaces.
+        temporary : bool, default False
+            Indicates if the created, replaced or appended table is temporary.
         """
         if dtype:
             if not is_dict_like(dtype):
@@ -2933,7 +2925,7 @@ class SQLiteDatabase(PandasSQL):
             if_exists=if_exists,
             index_label=index_label,
             dtype=dtype,
-            prefixes=prefixes,
+            temporary=temporary,
         )
         table.create()
         return table.insert(chunksize, method)
