@@ -1838,7 +1838,12 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
 
-    Parameters
+    This class is used to perform date arithmetic involving business days.
+    Business days are defined by default as weekdays (Monday to Friday),
+    excluding weekends, but can be customized to exclude or include specific
+    holidays by combining with a ``CustomBusinessDay``.
+
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -1846,6 +1851,13 @@ cdef class BusinessDay(BusinessMixin):
         Normalize start/end dates to midnight.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    tseries.offsets.CustomBusinessDay : A customizable version of
+        `BusinessDay` that allows for the inclusion of holidays and other
+        non-standard business day definitions.
+    date_range : Generate a range of dates with a specific frequency.
 
     Examples
     --------
