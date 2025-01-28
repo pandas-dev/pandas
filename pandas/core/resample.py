@@ -378,10 +378,22 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         arg : function
             To apply to each group. Should return a Series with the same index.
+        *args : function
+            To apply to each group. Should return a Series with the same index.
+        **kwargs : function
+            To apply to each group. Should return a Series with the same index.
 
         Returns
         -------
         Series
+            A Series with the transformed values, maintaining the same index as
+            the original object.
+
+        See Also
+        --------
+        core.resample.Resampler.apply : Apply a function along each group.
+        core.resample.Resampler.aggregate : Aggregate using one or more operations
+            over the specified axis.
 
         Examples
         --------
