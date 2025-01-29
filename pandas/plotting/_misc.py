@@ -389,6 +389,12 @@ def andrews_curves(
     Returns
     -------
     :class:`matplotlib.axes.Axes`
+        The matplotlib Axes object with the plot.
+
+    See Also
+    --------
+    plotting.parallel_coordinates : Plot parallel coordinates chart.
+    DataFrame.plot : Make plots of Series or DataFrame.
 
     Examples
     --------

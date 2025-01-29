@@ -6890,7 +6890,8 @@ class DataFrame(NDFrame, OpsMixin):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return a Series with the same shape as the input.
-            It will be applied to each column in `by` independently.
+            It will be applied to each column in `by` independently. The values in the
+            returned Series will be used as the keys for sorting.
 
         Returns
         -------
@@ -8670,6 +8671,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  NaN  3.0 1.0
         """
         other_idxlen = len(other.index)  # save for compare
+        other_columns = other.columns
 
         this, other = self.align(other)
         new_index = this.index
@@ -8680,8 +8682,8 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible; otherwise align above ensures that these are set-equal
-        new_columns = this.columns.union(other.columns)
+        # preserve column order
+        new_columns = self.columns.union(other_columns, sort=False)
         do_fill = fill_value is not None
         result = {}
         for col in new_columns:
