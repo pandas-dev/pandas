@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -138,6 +140,7 @@ def test_categorical(setup_path):
             store.select("df3/meta/s/meta")
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_categorical_conversion(tmp_path, setup_path):
     # GH13322
     # Check that read_hdf with categorical columns doesn't return rows if

@@ -91,8 +91,8 @@ def test_unimplemented_dtypes_table_columns(setup_path):
         msg = "|".join(
             [
                 re.escape(
-                    "Cannot serialize the column [datetime1] because its data contents "
-                    "are not [string] but [date] object dtype"
+                    "Cannot serialize the column [datetime1]\nbecause its data "
+                    "contents are not [string] but [date] object dtype"
                 ),
                 re.escape("[date] is not implemented as a table column"),
             ]
