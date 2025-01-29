@@ -8671,6 +8671,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  NaN  3.0 1.0
         """
         other_idxlen = len(other.index)  # save for compare
+        other_columns = other.columns
 
         this, other = self.align(other)
         new_index = this.index
@@ -8681,8 +8682,8 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible; otherwise align above ensures that these are set-equal
-        new_columns = this.columns.union(other.columns)
+        # preserve column order
+        new_columns = self.columns.union(other_columns, sort=False)
         do_fill = fill_value is not None
         result = {}
         for col in new_columns:
