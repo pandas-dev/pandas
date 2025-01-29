@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -13,9 +11,9 @@ from pandas.tests.io.pytables.common import ensure_clean_store
 
 from pandas.io.pytables import read_hdf
 
-pytestmark = pytest.mark.xfail(
-    using_string_dtype(), reason="TODO(infer_string)", strict=False
-)
+# pytestmark = pytest.mark.xfail(
+#     using_string_dtype(), reason="TODO(infer_string)", strict=False
+# )
 
 
 def test_complex_fixed(tmp_path, setup_path):

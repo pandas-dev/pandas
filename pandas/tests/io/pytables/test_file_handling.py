@@ -3,8 +3,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -329,7 +327,7 @@ def test_complibs(tmp_path, lvl, lib, request):
                 assert node.filters.complib == lib
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+# @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.skipif(
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
@@ -347,7 +345,7 @@ def test_encoding(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+# @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "val",
     [
