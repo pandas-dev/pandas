@@ -3382,8 +3382,6 @@ class BlockManagerFixed(GenericFixed):
             if (
                 using_string_dtype()
                 and isinstance(values, np.ndarray)
-                # TODO: Should is_string_array return True for an empty object ndarray?
-                and values.size != 0
                 and is_string_array(values, skipna=True)
             ):
                 df = df.astype(StringDtype(na_value=np.nan))
