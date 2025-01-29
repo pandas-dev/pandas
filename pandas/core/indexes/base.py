@@ -6909,7 +6909,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         arr = self._values
 
-        if using_string_dtype and len(self) == 0 and self.dtype == np.object_:
+        if using_string_dtype() and len(self) == 0 and self.dtype == np.object_:
             # special case: if we are an empty object-dtype Index, also
             # take into account the inserted item for the resulting dtype
             # (https://github.com/pandas-dev/pandas/pull/60797)
