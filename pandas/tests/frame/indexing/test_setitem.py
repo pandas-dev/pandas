@@ -144,8 +144,9 @@ class TestDataFrameSetItem:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_empty_columns(self):
-        # GH 13522
+    def test_setitem_overwrite_index(self):
+        # GH 13522 - assign the index as a column and then overwrite the values
+        # -> should not affect the index
         df = DataFrame(index=["A", "B", "C"])
         df["X"] = df.index
         df["X"] = ["x", "y", "z"]
@@ -153,6 +154,21 @@ class TestDataFrameSetItem:
             data={"X": ["x", "y", "z"]}, index=["A", "B", "C"], columns=["X"]
         )
         tm.assert_frame_equal(df, exp)
+
+    def test_setitem_empty_columns(self):
+        # Starting from an empty DataFrame and setting a column should result
+        # in a default string dtype for the columns' Index
+        # https://github.com/pandas-dev/pandas/issues/60338
+
+        df = DataFrame()
+        df["foo"] = [1, 2, 3]
+        expected = DataFrame({"foo": [1, 2, 3]})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame(columns=Index([]))
+        df["foo"] = [1, 2, 3]
+        expected = DataFrame({"foo": [1, 2, 3]})
+        tm.assert_frame_equal(df, expected)
 
     def test_setitem_dt64_index_empty_columns(self):
         rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")

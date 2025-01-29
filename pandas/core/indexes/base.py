@@ -6242,6 +6242,7 @@ class Index(IndexOpsMixin, PandasObject):
             # special case: if left or right is a zero-length RangeIndex or
             # Index[object], those can be created by the default empty constructors
             # -> for that case ignore this dtype and always return the other
+            # (https://github.com/pandas-dev/pandas/pull/60797)
             from pandas.core.indexes.range import RangeIndex
 
             if len(self) == 0 and (
@@ -6907,6 +6908,14 @@ class Index(IndexOpsMixin, PandasObject):
             item = self._na_value
 
         arr = self._values
+
+        if using_string_dtype and len(self) == 0 and self.dtype == np.object_:
+            # special case: if we are an empty object-dtype Index, also
+            # take into account the inserted item for the resulting dtype
+            # (https://github.com/pandas-dev/pandas/pull/60797)
+            dtype = self._find_common_type_compat(item)
+            if dtype != self.dtype:
+                return self.astype(dtype).insert(loc, item)
 
         try:
             if isinstance(arr, ExtensionArray):
