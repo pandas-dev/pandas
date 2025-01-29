@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -32,8 +30,7 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_combine_first(self, float_frame, using_infer_string):
+    def test_combine_first(self, float_frame):
         # disjoint
         head, tail = float_frame[:5], float_frame[5:]
 
@@ -79,9 +76,7 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(combined["A"].reindex(g.index), g["A"])
 
         # corner cases
-        warning = FutureWarning if using_infer_string else None
-        with tm.assert_produces_warning(warning, match="empty entries"):
-            comb = float_frame.combine_first(DataFrame())
+        comb = float_frame.combine_first(DataFrame())
         tm.assert_frame_equal(comb, float_frame)
 
         comb = DataFrame().combine_first(float_frame)
@@ -385,7 +380,7 @@ class TestDataFrameCombineFirst:
         df2 = DataFrame({"isBool": [True]})
 
         res = df1.combine_first(df2)
-        exp = DataFrame({"isBool": [True], "isNum": [val]})
+        exp = DataFrame({"isNum": [val], "isBool": [True]})
 
         tm.assert_frame_equal(res, exp)
 
@@ -559,4 +554,14 @@ def test_combine_first_empty_columns():
     right = DataFrame(columns=["a", "c"])
     result = left.combine_first(right)
     expected = DataFrame(columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_combine_first_preserve_column_order():
+    # GH#60427
+    df1 = DataFrame({"B": [1, 2, 3], "A": [4, None, 6]})
+    df2 = DataFrame({"A": [5]}, index=[1])
+
+    result = df1.combine_first(df2)
+    expected = DataFrame({"B": [1, 2, 3], "A": [4.0, 5.0, 6.0]})
     tm.assert_frame_equal(result, expected)

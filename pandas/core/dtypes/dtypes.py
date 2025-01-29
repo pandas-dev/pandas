@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from collections.abc import MutableMapping
     from datetime import tzinfo
 
-    import pyarrow as pa  # noqa: TCH004
+    import pyarrow as pa  # noqa: TC004
 
     from pandas._typing import (
         Dtype,
@@ -1115,10 +1115,8 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         possible
         """
         if (
-            isinstance(string, str)
-            and (string.startswith(("period[", "Period[")))
-            or isinstance(string, BaseOffset)
-        ):
+            isinstance(string, str) and (string.startswith(("period[", "Period[")))
+        ) or isinstance(string, BaseOffset):
             # do not parse string like U as period[U]
             # avoid tuple to be regarded as freq
             try:
@@ -2341,7 +2339,7 @@ class ArrowDtype(StorageExtensionDtype):
             )
         if not string.endswith("[pyarrow]"):
             raise TypeError(f"'{string}' must end with '[pyarrow]'")
-        if string == "string[pyarrow]":
+        if string in ("string[pyarrow]", "str[pyarrow]"):
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
         if pa_version_under10p1:
