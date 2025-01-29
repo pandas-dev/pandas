@@ -4366,7 +4366,8 @@ def test_bytes_column(con, dtype_backend, request):
     conn = request.getfixturevalue(con)
     pa = pytest.importorskip("pyarrow")
 
-    val = b"\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"
+    hex_str = "0123456789abcdef0123456789abcdef"
+    val = bytes.fromhex(hex_str)
     if "postgres" in con:
         if "adbc" in con:
             val = b"\x00\x00\x00\x80\x01#Eg\x89\xab\xcd\xef\x01#Eg\x89\xab\xcd\xef"
@@ -4394,7 +4395,7 @@ def test_bytes_column(con, dtype_backend, request):
 
     expected = DataFrame([{"a": val}], dtype=dtype)
     df = pd.read_sql(
-        "select x'0123456789abcdef0123456789abcdef' a",
+        f"select x'{hex_str}' a",
         conn,
         dtype_backend=dtype_backend,
     )
