@@ -5235,6 +5235,7 @@ def _unconvert_string_array(
         if isinstance(data[0], bytes):
             ser = Series(data, copy=False).str.decode(encoding, errors=errors)
             data = ser.to_numpy()
+            data.flags.writeable = True
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
