@@ -409,6 +409,14 @@ def test_from_tuples_with_tuple_label():
     result = pd.DataFrame([2, 3], columns=["c"], index=idx)
     tm.assert_frame_equal(expected, result)
 
+@pytest.mark.parametrize("keys, expected", (
+    ((("l1",), ("l1","l2")), (("l1", np.nan), ("l1","l2"))),
+    ((("l1","l2",), ("l1",)), (("l1","l2"), ("l1", np.nan))),
+))
+def test_from_tuples_with_various_tuple_lengths(keys, expected):
+    # Issue 60695
+    idx = MultiIndex.from_tuples(keys)
+    assert tuple(idx) == expected
 
 # ----------------------------------------------------------------------------
 # from_product
