@@ -5233,7 +5233,9 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data, copy=False).str.decode(encoding, errors=errors)._values
+            ser = Series(data, copy=False).str.decode(encoding, errors=errors)
+            data = ser.to_numpy()
+            data.flags.writeable = True
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
