@@ -771,7 +771,7 @@ class TestDatetimeArray:
         # GH#9586, GH#54939
         depr_msg = (
             f"'{freq_depr[1:]}' is deprecated and will be removed in a "
-            f"future version. Please use '{freq_depr.lower()[1:]}' instead."
+            f"future version, please use '{freq_depr.lower()[1:]}' instead."
         )
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq_depr.lower())
