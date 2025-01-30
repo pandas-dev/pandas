@@ -7,8 +7,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -162,21 +160,7 @@ class TestDataFrameBlockInternals:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_construction_with_mixed(self, float_string_frame, using_infer_string):
-        # test construction edge cases with mixed types
-
-        # f7u12, this does not work without extensive workaround
-        data = [
-            [datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
-            [datetime(2000, 1, 2), datetime(2000, 1, 3), datetime(2000, 1, 1)],
-        ]
-        df = DataFrame(data)
-
-        # check dtypes
-        result = df.dtypes
-        expected = Series({"datetime64[us]": 3})
-
         # mixed-type frames
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
@@ -196,13 +180,11 @@ class TestDataFrameBlockInternals:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_construction_with_conversions(self):
         # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
         #  *not* convert
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
-        df = DataFrame(index=range(3))
-        df["A"] = arr
+        df = DataFrame({"A": arr})
         expected = DataFrame(
             {"A": pd.timedelta_range("00:00:01", periods=3, freq="s")}, index=range(3)
         )
@@ -220,11 +202,11 @@ class TestDataFrameBlockInternals:
         assert expected.dtypes["dt1"] == "M8[s]"
         assert expected.dtypes["dt2"] == "M8[s]"
 
-        df = DataFrame(index=range(3))
-        df["dt1"] = np.datetime64("2013-01-01")
-        df["dt2"] = np.array(
+        dt1 = np.datetime64("2013-01-01")
+        dt2 = np.array(
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
+        df = DataFrame({"dt1": dt1, "dt2": dt2})
 
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
@@ -401,14 +383,17 @@ def test_update_inplace_sets_valid_block_values():
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_nonconsolidated_item_cache_take():
     # https://github.com/pandas-dev/pandas/issues/35521
 
     # create non-consolidated dataframe with object dtype columns
-    df = DataFrame()
-    df["col1"] = Series(["a"], dtype=object)
+    df = DataFrame(
+        {
+            "col1": Series(["a"], dtype=object),
+        }
+    )
     df["col2"] = Series([0], dtype=object)
+    assert not df._mgr.is_consolidated()
 
     # access column (item cache)
     df["col1"] == "A"
