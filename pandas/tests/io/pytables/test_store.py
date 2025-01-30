@@ -25,6 +25,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.conftest import has_pyarrow
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
@@ -385,7 +386,7 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
 
 
 @pytest.mark.xfail(
-    using_string_dtype(),
+    using_string_dtype() and has_pyarrow,
     reason="TODO(infer_string): can't encode '\ud800': surrogates not allowed",
 )
 @pytest.mark.parametrize("format", ["fixed", "table"])
