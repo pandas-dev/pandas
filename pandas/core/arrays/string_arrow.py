@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         Dtype,
+        Self,
         npt,
     )
 
@@ -475,6 +476,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             else:
                 return result.to_numpy(np.bool_, na_value=False)
         return result
+
+    def __pos__(self) -> Self:
+        raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):

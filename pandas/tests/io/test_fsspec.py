@@ -197,7 +197,6 @@ def test_arrowparquet_options(fsspectest):
 
 
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")
