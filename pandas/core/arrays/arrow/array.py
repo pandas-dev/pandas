@@ -258,6 +258,7 @@ class ArrowExtensionArray(
     Parameters
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray
+        The input data to initialize the ArrowExtensionArray.
 
     Attributes
     ----------
@@ -270,6 +271,12 @@ class ArrowExtensionArray(
     Returns
     -------
     ArrowExtensionArray
+
+    See Also
+    --------
+    array : Create a Pandas array with a specified dtype.
+    DataFrame.to_feather : Write a DataFrame to the binary Feather format.
+    read_feather : Load a feather-format object from the file path.
 
     Notes
     -----
@@ -1391,7 +1398,7 @@ class ArrowExtensionArray(
         np_dtype = np.dtype(f"M8[{pa_type.unit}]")
         dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
         np_array = self._pa_array.to_numpy()
-        np_array = np_array.astype(np_dtype)
+        np_array = np_array.astype(np_dtype, copy=False)
         return DatetimeArray._simple_new(np_array, dtype=dtype)
 
     def _to_timedeltaarray(self) -> TimedeltaArray:
@@ -1402,7 +1409,7 @@ class ArrowExtensionArray(
         assert pa.types.is_duration(pa_type)
         np_dtype = np.dtype(f"m8[{pa_type.unit}]")
         np_array = self._pa_array.to_numpy()
-        np_array = np_array.astype(np_dtype)
+        np_array = np_array.astype(np_dtype, copy=False)
         return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
 
     def _values_for_json(self) -> np.ndarray:
@@ -2524,8 +2531,6 @@ class ArrowExtensionArray(
         else:
             dummies_dtype = np.bool_
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
-        if dtype == str:
-            dummies[:] = False
         dummies[indices] = True
         dummies = dummies.reshape((n_rows, n_cols))
         result = type(self)(pa.array(list(dummies)))
