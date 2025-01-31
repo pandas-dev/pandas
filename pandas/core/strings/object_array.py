@@ -434,7 +434,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             dummies_dtype = _dtype
         else:
             dummies_dtype = np.bool_
-        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype)
+        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype, order="F")
 
         def _isin(test_elements: str, element: str) -> bool:
             return element in test_elements
