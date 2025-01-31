@@ -566,6 +566,8 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             )
 
     result = DatetimeIndex(arr, name=name)
+    if not isinstance(result, DatetimeIndex):
+        return result
 
     # GH#23758: We may still need to localize the result with tz
     # GH#25546: Apply tz_parsed first (from arg), then tz (from caller)
