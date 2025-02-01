@@ -21,12 +21,11 @@ Upcoming changes in pandas 3.0
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_230.enhancements.styler:
+.. _whatsnew_230.enhancements.enhancement1:
 
-Styler
+enhancement1
 ^^^^^^^^^^^^
 
-- The :meth:`.Styler.to_typst` function has been added to write Styler to a file, buffer or string in Typst format (:issue:`57617`)
 
 .. _whatsnew_230.enhancements.other:
 
