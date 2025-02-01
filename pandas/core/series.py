@@ -5888,6 +5888,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _arith_method(self, other, op):
         self, other = self._align_for_op(other)
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.attrs = other.attrs
         return base.IndexOpsMixin._arith_method(self, other, op)
 
     def _align_for_op(self, right, align_asobject: bool = False):
