@@ -45,6 +45,7 @@ IGNORE_VALIDATION = {
     "Styler.template_html_style",
     "Styler.template_html_table",
     "Styler.template_latex",
+    "Styler.template_typst",
     "Styler.template_string",
     "Styler.loader",
     "errors.InvalidComparison",
