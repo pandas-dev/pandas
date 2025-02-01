@@ -238,7 +238,7 @@ class Op:
     @property
     def has_invalid_return_type(self) -> bool:
         types = self.operand_types
-        obj_dtype_set = frozenset([np.dtype("object")])
+        obj_dtype_set = frozenset([np.dtype("object"), str])
         return self.return_type == object and types - obj_dtype_set
 
     @property
