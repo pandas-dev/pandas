@@ -3654,15 +3654,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             an integer index is not used to calculate the rolling window.
 
         closed : str, default None
-            If ``'right'``, the first point in the window is excluded from calculations.
+            Determines the inclusivity of points in the window 
+            If ``'right'``, (First, Last] the last point in the window is included in the calculations.
 
-            If ``'left'``, the last point in the window is excluded from calculations.
+            If ``'left'``, [First, Last) the first point in the window is included in the calculations.
 
-            If ``'both'``, no points in the window are excluded from calculations.
+            If ``'both'``, [First, Last] all points in the window are included in the calculations.
 
-            If ``'neither'``, the first and last points in the window are excluded
+            If ``'neither'``, (First, Last) the first and last points in the window are excluded
             from calculations.
 
+            () and [] are referencing open and closed set notation respetively.
+            
             Default ``None`` (``'right'``).
 
         method : str {'single', 'table'}, default 'single'
