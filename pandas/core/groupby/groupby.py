@@ -3658,16 +3658,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             If ``'right'``, (First, Last] the last point in the window
             is included in the calculations.
 
-            If ``'left'``, [First, Last) the first point in the window 
+            If ``'left'``, [First, Last) the first point in the window
             is included in the calculations.
 
-            If ``'both'``, [First, Last] all points in the window 
+            If ``'both'``, [First, Last] all points in the window
             are included in the calculations.
 
-            If ``'neither'``, (First, Last) the first and last points 
+            If ``'neither'``, (First, Last) the first and last points
             in the window are excludedfrom calculations.
 
-            () and [] are referencing open and closed set 
+            () and [] are referencing open and closed set
             notation respetively.
 
             Default ``None`` (``'right'``).
