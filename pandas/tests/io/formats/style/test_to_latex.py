@@ -7,6 +7,7 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
+    _testing as tm,
     option_context,
 )
 
@@ -884,8 +885,17 @@ def test_apply_index_hidden_levels():
 @pytest.mark.parametrize("clines", ["bad", "index", "skip-last", "all", "data"])
 def test_clines_validation(clines, styler):
     msg = f"`clines` value of {clines} is invalid."
+    warning_msg = "Passing a string argument to the clines parameter is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        with pytest.raises(ValueError, match=msg):
+            styler.to_latex(clines=clines)
+
+
+@pytest.mark.parametrize("clines", ["bad", "index", "data", "all"])
+def test_clines_validation_tuple(clines, styler):
+    msg = f"`clines` option of {clines} is invalid."
     with pytest.raises(ValueError, match=msg):
-        styler.to_latex(clines=clines)
+        styler.to_latex(clines=("rule-data", clines))
 
 
 @pytest.mark.parametrize(
@@ -895,13 +905,27 @@ def test_clines_validation(clines, styler):
         ("all;data", "\n\\cline{1-2}"),
         ("skip-last;index", ""),
         ("skip-last;data", ""),
+        ((), "\n\\cline{1-1}"),
+        (("rule-data",), "\n\\cline{1-2}"),
+        (("include-hidden",), "\n\\cline{1-1}"),
+        (("include-hidden", "rule-data"), "\n\\cline{1-2}"),
+        (("skip-last",), ""),
+        (("skip-last", "rule-data"), ""),
+        (("skip-last", "include-hidden"), ""),
+        (("skip-last", "include-hidden", "rule-data"), ""),
         (None, ""),
     ],
 )
 @pytest.mark.parametrize("env", ["table", "longtable"])
 def test_clines_index(clines, exp, env):
     df = DataFrame([[1], [2], [3], [4]])
-    result = df.style.to_latex(clines=clines, environment=env)
+
+    warn = None
+    if isinstance(clines, str):
+        warn = FutureWarning
+    msg = "Passing a string argument to the clines parameter is deprecated."
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.style.to_latex(clines=clines, environment=env)
     expected = f"""\
 0 & 1 \\\\{exp}
 1 & 2 \\\\{exp}
@@ -981,6 +1005,118 @@ def test_clines_index(clines, exp, env):
             """
             ),
         ),
+        (
+            ("skip-last",),
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-2}
+            """
+            ),
+        ),
+        (
+            ("skip-last", "rule-data"),
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-3}
+            """
+            ),
+        ),
+        (
+            (),
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-2}
+             & Y & 2 \\\\
+            \\cline{1-2} \\cline{2-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-2}
+             & Y & 4 \\\\
+            \\cline{1-2} \\cline{2-2}
+            """
+            ),
+        ),
+        (
+            ("rule-data",),
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-3}
+             & Y & 2 \\\\
+            \\cline{1-3} \\cline{2-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-3}
+             & Y & 4 \\\\
+            \\cline{1-3} \\cline{2-3}
+            """
+            ),
+        ),
+        (
+            ("skip-last", "include-hidden"),
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-2} \\cline{2-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-2} \\cline{2-2}
+            """
+            ),
+        ),
+        (
+            ("skip-last", "include-hidden", "rule-data"),
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-3} \\cline{2-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-3} \\cline{2-3}
+            """
+            ),
+        ),
+        (
+            ("include-hidden",),
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-2}
+             & Y & 2 \\\\
+            \\cline{1-2} \\cline{2-2} \\cline{2-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-2}
+             & Y & 4 \\\\
+            \\cline{1-2} \\cline{2-2} \\cline{2-2}
+            """
+            ),
+        ),
+        (
+            ("include-hidden", "rule-data"),
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-3}
+             & Y & 2 \\\\
+            \\cline{1-3} \\cline{2-3} \\cline{2-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-3}
+             & Y & 4 \\\\
+            \\cline{1-3} \\cline{2-3} \\cline{2-3}
+            """
+            ),
+        ),
     ],
 )
 @pytest.mark.parametrize("env", ["table"])
@@ -991,7 +1127,74 @@ def test_clines_multiindex(clines, expected, env):
     styler = df.style
     styler.hide([("-", 0, "X"), ("-", 0, "Y")])
     styler.hide(level=1)
-    result = styler.to_latex(clines=clines, environment=env)
+
+    warn = None
+    if isinstance(clines, str):
+        warn = FutureWarning
+    msg = "Passing a string argument to the clines parameter is deprecated."
+    with tm.assert_produces_warning(warn, match=msg):
+        result = styler.to_latex(clines=clines, environment=env)
+    assert expected in result
+
+
+@pytest.mark.parametrize(
+    "clines, expected",
+    [
+        (None, "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("all;data", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("all;index", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("skip-last;data", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ("skip-last;index", "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        (("rule-data",), "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        ((), "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        (("skip-last", "rule-data"), "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        (("skip-last",), "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        (("include-hidden",), "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        (("skip-last", "include-hidden"), "1 \\\\\n2 \\\\\n3 \\\\\n4 \\\\\n"),
+        (
+            ("include-hidden", "rule-data"),
+            dedent(
+                """\
+            1 \\\\
+            \\cline{1-1}
+            2 \\\\
+            \\cline{1-1} \\cline{1-1}
+            3 \\\\
+            \\cline{1-1}
+            4 \\\\
+            \\cline{1-1} \\cline{1-1}
+            """
+            ),
+        ),
+        (
+            ("skip-last", "include-hidden", "rule-data"),
+            dedent(
+                """\
+            1 \\\\
+            2 \\\\
+            \\cline{1-1}
+            3 \\\\
+            4 \\\\
+            \\cline{1-1}
+            """
+            ),
+        ),
+    ],
+)
+def test_clines_hiddenindex(clines, expected):
+    # Make sure that \clines are correctly hidden or shown with all indixes hidden
+    midx = MultiIndex.from_product([["A", "-", "B"], ["X", "Y"]])
+    df = DataFrame([[1], [2], [99], [99], [3], [4]], index=midx)
+    styler = df.style
+    styler.hide([("-", "X"), ("-", "Y")])
+    styler.hide(axis=0)
+
+    warn = None
+    if isinstance(clines, str):
+        warn = FutureWarning
+    msg = "Passing a string argument to the clines parameter is deprecated."
+    with tm.assert_produces_warning(warn, match=msg):
+        result = styler.to_latex(clines=clines, environment="table")
     assert expected in result
 
 
@@ -1082,7 +1285,7 @@ def test_concat_chain():
     ],
 )
 @pytest.mark.parametrize(
-    "clines", [None, "all;data", "all;index", "skip-last;data", "skip-last;index"]
+    "clines", [None, (), ("rule-data",), ("skip-last",), ("include-hidden",)]
 )
 def test_empty_clines(columns, expected: str, clines: str):
     # GH 47203
