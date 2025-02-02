@@ -3528,8 +3528,8 @@ class Table(Fixed):
                         if c == "values_axes" and sax.kind != oax.kind:
                             raise TypeError(
                                 f"Cannot serialize the column [{oax.values[0]}] "
-                                f"because its data contents are not [{oax.kind}] "
-                                f"but [{sax.kind}] object dtype"
+                                f"because its data contents are not [{sax.kind}] "
+                                f"but [{oax.kind}] object dtype"
                             )
                         # Fallback if other source of difference
                         raise ValueError(

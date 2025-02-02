@@ -830,7 +830,11 @@ because its data contents are not [string] but [mixed] object dtype"""
         df["foo"] = Timestamp("20130101")
         store.append("df", df)
         df["foo"] = "bar"
-        msg = re.escape("Cannot serialize the column [foo] but [string] object dtype")
+        msg = re.escape(
+            "Cannot serialize the column [foo] "
+            "because its data contents are not [string] "
+            "but [datetime64[s]] object dtype"
+        )
         with pytest.raises(TypeError, match=msg):
             store.append("df", df)
 
