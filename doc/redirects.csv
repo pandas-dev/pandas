@@ -24,7 +24,8 @@ gotchas,user_guide/gotchas
 groupby,user_guide/groupby
 indexing,user_guide/indexing
 integer_na,user_guide/integer_na
-io,user_guide/io
+io,user_guide/io/index
+user_guide/io,user_guide/io/index
 merging,user_guide/merging
 missing_data,user_guide/missing_data
 options,user_guide/options
