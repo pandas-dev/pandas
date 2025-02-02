@@ -421,6 +421,14 @@ def test_append_with_strings(setup_path):
         with pytest.raises(ValueError, match=msg):
             store.append("df_new", df_new)
 
+        # bigger NaN representation on next append
+        df_new = DataFrame([[124, "a"], [346, "b"]])
+        store.append("df_new2", df_new)
+        df_new = DataFrame([[124, None], [346, "b"]])
+        msg = "NaN representation is too large for existing column size"
+        with pytest.raises(ValueError, match=msg):
+            store.append("df_new2", df_new)
+
         # min_itemsize on Series index (GH 11412)
         df = DataFrame(
             {
@@ -822,15 +830,8 @@ because its data contents are not [string] but [mixed] object dtype"""
         df["foo"] = Timestamp("20130101")
         store.append("df", df)
         df["foo"] = "bar"
-        msg = re.escape(
-            "invalid combination of [values_axes] on appending data "
-            "[name->values_block_1,cname->values_block_1,"
-            "dtype->bytes24,kind->string,shape->(1, 30)] "
-            "vs current table "
-            "[name->values_block_1,cname->values_block_1,"
-            "dtype->datetime64[s],kind->datetime64[s],shape->None]"
-        )
-        with pytest.raises(ValueError, match=msg):
+        msg = re.escape("Cannot serialize the column [foo] but [string] object dtype")
+        with pytest.raises(TypeError, match=msg):
             store.append("df", df)
 
 
