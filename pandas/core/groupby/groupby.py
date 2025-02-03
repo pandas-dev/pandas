@@ -570,6 +570,13 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Dict {group name -> group indices}.
 
+        The dictionary keys represent the group labels (e.g., timestamps for a
+        time-based resampling operation), and the values are arrays of integer
+        positions indicating where the elements of each group are located in the
+        original data. This property is particularly useful when working with
+        resampled data, as it provides insight into how the original time-series data
+        has been grouped.
+
         See Also
         --------
         core.groupby.DataFrameGroupBy.indices : Provides a mapping of group rows to
@@ -3709,14 +3716,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             an integer index is not used to calculate the rolling window.
 
         closed : str, default None
-            If ``'right'``, the first point in the window is excluded from calculations.
+            Determines the inclusivity of points in the window
+            If ``'right'``, (First, Last] the last point in the window
+            is included in the calculations.
 
-            If ``'left'``, the last point in the window is excluded from calculations.
+            If ``'left'``, [First, Last) the first point in the window
+            is included in the calculations.
 
-            If ``'both'``, no points in the window are excluded from calculations.
+            If ``'both'``, [First, Last] all points in the window
+            are included in the calculations.
 
-            If ``'neither'``, the first and last points in the window are excluded
-            from calculations.
+            If ``'neither'``, (First, Last) the first and last points
+            in the window are excludedfrom calculations.
+
+            () and [] are referencing open and closed set
+            notation respetively.
 
             Default ``None`` (``'right'``).
 
