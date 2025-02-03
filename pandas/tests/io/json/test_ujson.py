@@ -991,7 +991,7 @@ class TestPandasJSONTests:
     def test_decode_extreme_numbers(self, extreme_num):
         assert extreme_num == ujson.ujson_loads(str(extreme_num))
 
-    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-2**63-1}"])
+    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-(2**63) - 1}"])
     def test_decode_too_extreme_numbers(self, too_extreme_num):
         with pytest.raises(
             ValueError,
@@ -1006,7 +1006,7 @@ class TestPandasJSONTests:
         with pytest.raises(ValueError, match="Trailing data"):
             ujson.ujson_loads("{}\n\t a")
 
-    @pytest.mark.parametrize("value", [f"{2**64}", f"{-2**63-1}"])
+    @pytest.mark.parametrize("value", [f"{2**64}", f"{-(2**63) - 1}"])
     def test_decode_array_with_big_int(self, value):
         with pytest.raises(
             ValueError,

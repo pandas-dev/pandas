@@ -522,7 +522,7 @@ def test_info_int_columns(using_infer_string):
          0   1       2 non-null      int64
          1   2       2 non-null      int64
         dtypes: int64(2)
-        memory usage: {'50.0' if using_infer_string and HAS_PYARROW else '48.0+'} bytes
+        memory usage: {"50.0" if using_infer_string and HAS_PYARROW else "48.0+"} bytes
         """
     )
     assert result == expected

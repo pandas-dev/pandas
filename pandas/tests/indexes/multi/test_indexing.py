@@ -259,8 +259,7 @@ class TestGetIndexer:
     def test_get_indexer_nearest(self):
         midx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
         msg = (
-            "method='nearest' not implemented yet for MultiIndex; "
-            "see GitHub issue 9365"
+            "method='nearest' not implemented yet for MultiIndex; see GitHub issue 9365"
         )
         with pytest.raises(NotImplementedError, match=msg):
             midx.get_indexer(["a"], method="nearest")
