@@ -18,6 +18,8 @@ from pandas.compat import (
 
 from pandas.core.dtypes.common import is_list_like
 
+from pandas.core.arrays.list_ import ListDtype
+
 if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
@@ -106,7 +108,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
+        ...     dtype=pd.ListDtype(pa.int64()),
         ... )
         >>> s.list.len()
         0    3
@@ -189,7 +191,7 @@ class ListAccessor(ArrowAccessor):
             sliced = pc.list_slice(self._pa_array, start, stop, step)
             return Series(
                 sliced,
-                dtype=ArrowDtype(sliced.type),
+                dtype=ListDtype(sliced.type.value_type),
                 index=self._data.index,
                 name=self._data.name,
             )

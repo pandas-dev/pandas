@@ -72,6 +72,7 @@ class TestPDApi(Base):
         "RangeIndex",
         "Series",
         "SparseDtype",
+        "ListDtype",
         "StringDtype",
         "Timedelta",
         "TimedeltaIndex",

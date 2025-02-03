@@ -40,6 +40,7 @@ from pandas.core.arrays.integer import (
     UInt32Dtype,
     UInt64Dtype,
 )
+from pandas.core.arrays.list_ import ListDtype
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import array  # noqa: ICN001
 from pandas.core.flags import Flags
@@ -103,6 +104,7 @@ __all__ = [
     "Interval",
     "IntervalDtype",
     "IntervalIndex",
+    "ListDtype",
     "MultiIndex",
     "NaT",
     "NamedAgg",
