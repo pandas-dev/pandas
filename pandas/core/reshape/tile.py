@@ -73,7 +73,7 @@ def cut(
 
     Parameters
     ----------
-    x : array-like
+    x : 1d ndarray or Series
         The input array to be binned. Must be 1-dimensional.
     bins : int, sequence of scalars, or IntervalIndex
         The criteria to bin by.
@@ -126,7 +126,7 @@ def cut(
           Categorical for all other inputs. The values stored within
           are whatever the type in the sequence is.
 
-        * False : returns an ndarray of integers.
+        * False : returns a 1d ndarray or Series of integers.
 
     bins : numpy.ndarray or IntervalIndex.
         The computed or specified bins. Only returned when `retbins=True`.
