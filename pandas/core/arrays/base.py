@@ -1795,7 +1795,7 @@ class ExtensionArray:
                    data, indices, fill_value=fill_value, allow_fill=allow_fill
                )
                return self._from_sequence(result, dtype=self.dtype)
-        """  # noqa: E501
+        """
         # Implementer note: The `fill_value` parameter should be a user-facing
         # value, an instance of self.dtype.type. When passed `fill_value=None`,
         # the default of `self.dtype.na_value` should be used.

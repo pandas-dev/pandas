@@ -254,7 +254,7 @@ def hist_frame(
         >>> index = ["pig", "rabbit", "duck", "chicken", "horse"]
         >>> df = pd.DataFrame(data, index=index)
         >>> hist = df.hist(bins=3)
-    """  # noqa: E501
+    """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.hist_frame(
         data,
@@ -872,7 +872,7 @@ class PlotAccessor(PandasObject):
 
         >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
         >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
-    """  # noqa: E501
+    """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
     _series_kinds = ("pie",)
@@ -1669,7 +1669,7 @@ class PlotAccessor(PandasObject):
             ...     }
             ... )
             >>> ax = df.plot.area(x="day")
-        """  # noqa: E501
+        """
         return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
 
     def pie(self, y: IndexLabel | None = None, **kwargs) -> PlotAccessor:
