@@ -421,14 +421,6 @@ def test_append_with_strings(setup_path):
         with pytest.raises(ValueError, match=msg):
             store.append("df_new", df_new)
 
-        # bigger NaN representation on next append
-        df_new = DataFrame([[124, "a"], [346, "b"]])
-        store.append("df_new2", df_new)
-        df_new = DataFrame([[124, None], [346, "b"]])
-        msg = "NaN representation is too large for existing column size"
-        with pytest.raises(ValueError, match=msg):
-            store.append("df_new2", df_new)
-
         # min_itemsize on Series index (GH 11412)
         df = DataFrame(
             {
@@ -835,7 +827,7 @@ because its data contents are not [string] but [mixed] object dtype"""
             "because its data contents are not [string] "
             "but [datetime64[s]] object dtype"
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             store.append("df", df)
 
 
@@ -1002,3 +994,29 @@ def test_append_to_multiple_min_itemsize(setup_path):
         )
         result = store.select_as_multiple(["index", "nums", "strs"])
         tm.assert_frame_equal(result, expected, check_index_type=True)
+
+
+def test_append_string_nan_rep(setup_path):
+    # GH 16300
+    df = DataFrame({"A": "a", "B": "foo"}, index=np.arange(10))
+    df_nan = df.copy()
+    df_nan.loc[0:4, :] = np.nan
+    msg = "NaN representation is too large for existing column size"
+
+    with ensure_clean_store(setup_path) as store:
+        # string column too small
+        store.append("sa", df["A"])
+        with pytest.raises(ValueError, match=msg):
+            store.append("sa", df_nan["A"])
+
+        # nan_rep too big
+        store.append("sb", df["B"], nan_rep="bars")
+        with pytest.raises(ValueError, match=msg):
+            store.append("sb", df_nan["B"])
+
+        # smaller modified nan_rep
+        store.append("sc", df["A"], nan_rep="n")
+        store.append("sc", df_nan["A"])
+        result = store["sc"]
+        expected = concat([df["A"], df_nan["A"]])
+        tm.assert_series_equal(result, expected)

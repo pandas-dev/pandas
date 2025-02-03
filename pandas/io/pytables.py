@@ -3524,14 +3524,12 @@ class Table(Fixed):
                     # Value of type "Optional[Any]" is not indexable  [index]
                     oax = ov[i]  # type: ignore[index]
                     if sax != oax:
-                        ## Raise clearer error if mismatching type on values_axes
                         if c == "values_axes" and sax.kind != oax.kind:
-                            raise TypeError(
+                            raise ValueError(
                                 f"Cannot serialize the column [{oax.values[0]}] "
                                 f"because its data contents are not [{sax.kind}] "
                                 f"but [{oax.kind}] object dtype"
                             )
-                        # Fallback if other source of difference
                         raise ValueError(
                             f"invalid combination of [{c}] on appending data "
                             f"[{sax}] vs current table [{oax}]"

@@ -217,7 +217,7 @@ def test_table_values_dtypes_roundtrip(setup_path):
             "because its data contents are not [float] "
             "but [integer] object dtype"
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             store.append("df_i8", df1)
 
         # check creation/storage/retrieval of float32 (a bit hacky to
