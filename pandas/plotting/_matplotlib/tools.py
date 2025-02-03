@@ -130,7 +130,7 @@ def _get_layout(
     try:
         return layouts[nplots]
     except KeyError:
-        k = floor(log2(nplots))
+        k = floor(log2(nplots)) + 1
 
         if (k - 1) * k >= nplots:
             return k, (k - 1)
