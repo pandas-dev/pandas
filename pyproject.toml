@@ -160,7 +160,13 @@ free-threaded-support = true
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build.sh"
+before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build_windows.sh"
+before-test = "bash {package}/scripts/cibw_before_test_windows.sh"
+test-command = """
+  set PANDAS_CI='1' && \
+  python -c "import pandas as pd; \
+  pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
+  """
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
@@ -174,13 +180,6 @@ test-command = """
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales"
-
-[[tool.cibuildwheel.overrides]]
-select = "*-win*"
-# We test separately for Windows, since we use
-# the windowsservercore docker image to check if any dlls are
-# missing from the wheel
-test-command = ""
 
 [[tool.cibuildwheel.overrides]]
 # Don't strip wheels on macOS.
@@ -305,10 +304,6 @@ ignore = [
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
-  # pytest-missing-fixture-name-underscore
-  "PT004",
-  # pytest-incorrect-fixture-name-underscore
-  "PT005",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type

@@ -132,20 +132,17 @@ class TestDataFrameToStringFormatters:
         )
         assert result == expected
 
-        def test_to_string_index_formatter(self):
-            df = DataFrame([range(5), range(5, 10), range(10, 15)])
-
-            rs = df.to_string(formatters={"__index__": lambda x: "abc"[x]})
-
-            xp = dedent(
-                """\
-                0   1   2   3   4
-            a   0   1   2   3   4
-            b   5   6   7   8   9
-            c  10  11  12  13  14\
-            """
-            )
-            assert rs == xp
+    def test_to_string_index_formatter(self):
+        df = DataFrame([range(5), range(5, 10), range(10, 15)])
+        rs = df.to_string(formatters={"__index__": lambda x: "abc"[x]})
+        xp = dedent(
+            """\
+            0   1   2   3   4
+        a   0   1   2   3   4
+        b   5   6   7   8   9
+        c  10  11  12  13  14"""
+        )
+        assert rs == xp
 
     def test_no_extra_space(self):
         # GH#52690: Check that no extra space is given
@@ -419,6 +416,24 @@ class TestToStringNumericFormatting:
                 "1  0.27394+0.23515j\n"
                 "2  0.26975+0.32506j\n"
                 "3 -0.00000-1.00000j"
+            )
+            assert result == expected
+
+    def test_to_string_complex_float_formatting_with_exponents(self):
+        # GH #60393
+        with option_context("display.precision", 6):
+            df = DataFrame(
+                {
+                    "x": [
+                        (1.8816e-09 + 0j),
+                        (1.8816e-09 + 3.39676e-09j),
+                    ]
+                }
+            )
+            result = df.to_string()
+            expected = (
+                "                            x\n0  1.881600e-09+0.000000e+00j\n"
+                "1  1.881600e-09+3.396760e-09j"
             )
             assert result == expected
 

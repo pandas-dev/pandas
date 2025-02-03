@@ -114,6 +114,7 @@ from pandas._libs.tslibs.offsets import (
     INVALID_FREQ_ERR_MSG,
     BDay,
 )
+from pandas.util._decorators import set_module
 
 cdef:
     enum:
@@ -678,7 +679,7 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
     c_date.tm_yday = get_day_of_year(dts.year, dts.month, dts.day) - 1
     c_date.tm_isdst = -1
 
-    result = <char*>malloc(result_len * sizeof(char))
+    result = <char*>malloc(result_len)
     if result is NULL:
         raise MemoryError()
 
@@ -2830,6 +2831,7 @@ cdef class _Period(PeriodMixin):
         return period_format(self.ordinal, base, fmt)
 
 
+@set_module("pandas")
 class Period(_Period):
     """
     Represents a period of time.

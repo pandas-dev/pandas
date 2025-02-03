@@ -314,6 +314,17 @@ class TestTimestampArithmetic:
 
         assert result == expected
 
+    def test_timestamp_dst_transition(self):
+        # GH 60084
+        dt_str = "2023-11-05 01:00-08:00"
+        tz_str = "America/Los_Angeles"
+
+        ts1 = Timestamp(dt_str, tz=tz_str)
+        ts2 = ts1 + Timedelta(hours=0)
+
+        assert ts1 == ts2
+        assert hash(ts1) == hash(ts2)
+
 
 class SubDatetime(datetime):
     pass

@@ -1,9 +1,15 @@
 """test feather-format compat"""
 
+from datetime import datetime
 import zoneinfo
 
 import numpy as np
 import pytest
+
+from pandas.compat.pyarrow import (
+    pa_version_under18p0,
+    pa_version_under19p0,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -137,8 +143,8 @@ class TestFeather:
     def test_path_pathlib(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
@@ -236,14 +242,55 @@ class TestFeather:
             with pytest.raises(ValueError, match=msg):
                 read_feather(path, dtype_backend="numpy")
 
-    def test_string_inference(self, tmp_path):
+    def test_string_inference(self, tmp_path, using_infer_string):
         # GH#54431
         path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]})
         df.to_feather(path)
         with pd.option_context("future.infer_string", True):
             result = read_feather(path)
+        dtype = pd.StringDtype(na_value=np.nan)
         expected = pd.DataFrame(
             data={"a": ["x", "y"]}, dtype=pd.StringDtype(na_value=np.nan)
         )
+        expected = pd.DataFrame(
+            data={"a": ["x", "y"]},
+            dtype=dtype,
+            columns=pd.Index(
+                ["a"],
+                dtype=object
+                if pa_version_under19p0 and not using_infer_string
+                else dtype,
+            ),
+        )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(pa_version_under18p0, reason="not supported before 18.0")
+    def test_string_inference_string_view_type(self, tmp_path):
+        # GH#54798
+        import pyarrow as pa
+        from pyarrow import feather
+
+        path = tmp_path / "string_view.parquet"
+        table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
+        feather.write_feather(table, path)
+
+        with pd.option_context("future.infer_string", True):
+            result = read_feather(path)
+
+            expected = pd.DataFrame(
+                data={"a": [None, "b", "c"]}, dtype=pd.StringDtype(na_value=np.nan)
+            )
+        tm.assert_frame_equal(result, expected)
+
+    def test_out_of_bounds_datetime_to_feather(self):
+        # GH#47832
+        df = pd.DataFrame(
+            {
+                "date": [
+                    datetime.fromisoformat("1654-01-01"),
+                    datetime.fromisoformat("1920-01-01"),
+                ],
+            }
+        )
+        self.check_round_trip(df)

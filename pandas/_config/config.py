@@ -188,6 +188,11 @@ def set_option(*args) -> None:
     """
     Set the value of the specified option or options.
 
+    This method allows fine-grained control over the behavior and display settings
+    of pandas. Options affect various functionalities such as output formatting,
+    display limits, and operational behavior. Settings can be modified at runtime
+    without requiring changes to global configurations or environment variables.
+
     Parameters
     ----------
     *args : str | object
@@ -315,6 +320,11 @@ def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
 def reset_option(pat: str) -> None:
     """
     Reset one or more options to their default value.
+
+    This method resets the specified pandas option(s) back to their default
+    values. It allows partial string matching for convenience, but users should
+    exercise caution to avoid unintended resets due to changes in option names
+    in future versions.
 
     Parameters
     ----------

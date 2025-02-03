@@ -9,12 +9,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import (
-    HAS_PYARROW,
-    WASM,
-)
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
@@ -32,6 +26,7 @@ from pandas import (
     NaT,
     Period,
     Series,
+    StringDtype,
     Timedelta,
     Timestamp,
     array,
@@ -535,17 +530,18 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_with_expansion_type_promotion(self):
         # GH#12599
         ser = Series(dtype=object)
         ser["a"] = Timestamp("2016-01-01")
         ser["b"] = 3.0
         ser["c"] = "foo"
-        expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
+        expected = Series(
+            [Timestamp("2016-01-01"), 3.0, "foo"],
+            index=Index(["a", "b", "c"], dtype=object),
+        )
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_not_contained(self, string_series):
         # set item that's not contained
         ser = string_series.copy()
@@ -827,11 +823,6 @@ class SetitemCastingEquivalents:
         else:
             indexer_sli(obj)[mask] = val
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     def test_series_where(self, obj, key, expected, raises, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -859,30 +850,20 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-    def test_index_where(self, obj, key, expected, raises, val, using_infer_string):
+    def test_index_where(self, obj, key, expected, raises, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if using_infer_string and obj.dtype == object:
-            with pytest.raises(TypeError, match="Scalar must"):
-                Index(obj).where(~mask, val)
-        else:
-            res = Index(obj).where(~mask, val)
-            expected_idx = Index(expected, dtype=expected.dtype)
-            tm.assert_index_equal(res, expected_idx)
+        res = Index(obj).where(~mask, val)
+        expected_idx = Index(expected, dtype=expected.dtype)
+        tm.assert_index_equal(res, expected_idx)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-    def test_index_putmask(self, obj, key, expected, raises, val, using_infer_string):
+    def test_index_putmask(self, obj, key, expected, raises, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if using_infer_string and obj.dtype == object:
-            with pytest.raises(TypeError, match="Scalar must"):
-                Index(obj).putmask(mask, val)
-        else:
-            res = Index(obj).putmask(mask, val)
-            tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        res = Index(obj).putmask(mask, val)
+        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
 
 @pytest.mark.parametrize(
@@ -1376,6 +1357,19 @@ class TestCoercionObject(CoercionTest):
 @pytest.mark.parametrize(
     "val,exp_dtype,raises",
     [
+        (1, object, True),
+        ("e", StringDtype(na_value=np.nan), False),
+    ],
+)
+class TestCoercionString(CoercionTest):
+    @pytest.fixture
+    def obj(self):
+        return Series(["a", "b", "c", "d"], dtype=StringDtype(na_value=np.nan))
+
+
+@pytest.mark.parametrize(
+    "val,exp_dtype,raises",
+    [
         (1, np.complex128, False),
         (1.1, np.complex128, False),
         (1 + 1j, np.complex128, False),
@@ -1454,7 +1448,6 @@ class TestCoercionFloat64(CoercionTest):
                         np_version_gte1p24
                         and os.environ.get("NPY_PROMOTION_STATE", "weak") != "weak"
                     )
-                    or WASM
                 ),
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",

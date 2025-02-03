@@ -261,6 +261,7 @@ class TestApi(Base):
         "JsonReader",
         "NaTType",
         "NAType",
+        "NoDefault",
         "PeriodIndexResamplerGroupby",
         "Resampler",
         "Rolling",
@@ -400,3 +401,36 @@ class TestTesting(Base):
 
 def test_set_module():
     assert pd.DataFrame.__module__ == "pandas"
+    assert pd.CategoricalDtype.__module__ == "pandas"
+    assert pd.PeriodDtype.__module__ == "pandas"
+    assert pd.IntervalDtype.__module__ == "pandas"
+    assert pd.SparseDtype.__module__ == "pandas"
+    assert pd.ArrowDtype.__module__ == "pandas"
+    assert pd.StringDtype.__module__ == "pandas"
+    assert pd.Index.__module__ == "pandas"
+    assert pd.CategoricalIndex.__module__ == "pandas"
+    assert pd.DatetimeIndex.__module__ == "pandas"
+    assert pd.IntervalIndex.__module__ == "pandas"
+    assert pd.MultiIndex.__module__ == "pandas"
+    assert pd.PeriodIndex.__module__ == "pandas"
+    assert pd.RangeIndex.__module__ == "pandas"
+    assert pd.TimedeltaIndex.__module__ == "pandas"
+    assert pd.Period.__module__ == "pandas"
+    assert pd.Timestamp.__module__ == "pandas"
+    assert pd.Timedelta.__module__ == "pandas"
+    assert pd.concat.__module__ == "pandas"
+    assert pd.isna.__module__ == "pandas"
+    assert pd.notna.__module__ == "pandas"
+    assert pd.merge.__module__ == "pandas"
+    assert pd.merge_ordered.__module__ == "pandas"
+    assert pd.merge_asof.__module__ == "pandas"
+    assert pd.read_csv.__module__ == "pandas"
+    assert pd.read_table.__module__ == "pandas"
+    assert pd.read_fwf.__module__ == "pandas"
+    assert pd.Series.__module__ == "pandas"
+    assert pd.date_range.__module__ == "pandas"
+    assert pd.bdate_range.__module__ == "pandas"
+    assert pd.timedelta_range.__module__ == "pandas"
+    assert pd.NamedAgg.__module__ == "pandas"
+    assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
+    assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"

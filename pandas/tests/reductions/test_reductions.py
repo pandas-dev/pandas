@@ -7,10 +7,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1206,10 +1202,6 @@ class TestSeriesReductions:
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmin(skipna=False)
 
-    # TODO(infer_string) implement argmin/max for python string dtype
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_idxminmax_object_frame(self):
         # GH#4279
         df = DataFrame([["zimm", 2.5], ["biff", 1.0], ["bid", 12.0]])
@@ -1615,17 +1607,10 @@ class TestSeriesMode:
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
-    def test_mode_sortwarning(self):
-        # Check for the warning that is raised when the mode
-        # results cannot be sorted
-
-        expected = Series(["foo", np.nan], dtype=object)
+    def test_mode_sort_with_na(self):
         s = Series([1, "foo", "foo", np.nan, np.nan])
-
-        with tm.assert_produces_warning(UserWarning, match="Unable to sort modes"):
-            result = s.mode(dropna=False)
-            result = result.sort_values().reset_index(drop=True)
-
+        expected = Series(["foo", np.nan], dtype=object)
+        result = s.mode(dropna=False)
         tm.assert_series_equal(result, expected)
 
     def test_mode_boolean_with_na(self):

@@ -9,6 +9,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_string_dtype
+
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -39,7 +41,9 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     .. note::
 
        For new development, we highly recommend using the Arrow C Data Interface
-       alongside the Arrow PyCapsule Interface instead of the interchange protocol
+       alongside the Arrow PyCapsule Interface instead of the interchange protocol.
+       From pandas 3.0 onwards, `from_dataframe` uses the PyCapsule Interface,
+       only falling back to the interchange protocol if that fails.
 
     .. warning::
 
@@ -87,6 +91,18 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     if isinstance(df, pd.DataFrame):
         return df
+
+    if hasattr(df, "__arrow_c_stream__"):
+        try:
+            pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        except ImportError:
+            # fallback to _from_dataframe
+            pass
+        else:
+            try:
+                return pa.table(df).to_pandas(zero_copy_only=not allow_copy)
+            except pa.ArrowInvalid as e:
+                raise RuntimeError(e) from e
 
     if not hasattr(df, "__dataframe__"):
         raise ValueError("`df` does not support __dataframe__")
@@ -147,8 +163,6 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     -------
     pd.DataFrame
     """
-    # We need a dict of columns here, with each column being a NumPy array (at
-    # least for now, deal with non-NumPy dtypes later).
     columns: dict[str, Any] = {}
     buffers = []  # hold on to buffers, keeps memory alive
     for name in df.column_names():
@@ -347,8 +361,12 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
         # Add to our list of strings
         str_list[i] = string
 
-    # Convert the string list to a NumPy array
-    return np.asarray(str_list, dtype="object"), buffers
+    if using_string_dtype():
+        res = pd.Series(str_list, dtype="str")
+    else:
+        res = np.asarray(str_list, dtype="object")  # type: ignore[assignment]
+
+    return res, buffers  # type: ignore[return-value]
 
 
 def parse_datetime_format_str(format_str, data) -> pd.Series | np.ndarray:

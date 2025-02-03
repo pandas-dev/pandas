@@ -71,6 +71,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
     -------
     None
 
+    See Also
+    --------
+    array : Create an array.
+    Series.to_numpy : Convert a Series to a NumPy array.
+
     Examples
     --------
     >>> pd.arrays.NumpyExtensionArray(np.array([0, 1, 2, 3]))
@@ -150,6 +155,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if copy is not None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            return np.array(self._ndarray, dtype=dtype, copy=copy)
         return np.asarray(self._ndarray, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -284,6 +292,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
         See NDFrame.interpolate.__doc__.
         """
         # NB: we return type(self) even if copy=False
+        if not self.dtype._is_numeric:
+            raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
+
         if not copy:
             out_data = self._ndarray
         else:

@@ -15,11 +15,10 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
-import pandas as pd
 from pandas.core.api import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io._util import arrow_string_types_mapper
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
@@ -78,6 +77,14 @@ def read_feather(
 ) -> DataFrame:
     """
     Load a feather-format object from the file path.
+
+    Feather is particularly useful for scenarios that require efficient
+    serialization and deserialization of tabular data. It supports
+    schema preservation, making it a reliable choice for use cases
+    such as sharing data between Python and R, or persisting intermediate
+    results during data processing pipelines. This method provides additional
+    flexibility with options for selective column reading, thread parallelism,
+    and choosing the backend for data types.
 
     Parameters
     ----------
@@ -147,16 +154,4 @@ def read_feather(
         pa_table = feather.read_table(
             handles.handle, columns=columns, use_threads=bool(use_threads)
         )
-
-        if dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            return pa_table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
-
-        elif dtype_backend == "pyarrow":
-            return pa_table.to_pandas(types_mapper=pd.ArrowDtype)
-
-        elif using_string_dtype():
-            return pa_table.to_pandas(types_mapper=arrow_string_types_mapper())
-        else:
-            raise NotImplementedError
+        return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
