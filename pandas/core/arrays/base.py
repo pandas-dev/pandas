@@ -1791,7 +1791,9 @@ class ExtensionArray:
                # type for the array, to the physical storage type for
                # the data, before passing to take.
 
-               result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
+               result = take(
+                   data, indices, fill_value=fill_value, allow_fill=allow_fill
+               )
                return self._from_sequence(result, dtype=self.dtype)
         """  # noqa: E501
         # Implementer note: The `fill_value` parameter should be a user-facing

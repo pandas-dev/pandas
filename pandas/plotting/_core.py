@@ -247,7 +247,10 @@ def hist_frame(
     .. plot::
         :context: close-figs
 
-        >>> data = {"length": [1.5, 0.5, 1.2, 0.9, 3], "width": [0.7, 0.2, 0.15, 0.2, 1.1]}
+        >>> data = {
+        ...     "length": [1.5, 0.5, 1.2, 0.9, 3],
+        ...     "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+        ... }
         >>> index = ["pig", "rabbit", "duck", "chicken", "horse"]
         >>> df = pd.DataFrame(data, index=index)
         >>> hist = df.hist(bins=3)
@@ -845,7 +848,10 @@ class PlotAccessor(PandasObject):
         :context: close-figs
 
         >>> df = pd.DataFrame(
-        ...     {"length": [1.5, 0.5, 1.2, 0.9, 3], "width": [0.7, 0.2, 0.15, 0.2, 1.1]},
+        ...     {
+        ...         "length": [1.5, 0.5, 1.2, 0.9, 3],
+        ...         "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+        ...     },
         ...     index=["pig", "rabbit", "duck", "chicken", "horse"],
         ... )
         >>> plot = df.plot(title="DataFrame Plot")
@@ -993,8 +999,7 @@ class PlotAccessor(PandasObject):
 
         if kind not in self._all_kinds:
             raise ValueError(
-                f"{kind} is not a valid plot kind "
-                f"Valid plot kinds: {self._all_kinds}"
+                f"{kind} is not a valid plot kind Valid plot kinds: {self._all_kinds}"
             )
 
         data = self._parent
@@ -1630,7 +1635,9 @@ class PlotAccessor(PandasObject):
             ...         "signups": [5, 5, 6, 12, 14, 13],
             ...         "visits": [20, 42, 28, 62, 81, 50],
             ...     },
-            ...     index=pd.date_range(start="2018/01/01", end="2018/07/01", freq="ME"),
+            ...     index=pd.date_range(
+            ...         start="2018/01/01", end="2018/07/01", freq="ME"
+            ...     ),
             ... )
             >>> ax = df.plot.area()
 
