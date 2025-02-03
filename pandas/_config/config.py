@@ -321,6 +321,11 @@ def reset_option(pat: str) -> None:
     """
     Reset one or more options to their default value.
 
+    This method resets the specified pandas option(s) back to their default
+    values. It allows partial string matching for convenience, but users should
+    exercise caution to avoid unintended resets due to changes in option names
+    in future versions.
+
     Parameters
     ----------
     pat : str/regex
