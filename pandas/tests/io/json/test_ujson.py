@@ -53,60 +53,24 @@ def orient(request):
 
 class TestUltraJSONTests:
     @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
-    def test_encode_decimal(self):
-        sut = decimal.Decimal("1337.1337")
-        encoded = ujson.ujson_dumps(sut, double_precision=15)
+    @pytest.mark.parametrize(
+        "value, double_precision",
+        [
+            ("1337.1337", 15),
+            ("0.95", 1),
+            ("0.94", 1),
+            ("1.95", 1),
+            ("-1.95", 1),
+            ("0.995", 2),
+            ("0.9995", 3),
+            ("0.99999999999999944", 15),
+        ],
+    )
+    def test_encode_decimal(self, value, double_precision):
+        sut = decimal.Decimal(value)
+        encoded = ujson.ujson_dumps(sut, double_precision=double_precision)
         decoded = ujson.ujson_loads(encoded)
-        assert decoded == "1337.1337"
-
-        sut = decimal.Decimal("0.95")
-        encoded = ujson.ujson_dumps(sut, double_precision=1)
-        assert encoded == '"0.95"'
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == "0.95"
-
-        sut = decimal.Decimal("0.94")
-        encoded = ujson.ujson_dumps(sut, double_precision=1)
-        assert encoded == '"0.94"'
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == "0.94"
-
-        sut = decimal.Decimal("1.95")
-        encoded = ujson.ujson_dumps(sut, double_precision=1)
-        assert encoded == '"1.95"'
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == "1.95"
-
-        sut = decimal.Decimal("-1.95")
-        encoded = ujson.ujson_dumps(sut, double_precision=1)
-        assert encoded == '"-1.95"'
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == "-1.95"
-
-        sut = decimal.Decimal("0.995")
-        encoded = ujson.ujson_dumps(sut, double_precision=2)
-        assert encoded == '"0.995"'
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == "0.995"
-
-        sut = decimal.Decimal("0.9995")
-        encoded = ujson.ujson_dumps(sut, double_precision=3)
-        assert encoded == '"0.9995"'
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == "0.9995"
-
-        sut = decimal.Decimal("0.99999999999999944")
-        encoded = ujson.ujson_dumps(sut, double_precision=15)
-        assert encoded == '"0.99999999999999944"'
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == "0.99999999999999944"
+        assert decoded == value
 
     @pytest.mark.parametrize("ensure_ascii", [True, False])
     def test_encode_string_conversion(self, ensure_ascii):
