@@ -478,9 +478,9 @@ class GroupbyIndexer(BaseIndexer):
             )
             start = start.astype(np.int64)
             end = end.astype(np.int64)
-            assert len(start) == len(
-                end
-            ), "these should be equal in length from get_window_bounds"
+            assert len(start) == len(end), (
+                "these should be equal in length from get_window_bounds"
+            )
             # Cannot use groupby_indices as they might not be monotonic with the object
             # we're rolling over
             window_indices = np.arange(

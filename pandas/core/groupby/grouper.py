@@ -516,8 +516,7 @@ class Grouping:
             ):
                 grper = pprint_thing(grouping_vector)
                 errmsg = (
-                    "Grouper result violates len(labels) == "
-                    f"len(data)\nresult: {grper}"
+                    f"Grouper result violates len(labels) == len(data)\nresult: {grper}"
                 )
                 raise AssertionError(errmsg)
 

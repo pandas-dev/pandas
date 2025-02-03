@@ -204,7 +204,7 @@ def eval(
 
         By default, with the numexpr engine, the following operations are supported:
 
-        - Arthimetic operations: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``
+        - Arithmetic operations: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``
         - Boolean operations: ``|`` (or), ``&`` (and), and ``~`` (not)
         - Comparison operators: ``<``, ``<=``, ``==``, ``!=``, ``>=``, ``>``
 

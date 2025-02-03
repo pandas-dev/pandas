@@ -2707,8 +2707,7 @@ def _maybe_infer_tz(tz: tzinfo | None, inferred_tz: tzinfo | None) -> tzinfo | N
         pass
     elif not timezones.tz_compare(tz, inferred_tz):
         raise TypeError(
-            f"data is already tz-aware {inferred_tz}, unable to "
-            f"set specified tz: {tz}"
+            f"data is already tz-aware {inferred_tz}, unable to set specified tz: {tz}"
         )
     return tz
 

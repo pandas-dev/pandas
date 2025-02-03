@@ -216,6 +216,6 @@ class TestDatetimeIndexRound:
         assert (mod == 0).all(), f"round not a {round_freq} multiple"
         assert (diff <= unit // 2).all(), "round error"
         if unit % 2 == 0:
-            assert (
-                result.asi8[diff == unit // 2] % 2 == 0
-            ).all(), "round half to even error"
+            assert (result.asi8[diff == unit // 2] % 2 == 0).all(), (
+                "round half to even error"
+            )

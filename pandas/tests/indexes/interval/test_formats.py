@@ -21,12 +21,7 @@ class TestIntervalIndexRendering:
         [
             (
                 Series,
-                (
-                    "(0.0, 1.0]    a\n"
-                    "NaN           b\n"
-                    "(2.0, 3.0]    c\n"
-                    "dtype: object"
-                ),
+                ("(0.0, 1.0]    a\nNaN           b\n(2.0, 3.0]    c\ndtype: object"),
             ),
             (DataFrame, ("            0\n(0.0, 1.0]  a\nNaN         b\n(2.0, 3.0]  c")),
         ],

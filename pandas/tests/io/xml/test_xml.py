@@ -1503,8 +1503,7 @@ def test_bad_xml(parser):
         with pytest.raises(
             SyntaxError,
             match=(
-                "Extra content at the end of the document|"
-                "junk after document element"
+                "Extra content at the end of the document|junk after document element"
             ),
         ):
             read_xml(

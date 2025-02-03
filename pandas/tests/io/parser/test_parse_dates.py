@@ -228,7 +228,7 @@ def test_parse_tz_aware(all_parsers):
 def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
     # see gh-5636
     parser = all_parsers
-    msg = "Only booleans and lists " "are accepted for the 'parse_dates' parameter"
+    msg = "Only booleans and lists are accepted for the 'parse_dates' parameter"
     data = """A,B,C
     1,2,2003-11-1"""
 
@@ -239,7 +239,7 @@ def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
 @pytest.mark.parametrize("parse_dates", [(1,), np.array([4, 5]), {1, 3}])
 def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
     parser = all_parsers
-    msg = "Only booleans and lists " "are accepted for the 'parse_dates' parameter"
+    msg = "Only booleans and lists are accepted for the 'parse_dates' parameter"
     data = """A,B,C
     1,2,2003-11-1"""
 

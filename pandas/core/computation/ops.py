@@ -512,8 +512,7 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError as err:
             raise ValueError(
-                f"Invalid unary operator {op!r}, "
-                f"valid operators are {UNARY_OPS_SYMS}"
+                f"Invalid unary operator {op!r}, valid operators are {UNARY_OPS_SYMS}"
             ) from err
 
     def __call__(self, env) -> MathCall:

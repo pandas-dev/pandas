@@ -33,9 +33,9 @@ import pandas._testing as tm
         (
             # This is a judgement call, but we do _not_ downcast Decimal
             #  objects
-            np.array([decimal.Decimal(0.0)]),
+            np.array([decimal.Decimal("0.0")]),
             "int64",
-            np.array([decimal.Decimal(0.0)]),
+            np.array([decimal.Decimal("0.0")]),
         ),
         (
             # GH#45837

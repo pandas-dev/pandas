@@ -2264,8 +2264,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
     if values.ndim > ndim:
         # Check for both np.ndarray and ExtensionArray
         raise ValueError(
-            "Wrong number of dimensions. "
-            f"values.ndim > ndim [{values.ndim} > {ndim}]"
+            f"Wrong number of dimensions. values.ndim > ndim [{values.ndim} > {ndim}]"
         )
 
     if not is_1d_only_ea_dtype(values.dtype):

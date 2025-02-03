@@ -1219,8 +1219,7 @@ class TextFileReader(abc.Iterator):
                 and value != getattr(value, "value", default)
             ):
                 raise ValueError(
-                    f"The {argname!r} option is not supported with the "
-                    f"'pyarrow' engine"
+                    f"The {argname!r} option is not supported with the 'pyarrow' engine"
                 )
             options[argname] = value
 
@@ -1396,8 +1395,7 @@ class TextFileReader(abc.Iterator):
             if not is_integer(skiprows) and skiprows is not None:
                 # pyarrow expects skiprows to be passed as an integer
                 raise ValueError(
-                    "skiprows argument must be an integer when using "
-                    "engine='pyarrow'"
+                    "skiprows argument must be an integer when using engine='pyarrow'"
                 )
         else:
             if is_integer(skiprows):

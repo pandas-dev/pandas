@@ -917,7 +917,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         Combines a list of JSON objects into one JSON object.
         """
         return (
-            f'[{",".join([line for line in (line.strip() for line in lines) if line])}]'
+            f"[{','.join([line for line in (line.strip() for line in lines) if line])}]"
         )
 
     @overload
