@@ -881,10 +881,10 @@ class Window(BaseWindow):
     Parameters
     ----------
     window : int, timedelta, str, offset, or BaseIndexer subclass
-        Size of the moving window.
+        Interval of the moving window.
 
-        If an integer, the fixed number of observations used for
-        each window.
+        If an integer, the delta between the start and end of each window.
+        Example: window = 3 interval from 1 -> 4
 
         If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
