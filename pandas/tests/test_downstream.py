@@ -20,6 +20,7 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -222,7 +223,7 @@ def test_missing_required_dependency():
         assert name in output
 
 
-def test_frame_setitem_dask_array_into_new_col():
+def test_frame_setitem_dask_array_into_new_col(request):
     # GH#47128
 
     # dask sets "compute.use_numexpr" to False, so catch the current value
@@ -230,8 +231,13 @@ def test_frame_setitem_dask_array_into_new_col():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
+        dask = pytest.importorskip("dask")
         da = pytest.importorskip("dask.array")
 
+        if Version(dask.__version__) >= Version("2025.1.0"):
+            request.applymarker(
+                pytest.mark.xfail("loc.__setitem__ incorrectly mutated column c")
+            )
         dda = da.array([1, 2])
         df = DataFrame({"a": ["a", "b"]})
         df["b"] = dda
