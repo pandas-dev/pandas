@@ -570,6 +570,13 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Dict {group name -> group indices}.
 
+        The dictionary keys represent the group labels (e.g., timestamps for a
+        time-based resampling operation), and the values are arrays of integer
+        positions indicating where the elements of each group are located in the
+        original data. This property is particularly useful when working with
+        resampled data, as it provides insight into how the original time-series data
+        has been grouped.
+
         See Also
         --------
         core.groupby.DataFrameGroupBy.indices : Provides a mapping of group rows to
@@ -2163,8 +2170,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only no longer accepts ``None`` and defaults to ``False``.
 
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 3.0.0
 
@@ -2248,7 +2254,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="groupby")
 
     @final
-    def median(self, numeric_only: bool = False) -> NDFrameT:
+    def median(self, numeric_only: bool = False, skipna: bool = True) -> NDFrameT:
         """
         Compute median of groups, excluding missing values.
 
@@ -2262,6 +2268,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only no longer accepts ``None`` and defaults to False.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -2335,8 +2346,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x, copy=False).median(numeric_only=numeric_only),
+            alt=lambda x: Series(x, copy=False).median(
+                numeric_only=numeric_only, skipna=skipna
+            ),
             numeric_only=numeric_only,
+            skipna=skipna,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -2349,6 +2363,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
+        skipna: bool = True,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -2386,6 +2401,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -2441,14 +2461,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     engine_kwargs,
                     min_periods=0,
                     ddof=ddof,
+                    skipna=skipna,
                 )
             )
         else:
             return self._cython_agg_general(
                 "std",
-                alt=lambda x: Series(x, copy=False).std(ddof=ddof),
+                alt=lambda x: Series(x, copy=False).std(ddof=ddof, skipna=skipna),
                 numeric_only=numeric_only,
                 ddof=ddof,
+                skipna=skipna,
             )
 
     @final
@@ -2460,6 +2482,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
+        skipna: bool = True,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -2496,6 +2519,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -2550,13 +2578,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 engine_kwargs,
                 min_periods=0,
                 ddof=ddof,
+                skipna=skipna,
             )
         else:
             return self._cython_agg_general(
                 "var",
-                alt=lambda x: Series(x, copy=False).var(ddof=ddof),
+                alt=lambda x: Series(x, copy=False).var(ddof=ddof, skipna=skipna),
                 numeric_only=numeric_only,
                 ddof=ddof,
+                skipna=skipna,
             )
 
     @final
@@ -2598,8 +2628,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 doesnt_exist = subsetted - unique_cols
                 if doesnt_exist:
                     raise ValueError(
-                        f"Keys {doesnt_exist} in subset do not "
-                        f"exist in the DataFrame."
+                        f"Keys {doesnt_exist} in subset do not exist in the DataFrame."
                     )
             else:
                 subsetted = unique_cols
@@ -2686,7 +2715,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="value_counts")
 
     @final
-    def sem(self, ddof: int = 1, numeric_only: bool = False) -> NDFrameT:
+    def sem(
+        self, ddof: int = 1, numeric_only: bool = False, skipna: bool = True
+    ) -> NDFrameT:
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -2705,6 +2736,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -2780,9 +2816,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
         return self._cython_agg_general(
             "sem",
-            alt=lambda x: Series(x, copy=False).sem(ddof=ddof),
+            alt=lambda x: Series(x, copy=False).sem(ddof=ddof, skipna=skipna),
             numeric_only=numeric_only,
             ddof=ddof,
+            skipna=skipna,
         )
 
     @final
@@ -2959,7 +2996,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
     @final
-    def prod(self, numeric_only: bool = False, min_count: int = 0) -> NDFrameT:
+    def prod(
+        self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True
+    ) -> NDFrameT:
         """
         Compute prod of group values.
 
@@ -2975,6 +3014,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -3024,17 +3068,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   30   72
         """
         return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
+            numeric_only=numeric_only,
+            min_count=min_count,
+            skipna=skipna,
+            alias="prod",
+            npfunc=np.prod,
         )
 
     @final
     @doc(
-        _groupby_agg_method_engine_template,
+        _groupby_agg_method_skipna_engine_template,
         fname="min",
         no=False,
         mc=-1,
         e=None,
         ek=None,
+        s=True,
         example=dedent(
             """\
         For SeriesGroupBy:
@@ -3074,6 +3123,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         numeric_only: bool = False,
         min_count: int = -1,
+        skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
@@ -3086,23 +3136,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 engine_kwargs,
                 min_periods=min_count,
                 is_max=False,
+                skipna=skipna,
             )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
+                skipna=skipna,
                 alias="min",
                 npfunc=np.min,
             )
 
     @final
     @doc(
-        _groupby_agg_method_engine_template,
+        _groupby_agg_method_skipna_engine_template,
         fname="max",
         no=False,
         mc=-1,
         e=None,
         ek=None,
+        s=True,
         example=dedent(
             """\
         For SeriesGroupBy:
@@ -3142,6 +3195,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         numeric_only: bool = False,
         min_count: int = -1,
+        skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
@@ -3154,11 +3208,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 engine_kwargs,
                 min_periods=min_count,
                 is_max=True,
+                skipna=skipna,
             )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
+                skipna=skipna,
                 alias="max",
                 npfunc=np.max,
             )
@@ -3180,8 +3236,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
@@ -3267,8 +3322,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
@@ -3654,14 +3708,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             an integer index is not used to calculate the rolling window.
 
         closed : str, default None
-            If ``'right'``, the first point in the window is excluded from calculations.
+            Determines the inclusivity of points in the window
+            If ``'right'``, (First, Last] the last point in the window
+            is included in the calculations.
 
-            If ``'left'``, the last point in the window is excluded from calculations.
+            If ``'left'``, [First, Last) the first point in the window
+            is included in the calculations.
 
-            If ``'both'``, no points in the window are excluded from calculations.
+            If ``'both'``, [First, Last] all points in the window
+            are included in the calculations.
 
-            If ``'neither'``, the first and last points in the window are excluded
-            from calculations.
+            If ``'neither'``, (First, Last) the first and last points
+            in the window are excludedfrom calculations.
+
+            () and [] are referencing open and closed set
+            notation respetively.
 
             Default ``None`` (``'right'``).
 
@@ -5461,8 +5522,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
         ignore_unobserved : bool, default False
             When True and an unobserved group is encountered, do not raise. This used
             for transform where unobserved groups do not play an impact on the result.

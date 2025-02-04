@@ -605,8 +605,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return self
         elif not self.is_dtype(dtype):
             raise ValueError(
-                f"a CategoricalDtype must be passed to perform an update, "
-                f"got {dtype!r}"
+                f"a CategoricalDtype must be passed to perform an update, got {dtype!r}"
             )
         else:
             # from here on, dtype is a CategoricalDtype
