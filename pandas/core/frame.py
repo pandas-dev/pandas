@@ -13677,6 +13677,10 @@ class DataFrame(NDFrame, OpsMixin):
         doc="""
         The column labels of the DataFrame.
 
+        This property holds the column names as a pandas ``Index`` object.
+        It provides an immutable sequence of column labels that can be
+        used for data selection, renaming, and alignment in DataFrame operations.
+
         Returns
         -------
         pandas.Index

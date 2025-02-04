@@ -964,8 +964,7 @@ class TestArrowArray(base.ExtensionTests):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(
-                    f"{opname} not supported between"
-                    f"pd.NA and {pa_dtype} Python scalar"
+                    f"{opname} not supported betweenpd.NA and {pa_dtype} Python scalar"
                 ),
             )
         elif opname == "__rfloordiv__" and (
