@@ -900,9 +900,8 @@ class DataFrameRenderer:
         border : int or bool
             When an integer value is provided, it sets the border attribute in
             the opening tag, specifying the thickness of the border.
-            If ``False or 0 (zero)`` is passed, the border attribute will not
-            be present in the `<table>`tag.
-
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
             The default value for this parameter is governed by
             ``pd.options.display.html.border``.
         table_id : str, optional
