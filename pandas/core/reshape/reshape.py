@@ -929,6 +929,8 @@ def _reorder_for_extension_array_stack(
 def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     if frame.columns.nunique() != len(frame.columns):
         raise ValueError("Columns with duplicate values are not supported in stack")
+    if not len(level):
+        return frame
     set_levels = set(level)
     stack_cols = frame.columns._drop_level_numbers(
         [k for k in range(frame.columns.nlevels - 1, -1, -1) if k not in set_levels]
