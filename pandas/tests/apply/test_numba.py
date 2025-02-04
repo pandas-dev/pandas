@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -9,6 +10,7 @@ from pandas import (
     Index,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu]
 
@@ -19,6 +21,9 @@ def apply_axis(request):
 
 
 def test_numba_vs_python_noop(float_frame, apply_axis):
+    numba = pytest.importorskip("numba")
+    if Version(numba.__version__) == Version("0.61") and is_platform_arm():
+        pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
     func = lambda x: x
     result = float_frame.apply(func, engine="numba", axis=apply_axis)
     expected = float_frame.apply(func, engine="python", axis=apply_axis)
