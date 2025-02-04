@@ -3716,10 +3716,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             If ``'left'``, uses the window [first, last) meaning the first point
             is included in the calculations.
 
-            If ``'both'``, uses the window [first, last] meaning all points in 
+            If ``'both'``, uses the window [first, last] meaning all points in
             the window are included in the calculations.
 
-            If ``'neither'``, uses the window (first, last) meaning the first 
+            If ``'neither'``, uses the window (first, last) meaning the first
             and last points in the window are excluded from calculations.
 
             () and [] are referencing open and closed set
