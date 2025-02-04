@@ -176,8 +176,7 @@ class JSONArray(ExtensionArray):
         # an ndarary.
         indexer = np.asarray(indexer)
         msg = (
-            "Index is out of bounds or cannot do a "
-            "non-empty take from an empty array."
+            "Index is out of bounds or cannot do a non-empty take from an empty array."
         )
 
         if allow_fill:
