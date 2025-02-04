@@ -32,6 +32,9 @@ def test_numba_vs_python_noop(float_frame, apply_axis):
 
 def test_numba_vs_python_string_index():
     # GH#56189
+    numba = pytest.importorskip("numba")
+    if Version(numba.__version__) == Version("0.61") and is_platform_arm():
+        pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
     df = DataFrame(
         1,
         index=Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
