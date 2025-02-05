@@ -874,7 +874,7 @@ Timeseries
 <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
 `Aggregation and plotting time series
-<https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html>`__
+<https://nipunbatra.github.io/blog/posts/2013-05-01-aggregation-timeseries.html>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
 `How to rearrange a Python pandas DataFrame?
