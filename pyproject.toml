@@ -259,7 +259,9 @@ select = [
   # flake8-slots
   "SLOT",
   # flake8-raise
-  "RSE"
+  "RSE",
+  # pyupgrade - selected rules
+  "UP006"
 ]
 
 ignore = [

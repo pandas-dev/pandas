@@ -22,7 +22,6 @@ from typing import (
     Literal,
     Optional,
     Protocol,
-    Type as type_t,
     TypeVar,
     Union,
     overload,
@@ -208,7 +207,7 @@ RandomState = Union[
 ]
 
 # dtypes
-NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
+NpDtype = Union[str, np.dtype, type[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument

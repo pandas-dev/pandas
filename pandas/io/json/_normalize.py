@@ -10,7 +10,6 @@ import copy
 from typing import (
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     overload,
 )
 
@@ -539,7 +538,7 @@ def json_normalize(
     records: list = []
     lengths = []
 
-    meta_vals: DefaultDict = defaultdict(list)
+    meta_vals: defaultdict = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:

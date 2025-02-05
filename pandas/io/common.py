@@ -34,7 +34,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AnyStr,
-    DefaultDict,
     Generic,
     Literal,
     TypeVar,
@@ -1262,7 +1261,7 @@ def dedup_names(
     ['x', 'y', 'x.1', 'x.2']
     """
     names = list(names)  # so we can index
-    counts: DefaultDict[Hashable, int] = defaultdict(int)
+    counts: defaultdict[Hashable, int] = defaultdict(int)
 
     for i, col in enumerate(names):
         cur_count = counts[col]

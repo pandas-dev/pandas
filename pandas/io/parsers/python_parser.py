@@ -11,7 +11,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     Literal,
     cast,
     final,
@@ -628,7 +627,7 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns:
-                    counts: DefaultDict = defaultdict(int)
+                    counts: defaultdict = defaultdict(int)
                     # Ensure that regular columns are used before unnamed ones
                     # to keep given names and mangle unnamed columns
                     col_loop_order = [

@@ -6,7 +6,6 @@ import json
 from typing import (
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     cast,
     overload,
 )
@@ -126,8 +125,8 @@ class ODSWriter(ExcelWriter):
         for _ in range(startrow):
             wks.addElement(TableRow())
 
-        rows: DefaultDict = defaultdict(TableRow)
-        col_count: DefaultDict = defaultdict(int)
+        rows: defaultdict = defaultdict(TableRow)
+        col_count: defaultdict = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
             # only add empty cells if the row is still empty
