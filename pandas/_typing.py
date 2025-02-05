@@ -442,7 +442,9 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 AnyAll = Literal["any", "all"]
 
 # merge
-MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+MergeHow = Literal[
+    "left", "right", "inner", "outer", "cross", "left_anti", "right_anti"
+]
 MergeValidate = Literal[
     "one_to_one",
     "1:1",
