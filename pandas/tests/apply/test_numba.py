@@ -12,7 +12,15 @@ from pandas import (
 import pandas._testing as tm
 from pandas.util.version import Version
 
-pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu]
+pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu, pytest.mark.skipif()]
+
+numba = pytest.importorskip("numba")
+pytestmark.append(
+    pytest.mark.skipif(
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 @pytest.fixture(params=[0, 1])
@@ -21,9 +29,6 @@ def apply_axis(request):
 
 
 def test_numba_vs_python_noop(float_frame, apply_axis):
-    numba = pytest.importorskip("numba")
-    if Version(numba.__version__) == Version("0.61") and is_platform_arm():
-        pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
     func = lambda x: x
     result = float_frame.apply(func, engine="numba", axis=apply_axis)
     expected = float_frame.apply(func, engine="python", axis=apply_axis)
@@ -32,9 +37,6 @@ def test_numba_vs_python_noop(float_frame, apply_axis):
 
 def test_numba_vs_python_string_index():
     # GH#56189
-    numba = pytest.importorskip("numba")
-    if Version(numba.__version__) == Version("0.61") and is_platform_arm():
-        pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
     df = DataFrame(
         1,
         index=Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
