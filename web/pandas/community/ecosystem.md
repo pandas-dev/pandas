@@ -496,17 +496,29 @@ You can find more information about the Hugging Face Dataset Hub in the [documen
 
 ## Out-of-core
 
-### [Bodo](https://bodo.ai/)
+### [Bodo](https://github.com/bodo-ai/Bodo)
 
-Bodo is a high-performance Python computing engine that automatically parallelizes and
-optimizes your code through compilation using HPC (high-performance computing) techniques.
-Designed to operate with native pandas dataframes, Bodo compiles your pandas code to execute
-across multiple cores on a single machine or distributed clusters of multiple compute nodes efficiently.
-Bodo also makes distributed pandas dataframes queryable with SQL.
 
-The community edition of Bodo is free to use on up to 8 cores. Beyond that, Bodo offers a paid
-enterprise edition. Free licenses of Bodo (for more than 8 cores) are available
-[upon request](https://www.bodo.ai/contact) for academic and non-profit use.
+Bodo is a high-performance compute engine for Python data processing.
+Using an auto-parallelizing just-in-time (JIT) compiler, Bodo simplifies scaling Pandas
+workloads from laptops to clusters without major code changes.
+Under the hood, Bodo relies on MPI-based high-performance computing (HPC) technology—making it
+both easier to use and often much faster than alternatives.
+Bodo also provides a SQL engine that can query distributed pandas dataframes efficiently.
+
+```python
+import pandas as pd
+import bodo
+
+@bodo.jit
+def process_data():
+    df = pd.read_parquet("my_data.pq")
+    df2 = pd.DataFrame({"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)})
+    df2.to_parquet("out.pq")
+
+process_data()
+```
+
 
 ### [Cylon](https://cylondata.org/)
 

@@ -45,6 +45,13 @@ def read_orc(
     """
     Load an ORC object from the file path, returning a DataFrame.
 
+    This method reads an ORC (Optimized Row Columnar) file into a pandas
+    DataFrame using the `pyarrow.orc` library. ORC is a columnar storage format
+    that provides efficient compression and fast retrieval for analytical workloads.
+    It allows reading specific columns, handling different filesystem
+    types (such as local storage, cloud storage via fsspec, or pyarrow filesystem),
+    and supports different data type backends, including `numpy_nullable` and `pyarrow`.
+
     Parameters
     ----------
     path : str, path object, or file-like object
