@@ -39,6 +39,9 @@ Other enhancements
 - :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
 - The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns when backed by PyArrow (:issue:`60633`)
 - The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
+- The ``to_sql`` method now supports a new parameter ``temporary: bool = False``.
+  Setting this parameter to ``True`` enables creating, appending or replacing temporary
+  tables via ``to_sql`` using ``sqlalchemy``, ``adbc`` and ``sqlite`` connectors.
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.notable_bug_fixes:
