@@ -34,7 +34,7 @@ Other enhancements
 
 - The semantics for the ``copy`` keyword in ``__array__`` methods (i.e. called
   when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
-  updated to work correctly with NumPy >= 2 (:issue:`57739`)
+  updated to raise FutureWarning with NumPy >= 2 (:issue:`60340`)
 - :meth:`Series.str.decode` result now has ``StringDtype`` when ``future.infer_string`` is True (:issue:`60709`)
 - :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
 - The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns when backed by PyArrow (:issue:`60633`)
