@@ -1882,7 +1882,7 @@ cdef class BoolValidator(Validator):
 
 cpdef bint is_bool_array(ndarray values, bint skipna=False):
     cdef:
-        BoolValidator validator = BoolValidator(len(values),
+        BoolValidator validator = BoolValidator(values.size,
                                                 values.dtype,
                                                 skipna=skipna)
     return validator.validate(values)
@@ -1900,7 +1900,7 @@ cdef class IntegerValidator(Validator):
 # Note: only python-exposed for tests
 cpdef bint is_integer_array(ndarray values, bint skipna=True):
     cdef:
-        IntegerValidator validator = IntegerValidator(len(values),
+        IntegerValidator validator = IntegerValidator(values.size,
                                                       values.dtype,
                                                       skipna=skipna)
     return validator.validate(values)
@@ -1915,7 +1915,7 @@ cdef class IntegerNaValidator(Validator):
 
 cdef bint is_integer_na_array(ndarray values, bint skipna=True):
     cdef:
-        IntegerNaValidator validator = IntegerNaValidator(len(values),
+        IntegerNaValidator validator = IntegerNaValidator(values.size,
                                                           values.dtype, skipna=skipna)
     return validator.validate(values)
 
@@ -1931,7 +1931,7 @@ cdef class IntegerFloatValidator(Validator):
 
 cdef bint is_integer_float_array(ndarray values, bint skipna=True):
     cdef:
-        IntegerFloatValidator validator = IntegerFloatValidator(len(values),
+        IntegerFloatValidator validator = IntegerFloatValidator(values.size,
                                                                 values.dtype,
                                                                 skipna=skipna)
     return validator.validate(values)
@@ -1949,7 +1949,7 @@ cdef class FloatValidator(Validator):
 # Note: only python-exposed for tests
 cpdef bint is_float_array(ndarray values):
     cdef:
-        FloatValidator validator = FloatValidator(len(values), values.dtype)
+        FloatValidator validator = FloatValidator(values.size, values.dtype)
     return validator.validate(values)
 
 
@@ -1967,7 +1967,7 @@ cdef class ComplexValidator(Validator):
 
 cdef bint is_complex_array(ndarray values):
     cdef:
-        ComplexValidator validator = ComplexValidator(len(values), values.dtype)
+        ComplexValidator validator = ComplexValidator(values.size, values.dtype)
     return validator.validate(values)
 
 
@@ -1980,7 +1980,7 @@ cdef class DecimalValidator(Validator):
 cdef bint is_decimal_array(ndarray values, bint skipna=False):
     cdef:
         DecimalValidator validator = DecimalValidator(
-            len(values), values.dtype, skipna=skipna
+            values.size, values.dtype, skipna=skipna
         )
     return validator.validate(values)
 
@@ -1996,7 +1996,7 @@ cdef class StringValidator(Validator):
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:
-        StringValidator validator = StringValidator(len(values),
+        StringValidator validator = StringValidator(values.size,
                                                     values.dtype,
                                                     skipna=skipna)
     return validator.validate(values)
@@ -2013,7 +2013,7 @@ cdef class BytesValidator(Validator):
 
 cdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
-        BytesValidator validator = BytesValidator(len(values), values.dtype,
+        BytesValidator validator = BytesValidator(values.size, values.dtype,
                                                   skipna=skipna)
     return validator.validate(values)
 
@@ -2064,7 +2064,7 @@ cdef class DatetimeValidator(TemporalValidator):
 
 cpdef bint is_datetime_array(ndarray values, bint skipna=True):
     cdef:
-        DatetimeValidator validator = DatetimeValidator(len(values),
+        DatetimeValidator validator = DatetimeValidator(values.size,
                                                         skipna=skipna)
     return validator.validate(values)
 
@@ -2078,7 +2078,7 @@ cdef class Datetime64Validator(DatetimeValidator):
 # Note: only python-exposed for tests
 cpdef bint is_datetime64_array(ndarray values, bint skipna=True):
     cdef:
-        Datetime64Validator validator = Datetime64Validator(len(values),
+        Datetime64Validator validator = Datetime64Validator(values.size,
                                                             skipna=skipna)
     return validator.validate(values)
 
@@ -2093,7 +2093,7 @@ cdef class AnyDatetimeValidator(DatetimeValidator):
 
 cdef bint is_datetime_or_datetime64_array(ndarray values, bint skipna=True):
     cdef:
-        AnyDatetimeValidator validator = AnyDatetimeValidator(len(values),
+        AnyDatetimeValidator validator = AnyDatetimeValidator(values.size,
                                                               skipna=skipna)
     return validator.validate(values)
 
@@ -2105,7 +2105,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     Doesn't check values are datetime-like types.
     """
     cdef:
-        Py_ssize_t i = 0, j, n = len(values)
+        Py_ssize_t i = 0, j, n = values.size
         object base_val, base_tz, val, tz
 
     if n == 0:
@@ -2153,7 +2153,7 @@ cpdef bint is_timedelta_or_timedelta64_array(ndarray values, bint skipna=True):
     Infer with timedeltas and/or nat/none.
     """
     cdef:
-        AnyTimedeltaValidator validator = AnyTimedeltaValidator(len(values),
+        AnyTimedeltaValidator validator = AnyTimedeltaValidator(values.size,
                                                                 skipna=skipna)
     return validator.validate(values)
 
@@ -2167,7 +2167,7 @@ cdef class DateValidator(Validator):
 # Note: only python-exposed for tests
 cpdef bint is_date_array(ndarray values, bint skipna=False):
     cdef:
-        DateValidator validator = DateValidator(len(values), skipna=skipna)
+        DateValidator validator = DateValidator(values.size, skipna=skipna)
     return validator.validate(values)
 
 
@@ -2180,7 +2180,7 @@ cdef class TimeValidator(Validator):
 # Note: only python-exposed for tests
 cpdef bint is_time_array(ndarray values, bint skipna=False):
     cdef:
-        TimeValidator validator = TimeValidator(len(values), skipna=skipna)
+        TimeValidator validator = TimeValidator(values.size, skipna=skipna)
     return validator.validate(values)
 
 
@@ -2231,14 +2231,14 @@ cpdef bint is_interval_array(ndarray values):
     Is this an ndarray of Interval (or np.nan) with a single dtype?
     """
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = values.size
         str closed = None
         bint numeric = False
         bint dt64 = False
         bint td64 = False
         object val
 
-    if len(values) == 0:
+    if n == 0:
         return False
 
     for i in range(n):

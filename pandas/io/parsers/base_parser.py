@@ -112,8 +112,7 @@ class ParserBase:
             parse_dates = bool(parse_dates)
         elif not isinstance(parse_dates, list):
             raise TypeError(
-                "Only booleans and lists are accepted "
-                "for the 'parse_dates' parameter"
+                "Only booleans and lists are accepted for the 'parse_dates' parameter"
             )
         self.parse_dates: bool | list = parse_dates
         self.date_parser = kwds.pop("date_parser", lib.no_default)
