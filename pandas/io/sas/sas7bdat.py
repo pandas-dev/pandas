@@ -25,6 +25,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs.byteswap import (
     read_double_with_byteswap,
     read_float_with_byteswap,
@@ -722,6 +724,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         rslt = {}
 
         js, jb = 0, 0
+        infer_string = get_option("future.infer_string")
         for j in range(self.column_count):
             name = self.column_names[j]
 
@@ -738,6 +741,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = self._decode_string(rslt[name].str)
+                    if infer_string:
+                        rslt[name] = rslt[name].astype("str")
+
                 js += 1
             else:
                 self.close()
