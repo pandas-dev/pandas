@@ -42,6 +42,7 @@ Other enhancements
 - The ``to_sql`` method now supports a new parameter ``temporary: bool = False``.
   Setting this parameter to ``True`` enables creating, appending or replacing temporary
   tables via ``to_sql`` using ``sqlalchemy``, ``adbc`` and ``sqlite`` connectors.
+  (:issue:`60422`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.notable_bug_fixes:
