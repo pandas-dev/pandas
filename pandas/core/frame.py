@@ -4793,6 +4793,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
+        This method allows for filtering columns based on their data types.
+        It is useful when working with heterogeneous DataFrames where operations
+        need to be performed on a specific subset of data types.
+
         Parameters
         ----------
         include, exclude : scalar or list-like
