@@ -1527,7 +1527,7 @@ def _maybe_null_out(
             if datetimelike:
                 # GH#60646 For datetimelike, no need to cast to float
                 result[null_mask] = iNaT
-            if is_numeric_dtype(result):
+            elif is_numeric_dtype(result):
                 if np.iscomplexobj(result):
                     result = result.astype("c16")
                 elif not is_float_dtype(result):
