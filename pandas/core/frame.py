@@ -3205,9 +3205,13 @@ class DataFrame(NDFrame, OpsMixin):
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            `<table>` tag. Default ``pd.options.display.html.border``.
+        border : int or bool
+            When an integer value is provided, it sets the border attribute in
+            the opening tag, specifying the thickness of the border.
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
+            The default value for this parameter is governed by
+            ``pd.options.display.html.border``.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
@@ -13672,6 +13676,10 @@ class DataFrame(NDFrame, OpsMixin):
         axis=0,
         doc="""
         The column labels of the DataFrame.
+
+        This property holds the column names as a pandas ``Index`` object.
+        It provides an immutable sequence of column labels that can be
+        used for data selection, renaming, and alignment in DataFrame operations.
 
         Returns
         -------

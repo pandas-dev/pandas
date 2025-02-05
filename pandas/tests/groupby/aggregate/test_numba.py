@@ -186,7 +186,7 @@ def test_multifunc_numba_vs_cython_frame(agg_kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["sum", "mean"])
+@pytest.mark.parametrize("func", ["sum", "mean", "var", "std", "min", "max"])
 def test_multifunc_numba_vs_cython_frame_noskipna(func):
     pytest.importorskip("numba")
     data = DataFrame(
