@@ -264,7 +264,7 @@ def test_attr_wrapper(ts):
     # make sure raises error
     msg = "'SeriesGroupBy' object has no attribute 'foo'"
     with pytest.raises(AttributeError, match=msg):
-        getattr(grouped, "foo")
+        grouped.foo
 
 
 def test_frame_groupby(tsframe):
