@@ -1043,7 +1043,7 @@ CSV
 
 The :ref:`CSV <io.read_csv_table>` docs
 
-`read_csv in action <https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/>`__
+`read_csv in action <https://www.datacamp.com/tutorial/pandas-read-csv>`__
 
 `appending to a csv
 <https://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
