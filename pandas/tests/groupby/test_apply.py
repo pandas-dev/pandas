@@ -1390,7 +1390,7 @@ def test_empty_df(method, op):
     # GH 47985
     empty_df = DataFrame({"a": [], "b": []})
     gb = empty_df.groupby("a", group_keys=True)
-    group = getattr(gb, "b")
+    group = gb.b
 
     result = getattr(group, method)(op)
     expected = Series(

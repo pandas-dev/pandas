@@ -311,7 +311,7 @@ def test_getattr(setup_path):
         # test attribute access
         result = store.a
         tm.assert_series_equal(result, s)
-        result = getattr(store, "a")
+        result = store.a
         tm.assert_series_equal(result, s)
 
         df = DataFrame(
