@@ -329,7 +329,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes))
 
     if self.ndim == 1:
-        names = {getattr(x, "name") for x in inputs if hasattr(x, "name")}
+        names = {x.name for x in inputs if hasattr(x, "name")}
         name = names.pop() if len(names) == 1 else None
         reconstruct_kwargs = {"name": name}
     else:

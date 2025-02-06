@@ -2021,7 +2021,7 @@ class Styler(StylerRenderer):
         more details.
         """
         self._todo.append(
-            (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
+            (lambda instance: instance._apply, (func, axis, subset), kwargs)
         )
         return self
 
@@ -2128,7 +2128,7 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "apply"),
                 kwargs,
             )
@@ -2157,7 +2157,7 @@ class Styler(StylerRenderer):
     ) -> Styler:
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "map"),
                 kwargs,
             )
@@ -2231,7 +2231,7 @@ class Styler(StylerRenderer):
         more details.
         """
         self._todo.append(
-            (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
+            (lambda instance: instance._map, (func, subset), kwargs)
         )
         return self
 

@@ -272,8 +272,6 @@ ignore = [
   "B007",
   # controversial
   "B008",
-  # setattr is used to side-step mypy
-  "B009",
   # getattr is used to side-step mypy
   "B010",
   # tests use comparisons but not their returned value
