@@ -2230,9 +2230,7 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
-        self._todo.append(
-            (lambda instance: instance._map, (func, subset), kwargs)
-        )
+        self._todo.append((lambda instance: instance._map, (func, subset), kwargs))
         return self
 
     def set_table_attributes(self, attributes: str) -> Styler:
