@@ -4616,6 +4616,8 @@ class DataFrame(NDFrame, OpsMixin):
         0  1  10   10
         1  2   8    9
         """
+        if self.columns.duplicated().any():
+            raise ValueError("DataFrame contains duplicate column names.")
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
