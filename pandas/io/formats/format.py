@@ -897,9 +897,13 @@ class DataFrameRenderer:
             ``<table>`` tag, in addition to the default "dataframe".
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.display.html.border``.
+        border : int or bool
+            When an integer value is provided, it sets the border attribute in
+            the opening tag, specifying the thickness of the border.
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
+            The default value for this parameter is governed by
+            ``pd.options.display.html.border``.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
