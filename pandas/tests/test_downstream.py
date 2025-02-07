@@ -240,10 +240,6 @@ def test_frame_setitem_dask_array_into_new_col(request):
                 pytest.mark.xfail(reason="loc.__setitem__ incorrectly mutated column c")
             )
 
-        if Version(dask.__version__) >= Version("2025.1.0"):
-            request.applymarker(
-                pytest.mark.xfail(reason="loc.__setitem__ incorrectly mutated column c")
-            )
         dda = da.array([1, 2])
         df = DataFrame({"a": ["a", "b"]})
         df["b"] = dda
