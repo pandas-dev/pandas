@@ -8,7 +8,7 @@ developers to build powerful and more focused data tools. The creation
 of libraries that complement pandas' functionality also allows pandas
 development to remain focused around its original requirements.
 
-This is an community-maintained list of projects that build on pandas in order
+This is a community-maintained list of projects that build on pandas in order
 to provide tools in the PyData space. The pandas core development team does not necessarily endorse any particular project on this list or have any knowledge of the maintenance status of any particular library.
 
 For a more complete list of projects that depend on pandas, see the [libraries.io usage page for
