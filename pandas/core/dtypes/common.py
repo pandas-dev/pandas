@@ -1836,6 +1836,8 @@ def pandas_dtype(dtype) -> DtypeObj:
     # raise a consistent TypeError if failed
     try:
         with warnings.catch_warnings():
+            # TODO: warnings.catch_warnings can be removed when numpy>2.2.2
+            # is the minimum version
             # GH#51523 - Series.astype(np.integer) doesn't show
             # numpy deprecation warning of np.integer
             # Hence enabling DeprecationWarning
