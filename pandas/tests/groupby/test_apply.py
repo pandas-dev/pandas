@@ -1381,6 +1381,7 @@ def test_result_name_when_one_group(name):
         ("apply", lambda gb: gb.values[-1]),
         ("apply", lambda gb: gb["b"].iloc[0]),
         ("agg", "skew"),
+        ("agg", "kurt"),
         ("agg", "prod"),
         ("agg", "sum"),
     ],
@@ -1389,7 +1390,7 @@ def test_empty_df(method, op):
     # GH 47985
     empty_df = DataFrame({"a": [], "b": []})
     gb = empty_df.groupby("a", group_keys=True)
-    group = getattr(gb, "b")
+    group = gb.b
 
     result = getattr(group, method)(op)
     expected = Series(

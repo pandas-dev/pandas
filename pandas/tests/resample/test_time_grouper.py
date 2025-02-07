@@ -353,7 +353,7 @@ def test_groupby_resample_interpolate_raises(groupy_test_df):
     for df in dfs:
         with pytest.raises(
             NotImplementedError,
-            match="Direct interpolation of MultiIndex data frames is " "not supported",
+            match="Direct interpolation of MultiIndex data frames is not supported",
         ):
             df.groupby("volume").resample("1D").interpolate(method="linear")
 

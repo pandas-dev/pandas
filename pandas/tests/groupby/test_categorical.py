@@ -61,6 +61,7 @@ _results_for_groupbys_with_missing_categories = {
     "sem": np.nan,
     "size": 0,
     "skew": np.nan,
+    "kurt": np.nan,
     "std": np.nan,
     "sum": 0,
     "var": np.nan,
@@ -989,7 +990,7 @@ def test_sort():
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
     df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 10)})
-    labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
+    labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 
     df = df.sort_values(by=["value"], ascending=True)

@@ -11,7 +11,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -2033,6 +2033,31 @@ def test_arithmetic_multiindex_align():
     tm.assert_frame_equal(result, expected)
 
 
+def test_arithmetic_multiindex_column_align():
+    # GH#60498
+    df1 = DataFrame(
+        data=100,
+        columns=MultiIndex.from_product(
+            [["1A", "1B"], ["2A", "2B"]], names=["Lev1", "Lev2"]
+        ),
+        index=["C1", "C2"],
+    )
+    df2 = DataFrame(
+        data=np.array([[0.1, 0.25], [0.2, 0.45]]),
+        columns=MultiIndex.from_product([["1A", "1B"]], names=["Lev1"]),
+        index=["C1", "C2"],
+    )
+    expected = DataFrame(
+        data=np.array([[10.0, 10.0, 25.0, 25.0], [20.0, 20.0, 45.0, 45.0]]),
+        columns=MultiIndex.from_product(
+            [["1A", "1B"], ["2A", "2B"]], names=["Lev1", "Lev2"]
+        ),
+        index=["C1", "C2"],
+    )
+    result = df1 * df2
+    tm.assert_frame_equal(result, expected)
+
+
 def test_bool_frame_mult_float():
     # GH 18549
     df = DataFrame(True, list("ab"), list("cd"))
@@ -2101,12 +2126,19 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_mixed_col_index_dtype():
+def test_mixed_col_index_dtype(using_infer_string):
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
     df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
     df1.columns = df2.columns.astype("string")
     result = df1 + df2
     expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    if using_infer_string:
+        # df2.columns.dtype will be "str" instead of object,
+        #  so the aligned result will be "string", not object
+        if HAS_PYARROW:
+            dtype = "string[pyarrow]"
+        else:
+            dtype = "string"
+        expected.columns = expected.columns.astype(dtype)
     tm.assert_frame_equal(result, expected)

@@ -745,7 +745,7 @@ class TestAstype:
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) GH#60639")
     def test_astype_dt64_to_string(
         self, frame_or_series, tz_naive_fixture, using_infer_string
     ):

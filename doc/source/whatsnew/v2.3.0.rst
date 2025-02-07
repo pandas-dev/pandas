@@ -35,8 +35,10 @@ Other enhancements
 - The semantics for the ``copy`` keyword in ``__array__`` methods (i.e. called
   when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
   updated to work correctly with NumPy >= 2 (:issue:`57739`)
+- :meth:`Series.str.decode` result now has ``StringDtype`` when ``future.infer_string`` is True (:issue:`60709`)
+- :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
+- The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns when backed by PyArrow (:issue:`60633`)
 - The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.notable_bug_fixes:
@@ -95,7 +97,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Enabled :class:`Series.mode` and :class:`DataFrame.mode` with ``dropna=False`` to sort the result for all dtypes in the presence of NA values; previously only certain dtypes would sort (:issue:`60702`)
 -
 
 Conversion
@@ -105,6 +107,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` did not raise for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
 - Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` incorrectly returning integer results in case of ``method="average"`` and raising an error if it would truncate results (:issue:`59768`)
 - Bug in :meth:`Series.replace` with :class:`StringDtype` when replacing with a non-string value was not upcasting to ``object`` dtype (:issue:`60282`)
 - Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`59628`)
@@ -175,7 +178,6 @@ Other
 ^^^^^
 - Fixed usage of ``inspect`` when the optional dependencies ``pyarrow`` or ``jinja2``
   are not installed (:issue:`60196`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.contributors:

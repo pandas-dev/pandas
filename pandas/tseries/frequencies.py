@@ -145,8 +145,7 @@ def infer_freq(
         pass
     elif isinstance(index.dtype, PeriodDtype):
         raise TypeError(
-            "PeriodIndex given. Check the `freq` attribute "
-            "instead of using infer_freq."
+            "PeriodIndex given. Check the `freq` attribute instead of using infer_freq."
         )
     elif lib.is_np_dtype(index.dtype, "m"):
         # Allow TimedeltaIndex and TimedeltaArray
