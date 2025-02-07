@@ -141,6 +141,10 @@ def get_option(pat: str) -> Any:
     """
     Retrieve the value of the specified option.
 
+    This method allows users to query the current value of a given option
+    in the pandas configuration system. Options control various display,
+    performance, and behavior-related settings within pandas.
+
     Parameters
     ----------
     pat : str
