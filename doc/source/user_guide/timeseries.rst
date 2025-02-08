@@ -1580,7 +1580,7 @@ the pandas objects.
    ts = ts[:5]
    ts.shift(1)
 
-The ``shift`` method accepts an ``freq`` argument which can accept a
+The ``shift`` method accepts a ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also an
 :ref:`offset alias <timeseries.offset_aliases>`.
 
