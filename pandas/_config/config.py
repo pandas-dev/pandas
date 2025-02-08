@@ -141,6 +141,10 @@ def get_option(pat: str) -> Any:
     """
     Retrieve the value of the specified option.
 
+    This method allows users to query the current value of a given option
+    in the pandas configuration system. Options control various display,
+    performance, and behavior-related settings within pandas.
+
     Parameters
     ----------
     pat : str
@@ -428,6 +432,11 @@ options = DictWrapper(_global_config)
 def option_context(*args) -> Generator[None]:
     """
     Context manager to temporarily set options in a ``with`` statement.
+
+    This method allows users to set one or more pandas options temporarily
+    within a controlled block. The previous options' values are restored
+    once the block is exited. This is useful when making temporary adjustments
+    to pandas' behavior without affecting the global state.
 
     Parameters
     ----------
