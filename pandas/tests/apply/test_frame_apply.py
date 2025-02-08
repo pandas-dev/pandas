@@ -4,6 +4,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -16,6 +18,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -65,6 +68,9 @@ def test_apply(float_frame, engine, request):
 @pytest.mark.parametrize("raw", [True, False])
 def test_apply_args(float_frame, axis, raw, engine, request):
     if engine == "numba":
+        numba = pytest.importorskip("numba")
+        if Version(numba.__version__) == Version("0.61") and is_platform_arm():
+            pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
         mark = pytest.mark.xfail(reason="numba engine doesn't support args")
         request.node.add_marker(mark)
     result = float_frame.apply(
