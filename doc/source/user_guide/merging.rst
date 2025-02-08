@@ -586,7 +586,7 @@ A string argument to ``indicator`` will use the value as the name for the indica
 Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The merge ``suffixes`` argument takes a tuple of list of strings to append to
+The merge ``suffixes`` argument takes a tuple or list of strings to append to
 overlapping column names in the input :class:`DataFrame` to disambiguate the result
 columns:
 
