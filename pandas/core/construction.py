@@ -81,6 +81,10 @@ def array(
     """
     Create an array.
 
+    This method constructs an array using pandas extension types when possible.
+    If `dtype` is specified, it determines the type of array returned. Otherwise,
+    pandas attempts to infer the appropriate dtype based on `data`.
+
     Parameters
     ----------
     data : Sequence of objects
