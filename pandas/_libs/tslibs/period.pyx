@@ -2842,6 +2842,11 @@ class Period(_Period):
     """
     Represents a period of time.
 
+    A `Period` represents a specific time span rather than a point in time.
+    Unlike `Timestamp`, which represents a single instant, a `Period` defines a
+    duration, such as a month, quarter, or year. The exact representation is
+    determined by the `freq` parameter.
+
     Parameters
     ----------
     value : Period, str, datetime, date or pandas.Timestamp, default None
