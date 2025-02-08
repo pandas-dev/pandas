@@ -1580,7 +1580,7 @@ the pandas objects.
    ts = ts[:5]
    ts.shift(1)
 
-The ``shift`` method accepts an ``freq`` argument which can accept a
+The ``shift`` method accepts a ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also an
 :ref:`offset alias <timeseries.offset_aliases>`.
 
@@ -2570,7 +2570,7 @@ because daylight savings time (DST) in a local time zone causes some times to oc
 twice within one day ("clocks fall back"). The following options are available:
 
 * ``'raise'``: Raises a ``ValueError`` (the default behavior)
-* ``'infer'``: Attempt to determine the correct offset base on the monotonicity of the timestamps
+* ``'infer'``: Attempt to determine the correct offset based on the monotonicity of the timestamps
 * ``'NaT'``: Replaces ambiguous times with ``NaT``
 * ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool`` values is supported for a sequence of times.
 
