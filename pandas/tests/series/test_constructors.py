@@ -90,6 +90,13 @@ class TestSeriesConstructors:
         with pytest.raises(ValueError, match=msg):
             Series(np.array(vals, dtype=object), dtype="datetime64[ns]")
 
+    def test_invalid_dtype_conversion_datetime_to_timedelta(self):
+        # GH#60728
+        vals = Series([NaT, Timestamp(2025, 1, 1)], dtype="datetime64[ns]")
+        msg = r"^Cannot cast DatetimeArray to dtype timedelta64\[ns\]$"
+        with pytest.raises(TypeError, match=msg):
+            Series(vals, dtype="timedelta64[ns]")
+
     @pytest.mark.parametrize(
         "constructor",
         [
