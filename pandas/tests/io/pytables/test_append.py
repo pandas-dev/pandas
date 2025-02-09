@@ -257,7 +257,7 @@ def test_append_all_nans(setup_path, using_infer_string):
             if using_infer_string:
                 # TODO: Test is incorrect when not using_infer_string.
                 #       Should take the last 4 rows uncondiationally.
-                expected = expected[16:]
+                expected = expected[-4:]
             tm.assert_frame_equal(result, expected, check_index_type=True)
 
             _maybe_remove(store, "df2")
