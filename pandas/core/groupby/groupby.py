@@ -2170,8 +2170,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only no longer accepts ``None`` and defaults to ``False``.
 
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 3.0.0
 
@@ -2271,8 +2270,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only no longer accepts ``None`` and defaults to False.
 
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 3.0.0
 
@@ -2405,8 +2403,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only now defaults to ``False``.
 
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 3.0.0
 
@@ -2524,8 +2521,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only now defaults to ``False``.
 
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 3.0.0
 
@@ -2632,8 +2628,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 doesnt_exist = subsetted - unique_cols
                 if doesnt_exist:
                     raise ValueError(
-                        f"Keys {doesnt_exist} in subset do not "
-                        f"exist in the DataFrame."
+                        f"Keys {doesnt_exist} in subset do not exist in the DataFrame."
                     )
             else:
                 subsetted = unique_cols
@@ -2743,8 +2738,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only now defaults to ``False``.
 
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 3.0.0
 
@@ -3022,8 +3016,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             than ``min_count`` non-NA values are present the result will be NA.
 
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 3.0.0
 
@@ -3243,8 +3236,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
@@ -3330,8 +3322,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
@@ -3668,10 +3659,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Parameters
         ----------
         window : int, timedelta, str, offset, or BaseIndexer subclass
-            Size of the moving window.
+            Interval of the moving window.
 
-            If an integer, the fixed number of observations used for
-            each window.
+            If an integer, the delta between the start and end of each window.
+            The number of points in the window depends on the ``closed`` argument.
 
             If a timedelta, str, or offset, the time period of each window. Each
             window will be a variable sized based on the observations included in
@@ -3718,17 +3709,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         closed : str, default None
             Determines the inclusivity of points in the window
-            If ``'right'``, (First, Last] the last point in the window
+
+            If ``'right'``, uses the window (first, last] meaning the last point
             is included in the calculations.
 
-            If ``'left'``, [First, Last) the first point in the window
+            If ``'left'``, uses the window [first, last) meaning the first point
             is included in the calculations.
 
-            If ``'both'``, [First, Last] all points in the window
-            are included in the calculations.
+            If ``'both'``, uses the window [first, last] meaning all points in
+            the window are included in the calculations.
 
-            If ``'neither'``, (First, Last) the first and last points
-            in the window are excludedfrom calculations.
+            If ``'neither'``, uses the window (first, last) meaning the first
+            and last points in the window are excluded from calculations.
 
             () and [] are referencing open and closed set
             notation respetively.
@@ -5531,8 +5523,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
         ignore_unobserved : bool, default False
             When True and an unobserved group is encountered, do not raise. This used
             for transform where unobserved groups do not play an impact on the result.
