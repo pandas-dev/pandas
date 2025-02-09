@@ -11239,6 +11239,12 @@ class DataFrame(NDFrame, OpsMixin):
         c -0.150812  0.191417  0.895202
         """
         data = self._get_numeric_data() if numeric_only else self
+        if data.select_dtypes(include=[np.datetime64, np.timedelta64]).shape[1] > 0:
+            msg = (
+                "DataFrame contains columns with dtype datetime64[ns] "
+                "or timedelta64[ns], which are not supported for cov."
+            )
+            raise TypeError(msg)
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
