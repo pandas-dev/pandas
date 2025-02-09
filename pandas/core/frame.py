@@ -1021,6 +1021,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
+        Unlike the `len()` method, which only returns the number of rows, `shape`
+        provides both row and column counts, making it a more informative method for
+        understanding dataset size.
+
         See Also
         --------
         numpy.ndarray.shape : Tuple of array dimensions.
