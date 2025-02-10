@@ -753,16 +753,20 @@ def group_sum(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
-                    isna_result = result_mask[lab, j]
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
-                    isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
 
-                if not skipna and isna_result:
-                    # If sum is already NA, don't add to it. This is important for
-                    # datetimelikebecause adding a value to NPY_NAT may not result
-                    # in a NPY_NAT
-                    continue
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    else:
+                        isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
+
+                    if isna_result:
+                        # If sum is already NA, don't add to it. This is important for
+                        # datetimelikebecause adding a value to NPY_NAT may not result
+                        # in a NPY_NAT
+                        continue
 
                 if not isna_entry:
                     nobs[lab, j] += 1
@@ -845,14 +849,18 @@ def group_prod(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
-                    isna_result = result_mask[lab, j]
                 else:
                     isna_entry = _treat_as_na(val, False)
-                    isna_result = _treat_as_na(prodx[lab, j], False)
 
-                if not skipna and isna_result:
-                    # If prod is already NA, no need to update it
-                    continue
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    else:
+                        isna_result = _treat_as_na(prodx[lab, j], False)
+
+                    if isna_result:
+                        # If prod is already NA, no need to update it
+                        continue
 
                 if not isna_entry:
                     nobs[lab, j] += 1
@@ -919,22 +927,30 @@ def group_var(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
-                    isna_result = result_mask[lab, j]
                 elif is_datetimelike:
                     # With group_var, we cannot just use _treat_as_na bc
                     #  datetimelike dtypes get cast to float64 instead of
                     #  to int64.
                     isna_entry = val == NPY_NAT
-                    isna_result = out[lab, j] == NPY_NAT
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
-                    isna_result = _treat_as_na(out[lab, j], is_datetimelike)
 
-                if not skipna and isna_result:
-                    # If aggregate is already NA, don't add to it. This is important for
-                    # datetimelike because adding a value to NPY_NAT may not result
-                    # in a NPY_NAT
-                    continue
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    elif is_datetimelike:
+                        # With group_var, we cannot just use _treat_as_na bc
+                        #  datetimelike dtypes get cast to float64 instead of
+                        #  to int64.
+                        isna_result = out[lab, j] == NPY_NAT
+                    else:
+                        isna_result = _treat_as_na(out[lab, j], is_datetimelike)
+
+                    if isna_result:
+                        # If aggregate is already NA, don't add to it. This is
+                        # important for datetimelike because adding a value to NPY_NAT
+                        # may not result in a NPY_NAT
+                        continue
 
                 if not isna_entry:
                     nobs[lab, j] += 1
@@ -1232,22 +1248,30 @@ def group_mean(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
-                    isna_result = result_mask[lab, j]
                 elif is_datetimelike:
                     # With group_mean, we cannot just use _treat_as_na bc
                     #  datetimelike dtypes get cast to float64 instead of
                     #  to int64.
                     isna_entry = val == NPY_NAT
-                    isna_result = sumx[lab, j] == NPY_NAT
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
-                    isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
 
-                if not skipna and isna_result:
-                    # If sum is already NA, don't add to it. This is important for
-                    # datetimelike because adding a value to NPY_NAT may not result
-                    # in NPY_NAT
-                    continue
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    elif is_datetimelike:
+                        # With group_mean, we cannot just use _treat_as_na bc
+                        #  datetimelike dtypes get cast to float64 instead of
+                        #  to int64.
+                        isna_result = sumx[lab, j] == NPY_NAT
+                    else:
+                        isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
+
+                    if isna_result:
+                        # If sum is already NA, don't add to it. This is important for
+                        # datetimelike because adding a value to NPY_NAT may not result
+                        # in NPY_NAT
+                        continue
 
                 if not isna_entry:
                     nobs[lab, j] += 1
@@ -1909,15 +1933,20 @@ cdef group_min_max(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
-                    isna_result = result_mask[lab, j]
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
-                    isna_result = _treat_as_na(group_min_or_max[lab, j],
-                                               is_datetimelike)
 
-                if not skipna and isna_result:
-                    # If current min/max is already NA, it will always be NA
-                    continue
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    else:
+                        isna_result = _treat_as_na(
+                            group_min_or_max[lab, j], is_datetimelike
+                        )
+
+                    if isna_result:
+                        # If current min/max is already NA, it will always be NA
+                        continue
 
                 if not isna_entry:
                     nobs[lab, j] += 1
