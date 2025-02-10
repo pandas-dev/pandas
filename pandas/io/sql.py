@@ -1651,7 +1651,7 @@ class SQLDatabase(PandasSQL):
 
     def execute(self, sql: str | Select | TextClause, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
-        from sqlalchemy.exc import DBAPIError as SQLAlchemyDatabaseError
+        from sqlalchemy.exc import SQLAlchemyError
 
         args = [] if params is None else [params]
         if isinstance(sql, str):
@@ -1661,7 +1661,7 @@ class SQLDatabase(PandasSQL):
 
         try:
             return execute_function(sql, *args)
-        except SQLAlchemyDatabaseError as exc:
+        except SQLAlchemyError as exc:
             raise DatabaseError(f"Execution failed on sql '{sql}': {exc}") from exc
 
     def read_table(
@@ -2116,7 +2116,7 @@ class ADBCDatabase(PandasSQL):
             self.con.commit()
 
     def execute(self, sql: str | Select | TextClause, params=None):
-        from adbc_driver_manager import DatabaseError as ADBCDatabaseError
+        from adbc_driver_manager import Error
 
         if not isinstance(sql, str):
             raise TypeError("Query must be a string unless using sqlalchemy.")
@@ -2125,10 +2125,10 @@ class ADBCDatabase(PandasSQL):
         try:
             cur.execute(sql, *args)
             return cur
-        except ADBCDatabaseError as exc:
+        except Error as exc:
             try:
                 self.con.rollback()
-            except ADBCDatabaseError as inner_exc:  # pragma: no cover
+            except Error as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
                     f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
@@ -2343,7 +2343,7 @@ class ADBCDatabase(PandasSQL):
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
-        from adbc_driver_manager import DatabaseError as ADBCDatabaseError
+        from adbc_driver_manager import Error
         import pyarrow as pa
 
         if index_label:
@@ -2390,7 +2390,7 @@ class ADBCDatabase(PandasSQL):
                 total_inserted = cur.adbc_ingest(
                     table_name=name, data=tbl, mode=mode, db_schema_name=schema
                 )
-            except ADBCDatabaseError as exc:
+            except Error as exc:
                 raise DatabaseError(
                     f"Failed to insert records on table={name} with {mode=}"
                 ) from exc
@@ -2534,12 +2534,12 @@ class SQLiteTable(SQLTable):
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter) -> int:
-        from sqlite3 import DatabaseError as SQLiteDatabaseError
+        from sqlite3 import Error
 
         data_list = list(data_iter)
         try:
             conn.executemany(self.insert_statement(num_rows=1), data_list)
-        except SQLiteDatabaseError as exc:
+        except Error as exc:
             raise DatabaseError("Execution failed") from exc
         return conn.rowcount
 
@@ -2662,7 +2662,7 @@ class SQLiteDatabase(PandasSQL):
             cur.close()
 
     def execute(self, sql: str | Select | TextClause, params=None):
-        from sqlite3 import DatabaseError as SQLiteDatabaseError
+        from sqlite3 import Error
 
         if not isinstance(sql, str):
             raise TypeError("Query must be a string unless using sqlalchemy.")
@@ -2671,10 +2671,10 @@ class SQLiteDatabase(PandasSQL):
         try:
             cur.execute(sql, *args)
             return cur
-        except SQLiteDatabaseError as exc:
+        except Error as exc:
             try:
                 self.con.rollback()
-            except SQLiteDatabaseError as inner_exc:  # pragma: no cover
+            except Error as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
                     f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
