@@ -8029,10 +8029,15 @@ class DataFrame(NDFrame, OpsMixin):
             return False
 
         if (
-            isinstance(self.columns, MultiIndex)
-            or isinstance(right.columns, MultiIndex)
-        ) and not self.columns.equals(right.columns):
+            (
+                isinstance(self.columns, MultiIndex)
+                or isinstance(right.columns, MultiIndex)
+            )
+            and not self.columns.equals(right.columns)
+            and fill_value is None
+        ):
             # GH#60498 Reindex if MultiIndexe columns are not matching
+            # GH#60903 Don't reindex if fill_value is provided
             return True
 
         if fill_value is None and level is None and axis == 1:
