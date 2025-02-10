@@ -16,10 +16,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = [
-    pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 def test_categorical(setup_path):
@@ -143,6 +140,7 @@ def test_categorical(setup_path):
             store.select("df3/meta/s/meta")
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_categorical_conversion(tmp_path, setup_path):
     # GH13322
     # Check that read_hdf with categorical columns doesn't return rows if
