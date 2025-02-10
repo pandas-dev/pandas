@@ -22,6 +22,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
+from pandas.util.version import Version
 
 
 # EA & Actual Dtypes
@@ -788,11 +789,18 @@ def test_validate_allhashable():
 
 def test_pandas_dtype_numpy_warning():
     # GH#51523
-    with tm.assert_produces_warning(
-        DeprecationWarning,
-        check_stacklevel=False,
-        match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
-    ):
+    if Version(np.__version__) <= Version("2.2.2"):
+        ctx = tm.assert_produces_warning(
+            DeprecationWarning,
+            check_stacklevel=False,
+            match=(
+                "Converting `np.integer` or `np.signedinteger` to a dtype is deprecated"
+            ),
+        )
+    else:
+        ctx = tm.external_error_raised(TypeError)
+
+    with ctx:
         pandas_dtype(np.integer)
 
 
@@ -835,6 +843,26 @@ def test_pandas_dtype_string_dtypes(string_storage):
     with pd.option_context("string_storage", string_storage):
         result = pandas_dtype("string")
     assert result == pd.StringDtype(string_storage, na_value=pd.NA)
+
+
+def test_pandas_dtype_string_dtype_alias_with_storage():
+    with pytest.raises(TypeError, match="not understood"):
+        pandas_dtype("str[python]")
+
+    with pytest.raises(TypeError, match="not understood"):
+        pandas_dtype("str[pyarrow]")
+
+    result = pandas_dtype("string[python]")
+    assert result == pd.StringDtype("python", na_value=pd.NA)
+
+    if HAS_PYARROW:
+        result = pandas_dtype("string[pyarrow]")
+        assert result == pd.StringDtype("pyarrow", na_value=pd.NA)
+    else:
+        with pytest.raises(
+            ImportError, match="required for PyArrow backed StringArray"
+        ):
+            pandas_dtype("string[pyarrow]")
 
 
 @td.skip_if_installed("pyarrow")

@@ -272,8 +272,6 @@ ignore = [
   "B007",
   # controversial
   "B008",
-  # setattr is used to side-step mypy
-  "B009",
   # getattr is used to side-step mypy
   "B010",
   # tests use comparisons but not their returned value
@@ -362,8 +360,6 @@ ignore = [
   "PLR1733", # 5 errors, it seems like we wannt to ignore these
   # Unnecessary lookup of list item by index
   "PLR1736", # 4 errors, we're currently having inline pylint ignore
-  # empty-comment
-  "PLR2044", # autofixable
   # Unpacking a dictionary in iteration without calling `.items()`
   "PLE1141", # autofixable
   # import-outside-toplevel
@@ -746,5 +742,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru, indx, abd, ABD"
 ignore-regex = 'https://([\w/\.])+'

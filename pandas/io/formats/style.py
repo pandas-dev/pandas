@@ -1229,6 +1229,111 @@ class Styler(StylerRenderer):
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @overload
+    def to_typst(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        encoding: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+    ) -> None: ...
+
+    @overload
+    def to_typst(
+        self,
+        buf: None = ...,
+        *,
+        encoding: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+    ) -> str: ...
+
+    @Substitution(buf=buffering_args, encoding=encoding_args)
+    def to_typst(
+        self,
+        buf: FilePath | WriteBuffer[str] | None = None,
+        *,
+        encoding: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        max_rows: int | None = None,
+        max_columns: int | None = None,
+    ) -> str | None:
+        """
+        Write Styler to a file, buffer or string in Typst format.
+
+        .. versionadded:: 3.0.0
+
+        Parameters
+        ----------
+        %(buf)s
+        %(encoding)s
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+        max_rows : int, optional
+            The maximum number of rows that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_rows``, which is None.
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        DataFrame.to_typst : Write a DataFrame to a file,
+            buffer or string in Typst format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> df.style.to_typst()  # doctest: +SKIP
+
+        .. code-block:: typst
+
+            #table(
+              columns: 3,
+              [], [A], [B],
+
+              [0], [1], [3],
+              [1], [2], [4],
+            )
+        """
+        obj = self._copy(deepcopy=True)
+
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
+        text = obj._render_typst(
+            sparse_columns=sparse_columns,
+            sparse_index=sparse_index,
+            max_rows=max_rows,
+            max_cols=max_columns,
+        )
+        return save_to_buffer(
+            text, buf=buf, encoding=(encoding if buf is not None else None)
+        )
+
+    @overload
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str],
@@ -1916,7 +2021,7 @@ class Styler(StylerRenderer):
         more details.
         """
         self._todo.append(
-            (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
+            (lambda instance: instance._apply, (func, axis, subset), kwargs)
         )
         return self
 
@@ -2023,7 +2128,7 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "apply"),
                 kwargs,
             )
@@ -2052,7 +2157,7 @@ class Styler(StylerRenderer):
     ) -> Styler:
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "map"),
                 kwargs,
             )
@@ -2125,9 +2230,7 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
-        self._todo.append(
-            (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
-        )
+        self._todo.append((lambda instance: instance._map, (func, subset), kwargs))
         return self
 
     def set_table_attributes(self, attributes: str) -> Styler:
@@ -2483,7 +2586,7 @@ class Styler(StylerRenderer):
                 for i, level in enumerate(levels_):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({level+1}) th",
+                            "selector": f"thead tr:nth-child({level + 1}) th",
                             "props": props
                             + (
                                 f"top:{i * pixel_size}px; height:{pixel_size}px; "
@@ -2494,7 +2597,7 @@ class Styler(StylerRenderer):
                 if not all(name is None for name in self.index.names):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({obj.nlevels+1}) th",
+                            "selector": f"thead tr:nth-child({obj.nlevels + 1}) th",
                             "props": props
                             + (
                                 f"top:{(len(levels_)) * pixel_size}px; "
@@ -2514,7 +2617,7 @@ class Styler(StylerRenderer):
                     styles.extend(
                         [
                             {
-                                "selector": f"thead tr th:nth-child({level+1})",
+                                "selector": f"thead tr th:nth-child({level + 1})",
                                 "props": props_ + "z-index:3 !important;",
                             },
                             {
@@ -4109,8 +4212,10 @@ def _bar(
         if end > start:
             cell_css += "background: linear-gradient(90deg,"
             if start > 0:
-                cell_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
-            cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+                cell_css += (
+                    f" transparent {start * 100:.1f}%, {color} {start * 100:.1f}%,"
+                )
+            cell_css += f" {color} {end * 100:.1f}%, transparent {end * 100:.1f}%)"
         return cell_css
 
     def css_calc(x, left: float, right: float, align: str, color: str | list | tuple):

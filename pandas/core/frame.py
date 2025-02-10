@@ -315,7 +315,8 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
+how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
+    default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -328,6 +329,10 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; preserve the order of the left keys.
     * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
+    * left_anti: use only keys from left frame that are not in right frame, similar
+      to SQL left anti join; preserve key order.
+    * right_anti: use only keys from right frame that are not in left frame, similar
+      to SQL right anti join; preserve key order.
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -1015,6 +1020,10 @@ class DataFrame(NDFrame, OpsMixin):
     def shape(self) -> tuple[int, int]:
         """
         Return a tuple representing the dimensionality of the DataFrame.
+
+        Unlike the `len()` method, which only returns the number of rows, `shape`
+        provides both row and column counts, making it a more informative method for
+        understanding dataset size.
 
         See Also
         --------
@@ -2317,7 +2326,10 @@ class DataFrame(NDFrame, OpsMixin):
             columns = columns.drop(exclude)
 
         mgr = arrays_to_mgr(arrays, columns, result_index)
-        return cls._from_mgr(mgr, axes=mgr.axes)
+        df = DataFrame._from_mgr(mgr, axes=mgr.axes)
+        if cls is not DataFrame:
+            return cls(df, copy=False)
+        return df
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -3202,9 +3214,13 @@ class DataFrame(NDFrame, OpsMixin):
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            `<table>` tag. Default ``pd.options.display.html.border``.
+        border : int or bool
+            When an integer value is provided, it sets the border attribute in
+            the opening tag, specifying the thickness of the border.
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
+            The default value for this parameter is governed by
+            ``pd.options.display.html.border``.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
@@ -4785,6 +4801,10 @@ class DataFrame(NDFrame, OpsMixin):
     def select_dtypes(self, include=None, exclude=None) -> DataFrame:
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
+
+        This method allows for filtering columns based on their data types.
+        It is useful when working with heterogeneous DataFrames where operations
+        need to be performed on a specific subset of data types.
 
         Parameters
         ----------
@@ -6887,7 +6907,8 @@ class DataFrame(NDFrame, OpsMixin):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return a Series with the same shape as the input.
-            It will be applied to each column in `by` independently.
+            It will be applied to each column in `by` independently. The values in the
+            returned Series will be used as the keys for sorting.
 
         Returns
         -------
@@ -7967,6 +7988,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         new_left = left if lcol_indexer is None else left.iloc[:, lcol_indexer]
         new_right = right if rcol_indexer is None else right.iloc[:, rcol_indexer]
+
+        # GH#60498 For MultiIndex column alignment
+        if isinstance(cols, MultiIndex):
+            # When overwriting column names, make a shallow copy so as to not modify
+            # the input DFs
+            new_left = new_left.copy(deep=False)
+            new_right = new_right.copy(deep=False)
+            new_left.columns = cols
+            new_right.columns = cols
+
         result = op(new_left, new_right)
 
         # Do the join on the columns instead of using left._align_for_op
@@ -7996,6 +8027,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not isinstance(right, DataFrame):
             return False
+
+        if (
+            isinstance(self.columns, MultiIndex)
+            or isinstance(right.columns, MultiIndex)
+        ) and not self.columns.equals(right.columns):
+            # GH#60498 Reindex if MultiIndexe columns are not matching
+            return True
 
         if fill_value is None and level is None and axis == 1:
             # TODO: any other cases we should handle here?
@@ -8650,6 +8688,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  NaN  3.0 1.0
         """
         other_idxlen = len(other.index)  # save for compare
+        other_columns = other.columns
 
         this, other = self.align(other)
         new_index = this.index
@@ -8660,8 +8699,8 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        # sorts if possible; otherwise align above ensures that these are set-equal
-        new_columns = this.columns.union(other.columns)
+        # preserve column order
+        new_columns = self.columns.union(other_columns, sort=False)
         do_fill = fill_value is not None
         result = {}
         for col in new_columns:
@@ -10583,7 +10622,8 @@ class DataFrame(NDFrame, OpsMixin):
             values given, the `other` DataFrame must have a MultiIndex. Can
             pass an array as the join key if it is not already contained in
             the calling DataFrame. Like an Excel VLOOKUP operation.
-        how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'left'
+        how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
+            default 'left'
             How to handle the operation of the two objects.
 
             * left: use calling frame's index (or column if on is specified)
@@ -10595,6 +10635,10 @@ class DataFrame(NDFrame, OpsMixin):
               of the calling's one.
             * cross: creates the cartesian product from both frames, preserves the order
               of the left keys.
+            * left_anti: use set difference of calling frame's index and `other`'s
+              index.
+            * right_anti: use set difference of `other`'s index and calling frame's
+              index.
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
         rsuffix : str, default ''
@@ -13650,6 +13694,10 @@ class DataFrame(NDFrame, OpsMixin):
         axis=0,
         doc="""
         The column labels of the DataFrame.
+
+        This property holds the column names as a pandas ``Index`` object.
+        It provides an immutable sequence of column labels that can be
+        used for data selection, renaming, and alignment in DataFrame operations.
 
         Returns
         -------

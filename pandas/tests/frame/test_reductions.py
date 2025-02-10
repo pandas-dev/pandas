@@ -672,23 +672,10 @@ class TestDataFrameAnalytics:
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    def test_mode_sortwarning(self, using_infer_string):
-        # Check for the warning that is raised when the mode
-        # results cannot be sorted
-
+    def test_mode_sort_with_na(self, using_infer_string):
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
-
-        # TODO(infer_string) avoid this UserWarning for python storage
-        warning = (
-            None
-            if using_infer_string and df.A.dtype.storage == "pyarrow"
-            else UserWarning
-        )
-        with tm.assert_produces_warning(warning, match="Unable to sort modes"):
-            result = df.mode(dropna=False)
-            result = result.sort_values(by="A").reset_index(drop=True)
-
+        result = df.mode(dropna=False)
         tm.assert_frame_equal(result, expected)
 
     def test_mode_empty_df(self):
@@ -1555,6 +1542,44 @@ class TestDataFrameReductions:
 
         res = df.max()
         exp = Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max_dt64_with_NaT_precision(self):
+        # GH#60646 Make sure the reduction doesn't cast input timestamps to
+        # float and lose precision.
+        df = DataFrame(
+            {"foo": [pd.NaT, pd.NaT, Timestamp("2012-05-01 09:20:00.123456789")]},
+            dtype="datetime64[ns]",
+        )
+
+        res = df.min(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+        res = df.max(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max_td64_with_NaT_precision(self):
+        # GH#60646 Make sure the reduction doesn't cast input timedeltas to
+        # float and lose precision.
+        df = DataFrame(
+            {
+                "foo": [
+                    pd.NaT,
+                    pd.NaT,
+                    to_timedelta("10000 days 06:05:01.123456789"),
+                ],
+            },
+            dtype="timedelta64[ns]",
+        )
+
+        res = df.min(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+        res = df.max(axis=1)
+        exp = df.foo.rename(None)
         tm.assert_series_equal(res, exp)
 
     def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
