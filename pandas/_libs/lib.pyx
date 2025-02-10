@@ -1522,6 +1522,11 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     """
     Return a string label of the type of a scalar or list-like of values.
 
+    This method inspects the elements of the provided input and determines
+    classification of its data type. It is particularly useful for
+    handling heterogeneous data inputs where explicit dtype conversion may not
+    be possible or necessary.
+
     Parameters
     ----------
     value : scalar, list, ndarray, or pandas type
