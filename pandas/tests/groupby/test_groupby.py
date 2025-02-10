@@ -6,8 +6,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import SpecificationError
 import pandas.util._test_decorators as td
 
@@ -266,7 +264,7 @@ def test_attr_wrapper(ts):
     # make sure raises error
     msg = "'SeriesGroupBy' object has no attribute 'foo'"
     with pytest.raises(AttributeError, match=msg):
-        getattr(grouped, "foo")
+        grouped.foo
 
 
 def test_frame_groupby(tsframe):
@@ -1710,7 +1708,7 @@ def test_pivot_table_values_key_error():
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
-    "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
+    "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew", "kurt"]
 )
 def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_string):
     # GH8093 & GH26411
@@ -1786,7 +1784,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
             tm.assert_equal(result, expected)
         return
 
-    if op in ["prod", "sum", "skew"]:
+    if op in ["prod", "sum", "skew", "kurt"]:
         # ops that require more than just ordered-ness
         if is_dt64 or is_cat or is_per or (is_str and op != "sum"):
             # GH#41291
@@ -1799,15 +1797,15 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
                 msg = f"dtype 'str' does not support operation '{op}'"
             else:
                 msg = "category type does not support"
-            if op == "skew":
-                msg = "|".join([msg, "does not support operation 'skew'"])
+            if op in ["skew", "kurt"]:
+                msg = "|".join([msg, f"does not support operation '{op}'"])
             with pytest.raises(TypeError, match=msg):
                 get_result()
 
             if not isinstance(columns, list):
                 # i.e. SeriesGroupBy
                 return
-            elif op == "skew":
+            elif op in ["skew", "kurt"]:
                 # TODO: test the numeric_only=True case
                 return
             else:
@@ -2468,12 +2466,13 @@ def test_groupby_none_in_first_mi_level():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_groupby_none_column_name():
+def test_groupby_none_column_name(using_infer_string):
     # GH#47348
     df = DataFrame({None: [1, 1, 2, 2], "b": [1, 1, 2, 3], "c": [4, 5, 6, 7]})
-    result = df.groupby(by=[None]).sum()
-    expected = DataFrame({"b": [2, 5], "c": [9, 13]}, index=Index([1, 2], name=None))
+    by = [np.nan] if using_infer_string else [None]
+    gb = df.groupby(by=by)
+    result = gb.sum()
+    expected = DataFrame({"b": [2, 5], "c": [9, 13]}, index=Index([1, 2], name=by[0]))
     tm.assert_frame_equal(result, expected)
 
 

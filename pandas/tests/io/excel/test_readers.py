@@ -910,8 +910,7 @@ class TestReaders:
 
             error = XLRDError
             msg = (
-                "Unsupported format, or corrupt file: Expected BOF "
-                "record; found b'foo'"
+                "Unsupported format, or corrupt file: Expected BOF record; found b'foo'"
             )
         elif engine == "calamine":
             from python_calamine import CalamineError

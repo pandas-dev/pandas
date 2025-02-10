@@ -82,6 +82,9 @@ class TestPPrintThing:
     def test_repr_mapping(self):
         assert printing.pprint_thing(MyMapping()) == "{'a': 4, 'b': 4}"
 
+    def test_repr_frozenset(self):
+        assert printing.pprint_thing(frozenset([1, 2])) == "frozenset(1, 2)"
+
 
 class TestFormatBase:
     def test_adjoin(self):
