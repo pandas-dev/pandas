@@ -24,15 +24,15 @@ else
 fi
 
 [[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
-    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
+    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 1; }
 
-BASE_DIR="$(dirname $0)/.."
+BASE_DIR="$(dirname "$0")/.."
 RET=0
 
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
-    MSG='Check import. No warnings, and blocklist some optional dependencies' ; echo $MSG
+    MSG='Check import. No warnings, and blocklist some optional dependencies' ; echo "$MSG"
     python -W error -c "
 import sys
 import pandas
@@ -49,24 +49,24 @@ if mods:
     sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
     "
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
 
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Python and Cython Doctests' ; echo $MSG
+    MSG='Python and Cython Doctests' ; echo "$MSG"
     python -c 'import pandas as pd; pd.test(run_doctests=True)'
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
 
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate Docstrings' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py \
+    MSG='Validate Docstrings' ; echo "$MSG"
+    "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
@@ -265,7 +265,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "notebooks" ]]; then
 
     MSG='Notebooks' ; echo $MSG
-    jupyter nbconvert --execute $(find doc/source -name '*.ipynb') --to notebook
+    jupyter nbconvert --execute "$(find doc/source -name '*.ipynb')" --to notebook
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
