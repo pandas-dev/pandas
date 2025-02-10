@@ -161,6 +161,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness.
 
+    It is a dtype representation for categorical data, which
+    allows users to define a fixed set of values and optionally impose an ordering.
+    This is particularly useful for handling categorical variables efficiently,
+    as it can significantly reduce memory usage compared to using object dtypes.
+
     Parameters
     ----------
     categories : sequence, optional
