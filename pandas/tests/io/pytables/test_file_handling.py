@@ -3,8 +3,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -35,9 +33,7 @@ from pandas.tests.io.pytables.common import (
 from pandas.io import pytables
 from pandas.io.pytables import Term
 
-pytestmark = [
-    pytest.mark.single_cpu,
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
@@ -329,7 +325,6 @@ def test_complibs(tmp_path, lvl, lib, request):
                 assert node.filters.complib == lib
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.skipif(
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
@@ -347,7 +342,6 @@ def test_encoding(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "val",
     [
@@ -362,7 +356,7 @@ def test_encoding(setup_path):
         [b"A\xf8\xfc", np.nan, b"", b"b", b"c"],
     ],
 )
-@pytest.mark.parametrize("dtype", ["category", object])
+@pytest.mark.parametrize("dtype", ["category", None])
 def test_latin_encoding(tmp_path, setup_path, dtype, val):
     enc = "latin-1"
     nan_rep = ""
