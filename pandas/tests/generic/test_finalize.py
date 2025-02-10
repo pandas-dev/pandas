@@ -644,7 +644,7 @@ def test_timedelta_methods(method):
         operator.methodcaller("add_categories", ["c"]),
         operator.methodcaller("as_ordered"),
         operator.methodcaller("as_unordered"),
-        lambda x: getattr(x, "codes"),
+        lambda x: x.codes,
         operator.methodcaller("remove_categories", "a"),
         operator.methodcaller("remove_unused_categories"),
         operator.methodcaller("rename_categories", {"a": "A", "b": "B"}),

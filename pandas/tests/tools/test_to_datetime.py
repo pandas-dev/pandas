@@ -1935,7 +1935,7 @@ class TestToDatetimeUnit:
     @pytest.mark.parametrize("bad_val", ["foo", 111111111])
     def test_to_datetime_unit_invalid(self, bad_val):
         if bad_val == "foo":
-            msg = "Unknown datetime string format, unable to parse: " f"{bad_val}"
+            msg = f"Unknown datetime string format, unable to parse: {bad_val}"
         else:
             msg = "cannot convert input 111111111 with the unit 'D'"
         with pytest.raises(ValueError, match=msg):
@@ -2258,7 +2258,7 @@ class TestToDatetimeMisc:
             [
                 '^unconverted data remains when parsing with format ".*": ".*". '
                 f"{PARSING_ERR_MSG}$",
-                f'^time data ".*" doesn\'t match format ".*". ' f"{PARSING_ERR_MSG}$",
+                f'^time data ".*" doesn\'t match format ".*". {PARSING_ERR_MSG}$',
             ]
         )
         with pytest.raises(
