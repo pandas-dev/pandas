@@ -1001,7 +1001,7 @@ Thousand separators
 
 For large numbers that have been written with a thousands separator, you can
 set the ``thousands`` keyword to a string of length 1 so that integers will be parsed
-correctly:
+correctly.
 
 By default, numbers with a thousands separator will be parsed as strings:
 
