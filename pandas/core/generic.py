@@ -406,6 +406,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Return a new object with updated flags.
 
+        This method creates a shallow copy of the original object, preserving its
+        underlying data while modifying its global flags. In particular, it allows
+        you to update properties such as whether duplicate labels are permitted. This
+        behavior is especially useful in method chains, where one wishes to
+        adjust DataFrame or Series characteristics without altering the original object.
+
         Parameters
         ----------
         copy : bool, default False
