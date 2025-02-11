@@ -121,7 +121,7 @@
                     <ul id="show-more-releases" class="collapse">
                         {% for release in releases[5:] %}
                             <li class="small">
-                                {{ release.name }} ({{ release.published.strftime("%Y-%m-%d") }})<br/>
+                                {{ release.name }} ({{ release.published.strftime("%b %d, %Y") }})<br/>
                                 <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
                                 <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
                                 <a href="{{ release.url }}">code</a>
