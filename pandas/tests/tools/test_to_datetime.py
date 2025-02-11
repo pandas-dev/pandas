@@ -819,11 +819,10 @@ class TestToDatetime:
             ],
         ],
     )
-    @pytest.mark.parametrize("errors", ["raise"])
-    def test_invalid_iso_week_53(self, msg, s, _format, errors):
+    def test_invalid_iso_week_53(self, msg, s, _format):
         # See GH#60885
         with pytest.raises(ValueError, match=msg):
-            to_datetime(s, format=_format, errors=errors)
+            to_datetime(s, format=_format)
 
     @pytest.mark.parametrize(
         "msg, s, _format",
