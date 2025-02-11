@@ -291,7 +291,7 @@ class Preprocessors:
 
         # accepted, rejected and implemented
         pdeps_path = (
-            pathlib.Path(context["source_path"]) / context["roadmap"]["pdeps_path"]
+            pathlib.Path(context["source_path"]).parent / context["roadmap"]["pdeps_path"]
         )
         for pdep in sorted(pdeps_path.iterdir()):
             if pdep.suffix != ".md":
@@ -358,7 +358,6 @@ class Preprocessors:
         )
 
         return context
-
 
 def get_callable(obj_as_str: str) -> object:
     """
@@ -434,6 +433,7 @@ def extend_base_template(content: str, base_template: str) -> str:
 def main(
     source_path: str,
     target_path: str,
+    languages: str,
 ) -> int:
     """
     Copy every file in the source directory to the target directory.
@@ -441,58 +441,76 @@ def main(
     For ``.md`` and ``.html`` files, render them with the context
     before copying them. ``.md`` files are transformed to HTML.
     """
-    config_fname = os.path.join(source_path, "config.yml")
+    # Read all subfolder names in the source directory
+    if not languages:
+        languages = os.listdir(source_path).remove("pdeps")
 
-    shutil.rmtree(target_path, ignore_errors=True)
-    os.makedirs(target_path, exist_ok=True)
+    for language in languages:
+        source_path_lang = os.path.join(source_path, language)
+        target_path_lang = os.path.join(target_path, language)
+        pdep_path = os.path.join(source_path, "pdeps")
+        static_path = os.path.join(pathlib.Path(source_path).parent, "static")
+        config_fname = os.path.join(source_path_lang, "config.yml")
 
-    sys.stderr.write("Generating context...\n")
-    context = get_context(config_fname, target_path=target_path)
-    sys.stderr.write("Context generated\n")
+        shutil.rmtree(target_path_lang, ignore_errors=True)
+        os.makedirs(target_path_lang, exist_ok=True)
+        shutil.copytree(pdep_path, os.path.join(target_path_lang, "pdeps"))
+        shutil.copytree(static_path, os.path.join(target_path_lang, "static"))
 
-    templates_path = os.path.join(source_path, context["main"]["templates_path"])
-    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
+        sys.stderr.write(f"Generating context for {language}...\n")
+        context = get_context(config_fname, target_path=target_path_lang)
+        context["selected_language"] = language
+        context["languages"] = languages
+        sys.stderr.write("Context generated\n")
 
-    for fname in get_source_files(source_path):
-        if os.path.normpath(fname) in context["main"]["ignore"]:
-            continue
+        templates_path = pathlib.Path(source_path).parent / context["main"]["templates_path"]
+        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
-        sys.stderr.write(f"Processing {fname}\n")
-        dirname = os.path.dirname(fname)
-        os.makedirs(os.path.join(target_path, dirname), exist_ok=True)
+        for fname in get_source_files(source_path_lang):
+            if os.path.normpath(fname) in context["main"]["ignore"]:
+                continue
 
-        extension = os.path.splitext(fname)[-1]
-        if extension in (".html", ".md"):
-            with open(os.path.join(source_path, fname), encoding="utf-8") as f:
-                content = f.read()
-            if extension == ".md":
-                body = markdown.markdown(
-                    content, extensions=context["main"]["markdown_extensions"]
+            sys.stderr.write(f"Processing {fname}\n")
+            dirname = os.path.dirname(fname)
+            os.makedirs(os.path.join(target_path_lang, dirname), exist_ok=True)
+
+            extension = os.path.splitext(fname)[-1]
+            if extension in (".html", ".md"):
+                with open(os.path.join(source_path_lang, fname), encoding="utf-8") as f:
+                    content = f.read()
+                if extension == ".md":
+                    body = markdown.markdown(
+                        content, extensions=context["main"]["markdown_extensions"]
+                    )
+                    # Apply Bootstrap's table formatting manually
+                    # Python-Markdown doesn't let us config table attributes by hand
+                    body = body.replace("<table>", '<table class="table table-bordered">')
+                    content = extend_base_template(body, context["main"]["base_template"])
+                context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
+                content = jinja_env.from_string(content).render(**context)
+                fname_html = os.path.splitext(fname)[0] + ".html"
+                with open(
+                    os.path.join(target_path_lang, fname_html), "w", encoding="utf-8"
+                ) as f:
+                    f.write(content)
+            else:
+                shutil.copy(
+                    os.path.join(source_path_lang, fname), os.path.join(target_path_lang, dirname)
                 )
-                # Apply Bootstrap's table formatting manually
-                # Python-Markdown doesn't let us config table attributes by hand
-                body = body.replace("<table>", '<table class="table table-bordered">')
-                content = extend_base_template(body, context["main"]["base_template"])
-            context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
-            content = jinja_env.from_string(content).render(**context)
-            fname_html = os.path.splitext(fname)[0] + ".html"
-            with open(
-                os.path.join(target_path, fname_html), "w", encoding="utf-8"
-            ) as f:
-                f.write(content)
-        else:
-            shutil.copy(
-                os.path.join(source_path, fname), os.path.join(target_path, dirname)
-            )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Documentation builder.")
     parser.add_argument(
-        "source_path", help="path to the source directory (must contain config.yml)"
+        "source_path", help="path to the source directory (must contain each language folder)"
     )
+    # For each language, the output will be written in a subdirectory named after the language (default: build/en)
     parser.add_argument(
-        "--target-path", default="build", help="directory where to write the output"
+        "--target-path", default="build", help="directory where to write the output."
+    )
+    # e.g. python pandas_web.py --source_path pandas/content --languages en pt
+    parser.add_argument(
+        "--languages", nargs="*", default= "en", help="language codes to build (default: en)"
     )
     args = parser.parse_args()
-    sys.exit(main(args.source_path, args.target_path))
+    sys.exit(main(args.source_path, args.target_path, args.languages))

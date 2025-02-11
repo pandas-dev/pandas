@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ selected_language }}">
     <head>
         <script defer data-domain="pandas.pydata.org" src="https://views.scientific-python.org/js/script.js"></script>
         <title>pandas - Python Data Analysis Library</title>
@@ -15,6 +15,8 @@
                   href="{{ base_url }}{{ stylesheet }}">
         {% endfor %}
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <meta id="languages" data-lang="{{ languages }}">
+        <script src="{{ base_url }}static/js/language_switcher.js"></script>
     </head>
     <body>
         <header>
@@ -50,6 +52,8 @@
                                     </li>
                                 {% endif %}
                             {% endfor %}
+                            <!-- Language switcher -->
+                            <div id="language-switcher-container"></div>
                         </ul>
                     </div>
                 </div>
