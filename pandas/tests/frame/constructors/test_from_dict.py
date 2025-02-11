@@ -108,7 +108,6 @@ class TestFromDict:
         expected = DataFrame.from_dict(sdict, orient="index")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="columns inferring logic broken")
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series
         recons = DataFrame.from_dict(data_dict, orient="index")

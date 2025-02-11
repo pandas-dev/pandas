@@ -213,12 +213,9 @@ def test_table_values_dtypes_roundtrip(setup_path):
 
         # incompatible dtype
         msg = re.escape(
-            "invalid combination of [values_axes] on appending data "
-            "[name->values_block_0,cname->values_block_0,"
-            "dtype->float64,kind->float,shape->(1, 3)] vs "
-            "current table [name->values_block_0,"
-            "cname->values_block_0,dtype->int64,kind->integer,"
-            "shape->None]"
+            "Cannot serialize the column [a] "
+            "because its data contents are not [float] "
+            "but [integer] object dtype"
         )
         with pytest.raises(ValueError, match=msg):
             store.append("df_i8", df1)
