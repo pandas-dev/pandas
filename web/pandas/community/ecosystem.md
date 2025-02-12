@@ -205,7 +205,7 @@ standard output formats (HTML, HTML presentation slides, LaTeX, PDF,
 ReStructuredText, Markdown, Python) through 'Download As' in the web
 interface and `jupyter convert` in a shell.
 
-Pandas DataFrames implement `_repr_html_`and `_repr_latex` methods which
+Pandas DataFrames implement `_repr_html_` and `_repr_latex` methods which
 are utilized by Jupyter Notebook for displaying (abbreviated) HTML or
 LaTeX tables. LaTeX output is properly escaped. (Note: HTML tables may
 or may not be compatible with non-HTML Jupyter output formats.)
@@ -688,7 +688,7 @@ units aware.
 
 ### [Text Extensions](https://ibm.biz/text-extensions-for-pandas)
 
-Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into Pandas DataFrames.
+Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into pandas DataFrames.
 
 ## Accessors
 
