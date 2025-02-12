@@ -2343,8 +2343,8 @@ class ADBCDatabase(PandasSQL):
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
+        pa = import_optional_dependency("pyarrow")
         from adbc_driver_manager import Error
-        import pyarrow as pa
 
         if index_label:
             raise NotImplementedError(
