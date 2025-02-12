@@ -2794,6 +2794,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        temporary: bool = False,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -2850,6 +2851,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        temporary : bool, default False
+            Indicates if the created, replaced or appended table is temporary.
 
         Returns
         -------
@@ -3023,6 +3026,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             chunksize=chunksize,
             dtype=dtype,
             method=method,
+            temporary=temporary,
         )
 
     @final
