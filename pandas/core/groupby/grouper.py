@@ -1023,7 +1023,7 @@ def get_grouper(
             return False
 
     for gpr, level in zip(keys, levels):
-        if is_in_obj(gpr):  # df.groupby(df['name'])
+        if isinstance(obj, DataFrame) and is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis = True
             exclusions.add(gpr.name)
 
