@@ -76,8 +76,7 @@ Other enhancements
 - Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
-- Refactor classes in ``pandas.io.sql`` to favor their own implementation of ``execute`` instead of relying on driver's ``execute``.
-- Refactor classes in ``pandas.io.sql`` to standardize database related exceptions. :class:`.DatabaseError` is raised when an error is encountered at the database driver - context of the original exception is preserved.
+- Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
