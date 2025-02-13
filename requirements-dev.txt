@@ -15,8 +15,6 @@ PyQt5>=5.15.9
 coverage
 python-dateutil
 numpy<2
-adbc-driver-postgresql>=0.10.0
-adbc-driver-sqlite>=0.8.0
 beautifulsoup4>=4.12.3
 blosc
 bottleneck>=1.3.6
@@ -86,5 +84,7 @@ feedparser
 pyyaml
 requests
 pygments
+adbc-driver-postgresql>=0.10.0
+adbc-driver-sqlite>=0.8.0
 typing_extensions; python_version<"3.11"
 tzdata>=2022.7
