@@ -226,12 +226,17 @@ series_see_also_sub = dedent(
     Series.describe: Generate descriptive statistics of Series.
     Series.memory_usage: Memory usage of Series."""
 )
+series_max_cols_sub = dedent(
+    """\
+    max_cols : int, optional
+        Unused, exists only for compatibility with DataFrame.info."""
+)
 
 
 series_sub_kwargs = {
     "klass": "Series",
     "type_sub": "",
-    "max_cols_sub": "",
+    "max_cols_sub": series_max_cols_sub,
     "show_counts_sub": show_counts_sub,
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub,
