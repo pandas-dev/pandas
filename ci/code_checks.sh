@@ -24,15 +24,15 @@ else
 fi
 
 [[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
-    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
+    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 1; }
 
-BASE_DIR="$(dirname $0)/.."
+BASE_DIR="$(dirname "$0")/.."
 RET=0
 
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
-    MSG='Check import. No warnings, and blocklist some optional dependencies' ; echo $MSG
+    MSG='Check import. No warnings, and blocklist some optional dependencies' ; echo "$MSG"
     python -W error -c "
 import sys
 import pandas
@@ -49,24 +49,24 @@ if mods:
     sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
     "
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
 
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Python and Cython Doctests' ; echo $MSG
+    MSG='Python and Cython Doctests' ; echo "$MSG"
     python -c 'import pandas as pd; pd.test(run_doctests=True)'
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
 
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate Docstrings' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py \
+    MSG='Validate Docstrings' ; echo "$MSG"
+    "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
@@ -79,12 +79,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.tzinfo GL08" \
-        -i "pandas.arrays.TimedeltaArray PR07,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
-        -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
-        -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.n GL08" \
@@ -148,7 +145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.holidays GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthBegin.is_on_offset SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.n GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.normalize GL08" \
@@ -156,7 +152,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.holidays GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthEnd.is_on_offset SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.n GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.normalize GL08" \
@@ -193,7 +188,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Hour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Hour.n GL08" \
         -i "pandas.tseries.offsets.Hour.normalize GL08" \
-        -i "pandas.tseries.offsets.LastWeekOfMonth SA01" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.n GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.normalize GL08" \
@@ -271,7 +265,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "notebooks" ]]; then
 
     MSG='Notebooks' ; echo $MSG
-    jupyter nbconvert --execute $(find doc/source -name '*.ipynb') --to notebook
+    jupyter nbconvert --execute "$(find doc/source -name '*.ipynb')" --to notebook
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

@@ -378,10 +378,20 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         arg : function
             To apply to each group. Should return a Series with the same index.
+        *args, **kwargs
+            Additional arguments and keywords.
 
         Returns
         -------
         Series
+            A Series with the transformed values, maintaining the same index as
+            the original object.
+
+        See Also
+        --------
+        core.resample.Resampler.apply : Apply a function along each group.
+        core.resample.Resampler.aggregate : Aggregate using one or more operations
+            over the specified axis.
 
         Examples
         --------
@@ -1259,8 +1269,53 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
     @final
-    @doc(GroupBy.median)
     def median(self, numeric_only: bool = False):
+        """
+        Compute median of groups, excluding missing values.
+
+        For multiple groupings, the result index will be a MultiIndex
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None`` and defaults to False.
+
+        Returns
+        -------
+        Series or DataFrame
+            Median of values within each group.
+
+        See Also
+        --------
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 3, 4, 5],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").median()
+        2023-01-01    2.0
+        2023-02-01    4.0
+        Freq: MS, dtype: float64
+        """
         return self._downsample("median", numeric_only=numeric_only)
 
     @final
@@ -1440,12 +1495,61 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @final
-    @doc(GroupBy.sem)
     def sem(
         self,
         ddof: int = 1,
         numeric_only: bool = False,
     ):
+        """
+        Compute standard error of the mean of groups, excluding missing values.
+
+        For multiple groupings, the result index will be a MultiIndex.
+
+        Parameters
+        ----------
+        ddof : int, default 1
+            Degrees of freedom.
+
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
+
+        Returns
+        -------
+        Series or DataFrame
+            Standard error of the mean of values within each group.
+
+        See Also
+        --------
+        DataFrame.sem : Return unbiased standard error of the mean over requested axis.
+        Series.sem : Return unbiased standard error of the mean over requested axis.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 8],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").sem()
+        2023-01-01    0.577350
+        2023-02-01    1.527525
+        Freq: MS, dtype: float64
+        """
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
     @final

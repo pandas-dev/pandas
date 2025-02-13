@@ -30,6 +30,13 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     """
     Helper function to convert DataFrame and Series to matplotlib.table.
 
+    This method provides an easy way to visualize tabular data within a Matplotlib
+    figure. It automatically extracts index and column labels from the DataFrame
+    or Series, unless explicitly specified. This function is particularly useful
+    when displaying summary tables alongside other plots or when creating static
+    reports. It utilizes the `matplotlib.pyplot.table` backend and allows
+    customization through various styling options available in Matplotlib.
+
     Parameters
     ----------
     ax : Matplotlib axes object
@@ -389,6 +396,12 @@ def andrews_curves(
     Returns
     -------
     :class:`matplotlib.axes.Axes`
+        The matplotlib Axes object with the plot.
+
+    See Also
+    --------
+    plotting.parallel_coordinates : Plot parallel coordinates chart.
+    DataFrame.plot : Make plots of Series or DataFrame.
 
     Examples
     --------

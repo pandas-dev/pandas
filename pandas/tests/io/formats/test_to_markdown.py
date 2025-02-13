@@ -35,8 +35,7 @@ def test_empty_frame():
     df.to_markdown(buf=buf)
     result = buf.getvalue()
     assert result == (
-        "| id   | first_name   | last_name   |\n"
-        "|------|--------------|-------------|"
+        "| id   | first_name   | last_name   |\n|------|--------------|-------------|"
     )
 
 
@@ -65,8 +64,7 @@ def test_series():
     s.to_markdown(buf=buf)
     result = buf.getvalue()
     assert result == (
-        "|    |   foo |\n|---:|------:|\n|  0 |     1 "
-        "|\n|  1 |     2 |\n|  2 |     3 |"
+        "|    |   foo |\n|---:|------:|\n|  0 |     1 |\n|  1 |     2 |\n|  2 |     3 |"
     )
 
 
