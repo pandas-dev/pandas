@@ -39,7 +39,7 @@ by [Wes McKinney](https://wesmckinney.com/), creator of pandas.
 You can try pandas in your browser with the following interactive shell
 without needing to install anything on your system.
 
-**Please note it can take a while before the shell is initialised and ready to run commands.**
+**Please note it can take a while (>30 seconds) before the shell is initialised and ready to run commands.**
 
 **Running it requires a reasonable amount of bandwidth and resources, so it may not work properly on all devices or networks.**
 
