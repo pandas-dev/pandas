@@ -134,10 +134,7 @@ def test_does_not_convert_mixed_integer(date_string, expected):
         (
             "2013Q1",
             {"freq": "INVLD-L-DEC-SAT"},
-            (
-                "Unable to retrieve month information "
-                "from given freq: INVLD-L-DEC-SAT"
-            ),
+            ("Unable to retrieve month information from given freq: INVLD-L-DEC-SAT"),
         ),
     ],
 )

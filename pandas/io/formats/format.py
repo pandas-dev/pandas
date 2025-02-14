@@ -78,7 +78,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
     check_parent_directory,
@@ -245,7 +244,11 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                _len = len(series)
+                _slice = np.hstack(
+                    [np.arange(row_num), np.arange(_len - row_num, _len)]
+                )
+                series = series.iloc[_slice]
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -894,9 +897,13 @@ class DataFrameRenderer:
             ``<table>`` tag, in addition to the default "dataframe".
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.display.html.border``.
+        border : int or bool
+            When an integer value is provided, it sets the border attribute in
+            the opening tag, specifying the thickness of the border.
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
+            The default value for this parameter is governed by
+            ``pd.options.display.html.border``.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False

@@ -241,7 +241,7 @@ def read_sql_table(  # pyright: ignore[reportOverlappingOverload]
     schema=...,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    parse_dates: list[str] | dict[str, str] | None = ...,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = ...,
     columns: list[str] | None = ...,
     chunksize: None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
@@ -255,7 +255,7 @@ def read_sql_table(
     schema=...,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    parse_dates: list[str] | dict[str, str] | None = ...,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = ...,
     columns: list[str] | None = ...,
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
@@ -268,7 +268,7 @@ def read_sql_table(
     schema: str | None = None,
     index_col: str | list[str] | None = None,
     coerce_float: bool = True,
-    parse_dates: list[str] | dict[str, str] | None = None,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -372,7 +372,7 @@ def read_sql_query(  # pyright: ignore[reportOverlappingOverload]
     index_col: str | list[str] | None = ...,
     coerce_float=...,
     params: list[Any] | Mapping[str, Any] | None = ...,
-    parse_dates: list[str] | dict[str, str] | None = ...,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
@@ -386,7 +386,7 @@ def read_sql_query(
     index_col: str | list[str] | None = ...,
     coerce_float=...,
     params: list[Any] | Mapping[str, Any] | None = ...,
-    parse_dates: list[str] | dict[str, str] | None = ...,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = ...,
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
@@ -399,7 +399,7 @@ def read_sql_query(
     index_col: str | list[str] | None = None,
     coerce_float: bool = True,
     params: list[Any] | Mapping[str, Any] | None = None,
-    parse_dates: list[str] | dict[str, str] | None = None,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -1651,10 +1651,18 @@ class SQLDatabase(PandasSQL):
 
     def execute(self, sql: str | Select | TextClause, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
+        from sqlalchemy.exc import SQLAlchemyError
+
         args = [] if params is None else [params]
         if isinstance(sql, str):
-            return self.con.exec_driver_sql(sql, *args)
-        return self.con.execute(sql, *args)
+            execute_function = self.con.exec_driver_sql
+        else:
+            execute_function = self.con.execute
+
+        try:
+            return execute_function(sql, *args)
+        except SQLAlchemyError as exc:
+            raise DatabaseError(f"Execution failed on sql '{sql}': {exc}") from exc
 
     def read_table(
         self,
@@ -2108,6 +2116,8 @@ class ADBCDatabase(PandasSQL):
             self.con.commit()
 
     def execute(self, sql: str | Select | TextClause, params=None):
+        from adbc_driver_manager import Error
+
         if not isinstance(sql, str):
             raise TypeError("Query must be a string unless using sqlalchemy.")
         args = [] if params is None else [params]
@@ -2115,10 +2125,10 @@ class ADBCDatabase(PandasSQL):
         try:
             cur.execute(sql, *args)
             return cur
-        except Exception as exc:
+        except Error as exc:
             try:
                 self.con.rollback()
-            except Exception as inner_exc:  # pragma: no cover
+            except Error as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
                     f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
@@ -2207,8 +2217,7 @@ class ADBCDatabase(PandasSQL):
         else:
             stmt = f"SELECT {select_list} FROM {table_name}"
 
-        with self.con.cursor() as cur:
-            cur.execute(stmt)
+        with self.execute(stmt) as cur:
             pa_table = cur.fetch_arrow_table()
             df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
@@ -2278,8 +2287,7 @@ class ADBCDatabase(PandasSQL):
         if chunksize:
             raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
 
-        with self.con.cursor() as cur:
-            cur.execute(sql)
+        with self.execute(sql) as cur:
             pa_table = cur.fetch_arrow_table()
             df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
@@ -2335,6 +2343,9 @@ class ADBCDatabase(PandasSQL):
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
+        pa = import_optional_dependency("pyarrow")
+        from adbc_driver_manager import Error
+
         if index_label:
             raise NotImplementedError(
                 "'index_label' is not implemented for ADBC drivers"
@@ -2364,12 +2375,10 @@ class ADBCDatabase(PandasSQL):
             if if_exists == "fail":
                 raise ValueError(f"Table '{table_name}' already exists.")
             elif if_exists == "replace":
-                with self.con.cursor() as cur:
-                    cur.execute(f"DROP TABLE {table_name}")
+                sql_statement = f"DROP TABLE {table_name}"
+                self.execute(sql_statement).close()
             elif if_exists == "append":
                 mode = "append"
-
-        import pyarrow as pa
 
         try:
             tbl = pa.Table.from_pandas(frame, preserve_index=index)
@@ -2377,9 +2386,14 @@ class ADBCDatabase(PandasSQL):
             raise ValueError("datatypes not supported") from exc
 
         with self.con.cursor() as cur:
-            total_inserted = cur.adbc_ingest(
-                table_name=name, data=tbl, mode=mode, db_schema_name=schema
-            )
+            try:
+                total_inserted = cur.adbc_ingest(
+                    table_name=name, data=tbl, mode=mode, db_schema_name=schema
+                )
+            except Error as exc:
+                raise DatabaseError(
+                    f"Failed to insert records on table={name} with {mode=}"
+                ) from exc
 
         self.con.commit()
         return total_inserted
@@ -2496,9 +2510,9 @@ class SQLiteTable(SQLTable):
         return str(";\n".join(self.table))
 
     def _execute_create(self) -> None:
-        with self.pd_sql.run_transaction() as conn:
+        with self.pd_sql.run_transaction() as cur:
             for stmt in self.table:
-                conn.execute(stmt)
+                cur.execute(stmt)
 
     def insert_statement(self, *, num_rows: int) -> str:
         names = list(map(str, self.frame.columns))
@@ -2520,8 +2534,13 @@ class SQLiteTable(SQLTable):
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter) -> int:
+        from sqlite3 import Error
+
         data_list = list(data_iter)
-        conn.executemany(self.insert_statement(num_rows=1), data_list)
+        try:
+            conn.executemany(self.insert_statement(num_rows=1), data_list)
+        except Error as exc:
+            raise DatabaseError("Execution failed") from exc
         return conn.rowcount
 
     def _execute_insert_multi(self, conn, keys, data_iter) -> int:
@@ -2643,6 +2662,8 @@ class SQLiteDatabase(PandasSQL):
             cur.close()
 
     def execute(self, sql: str | Select | TextClause, params=None):
+        from sqlite3 import Error
+
         if not isinstance(sql, str):
             raise TypeError("Query must be a string unless using sqlalchemy.")
         args = [] if params is None else [params]
@@ -2650,10 +2671,10 @@ class SQLiteDatabase(PandasSQL):
         try:
             cur.execute(sql, *args)
             return cur
-        except Exception as exc:
+        except Error as exc:
             try:
                 self.con.rollback()
-            except Exception as inner_exc:  # pragma: no cover
+            except Error as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
                     f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )

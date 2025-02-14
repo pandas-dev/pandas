@@ -192,9 +192,9 @@ def should_cache(
         else:
             check_count = 500
     else:
-        assert (
-            0 <= check_count <= len(arg)
-        ), "check_count must be in next bounds: [0; len(arg)]"
+        assert 0 <= check_count <= len(arg), (
+            "check_count must be in next bounds: [0; len(arg)]"
+        )
         if check_count == 0:
             return False
 

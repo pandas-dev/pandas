@@ -763,8 +763,7 @@ class TestiLocBaseIndependent:
             "(index of the boolean Series and of the "
             "indexed object do not match).",
             ("locs", ".iloc"): (
-                "iLocation based boolean indexing on an "
-                "integer type is not available"
+                "iLocation based boolean indexing on an integer type is not available"
             ),
         }
 
