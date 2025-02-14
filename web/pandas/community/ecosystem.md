@@ -158,7 +158,7 @@ df = pd.read_csv("data.csv")
 df  # discover interesting insights!
 ```
 
-By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
+By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
 
 ### [D-Tale](https://github.com/man-group/dtale)
 
@@ -342,7 +342,7 @@ It supports the following data types:
 
 - pandas data types
 - data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
-- data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
+- data types defined in [Table Schema specification](https://datapackage.org/standard/table-schema/)
 
 The interface is always reversible (conversion round trip) with two formats (JSON-NTV and JSON-TableSchema).
 
