@@ -11,7 +11,7 @@ The interactive REPL is built with the `jupyter lite` CLI.
 First make sure `jupyterlite` and a kernel are installed:
 
 ```bash
-python -m pip install jupyterlite
+python -m pip install jupyterlite-core
 python -m pip install jupyterlite-pyodide-kernel
 ```
 
