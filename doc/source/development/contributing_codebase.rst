@@ -344,7 +344,7 @@ be located.
    - tests.scalar
    - tests.tseries.offsets
 
-2. Does your test depend only on code in pd._libs?
+2. Does your test depend only on code in ``pd._libs``?
    This test likely belongs in one of:
 
    - tests.libs
