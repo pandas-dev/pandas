@@ -2628,7 +2628,13 @@ class ExtensionArray:
             if op.how not in ["any", "all"]:
                 # Fail early to avoid conversion to object
                 op._get_cython_function(op.kind, op.how, np.dtype(object), False)
-            npvalues = self.to_numpy(object, na_value=np.nan)
+
+            arr = self
+            if op.how == "sum":
+                assert "skipna" in kwargs
+                if kwargs["skipna"] and min_count == 0:
+                    arr = arr.fillna("")
+            npvalues = arr.to_numpy(object, na_value=np.nan)
         else:
             raise NotImplementedError(
                 f"function is not implemented for this dtype: {self.dtype}"
