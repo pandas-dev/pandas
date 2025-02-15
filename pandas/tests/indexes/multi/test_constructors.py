@@ -857,3 +857,55 @@ def test_dtype_representation(using_infer_string):
         dtype=object,
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_from_tuples_different_lengths_gh60695():
+    """
+    Test that MultiIndex.from_tuples properly handles tuples of different lengths.
+    
+    GH#60695
+    """
+    # Test case 1: Original issue example
+    tuples = [("l1",), ("l1", "l2")]
+    result = pd.MultiIndex.from_tuples(tuples)
+    expected = pd.MultiIndex.from_tuples([("l1", np.nan), ("l1", "l2")])
+    tm.assert_index_equal(result, expected)
+
+    # Test case 2: Series construction with tuple keys
+    s = pd.Series({("l1",): "v1", ("l1", "l2"): "v2"})
+    expected = pd.Series(
+        ["v1", "v2"],
+        index=pd.MultiIndex.from_tuples([("l1", np.nan), ("l1", "l2")])
+    )
+    tm.assert_series_equal(s, expected)
+
+    # Test case 3: Multiple levels with None
+    data = {(1, 1, None): -1.0}
+    result = pd.Series(data)
+    expected = pd.Series(
+        -1.0,
+        index=pd.MultiIndex.from_tuples([(1, 1, np.nan)]),
+    )
+    tm.assert_series_equal(result, expected)
+
+    # Test case 4: Mixed length tuples
+    tuples = [("a",), ("b", "c"), ("d", "e", "f")]
+    result = pd.MultiIndex.from_tuples(tuples)
+    expected = pd.MultiIndex.from_tuples([
+        ("a", np.nan, np.nan),
+        ("b", "c", np.nan),
+        ("d", "e", "f")
+    ])
+    tm.assert_index_equal(result, expected)
+
+    # Test case 5: DataFrame with tuple index
+    df = pd.DataFrame(
+        {"col": ["v1", "v2"]},
+        index=pd.MultiIndex.from_tuples([("l1",), ("l1", "l2")])
+    )
+    expected_index = pd.MultiIndex.from_tuples([("l1", np.nan), ("l1", "l2")])
+    expected_df = pd.DataFrame(
+        {"col": ["v1", "v2"]},
+        index=expected_index
+    )
+    tm.assert_frame_equal(df, expected_df)
