@@ -1131,6 +1131,12 @@ class HDFStore:
         """
         Store object in HDFStore.
 
+        This method writes a pandas DataFrame or Series into an HDF5 file using
+        either the fixed or table format. The `table` format allows additional
+        operations like incremental appends and queries but may have performance
+        trade-offs. The `fixed` format provides faster read/write operations but
+        does not support appends or queries.
+
         Parameters
         ----------
         key : str
@@ -5118,6 +5124,9 @@ def _maybe_convert_for_string_atom(
     errors,
     columns: list[str],
 ):
+    if isinstance(bvalues.dtype, StringDtype):
+        # "ndarray[Any, Any]" has no attribute "to_numpy"
+        bvalues = bvalues.to_numpy()  # type: ignore[union-attr]
     if bvalues.dtype != object:
         return bvalues
 
