@@ -974,24 +974,22 @@ class SQLTable(PandasObject):
     def _exists_temporary(self):
         """Check if a temporary table exists. Temporary tables are not in a database's
         meta data. The existence is duck tested by a SELECT statement."""
-        from sqlalchemy.exc import (
-            OperationalError,
-            ProgrammingError,
-        )
+        from sqlalchemy import text
+        from sqlalchemy.exc import DatabaseError
 
         if self.schema is None:
             query = f"SELECT * FROM {self.name} LIMIT 1"
         else:
             query = f"SELECT * FROM {self.schema}.{self.name} LIMIT 1"
         try:
-            _ = self.pd_sql.read_query(query)
+            _ = self.pd_sql.con.execute(text(query))
             return True
-        except ProgrammingError:
-            # Some DBMS (e.g. postgres) require a rollback after a caught exception
-            self.pd_sql.execute("rollback")
-            return False
-        except OperationalError:
-            return False
+        except DatabaseError:
+            try:
+                self.pd_sql.con.execute(text("rollback"))
+                return False
+            except DatabaseError:
+                return False
 
     def exists(self):
         if self.temporary:
