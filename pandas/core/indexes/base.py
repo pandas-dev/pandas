@@ -4719,11 +4719,13 @@ class Index(IndexOpsMixin, PandasObject):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
             old_codes = left.codes[level]
 
+            # Handle missing values explicitly
             taker = old_codes[old_codes != -1]
             new_lev_codes = rev_indexer.take(taker)
 
+            # Insert NaNs back into the new codes
             new_codes = list(left.codes)
-            new_codes[level] = new_lev_codes
+            new_codes[level] = np.where(old_codes == -1, -1, new_lev_codes)
 
             new_levels = list(left.levels)
             new_levels[level] = new_level
