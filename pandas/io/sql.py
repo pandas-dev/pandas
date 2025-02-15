@@ -985,6 +985,7 @@ class SQLTable(PandasObject):
             _ = self.pd_sql.con.execute(text(query))
             return True
         except DatabaseError:
+            # Some DBMS (e.g. postgres) require a rollback after a caught exception
             try:
                 self.pd_sql.con.execute(text("rollback"))
                 return False
@@ -2461,11 +2462,6 @@ class ADBCDatabase(PandasSQL):
         meta data. The existence is duck tested by a SELECT statement."""
         from adbc_driver_manager import ProgrammingError
 
-        # sqlite doesn't allow a rollback at this point
-        rollback = (
-            True if not self.con.adbc_get_info()["vendor_name"] == "SQLite" else False
-        )
-
         if schema is None:
             query = f"SELECT * FROM {name} LIMIT 1"
         else:
@@ -2475,11 +2471,13 @@ class ADBCDatabase(PandasSQL):
                 cur.execute(query)
             return True
         except ProgrammingError:
-            if rollback:
-                # Some DBMS (e.g. postgres) require a rollback after a caught exception
+            # Some DBMS (e.g. postgres) require a rollback after a caught exception
+            try:
                 with self.con.cursor() as cur:
                     cur.execute("rollback")
-            return False
+                return False
+            except ProgrammingError:
+                return False
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
