@@ -406,6 +406,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Return a new object with updated flags.
 
+        This method creates a shallow copy of the original object, preserving its
+        underlying data while modifying its global flags. In particular, it allows
+        you to update properties such as whether duplicate labels are permitted. This
+        behavior is especially useful in method chains, where one wishes to
+        adjust DataFrame or Series characteristics without altering the original object.
+
         Parameters
         ----------
         copy : bool, default False
@@ -640,7 +646,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        ndarray.ndim : Number of array dimensions.
+        numpy.ndarray.ndim : Number of array dimensions.
 
         Examples
         --------
@@ -665,7 +671,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        ndarray.size : Number of elements in the array.
+        numpy.ndarray.size : Number of elements in the array.
 
         Examples
         --------
@@ -3878,6 +3884,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> import os  # doctest: +SKIP
         >>> os.makedirs("folder/subfolder", exist_ok=True)  # doctest: +SKIP
         >>> df.to_csv("folder/subfolder/out.csv")  # doctest: +SKIP
+
+        Format floats to two decimal places:
+
+        >>> df.to_csv("out1.csv", float_format="%.2f")  # doctest: +SKIP
+
+        Format floats using scientific notation:
+
+        >>> df.to_csv("out2.csv", float_format="{{:.2e}}".format)  # doctest: +SKIP
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -4876,7 +4890,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return a Series with the same shape as the input.
-            It will be applied to each column in `by` independently.
+            It will be applied to each column in `by` independently. The values in the
+            returned Series will be used as the keys for sorting.
 
         Returns
         -------
@@ -5528,8 +5543,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nkw = common.count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError(
-                "Keyword arguments `items`, `like`, or `regex` "
-                "are mutually exclusive"
+                "Keyword arguments `items`, `like`, or `regex` are mutually exclusive"
             )
 
         if axis is None:

@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -11,8 +12,17 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
+
+numba = pytest.importorskip("numba")
+pytestmark.append(
+    pytest.mark.skipif(
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 @pytest.fixture(params=["single", "table"])
@@ -458,6 +468,38 @@ class TestTableMethod:
             f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_table_method_rolling_apply_col_order(self):
+        # GH#59666
+        def f(x):
+            return np.nanmean(x[:, 0] - x[:, 1])
+
+        df = DataFrame(
+            {
+                "a": [1, 2, 3, 4, 5, 6],
+                "b": [6, 7, 8, 5, 6, 7],
+            }
+        )
+        result = df.rolling(3, method="table", min_periods=0)[["a", "b"]].apply(
+            f, raw=True, engine="numba"
+        )
+        expected = DataFrame(
+            {
+                "a": [-5, -5, -5, -3.66667, -2.33333, -1],
+                "b": [-5, -5, -5, -3.66667, -2.33333, -1],
+            }
+        )
+        tm.assert_almost_equal(result, expected)
+        result = df.rolling(3, method="table", min_periods=0)[["b", "a"]].apply(
+            f, raw=True, engine="numba"
+        )
+        expected = DataFrame(
+            {
+                "b": [5, 5, 5, 3.66667, 2.33333, 1],
+                "a": [5, 5, 5, 3.66667, 2.33333, 1],
+            }
+        )
+        tm.assert_almost_equal(result, expected)
 
     def test_table_method_rolling_weighted_mean(self, step):
         def weighted_mean(x):

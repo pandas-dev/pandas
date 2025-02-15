@@ -990,7 +990,7 @@ Thousand separators
 
 For large numbers that have been written with a thousands separator, you can
 set the ``thousands`` keyword to a string of length 1 so that integers will be parsed
-correctly:
+correctly.
 
 By default, numbers with a thousands separator will be parsed as strings:
 
@@ -2340,6 +2340,7 @@ Read a URL with no options:
 .. code-block:: ipython
 
    In [320]: url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+
    In [321]: pd.read_html(url)
    Out[321]:
    [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
@@ -2366,6 +2367,7 @@ Read a URL while passing headers alongside the HTTP request:
 .. code-block:: ipython
 
    In [322]: url = 'https://www.sump.org/notes/request/' # HTTP request reflector
+
    In [323]: pd.read_html(url)
    Out[323]:
    [                   0                    1
@@ -2378,14 +2380,16 @@ Read a URL while passing headers alongside the HTTP request:
     1              Host:         www.sump.org
     2        User-Agent:    Python-urllib/3.8
     3        Connection:                close]
+
    In [324]: headers = {
-   In [325]:    'User-Agent':'Mozilla Firefox v14.0',
-   In [326]:    'Accept':'application/json',
-   In [327]:    'Connection':'keep-alive',
-   In [328]:    'Auth':'Bearer 2*/f3+fe68df*4'
-   In [329]: }
-   In [340]: pd.read_html(url, storage_options=headers)
-   Out[340]:
+      .....:    'User-Agent':'Mozilla Firefox v14.0',
+      .....:    'Accept':'application/json',
+      .....:    'Connection':'keep-alive',
+      .....:    'Auth':'Bearer 2*/f3+fe68df*4'
+      .....: }
+
+   In [325]: pd.read_html(url, storage_options=headers)
+   Out[325]:
    [                   0                    1
     0     Remote Socket:  51.15.105.256:51760
     1  Protocol Version:             HTTP/1.1

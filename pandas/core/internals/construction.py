@@ -417,8 +417,7 @@ def dict_to_mgr(
             else x.copy(deep=True)
             if (
                 isinstance(x, Index)
-                or isinstance(x, ABCSeries)
-                and is_1d_only_ea_dtype(x.dtype)
+                or (isinstance(x, ABCSeries) and is_1d_only_ea_dtype(x.dtype))
             )
             else x
             for x in arrays
@@ -908,8 +907,7 @@ def _validate_or_indexify_columns(
         if not is_mi_list and len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
             raise AssertionError(
-                f"{len(columns)} columns passed, passed data had "
-                f"{len(content)} columns"
+                f"{len(columns)} columns passed, passed data had {len(content)} columns"
             )
         if is_mi_list:
             # check if nested list column, length of each sub-list should be equal

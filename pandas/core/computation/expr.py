@@ -512,8 +512,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             )
 
         if self.engine != "pytables" and (
-            res.op in CMP_OPS_SYMS
-            and getattr(lhs, "is_datetime", False)
+            (res.op in CMP_OPS_SYMS and getattr(lhs, "is_datetime", False))
             or getattr(rhs, "is_datetime", False)
         ):
             # all date ops must be done in python bc numexpr doesn't work
@@ -699,7 +698,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if not isinstance(key, ast.keyword):
                     # error: "expr" has no attribute "id"
                     raise ValueError(
-                        "keyword error in function call " f"'{node.func.id}'"  # type: ignore[attr-defined]
+                        f"keyword error in function call '{node.func.id}'"  # type: ignore[attr-defined]
                     )
 
                 if key.arg:
