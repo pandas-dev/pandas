@@ -899,16 +899,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         ------
         NotImplementedError : subclass does not define accumulations
         """
-        if is_string_dtype(self):
-            return self._str_accumulate(name=name, skipna=skipna, **kwargs)
-        return super()._accumulate(name=name, skipna=skipna, **kwargs)
-
-    def _str_accumulate(
-        self, name: str, *, skipna: bool = True, **kwargs
-    ) -> StringArray:
-        """
-        Accumulate implementation for strings, see `_accumulate` docstring for details.
-        """
         if name == "cumprod":
             msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
             raise TypeError(msg)
