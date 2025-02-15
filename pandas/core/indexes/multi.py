@@ -7,6 +7,7 @@ from collections.abc import (
     Hashable,
     Iterable,
     Sequence,
+    List,
 )
 from functools import wraps
 from sys import getsizeof
@@ -15,6 +16,7 @@ from typing import (
     Any,
     Literal,
     cast,
+    ArrayLike,
 )
 import warnings
 
@@ -526,37 +528,52 @@ class MultiIndex(Index):
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
+
+        Parameters
+        ----------
+        tuples : list / sequence of tuple-likes
+            Each tuple is the index of one row/column.
+        sortorder : int or None
+            Level of sortedness (must be lexicographically sorted by that level).
+        names : list / sequence of str, optional
+            Names for the levels in the index.
+
+        Returns
+        -------
+        MultiIndex
         """
         if not is_list_like(tuples):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
-        
+
         if is_iterator(tuples):
             tuples = list(tuples)
-        
-        # Cast to proper tuple type
+
         tuples = cast(Collection[tuple[Hashable, ...]], tuples)
-        
+
         if len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
-            arrays = [[]] * len(names)
-        elif isinstance(tuples, (np.ndarray, Index)):
+            names_seq = cast(Sequence[Hashable], names)
+            arrays: List[ArrayLike] = [[]] * len(names_seq)
+            return cls.from_arrays(arrays, sortorder=sortorder, names=names)
+
+        if isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = np.asarray(tuples._values)
             arrays = list(lib.tuples_to_object_array(tuples).T)
-        elif isinstance(tuples, list):
-            # Find the maximum length of tuples
-            max_length = max((len(t) for t in tuples), default=0)
-            
-            # Pad shorter tuples with np.nan
-            padded_tuples = [
-                t + (np.nan,) * (max_length - len(t)) for t in tuples
-            ]
-            arrays = list(lib.to_object_array_tuples(padded_tuples).T)
-        else:
-            from itertools import zip_longest
-            arrays = list(zip_longest(*tuples, fillvalue=np.nan))
+            return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
+        # Convert to list and process
+        tuples_list = list(tuples)
+        max_length = max(len(t) if isinstance(t, tuple) else 1 for t in tuples_list)
+        
+        result_tuples = []
+        for t in tuples_list:
+            if not isinstance(t, tuple):
+                t = (t,)
+            result_tuples.append(t + (np.nan,) * (max_length - len(t)))
+
+        arrays = list(lib.to_object_array_tuples(result_tuples).T)
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
