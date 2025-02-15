@@ -1,37 +1,59 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Callable,
+    Collection,
+    Generator,
+    Hashable,
+    Iterable,
+    Sequence,
+)
+from functools import wraps
+from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Collection,
-    Hashable,
-    Iterable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     cast,
-    overload,
 )
+import warnings
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._libs.hashtable import duplicated_int64
+from pandas._config import get_option
+
+from pandas._libs import (
+    algos as libalgos,
+    index as libindex,
+    lib,
+)
+from pandas._libs.hashtable import duplicated
 from pandas._typing import (
-    ArrayLike,
+    AnyAll,
+    AnyArrayLike,
     Axis,
+    DropKeep,
     DtypeObj,
     F,
+    IgnoreRaise,
+    IndexLabel,
+    IndexT,
+    Scalar,
+    Self,
     Shape,
     npt,
 )
-from pandas.errors import InvalidIndexError
+from pandas.compat.numpy import function as nv
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+    UnsortedIndexError,
+)
 from pandas.util._decorators import (
+    Appender,
     cache_readonly,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -39,17 +61,42 @@ from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_categorical_dtype,
-    is_extension_array_dtype,
+    is_hashable,
+    is_integer,
+    is_iterator,
     is_list_like,
     is_object_dtype,
+    is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
+from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+    isna,
+)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.array_algos.putmask import validate_putmask
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
+from pandas.core.arrays.categorical import (
+    factorize_from_iterables,
+    recode_for_categories,
+)
+import pandas.core.common as com
+from pandas.core.construction import sanitize_array
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,
@@ -57,9 +104,20 @@ from pandas.core.indexes.base import (
     get_unanimous_names,
 )
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.ops.invalid import make_invalid_op
+from pandas.core.sorting import (
+    get_group_index,
+    lexsort_indexer,
+)
+
+from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import (
+        CategoricalIndex,
+        DataFrame,
+        Series,
+    )
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -468,54 +526,44 @@ class MultiIndex(Index):
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
-
-        Parameters
-        ----------
-        tuples : list / sequence of tuple-likes
-            Each tuple is the index of one row/column.
-        sortorder : int or None
-            Level of sortedness (must be lexicographically sorted by that level).
-        names : list / sequence of str, optional
-            Names for the levels in the index.
-
-        Returns
-        -------
-        MultiIndex
         """
         if not is_list_like(tuples):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
-
-        # Handle empty tuples case first
-        if isinstance(tuples, (list, tuple)) and len(tuples) == 0:
-            if names is None:
-                raise TypeError("Cannot infer number of levels from empty list")
-            names_seq = cast(Sequence[Hashable], names)
-            arrays: List[ArrayLike] = [[]] * len(names_seq)
-            return cls.from_arrays(arrays, sortorder=sortorder, names=names)
-
-        # Convert iterator to list
+        
         if is_iterator(tuples):
             tuples = list(tuples)
-
+        
         tuples = cast(Collection[tuple[Hashable, ...]], tuples)
 
-        # Handle numpy array or Index
-        if isinstance(tuples, (np.ndarray, Index)):
+        # handling the empty tuple cases
+        if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
+            codes = [np.zeros(len(tuples))]
+            levels = [Index(com.asarray_tuplesafe(tuples, dtype=np.dtype("object")))]
+            return cls(
+                levels=levels,
+                codes=codes,
+                sortorder=sortorder,
+                names=names,
+                verify_integrity=False,
+            )
+
+        arrays: list[Sequence[Hashable]]
+        if len(tuples) == 0:
+            if names is None:
+                raise TypeError("Cannot infer number of levels from empty list")
+            # error: Argument 1 to "len" has incompatible type "Hashable";
+            # expected "Sized"
+            arrays = [[]] * len(names)  # type: ignore[arg-type]
+        elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = np.asarray(tuples._values)
-            arrays = list(lib.tuples_to_object_array(tuples).T)
-            return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
-        # Convert to list and normalize
-        tuples_list = [t if isinstance(t, tuple) else (t,) for t in tuples]
-        if not tuples_list:
-            arrays = []
+            arrays = list(lib.tuples_to_object_array(tuples).T)
+        elif isinstance(tuples, list):
+            arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            max_length = max(len(t) for t in tuples_list)
-            result_tuples = [
-                t + (np.nan,) * (max_length - len(t)) for t in tuples_list
-            ]
-            arrays = list(lib.to_object_array_tuples(result_tuples).T)
+            arrs = zip(*tuples)
+            arrays = cast(list[Sequence[Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
