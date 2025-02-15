@@ -9,6 +9,7 @@ from collections.abc import (
     Mapping,
     Sequence,
     List,
+    Iterator,
 )
 from functools import wraps
 from sys import getsizeof
