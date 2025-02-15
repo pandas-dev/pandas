@@ -6,6 +6,7 @@ from collections.abc import (
     Generator,
     Hashable,
     Iterable,
+    Mapping,
     Sequence,
     List,
 )
@@ -17,6 +18,7 @@ from typing import (
     Literal,
     cast,
     ArrayLike,
+    overload,
 )
 import warnings
 
@@ -29,7 +31,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
-from pandas._libs.hashtable import duplicated
+from pandas._libs.hashtable import duplicated, duplicated_int64
 from pandas._typing import (
     AnyAll,
     AnyArrayLike,
