@@ -1,14 +1,21 @@
 # Assignment and plans
 ### Function Assignments:
-- Each group member will analyze, test, and improve a specific function in `groupby.py` from Pandas:
+- Each group member will analyze, test, and improve a specific function from Pandas:
   - **Herdi**: `apply()`
+    - CCN 10
   - **Ahmed**: `quantile()`
+    - CCN 13
   - **Maxim**: `shift()` 
+    - CCN 13
   - **Kim**: `_evaluate_numexp()`
-  - **Annika**: `time()`
+    - CCN 9
+  - **Annika**: `to_time()`
+    - CCN 16
 
+CCN measured through `lizard`.
 ### Tools
   - Measuring complexity using `Lizard`.
+    - Install `Lizard` by running `pip install lizard`. Documentation can be found [here](https://pypi.org/project/lizard/).
   - Manually instrumenting coverage with print/logging statements.
   - Comparing results with an automated coverage tool such as `Coverage.py`.
     - Install `Coverage.py` by runnning `python3 -m pip install coverage`. Documentation can be found [here](https://coverage.readthedocs.io/en/7.6.12/).
