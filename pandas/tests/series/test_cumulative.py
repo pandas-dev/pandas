@@ -265,10 +265,11 @@ class TestSeriesCumulativeOps:
             ([pd.NA, pd.NA, pd.NA], "cummax", False, [pd.NA, pd.NA, pd.NA]),
         ],
     )
-    def test_cum_methods_pyarrow_strings(
+    def test_cum_methods_ea_strings(
         self, string_dtype_no_object, data, op, skipna, expected_data
     ):
-        # https://github.com/pandas-dev/pandas/pull/60633
+        # https://github.com/pandas-dev/pandas/pull/60633 - pyarrow
+        # https://github.com/pandas-dev/pandas/pull/60938 - Python
         ser = pd.Series(data, dtype=string_dtype_no_object)
         method = getattr(ser, op)
         expected = pd.Series(expected_data, dtype=string_dtype_no_object)

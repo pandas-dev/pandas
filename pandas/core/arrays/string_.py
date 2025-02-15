@@ -49,6 +49,7 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import (
+    missing,
     nanops,
     ops,
 )
@@ -907,8 +908,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     ) -> StringArray:
         """
         Accumulate implementation for strings, see `_accumulate` docstring for details.
-
-        pyarrow.compute does not implement these methods for strings.
         """
         if name == "cumprod":
             msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
@@ -923,8 +922,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             "cummin": np.minimum.accumulate,
             "cummax": np.maximum.accumulate,
         }[name]
-
-        from pandas.core import missing
 
         if self._hasna:
             na_mask = isna(ndarray)
