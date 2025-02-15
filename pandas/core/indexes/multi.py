@@ -6,6 +6,7 @@ from collections.abc import (
     Generator,
     Hashable,
     Iterable,
+    Mapping,
     Sequence,
     List,
 )
