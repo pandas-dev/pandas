@@ -325,9 +325,9 @@ def test_observed(request, using_infer_string, observed):
     # gh-8138 (back-compat)
     # gh-8869
 
-    if using_infer_string and not observed:
-        # TODO(infer_string) this fails with filling the string column with 0
-        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
+    # if using_infer_string and not observed:
+    #     # TODO(infer_string) this fails with filling the string column with 0
+    #     request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     cat1 = Categorical(["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True)
     cat2 = Categorical(["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True)
@@ -355,10 +355,12 @@ def test_observed(request, using_infer_string, observed):
     )
     result = gb.sum()
     if not observed:
+        fill_value = "" if using_infer_string else 0
         expected = cartesian_product_for_groupers(
-            expected, [cat1, cat2], list("AB"), fill_value=0
+            expected, [cat1, cat2], list("AB"), fill_value=fill_value
         )
-
+    print(result)
+    print(expected)
     tm.assert_frame_equal(result, expected)
 
 

@@ -266,12 +266,12 @@ class TestSeriesCumulativeOps:
         ],
     )
     def test_cum_methods_pyarrow_strings(
-        self, pyarrow_string_dtype, data, op, skipna, expected_data
+        self, string_dtype_no_object, data, op, skipna, expected_data
     ):
         # https://github.com/pandas-dev/pandas/pull/60633
-        ser = pd.Series(data, dtype=pyarrow_string_dtype)
+        ser = pd.Series(data, dtype=string_dtype_no_object)
         method = getattr(ser, op)
-        expected = pd.Series(expected_data, dtype=pyarrow_string_dtype)
+        expected = pd.Series(expected_data, dtype=string_dtype_no_object)
         result = method(skipna=skipna)
         tm.assert_series_equal(result, expected)
 

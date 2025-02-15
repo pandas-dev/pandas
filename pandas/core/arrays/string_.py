@@ -870,6 +870,100 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> StringArray:
+        """
+        Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, there is no supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        NotImplementedError : subclass does not define accumulations
+        """
+        if is_string_dtype(self):
+            return self._str_accumulate(name=name, skipna=skipna, **kwargs)
+        return super()._accumulate(name=name, skipna=skipna, **kwargs)
+
+    def _str_accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> StringArray:
+        """
+        Accumulate implementation for strings, see `_accumulate` docstring for details.
+
+        pyarrow.compute does not implement these methods for strings.
+        """
+        if name == "cumprod":
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg)
+
+        # We may need to strip out trailing NA values
+        tail: np.array | None = None
+        na_mask: np.array | None = None
+        ndarray = self._ndarray
+        np_func = {
+            "cumsum": np.cumsum,
+            "cummin": np.minimum.accumulate,
+            "cummax": np.maximum.accumulate,
+        }[name]
+
+        from pandas.core import missing
+
+        if self._hasna:
+            na_mask = isna(ndarray)
+            if np.all(na_mask):
+                return type(self)(ndarray)
+            if skipna:
+                if name == "cumsum":
+                    ndarray = np.where(na_mask, "", ndarray)
+                else:
+                    # We can retain the running min/max by forward/backward filling.
+                    ndarray = ndarray.copy()
+                    missing.pad_or_backfill_inplace(
+                        ndarray.T,
+                        method="pad",
+                        axis=0,
+                    )
+                    missing.pad_or_backfill_inplace(
+                        ndarray.T,
+                        method="backfill",
+                        axis=0,
+                    )
+            else:
+                # When not skipping NA values, the result should be null from
+                # the first NA value onward.
+                idx = np.argmax(na_mask)
+                tail = np.empty(len(ndarray) - idx, dtype="object")
+                tail[:] = np.nan
+                ndarray = ndarray[:idx]
+
+        np_result = np_func(ndarray)
+
+        if tail is not None:
+            np_result = np.hstack((np_result, tail))
+        elif na_mask is not None:
+            np_result = np.where(na_mask, np.nan, np_result)
+
+        result = type(self)(np_result)
+        return result
+
     def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
         if self.dtype.na_value is np.nan and result is libmissing.NA:
             # the masked_reductions use pd.NA -> convert to np.nan
