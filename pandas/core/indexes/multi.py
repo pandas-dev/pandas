@@ -1,62 +1,37 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    Mapping,
-    Sequence,
-    List,
-)
-from functools import wraps
-from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
+    Collection,
+    Hashable,
+    Iterable,
+    Iterator,
+    List,
     Literal,
+    Mapping,
+    Sequence,
     cast,
-    ArrayLike,
+    overload,
 )
-import warnings
 
 import numpy as np
 
-from pandas._config import get_option
-
-from pandas._libs import (
-    algos as libalgos,
-    index as libindex,
-    lib,
-)
-from pandas._libs.hashtable import duplicated
+from pandas._libs import lib
+from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import (
-    AnyAll,
-    AnyArrayLike,
+    ArrayLike,
     Axis,
-    DropKeep,
     DtypeObj,
     F,
-    IgnoreRaise,
-    IndexLabel,
-    IndexT,
-    Scalar,
-    Self,
     Shape,
     npt,
 )
-from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-    UnsortedIndexError,
-)
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
-    Appender,
     cache_readonly,
     doc,
-    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -64,42 +39,17 @@ from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_hashable,
-    is_integer,
-    is_iterator,
+    is_categorical_dtype,
+    is_extension_array_dtype,
     is_list_like,
     is_object_dtype,
-    is_scalar,
-    is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    ExtensionDtype,
-)
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
-from pandas.core.dtypes.inference import is_array_like
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    isna,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import validate_putmask
-from pandas.core.arrays import (
-    Categorical,
-    ExtensionArray,
-)
-from pandas.core.arrays.categorical import (
-    factorize_from_iterables,
-    recode_for_categories,
-)
-import pandas.core.common as com
-from pandas.core.construction import sanitize_array
-import pandas.core.indexes.base as ibase
+from pandas.core.arrays.categorical import Categorical
 from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,
@@ -107,20 +57,9 @@ from pandas.core.indexes.base import (
     get_unanimous_names,
 )
 from pandas.core.indexes.frozen import FrozenList
-from pandas.core.ops.invalid import make_invalid_op
-from pandas.core.sorting import (
-    get_group_index,
-    lexsort_indexer,
-)
-
-from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import (
-        CategoricalIndex,
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
