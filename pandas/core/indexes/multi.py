@@ -545,25 +545,28 @@ class MultiIndex(Index):
         if not is_list_like(tuples):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
 
-        if is_iterator(tuples):
-            tuples = list(tuples)
-
-        tuples = cast(Collection[tuple[Hashable, ...]], tuples)
-
-        if len(tuples) == 0:
+        # Handle empty tuples case first
+        if isinstance(tuples, (list, tuple)) and len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
             names_seq = cast(Sequence[Hashable], names)
             arrays: List[ArrayLike] = [[]] * len(names_seq)
             return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
+        # Convert iterator to list
+        if is_iterator(tuples):
+            tuples = list(tuples)
+
+        tuples = cast(Collection[tuple[Hashable, ...]], tuples)
+
+        # Handle numpy array or Index
         if isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = np.asarray(tuples._values)
             arrays = list(lib.tuples_to_object_array(tuples).T)
             return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
-        # Convert to list and process
+        # Convert to list and normalize
         tuples_list = list(tuples)
         max_length = max(len(t) if isinstance(t, tuple) else 1 for t in tuples_list)
         
