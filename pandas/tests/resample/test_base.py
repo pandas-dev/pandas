@@ -225,7 +225,7 @@ def test_resample_empty_series(freq, index, resample_method):
 
 @pytest.mark.parametrize("min_count", [0, 1])
 def test_resample_empty_sum_string(string_dtype_no_object, min_count):
-    # GH#???
+    # https://github.com/pandas-dev/pandas/issues/60229
     dtype = string_dtype_no_object
     ser = Series(
         pd.NA,

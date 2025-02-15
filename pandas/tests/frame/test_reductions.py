@@ -837,7 +837,7 @@ class TestDataFrameAnalytics:
 
     @pytest.mark.parametrize("min_count", [0, 1])
     def test_axis_1_sum_na(self, string_dtype_no_object, skipna, min_count):
-        # GH#???
+        # https://github.com/pandas-dev/pandas/issues/60229
         dtype = string_dtype_no_object
         df = DataFrame({"a": [pd.NA]}, dtype=dtype)
         result = df.sum(axis=1, skipna=skipna, min_count=min_count)

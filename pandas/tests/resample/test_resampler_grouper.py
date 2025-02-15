@@ -498,7 +498,7 @@ def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
 def test_groupby_resample_empty_sum_string(
     string_dtype_no_object, test_frame, min_count
 ):
-    # GH#???
+    # https://github.com/pandas-dev/pandas/issues/60229
     dtype = string_dtype_no_object
     test_frame = test_frame.assign(B=pd.array([pd.NA] * len(test_frame), dtype=dtype))
     gbrs = test_frame.groupby("A").resample("40s")

@@ -957,7 +957,7 @@ def test_min_empty_string_dtype(func, string_dtype_no_object):
 
 @pytest.mark.parametrize("min_count", [0, 1])
 def test_string_dtype_empty_sum(string_dtype_no_object, skipna, min_count):
-    # GH#???
+    # https://github.com/pandas-dev/pandas/issues/60229
     dtype = string_dtype_no_object
     df = DataFrame({"a": ["x"], "b": [pd.NA]}, dtype=dtype)
     gb = df.groupby("a")

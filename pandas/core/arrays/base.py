@@ -2631,6 +2631,8 @@ class ExtensionArray:
 
             arr = self
             if op.how == "sum":
+                # https://github.com/pandas-dev/pandas/issues/60229
+                # All NA should result in the empty string.
                 assert "skipna" in kwargs
                 if kwargs["skipna"] and min_count == 0:
                     arr = arr.fillna("")
