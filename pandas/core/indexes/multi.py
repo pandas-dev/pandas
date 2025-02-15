@@ -540,23 +540,6 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
-
-        See Also
-        --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
-        MultiIndex.from_product : Make a MultiIndex from cartesian product
-                                  of iterables.
-        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
-
-        Examples
-        --------
-        >>> tuples = [(1, "red"), (1, "blue"), (2, "red"), (2, "blue")]
-        >>> pd.MultiIndex.from_tuples(tuples, names=("number", "color"))
-        MultiIndex([(1,  'red'),
-                    (1, 'blue'),
-                    (2,  'red'),
-                    (2, 'blue')],
-                   names=['number', 'color'])
         """
         if not is_list_like(tuples):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
@@ -591,7 +574,9 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrs = zip(*tuples)
+            # Use zip_longest instead of zip to handle tuples of different lengths
+            from itertools import zip_longest
+            arrs = zip_longest(*tuples, fillvalue=np.nan)
             arrays = cast(list[Sequence[Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
