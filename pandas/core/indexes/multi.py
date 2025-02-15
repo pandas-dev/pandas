@@ -567,16 +567,16 @@ class MultiIndex(Index):
             return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
         # Convert to list and normalize
-        tuples_list = list(tuples)
-        max_length = max(len(t) if isinstance(t, tuple) else 1 for t in tuples_list)
-        
-        result_tuples = []
-        for t in tuples_list:
-            if not isinstance(t, tuple):
-                t = (t,)
-            result_tuples.append(t + (np.nan,) * (max_length - len(t)))
+        tuples_list = [t if isinstance(t, tuple) else (t,) for t in tuples]
+        if not tuples_list:
+            arrays = []
+        else:
+            max_length = max(len(t) for t in tuples_list)
+            result_tuples = [
+                t + (np.nan,) * (max_length - len(t)) for t in tuples_list
+            ]
+            arrays = list(lib.to_object_array_tuples(result_tuples).T)
 
-        arrays = list(lib.to_object_array_tuples(result_tuples).T)
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
