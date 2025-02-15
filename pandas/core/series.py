@@ -4404,12 +4404,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3  I am a rabbit
         dtype: object
         """
-        if callable(arg):
-            arg = functools.partial(arg, **kwargs)
-        new_values = self._map_values(arg, na_action=na_action)
-        return self._constructor(new_values, index=self.index, copy=False).__finalize__(
-            self, method="map"
-        )
+        #Check if the dtype is an integer
+        if pd.api.types.is_integer_dtype(self) and pd.api.types.is_nullable(self.dtype):
+            #if dtype is nullable int type, ensure NaN values replaced with pd.NA
+            def map_check(val):
+                if val is None:
+                    return pd.NA
+                return val
+            arg = map_check(arg)
+
+        else:
+            if callable(arg):
+                arg = functools.partial(arg, **kwargs)
+            new_values = self._map_values(arg, na_action=na_action)
+            return self._constructor(new_values, index=self.index, copy=False).__finalize__(
+                self, method="map"
+                )
 
     def _gotitem(self, key, ndim, subset=None) -> Self:
         """
@@ -4609,6 +4619,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
+        # check if dtype is nullable integer 
+        if pd.api.types.is_integer_dtype(self) and pd.api.types.is_nullable(self.dtype):
+        # def functon to handle NaN as pd.NA
+        def apply_check(val):
+            if val is None:
+                return pd.NA
+            return val
+        func = functools.partial(apply_check,func)
+
+        #proceed with usual apply method 
         return SeriesApply(
             self,
             func,

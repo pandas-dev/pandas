@@ -14,6 +14,7 @@ from typing import (
 )
 
 import numpy as np
+from pandas.core.dtypes.missing import isna
 
 from pandas._libs.internals import BlockValuesRefs
 from pandas._typing import (
@@ -1389,7 +1390,8 @@ class SeriesApply(NDFrameApply):
 
     def apply(self) -> DataFrame | Series:
         obj = self.obj
-
+        
+        
         if len(obj) == 0:
             return self.apply_empty_result()
 

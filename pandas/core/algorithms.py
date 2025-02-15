@@ -17,6 +17,7 @@ import warnings
 
 import numpy as np
 
+import pandas as pd
 from pandas._libs import (
     algos,
     hashtable as htable,
@@ -1648,9 +1649,15 @@ def map_array(
         a MultiIndex will be returned.
     """
     if na_action not in (None, "ignore"):
-        msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
+        msg = f"na_acti(on must either be 'ignore' or None, {na_action} was passed"
         raise ValueError(msg)
 
+    check = pd.isna(arr)
+    
+    def apply_map(x):
+        if na_action == "ignore" and pd.isna(x):
+            return x
+        
     # we can fastpath dict/Series to an efficient map
     # as we know that we are not going to have to yield
     # python types
