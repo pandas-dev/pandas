@@ -2103,7 +2103,9 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_slice_replace(start, stop, repl)
         return self._wrap_result(result)
 
-    def decode(self, encoding, errors: str = "strict", dtype: str | DtypeObj = None):
+    def decode(
+        self, encoding, errors: str = "strict", dtype: str | DtypeObj | None = None
+    ):
         """
         Decode character string in the Series/Index using indicated encoding.
 
