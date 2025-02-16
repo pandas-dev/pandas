@@ -5093,6 +5093,9 @@ def _maybe_convert_for_string_atom(
     errors,
     columns: list[str],
 ):
+    if isinstance(bvalues.dtype, StringDtype):
+        # "ndarray[Any, Any]" has no attribute "to_numpy"
+        bvalues = bvalues.to_numpy()  # type: ignore[union-attr]
     if bvalues.dtype != object:
         return bvalues
 
