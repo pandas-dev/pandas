@@ -904,8 +904,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             raise TypeError(msg)
 
         # We may need to strip out trailing NA values
-        tail: np.array | None = None
-        na_mask: np.array | None = None
+        tail: np.ndarray | None = None
+        na_mask: np.ndarray | None = None
         ndarray = self._ndarray
         np_func = {
             "cumsum": np.cumsum,
