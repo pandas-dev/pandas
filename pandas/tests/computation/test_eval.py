@@ -743,7 +743,7 @@ class TestEval:
         expected = Series([4, 30, 56], name="a")
         tm.assert_series_equal(expected, res)
 
-    def test_obj_str_addition(self, engine, parser):
+    def test_obj_str_addition(self):
         # GH 47734
         df = DataFrame({"a": ["a", "b"]})
         res = df.eval("a + 'a'", engine="python")
