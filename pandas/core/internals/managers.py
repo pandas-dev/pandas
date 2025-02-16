@@ -572,6 +572,7 @@ class BaseBlockManager(PandasObject):
                         0, blk_loc, values
                     )
                     # first block equals values
+                    col_indexer: slice | np.ndarray
                     if isinstance(indexer[1], slice) and indexer[1] == slice(None):
                         col_indexer = slice(None)
                     else:
