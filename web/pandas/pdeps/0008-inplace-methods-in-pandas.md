@@ -1,7 +1,7 @@
 # PDEP-8: In-place methods in pandas
 
 - Created: 16 February 2023
-- Status: Under discussion
+- Status: Accepted
 - Discussion: [PR 51466](https://github.com/pandas-dev/pandas/pull/51466)
 - Authors: [Thomas Li](https://github.com/lithomas1),
            [Patrick Hoefler](https://github.com/phofl),
@@ -348,7 +348,7 @@ Disadvantages:
 
 We generally assume that changing to return `self` should not give much problems for
 existing usage (typically, the current return value of `None` is not actively used).
-Further, we think the advantages of simplifing return types and enabling methods chains
+Further, we think the advantages of simplifying return types and enabling methods chains
 outweighs the special case of returning an identical object.
 **Therefore, we propose that for those methods with an `inplace=True` option, the calling object (`self`) gets returned.**
 
