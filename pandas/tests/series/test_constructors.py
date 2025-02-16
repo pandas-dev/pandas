@@ -1447,6 +1447,12 @@ class TestSeriesConstructors:
         expected = Series([3, 6], index=MultiIndex.from_tuples([(1, 2), (None, 5)]))
         tm.assert_series_equal(result, expected)
 
+        # GH 60695
+        data = {(1,): 3, (4, 5): 6}
+        result = Series(data).sort_values()
+        expected = Series([3, 6], index=MultiIndex.from_tuples([(1, None), (4, 5)]))
+        tm.assert_series_equal(result, expected)
+
     # https://github.com/pandas-dev/pandas/issues/22698
     @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
     def test_fromDict(self, using_infer_string):
@@ -1876,6 +1882,15 @@ class TestSeriesConstructors:
             [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
         )
         result = result.reindex(index=expected.index)
+        tm.assert_series_equal(result, expected)
+
+        # GH 60695
+        d = {("a",): 0.0, ("a", "b"): 1.0}
+        _d = sorted(d.items())
+        result = Series(d)
+        expected = Series(
+            [x[1] for x in _d], index=MultiIndex.from_tuples([x[0] for x in _d])
+        )
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_multiindex_reindex_flat(self):
