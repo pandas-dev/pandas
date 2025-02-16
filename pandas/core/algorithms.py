@@ -1651,12 +1651,7 @@ def map_array(
     if na_action not in (None, "ignore"):
         msg = f"na_acti(on must either be 'ignore' or None, {na_action} was passed"
         raise ValueError(msg)
-
-    check = pd.isna(arr)
     
-    def apply_map(x):
-        if na_action == "ignore" and pd.isna(x):
-            return x
         
     # we can fastpath dict/Series to an efficient map
     # as we know that we are not going to have to yield
@@ -1701,8 +1696,18 @@ def map_array(
         return arr.copy()
 
     # we must convert to python types
-    values = arr.astype(object, copy=False)
-    if na_action is None:
-        return lib.map_infer(values, mapper)
-    else:
-        return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))
+    #values = arr.astype(object, copy=False)
+
+    if is_integer_dtype(arr) and is_nullable_dtype(arr.dtype):
+        def mapper_check(x):
+            if x is None:
+                return pd.NA
+            else:
+                mapper(x)
+        values = arr.copy()
+
+        if na_action is None:
+            #return lib.map_infer(values, mapper)
+            return np.array([mapper_check(x) for x in values], dtype = arr.dtype)
+        else:
+            return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))

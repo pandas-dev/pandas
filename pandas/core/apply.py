@@ -1457,14 +1457,18 @@ class SeriesApply(NDFrameApply):
                 return func(obj, *self.args, **self.kwargs)
         elif not self.by_row:
             return func(obj, *self.args, **self.kwargs)
-
-        if self.args or self.kwargs:
-            # _map_values does not support args/kwargs
-            def curried(x):
-                return func(x, *self.args, **self.kwargs)
+        
+        #Check if type is integer and nullable, return pd.NA for None values and
+        #normal func for other values
+        if pd.api.types.is_integer_dtype(obj) and pd.api.types.is_nullable_dtype(obj.dtype):
+            def wrapped_func(x):
+                if x is None:
+                    return pd.NA
+                return func(x,*self.args, **self.kwargs)
 
         else:
             curried = func
+
         mapped = obj._map_values(mapper=curried)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
