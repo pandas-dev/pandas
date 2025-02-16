@@ -514,6 +514,21 @@ def test_sum_skipna_object(skipna):
     tm.assert_series_equal(result, expected)
 
 
+def test_sum_allnan_object(skipna):
+    # GH#60229
+    df = DataFrame(
+        {
+            "val": [np.nan] * 10,
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": object})
+    expected = Series(
+        [np.nan, np.nan], index=pd.Index(["A", "B"], name="cat"), name="val"
+    ).astype(object)
+    result = df.groupby("cat")["val"].sum(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, values, dtype, result_dtype",
     [

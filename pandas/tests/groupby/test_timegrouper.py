@@ -113,7 +113,7 @@ class TestGroupBy:
                 unit=df.index.unit,
             )
             expected = DataFrame(
-                {"Buyer": None, "Quantity": 0},
+                {"Buyer": np.nan, "Quantity": 0},
                 index=exp_dti,
             )
             # Cast to object to avoid implicit cast when setting entry to "CarlCarlCarl"
