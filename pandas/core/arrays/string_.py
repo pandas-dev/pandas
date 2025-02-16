@@ -23,6 +23,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
+from pandas._typing import npt
 from pandas.compat import (
     HAS_PYARROW,
     pa_version_under10p1,
@@ -83,7 +84,6 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
         Scalar,
         Self,
-        npt,
         type_t,
     )
 
@@ -914,7 +914,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         }[name]
 
         if self._hasna:
-            na_mask = isna(ndarray)
+            na_mask = cast(npt.NDArray[np.bool_], isna(ndarray))
             if np.all(na_mask):
                 return type(self)(ndarray)
             if skipna:
@@ -941,7 +941,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 tail[:] = np.nan
                 ndarray = ndarray[:idx]
 
-        np_result = np_func(ndarray)
+        # mypy: Cannot call function of unknown type
+        np_result = np_func(ndarray)  # type: ignore[operator]
 
         if tail is not None:
             np_result = np.hstack((np_result, tail))
