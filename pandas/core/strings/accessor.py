@@ -2122,6 +2122,8 @@ class StringMethods(NoNewAttributesMixin):
             object dtype. When ``None``, the dtype of the result is determined by
             ``pd.options.future.infer_string``.
 
+            .. versionadded:: 2.3.0
+
         Returns
         -------
         Series or Index
