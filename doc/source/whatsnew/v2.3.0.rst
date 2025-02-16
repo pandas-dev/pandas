@@ -37,6 +37,7 @@ Other enhancements
   updated to work correctly with NumPy >= 2 (:issue:`57739`)
 - :meth:`Series.str.decode` result now has ``StringDtype`` when ``future.infer_string`` is True (:issue:`60709`)
 - :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
+- The :meth:`DataFrame.iloc` now works correctly with ``copy_on_write`` option (:issue:`60309`)
 - The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns when backed by PyArrow (:issue:`60633`)
 - The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
 
