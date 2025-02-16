@@ -279,6 +279,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
+    It allows users to interact with a `DataFrame` that contains sparse data types
+    (`SparseDtype`). It provides methods and attributes to efficiently work with sparse
+    storage, reducing memory usage while maintaining compatibility with standard pandas
+    operations.
+
     Parameters
     ----------
     data : scipy.sparse.spmatrix

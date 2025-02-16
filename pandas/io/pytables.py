@@ -1131,6 +1131,12 @@ class HDFStore:
         """
         Store object in HDFStore.
 
+        This method writes a pandas DataFrame or Series into an HDF5 file using
+        either the fixed or table format. The `table` format allows additional
+        operations like incremental appends and queries but may have performance
+        trade-offs. The `fixed` format provides faster read/write operations but
+        does not support appends or queries.
+
         Parameters
         ----------
         key : str
@@ -3524,6 +3530,12 @@ class Table(Fixed):
                     # Value of type "Optional[Any]" is not indexable  [index]
                     oax = ov[i]  # type: ignore[index]
                     if sax != oax:
+                        if c == "values_axes" and sax.kind != oax.kind:
+                            raise ValueError(
+                                f"Cannot serialize the column [{oax.values[0]}] "
+                                f"because its data contents are not [{sax.kind}] "
+                                f"but [{oax.kind}] object dtype"
+                            )
                         raise ValueError(
                             f"invalid combination of [{c}] on appending data "
                             f"[{sax}] vs current table [{oax}]"
@@ -5112,6 +5124,9 @@ def _maybe_convert_for_string_atom(
     errors,
     columns: list[str],
 ):
+    if isinstance(bvalues.dtype, StringDtype):
+        # "ndarray[Any, Any]" has no attribute "to_numpy"
+        bvalues = bvalues.to_numpy()  # type: ignore[union-attr]
     if bvalues.dtype != object:
         return bvalues
 
@@ -5135,6 +5150,9 @@ def _maybe_convert_for_string_atom(
     mask = isna(bvalues)
     data = bvalues.copy()
     data[mask] = nan_rep
+
+    if existing_col and mask.any() and len(nan_rep) > existing_col.itemsize:
+        raise ValueError("NaN representation is too large for existing column size")
 
     # see if we have a valid string type
     inferred_type = lib.infer_dtype(data, skipna=False)
