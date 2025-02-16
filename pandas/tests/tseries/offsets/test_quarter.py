@@ -3,6 +3,7 @@ Tests for the following offsets:
 - QuarterBegin
 - QuarterEnd
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -51,11 +52,6 @@ class TestQuarterBegin:
         assert repr(QuarterBegin(startingMonth=3)) == expected
         expected = "<QuarterBegin: startingMonth=1>"
         assert repr(QuarterBegin(startingMonth=1)) == expected
-
-    def test_is_anchored(self):
-        assert QuarterBegin(startingMonth=1).is_anchored()
-        assert QuarterBegin().is_anchored()
-        assert not QuarterBegin(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner
@@ -159,11 +155,6 @@ class TestQuarterEnd:
         assert repr(QuarterEnd(startingMonth=3)) == expected
         expected = "<QuarterEnd: startingMonth=1>"
         assert repr(QuarterEnd(startingMonth=1)) == expected
-
-    def test_is_anchored(self):
-        assert QuarterEnd(startingMonth=1).is_anchored()
-        assert QuarterEnd().is_anchored()
-        assert not QuarterEnd(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner

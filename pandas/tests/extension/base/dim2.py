@@ -1,6 +1,7 @@
 """
 Tests for 2D compatibility.
 """
+
 import numpy as np
 import pytest
 
@@ -90,9 +91,9 @@ class Dim2CompatTests:
         assert arr2d.shape == (data.size, 1)
         assert len(arr2d) == len(data)
 
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             data.reshape((data.size, 2))
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             data.reshape(data.size, 2)
 
     def test_getitem_2d(self, data):

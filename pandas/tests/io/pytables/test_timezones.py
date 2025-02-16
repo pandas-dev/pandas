@@ -104,7 +104,7 @@ def test_append_with_timezones(setup_path, gettz):
 
         msg = (
             r"invalid info for \[values_block_1\] for \[tz\], "
-            r"existing_value \[(dateutil/.*)?US/Eastern\] "
+            r"existing_value \[(dateutil/.*)?(US/Eastern|America/New_York)\] "
             r"conflicts with new value \[(dateutil/.*)?EET\]"
         )
         with pytest.raises(ValueError, match=msg):
@@ -312,23 +312,6 @@ def test_store_timezone(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-def test_legacy_datetimetz_object(datapath):
-    # legacy from < 0.17.0
-    # 8260
-    expected = DataFrame(
-        {
-            "A": Timestamp("20130102", tz="US/Eastern").as_unit("ns"),
-            "B": Timestamp("20130603", tz="CET").as_unit("ns"),
-        },
-        index=range(5),
-    )
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "datetimetz_object.h5"), mode="r"
-    ) as store:
-        result = store["df"]
-        tm.assert_frame_equal(result, expected)
-
-
 def test_dst_transitions(setup_path):
     # make sure we are not failing on transitions
     with ensure_clean_store(setup_path) as store:
@@ -362,17 +345,3 @@ def test_read_with_where_tz_aware_index(tmp_path, setup_path):
         store.append(key, expected, format="table", append=True)
     result = pd.read_hdf(path, key, where="DATE > 20151130")
     tm.assert_frame_equal(result, expected)
-
-
-def test_py2_created_with_datetimez(datapath):
-    # The test HDF5 file was created in Python 2, but could not be read in
-    # Python 3.
-    #
-    # GH26443
-    index = DatetimeIndex(["2019-01-01T18:00"], dtype="M8[ns, America/New_York]")
-    expected = DataFrame({"data": 123}, index=index)
-    with ensure_clean_store(
-        datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"
-    ) as store:
-        result = store["key"]
-        tm.assert_frame_equal(result, expected)

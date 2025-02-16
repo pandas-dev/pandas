@@ -20,7 +20,7 @@ class TestBetween:
         tm.assert_series_equal(result, expected)
 
     def test_between_datetime_object_dtype(self):
-        ser = Series(bdate_range("1/1/2000", periods=20).astype(object))
+        ser = Series(bdate_range("1/1/2000", periods=20), dtype=object)
         ser[::2] = np.nan
 
         result = ser[ser.between(ser[3], ser[17])]
@@ -66,10 +66,9 @@ class TestBetween:
         left, right = series[[2, 7]]
 
         value_error_msg = (
-            "Inclusive has to be either string of 'both',"
-            "'left', 'right', or 'neither'."
+            "Inclusive has to be either string of 'both','left', 'right', or 'neither'."
         )
 
+        series = Series(date_range("1/1/2000", periods=10))
         with pytest.raises(ValueError, match=value_error_msg):
-            series = Series(date_range("1/1/2000", periods=10))
             series.between(left, right, inclusive=inclusive)

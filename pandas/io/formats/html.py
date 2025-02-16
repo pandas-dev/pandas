@@ -1,6 +1,7 @@
 """
 Module for formatting output data in HTML.
 """
+
 from __future__ import annotations
 
 from textwrap import dedent
@@ -194,6 +195,8 @@ class HTMLFormatter:
             esc = {}
 
         rs = pprint_thing(s, escape_chars=esc).strip()
+        # replace spaces betweens strings with non-breaking spaces
+        rs = rs.replace("  ", "&nbsp;&nbsp;")
 
         if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
@@ -238,6 +241,7 @@ class HTMLFormatter:
         use_mathjax = get_option("display.html.use_mathjax")
         if not use_mathjax:
             _classes.append("tex2jax_ignore")
+            _classes.append("mathjax_ignore")
         if self.classes is not None:
             if isinstance(self.classes, str):
                 self.classes = self.classes.split()

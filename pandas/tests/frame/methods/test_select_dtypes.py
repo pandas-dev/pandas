@@ -32,7 +32,7 @@ class DummyArray(ExtensionArray):
         self.data = data
         self._dtype = dtype
 
-    def __array__(self, dtype):
+    def __array__(self, dtype=None, copy=None):
         return self.data
 
     @property
@@ -50,7 +50,7 @@ class DummyArray(ExtensionArray):
 
 
 class TestSelectDtypes:
-    def test_select_dtypes_include_using_list_like(self):
+    def test_select_dtypes_include_using_list_like(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -93,6 +93,14 @@ class TestSelectDtypes:
 
         with pytest.raises(NotImplementedError, match=r"^$"):
             df.select_dtypes(include=["period"])
+
+        if using_infer_string:
+            ri = df.select_dtypes(include=["str"])
+            ei = df[["a"]]
+            tm.assert_frame_equal(ri, ei)
+
+            ri = df.select_dtypes(include=[str])
+            tm.assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame(
@@ -151,7 +159,7 @@ class TestSelectDtypes:
         expected = df[["b", "c", "e"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_select_dtypes_include_using_scalars(self):
+    def test_select_dtypes_include_using_scalars(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -186,6 +194,11 @@ class TestSelectDtypes:
 
         with pytest.raises(NotImplementedError, match=r"^$"):
             df.select_dtypes(include="period")
+
+        if using_infer_string:
+            ri = df.select_dtypes(include="str")
+            ei = df[["a"]]
+            tm.assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude_using_scalars(self):
         df = DataFrame(
@@ -282,7 +295,7 @@ class TestSelectDtypes:
         result = df.select_dtypes(include=[np.number], exclude=["floating"])
         tm.assert_frame_equal(result, expected)
 
-    def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
+    def test_select_dtypes_not_an_attr_but_still_valid_dtype(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -296,11 +309,17 @@ class TestSelectDtypes:
         df["g"] = df.f.diff()
         assert not hasattr(np, "u8")
         r = df.select_dtypes(include=["i8", "O"], exclude=["timedelta"])
-        e = df[["a", "b"]]
+        if using_infer_string:
+            e = df[["b"]]
+        else:
+            e = df[["a", "b"]]
         tm.assert_frame_equal(r, e)
 
         r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
-        e = df[["a", "b", "g"]]
+        if using_infer_string:
+            e = df[["b", "g"]]
+        else:
+            e = df[["a", "b", "g"]]
         tm.assert_frame_equal(r, e)
 
     def test_select_dtypes_empty(self):
@@ -341,7 +360,10 @@ class TestSelectDtypes:
 
     @pytest.mark.parametrize("dtype", [str, "str", np.bytes_, "S1", np.str_, "U1"])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
-    def test_select_dtypes_str_raises(self, dtype, arg):
+    def test_select_dtypes_str_raises(self, dtype, arg, using_infer_string):
+        if using_infer_string and (dtype == "str" or dtype is str):
+            # this is tested below
+            pytest.skip("Selecting string columns works with future strings")
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -378,12 +400,9 @@ class TestSelectDtypes:
 
     def test_select_dtypes_typecodes(self):
         # GH 11990
-        df = tm.makeCustomDataframe(
-            30, 3, data_gen_f=lambda x, y: np.random.default_rng(2).random()
-        )
-        expected = df
+        df = DataFrame(np.random.default_rng(2).random((5, 3)))
         FLOAT_TYPES = list(np.typecodes["AllFloat"])
-        tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), expected)
+        tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), df)
 
     @pytest.mark.parametrize(
         "arr,expected",

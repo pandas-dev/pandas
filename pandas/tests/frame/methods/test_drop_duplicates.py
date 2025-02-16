@@ -16,7 +16,7 @@ import pandas._testing as tm
 def test_drop_duplicates_with_misspelled_column_name(subset):
     # GH 19730
     df = DataFrame({"A": [0, 0, 1], "B": [0, 0, 1], "C": [0, 0, 1]})
-    msg = re.escape("Index(['a'], dtype='object')")
+    msg = re.escape("Index(['a'], dtype=")
 
     with pytest.raises(KeyError, match=msg):
         df.drop_duplicates(subset)
@@ -411,10 +411,15 @@ def test_drop_duplicates_inplace():
 @pytest.mark.parametrize(
     "origin_dict, output_dict, ignore_index, output_index",
     [
-        ({"A": [2, 2, 3]}, {"A": [2, 3]}, True, [0, 1]),
-        ({"A": [2, 2, 3]}, {"A": [2, 3]}, False, [0, 2]),
-        ({"A": [2, 2, 3], "B": [2, 2, 4]}, {"A": [2, 3], "B": [2, 4]}, True, [0, 1]),
-        ({"A": [2, 2, 3], "B": [2, 2, 4]}, {"A": [2, 3], "B": [2, 4]}, False, [0, 2]),
+        ({"A": [2, 2, 3]}, {"A": [2, 3]}, True, range(2)),
+        ({"A": [2, 2, 3]}, {"A": [2, 3]}, False, range(0, 4, 2)),
+        ({"A": [2, 2, 3], "B": [2, 2, 4]}, {"A": [2, 3], "B": [2, 4]}, True, range(2)),
+        (
+            {"A": [2, 2, 3], "B": [2, 2, 4]},
+            {"A": [2, 3], "B": [2, 4]},
+            False,
+            range(0, 4, 2),
+        ),
     ],
 )
 def test_drop_duplicates_ignore_index(
@@ -471,3 +476,41 @@ def test_drop_duplicates_non_boolean_ignore_index(arg):
     msg = '^For argument "ignore_index" expected type bool, received type .*.$'
     with pytest.raises(ValueError, match=msg):
         df.drop_duplicates(ignore_index=arg)
+
+
+def test_drop_duplicates_set():
+    # GH#59237
+    df = DataFrame(
+        {
+            "AAA": ["foo", "bar", "foo", "bar", "foo", "bar", "bar", "foo"],
+            "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
+            "C": [1, 1, 2, 2, 2, 2, 1, 2],
+            "D": range(8),
+        }
+    )
+    # single column
+    result = df.drop_duplicates({"AAA"})
+    expected = df[:2]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.drop_duplicates({"AAA"}, keep="last")
+    expected = df.loc[[6, 7]]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.drop_duplicates({"AAA"}, keep=False)
+    expected = df.loc[[]]
+    tm.assert_frame_equal(result, expected)
+    assert len(result) == 0
+
+    # multi column
+    expected = df.loc[[0, 1, 2, 3]]
+    result = df.drop_duplicates({"AAA", "B"})
+    tm.assert_frame_equal(result, expected)
+
+    result = df.drop_duplicates({"AAA", "B"}, keep="last")
+    expected = df.loc[[0, 5, 6, 7]]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.drop_duplicates({"AAA", "B"}, keep=False)
+    expected = df.loc[[0]]
+    tm.assert_frame_equal(result, expected)

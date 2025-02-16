@@ -1,9 +1,6 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
 from enum import Enum
-import warnings
-
-from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.np_datetime cimport (
@@ -176,6 +173,10 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "EOM": "M",
     "BME": "M",
     "SME": "M",
+    "BMS": "M",
+    "CBME": "M",
+    "CBMS": "M",
+    "SMS": "M",
     "BQS": "Q",
     "QS": "Q",
     "BQE": "Q",
@@ -228,7 +229,6 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YE-NOV": "Y-NOV",
     "W": "W",
     "ME": "M",
-    "Y": "Y",
     "BYE": "Y",
     "BYE-DEC": "Y-DEC",
     "BYE-JAN": "Y-JAN",
@@ -245,7 +245,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YS": "Y",
     "BYS": "Y",
 }
-cdef dict c_OFFSET_DEPR_FREQSTR = {
+cdef dict c_OFFSET_RENAMED_FREQSTR = {
     "M": "ME",
     "Q": "QE",
     "Q-DEC": "QE-DEC",
@@ -273,19 +273,6 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "Y-SEP": "YE-SEP",
     "Y-OCT": "YE-OCT",
     "Y-NOV": "YE-NOV",
-    "A": "YE",
-    "A-DEC": "YE-DEC",
-    "A-JAN": "YE-JAN",
-    "A-FEB": "YE-FEB",
-    "A-MAR": "YE-MAR",
-    "A-APR": "YE-APR",
-    "A-MAY": "YE-MAY",
-    "A-JUN": "YE-JUN",
-    "A-JUL": "YE-JUL",
-    "A-AUG": "YE-AUG",
-    "A-SEP": "YE-SEP",
-    "A-OCT": "YE-OCT",
-    "A-NOV": "YE-NOV",
     "BY": "BYE",
     "BY-DEC": "BYE-DEC",
     "BY-JAN": "BYE-JAN",
@@ -299,19 +286,6 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "BY-SEP": "BYE-SEP",
     "BY-OCT": "BYE-OCT",
     "BY-NOV": "BYE-NOV",
-    "BA": "BYE",
-    "BA-DEC": "BYE-DEC",
-    "BA-JAN": "BYE-JAN",
-    "BA-FEB": "BYE-FEB",
-    "BA-MAR": "BYE-MAR",
-    "BA-APR": "BYE-APR",
-    "BA-MAY": "BYE-MAY",
-    "BA-JUN": "BYE-JUN",
-    "BA-JUL": "BYE-JUL",
-    "BA-AUG": "BYE-AUG",
-    "BA-SEP": "BYE-SEP",
-    "BA-OCT": "BYE-OCT",
-    "BA-NOV": "BYE-NOV",
     "BM": "BME",
     "CBM": "CBME",
     "SM": "SME",
@@ -329,88 +303,67 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "BQ-OCT": "BQE-OCT",
     "BQ-NOV": "BQE-NOV",
 }
+PERIOD_TO_OFFSET_FREQSTR = {
+    "M": "ME",
+    "Q": "QE",
+    "Q-DEC": "QE-DEC",
+    "Q-JAN": "QE-JAN",
+    "Q-FEB": "QE-FEB",
+    "Q-MAR": "QE-MAR",
+    "Q-APR": "QE-APR",
+    "Q-MAY": "QE-MAY",
+    "Q-JUN": "QE-JUN",
+    "Q-JUL": "QE-JUL",
+    "Q-AUG": "QE-AUG",
+    "Q-SEP": "QE-SEP",
+    "Q-OCT": "QE-OCT",
+    "Q-NOV": "QE-NOV",
+    "Y": "YE",
+    "Y-DEC": "YE-DEC",
+    "Y-JAN": "YE-JAN",
+    "Y-FEB": "YE-FEB",
+    "Y-MAR": "YE-MAR",
+    "Y-APR": "YE-APR",
+    "Y-MAY": "YE-MAY",
+    "Y-JUN": "YE-JUN",
+    "Y-JUL": "YE-JUL",
+    "Y-AUG": "YE-AUG",
+    "Y-SEP": "YE-SEP",
+    "Y-OCT": "YE-OCT",
+    "Y-NOV": "YE-NOV",
+}
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
-cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {
-    v: k for k, v in c_OFFSET_DEPR_FREQSTR.items()
-}
+cdef dict c_PERIOD_TO_OFFSET_FREQSTR = PERIOD_TO_OFFSET_FREQSTR
 
-cpdef freq_to_period_freqstr(freq_n, freq_name):
-    if freq_n == 1:
-        freqstr = f"""{c_OFFSET_TO_PERIOD_FREQSTR.get(
-            freq_name, freq_name)}"""
-    else:
-        freqstr = f"""{freq_n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
-            freq_name, freq_name)}"""
-    return freqstr
-
-# Map deprecated resolution abbreviations to correct resolution abbreviations
-cdef dict c_DEPR_ABBREVS = {
-    "A": "Y",
-    "a": "Y",
-    "A-DEC": "Y-DEC",
-    "A-JAN": "Y-JAN",
-    "A-FEB": "Y-FEB",
-    "A-MAR": "Y-MAR",
-    "A-APR": "Y-APR",
-    "A-MAY": "Y-MAY",
-    "A-JUN": "Y-JUN",
-    "A-JUL": "Y-JUL",
-    "A-AUG": "Y-AUG",
-    "A-SEP": "Y-SEP",
-    "A-OCT": "Y-OCT",
-    "A-NOV": "Y-NOV",
-    "BA": "BY",
-    "BA-DEC": "BY-DEC",
-    "BA-JAN": "BY-JAN",
-    "BA-FEB": "BY-FEB",
-    "BA-MAR": "BY-MAR",
-    "BA-APR": "BY-APR",
-    "BA-MAY": "BY-MAY",
-    "BA-JUN": "BY-JUN",
-    "BA-JUL": "BY-JUL",
-    "BA-AUG": "BY-AUG",
-    "BA-SEP": "BY-SEP",
-    "BA-OCT": "BY-OCT",
-    "BA-NOV": "BY-NOV",
-    "AS": "YS",
-    "AS-DEC": "YS-DEC",
-    "AS-JAN": "YS-JAN",
-    "AS-FEB": "YS-FEB",
-    "AS-MAR": "YS-MAR",
-    "AS-APR": "YS-APR",
-    "AS-MAY": "YS-MAY",
-    "AS-JUN": "YS-JUN",
-    "AS-JUL": "YS-JUL",
-    "AS-AUG": "YS-AUG",
-    "AS-SEP": "YS-SEP",
-    "AS-OCT": "YS-OCT",
-    "AS-NOV": "YS-NOV",
-    "BAS": "BYS",
-    "BAS-DEC": "BYS-DEC",
-    "BAS-JAN": "BYS-JAN",
-    "BAS-FEB": "BYS-FEB",
-    "BAS-MAR": "BYS-MAR",
-    "BAS-APR": "BYS-APR",
-    "BAS-MAY": "BYS-MAY",
-    "BAS-JUN": "BYS-JUN",
-    "BAS-JUL": "BYS-JUL",
-    "BAS-AUG": "BYS-AUG",
-    "BAS-SEP": "BYS-SEP",
-    "BAS-OCT": "BYS-OCT",
-    "BAS-NOV": "BYS-NOV",
+cdef dict c_DEPR_UNITS = {
+    "w": "W",
+    "d": "D",
     "H": "h",
-    "BH": "bh",
-    "CBH": "cbh",
-    "T": "min",
-    "t": "min",
+    "MIN": "min",
     "S": "s",
-    "L": "ms",
-    "l": "ms",
-    "U": "us",
-    "u": "us",
-    "N": "ns",
-    "n": "ns",
+    "MS": "ms",
+    "US": "us",
+    "NS": "ns",
 }
+
+cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
+    "w": "W",
+    "w-mon": "W-MON",
+    "w-tue": "W-TUE",
+    "w-wed": "W-WED",
+    "w-thu": "W-THU",
+    "w-fri": "W-FRI",
+    "w-sat": "W-SAT",
+    "w-sun": "W-SUN",
+    "d": "D",
+    "b": "B",
+    "c": "C",
+    "MIN": "min",
+    "US": "us",
+    "NS": "ns",
+}
+
+cdef str INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
 
 class FreqGroup(Enum):
@@ -501,39 +454,18 @@ class Resolution(Enum):
         >>> Resolution.get_reso_from_freqstr('h') == Resolution.RESO_HR
         True
         """
-        cdef:
-            str abbrev
         try:
-            if freq in c_DEPR_ABBREVS:
-                abbrev = c_DEPR_ABBREVS[freq]
-                warnings.warn(
-                    f"\'{freq}\' is deprecated and will be removed in a future "
-                    f"version. Please use \'{abbrev}\' "
-                    "instead of \'{freq}\'.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                freq = abbrev
             attr_name = _abbrev_to_attrnames[freq]
-        except KeyError:
+        except KeyError as exc:
+            msg = INVALID_FREQ_ERR_MSG.format(freq)
             # For quarterly and yearly resolutions, we need to chop off
             #  a month string.
             split_freq = freq.split("-")
             if len(split_freq) != 2:
-                raise
+                raise ValueError(msg) from exc
             if split_freq[1] not in _month_names:
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
-                raise
-            if split_freq[0] in c_DEPR_ABBREVS:
-                abbrev = c_DEPR_ABBREVS[split_freq[0]]
-                warnings.warn(
-                    f"\'{split_freq[0]}\' is deprecated and will be removed in a "
-                    f"future version. Please use \'{abbrev}\' "
-                    f"instead of \'{split_freq[0]}\'.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                split_freq[0] = abbrev
+                raise ValueError(msg) from exc
             attr_name = _abbrev_to_attrnames[split_freq[0]]
 
         return cls.from_attrname(attr_name)
@@ -559,7 +491,7 @@ class NpyDatetimeUnit(Enum):
     NPY_FR_GENERIC = NPY_DATETIMEUNIT.NPY_FR_GENERIC
 
 
-cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
+cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
     # If we have an unsupported reso, return the nearest supported reso.
     if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # TODO: or raise ValueError? trying this gives unraisable errors, but
@@ -572,7 +504,7 @@ cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
     return reso
 
 
-cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
+cdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
     return (
         reso == NPY_DATETIMEUNIT.NPY_FR_ns
         or reso == NPY_DATETIMEUNIT.NPY_FR_us
@@ -581,7 +513,7 @@ cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
     )
 
 
-cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
+cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # generic -> default to nanoseconds
         return "ns"

@@ -10,11 +10,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[None, "ignore"])
-def na_action(request):
-    return request.param
-
-
 @pytest.mark.parametrize(
     "data, categories",
     [
@@ -139,16 +134,3 @@ def test_map_with_dict_or_series(na_action):
     result = cat.map(mapper, na_action=na_action)
     # Order of categories in result can be different
     tm.assert_categorical_equal(result, expected)
-
-
-def test_map_na_action_no_default_deprecated():
-    # GH51645
-    cat = Categorical(["a", "b", "c"])
-    msg = (
-        "The default value of 'ignore' for the `na_action` parameter in "
-        "pandas.Categorical.map is deprecated and will be "
-        "changed to 'None' in a future version. Please set na_action to the "
-        "desired value to avoid seeing this warning"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        cat.map(lambda x: x)

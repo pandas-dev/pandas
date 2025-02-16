@@ -92,7 +92,7 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
         # timedelta64[ns]
-        s = Series(pd.to_timedelta(range(5), unit="d"))
+        s = Series(pd.to_timedelta(range(5), unit="D"))
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
@@ -212,17 +212,34 @@ def test_isin_large_series_mixed_dtypes_and_nan(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "array,expected",
+    "dtype, data, values, expected",
     [
-        (
-            [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j],
-            Series([False, True, True, False, True, True, True], dtype=bool),
-        )
+        ("boolean", [pd.NA, False, True], [False, pd.NA], [True, True, False]),
+        ("Int64", [pd.NA, 2, 1], [1, pd.NA], [True, False, True]),
+        ("boolean", [pd.NA, False, True], [pd.NA, True, "a", 20], [True, False, True]),
+        ("boolean", [pd.NA, False, True], [], [False, False, False]),
+        ("Float64", [20.0, 30.0, pd.NA], [pd.NA], [False, False, True]),
     ],
 )
-def test_isin_complex_numbers(array, expected):
+def test_isin_large_series_and_pdNA(dtype, data, values, expected, monkeypatch):
+    # https://github.com/pandas-dev/pandas/issues/60678
+    # combination of  large series (> _MINIMUM_COMP_ARR_LEN elements) and
+    # values contains pdNA
+    min_isin_comp = 2
+    ser = Series(data, dtype=dtype)
+    expected = Series(expected, dtype="boolean")
+
+    with monkeypatch.context() as m:
+        m.setattr(algorithms, "_MINIMUM_COMP_ARR_LEN", min_isin_comp)
+        result = ser.isin(values)
+    tm.assert_series_equal(result, expected)
+
+
+def test_isin_complex_numbers():
     # GH 17927
+    array = [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j]
     result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
+    expected = Series([False, True, True, False, True, True, True], dtype=bool)
     tm.assert_series_equal(result, expected)
 
 

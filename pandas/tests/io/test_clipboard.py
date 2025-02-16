@@ -17,10 +17,6 @@ from pandas import (
     read_clipboard,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 from pandas.io.clipboard import (
     CheckedCall,
@@ -64,32 +60,21 @@ def df(request):
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
         )
     elif data_type == "string":
-        return tm.makeCustomDataframe(
-            5, 3, c_idx_type="s", r_idx_type="i", c_idx_names=[None], r_idx_names=[None]
+        return DataFrame(
+            np.array([f"i-{i}" for i in range(15)]).reshape(5, 3), columns=list("abc")
         )
     elif data_type == "long":
         max_rows = get_option("display.max_rows")
-        return tm.makeCustomDataframe(
-            max_rows + 1,
-            3,
-            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
-            c_idx_type="s",
-            r_idx_type="i",
-            c_idx_names=[None],
-            r_idx_names=[None],
+        return DataFrame(
+            np.random.default_rng(2).integers(0, 10, size=(max_rows + 1, 3)),
+            columns=list("abc"),
         )
     elif data_type == "nonascii":
         return DataFrame({"en": "in English".split(), "es": "en español".split()})
     elif data_type == "colwidth":
         _cw = get_option("display.max_colwidth") + 1
-        return tm.makeCustomDataframe(
-            5,
-            3,
-            data_gen_f=lambda *args: "x" * _cw,
-            c_idx_type="s",
-            r_idx_type="i",
-            c_idx_names=[None],
-            r_idx_names=[None],
+        return DataFrame(
+            np.array(["x" * _cw for _ in range(15)]).reshape(5, 3), columns=list("abc")
         )
     elif data_type == "mixed":
         return DataFrame(
@@ -100,24 +85,10 @@ def df(request):
             }
         )
     elif data_type == "float":
-        return tm.makeCustomDataframe(
-            5,
-            3,
-            data_gen_f=lambda r, c: float(r) + 0.01,
-            c_idx_type="s",
-            r_idx_type="i",
-            c_idx_names=[None],
-            r_idx_names=[None],
-        )
+        return DataFrame(np.random.default_rng(2).random((5, 3)), columns=list("abc"))
     elif data_type == "int":
-        return tm.makeCustomDataframe(
-            5,
-            3,
-            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
-            c_idx_type="s",
-            r_idx_type="i",
-            c_idx_names=[None],
-            r_idx_names=[None],
+        return DataFrame(
+            np.random.default_rng(2).integers(0, 10, (5, 3)), columns=list("abc")
         )
     else:
         raise ValueError
@@ -247,7 +218,7 @@ class TestClipboard:
 
     # Separator is ignored when excel=False and should produce a warning
     def test_copy_delim_warning(self, df):
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(UserWarning, match="ignores the sep argument"):
             df.to_clipboard(excel=False, sep="\t")
 
     # Tests that the default behavior of to_clipboard is tab
@@ -374,19 +345,18 @@ class TestClipboard:
 
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_dtype_backend(
-        self, clipboard, string_storage, dtype_backend, engine
+        self, clipboard, string_storage, dtype_backend, engine, using_infer_string
     ):
         # GH#50502
-        if string_storage == "pyarrow" or dtype_backend == "pyarrow":
+        if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-
-        if string_storage == "python":
-            string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
-
+            if engine == "c" and string_storage == "pyarrow":
+                # TODO avoid this exception?
+                string_dtype = pd.ArrowDtype(pa.large_string())
+            else:
+                string_dtype = pd.ArrowDtype(pa.string())
         else:
-            string_array = ArrowStringArray(pa.array(["x", "y"]))
-            string_array_na = ArrowStringArray(pa.array(["x", None]))
+            string_dtype = pd.StringDtype(string_storage)
 
         text = """a,b,c,d,e,f,g,h,i
 x,1,4.0,x,2,4.0,,True,False
@@ -398,10 +368,10 @@ y,2,5.0,,,,,False,"""
 
         expected = DataFrame(
             {
-                "a": string_array,
+                "a": Series(["x", "y"], dtype=string_dtype),
                 "b": Series([1, 2], dtype="Int64"),
                 "c": Series([4.0, 5.0], dtype="Float64"),
-                "d": string_array_na,
+                "d": Series(["x", None], dtype=string_dtype),
                 "e": Series([2, NA], dtype="Int64"),
                 "f": Series([4.0, NA], dtype="Float64"),
                 "g": Series([NA, NA], dtype="Int64"),
@@ -420,6 +390,11 @@ y,2,5.0,,,,,False,"""
             )
             expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
+
         tm.assert_frame_equal(result, expected)
 
     def test_invalid_dtype_backend(self):
@@ -429,13 +404,3 @@ y,2,5.0,,,,,False,"""
         )
         with pytest.raises(ValueError, match=msg):
             read_clipboard(dtype_backend="numpy")
-
-    def test_to_clipboard_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_clipboard "
-            r"will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_clipboard(True, None)

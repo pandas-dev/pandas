@@ -13,10 +13,13 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 import string
 
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import Categorical
@@ -73,11 +76,6 @@ def data_for_grouping():
 
 
 class TestCategorical(base.ExtensionTests):
-    @pytest.mark.xfail(reason="Memory usage doesn't match")
-    def test_memory_usage(self, data):
-        # TODO: Is this deliberate?
-        super().test_memory_usage(data)
-
     def test_contains(self, data, data_missing):
         # GH-37867
         # na value handling in Categorical.__contains__ is deprecated.
@@ -100,7 +98,9 @@ class TestCategorical(base.ExtensionTests):
             if na_value_obj is na_value:
                 continue
             assert na_value_obj not in data
-            assert na_value_obj in data_missing  # this line differs from super method
+            # this section suffers from super method
+            if not using_string_dtype():
+                assert na_value_obj in data_missing
 
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
@@ -117,10 +117,6 @@ class TestCategorical(base.ExtensionTests):
         # be a parent of the elements (object). But don't want
         # to break things by changing.
         super().test_getitem_scalar(data)
-
-    @pytest.mark.xfail(reason="Unobserved categories included")
-    def test_value_counts(self, all_data, dropna):
-        return super().test_value_counts(all_data, dropna)
 
     def test_combine_add(self, data_repeated):
         # GH 20825

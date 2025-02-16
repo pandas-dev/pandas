@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
 from pandas.errors import NumbaUtilError
 
 from pandas import (
@@ -9,8 +10,17 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
+
+numba = pytest.importorskip("numba")
+pytestmark.append(
+    pytest.mark.skipif(
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 def test_correct_function_signature():
@@ -33,26 +43,49 @@ def test_correct_function_signature():
 def test_check_nopython_kwargs():
     pytest.importorskip("numba")
 
-    def incorrect_function(values, index):
-        return values + 1
+    def incorrect_function(values, index, *, a):
+        return values + a
+
+    def correct_function(values, index, a):
+        return values + a
 
     data = DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
+    # py signature binding
+    with pytest.raises(
+        TypeError, match="missing a required (keyword-only argument|argument): 'a'"
+    ):
+        data.groupby("key").transform(incorrect_function, engine="numba", b=1)
+    with pytest.raises(TypeError, match="missing a required argument: 'a'"):
+        data.groupby("key").transform(correct_function, engine="numba", b=1)
+
+    with pytest.raises(
+        TypeError, match="missing a required (keyword-only argument|argument): 'a'"
+    ):
+        data.groupby("key")["data"].transform(incorrect_function, engine="numba", b=1)
+    with pytest.raises(TypeError, match="missing a required argument: 'a'"):
+        data.groupby("key")["data"].transform(correct_function, engine="numba", b=1)
+
+    # numba signature check after binding
     with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key").transform(incorrect_function, engine="numba", a=1)
+    actual = data.groupby("key").transform(correct_function, engine="numba", a=1)
+    tm.assert_frame_equal(data[["data"]] + 1, actual)
 
     with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key")["data"].transform(incorrect_function, engine="numba", a=1)
+    actual = data.groupby("key")["data"].transform(
+        correct_function, engine="numba", a=1
+    )
+    tm.assert_series_equal(data["data"] + 1, actual)
 
 
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
-@pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
-@pytest.mark.parametrize("as_index", [True, False])
-def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython, as_index):
+def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, nopython, as_index):
     pytest.importorskip("numba")
 
     def func(values, index):
@@ -69,7 +102,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython, as_index):
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0, as_index=as_index)
-    if pandas_obj == "Series":
+    if frame_or_series is Series:
         grouped = grouped[1]
 
     result = grouped.transform(func, engine="numba", engine_kwargs=engine_kwargs)
@@ -81,8 +114,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython, as_index):
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
-@pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
-def test_cache(jit, pandas_obj, nogil, parallel, nopython):
+def test_cache(jit, frame_or_series, nogil, parallel, nopython):
     # Test that the functions are cached correctly if we switch functions
     pytest.importorskip("numba")
 
@@ -103,7 +135,7 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
-    if pandas_obj == "Series":
+    if frame_or_series is Series:
         grouped = grouped[1]
 
     result = grouped.transform(func_1, engine="numba", engine_kwargs=engine_kwargs)
@@ -184,8 +216,23 @@ def test_index_data_correctly_passed():
 
     df = DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
     result = df.groupby("group").transform(f, engine="numba")
-    expected = DataFrame([-4.0, -3.0, -2.0], columns=["v"], index=[-1, -2, -3])
+    expected = DataFrame([-2.0, -3.0, -4.0], columns=["v"], index=[-1, -2, -3])
     tm.assert_frame_equal(result, expected)
+
+
+def test_index_order_consistency_preserved():
+    # GH 57069
+    pytest.importorskip("numba")
+
+    def f(values, index):
+        return values
+
+    df = DataFrame(
+        {"vals": [0.0, 1.0, 2.0, 3.0], "group": [0, 1, 0, 1]}, index=range(3, -1, -1)
+    )
+    result = df.groupby("group")["vals"].transform(f, engine="numba")
+    expected = Series([0.0, 1.0, 2.0, 3.0], index=range(3, -1, -1), name="vals")
+    tm.assert_series_equal(result, expected)
 
 
 def test_engine_kwargs_not_cached():

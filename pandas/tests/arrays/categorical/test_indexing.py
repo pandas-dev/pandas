@@ -21,7 +21,8 @@ import pandas.core.common as com
 
 
 class TestCategoricalIndexingWithFactor:
-    def test_getitem(self, factor):
+    def test_getitem(self):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         assert factor[0] == "a"
         assert factor[-1] == "c"
 
@@ -31,7 +32,8 @@ class TestCategoricalIndexingWithFactor:
         subf = factor[np.asarray(factor) == "c"]
         tm.assert_numpy_array_equal(subf._codes, np.array([2, 2, 2], dtype=np.int8))
 
-    def test_setitem(self, factor):
+    def test_setitem(self):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         # int/positional
         c = factor.copy()
         c[0] = "b"
@@ -49,12 +51,10 @@ class TestCategoricalIndexingWithFactor:
 
         tm.assert_categorical_equal(c, expected)
 
-    @pytest.mark.parametrize(
-        "other",
-        [Categorical(["b", "a"]), Categorical(["b", "a"], categories=["b", "a"])],
-    )
-    def test_setitem_same_but_unordered(self, other):
+    @pytest.mark.parametrize("categories", [None, ["b", "a"]])
+    def test_setitem_same_but_unordered(self, categories):
         # GH-24142
+        other = Categorical(["b", "a"], categories=categories)
         target = Categorical(["a", "b"], categories=["a", "b"])
         mask = np.array([True, False])
         target[mask] = other[mask]

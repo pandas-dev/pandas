@@ -221,7 +221,7 @@ $1$,$2$
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
-        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="d")})
+        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="D")})
 
         expected_rows = [
             ",A",
@@ -482,10 +482,7 @@ $1$,$2$
             # case 3: CRLF as line terminator
             # 'lineterminator' should not change inner element
             expected_crlf = (
-                b"int,str_crlf\r\n"
-                b"1,abc\r\n"
-                b'2,"d\r\nef"\r\n'
-                b'3,"g\r\nh\r\n\r\ni"\r\n'
+                b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
             )
             df.to_csv(path, lineterminator="\r\n", index=False)
             with open(path, "rb") as f:
@@ -666,7 +663,7 @@ z
     def test_to_csv_errors(self, errors):
         # GH 22610
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=Index(data))
+        ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
         with tm.ensure_clean("test.csv") as path:
             ser.to_csv(path, errors=errors)
         # No use in reading back the data as it is not the same anymore
@@ -682,8 +679,8 @@ z
         """
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
@@ -720,8 +717,8 @@ def test_to_csv_iterative_compression_name(compression):
     # GH 38714
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     with tm.ensure_clean() as path:
         df.to_csv(path, compression=compression, chunksize=1)
@@ -734,8 +731,8 @@ def test_to_csv_iterative_compression_buffer(compression):
     # GH 38714
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     with io.BytesIO() as buffer:
         df.to_csv(buffer, compression=compression, chunksize=1)
@@ -744,15 +741,3 @@ def test_to_csv_iterative_compression_buffer(compression):
             pd.read_csv(buffer, compression=compression, index_col=0), df
         )
         assert not buffer.closed
-
-
-def test_to_csv_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_csv except for the "
-        r"argument 'path_or_buf' will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        buffer = io.BytesIO()
-        df.to_csv(buffer, ";")

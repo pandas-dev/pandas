@@ -32,8 +32,7 @@ def test_read_with_bad_header(all_parsers):
     msg = r"but only \d+ lines in file"
 
     with pytest.raises(ValueError, match=msg):
-        s = StringIO(",,")
-        parser.read_csv(s, header=[10])
+        parser.read_csv(StringIO(",,"), header=[10])
 
 
 def test_negative_header(all_parsers):
@@ -121,7 +120,6 @@ baz,12,13,14,15
 @xfail_pyarrow  # TypeError: an integer is required
 def test_header_multi_index(all_parsers):
     parser = all_parsers
-    expected = tm.makeCustomDataframe(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
 
     data = """\
 C0,,C_l0_g0,C_l0_g1,C_l0_g2
@@ -137,6 +135,23 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
     result = parser.read_csv(StringIO(data), header=[0, 1, 2, 3], index_col=[0, 1])
+    data_gen_f = lambda r, c: f"R{r}C{c}"
+
+    data = [[data_gen_f(r, c) for c in range(3)] for r in range(5)]
+    index = MultiIndex.from_arrays(
+        [[f"R_l0_g{i}" for i in range(5)], [f"R_l1_g{i}" for i in range(5)]],
+        names=["R0", "R1"],
+    )
+    columns = MultiIndex.from_arrays(
+        [
+            [f"C_l0_g{i}" for i in range(3)],
+            [f"C_l1_g{i}" for i in range(3)],
+            [f"C_l2_g{i}" for i in range(3)],
+            [f"C_l3_g{i}" for i in range(3)],
+        ],
+        names=["C0", "C1", "C2", "C3"],
+    )
+    expected = DataFrame(data, columns=columns, index=index)
     tm.assert_frame_equal(result, expected)
 
 
@@ -147,7 +162,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
             {"index_col": ["foo", "bar"]},
             (
                 "index_col must only contain "
-                "row numbers when specifying "
+                "integers of column positions when specifying "
                 "a multi-index header"
             ),
         ),
@@ -353,7 +368,7 @@ def test_header_multi_index_common_format_malformed2(all_parsers):
     parser = all_parsers
     expected = DataFrame(
         np.array([[2, 3, 4, 5, 6], [8, 9, 10, 11, 12]], dtype="int64"),
-        index=Index([1, 7]),
+        index=range(1, 13, 6),
         columns=MultiIndex(
             levels=[["a", "b", "c"], ["r", "s", "t", "u", "v"]],
             codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
@@ -523,7 +538,7 @@ def test_mangles_multi_index(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is requireds
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize("index_col", [None, [0]])
 @pytest.mark.parametrize(
     "columns", [None, (["", "Unnamed"]), (["Unnamed", ""]), (["Unnamed", "NotUnnamed"])]
@@ -655,7 +670,7 @@ def test_header_none_and_on_bad_lines_skip(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is requireds
+@xfail_pyarrow  # TypeError: an integer is required
 def test_header_missing_rows(all_parsers):
     # GH#47400
     parser = all_parsers
@@ -667,7 +682,7 @@ def test_header_missing_rows(all_parsers):
         parser.read_csv(StringIO(data), header=[0, 1, 2])
 
 
-# ValueError: The 'delim_whitespace' option is not supported with the 'pyarrow' engine
+# ValueError: the 'pyarrow' engine does not support regex separators
 @xfail_pyarrow
 def test_header_multiple_whitespaces(all_parsers):
     # GH#54931
@@ -680,7 +695,7 @@ def test_header_multiple_whitespaces(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# ValueError: The 'delim_whitespace' option is not supported with the 'pyarrow' engine
+# ValueError: the 'pyarrow' engine does not support regex separators
 @xfail_pyarrow
 def test_header_delim_whitespace(all_parsers):
     # GH#54918
@@ -689,8 +704,7 @@ def test_header_delim_whitespace(all_parsers):
 1,2
 3,4
     """
-
-    result = parser.read_csv(StringIO(data), delim_whitespace=True)
+    result = parser.read_csv(StringIO(data), sep=r"\s+")
     expected = DataFrame({"a,b": ["1,2", "3,4"]})
     tm.assert_frame_equal(result, expected)
 

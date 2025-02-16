@@ -157,13 +157,13 @@ def test_rolling_forward_window(
     indexer = FixedForwardWindowIndexer(window_size=3)
 
     match = "Forward-looking windows can't have center=True"
+    rolling = frame_or_series(values).rolling(window=indexer, center=True)
     with pytest.raises(ValueError, match=match):
-        rolling = frame_or_series(values).rolling(window=indexer, center=True)
         getattr(rolling, func)()
 
     match = "Forward-looking windows don't support setting the closed argument"
+    rolling = frame_or_series(values).rolling(window=indexer, closed="right")
     with pytest.raises(ValueError, match=match):
-        rolling = frame_or_series(values).rolling(window=indexer, closed="right")
         getattr(rolling, func)()
 
     rolling = frame_or_series(values).rolling(window=indexer, min_periods=2, step=step)

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import index as libindex
 from pandas._libs.arrays import NDArrayBacked
 
@@ -19,6 +21,9 @@ from pandas.core.indexes.api import (
 class TestCategoricalIndex:
     @pytest.fixture
     def simple_index(self) -> CategoricalIndex:
+        """
+        Fixture that provides a CategoricalIndex.
+        """
         return CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
     def test_can_hold_identifiers(self):
@@ -47,7 +52,7 @@ class TestCategoricalIndex:
 
         # invalid -> cast to object
         expected = ci.astype(object).insert(0, "d")
-        result = ci.insert(0, "d")
+        result = ci.insert(0, "d").astype(object)
         tm.assert_index_equal(result, expected, exact=True)
 
         # GH 18295 (test missing)
@@ -194,6 +199,7 @@ class TestCategoricalIndex:
         expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="repr doesn't roundtrip")
     def test_repr_roundtrip(self):
         ci = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         str(ci)
@@ -389,3 +395,10 @@ class TestCategoricalIndex2:
                 ["a", "b", np.nan, "d", "d", "a"], categories=list("dba"), ordered=True
             ),
         )
+
+
+def test_contains_rangeindex_categories_no_engine():
+    ci = CategoricalIndex(range(3))
+    assert 2 in ci
+    assert 5 not in ci
+    assert "_engine" not in ci._cache

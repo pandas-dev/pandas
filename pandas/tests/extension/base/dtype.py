@@ -59,7 +59,12 @@ class BaseDtypeTests:
 
         # check equivalency for using .dtypes
         df = pd.DataFrame(
-            {"A": pd.Series(data, dtype=dtype), "B": data, "C": "foo", "D": 1}
+            {
+                "A": pd.Series(data, dtype=dtype),
+                "B": data,
+                "C": pd.Series(["foo"] * len(data), dtype=object),
+                "D": 1,
+            }
         )
         result = df.dtypes == str(dtype)
         assert np.dtype("int64") != "Int64"
@@ -80,7 +85,7 @@ class BaseDtypeTests:
 
     def test_eq(self, dtype):
         assert dtype == dtype.name
-        assert dtype != "anonther_type"
+        assert dtype != "another_type"
 
     def test_construct_from_string_own_name(self, dtype):
         result = dtype.construct_from_string(dtype.name)

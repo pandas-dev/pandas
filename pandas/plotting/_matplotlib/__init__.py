@@ -69,25 +69,25 @@ def plot(data, kind, **kwargs):
             kwargs["ax"] = getattr(ax, "left_ax", ax)
     plot_obj = PLOT_CLASSES[kind](data, **kwargs)
     plot_obj.generate()
-    plot_obj.draw()
+    plt.draw_if_interactive()
     return plot_obj.result
 
 
 __all__ = [
-    "plot",
-    "hist_series",
-    "hist_frame",
-    "boxplot",
-    "boxplot_frame",
-    "boxplot_frame_groupby",
-    "table",
     "andrews_curves",
     "autocorrelation_plot",
     "bootstrap_plot",
+    "boxplot",
+    "boxplot_frame",
+    "boxplot_frame_groupby",
+    "deregister",
+    "hist_frame",
+    "hist_series",
     "lag_plot",
     "parallel_coordinates",
+    "plot",
     "radviz",
-    "scatter_matrix",
     "register",
-    "deregister",
+    "scatter_matrix",
+    "table",
 ]

@@ -17,9 +17,9 @@ def datetime_frame() -> DataFrame:
     Columns are ['A', 'B', 'C', 'D']
     """
     return DataFrame(
-        np.random.default_rng(2).standard_normal((100, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=date_range("2000-01-01", periods=100, freq="B"),
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
 
@@ -33,7 +33,7 @@ def float_string_frame():
     df = DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
         index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
     )
     df["foo"] = "bar"
     return df

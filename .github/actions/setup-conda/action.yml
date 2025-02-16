@@ -11,6 +11,12 @@ runs:
       with:
         environment-file: ${{ inputs.environment-file }}
         environment-name: test
-        condarc-file: ci/condarc.yml
+        condarc-file: ci/.condarc
         cache-environment: true
         cache-downloads: true
+
+    - name: Uninstall pyarrow
+      if: ${{ env.REMOVE_PYARROW == '1' }}
+      run: |
+        micromamba remove -y pyarrow
+      shell: bash -el {0}

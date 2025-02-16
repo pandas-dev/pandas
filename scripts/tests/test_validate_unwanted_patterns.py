@@ -5,154 +5,6 @@ import pytest
 from scripts import validate_unwanted_patterns
 
 
-class TestBarePytestRaises:
-    @pytest.mark.parametrize(
-        "data",
-        [
-            (
-                """
-    with pytest.raises(ValueError, match="foo"):
-        pass
-    """
-            ),
-            (
-                """
-    # with pytest.raises(ValueError, match="foo"):
-    #    pass
-    """
-            ),
-            (
-                """
-    # with pytest.raises(ValueError):
-    #    pass
-    """
-            ),
-            (
-                """
-    with pytest.raises(
-        ValueError,
-        match="foo"
-    ):
-        pass
-    """
-            ),
-        ],
-    )
-    def test_pytest_raises(self, data):
-        fd = io.StringIO(data.strip())
-        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
-        assert result == []
-
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
-            (
-                (
-                    """
-    with pytest.raises(ValueError):
-        pass
-    """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-            (
-                (
-                    """
-    with pytest.raises(ValueError, match="foo"):
-        with pytest.raises(ValueError):
-            pass
-        pass
-    """
-                ),
-                [
-                    (
-                        2,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-            (
-                (
-                    """
-    with pytest.raises(ValueError):
-        with pytest.raises(ValueError, match="foo"):
-            pass
-        pass
-    """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-            (
-                (
-                    """
-    with pytest.raises(
-        ValueError
-    ):
-        pass
-    """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-            (
-                (
-                    """
-    with pytest.raises(
-        ValueError,
-        # match = "foo"
-    ):
-        pass
-    """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-        ],
-    )
-    def test_pytest_raises_raises(self, data, expected):
-        fd = io.StringIO(data.strip())
-        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
-        assert result == expected
-
-
 class TestStringsWithWrongPlacedWhitespace:
     @pytest.mark.parametrize(
         "data",
@@ -200,7 +52,7 @@ class TestStringsWithWrongPlacedWhitespace:
             ),
         ],
     )
-    def test_strings_with_wrong_placed_whitespace(self, data):
+    def test_strings_with_wrong_placed_whitespace(self, data) -> None:
         fd = io.StringIO(data.strip())
         result = list(
             validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
@@ -369,7 +221,7 @@ class TestStringsWithWrongPlacedWhitespace:
             ),
         ],
     )
-    def test_strings_with_wrong_placed_whitespace_raises(self, data, expected):
+    def test_strings_with_wrong_placed_whitespace_raises(self, data, expected) -> None:
         fd = io.StringIO(data.strip())
         result = list(
             validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
@@ -401,7 +253,7 @@ b: lib.NoDefault = lib.no_default
             ),
         ],
     )
-    def test_nodefault_used_not_only_for_typing(self, data):
+    def test_nodefault_used_not_only_for_typing(self, data) -> None:
         fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
         assert result == []
@@ -440,7 +292,7 @@ if a is NoDefault:
             ),
         ],
     )
-    def test_nodefault_used_not_only_for_typing_raises(self, data, expected):
+    def test_nodefault_used_not_only_for_typing_raises(self, data, expected) -> None:
         fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
         assert result == expected

@@ -9,10 +9,11 @@ The full license is in the LICENSE file, distributed with this software.
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #include <numpy/ndarraytypes.h>
 
 // Scales value inplace from nanosecond resolution to unit resolution
-int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit);
+int scaleNanosecToUnit(int64_t *value, NPY_DATETIMEUNIT unit);
 
 // Converts an int64 object representing a date to ISO format
 // up to precision `base` e.g. base="s" yields 2020-01-03T00:00:00Z

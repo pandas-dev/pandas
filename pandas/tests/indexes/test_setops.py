@@ -2,6 +2,7 @@
 The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
+
 from datetime import datetime
 import operator
 
@@ -54,6 +55,11 @@ def any_dtype_for_small_pos_integer_indexes(request):
     valid and gives the correct Index (sub-)class.
     """
     return request.param
+
+
+@pytest.fixture
+def index_flat2(index_flat):
+    return index_flat
 
 
 def test_union_same_types(index):
@@ -240,9 +246,6 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.intersection([1, 2, 3])
 
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
         index = index.unique()
@@ -270,9 +273,6 @@ class TestSetOps:
                 first.union([1, 2, 3])
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
@@ -299,10 +299,13 @@ class TestSetOps:
                 first.difference([1, 2, 3], sort)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
-    def test_symmetric_difference(self, index):
+    def test_symmetric_difference(self, index, using_infer_string, request):
+        if (
+            using_infer_string
+            and index.dtype == "object"
+            and index.inferred_type == "string"
+        ):
+            request.applymarker(pytest.mark.xfail(reason="TODO: infer_string"))
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"Not relevant for {type(index).__name__}")
         if len(index) < 2:
@@ -522,10 +525,8 @@ class TestSetOps:
         tm.assert_index_equal(inter, diff, exact=True)
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-@pytest.mark.filterwarnings(
-    "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-)
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
@@ -716,14 +717,15 @@ class TestSetOpsUnsorted:
         assert inter is first
 
     @pytest.mark.parametrize(
-        "index2,keeps_name",
+        "index2_name,keeps_name",
         [
-            (Index([3, 4, 5, 6, 7], name="index"), True),  # preserve same name
-            (Index([3, 4, 5, 6, 7], name="other"), False),  # drop diff names
-            (Index([3, 4, 5, 6, 7]), False),
+            ("index", True),  # preserve same name
+            ("other", False),  # drop diff names
+            (None, False),
         ],
     )
-    def test_intersection_name_preservation(self, index2, keeps_name, sort):
+    def test_intersection_name_preservation(self, index2_name, keeps_name, sort):
+        index2 = Index([3, 4, 5, 6, 7], name=index2_name)
         index1 = Index([1, 2, 3, 4, 5], name="index")
         expected = Index([3, 4, 5])
         result = index1.intersection(index2, sort)
@@ -802,10 +804,10 @@ class TestSetOpsUnsorted:
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
-        union = first.union([], sort=sort)
+        union = first.union(Index([], dtype=first.dtype), sort=sort)
         assert (union is first) is (not sort)
 
-        union = Index([]).union(first, sort=sort)
+        union = Index([], dtype=first.dtype).union(first, sort=sort)
         assert (union is first) is (not sort)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -875,7 +877,7 @@ class TestSetOpsUnsorted:
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             # sort=None, the default
             result = op(a)
         expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])
@@ -910,11 +912,13 @@ class TestSetOpsUnsorted:
     @pytest.mark.parametrize(
         "index2,expected",
         [
-            (Index([0, 1, np.nan]), Index([2.0, 3.0, 0.0])),
-            (Index([0, 1]), Index([np.nan, 2.0, 3.0, 0.0])),
+            ([0, 1, np.nan], [2.0, 3.0, 0.0]),
+            ([0, 1], [np.nan, 2.0, 3.0, 0.0]),
         ],
     )
     def test_symmetric_difference_missing(self, index2, expected, sort):
+        index2 = Index(index2)
+        expected = Index(expected)
         # GH#13514 change: {nan} - {nan} == {}
         # (GH#6444, sorting of nans, is no longer an issue)
         index1 = Index([1, np.nan, 2, 3])

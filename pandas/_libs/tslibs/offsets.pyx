@@ -56,9 +56,10 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
-    c_DEPR_ABBREVS,
-    c_OFFSET_DEPR_FREQSTR,
-    c_REVERSE_OFFSET_DEPR_FREQSTR,
+    c_OFFSET_RENAMED_FREQSTR,
+    c_OFFSET_TO_PERIOD_FREQSTR,
+    c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
+    c_PERIOD_TO_OFFSET_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -219,8 +220,7 @@ cdef _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [_to_dt64D(dt) for dt in holidays]
-    holidays = tuple(sorted(holidays))
+    holidays = tuple(sorted(_to_dt64D(dt) for dt in holidays))
 
     kwargs = {"weekmask": weekmask}
     if holidays:
@@ -419,17 +419,22 @@ cdef class BaseOffset:
 
         if "holidays" in all_paras and not all_paras["holidays"]:
             all_paras.pop("holidays")
-        exclude = ["kwds", "name", "calendar"]
-        attrs = [(k, v) for k, v in all_paras.items()
-                 if (k not in exclude) and (k[0] != "_")]
-        attrs = sorted(set(attrs))
-        params = tuple([str(type(self))] + attrs)
+        exclude = {"kwds", "name", "calendar"}
+        attrs = {(k, v) for k, v in all_paras.items()
+                 if (k not in exclude) and (k[0] != "_")}
+        params = tuple([str(type(self))] + sorted(attrs))
         return params
 
     @property
     def kwds(self) -> dict:
         """
         Return a dict of extra parameters for the offset.
+
+        See Also
+        --------
+        tseries.offsets.DateOffset : The base class for all pandas date offsets.
+        tseries.offsets.WeekOfMonth : Represents the week of the month.
+        tseries.offsets.LastWeekOfMonth : Represents the last week of the month.
 
         Examples
         --------
@@ -486,6 +491,12 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
+        elif isinstance(other, BaseOffset):
+            # Otherwise raises RecurrsionError due to __rmul__
+            raise TypeError(
+                f"Cannot multiply {type(self).__name__} with "
+                f"{type(other).__name__}."
+            )
         return NotImplemented
 
     def __rmul__(self, other):
@@ -501,6 +512,13 @@ cdef class BaseOffset:
         # that allows us to use methods that can go in a `cdef class`
         """
         Return a copy of the frequency.
+
+        See Also
+        --------
+        tseries.offsets.Week.copy : Return a copy of Week offset.
+        tseries.offsets.DateOffset.copy : Return a copy of date offset.
+        tseries.offsets.MonthEnd.copy : Return a copy of MonthEnd offset.
+        tseries.offsets.YearBegin.copy : Return a copy of YearBegin offset.
 
         Examples
         --------
@@ -553,6 +571,14 @@ cdef class BaseOffset:
         """
         Return a string representing the base frequency.
 
+        See Also
+        --------
+        tseries.offsets.Week : Represents a weekly offset.
+        DateOffset : Base class for all other offset classes.
+        tseries.offsets.Day : Represents a single day offset.
+        tseries.offsets.MonthEnd : Represents a monthly offset that
+            snaps to the end of the month.
+
         Examples
         --------
         >>> pd.offsets.Hour().name
@@ -569,12 +595,41 @@ cdef class BaseOffset:
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code :
+            Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code :
+            Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().rule_code
+        'h'
+
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+        """
         return self._prefix
 
     @cache_readonly
     def freqstr(self) -> str:
         """
         Return a string representing the frequency.
+
+        See Also
+        --------
+        tseries.offsets.BusinessDay.freqstr :
+            Return a string representing an offset frequency in Business Days.
+        tseries.offsets.BusinessHour.freqstr :
+            Return a string representing an offset frequency in Business Hours.
+        tseries.offsets.Week.freqstr :
+            Return a string representing an offset frequency in Weeks.
+        tseries.offsets.Hour.freqstr :
+            Return a string representing an offset frequency in Hours.
 
         Examples
         --------
@@ -665,10 +720,23 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp intersects with this frequency.
 
+        This method determines if a given timestamp aligns with the start
+        of a custom business month, as defined by this offset. It accounts
+        for custom rules, such as skipping weekends or other non-business days,
+        and checks whether the provided datetime falls on a valid business day
+        that marks the beginning of the custom business month.
+
         Parameters
         ----------
         dt : datetime.datetime
             Timestamp to check intersections with frequency.
+
+        See Also
+        --------
+        tseries.offsets.CustomBusinessMonthBegin : Represents the start of a custom
+            business month.
+        tseries.offsets.CustomBusinessMonthEnd : Represents the end of a custom
+            business month.
 
         Examples
         --------
@@ -737,7 +805,7 @@ cdef class BaseOffset:
 
     def __getstate__(self):
         """
-        Return a pickleable state
+        Return a picklable state
         """
         state = {}
         state["n"] = self.n
@@ -753,28 +821,42 @@ cdef class BaseOffset:
 
     @property
     def nanos(self):
-        raise ValueError(f"{self} is a non-fixed frequency")
-
-    def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
         """
-        Return boolean whether the frequency is a unit frequency (n=1).
+        Returns a integer of the total number of nanoseconds for fixed frequencies.
+
+        Raises
+        ------
+        ValueError
+            If the frequency is non-fixed.
+
+        See Also
+        --------
+        tseries.offsets.Hour.nanos :
+            Returns an integer of the total number of nanoseconds.
+        tseries.offsets.Day.nanos :
+            Returns an integer of the total number of nanoseconds.
 
         Examples
         --------
-        >>> pd.DateOffset().is_anchored()
-        True
-        >>> pd.DateOffset(2).is_anchored()
-        False
+        >>> pd.offsets.Week(n=1).nanos
+        ValueError: Week: weekday=None is a non-fixed frequency
         """
-        return self.n == 1
+        raise ValueError(f"{self} is a non-fixed frequency")
 
     # ------------------------------------------------------------------
 
     def is_month_start(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the month start.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_month_end : Return boolean whether a timestamp occurs on the month end.
 
         Examples
         --------
@@ -789,6 +871,15 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the month end.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_month_start : Return boolean whether a timestamp occurs on the month start.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -801,6 +892,15 @@ cdef class BaseOffset:
     def is_quarter_start(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the quarter start.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_quarter_end : Return boolean whether a timestamp occurs on the quarter end.
 
         Examples
         --------
@@ -815,6 +915,16 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the quarter end.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_quarter_start : Return boolean whether a timestamp
+            occurs on the quarter start.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -828,6 +938,15 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the year start.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_year_end : Return boolean whether a timestamp occurs on the year end.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -840,6 +959,15 @@ cdef class BaseOffset:
     def is_year_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the year end.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_year_start : Return boolean whether a timestamp occurs on the year start.
 
         Examples
         --------
@@ -913,24 +1041,21 @@ cdef class Tick(SingleConstructorOffset):
         # Since cdef classes have no __dict__, we need to override
         return ""
 
-    @property
-    def delta(self):
-        try:
-            return self.n * Timedelta(self._nanos_inc)
-        except OverflowError as err:
-            # GH#55503 as_unit will raise a more useful OutOfBoundsTimedelta
-            Timedelta(self).as_unit("ns")
-            raise AssertionError("This should not be reached.")
+    @cache_readonly
+    def _as_pd_timedelta(self):
+        return Timedelta(self)
 
     @property
     def nanos(self) -> int64_t:
         """
-        Return an integer of the total number of nanoseconds.
+        Returns an integer of the total number of nanoseconds.
 
-        Raises
-        ------
-        ValueError
-            If the frequency is non-fixed.
+        See Also
+        --------
+        tseries.offsets.Hour.nanos :
+            Returns an integer of the total number of nanoseconds.
+        tseries.offsets.Day.nanos :
+            Returns an integer of the total number of nanoseconds.
 
         Examples
         --------
@@ -941,9 +1066,6 @@ cdef class Tick(SingleConstructorOffset):
 
     def is_on_offset(self, dt: datetime) -> bool:
         return True
-
-    def is_anchored(self) -> bool:
-        return False
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -962,22 +1084,22 @@ cdef class Tick(SingleConstructorOffset):
             except ValueError:
                 # e.g. "infer"
                 return False
-        return self.delta == other
+        return self._as_pd_timedelta == other
 
     def __ne__(self, other):
         return not (self == other)
 
     def __le__(self, other):
-        return self.delta.__le__(other)
+        return self._as_pd_timedelta.__le__(other)
 
     def __lt__(self, other):
-        return self.delta.__lt__(other)
+        return self._as_pd_timedelta.__lt__(other)
 
     def __ge__(self, other):
-        return self.delta.__ge__(other)
+        return self._as_pd_timedelta.__ge__(other)
 
     def __gt__(self, other):
-        return self.delta.__gt__(other)
+        return self._as_pd_timedelta.__gt__(other)
 
     def __mul__(self, other):
         if is_float_object(other):
@@ -997,13 +1119,13 @@ cdef class Tick(SingleConstructorOffset):
     def __truediv__(self, other):
         if not isinstance(self, Tick):
             # cython semantics mean the args are sometimes swapped
-            result = other.delta.__rtruediv__(self)
+            result = other._as_pd_timedelta.__rtruediv__(self)
         else:
-            result = self.delta.__truediv__(other)
+            result = self._as_pd_timedelta.__truediv__(other)
         return _wrap_timedelta_result(result)
 
     def __rtruediv__(self, other):
-        result = self.delta.__rtruediv__(other)
+        result = self._as_pd_timedelta.__rtruediv__(other)
         return _wrap_timedelta_result(result)
 
     def __add__(self, other):
@@ -1011,7 +1133,7 @@ cdef class Tick(SingleConstructorOffset):
             if type(self) is type(other):
                 return type(self)(self.n + other.n)
             else:
-                return delta_to_tick(self.delta + other.delta)
+                return delta_to_tick(self._as_pd_timedelta + other._as_pd_timedelta)
         try:
             return self._apply(other)
         except ApplyTypeError:
@@ -1029,7 +1151,7 @@ cdef class Tick(SingleConstructorOffset):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, _Timestamp):
             # GH#15126
-            return other + self.delta
+            return other + self._as_pd_timedelta
         elif other is NaT:
             return NaT
         elif cnp.is_datetime64_object(other) or PyDate_Check(other):
@@ -1037,7 +1159,7 @@ cdef class Tick(SingleConstructorOffset):
             return Timestamp(other) + self
 
         if cnp.is_timedelta64_object(other) or PyDelta_Check(other):
-            return other + self.delta
+            return other + self._as_pd_timedelta
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
@@ -1053,7 +1175,7 @@ cdef class Day(Tick):
     """
     Offset ``n`` days.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -1089,7 +1211,7 @@ cdef class Hour(Tick):
     """
     Offset ``n`` hours.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -1125,7 +1247,7 @@ cdef class Minute(Tick):
     """
     Offset ``n`` minutes.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of minutes represented.
@@ -1161,7 +1283,7 @@ cdef class Second(Tick):
     """
     Offset ``n`` seconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of seconds represented.
@@ -1194,6 +1316,36 @@ cdef class Second(Tick):
 
 
 cdef class Milli(Tick):
+    """
+    Offset ``n`` milliseconds.
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of milliseconds represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n milliseconds.
+
+    >>> from pandas.tseries.offsets import Milli
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Milli(n=10)
+    Timestamp('2022-12-09 15:00:00.010000')
+
+    >>> ts - Milli(n=10)
+    Timestamp('2022-12-09 14:59:59.990000')
+
+    >>> ts + Milli(n=-10)
+    Timestamp('2022-12-09 14:59:59.990000')
+    """
     _nanos_inc = 1_000_000
     _prefix = "ms"
     _period_dtype_code = PeriodDtypeCode.L
@@ -1201,6 +1353,36 @@ cdef class Milli(Tick):
 
 
 cdef class Micro(Tick):
+    """
+    Offset ``n`` microseconds.
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of microseconds represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n microseconds.
+
+    >>> from pandas.tseries.offsets import Micro
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Micro(n=1000)
+    Timestamp('2022-12-09 15:00:00.001000')
+
+    >>> ts - Micro(n=1000)
+    Timestamp('2022-12-09 14:59:59.999000')
+
+    >>> ts + Micro(n=-1000)
+    Timestamp('2022-12-09 14:59:59.999000')
+    """
     _nanos_inc = 1000
     _prefix = "us"
     _period_dtype_code = PeriodDtypeCode.U
@@ -1208,6 +1390,36 @@ cdef class Micro(Tick):
 
 
 cdef class Nano(Tick):
+    """
+    Offset ``n`` nanoseconds.
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of nanoseconds represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n nanoseconds.
+
+    >>> from pandas.tseries.offsets import Nano
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Nano(n=1000)
+    Timestamp('2022-12-09 15:00:00.000001')
+
+    >>> ts - Nano(n=1000)
+    Timestamp('2022-12-09 14:59:59.999999')
+
+    >>> ts + Nano(n=-1000)
+    Timestamp('2022-12-09 14:59:59.999999')
+    """
     _nanos_inc = 1
     _prefix = "ns"
     _period_dtype_code = PeriodDtypeCode.N
@@ -1257,7 +1469,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     def __getstate__(self):
         """
-        Return a pickleable state
+        Return a picklable state
         """
         # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
         #  class, so the only one with __dict__
@@ -1327,13 +1539,22 @@ cdef class RelativeDeltaOffset(BaseOffset):
             "minutes",
             "seconds",
             "microseconds",
+            "milliseconds",
         }
         # relativedelta/_offset path only valid for base DateOffset
         if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+            td_args = {
+                "days",
+                "hours",
+                "minutes",
+                "seconds",
+                "microseconds",
+                "milliseconds"
+            }
             td_kwds = {
                 key: val
                 for key, val in kwds.items()
-                if key in ["days", "hours", "minutes", "seconds", "microseconds"]
+                if key in td_args
             }
             if "weeks" in kwds:
                 days = td_kwds.get("days", 0)
@@ -1343,6 +1564,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(**td_kwds)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             else:
@@ -1360,6 +1583,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(self._offset * self.n)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             return delta
@@ -1413,7 +1638,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Standard kind of date increment used for a date range.
 
     Works exactly like the keyword argument form of relativedelta.
-    Note that the positional argument form of relativedelata is not
+    Note that the positional argument form of relativedelta is not
     supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
@@ -1455,7 +1680,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Besides, adding a DateOffsets specified by the singular form of the date
     component can be used to replace certain component of the timestamp.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of time periods the offset represents.
@@ -2265,6 +2490,24 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code :
+            Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code :
+            Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+
+        >>> pd.offsets.WeekOfMonth(n=1, week=0, weekday=0).rule_code
+        'WOM-1MON'
+        """
         weekday = int_to_weekday.get(self.weekday, "")
         if self.week == -1:
             # LastWeekOfMonth
@@ -2311,6 +2554,24 @@ cdef class YearOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code :
+            Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code :
+            Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.tseries.offsets.YearBegin(n=1, month=2).rule_code
+        'YS-FEB'
+
+        >>> pd.tseries.offsets.YearEnd(n=1, month=6).rule_code
+        'YE-JUN'
+        """
         month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
@@ -2345,7 +2606,7 @@ cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2384,7 +2645,7 @@ cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2425,7 +2686,7 @@ cdef class YearEnd(YearOffset):
 
     YearEnd goes to the next date which is the end of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2479,7 +2740,7 @@ cdef class YearBegin(YearOffset):
 
     YearBegin goes to the next date which is the start of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2561,9 +2822,6 @@ cdef class QuarterOffset(SingleConstructorOffset):
         month = MONTH_ALIASES[self.startingMonth]
         return f"{self._prefix}-{month}"
 
-    def is_anchored(self) -> bool:
-        return self.n == 1 and self.startingMonth is not None
-
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -2605,7 +2863,7 @@ cdef class BQuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2646,7 +2904,7 @@ cdef class BQuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2687,7 +2945,7 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2728,7 +2986,7 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2788,7 +3046,7 @@ cdef class MonthEnd(MonthOffset):
 
     MonthEnd goes to the next date which is an end of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -2826,7 +3084,7 @@ cdef class MonthBegin(MonthOffset):
 
     MonthBegin goes to the next date which is a start of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -2863,7 +3121,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -2901,7 +3159,7 @@ cdef class BusinessMonthBegin(MonthOffset):
     BusinessMonthBegin goes to the next date which is the first business day
     of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3071,11 +3329,26 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the last day of the month & day_of_month.
 
-    Parameters
+    This offset allows for flexibility in generating date ranges or adjusting dates
+    to the end of a month or a specific day in the month, such as the 15th or the last
+    day of the month. It is useful for financial or scheduling applications where
+    events occur bi-monthly.
+
+    Attributes
     ----------
-    n : int
+    n : int, default 1
+        The number of months represented.
     normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     day_of_month : int, {1, 3,...,27}, default 15
+        A specific integer for the day of the month.
+
+    See Also
+    --------
+    tseries.offsets.SemiMonthBegin : Offset for semi-monthly frequencies, starting at
+        the beginning of the month.
+    tseries.offsets.MonthEnd : Offset to the last calendar day of the month.
+    tseries.offsets.MonthBegin : Offset to the first calendar day of the month.
 
     Examples
     --------
@@ -3111,11 +3384,25 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first day of the month & day_of_month.
 
-    Parameters
+    This offset moves dates to the first day of the month and an additional specified
+    day (typically the 15th by default), useful in scenarios where bi-monthly processing
+    occurs on set days.
+
+    Attributes
     ----------
-    n : int
+    n : int, default 1
+        The number of months represented.
     normalize : bool, default False
-    day_of_month : int, {2, 3,...,27}, default 15
+        Normalize start/end dates to midnight before generating date range.
+    day_of_month : int, {1, 3,...,27}, default 15
+        A specific integer for the day of the month.
+
+    See Also
+    --------
+    tseries.offsets.SemiMonthEnd : Two DateOffset's per month repeating on the last day
+        of the month & day_of_month.
+    tseries.offsets.MonthEnd : Offset to the last calendar day of the month.
+    tseries.offsets.MonthBegin : Offset to the first calendar day of the month.
 
     Examples
     --------
@@ -3140,7 +3427,7 @@ cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of weeks represented.
@@ -3199,9 +3486,6 @@ cdef class Week(SingleConstructorOffset):
         self.normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self._cache = state.pop("_cache", {})
-
-    def is_anchored(self) -> bool:
-        return self.n == 1 and self.weekday is not None
 
     @apply_wraps
     def _apply(self, other):
@@ -3297,6 +3581,24 @@ cdef class Week(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.name :
+            Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.name :
+            Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().rule_code
+        'h'
+
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+        """
         suffix = ""
         if self.weekday is not None:
             weekday = int_to_weekday[self.weekday]
@@ -3316,7 +3618,12 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
-    Parameters
+    This offset allows for generating or adjusting dates by specifying
+    a particular week and weekday within a month. The week is zero-indexed,
+    where 0 corresponds to the first week of the month, and weekday follows
+    a Monday=0 convention.
+
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3335,6 +3642,12 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         - 4 is Friday
         - 5 is Saturday
         - 6 is Sunday.
+
+    See Also
+    --------
+    offsets.Week : Describes weekly frequency adjustments.
+    offsets.MonthEnd : Describes month-end frequency adjustments.
+    date_range : Generates a range of dates based on a specific frequency.
 
     Examples
     --------
@@ -3393,7 +3706,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
     For example "the last Tuesday of each month".
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3409,6 +3722,15 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
         - 4 is Friday
         - 5 is Saturday
         - 6 is Sunday.
+
+    See Also
+    --------
+    tseries.offsets.WeekOfMonth :
+        Date offset for a specific weekday in a month.
+    tseries.offsets.MonthEnd :
+        Date offset for the end of the month.
+    tseries.offsets.BMonthEnd :
+        Date offset for the last business day of the month.
 
     Examples
     --------
@@ -3489,11 +3811,6 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self.weekday = state.pop("weekday")
         self.variation = state.pop("variation")
 
-    def is_anchored(self) -> bool:
-        return (
-            self.n == 1 and self.startingMonth is not None and self.weekday is not None
-        )
-
     # --------------------------------------------------------------------
     # Name-related methods
 
@@ -3538,7 +3855,7 @@ cdef class FY5253(FY5253Mixin):
     X is a specific day of the week.
     Y is a certain month of the year
 
-    Parameters
+    Attributes
     ----------
     n : int
         The number of fiscal years represented.
@@ -3741,7 +4058,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int
         The number of business quarters represented.
@@ -3976,7 +4293,7 @@ cdef class Easter(SingleConstructorOffset):
 
     Right now uses the revised method which is valid in years 1583-4099.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -4114,9 +4431,7 @@ cdef class CustomBusinessDay(BusinessDay):
     @property
     def _period_dtype_code(self):
         # GH#52534
-        raise TypeError(
-            "CustomBusinessDay is not supported as period frequency"
-        )
+        raise ValueError(f"{self.base} is not supported as period frequency")
 
     _apply_array = BaseOffset._apply_array
 
@@ -4528,6 +4843,7 @@ prefix_mapping = {
         Hour,  # 'h'
         Day,  # 'D'
         WeekOfMonth,  # 'WOM'
+        LastWeekOfMonth,  # 'LWOM'
         FY5253,
         FY5253Quarter,
     ]
@@ -4548,35 +4864,9 @@ _lite_rule_alias = {
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
     "Min": "min",
-    "min": "min",
-    "ms": "ms",
-    "us": "us",
-    "ns": "ns",
 }
 
-_dont_uppercase = {
-    "h",
-    "bh",
-    "cbh",
-    "MS",
-    "ms",
-    "s",
-    "me",
-    "qe",
-    "qe-dec",
-    "qe-jan",
-    "qe-feb",
-    "qe-mar",
-    "qe-apr",
-    "qe-may",
-    "qe-jun",
-    "qe-jul",
-    "qe-aug",
-    "qe-sep",
-    "qe-oct",
-    "qe-nov",
-    "ye",
-}
+_dont_uppercase = {"min", "h", "bh", "cbh", "s", "ms", "us", "ns"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4584,6 +4874,61 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 # TODO: still needed?
 # cache of previously seen offsets
 _offset_map = {}
+
+
+def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
+    if name in _lite_rule_alias:
+        return name
+    if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+        warnings.warn(
+            f"\'{name}\' is deprecated and will be removed "
+            f"in a future version, please use "
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f" instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+            )
+        return c_PERIOD_AND_OFFSET_DEPR_FREQSTR[name]
+
+    for _name in (name.lower(), name.upper()):
+        if name == _name:
+            continue
+        if _name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values():
+            warnings.warn(
+                f"\'{name}\' is deprecated and will be removed "
+                f"in a future version, please use "
+                f"\'{_name}\' "
+                f" instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+                )
+            return _name
+
+    return name
+
+
+def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
+    if not is_period:
+        if alias.upper() in c_OFFSET_RENAMED_FREQSTR:
+            raise ValueError(
+                f"\'{alias}\' is no longer supported for offsets. Please "
+                f"use \'{c_OFFSET_RENAMED_FREQSTR.get(alias.upper())}\' "
+                f"instead."
+            )
+        if (alias.upper() != alias and
+                alias.lower() not in {"s", "ms", "us", "ns"} and
+                alias.upper().split("-")[0].endswith(("S", "E"))):
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
+    if (
+        is_period and
+        alias in c_OFFSET_TO_PERIOD_FREQSTR and
+        alias != c_OFFSET_TO_PERIOD_FREQSTR[alias]
+    ):
+        alias_msg = c_OFFSET_TO_PERIOD_FREQSTR.get(alias)
+        raise ValueError(
+            f"for Period, please use \'{alias_msg}\' "
+            f"instead of \'{alias}\'"
+        )
 
 
 # TODO: better name?
@@ -4595,13 +4940,6 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if name.lower() not in _dont_uppercase:
-        name = name.upper()
-        name = _lite_rule_alias.get(name, name)
-        name = _lite_rule_alias.get(name.lower(), name)
-    else:
-        name = _lite_rule_alias.get(name, name)
-
     if name not in _offset_map:
         try:
             split = name.split("-")
@@ -4627,6 +4965,10 @@ cpdef to_offset(freq, bint is_period=False):
     Parameters
     ----------
     freq : str, datetime.timedelta, BaseOffset or None
+        The frequency represented.
+    is_period : bool, default False
+        Convert string denoting period frequency to corresponding offsets
+        frequency if is_period=True.
 
     Returns
     -------
@@ -4661,23 +5003,34 @@ cpdef to_offset(freq, bint is_period=False):
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
+
+    Passing the parameter ``is_period`` equal to True, you can use a string
+    denoting period frequency:
+
+    >>> freq = to_offset(freq="ME", is_period=False)
+    >>> freq.rule_code
+    'ME'
+
+    >>> freq = to_offset(freq="M", is_period=True)
+    >>> freq.rule_code
+    'ME'
     """
     if freq is None:
         return None
-
-    if isinstance(freq, BaseOffset):
-        return freq
 
     if isinstance(freq, tuple):
         raise TypeError(
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
+    if isinstance(freq, BaseOffset):
+        result = freq
+
     elif PyDelta_Check(freq):
-        return delta_to_tick(freq)
+        result = delta_to_tick(freq)
 
     elif isinstance(freq, str):
-        delta = None
+        result = None
         stride_sign = None
 
         try:
@@ -4688,64 +5041,30 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
-                    warnings.warn(
-                        f"\'{name}\' is deprecated, please use "
-                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    name = c_OFFSET_DEPR_FREQSTR[name]
-                if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    if name.startswith("Y"):
-                        raise ValueError(
-                            f"for Period, please use \'Y{name[2:]}\' "
-                            f"instead of \'{name}\'"
-                        )
-                    if (name.startswith("B") or
-                            name.startswith("S") or name.startswith("C")):
-                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                    else:
-                        raise ValueError(
-                            f"for Period, please use "
-                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
-                            f"instead of \'{name}\'"
-                        )
-                elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
-                    if name.startswith("A"):
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use \'{c_DEPR_ABBREVS.get(name)}\' "
-                            f"instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
-                    name = c_OFFSET_DEPR_FREQSTR.get(name)
+                name = _warn_about_deprecated_aliases(name, is_period)
+                _validate_to_offset_alias(name, is_period)
+                if is_period:
+                    if name.upper() in c_PERIOD_TO_OFFSET_FREQSTR:
+                        if name.upper() != name:
+                            raise ValueError(
+                                f"\'{name}\' is no longer supported, "
+                                f"please use \'{name.upper()}\' instead.",
+                            )
+                        name = c_PERIOD_TO_OFFSET_FREQSTR[name.upper()]
+                name = _lite_rule_alias.get(name, name)
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
-                prefix = _lite_rule_alias.get(name) or name
                 if stride_sign is None:
                     stride_sign = -1 if stride.startswith("-") else 1
                 if not stride:
                     stride = 1
 
-                if prefix in c_DEPR_ABBREVS:
-                    warnings.warn(
-                        f"\'{prefix}\' is deprecated and will be removed "
-                        f"in a future version. Please use "
-                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' "
-                        f"instead of \'{prefix}\'.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    prefix = c_DEPR_ABBREVS[prefix]
-
-                if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
+                if name in {"D", "h", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3h" or
                     #  "2.5min", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
-                    td = Timedelta(1, unit=prefix)
+                    td = Timedelta(1, unit=name)
                     off = delta_to_tick(td)
                     offset = off * float(stride)
                     if n != 0:
@@ -4754,24 +5073,35 @@ cpdef to_offset(freq, bint is_period=False):
                         offset *= stride_sign
                 else:
                     stride = int(stride)
-                    offset = _get_offset(prefix)
+                    offset = _get_offset(name)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
-                if delta is None:
-                    delta = offset
+                if result is None:
+                    result = offset
                 else:
-                    delta = delta + offset
+                    result = result + offset
         except (ValueError, TypeError) as err:
             raise ValueError(INVALID_FREQ_ERR_MSG.format(
                 f"{freq}, failed to parse with error message: {repr(err)}")
-            )
+            ) from err
     else:
-        delta = None
+        result = None
 
-    if delta is None:
+    if result is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
-    return delta
+    try:
+        has_period_dtype_code = hasattr(result, "_period_dtype_code")
+    except ValueError:
+        has_period_dtype_code = False
+
+    if is_period and not has_period_dtype_code:
+        if isinstance(freq, str):
+            raise ValueError(f"{result.name} is not supported as period frequency")
+        else:
+            raise ValueError(f"{freq} is not supported as period frequency")
+
+    return result
 
 
 # ----------------------------------------------------------------------

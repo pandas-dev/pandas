@@ -4,7 +4,6 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 import numpy as np
@@ -28,16 +27,20 @@ from pandas.core.arrays.masked import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import (
+        Callable,
+        Mapping,
+    )
 
     import pyarrow
 
     from pandas._typing import (
-        Dtype,
         DtypeObj,
         Self,
         npt,
     )
+
+    from pandas.core.dtypes.dtypes import ExtensionDtype
 
 
 class NumericDtype(BaseMaskedDtype):
@@ -132,9 +135,12 @@ class NumericDtype(BaseMaskedDtype):
         raise AbstractMethodError(cls)
 
 
-def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
+def _coerce_to_data_and_mask(
+    values, dtype, copy: bool, dtype_cls: type[NumericDtype], default_dtype: np.dtype
+):
     checker = dtype_cls._checker
 
+    mask = None
     inferred_type = None
 
     if dtype is None and hasattr(values, "dtype"):
@@ -156,7 +162,10 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
         return values, mask, dtype, inferred_type
 
     original = values
-    values = np.array(values, copy=copy)
+    if not copy:
+        values = np.asarray(values)
+    else:
+        values = np.array(values, copy=copy)
     inferred_type = None
     if values.dtype == object or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
@@ -165,7 +174,12 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
     elif values.dtype.kind == "b" and checker(dtype):
-        values = np.array(values, dtype=default_dtype, copy=copy)
+        # fastpath
+        mask = np.zeros(len(values), dtype=np.bool_)
+        if not copy:
+            values = np.asarray(values, dtype=default_dtype)
+        else:
+            values = np.array(values, dtype=default_dtype, copy=copy)
 
     elif values.dtype.kind not in "iuf":
         name = dtype_cls.__name__.strip("_")
@@ -178,6 +192,10 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
         if values.dtype.kind in "iu":
             # fastpath
             mask = np.zeros(len(values), dtype=np.bool_)
+        elif values.dtype.kind == "f":
+            # np.isnan is faster than is_numeric_na() for floats
+            # github issue: #60066
+            mask = np.isnan(values)
         else:
             mask = libmissing.is_numeric_na(values)
     else:
@@ -190,7 +208,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
     if dtype is None:
         dtype = default_dtype
     else:
-        dtype = dtype.type
+        dtype = dtype.numpy_dtype
 
     if is_integer_dtype(dtype) and values.dtype.kind == "f" and len(values) > 0:
         if mask.all():
@@ -204,14 +222,14 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
                     inferred_type not in ["floating", "mixed-integer-float"]
                     and not mask.any()
                 ):
-                    values = np.array(original, dtype=dtype, copy=False)
+                    values = np.asarray(original, dtype=dtype)
                 else:
-                    values = np.array(original, dtype="object", copy=False)
+                    values = np.asarray(original, dtype="object")
 
     # we copy as need to coerce here
     if mask.any():
         values = values.copy()
-        values[mask] = cls._internal_fill_value
+        values[mask] = dtype_cls._internal_fill_value
     if inferred_type in ("string", "unicode"):
         # casts from str are always safe since they raise
         # a ValueError if the str cannot be parsed into a float
@@ -260,15 +278,14 @@ class NumericArray(BaseMaskedArray):
     ) -> tuple[np.ndarray, np.ndarray]:
         dtype_cls = cls._dtype_cls
         default_dtype = dtype_cls._default_np_dtype
-        mask = None
         values, mask, _, _ = _coerce_to_data_and_mask(
-            value, mask, dtype, copy, dtype_cls, default_dtype
+            value, dtype, copy, dtype_cls, default_dtype
         )
         return values, mask
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 

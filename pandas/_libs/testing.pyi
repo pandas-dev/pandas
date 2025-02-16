@@ -1,4 +1,6 @@
-def assert_dict_equal(a, b, compare_keys: bool = ...): ...
+from typing import Mapping
+
+def assert_dict_equal(a: Mapping, b: Mapping, compare_keys: bool = ...) -> bool: ...
 def assert_almost_equal(
     a,
     b,
@@ -9,4 +11,4 @@ def assert_almost_equal(
     lobj=...,
     robj=...,
     index_values=...,
-): ...
+) -> bool: ...

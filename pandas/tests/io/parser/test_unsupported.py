@@ -6,6 +6,7 @@ and are clearly communicated to the user.
 Ultimately, the goal is to remove test cases from this
 test suite as new feature support is added to the parsers.
 """
+
 from io import StringIO
 import os
 from pathlib import Path
@@ -45,8 +46,6 @@ class TestUnsupportedFeatures:
 
         # specify C engine with unsupported options (raise)
         with pytest.raises(ValueError, match=msg):
-            read_csv(StringIO(data), engine="c", sep=None, delim_whitespace=False)
-        with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), engine="c", sep=r"\s")
         with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), engine="c", sep="\t", quotechar=chr(128))
@@ -54,8 +53,6 @@ class TestUnsupportedFeatures:
             read_csv(StringIO(data), engine="c", skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
-        with tm.assert_produces_warning(parsers.ParserWarning):
-            read_csv(StringIO(data), sep=None, delim_whitespace=False)
         with tm.assert_produces_warning(parsers.ParserWarning):
             read_csv(StringIO(data), sep=r"\s")
         with tm.assert_produces_warning(parsers.ParserWarning):
@@ -101,8 +98,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         for default in py_unsupported:
             msg = (
-                f"The {repr(default)} option is not "
-                f"supported with the {repr(python_engine)} engine"
+                f"The {default!r} option is not "
+                f"supported with the {python_engine!r} engine"
             )
 
             kwargs = {default: object()}
@@ -140,10 +137,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         1,2,3,4,"""
 
         for default in pa_unsupported:
-            msg = (
-                f"The {repr(default)} option is not "
-                f"supported with the 'pyarrow' engine"
-            )
+            msg = f"The {default!r} option is not supported with the 'pyarrow' engine"
             kwargs = {default: object()}
             default_needs_bool = {"warn_bad_lines", "error_bad_lines"}
             if default == "dialect":
@@ -152,6 +146,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 kwargs[default] = True
             elif default == "on_bad_lines":
                 kwargs[default] = "warn"
+
             with pytest.raises(ValueError, match=msg):
                 read_csv(StringIO(data), engine="pyarrow", **kwargs)
 

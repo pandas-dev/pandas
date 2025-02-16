@@ -93,14 +93,18 @@ class TestGeneric:
         if isinstance(o, DataFrame):
             # preserve columns dtype
             expected.columns = o.columns[:0]
-        # https://github.com/pandas-dev/pandas/issues/50862
-        tm.assert_equal(result.reset_index(drop=True), expected)
+        tm.assert_equal(result, expected)
 
         # get the bool data
         arr = np.array([True, True, False, True])
         o = construct(frame_or_series, n, value=arr, **kwargs)
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
+
+    def test_get_bool_data_empty_preserve_index(self):
+        expected = Series([], dtype="bool")
+        result = expected._get_bool_data()
+        tm.assert_series_equal(result, expected, check_index_type=True)
 
     def test_nonzero(self, frame_or_series):
         # GH 4633
@@ -232,11 +236,8 @@ class TestGeneric:
     def test_split_compat(self, frame_or_series):
         # xref GH8846
         o = construct(frame_or_series, shape=10)
-        with tm.assert_produces_warning(
-            FutureWarning, match=".swapaxes' is deprecated", check_stacklevel=False
-        ):
-            assert len(np.array_split(o, 5)) == 5
-            assert len(np.array_split(o, 2)) == 2
+        assert len(np.array_split(o, 5)) == 5
+        assert len(np.array_split(o, 2)) == 2
 
     # See gh-12301
     def test_stat_unexpected_keyword(self, frame_or_series):
@@ -305,13 +306,6 @@ class TestGeneric:
         obj_copy = func(obj)
         assert obj_copy is not obj
         tm.assert_equal(obj_copy, obj)
-
-    def test_data_deprecated(self, frame_or_series):
-        obj = frame_or_series()
-        msg = "(Series|DataFrame)._data is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            mgr = obj._data
-        assert mgr is obj._mgr
 
 
 class TestNDFrame:
@@ -493,12 +487,3 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
-
-    def test_bool_dep(self) -> None:
-        # GH-51749
-        msg_warn = (
-            "DataFrame.bool is now deprecated and will be removed "
-            "in future version of pandas"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            DataFrame({"col": [False]}).bool()

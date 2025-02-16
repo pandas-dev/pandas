@@ -20,7 +20,11 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <Python.h>
 
 #include "datetime.h"
+/* Need to import_array for np_datetime.c (for NumPy 1.x support only) */
+#define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
+#include "numpy/ndarrayobject.h"
 #include "pandas/datetime/pd_datetime.h"
+#include "pandas/portable.h"
 
 static void pandas_datetime_destructor(PyObject *op) {
   void *ptr = PyCapsule_GetPointer(op, PandasDateTime_CAPSULE_NAME);
@@ -176,7 +180,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     }
   }
 
-  npy_datetime npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
+  int64_t npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
   if (scaleNanosecToUnit(&npy_dt, base) == -1) {
     PyErr_Format(PyExc_ValueError,
                  "Call to scaleNanosecToUnit with value %" NPY_DATETIME_FMT
@@ -188,7 +192,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
   return npy_dt;
 }
 
-static int pandas_datetime_exec(PyObject *module) {
+static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
   PyDateTime_IMPORT;
   PandasDateTime_CAPI *capi = PyMem_Malloc(sizeof(PandasDateTime_CAPI));
   if (capi == NULL) {
@@ -241,7 +245,12 @@ static int pandas_datetime_exec(PyObject *module) {
 }
 
 static PyModuleDef_Slot pandas_datetime_slots[] = {
-    {Py_mod_exec, pandas_datetime_exec}, {0, NULL}};
+    {Py_mod_exec, pandas_datetime_exec},
+#if PY_VERSION_HEX >= 0x030D0000
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+#endif
+    {0, NULL},
+};
 
 static struct PyModuleDef pandas_datetimemodule = {
     PyModuleDef_HEAD_INIT,
@@ -254,5 +263,6 @@ static struct PyModuleDef pandas_datetimemodule = {
 
 PyMODINIT_FUNC PyInit_pandas_datetime(void) {
   PyDateTime_IMPORT;
+  import_array();
   return PyModuleDef_Init(&pandas_datetimemodule);
 }

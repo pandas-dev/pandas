@@ -2,6 +2,7 @@
 Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -16,6 +17,8 @@ from pandas._libs.tslibs import (
     Timestamp,
     iNaT,
 )
+
+from pandas.core.construction import range_to_ndarray
 
 if TYPE_CHECKING:
     from pandas._typing import npt
@@ -54,12 +57,10 @@ def generate_regular_range(
     iend = end._value if end is not None else None
     freq.nanos  # raises if non-fixed frequency
     td = Timedelta(freq)
-    b: int | np.int64 | np.uint64
-    e: int | np.int64 | np.uint64
+    b: int
+    e: int
     try:
-        td = td.as_unit(  # pyright: ignore[reportGeneralTypeIssues]
-            unit, round_ok=False
-        )
+        td = td.as_unit(unit, round_ok=False)
     except ValueError as err:
         raise ValueError(
             f"freq={freq} is incompatible with unit={unit}. "
@@ -83,22 +84,12 @@ def generate_regular_range(
             "at least 'start' or 'end' should be specified if a 'period' is given."
         )
 
-    with np.errstate(over="raise"):
-        # If the range is sufficiently large, np.arange may overflow
-        #  and incorrectly return an empty array if not caught.
-        try:
-            values = np.arange(b, e, stride, dtype=np.int64)
-        except FloatingPointError:
-            xdr = [b]
-            while xdr[-1] != e:
-                xdr.append(xdr[-1] + stride)
-            values = np.array(xdr[:-1], dtype=np.int64)
-    return values
+    return range_to_ndarray(range(b, e, stride))
 
 
 def _generate_range_overflow_safe(
     endpoint: int, periods: int, stride: int, side: str = "start"
-) -> np.int64 | np.uint64:
+) -> int:
     """
     Calculate the second endpoint for passing to np.arange, checking
     to avoid an integer overflow.  Catch OverflowError and re-raise
@@ -117,7 +108,7 @@ def _generate_range_overflow_safe(
 
     Returns
     -------
-    other_end : np.int64 | np.uint64
+    other_end : int
 
     Raises
     ------
@@ -165,7 +156,7 @@ def _generate_range_overflow_safe(
 
 def _generate_range_overflow_safe_signed(
     endpoint: int, periods: int, stride: int, side: str
-) -> np.int64 | np.uint64:
+) -> int:
     """
     A special case for _generate_range_overflow_safe where `periods * stride`
     can be calculated without overflowing int64 bounds.
@@ -183,7 +174,7 @@ def _generate_range_overflow_safe_signed(
                 # Putting this into a DatetimeArray/TimedeltaArray
                 #  would incorrectly be interpreted as NaT
                 raise OverflowError
-            return result
+            return int(result)
         except (FloatingPointError, OverflowError):
             # with endpoint negative and addend positive we risk
             #  FloatingPointError; with reversed signed we risk OverflowError
@@ -202,7 +193,7 @@ def _generate_range_overflow_safe_signed(
             i64max = np.uint64(i8max)
             assert uresult > i64max
             if uresult <= i64max + np.uint64(stride):
-                return uresult
+                return int(uresult)
 
     raise OutOfBoundsDatetime(
         f"Cannot generate range with {side}={endpoint} and periods={periods}"

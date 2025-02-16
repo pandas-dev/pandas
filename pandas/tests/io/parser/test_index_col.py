@@ -3,6 +3,7 @@ Tests that the specified index column (a.k.a "index_col")
 is properly handled or inferred during parsing for all of
 the parsers defined in parsers.py
 """
+
 from io import StringIO
 
 import numpy as np
@@ -352,7 +353,7 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val, request):
             pytest.mark.xfail(reason="Cannot disable type-inference for pyarrow engine")
         )
     result = parser.read_csv(StringIO(data), index_col="a", dtype={"a": dtype})
-    expected = DataFrame({"b": [2]}, index=Index([val], name="a"))
+    expected = DataFrame({"b": [2]}, index=Index([val], name="a", dtype=dtype))
     tm.assert_frame_equal(result, expected)
 
 

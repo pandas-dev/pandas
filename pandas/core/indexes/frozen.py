@@ -6,6 +6,7 @@ These are used for:
 - .names (FrozenList)
 
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -109,10 +110,12 @@ class FrozenList(PandasObject, list):
         raise TypeError(f"'{type(self).__name__}' does not support mutable operations.")
 
     def __str__(self) -> str:
-        return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
+        return pprint_thing(
+            self, quote_strings=True, escape_chars=("\t", "\r", "\n", "'")
+        )
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({str(self)})"
+        return f"{type(self).__name__}({self!s})"
 
     __setitem__ = __setslice__ = _disabled  # type: ignore[assignment]
     __delitem__ = __delslice__ = _disabled

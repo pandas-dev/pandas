@@ -66,7 +66,6 @@ def test_quote_char_basic(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 @pytest.mark.parametrize("quote_char", ["~", "*", "%", "$", "@", "P"])
 def test_quote_char_various(all_parsers, quote_char):
     parser = all_parsers

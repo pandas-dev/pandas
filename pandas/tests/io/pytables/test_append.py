@@ -5,8 +5,10 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import Timestamp
-import pandas.util._test_decorators as td
+from pandas.compat import PY312
 
 import pandas as pd
 from pandas import (
@@ -23,7 +25,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
 
 tables = pytest.importorskip("tables")
 
@@ -35,7 +37,7 @@ def test_append(setup_path):
         # tables.NaturalNameWarning):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=20, freq="B"),
         )
         _maybe_remove(store, "df1")
@@ -133,6 +135,8 @@ def test_append_series(setup_path):
 
         # select on the index and values
         expected = ns[(ns > 70) & (ns.index < 90)]
+        # Reading/writing RangeIndex info is not supported yet
+        expected.index = Index(expected.index._data)
         result = store.select("ns", "foo>70 and index<90")
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -142,7 +146,7 @@ def test_append_series(setup_path):
         mi["C"] = "foo"
         mi.loc[3:5, "C"] = "bar"
         mi.set_index(["C", "B"], inplace=True)
-        s = mi.stack(future_stack=True)
+        s = mi.stack()
         s.index = s.index.droplevel(2)
         store.append("mi", s)
         tm.assert_series_equal(store["mi"], s, check_index_type=True)
@@ -196,7 +200,7 @@ def test_append_some_nans(setup_path):
         tm.assert_frame_equal(store["df3"], df3, check_index_type=True)
 
 
-def test_append_all_nans(setup_path):
+def test_append_all_nans(setup_path, using_infer_string):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             {
@@ -248,7 +252,13 @@ def test_append_all_nans(setup_path):
             _maybe_remove(store, "df")
             store.append("df", df[:10], dropna=True)
             store.append("df", df[10:], dropna=True)
-            tm.assert_frame_equal(store["df"], df, check_index_type=True)
+            result = store["df"]
+            expected = df
+            if using_infer_string:
+                # TODO: Test is incorrect when not using_infer_string.
+                #       Should take the last 4 rows uncondiationally.
+                expected = expected[-4:]
+            tm.assert_frame_equal(result, expected, check_index_type=True)
 
             _maybe_remove(store, "df2")
             store.append("df2", df[:10], dropna=False)
@@ -282,12 +292,12 @@ def test_append_all_nans(setup_path):
             tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
 
-def test_append_frame_column_oriented(setup_path):
+def test_append_frame_column_oriented(setup_path, request):
     with ensure_clean_store(setup_path) as store:
         # column oriented
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         df.index = df.index._with_freq(None)  # freq doesn't round-trip
@@ -302,6 +312,13 @@ def test_append_frame_column_oriented(setup_path):
         tm.assert_frame_equal(expected, result)
 
         # selection on the non-indexable
+        request.applymarker(
+            pytest.mark.xfail(
+                PY312,
+                reason="AST change in PY312",
+                raises=ValueError,
+            )
+        )
         result = store.select("df1", ("columns=A", "index=df.index[0:4]"))
         expected = df.reindex(columns=["A"], index=df.index[0:4])
         tm.assert_frame_equal(expected, result)
@@ -412,7 +429,7 @@ def test_append_with_strings(setup_path):
             {
                 "A": [0.0, 1.0, 2.0, 3.0, 4.0],
                 "B": [0.0, 1.0, 0.0, 1.0, 0.0],
-                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"]),
                 "D": date_range("20130101", periods=5),
             }
         ).set_index("C")
@@ -439,7 +456,7 @@ def test_append_with_strings(setup_path):
         _maybe_remove(store, "df")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         df["string"] = "foo"
@@ -499,11 +516,12 @@ def test_append_with_empty_string(setup_path):
         tm.assert_frame_equal(store.select("df"), df)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_append_with_data_columns(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         df.iloc[0, df.columns.get_loc("B")] = 1.0
@@ -679,8 +697,8 @@ def test_append_misc(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         store.append("df", df, chunksize=1)
         result = store.select("df")
@@ -696,8 +714,8 @@ def test_append_misc_chunksize(setup_path, chunksize):
     # more chunksize in append tests
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df["string"] = "foo"
     df["float322"] = 1.0
@@ -733,19 +751,15 @@ def test_append_misc_empty_frame(setup_path):
         tm.assert_frame_equal(store.select("df2"), df)
 
 
-# TODO(ArrayManager) currently we rely on falling back to BlockManager, but
-# the conversion from AM->BM converts the invalid object dtype column into
-# a datetime64 column no longer raising an error
-@td.skip_array_manager_not_yet_implemented
-def test_append_raise(setup_path):
+def test_append_raise(setup_path, using_infer_string):
     with ensure_clean_store(setup_path) as store:
         # test append with invalid input to get good error messages
 
         # list in column
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         df["invalid"] = [["a"]] * len(df)
         assert df.dtypes["invalid"] == np.object_
@@ -765,8 +779,8 @@ because its data contents are not [string] but [mixed] object dtype"""
         # datetime with embedded nans as object
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         s = Series(datetime.datetime(2001, 1, 2), index=df.index)
         s = s.astype(object)
@@ -785,7 +799,7 @@ because its data contents are not [string] but [mixed] object dtype"""
         # series directly
         msg = re.escape(
             "cannot properly create the storer for: "
-            "[group->df,value-><class 'pandas.core.series.Series'>]"
+            "[group->df,value-><class 'pandas.Series'>]"
         )
         with pytest.raises(TypeError, match=msg):
             store.append("df", Series(np.arange(10)))
@@ -793,8 +807,8 @@ because its data contents are not [string] but [mixed] object dtype"""
         # appending an incompatible table
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         store.append("df", df)
 
@@ -813,12 +827,9 @@ because its data contents are not [string] but [mixed] object dtype"""
         store.append("df", df)
         df["foo"] = "bar"
         msg = re.escape(
-            "invalid combination of [values_axes] on appending data "
-            "[name->values_block_1,cname->values_block_1,"
-            "dtype->bytes24,kind->string,shape->(1, 30)] "
-            "vs current table "
-            "[name->values_block_1,cname->values_block_1,"
-            "dtype->datetime64[s],kind->datetime64[s],shape->None]"
+            "Cannot serialize the column [foo] "
+            "because its data contents are not [string] "
+            "but [datetime64[s]] object dtype"
         )
         with pytest.raises(ValueError, match=msg):
             store.append("df", df)
@@ -874,7 +885,7 @@ def test_append_with_timedelta(setup_path):
 def test_append_to_multiple(setup_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
@@ -911,12 +922,12 @@ def test_append_to_multiple(setup_path):
 def test_append_to_multiple_dropna(setup_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     ).rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
@@ -936,15 +947,16 @@ def test_append_to_multiple_dropna(setup_path):
 def test_append_to_multiple_dropna_false(setup_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
-    with ensure_clean_store(setup_path) as store, pd.option_context(
-        "io.hdf.dropna_table", True
+    with (
+        ensure_clean_store(setup_path) as store,
+        pd.option_context("io.hdf.dropna_table", True),
     ):
         # dropna=False shouldn't synchronize row indexes
         store.append_to_multiple(
@@ -970,6 +982,8 @@ def test_append_to_multiple_min_itemsize(setup_path):
         }
     )
     expected = df.iloc[[0]]
+    # Reading/writing RangeIndex info is not supported yet
+    expected.index = Index(list(range(len(expected.index))))
 
     with ensure_clean_store(setup_path) as store:
         store.append_to_multiple(
@@ -984,3 +998,29 @@ def test_append_to_multiple_min_itemsize(setup_path):
         )
         result = store.select_as_multiple(["index", "nums", "strs"])
         tm.assert_frame_equal(result, expected, check_index_type=True)
+
+
+def test_append_string_nan_rep(setup_path):
+    # GH 16300
+    df = DataFrame({"A": "a", "B": "foo"}, index=np.arange(10))
+    df_nan = df.copy()
+    df_nan.loc[0:4, :] = np.nan
+    msg = "NaN representation is too large for existing column size"
+
+    with ensure_clean_store(setup_path) as store:
+        # string column too small
+        store.append("sa", df["A"])
+        with pytest.raises(ValueError, match=msg):
+            store.append("sa", df_nan["A"])
+
+        # nan_rep too big
+        store.append("sb", df["B"], nan_rep="bars")
+        with pytest.raises(ValueError, match=msg):
+            store.append("sb", df_nan["B"])
+
+        # smaller modified nan_rep
+        store.append("sc", df["A"], nan_rep="n")
+        store.append("sc", df_nan["A"])
+        result = store["sc"]
+        expected = concat([df["A"], df_nan["A"]])
+        tm.assert_series_equal(result, expected)

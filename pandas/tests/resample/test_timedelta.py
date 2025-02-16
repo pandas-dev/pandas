@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -174,7 +176,6 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_resample_quantile_timedelta(unit):
     # GH: 29485
     dtype = np.dtype(f"m8[{unit}]")
@@ -206,4 +207,13 @@ def test_resample_closed_right():
             [pd.Timedelta(seconds=120 + i * 60) for i in range(6)], freq="min"
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_arrow_duration_resample():
+    # GH 56371
+    idx = pd.Index(timedelta_range("1 day", periods=5), dtype="duration[ns][pyarrow]")
+    expected = Series(np.arange(5, dtype=np.float64), index=idx)
+    result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)

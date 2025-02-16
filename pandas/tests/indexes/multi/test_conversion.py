@@ -1,10 +1,13 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 import pandas as pd
 from pandas import (
     DataFrame,
     MultiIndex,
+    RangeIndex,
 )
 import pandas._testing as tm
 
@@ -13,6 +16,40 @@ def test_to_numpy(idx):
     result = idx.to_numpy()
     exp = idx.values
     tm.assert_numpy_array_equal(result, exp)
+
+
+def test_array_interface(idx):
+    # https://github.com/pandas-dev/pandas/pull/60046
+    result = np.asarray(idx)
+    expected = np.empty((6,), dtype=object)
+    expected[:] = [
+        ("foo", "one"),
+        ("foo", "two"),
+        ("bar", "one"),
+        ("baz", "two"),
+        ("qux", "one"),
+        ("qux", "two"),
+    ]
+    tm.assert_numpy_array_equal(result, expected)
+
+    # it always gives a copy by default, but the values are cached, so results
+    # are still sharing memory
+    result_copy1 = np.asarray(idx)
+    result_copy2 = np.asarray(idx)
+    assert np.may_share_memory(result_copy1, result_copy2)
+
+    # with explicit copy=True, then it is an actual copy
+    result_copy1 = np.array(idx, copy=True)
+    result_copy2 = np.array(idx, copy=True)
+    assert not np.may_share_memory(result_copy1, result_copy2)
+
+    if not np_version_gt2:
+        # copy=False semantics are only supported in NumPy>=2.
+        return
+
+    # for MultiIndex, copy=False is never allowed
+    with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
+        np.array(idx, copy=False)
 
 
 def test_to_frame():
@@ -146,6 +183,13 @@ def test_to_frame_duplicate_labels():
     result = index.to_frame(allow_duplicates=True)
     expected = DataFrame(data, index=index, columns=[0, 0])
     tm.assert_frame_equal(result, expected)
+
+
+def test_to_frame_column_rangeindex():
+    mi = MultiIndex.from_arrays([[1, 2], ["a", "b"]])
+    result = mi.to_frame().columns
+    expected = RangeIndex(2)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_to_flat_index(idx):

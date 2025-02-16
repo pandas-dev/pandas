@@ -4,6 +4,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -27,7 +29,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture()
+@pytest.fixture
 def multiindex_df():
     levels = [["A", ""], ["B", "b"]]
     return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
@@ -106,7 +108,7 @@ class TestResetIndex:
         tm.assert_frame_equal(result2, original)
 
     def test_reset_index(self, float_frame):
-        stacked = float_frame.stack(future_stack=True)[::2]
+        stacked = float_frame.stack()[::2]
         stacked = DataFrame({"foo": stacked, "bar": stacked})
 
         names = ["first", "second"]
@@ -232,9 +234,7 @@ class TestResetIndex:
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
-        s1 = Series(
-            (9.81 * time**2) / 2, index=Index(time, name="time"), name="speed"
-        )
+        s1 = Series((9.81 * time**2) / 2, index=Index(time, name="time"), name="speed")
         df = DataFrame(s1)
 
         reset = s1.reset_index()
@@ -602,8 +602,8 @@ class TestResetIndex:
                 {"a": [pd.NaT, Timestamp("2020-01-01")], "b": [1, 2], "x": [11, 12]},
             ),
             (
-                [(pd.NaT, 1), (pd.Timedelta(123, "d"), 2)],
-                {"a": [pd.NaT, pd.Timedelta(123, "d")], "b": [1, 2], "x": [11, 12]},
+                [(pd.NaT, 1), (pd.Timedelta(123, "D"), 2)],
+                {"a": [pd.NaT, pd.Timedelta(123, "D")], "b": [1, 2], "x": [11, 12]},
             ),
         ],
     )
@@ -644,6 +644,7 @@ class TestResetIndex:
         tm.assert_frame_equal(res, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) - GH#60338")
 @pytest.mark.parametrize(
     "array, dtype",
     [
@@ -654,10 +655,14 @@ class TestResetIndex:
         ),
     ],
 )
-def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
+def test_reset_index_dtypes_on_empty_frame_with_multiindex(
+    array, dtype, using_infer_string
+):
     # GH 19602 - Preserve dtype on empty DataFrame with MultiIndex
     idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
     result = DataFrame(index=idx)[:0].reset_index().dtypes
+    if using_infer_string and dtype == object:
+        dtype = pd.StringDtype(na_value=np.nan)
     expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)
 
@@ -676,7 +681,9 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
+def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
+    using_infer_string,
+):
     # https://github.com/pandas-dev/pandas/issues/35657
     dti = pd.DatetimeIndex(["2020-01-01"], dtype="M8[ns]")
     df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": dti})
@@ -687,6 +694,8 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     )
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
+    if using_infer_string:
+        expected["c2"] = expected["c2"].astype("str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -733,7 +742,7 @@ def test_reset_index_rename(float_frame):
 
 def test_reset_index_rename_multiindex(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack(future_stack=True)[::2]
+    stacked_df = float_frame.stack()[::2]
     stacked_df = DataFrame({"foo": stacked_df, "bar": stacked_df})
 
     names = ["first", "second"]
@@ -747,7 +756,7 @@ def test_reset_index_rename_multiindex(float_frame):
 
 def test_errorreset_index_rename(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack(future_stack=True)[::2]
+    stacked_df = float_frame.stack()[::2]
     stacked_df = DataFrame({"first": stacked_df, "second": stacked_df})
 
     with pytest.raises(

@@ -6,7 +6,6 @@ from datetime import (
 
 import dateutil.tz
 import pytest
-import pytz
 
 from pandas._libs.tslibs import (
     conversion,
@@ -22,10 +21,11 @@ def test_is_utc(utc_fixture):
     assert timezones.is_utc(tz)
 
 
-@pytest.mark.parametrize("tz_name", list(pytz.common_timezones))
-def test_cache_keys_are_distinct_for_pytz_vs_dateutil(tz_name):
-    tz_p = timezones.maybe_get_tz(tz_name)
-    tz_d = timezones.maybe_get_tz("dateutil/" + tz_name)
+def test_cache_keys_are_distinct_for_pytz_vs_dateutil():
+    pytz = pytest.importorskip("pytz")
+    for tz_name in pytz.common_timezones:
+        tz_p = timezones.maybe_get_tz(tz_name)
+        tz_d = timezones.maybe_get_tz("dateutil/" + tz_name)
 
     if tz_d is None:
         pytest.skip(tz_name + ": dateutil does not know about this one")
@@ -76,12 +76,15 @@ def test_tz_compare_utc(utc_fixture, utc_fixture2):
 
 @pytest.fixture(
     params=[
-        (pytz.timezone("US/Eastern"), lambda tz, x: tz.localize(x)),
+        ("pytz/US/Eastern", lambda tz, x: tz.localize(x)),
         (dateutil.tz.gettz("US/Eastern"), lambda tz, x: x.replace(tzinfo=tz)),
     ]
 )
 def infer_setup(request):
     eastern, localize = request.param
+    if isinstance(eastern, str) and eastern.startswith("pytz/"):
+        pytz = pytest.importorskip("pytz")
+        eastern = pytz.timezone(eastern.removeprefix("pytz/"))
 
     start_naive = datetime(2001, 1, 1)
     end_naive = datetime(2009, 1, 1)
@@ -111,10 +114,10 @@ def test_infer_tz_compat(infer_setup):
 
 def test_infer_tz_utc_localize(infer_setup):
     _, _, start, end, start_naive, end_naive = infer_setup
-    utc = pytz.utc
+    utc = timezone.utc
 
-    start = utc.localize(start_naive)
-    end = utc.localize(end_naive)
+    start = start_naive.astimezone(utc)
+    end = end_naive.astimezone(utc)
 
     assert timezones.infer_tzinfo(start, end) is utc
 
@@ -124,8 +127,8 @@ def test_infer_tz_mismatch(infer_setup, ordered):
     eastern, _, _, _, start_naive, end_naive = infer_setup
     msg = "Inputs must both have the same timezone"
 
-    utc = pytz.utc
-    start = utc.localize(start_naive)
+    utc = timezone.utc
+    start = start_naive.astimezone(utc)
     end = conversion.localize_pydatetime(end_naive, eastern)
 
     args = (start, end) if ordered else (end, start)
@@ -139,9 +142,9 @@ def test_maybe_get_tz_invalid_types():
         timezones.maybe_get_tz(44.0)
 
     with pytest.raises(TypeError, match="<class 'module'>"):
-        timezones.maybe_get_tz(pytz)
+        timezones.maybe_get_tz(pytest)
 
-    msg = "<class 'pandas._libs.tslibs.timestamps.Timestamp'>"
+    msg = "<class 'pandas.Timestamp'>"
     with pytest.raises(TypeError, match=msg):
         timezones.maybe_get_tz(Timestamp("2021-01-01", tz="UTC"))
 

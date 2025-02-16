@@ -322,15 +322,28 @@ Tz-aware are rounded, floored and ceiled in local times
 
 Timedeltas
 
-.. ipython:: python
+.. code-block:: ipython
 
-   t = pd.timedelta_range('1 days 2 hr 13 min 45 us', periods=3, freq='d')
-   t
-   t.round('10min')
+   In [37]: t = pd.timedelta_range('1 days 2 hr 13 min 45 us', periods=3, freq='d')
+
+   In [38]: t
+   Out[38]:
+   TimedeltaIndex(['1 days 02:13:00.000045', '2 days 02:13:00.000045',
+                   '3 days 02:13:00.000045'],
+                  dtype='timedelta64[ns]', freq='D')
+
+   In [39]: t.round('10min')
+   Out[39]:
+   TimedeltaIndex(['1 days 02:10:00', '2 days 02:10:00',
+                   '3 days 02:10:00'],
+                  dtype='timedelta64[ns]', freq=None)
 
    # Timedelta scalar
-   t[0]
-   t[0].round('2h')
+   In [40]: t[0]
+   Out[40]: Timedelta('1 days 02:13:00.000045')
+
+   In [41]: t[0].round('2h')
+   Out[41]: Timedelta('1 days 02:00:00')
 
 
 In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available through the ``.dt`` accessor of ``Series``.

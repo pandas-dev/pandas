@@ -162,7 +162,7 @@ columns by passing ``numeric_only=True``:
 
 It does not make much sense to get the average value of the ``Pclass``.
 If we are only interested in the average age for each gender, the
-selection of columns (rectangular brackets ``[]`` as usual) is supported
+selection of columns (square brackets ``[]`` as usual) is supported
 on the grouped data as well:
 
 .. ipython:: python
@@ -235,7 +235,7 @@ category in a column.
         </li>
     </ul>
 
-The function is a shortcut, as it is actually a groupby operation in combination with counting of the number of records
+The function is a shortcut, it is actually a groupby operation in combination with counting the number of records
 within each group:
 
 .. ipython:: python

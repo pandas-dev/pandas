@@ -472,7 +472,7 @@ def _unique_label_indices_{{dtype}}(const {{c_type}}[:] labels) -> ndarray:
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
         {{name}}Vector idx = {{name}}Vector()
         ndarray[{{c_type}}, ndim=1] arr
-        {{name}}VectorData *ud = idx.data
+        {{name}}VectorData *ud = &idx.data
 
     kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
@@ -480,9 +480,9 @@ def _unique_label_indices_{{dtype}}(const {{c_type}}[:] labels) -> ndarray:
         for i in range(n):
             kh_put_{{ttype}}(table, labels[i], &ret)
             if ret != 0:
-                if needs_resize(ud):
+                if needs_resize(ud.size, ud.capacity):
                     with gil:
-                        idx.resize()
+                        idx.resize(idx.data.capacity * 4)
                 append_data_{{ttype}}(ud, i)
 
     kh_destroy_{{ttype}}(table)

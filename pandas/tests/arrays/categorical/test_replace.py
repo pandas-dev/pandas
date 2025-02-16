@@ -6,79 +6,40 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
-    "to_replace,value,expected,flip_categories",
+    "to_replace,value,expected",
     [
         # one-to-one
-        (1, 2, [2, 2, 3], False),
-        (1, 4, [4, 2, 3], False),
-        (4, 1, [1, 2, 3], False),
-        (5, 6, [1, 2, 3], False),
+        (4, 1, [1, 2, 3]),
+        (3, 1, [1, 2, 1]),
         # many-to-one
-        ([1], 2, [2, 2, 3], False),
-        ([1, 2], 3, [3, 3, 3], False),
-        ([1, 2], 4, [4, 4, 3], False),
-        ((1, 2, 4), 5, [5, 5, 3], False),
-        ((5, 6), 2, [1, 2, 3], False),
-        ([1], [2], [2, 2, 3], False),
-        ([1, 4], [5, 2], [5, 2, 3], False),
-        # GH49404: overlap between to_replace and value
-        ([1, 2, 3], [2, 3, 4], [2, 3, 4], False),
-        # GH50872, GH46884: replace with null
-        (1, None, [None, 2, 3], False),
-        (1, pd.NA, [None, 2, 3], False),
-        # check_categorical sorts categories, which crashes on mixed dtypes
-        (3, "4", [1, 2, "4"], False),
-        ([1, 2, "3"], "5", ["5", "5", 3], True),
+        ((5, 6), 2, [1, 2, 3]),
+        ((3, 2), 1, [1, 1, 1]),
     ],
 )
-def test_replace_categorical_series(to_replace, value, expected, flip_categories):
+def test_replace_categorical_series(to_replace, value, expected):
     # GH 31720
-
     ser = pd.Series([1, 2, 3], dtype="category")
     result = ser.replace(to_replace, value)
-    expected = pd.Series(expected, dtype="category")
-    ser.replace(to_replace, value, inplace=True)
-
-    if flip_categories:
-        expected = expected.cat.set_categories(expected.cat.categories[::-1])
-
-    tm.assert_series_equal(expected, result, check_category_order=False)
-    tm.assert_series_equal(expected, ser, check_category_order=False)
+    expected = pd.Series(Categorical(expected, categories=[1, 2, 3]))
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "to_replace, value, result, expected_error_msg",
+    "to_replace,value",
     [
-        ("b", "c", ["a", "c"], "Categorical.categories are different"),
-        ("c", "d", ["a", "b"], None),
-        # https://github.com/pandas-dev/pandas/issues/33288
-        ("a", "a", ["a", "b"], None),
-        ("b", None, ["a", None], "Categorical.categories length are different"),
+        # one-to-one
+        (3, 5),
+        # many-to-one
+        ((3, 2), 5),
     ],
 )
-def test_replace_categorical(to_replace, value, result, expected_error_msg):
-    # GH#26988
-    cat = Categorical(["a", "b"])
-    expected = Categorical(result)
-    result = pd.Series(cat, copy=False).replace(to_replace, value)._values
-
-    tm.assert_categorical_equal(result, expected)
-    if to_replace == "b":  # the "c" test is supposed to be unchanged
-        with pytest.raises(AssertionError, match=expected_error_msg):
-            # ensure non-inplace call does not affect original
-            tm.assert_categorical_equal(cat, expected)
-
-    ser = pd.Series(cat, copy=False)
-    ser.replace(to_replace, value, inplace=True)
-    tm.assert_categorical_equal(cat, expected)
-
-
-def test_replace_categorical_ea_dtype():
-    # GH49404
-    cat = Categorical(pd.array(["a", "b"], dtype="string"))
-    result = pd.Series(cat).replace(["a", "b"], ["c", pd.NA])._values
-    expected = Categorical(pd.array(["c", pd.NA], dtype="string"))
-    tm.assert_categorical_equal(result, expected)
+def test_replace_categorical_series_new_category_raises(to_replace, value):
+    # GH 31720
+    ser = pd.Series([1, 2, 3], dtype="category")
+    with pytest.raises(
+        TypeError, match="Cannot setitem on a Categorical with a new category"
+    ):
+        ser.replace(to_replace, value)
 
 
 def test_replace_maintain_ordering():
@@ -86,6 +47,25 @@ def test_replace_maintain_ordering():
     dtype = pd.CategoricalDtype([0, 1, 2], ordered=True)
     ser = pd.Series([0, 1, 2], dtype=dtype)
     result = ser.replace(0, 2)
-    expected_dtype = pd.CategoricalDtype([1, 2], ordered=True)
-    expected = pd.Series([2, 1, 2], dtype=expected_dtype)
+    expected = pd.Series([2, 1, 2], dtype=dtype)
     tm.assert_series_equal(expected, result, check_category_order=True)
+
+
+def test_replace_categorical_ea_dtype():
+    # GH49404
+    cat = Categorical(pd.array(["a", "b", "c"], dtype="string"))
+    result = pd.Series(cat).replace(["a", "b"], ["c", "c"])._values
+    expected = Categorical(
+        pd.array(["c"] * 3, dtype="string"),
+        categories=pd.array(["a", "b", "c"], dtype="string"),
+    )
+    tm.assert_categorical_equal(result, expected)
+
+
+def test_replace_categorical_ea_dtype_different_cats_raises():
+    # GH49404
+    cat = Categorical(pd.array(["a", "b"], dtype="string"))
+    with pytest.raises(
+        TypeError, match="Cannot setitem on a Categorical with a new category"
+    ):
+        pd.Series(cat).replace(["a", "b"], ["c", pd.NA])

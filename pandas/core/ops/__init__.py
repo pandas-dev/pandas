@@ -3,6 +3,7 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
+
 from __future__ import annotations
 
 from pandas.core.ops.array_ops import (
@@ -65,15 +66,18 @@ ARITHMETIC_BINOPS: set[str] = {
 __all__ = [
     "ARITHMETIC_BINOPS",
     "arithmetic_op",
-    "comparison_op",
     "comp_method_OBJECT_ARRAY",
-    "invalid_comparison",
+    "comparison_op",
     "fill_binop",
+    "get_array_op",
+    "get_op_result_name",
+    "invalid_comparison",
     "kleene_and",
     "kleene_or",
     "kleene_xor",
     "logical_op",
     "make_flex_doc",
+    "maybe_prepare_scalar_for_op",
     "radd",
     "rand_",
     "rdiv",
@@ -87,7 +91,4 @@ __all__ = [
     "rtruediv",
     "rxor",
     "unpack_zerodim_and_defer",
-    "get_op_result_name",
-    "maybe_prepare_scalar_for_op",
-    "get_array_op",
 ]

@@ -197,7 +197,7 @@ def test_pivot_list_like_columns(
     tm.assert_frame_equal(result, expected)
 
 
-def test_pivot_multiindexed_rows_and_cols(using_array_manager):
+def test_pivot_multiindexed_rows_and_cols():
     # GH 36360
 
     df = pd.DataFrame(
@@ -225,9 +225,7 @@ def test_pivot_multiindexed_rows_and_cols(using_array_manager):
         ),
         index=Index([0, 1], dtype="int64", name="idx_L0"),
     )
-    if not using_array_manager:
-        # BlockManager does not preserve the dtypes
-        expected = expected.astype("float64")
+    expected = expected.astype("float64")
 
     tm.assert_frame_equal(res, expected)
 

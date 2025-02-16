@@ -1,4 +1,5 @@
-""" public toolkit API """
+"""public toolkit API"""
+
 from pandas.api import (
     extensions,
     indexers,
@@ -8,9 +9,9 @@ from pandas.api import (
 )
 
 __all__ = [
-    "interchange",
     "extensions",
     "indexers",
+    "interchange",
     "types",
     "typing",
 ]

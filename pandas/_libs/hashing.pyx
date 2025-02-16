@@ -23,7 +23,7 @@ from pandas._libs.util cimport is_nan
 
 @cython.boundscheck(False)
 def hash_object_array(
-    ndarray[object] arr, str key, str encoding="utf8"
+    ndarray[object, ndim=1] arr, str key, str encoding="utf8"
 ) -> np.ndarray[np.uint64]:
     """
     Parameters
@@ -68,7 +68,11 @@ def hash_object_array(
 
     # create an array of bytes
     vecs = <char **>malloc(n * sizeof(char *))
+    if vecs is NULL:
+        raise MemoryError()
     lens = <uint64_t*>malloc(n * sizeof(uint64_t))
+    if lens is NULL:
+        raise MemoryError()
 
     for i in range(n):
         val = arr[i]
