@@ -2150,6 +2150,8 @@ class StringMethods(NoNewAttributesMixin):
             and not is_object_dtype(dtype)
         ):
             raise ValueError(f"dtype must be string or object, got {dtype=}")
+        if dtype is None and get_option("future.infer_string"):
+            dtype = "str"
         # TODO: Add a similar _bytes interface.
         if encoding in _cpython_optimized_decoders:
             # CPython optimized implementation
@@ -2159,8 +2161,6 @@ class StringMethods(NoNewAttributesMixin):
             f = lambda x: decoder(x, errors)[0]
         arr = self._data.array
         result = arr._str_map(f)
-        if dtype is None and get_option("future.infer_string"):
-            dtype = "str"
         return self._wrap_result(result, dtype=dtype)
 
     @forbid_nonstring_types(["bytes"])
