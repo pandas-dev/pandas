@@ -2159,8 +2159,8 @@ class StringMethods(NoNewAttributesMixin):
             f = lambda x: decoder(x, errors)[0]
         arr = self._data.array
         result = arr._str_map(f)
-        if dtype is None:
-            dtype = "str" if get_option("future.infer_string") else None
+        if dtype is None and get_option("future.infer_string"):
+            dtype = "str"
         return self._wrap_result(result, dtype=dtype)
 
     @forbid_nonstring_types(["bytes"])
