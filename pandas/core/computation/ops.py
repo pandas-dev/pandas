@@ -19,6 +19,7 @@ from pandas._libs.tslibs import Timestamp
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
+    pandas_dtype,
 )
 
 import pandas.core.common as com
@@ -238,7 +239,7 @@ class Op:
     @property
     def has_invalid_return_type(self) -> bool:
         types = self.operand_types
-        obj_dtype_set = frozenset([np.dtype("object"), str])
+        obj_dtype_set = frozenset([np.dtype("object"), str, pandas_dtype("string")])
         return self.return_type == object and types - obj_dtype_set
 
     @property
