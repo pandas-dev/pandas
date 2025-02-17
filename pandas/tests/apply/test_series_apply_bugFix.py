@@ -29,6 +29,8 @@ def test_series_map_NAinteger():
 
     pd.testing.assert_series_equal(result,expectedResult)
 
+
+
 def test_series_apply_NAinteger():
     s = pd.Series([1,2,None],dtype="Int32")
 
