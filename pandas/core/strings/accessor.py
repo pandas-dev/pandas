@@ -2149,7 +2149,6 @@ class StringMethods(NoNewAttributesMixin):
         if (
             dtype is not None
             and not is_string_dtype(dtype)
-            and not is_object_dtype(dtype)
         ):
             raise ValueError(f"dtype must be string or object, got {dtype=}")
         if dtype is None and get_option("future.infer_string"):
