@@ -1703,11 +1703,11 @@ def map_array(
             if x is None:
                 return pd.NA
             else:
-                mapper(x)
+                return mapper(x)
         values = arr.copy()
 
         if na_action is None:
             #return lib.map_infer(values, mapper)
-            return np.array([mapper_check(x) for x in values], dtype = arr.dtype)
+            return pd.array([mapper_check(x) for x in values], dtype = arr.dtype)
         else:
             return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))

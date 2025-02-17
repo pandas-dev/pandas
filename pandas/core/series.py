@@ -4626,7 +4626,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if val is None:
                 return pd.NA
             return val
-        func = functools.partial(apply_check,func)
+        self = [apply_check(x) for x in self]
 
         #proceed with usual apply method 
         return SeriesApply(
