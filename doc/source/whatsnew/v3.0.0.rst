@@ -361,6 +361,9 @@ Other API changes
 - pickle and HDF (``.h5``) files created with Python 2 are no longer explicitly supported (:issue:`57387`)
 - pickled objects from pandas version less than ``1.0.0`` are no longer supported (:issue:`57155`)
 - when comparing the indexes in :func:`testing.assert_series_equal`, check_exact defaults to True if an :class:`Index` is of integer dtypes. (:issue:`57386`)
+- Index set operations (like union or intersection) will now ignore the dtype of
+  an empty ``RangeIndex`` or empty ``Index`` with object dtype when determining
+  the dtype of the resulting Index (:issue:`60797`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
