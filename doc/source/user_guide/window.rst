@@ -356,11 +356,11 @@ See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general us
 
 Numba will be applied in potentially two routines:
 
-#. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
+#. If ``func`` is a standard Python function, the engine will `JIT <https://numba.readthedocs.io/en/stable/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
 
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
-`numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
+`numba.jit decorator <https://numba.readthedocs.io/en/stable/user/jit.html>`__.
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)
 and the apply for loop over each window.
 

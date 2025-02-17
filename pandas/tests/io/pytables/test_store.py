@@ -25,6 +25,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.conftest import has_pyarrow
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
@@ -35,10 +36,7 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-pytestmark = [
-    pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
-]
+pytestmark = [pytest.mark.single_cpu]
 
 tables = pytest.importorskip("tables")
 
@@ -110,7 +108,7 @@ def test_iter_empty(setup_path):
         assert list(store) == []
 
 
-def test_repr(setup_path, performance_warning):
+def test_repr(setup_path, performance_warning, using_infer_string):
     with ensure_clean_store(setup_path) as store:
         repr(store)
         store.info()
@@ -145,7 +143,9 @@ def test_repr(setup_path, performance_warning):
         df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()
 
-        with tm.assert_produces_warning(performance_warning):
+        warning = None if using_infer_string else performance_warning
+        msg = "cannot\nmap directly to c-types .* dtype='object'"
+        with tm.assert_produces_warning(warning, match=msg):
             store["df"] = df
 
         # make a random group in hdf space
@@ -316,7 +316,7 @@ def test_getattr(setup_path):
 
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         store["df"] = df
@@ -369,7 +369,7 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
         {
             "A": [0.0, 1.0, 2.0, 3.0, 4.0],
             "B": [0.0, 1.0, 0.0, 1.0, 0.0],
-            "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+            "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"]),
             "D": date_range("20130101", periods=5),
         }
     ).set_index("C")
@@ -385,6 +385,10 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
     tm.assert_series_equal(read_hdf(path, "ss4"), concat([df["B"], df2["B"]]))
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and has_pyarrow,
+    reason="TODO(infer_string): can't encode '\ud800': surrogates not allowed",
+)
 @pytest.mark.parametrize("format", ["fixed", "table"])
 def test_to_hdf_errors(tmp_path, format, setup_path):
     data = ["\ud800foo"]
@@ -406,7 +410,7 @@ def test_create_table_index(setup_path):
         # data columns
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         df["string"] = "foo"
@@ -441,7 +445,7 @@ def test_create_table_index_data_columns_argument(setup_path):
         # data columns
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         df["string"] = "foo"
@@ -483,8 +487,8 @@ def test_table_mixed_dtypes(setup_path):
     # frame
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df["obj1"] = "foo"
     df["obj2"] = "bar"
@@ -539,8 +543,8 @@ def test_remove(setup_path):
         )
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         store["a"] = ts
         store["b"] = df
@@ -603,8 +607,8 @@ def test_same_name_scoping(setup_path):
 def test_store_index_name(setup_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df.index.name = "foo"
 
@@ -650,8 +654,8 @@ def test_store_index_name_numpy_str(tmp_path, table_format, setup_path, unit, tz
 def test_store_series_name(setup_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     series = df["A"]
 
@@ -665,7 +669,7 @@ def test_overwrite_node(setup_path):
     with ensure_clean_store(setup_path) as store:
         store["a"] = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         ts = Series(
@@ -679,7 +683,7 @@ def test_overwrite_node(setup_path):
 def test_coordinates(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
@@ -714,7 +718,7 @@ def test_coordinates(setup_path):
         _maybe_remove(store, "df2")
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
         df2 = df1.copy().rename(columns="{}_2".format)
@@ -870,8 +874,8 @@ def test_start_stop_fixed(setup_path):
         # sparse; not implemented
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         df.iloc[3:5, 1:3] = np.nan
         df.iloc[8:10, -2] = np.nan
@@ -904,8 +908,8 @@ def test_select_filter_corner(setup_path, request):
 def test_path_pathlib():
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     result = tm.round_trip_pathlib(
@@ -934,8 +938,8 @@ def test_contiguous_mixed_data_table(start, stop, setup_path):
 def test_path_pathlib_hdfstore():
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     def writer(path):
@@ -953,8 +957,8 @@ def test_path_pathlib_hdfstore():
 def test_pickle_path_localpath():
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     result = tm.round_trip_pathlib(
         lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df")
@@ -966,8 +970,8 @@ def test_pickle_path_localpath():
 def test_copy(propindexes):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     with tm.ensure_clean() as path:
