@@ -947,7 +947,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if tail is not None:
             np_result = np.hstack((np_result, tail))
         elif na_mask is not None:
-            np_result = np.where(na_mask, self.dtype.na_value, np_result)
+            # Argument 2 to "where" has incompatible type "NAType | float"
+            np_result = np.where(na_mask, self.dtype.na_value, np_result)  # type: ignore[arg-type]
 
         result = type(self)(np_result)
         return result
