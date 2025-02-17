@@ -4417,7 +4417,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if callable(arg):
                 arg = functools.partial(arg, **kwargs)
             new_values = self._map_values(arg, na_action=na_action)
-            return self._constructor(new_values, index=self.index, copy=False).__finalize__(
+            return self._constructor(new_values, index=self.index, copy=False)
+            .__finalize__(
                 self, method="map"
                 )
 
@@ -4619,16 +4620,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
-        # check if dtype is nullable integer 
+        # check if dtype is nullable integer
         if pd.api.types.is_integer_dtype(self) and pd.api.types.is_nullable(self.dtype):
         # def functon to handle NaN as pd.NA
-        def apply_check(val):
-            if val is None:
-                return pd.NA
-            return val
+            def apply_check(val):
+                if val is None:
+                    return pd.NA
+                return val
         self = [apply_check(x) for x in self]
 
-        #proceed with usual apply method 
+        #proceed with usual apply method
         return SeriesApply(
             self,
             func,

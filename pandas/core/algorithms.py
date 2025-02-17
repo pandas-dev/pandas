@@ -1624,7 +1624,7 @@ def union_with_duplicates(
     repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)
 
-
+import pandas as pd
 def map_array(
     arr: ArrayLike,
     mapper,
@@ -1698,7 +1698,7 @@ def map_array(
     # we must convert to python types
     #values = arr.astype(object, copy=False)
 
-    if is_integer_dtype(arr) and is_nullable_dtype(arr.dtype):
+    if is_integer_dtype(arr) and is_nullable(arr.dtype):
         def mapper_check(x):
             if x is None:
                 return pd.NA

@@ -1446,7 +1446,7 @@ class SeriesApply(NDFrameApply):
         except (ValueError, AttributeError, TypeError):
             result = obj.apply(func, by_row=False)
         return result
-
+import pandas as pd
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable
         func = cast(Callable, self.func)
@@ -1460,7 +1460,8 @@ class SeriesApply(NDFrameApply):
         
         #Check if type is integer and nullable, return pd.NA for None values and
         #normal func for other values
-        if pd.api.types.is_integer_dtype(obj) and pd.api.types.is_nullable_dtype(obj.dtype):
+        if pd.api.types.is_integer_dtype(obj) and 
+        pd.api.types.is_nullable(obj.dtype):
             def wrapped_func(x):
                 if x is None:
                     return pd.NA
