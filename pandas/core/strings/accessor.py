@@ -2146,10 +2146,7 @@ class StringMethods(NoNewAttributesMixin):
         2   ()
         dtype: object
         """
-        if (
-            dtype is not None
-            and not is_string_dtype(dtype)
-        ):
+        if dtype is not None and not is_string_dtype(dtype):
             raise ValueError(f"dtype must be string or object, got {dtype=}")
         if dtype is None and get_option("future.infer_string"):
             dtype = "str"
