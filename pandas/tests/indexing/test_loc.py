@@ -766,9 +766,9 @@ class TestLocBaseIndependent:
         #  is inplace, so that dtype is retained
         sera = Series(val1, index=keys1, dtype=np.float64)
         serb = Series(val2, index=keys2)
-        expected = DataFrame(
-            {"A": sera, "B": serb}, columns=Index(["A", "B"], dtype=object)
-        ).reindex(index=index)
+        expected = DataFrame({"A": sera, "B": serb}, columns=Index(["A", "B"])).reindex(
+            index=index
+        )
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_frame(self):
@@ -966,7 +966,7 @@ class TestLocBaseIndependent:
             to_datetime(42).tz_localize("UTC"),
             to_datetime(666).tz_localize("UTC"),
         ]
-        expected = Series(vals, index=Index(["foo", "bar"], dtype=object))
+        expected = Series(vals, index=Index(["foo", "bar"]))
 
         ser = Series(dtype=object)
         indexer_sl(ser)["foo"] = vals[0]
@@ -1966,15 +1966,11 @@ class TestLocSetitemWithExpansion:
         # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc["foo"] = 1
-        tm.assert_series_equal(ser, Series([1], index=Index(["foo"], dtype=object)))
+        tm.assert_series_equal(ser, Series([1], index=Index(["foo"])))
         ser.loc["bar"] = 3
-        tm.assert_series_equal(
-            ser, Series([1, 3], index=Index(["foo", "bar"], dtype=object))
-        )
+        tm.assert_series_equal(ser, Series([1, 3], index=Index(["foo", "bar"])))
         ser.loc[3] = 4
-        tm.assert_series_equal(
-            ser, Series([1, 3, 4], index=Index(["foo", "bar", 3], dtype=object))
-        )
+        tm.assert_series_equal(ser, Series([1, 3, 4], index=Index(["foo", "bar", 3])))
 
     def test_loc_setitem_incremental_with_dst(self):
         # GH#20724
@@ -1996,7 +1992,7 @@ class TestLocSetitemWithExpansion:
         ],
         ids=["self", "to_datetime64", "to_pydatetime", "np.datetime64"],
     )
-    def test_loc_setitem_datetime_keys_cast(self, conv):
+    def test_loc_setitem_datetime_keys_cast(self, conv, using_infer_string):
         # GH#9516, GH#51363 changed in 3.0 to not cast on Index.insert
         dt1 = Timestamp("20130101 09:00:00")
         dt2 = Timestamp("20130101 10:00:00")
@@ -2006,8 +2002,10 @@ class TestLocSetitemWithExpansion:
 
         expected = DataFrame(
             {"one": [100.0, 200.0]},
-            index=Index([conv(dt1), conv(dt2)], dtype=object),
-            columns=Index(["one"], dtype=object),
+            index=Index(
+                [conv(dt1), conv(dt2)], dtype=None if using_infer_string else object
+            ),
+            columns=Index(["one"]),
         )
         tm.assert_frame_equal(df, expected)
 

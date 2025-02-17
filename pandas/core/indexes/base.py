@@ -19,7 +19,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs import (
     NaT,
@@ -6235,6 +6238,24 @@ class Index(IndexOpsMixin, PandasObject):
         """
         target_dtype, _ = infer_dtype_from(target)
 
+        if using_string_dtype():
+            # special case: if left or right is a zero-length RangeIndex or
+            # Index[object], those can be created by the default empty constructors
+            # -> for that case ignore this dtype and always return the other
+            # (https://github.com/pandas-dev/pandas/pull/60797)
+            from pandas.core.indexes.range import RangeIndex
+
+            if len(self) == 0 and (
+                isinstance(self, RangeIndex) or self.dtype == np.object_
+            ):
+                return target_dtype
+            if (
+                isinstance(target, Index)
+                and len(target) == 0
+                and (isinstance(target, RangeIndex) or target_dtype == np.object_)
+            ):
+                return self.dtype
+
         # special case: if one dtype is uint64 and the other a signed int, return object
         # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
         # Now it's:
@@ -6887,6 +6908,14 @@ class Index(IndexOpsMixin, PandasObject):
             item = self._na_value
 
         arr = self._values
+
+        if using_string_dtype() and len(self) == 0 and self.dtype == np.object_:
+            # special case: if we are an empty object-dtype Index, also
+            # take into account the inserted item for the resulting dtype
+            # (https://github.com/pandas-dev/pandas/pull/60797)
+            dtype = self._find_common_type_compat(item)
+            if dtype != self.dtype:
+                return self.astype(dtype).insert(loc, item)
 
         try:
             if isinstance(arr, ExtensionArray):
