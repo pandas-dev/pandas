@@ -1465,7 +1465,7 @@ class SeriesApply(NDFrameApply):
                 if x is None:
                     return pd.NA
                 return func(x,*self.args, **self.kwargs)
-
+                #testing123
         else:
             curried = func
 
