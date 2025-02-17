@@ -924,12 +924,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     # We can retain the running min/max by forward/backward filling.
                     ndarray = ndarray.copy()
                     missing.pad_or_backfill_inplace(
-                        ndarray.T,
+                        ndarray,
                         method="pad",
                         axis=0,
                     )
                     missing.pad_or_backfill_inplace(
-                        ndarray.T,
+                        ndarray,
                         method="backfill",
                         axis=0,
                     )
@@ -938,7 +938,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 # the first NA value onward.
                 idx = np.argmax(na_mask)
                 tail = np.empty(len(ndarray) - idx, dtype="object")
-                tail[:] = np.nan
+                tail[:] = self.dtype.na_value
                 ndarray = ndarray[:idx]
 
         # mypy: Cannot call function of unknown type
@@ -947,7 +947,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if tail is not None:
             np_result = np.hstack((np_result, tail))
         elif na_mask is not None:
-            np_result = np.where(na_mask, np.nan, np_result)
+            np_result = np.where(na_mask, self.dtype.na_value, np_result)
 
         result = type(self)(np_result)
         return result
