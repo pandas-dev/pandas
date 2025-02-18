@@ -6,7 +6,7 @@ from typing import (
     Literal,
 )
 
-from pandas._libs import lib
+#from pandas._libs import lib
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -93,7 +93,7 @@ class BaseStringArrayMethods(abc.ABC):
         pat: str,
         case: bool = True,
         flags: int = 0,
-        na: Scalar | lib.NoDefault = lib.no_default,
+        #na: Scalar | lib.NoDefault = lib.no_default,
     ):
         pass
 
@@ -103,7 +103,7 @@ class BaseStringArrayMethods(abc.ABC):
         pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
-        na: Scalar | lib.NoDefault = lib.no_default,
+        #na: Scalar | lib.NoDefault = lib.no_default,
     ):
         pass
 
@@ -197,7 +197,11 @@ class BaseStringArrayMethods(abc.ABC):
 
     @abc.abstractmethod
     def _str_isnumeric(self):
-        pass
+        try:
+            float(self)
+            return True
+        except ValueError:
+            return False
 
     @abc.abstractmethod
     def _str_isspace(self):
