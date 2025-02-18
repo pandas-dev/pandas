@@ -22,6 +22,7 @@ from pandas import (
     date_range,
     interval_range,
     isna,
+    option_context,
     to_datetime,
 )
 import pandas._testing as tm
@@ -1448,3 +1449,26 @@ class TestILocSeries:
         result = DataFrame({"a": ["test"], "b": [np.nan]})
         with pytest.raises(TypeError, match="Invalid value"):
             result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+
+    def test_iloc_setitem_list_with_cow(self):
+        # GH#60309
+        with option_context("mode.copy_on_write", True):
+            dftest = DataFrame(
+                {"A": [1, 4, 1, 5], "B": [2, 5, 2, 6], "C": [3, 6, 1, 7]}
+            )
+            df = dftest[["B", "C"]]
+
+            # Perform the iloc operation
+            df.iloc[[1, 3], :] = [[2, 2], [2, 2]]
+
+            # Check that original DataFrame is unchanged
+            expected_orig = DataFrame(
+                {"A": [1, 4, 1, 5], "B": [2, 5, 2, 6], "C": [3, 6, 1, 7]}
+            )
+            tm.assert_frame_equal(dftest, expected_orig)
+
+            # Check that view is modified correctly
+            expected_view = DataFrame(
+                {"B": [2, 2, 2, 2], "C": [3, 2, 1, 2]}, index=df.index
+            )
+            tm.assert_frame_equal(df, expected_view)
