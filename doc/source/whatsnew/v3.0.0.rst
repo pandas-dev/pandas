@@ -361,6 +361,9 @@ Other API changes
 - pickle and HDF (``.h5``) files created with Python 2 are no longer explicitly supported (:issue:`57387`)
 - pickled objects from pandas version less than ``1.0.0`` are no longer supported (:issue:`57155`)
 - when comparing the indexes in :func:`testing.assert_series_equal`, check_exact defaults to True if an :class:`Index` is of integer dtypes. (:issue:`57386`)
+- Index set operations (like union or intersection) will now ignore the dtype of
+  an empty ``RangeIndex`` or empty ``Index`` with object dtype when determining
+  the dtype of the resulting Index (:issue:`60797`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
@@ -667,6 +670,7 @@ Conversion
 - Bug in :meth:`DataFrame.astype` not casting ``values`` for Arrow-based dictionary dtype correctly (:issue:`58479`)
 - Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
+- Bug in :meth:`Series.convert_dtypes` and :meth:`DataFrame.convert_dtypes` removing timezone information for objects with :class:`ArrowDtype` (:issue:`60237`)
 - Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
 
 Strings
