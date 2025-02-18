@@ -2087,13 +2087,14 @@ class TestLocSetitemWithExpansion:
         # the dtype constructed by Index([..]) does not yet follow the unit
         # of the input on 2.3.x -> so checking this is datetime64, but then
         # specifying the exact dtype in the expected result
-        assert df.index.dtype.kind == "M"
+        if using_infer_string:
+            assert df.index.dtype.kind == "M"
+            exp_dtype = df.index.dtype
+        else:
+            exp_dtype = "datetime64[ns]"
         expected = DataFrame(
             {"one": [100.0, 200.0]},
-            index=Index(
-                [conv(dt1), conv(dt2)],
-                dtype=df.index.dtype if using_infer_string else object,
-            ),
+            index=Index([dt1, dt2], dtype=exp_dtype),
             columns=Index(["one"]),
         )
         tm.assert_frame_equal(df, expected)
