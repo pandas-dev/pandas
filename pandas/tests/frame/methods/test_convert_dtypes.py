@@ -199,6 +199,7 @@ class TestConvertDtypes:
 
     def test_convert_dtype_pyarrow_timezone_preserve(self):
         # GH 60237
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
                 "timestamps": pd.Series(
