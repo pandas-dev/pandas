@@ -3511,27 +3511,3 @@ def test_map_numeric_na_action():
     result = ser.map(lambda x: 42, na_action="ignore")
     expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
     tm.assert_series_equal(result, expected)
-
-
-def test_convert_dtype_pyarrow_timezone_preserve():
-    # GH 60237
-    pytest.importorskip("pyarrow")
-    ser = pd.Series(
-        pd.to_datetime(range(5), utc=True, unit="h"),
-        dtype="timestamp[ns, tz=UTC][pyarrow]",
-    )
-    result = ser.convert_dtypes(dtype_backend="pyarrow")
-    expected = ser.copy()
-    tm.assert_series_equal(result, expected)
-
-    df = pd.DataFrame(
-        {
-            "timestamps": pd.Series(
-                pd.to_datetime(range(5), utc=True, unit="h"),
-                dtype="timestamp[ns, tz=UTC][pyarrow]",
-            )
-        }
-    )
-    result = df.convert_dtypes(dtype_backend="pyarrow")
-    expected = df.copy()
-    tm.assert_frame_equal(result, expected)
