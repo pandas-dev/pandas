@@ -668,6 +668,7 @@ Conversion
 - Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
 - Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
+- Bug in :meth:`convert_dtypes` not preserving timezone details for ArrowDtype in Series and DataFrame (:issue:`60237`)
 
 Strings
 ^^^^^^^
