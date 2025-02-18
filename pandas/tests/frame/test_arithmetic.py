@@ -1186,7 +1186,7 @@ def test_frame_single_columns_object_sum_axis_1():
     }
     df = DataFrame(data)
     result = df.sum(axis=1)
-    expected = Series(["A", 1.2, 0])
+    expected = Series(["A", 1.2, np.nan])
     tm.assert_series_equal(result, expected)
 
 

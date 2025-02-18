@@ -420,8 +420,23 @@ class TestDataFrameAnalytics:
         assert df.values.dtype == np.object_
         result = getattr(df, method)(axis=axis)
         expected = getattr(df.astype("f8"), method)(axis=axis).astype(object)
+        if method == "sum":
+            # GH#60229 in case of all-NA object array, sum should be nan
+            expected[df.isna().all(axis=axis)] = np.nan
         if axis in [1, "columns"] and method in ["min", "max"]:
             expected[expected.isna()] = None
+        tm.assert_series_equal(result, expected)
+
+    def test_object_sum_allna(self):
+        # GH#60229
+        df = DataFrame({"a": [np.nan] * 5, "b": [pd.NA] * 5}, dtype=object)
+
+        result = df.sum(axis=0, skipna=True)
+        expected = Series([np.nan, np.nan], index=["a", "b"], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = df.sum(axis=0, skipna=False)
+        expected = Series([np.nan, pd.NA], index=["a", "b"], dtype=object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])

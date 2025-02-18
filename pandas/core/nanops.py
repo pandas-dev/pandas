@@ -638,6 +638,13 @@ def nansum(
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
 
+    if dtype.kind == "O" and skipna and min_count == 0:
+        # GH#60229 For object dtype, sum of all-NA array should be nan
+        if isinstance(the_sum, np.ndarray):
+            the_sum[mask.sum(axis=axis) == mask.shape[axis]] = np.nan
+        elif mask.all():
+            the_sum = np.nan
+
     return the_sum
 
 
