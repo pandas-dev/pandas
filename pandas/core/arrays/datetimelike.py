@@ -965,6 +965,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     # Arithmetic Methods
 
     def _cmp_method(self, other, op):
+        if isinstance(other, ArrowExtensionArray):
+            other = other.to_pydatetime()
         if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
             # TODO: handle 2D-like listlikes
             return op(self.ravel(), other.ravel()).reshape(self.shape)
