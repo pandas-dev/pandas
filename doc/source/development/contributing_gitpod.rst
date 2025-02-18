@@ -109,7 +109,7 @@ development experience:
 
 *  `VSCode rst extension <https://marketplace.visualstudio.com/items?itemName=lextudio.restructuredtext>`_
 *  `Markdown All in One <https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one>`_
-*  `VSCode Gitlens extension <https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens>`_
+*  `VSCode GitLens extension <https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens>`_
 *  `VSCode Git Graph extension <https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph>`_
 
 Development workflow with Gitpod
