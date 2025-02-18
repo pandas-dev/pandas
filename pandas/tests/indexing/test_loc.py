@@ -2084,10 +2084,15 @@ class TestLocSetitemWithExpansion:
         df.loc[conv(dt1), "one"] = 100
         df.loc[conv(dt2), "one"] = 200
 
+        # the dtype constructed by Index([..]) does not yet follow the unit
+        # of the input on 2.3.x -> so checking this is datetime64, but then
+        # specifying the exact dtype in the expected result
+        assert df.index.dtype.kind == "M"
         expected = DataFrame(
             {"one": [100.0, 200.0]},
             index=Index(
-                [conv(dt1), conv(dt2)], dtype=None if using_infer_string else object
+                [conv(dt1), conv(dt2)],
+                dtype=df.index.dtype if using_infer_string else object,
             ),
             columns=Index(["one"]),
         )
