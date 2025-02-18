@@ -415,20 +415,7 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
 
     modes = np.empty(nkeys, dtype=values.dtype)
 
-    if htfunc_t is not object:
-        with nogil:
-            for k in range(nkeys):
-                count = counts[k]
-                if count == max_count:
-                    j += 1
-                elif count > max_count:
-                    max_count = count
-                    j = 0
-                else:
-                    continue
-
-                modes[j] = keys[k]
-    else:
+    with nogil(htfunc_t is not object):
         for k in range(nkeys):
             count = counts[k]
             if count == max_count:

@@ -818,33 +818,7 @@ def is_monotonic(const numeric_object_t[:] arr, bint timelike):
     if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, False
 
-    if numeric_object_t is not object:
-        with nogil:
-            prev = arr[0]
-            for i in range(1, n):
-                cur = arr[i]
-                if timelike and <int64_t>cur == NPY_NAT:
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                if cur < prev:
-                    is_monotonic_inc = 0
-                elif cur > prev:
-                    is_monotonic_dec = 0
-                elif cur == prev:
-                    is_unique = 0
-                else:
-                    # cur or prev is NaN
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                if not is_monotonic_inc and not is_monotonic_dec:
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                prev = cur
-    else:
-        # object-dtype, identical to above except we cannot use `with nogil`
+    with nogil(numeric_object_t is not object):
         prev = arr[0]
         for i in range(1, n):
             cur = arr[i]

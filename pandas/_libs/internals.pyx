@@ -502,7 +502,7 @@ def get_concat_blkno_indexers(list blknos_list not None):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def get_blkno_indexers(
-    int64_t[:] blknos, bint group=True
+    const int64_t[:] blknos, bint group=True
 ) -> list[tuple[int, slice | np.ndarray]]:
     """
     Enumerate contiguous runs of integers in ndarray.
@@ -596,8 +596,8 @@ def get_blkno_placements(blknos, group: bool = True):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef update_blklocs_and_blknos(
-    ndarray[intp_t, ndim=1] blklocs,
-    ndarray[intp_t, ndim=1] blknos,
+    const intp_t[:] blklocs,
+    const intp_t[:] blknos,
     Py_ssize_t loc,
     intp_t nblocks,
 ):
