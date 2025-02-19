@@ -8,6 +8,25 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from quantile import branch_coverage  # Import branch tracking data
+
+@pytest.fixture(scope="session", autouse=True)
+def finalize_coverage():
+    """After all test cases execute, compute and save the coverage report."""
+    yield  # Let all tests execute first
+    save_coverage()  # Save coverage once all tests finish
+    print("\n Final Manual Coverage Report Generated!")
+
+def save_coverage():
+    """Compute coverage percentage and save report."""
+    total_branches = max(branch_coverage.keys(), default=0)  # Prevent KeyError if empty
+    executed_branches = len([b for b, count in branch_coverage.items() if count > 0])
+    coverage_score = (executed_branches / total_branches) * 100 if total_branches > 0 else 0
+
+    for branch, count in sorted(branch_coverage.items()):
+        print(f"Branch {branch}: executed {count} times\n")
+    print(f"Manual Coverage Score: {coverage_score:.2f}%")  # Print to console
+
 
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
