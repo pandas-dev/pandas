@@ -2283,3 +2283,35 @@ def test_large_number():
     )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "json_data, should_fail",
+    [
+        (
+            json.dumps(
+                {
+                    "schema": {"fields": [{"name": "A", "type": "integer"}]},
+                    "data": [{"A": 1}, {"A": 2}, {"A": 3}],
+                }
+            ),
+            False,
+        ),
+        (json.dumps({"columns": ["A"], "data": [[1], [2], [3]]}), False),
+    ],
+)
+def test_read_json_auto_infer(json_data, should_fail, tmp_path):
+    """Test pd.read_json auto-infers 'table' and 'split' formats."""
+
+    # Use tmp_path to create a temporary file
+    temp_file = tmp_path / "test_read_json.json"
+
+    # Write the json_data to the temporary file
+    with open(temp_file, "w") as f:
+        f.write(json_data)
+
+    if should_fail:
+        with pytest.raises(ValueError, match=".*expected.*"):
+            read_json(temp_file)
+    else:
+        read_json(temp_file)

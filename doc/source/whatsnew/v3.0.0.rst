@@ -70,6 +70,7 @@ Other enhancements
 - :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
 - :meth:`Series.str.get_dummies` now accepts a  ``dtype`` parameter to specify the dtype of the resulting DataFrame (:issue:`47872`)
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
+- :meth:`pandas.read_json` now automatically infers the ``orient`` parameter if it is not explicitly specified. This allows the correct format to be detected based on the input JSON structure. This only works if json schema matches for split or table. (:issue:`52713`).
 - :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
 - Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library (:issue:`60748`)
 - Implemented :meth:`Series.str.isascii` and :meth:`Series.str.isascii` (:issue:`59091`)

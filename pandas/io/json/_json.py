@@ -6,6 +6,8 @@ from abc import (
 )
 from collections import abc
 from itertools import islice
+import json
+import os
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -559,6 +561,12 @@ def read_json(
         - ``'values'`` : just the values array
         - ``'table'`` : dict like ``{{'schema': {{schema}}, 'data': {{data}}}}``
 
+        **Automatic Orient Inference for split or table**:
+        If the `orient` parameter is not specified,
+        this function will automatically infer the correct JSON format.
+        This works only if the schema matches for a table or split.
+        If the json was created using to_json with orient=split or orient=table
+
         The allowed and default values depend on the value
         of the `typ` parameter.
 
@@ -768,6 +776,19 @@ def read_json(
     0      0     1  2.5   True  a  1577.2
     1      1  <NA>  4.5  False  b  1577.1
     """
+    if orient is None:
+        if isinstance(path_or_buf, (str, bytes, os.PathLike)):
+            with open(path_or_buf, encoding="utf-8") as f:
+                json_data = json.load(f)
+        else:
+            json_data = json.load(path_or_buf)
+
+        if isinstance(json_data, dict):
+            if "schema" in json_data and "data" in json_data:
+                orient = "table"
+            elif "columns" in json_data and "data" in json_data:
+                orient = "split"
+
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:
