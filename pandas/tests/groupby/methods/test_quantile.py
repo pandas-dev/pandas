@@ -8,7 +8,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from quantile import branch_coverage  # Import branch tracking data
+from pandas.core.groupby import quantile  # Import quantile function
+from pandas.core.groupby.quantile import branch_coverage 
+
 
 @pytest.fixture(scope="session", autouse=True)
 def finalize_coverage():
