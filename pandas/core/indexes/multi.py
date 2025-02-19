@@ -305,7 +305,6 @@ class MultiIndex(Index):
         codes=None,
         sortorder=None,
         names=None,
-        dtype=None,
         copy: bool = False,
         name=None,
         verify_integrity: bool = True,

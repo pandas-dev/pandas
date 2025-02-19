@@ -357,6 +357,7 @@ Other API changes
 - Made ``dtype`` a required argument in :meth:`ExtensionArray._from_sequence_of_strings` (:issue:`56519`)
 - Passing a :class:`Series` input to :func:`json_normalize` will now retain the :class:`Series` :class:`Index`, previously output had a new :class:`RangeIndex` (:issue:`51452`)
 - Removed :meth:`Index.sort` which always raised a ``TypeError``. This attribute is not defined and will raise an ``AttributeError`` (:issue:`59283`)
+- Unused ``dtype`` argument has been removed from the :class:`MultiIndex` constructor (:issue:`60962`)
 - Updated :meth:`DataFrame.to_excel` so that the output spreadsheet has no styling. Custom styling can still be done using :meth:`Styler.to_excel` (:issue:`54154`)
 - pickle and HDF (``.h5``) files created with Python 2 are no longer explicitly supported (:issue:`57387`)
 - pickled objects from pandas version less than ``1.0.0`` are no longer supported (:issue:`57155`)
