@@ -1,0 +1,2 @@
+docker build -t numexpr-tests .
+docker run numexpr-tests
