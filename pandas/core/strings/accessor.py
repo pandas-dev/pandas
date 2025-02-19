@@ -3559,13 +3559,13 @@ class StringMethods(NoNewAttributesMixin):
     5     True
     dtype: bool
 
-    For a string to be considered numeric, all its characters must have a Unicode 
+    For a string to be considered numeric, all its characters must have a Unicode
     numeric property. As a consequence, the following cases are **not** recognized
     as numeric:
 
-    - **Decimal numbers** (e.g., "1.1"): due to period ``"."`` 
-    - **Negative numbers** (e.g., "-5"):  due to minus sign ``"-"`` 
-    - **Scientific notation** (e.g., "1e3"): due to characters like ``"e"`` 
+    - **Decimal numbers** (e.g., "1.1"): due to period ``"."``
+    - **Negative numbers** (e.g., "-5"):  due to minus sign ``"-"``
+    - **Scientific notation** (e.g., "1e3"): due to characters like ``"e"``
 
     >>> s2 = pd.Series(["1.1", "-5", "1e3"])
     >>> s2.str.isnumeric()
