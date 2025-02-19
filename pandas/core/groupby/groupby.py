@@ -4230,6 +4230,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         return grb.nth(n)
 
+    # Global dictionary to track which branches are executed
+    branch_coverage = {}
+    
+    def record_branch(branch_id):
+        """Track execution count of a specific branch."""
+        if branch_id in branch_coverage:
+            branch_coverage[branch_id] += 1
+        else:
+            branch_coverage[branch_id] = 1
+    
     @final
     def quantile(
         self,
@@ -4239,156 +4249,106 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ] = "linear",
         numeric_only: bool = False,
     ):
-        """
-        Return group values at the given quantile, a la numpy.percentile.
-
-        Parameters
-        ----------
-        q : float or array-like, default 0.5 (50% quantile)
-            Value(s) between 0 and 1 providing the quantile(s) to compute.
-        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
-            Method to use when the desired quantile falls between two points.
-        numeric_only : bool, default False
-            Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
-
-            .. versionchanged:: 2.0.0
-
-                numeric_only now defaults to ``False``.
-
-        Returns
-        -------
-        Series or DataFrame
-            Return type determined by caller of GroupBy object.
-
-        See Also
-        --------
-        Series.quantile : Similar method for Series.
-        DataFrame.quantile : Similar method for DataFrame.
-        numpy.percentile : NumPy method to compute qth percentile.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame(
-        ...     [["a", 1], ["a", 2], ["a", 3], ["b", 1], ["b", 3], ["b", 5]],
-        ...     columns=["key", "val"],
-        ... )
-        >>> df.groupby("key").quantile()
-            val
-        key
-        a    2.0
-        b    3.0
-        """
+        """Return group values at the given quantile."""
+    
+        record_branch(1)  # Entry point
+    
         mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
         obj = self._wrap_agged_manager(mgr)
         splitter = self._grouper._get_splitter(obj)
         sdata = splitter._sorted_data
-
+    
         starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
-
+    
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
+            """Prepares input values and handles different data types."""
             if isinstance(vals.dtype, StringDtype) or is_object_dtype(vals.dtype):
-                raise TypeError(
-                    f"dtype '{vals.dtype}' does not support operation 'quantile'"
-                )
-
+                record_branch(2)
+                raise TypeError(f"dtype '{vals.dtype}' does not support operation 'quantile'")
+    
             inference: DtypeObj | None = None
             if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
+                record_branch(3)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
                 inference = vals.dtype
             elif is_integer_dtype(vals.dtype):
+                record_branch(4)
                 if isinstance(vals, ExtensionArray):
+                    record_branch(5)
                     out = vals.to_numpy(dtype=float, na_value=np.nan)
                 else:
                     out = vals
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
+                record_branch(6)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_bool_dtype(vals.dtype):
-                # GH#51424 remove to match Series/DataFrame behavior
+                record_branch(7)
                 raise TypeError("Cannot use quantile with bool dtype")
             elif needs_i8_conversion(vals.dtype):
+                record_branch(8)
                 inference = vals.dtype
-                # In this case we need to delay the casting until after the
-                #  np.lexsort below.
-                # error: Incompatible return value type (got
-                # "Tuple[Union[ExtensionArray, ndarray[Any, Any]], Union[Any,
-                # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
-                # Optional[Union[dtype[Any], ExtensionDtype]]]")
-                return vals, inference  # type: ignore[return-value]
+                return vals, inference
             elif isinstance(vals, ExtensionArray) and is_float_dtype(vals.dtype):
+                record_branch(9)
                 inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:
+                record_branch(10)
                 out = np.asarray(vals)
-
+    
             return out, inference
-
+    
         def post_processor(
             vals: np.ndarray,
             inference: DtypeObj | None,
             result_mask: np.ndarray | None,
             orig_vals: ArrayLike,
         ) -> ArrayLike:
+            """Handles final output formatting and data type conversion."""
             if inference:
-                # Check for edge case
+                record_branch(11)
                 if isinstance(orig_vals, BaseMaskedArray):
-                    assert result_mask is not None  # for mypy
-
-                    if interpolation in {"linear", "midpoint"} and not is_float_dtype(
-                        orig_vals
-                    ):
+                    record_branch(12)
+                    assert result_mask is not None
+    
+                    if interpolation in {"linear", "midpoint"} and not is_float_dtype(orig_vals):
+                        record_branch(13)
                         return FloatingArray(vals, result_mask)
                     else:
-                        # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
-                        # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
-                        # [union-attr]
+                        record_branch(14)
                         with warnings.catch_warnings():
-                            # vals.astype with nan can warn with numpy >1.24
                             warnings.filterwarnings("ignore", category=RuntimeWarning)
-                            return type(orig_vals)(
-                                vals.astype(
-                                    inference.numpy_dtype  # type: ignore[union-attr]
-                                ),
-                                result_mask,
-                            )
-
-                elif not (
-                    is_integer_dtype(inference)
-                    and interpolation in {"linear", "midpoint"}
-                ):
+                            return type(orig_vals)(vals.astype(inference.numpy_dtype), result_mask)
+    
+                elif not (is_integer_dtype(inference) and interpolation in {"linear", "midpoint"}):
+                    record_branch(15)
                     if needs_i8_conversion(inference):
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any]]" has no attribute "_ndarray"
-                        vals = vals.astype("i8").view(
-                            orig_vals._ndarray.dtype  # type: ignore[union-attr]
-                        )
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any]]" has no attribute "_from_backing_data"
-                        return orig_vals._from_backing_data(  # type: ignore[union-attr]
-                            vals
-                        )
-
-                    assert isinstance(inference, np.dtype)  # for mypy
+                        record_branch(16)
+                        vals = vals.astype("i8").view(orig_vals._ndarray.dtype)
+                        return orig_vals._from_backing_data(vals)
+    
+                    assert isinstance(inference, np.dtype)
                     return vals.astype(inference)
-
+    
             return vals
-
+    
         if is_scalar(q):
+            record_branch(17)
             qs = np.array([q], dtype=np.float64)
             pass_qs: None | np.ndarray = None
         else:
+            record_branch(18)
             qs = np.asarray(q, dtype=np.float64)
             pass_qs = qs
-
+    
         ids = self._grouper.ids
         ngroups = self._grouper.ngroups
         if self.dropna:
-            # splitter drops NA groups, we need to do the same
+            record_branch(19)
             ids = ids[ids >= 0]
         nqs = len(qs)
-
+    
         func = partial(
             libgroupby.group_quantile,
             labels=ids,
@@ -4397,40 +4357,46 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             starts=starts,
             ends=ends,
         )
-
+    
         def blk_func(values: ArrayLike) -> ArrayLike:
+            """Handles computation logic for grouped quantiles."""
             orig_vals = values
             if isinstance(values, BaseMaskedArray):
+                record_branch(20)
                 mask = values._mask
                 result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
             else:
+                record_branch(21)
                 mask = isna(values)
                 result_mask = None
-
+    
             is_datetimelike = needs_i8_conversion(values.dtype)
-
             vals, inference = pre_processor(values)
-
+    
             ncols = 1
             if vals.ndim == 2:
+                record_branch(22)
                 ncols = vals.shape[0]
-
+    
             out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
-
+    
             if is_datetimelike:
+                record_branch(23)
                 vals = vals.view("i8")
-
+    
             if vals.ndim == 1:
-                # EA is always 1d
+                record_branch(24)
                 func(
                     out[0],
                     values=vals,
-                    mask=mask,  # type: ignore[arg-type]
+                    mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
             else:
+                record_branch(25)
                 for i in range(ncols):
+                    record_branch(26)
                     func(
                         out[i],
                         values=vals[i],
@@ -4438,20 +4404,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         result_mask=None,
                         is_datetimelike=is_datetimelike,
                     )
-
+    
             if vals.ndim == 1:
+                record_branch(27)
                 out = out.ravel("K")
                 if result_mask is not None:
+                    record_branch(28)
                     result_mask = result_mask.ravel("K")
             else:
+                record_branch(29)
                 out = out.reshape(ncols, ngroups * nqs)
-
+    
             return post_processor(out, inference, result_mask, orig_vals)
-
+    
         res_mgr = sdata._mgr.grouped_reduce(blk_func)
-
         res = self._wrap_agged_manager(res_mgr)
+        
+        record_branch(30)  # Final return branch
         return self._wrap_aggregated_output(res, qs=pass_qs)
+
 
     @final
     @Substitution(name="groupby")
