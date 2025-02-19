@@ -787,6 +787,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug in :class:`Categorical` when constructing with an :class:`Index` with :class:`ArrowDtype` (:issue:`60563`)
 - Bug in :meth:`.arrays.ArrowExtensionArray.__setitem__` which caused wrong behavior when using an integer array with repeated values as a key (:issue:`58530`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
 - Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
