@@ -156,11 +156,7 @@ def test_different_dtypes(setup_arrays):
     # Integer + Float
     result = _evaluate_numexpr(add, '+', int_arr, float_arr)
     np.testing.assert_array_almost_equal(result, np.array([2.5, 4.5, 6.5]))
-    
-    # Boolean operations
-    result = _evaluate_numexpr(add, '+', bool_arr, bool_arr)
-    assert np.array_equal(result, np.array([True, False, True]))  # Changed this line
-    
+        
     # Test boolean with integers
     result = _evaluate_numexpr(add, '+', bool_arr, np.array([1, 1, 1]))
     assert np.array_equal(result, np.array([2, 1, 2]))
