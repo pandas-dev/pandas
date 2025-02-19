@@ -2300,7 +2300,7 @@ def test_large_number():
         (json.dumps({"columns": ["A"], "data": [[1], [2], [3]]}), False),
     ],
 )
-def test_read_json_auto_infer(json_data, should_fail, tmp_path):
+def test_read_json_auto_infer_orient_table_split(json_data, should_fail, tmp_path):
     """Test pd.read_json auto-infers 'table' and 'split' formats."""
 
     # Use tmp_path to create a temporary file
