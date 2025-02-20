@@ -3560,8 +3560,8 @@ class StringMethods(NoNewAttributesMixin):
     dtype: bool
 
     For a string to be considered numeric, all its characters must have a Unicode
-    numeric property. As a consequence, the following cases are **not** recognized
-    as numeric:
+    numeric property matching :py:meth:`str.is_numeric`. As a consequence,
+    the following cases are **not** recognized as numeric:
 
     - **Decimal numbers** (e.g., "1.1"): due to period ``"."``
     - **Negative numbers** (e.g., "-5"):  due to minus sign ``"-"``
