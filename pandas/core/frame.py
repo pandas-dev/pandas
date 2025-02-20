@@ -315,7 +315,8 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
+how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
+    default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -328,6 +329,10 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; preserve the order of the left keys.
     * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
+    * left_anti: use only keys from left frame that are not in right frame, similar
+      to SQL left anti join; preserve key order.
+    * right_anti: use only keys from right frame that are not in left frame, similar
+      to SQL right anti join; preserve key order.
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -1015,6 +1020,10 @@ class DataFrame(NDFrame, OpsMixin):
     def shape(self) -> tuple[int, int]:
         """
         Return a tuple representing the dimensionality of the DataFrame.
+
+        Unlike the `len()` method, which only returns the number of rows, `shape`
+        provides both row and column counts, making it a more informative method for
+        understanding dataset size.
 
         See Also
         --------
@@ -4793,6 +4802,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
+        This method allows for filtering columns based on their data types.
+        It is useful when working with heterogeneous DataFrames where operations
+        need to be performed on a specific subset of data types.
+
         Parameters
         ----------
         include, exclude : scalar or list-like
@@ -8016,10 +8029,15 @@ class DataFrame(NDFrame, OpsMixin):
             return False
 
         if (
-            isinstance(self.columns, MultiIndex)
-            or isinstance(right.columns, MultiIndex)
-        ) and not self.columns.equals(right.columns):
+            (
+                isinstance(self.columns, MultiIndex)
+                or isinstance(right.columns, MultiIndex)
+            )
+            and not self.columns.equals(right.columns)
+            and fill_value is None
+        ):
             # GH#60498 Reindex if MultiIndexe columns are not matching
+            # GH#60903 Don't reindex if fill_value is provided
             return True
 
         if fill_value is None and level is None and axis == 1:
@@ -10609,7 +10627,8 @@ class DataFrame(NDFrame, OpsMixin):
             values given, the `other` DataFrame must have a MultiIndex. Can
             pass an array as the join key if it is not already contained in
             the calling DataFrame. Like an Excel VLOOKUP operation.
-        how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'left'
+        how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
+            default 'left'
             How to handle the operation of the two objects.
 
             * left: use calling frame's index (or column if on is specified)
@@ -10621,6 +10640,10 @@ class DataFrame(NDFrame, OpsMixin):
               of the calling's one.
             * cross: creates the cartesian product from both frames, preserves the order
               of the left keys.
+            * left_anti: use set difference of calling frame's index and `other`'s
+              index.
+            * right_anti: use set difference of `other`'s index and calling frame's
+              index.
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
         rsuffix : str, default ''
