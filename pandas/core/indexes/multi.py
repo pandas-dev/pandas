@@ -1760,7 +1760,7 @@ class MultiIndex(Index):
         """
         fillna is not implemented for MultiIndex
         """
-        raise NotImplementedError("isna is not defined for MultiIndex")
+        raise NotImplementedError("fillna is not defined for MultiIndex")
 
     @doc(Index.dropna)
     def dropna(self, how: AnyAll = "any") -> MultiIndex:

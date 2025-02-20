@@ -597,7 +597,7 @@ class TestBase:
             pytest.skip(f"Not relevant for Index with {index.dtype}")
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
-            msg = "isna is not defined for MultiIndex"
+            msg = "fillna is not defined for MultiIndex"
             with pytest.raises(NotImplementedError, match=msg):
                 idx.fillna(idx[0])
         else:
