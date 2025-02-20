@@ -4159,6 +4159,8 @@ class Table(Fixed):
                 ordered = data_converted.ordered
                 meta = "category"
                 metadata = np.asarray(data_converted.categories).ravel()
+            elif isinstance(blk.dtype, StringDtype):
+                meta = str(blk.dtype)
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
@@ -4419,7 +4421,8 @@ class Table(Fixed):
                     errors=self.errors,
                 )
                 cvs = col_values[1]
-                return Series(cvs, name=column, copy=False)
+                dtype = getattr(self.table.attrs, f"{column}_meta", None)
+                return Series(cvs, name=column, copy=False, dtype=dtype)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4769,8 +4772,18 @@ class AppendableFrameTable(AppendableTable):
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
             if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+
+            # If str / string dtype is stored in meta, use that.
+            converted = False
+            for column in cols_:
+                dtype = getattr(self.table.attrs, f"{column}_meta", None)
+                if dtype in ["str", "string"]:
+                    df[column] = df[column].astype(dtype)
+                    converted = True
+            # Otherwise try inference.
             if (
-                using_string_dtype()
+                not converted
+                and using_string_dtype()
                 and isinstance(values, np.ndarray)
                 and is_string_array(
                     values,
