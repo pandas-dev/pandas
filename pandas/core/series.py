@@ -4723,8 +4723,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
-            Series with index labels or name altered as a copy, the same object
-            if ``inplace=True`` and index is not a dict or callage else None.
+            A shallow copy with index labels or name altered, or the same object
+            if ``inplace=True`` and index is not a dict or callable else None.
 
         See Also
         --------
