@@ -72,9 +72,9 @@ hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/i
         #'blosc>=1.20.1',
         'tables>=3.8.0']
 spss = ['pyreadstat>=1.2.0']
-postgresql = ['SQLAlchemy>=2.0.0', 'psycopg2>=2.9.6', 'adbc-driver-postgresql>=0.10.0']
-mysql = ['SQLAlchemy>=2.0.0', 'pymysql>=1.0.2']
-sql-other = ['SQLAlchemy>=2.0.0', 'adbc-driver-postgresql>=0.10.0', 'adbc-driver-sqlite>=0.8.0']
+postgresql = ['SQLAlchemy>=1.4.36', 'psycopg2>=2.9.6', 'adbc-driver-postgresql>=0.10.0']
+mysql = ['SQLAlchemy>=1.4.36', 'pymysql>=1.0.2']
+sql-other = ['SQLAlchemy>=1.4.36', 'adbc-driver-postgresql>=0.10.0', 'adbc-driver-sqlite>=0.8.0']
 html = ['beautifulsoup4>=4.11.2', 'html5lib>=1.1', 'lxml>=4.9.2']
 xml = ['lxml>=4.9.2']
 plot = ['matplotlib>=3.6.3']
