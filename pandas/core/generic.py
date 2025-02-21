@@ -2252,11 +2252,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         and cell character count does not exceed Excel's limitations.
         All other limitations must be checked by the user.
 
-        Excel treats any cell starting with `=` as a formula, which can pose security
-        risks. To store such content as plain text, prepend an apostrophe (`'`), e.g.,
-        change `"=foobar"` to `"'=foobar"`. For `xlsxwriter`, you can use
-        `engine_kwargs={"options": {"strings_to_formulas": False}}` to disable formula
-        interpretation without prepending an apostrophe.
+        Excel treats any cell starting with ``=`` as a formula, which can pose security
+        risks. To store such content as plain text, you can either:
+
+        * Prepend an apostrophe to the value, e.g. ``"'=foobar"``
+        * For ``xlsxwriter``, disable formula interpretation:
+
+          .. code-block:: python
+
+              df.to_excel(
+                  "path.xlsx", engine_kwargs={"options": {"strings_to_formulas": False}}
+              )
 
         Examples
         --------
