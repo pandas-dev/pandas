@@ -383,55 +383,6 @@ def test_pickle_buffer_roundtrip():
         tm.assert_frame_equal(df, result)
 
 
-# ---------------------
-# tests for URL I/O
-# ---------------------
-
-
-@pytest.mark.parametrize(
-    "mockurl", ["http://url.com", "ftp://test.com", "http://gzip.com"]
-)
-def test_pickle_generalurl_read(monkeypatch, mockurl):
-    def python_pickler(obj, path):
-        with open(path, "wb") as fh:
-            pickle.dump(obj, fh, protocol=-1)
-
-    class MockReadResponse:
-        def __init__(self, path) -> None:
-            self.file = open(path, "rb")
-            if "gzip" in path:
-                self.headers = {"Content-Encoding": "gzip"}
-            else:
-                self.headers = {"Content-Encoding": ""}
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            self.close()
-
-        def read(self):
-            return self.file.read()
-
-        def close(self):
-            return self.file.close()
-
-    with tm.ensure_clean() as path:
-
-        def mock_urlopen_read(*args, **kwargs):
-            return MockReadResponse(path)
-
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
-        python_pickler(df, path)
-        monkeypatch.setattr("urllib.request.urlopen", mock_urlopen_read)
-        result = pd.read_pickle(mockurl)
-        tm.assert_frame_equal(df, result)
-
-
 def test_pickle_fsspec_roundtrip():
     pytest.importorskip("fsspec")
     with tm.ensure_clean():

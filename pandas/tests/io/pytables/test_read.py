@@ -5,8 +5,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import is_platform_windows
 
 import pandas as pd
@@ -26,10 +24,7 @@ from pandas.tests.io.pytables.common import (
 
 from pandas.io.pytables import TableIterator
 
-pytestmark = [
-    pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 def test_read_missing_key_close_store(tmp_path, setup_path):
@@ -78,7 +73,7 @@ def test_read_missing_key_opened_store(tmp_path, setup_path):
 def test_read_column(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
@@ -175,7 +170,7 @@ def test_pytables_native2_read(datapath):
     assert isinstance(d1, DataFrame)
 
 
-def test_read_hdf_open_store(tmp_path, setup_path):
+def test_read_hdf_open_store(tmp_path, setup_path, using_infer_string):
     # GH10330
     # No check for non-string path_or-buf, and no test of open store
     df = DataFrame(
@@ -187,6 +182,12 @@ def test_read_hdf_open_store(tmp_path, setup_path):
     df = df.set_index(keys="E", append=True)
 
     path = tmp_path / setup_path
+    if using_infer_string:
+        # TODO(infer_string) make this work for string dtype
+        msg = "Saving a MultiIndex with an extension dtype is not supported."
+        with pytest.raises(NotImplementedError, match=msg):
+            df.to_hdf(path, key="df", mode="w")
+        return
     df.to_hdf(path, key="df", mode="w")
     direct = read_hdf(path, "df")
     with HDFStore(path, mode="r") as store:

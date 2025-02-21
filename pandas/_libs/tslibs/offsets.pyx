@@ -720,10 +720,23 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp intersects with this frequency.
 
+        This method determines if a given timestamp aligns with the start
+        of a custom business month, as defined by this offset. It accounts
+        for custom rules, such as skipping weekends or other non-business days,
+        and checks whether the provided datetime falls on a valid business day
+        that marks the beginning of the custom business month.
+
         Parameters
         ----------
         dt : datetime.datetime
             Timestamp to check intersections with frequency.
+
+        See Also
+        --------
+        tseries.offsets.CustomBusinessMonthBegin : Represents the start of a custom
+            business month.
+        tseries.offsets.CustomBusinessMonthEnd : Represents the end of a custom
+            business month.
 
         Examples
         --------
@@ -3709,6 +3722,15 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
         - 4 is Friday
         - 5 is Saturday
         - 6 is Sunday.
+
+    See Also
+    --------
+    tseries.offsets.WeekOfMonth :
+        Date offset for a specific weekday in a month.
+    tseries.offsets.MonthEnd :
+        Date offset for the end of the month.
+    tseries.offsets.BMonthEnd :
+        Date offset for the last business day of the month.
 
     Examples
     --------
