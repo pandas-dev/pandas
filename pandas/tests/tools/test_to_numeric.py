@@ -192,7 +192,7 @@ def test_numeric_df_columns(columns):
     # see gh-14827
     df = DataFrame(
         {
-            "a": [1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), "0.1"],
+            "a": [1.2, decimal.Decimal("3.14"), decimal.Decimal("infinity"), "0.1"],
             "b": [1.0, 2.0, 3.0, 4.0],
         }
     )
@@ -207,10 +207,10 @@ def test_numeric_df_columns(columns):
     "data,exp_data",
     [
         (
-            [[decimal.Decimal(3.14), 1.0], decimal.Decimal(1.6), 0.1],
+            [[decimal.Decimal("3.14"), 1.0], decimal.Decimal("1.6"), 0.1],
             [[3.14, 1.0], 1.6, 0.1],
         ),
-        ([np.array([decimal.Decimal(3.14), 1.0]), 0.1], [[3.14, 1.0], 0.1]),
+        ([np.array([decimal.Decimal("3.14"), 1.0]), 0.1], [[3.14, 1.0], 0.1]),
     ],
 )
 def test_numeric_embedded_arr_likes(data, exp_data):

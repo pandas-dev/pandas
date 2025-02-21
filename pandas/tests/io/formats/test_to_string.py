@@ -377,17 +377,11 @@ class TestToStringNumericFormatting:
         # sadness per above
         if _three_digit_exp():
             expected = (
-                "               a\n"
-                "0  1.500000e+000\n"
-                "1  1.000000e-017\n"
-                "2 -5.500000e-007"
+                "               a\n0  1.500000e+000\n1  1.000000e-017\n2 -5.500000e-007"
             )
         else:
             expected = (
-                "              a\n"
-                "0  1.500000e+00\n"
-                "1  1.000000e-17\n"
-                "2 -5.500000e-07"
+                "              a\n0  1.500000e+00\n1  1.000000e-17\n2 -5.500000e-07"
             )
         assert result == expected
 
@@ -1210,13 +1204,7 @@ class TestSeriesToString:
         ser[::2] = np.nan
 
         result = ser.to_string()
-        expected = (
-            "0       NaN\n"
-            "1    1.5678\n"
-            "2       NaN\n"
-            "3   -3.0000\n"
-            "4       NaN"
-        )
+        expected = "0       NaN\n1    1.5678\n2       NaN\n3   -3.0000\n4       NaN"
         assert result == expected
 
     def test_to_string_with_datetimeindex(self):

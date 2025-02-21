@@ -117,6 +117,12 @@ class Styler(StylerRenderer):
     r"""
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
+    This class provides methods for styling and formatting a Pandas DataFrame or Series.
+    The styled output can be rendered as HTML or LaTeX, and it supports CSS-based
+    styling, allowing users to control colors, font styles, and other visual aspects of
+    tabular data. It is particularly useful for presenting DataFrame objects in a
+    Jupyter Notebook environment or when exporting styled tables for reports and
+
     Parameters
     ----------
     data : Series or DataFrame
@@ -181,6 +187,8 @@ class Styler(StylerRenderer):
 
     Attributes
     ----------
+    index : data.index Index
+    columns : data.columns Index
     env : Jinja2 jinja2.Environment
     template_html : Jinja2 Template
     template_html_table : Jinja2 Template
@@ -2021,7 +2029,7 @@ class Styler(StylerRenderer):
         more details.
         """
         self._todo.append(
-            (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
+            (lambda instance: instance._apply, (func, axis, subset), kwargs)
         )
         return self
 
@@ -2128,7 +2136,7 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "apply"),
                 kwargs,
             )
@@ -2157,7 +2165,7 @@ class Styler(StylerRenderer):
     ) -> Styler:
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "map"),
                 kwargs,
             )
@@ -2230,9 +2238,7 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
-        self._todo.append(
-            (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
-        )
+        self._todo.append((lambda instance: instance._map, (func, subset), kwargs))
         return self
 
     def set_table_attributes(self, attributes: str) -> Styler:
@@ -2588,7 +2594,7 @@ class Styler(StylerRenderer):
                 for i, level in enumerate(levels_):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({level+1}) th",
+                            "selector": f"thead tr:nth-child({level + 1}) th",
                             "props": props
                             + (
                                 f"top:{i * pixel_size}px; height:{pixel_size}px; "
@@ -2599,7 +2605,7 @@ class Styler(StylerRenderer):
                 if not all(name is None for name in self.index.names):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({obj.nlevels+1}) th",
+                            "selector": f"thead tr:nth-child({obj.nlevels + 1}) th",
                             "props": props
                             + (
                                 f"top:{(len(levels_)) * pixel_size}px; "
@@ -2619,7 +2625,7 @@ class Styler(StylerRenderer):
                     styles.extend(
                         [
                             {
-                                "selector": f"thead tr th:nth-child({level+1})",
+                                "selector": f"thead tr th:nth-child({level + 1})",
                                 "props": props_ + "z-index:3 !important;",
                             },
                             {
@@ -4214,8 +4220,10 @@ def _bar(
         if end > start:
             cell_css += "background: linear-gradient(90deg,"
             if start > 0:
-                cell_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
-            cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+                cell_css += (
+                    f" transparent {start * 100:.1f}%, {color} {start * 100:.1f}%,"
+                )
+            cell_css += f" {color} {end * 100:.1f}%, transparent {end * 100:.1f}%)"
         return cell_css
 
     def css_calc(x, left: float, right: float, align: str, color: str | list | tuple):

@@ -427,7 +427,7 @@ class TestSeriesPlots:
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
-        pcts = [f"{s*100:.2f}" for s in series.values / series.sum()]
+        pcts = [f"{s * 100:.2f}" for s in series.values / series.sum()]
         expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         _check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
