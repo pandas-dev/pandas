@@ -77,7 +77,6 @@ Or ``astype`` after the ``Series`` or ``DataFrame`` is created
    s.astype("str")
    s.astype("string")
 
-
 You can also use :class:`StringDtype`/``"string"`` as the dtype on non-string data and
 it will be converted to ``string`` dtype:
 
@@ -129,10 +128,10 @@ To convert from existing pandas data types, such as integer or object dtype, to 
 Behavior differences
 ^^^^^^^^^^^^^^^^^^^^
 
-These are places where the behavior of ``StringDtype`` or ``str`` objects differ from
+These are places where the behavior of ``StringDtype`` objects differ from
 ``object`` dtype.
 
-1. For ``StringDtype`` and ``str``, :ref:`string accessor methods<api.series.str>`
+1. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
    rather than either int or float dtype, depending on the presence of NA values.
    Methods returning **boolean** output will return a nullable boolean dtype.
@@ -161,7 +160,7 @@ These are places where the behavior of ``StringDtype`` or ``str`` objects differ
       s.str.match("a")
 
 2. Some string methods, like :meth:`Series.str.decode`, are not available
-   on ``StringArray`` or ``str`` because they only hold strings, not bytes.
+   on ``StringArray`` because ``StringArray`` only holds strings, not bytes.
 3. In comparison operations, :class:`arrays.StringArray` and ``Series`` backed
    by a ``StringArray`` will return an object with :class:`BooleanDtype`,
    rather than a ``bool`` dtype object. Missing values in these types will propagate
@@ -169,6 +168,15 @@ These are places where the behavior of ``StringDtype`` or ``str`` objects differ
 
 Everything else that follows in the rest of this document applies equally to
 ``str``, ``string``, and ``object`` dtype.
+
+.. _text.warn_types:
+
+.. warning::
+
+    When the option ``future.infer_string`` is set to True, the type of the Series is inferred as ``str``.
+
+Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
+exceptions, other uses are not supported and may be disabled at a later point.
 
 .. _text.string_methods:
 
@@ -301,7 +309,6 @@ i.e., from the end of the string to the beginning of the string:
    )
    s3
    s3.str.replace("^.a|dog", "XX-XX ", case=False, regex=True)
-
 
 .. versionchanged:: 2.0
 
@@ -517,7 +524,6 @@ Indexing with ``.str``
 You can use ``[]`` notation to directly index by position locations. If you index past the end
 of the string, the result will be a ``NaN``.
 
-
 .. ipython:: python
 
    s = pd.Series(
@@ -680,7 +686,6 @@ same result as a ``Series.str.extractall`` with a default index (starts from 0).
    pd.Index(["a1a2", "b1", "c1"]).str.extractall(two_groups)
 
    pd.Series(["a1a2", "b1", "c1"], dtype="str").str.extractall(two_groups)
-
 
 Testing for strings that match or contain a pattern
 ---------------------------------------------------
