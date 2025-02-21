@@ -190,8 +190,8 @@ def eval(
 
     .. warning::
 
-        ``eval`` can run arbitrary code which can make you vulnerable to code
-         injection and untrusted data.
+        This function can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
 
     Parameters
     ----------
@@ -204,7 +204,7 @@ def eval(
 
         By default, with the numexpr engine, the following operations are supported:
 
-        - Arthimetic operations: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``
+        - Arithmetic operations: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``
         - Boolean operations: ``|`` (or), ``&`` (and), and ``~`` (not)
         - Comparison operators: ``<``, ``<=``, ``==``, ``!=``, ``>=``, ``>``
 

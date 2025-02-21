@@ -495,8 +495,7 @@ def from_dummies(
 
     if col_isna_mask.any():
         raise ValueError(
-            "Dummy DataFrame contains NA value in column: "
-            f"'{col_isna_mask.idxmax()}'"
+            f"Dummy DataFrame contains NA value in column: '{col_isna_mask.idxmax()}'"
         )
 
     # index data with a list of all columns that are dummies

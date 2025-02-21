@@ -1113,7 +1113,7 @@ def convert_dtypes(
     else:
         inferred_dtype = input_array.dtype
 
-    if dtype_backend == "pyarrow":
+    if dtype_backend == "pyarrow" and not isinstance(inferred_dtype, ArrowDtype):
         from pandas.core.arrays.arrow.array import to_pyarrow_type
         from pandas.core.arrays.string_ import StringDtype
 
@@ -1651,7 +1651,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                 # (test_constructor_coercion_signed_to_unsigned) so safe to ignore.
                 warnings.filterwarnings(
                     "ignore",
-                    "NumPy will stop allowing conversion of " "out-of-bound Python int",
+                    "NumPy will stop allowing conversion of out-of-bound Python int",
                     DeprecationWarning,
                 )
                 casted = np.asarray(arr, dtype=dtype)

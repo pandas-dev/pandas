@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
 from pandas.errors import NumbaUtilError
 
 from pandas import (
@@ -11,8 +12,17 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
+
+numba = pytest.importorskip("numba")
+pytestmark.append(
+    pytest.mark.skipif(
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 def test_correct_function_signature():
@@ -183,6 +193,23 @@ def test_multifunc_numba_vs_cython_frame(agg_kwargs):
     grouped = data.groupby(0)
     result = grouped.agg(**agg_kwargs, engine="numba")
     expected = grouped.agg(**agg_kwargs, engine="cython")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["sum", "mean", "var", "std", "min", "max"])
+def test_multifunc_numba_vs_cython_frame_noskipna(func):
+    pytest.importorskip("numba")
+    data = DataFrame(
+        {
+            0: ["a", "a", "b", "b", "a"],
+            1: [1.0, np.nan, 3.0, 4.0, 5.0],
+            2: [1, 2, 3, 4, 5],
+        },
+        columns=[0, 1, 2],
+    )
+    grouped = data.groupby(0)
+    result = grouped.agg(func, skipna=False, engine="numba")
+    expected = grouped.agg(func, skipna=False, engine="cython")
     tm.assert_frame_equal(result, expected)
 
 

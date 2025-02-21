@@ -434,7 +434,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             dummies_dtype = _dtype
         else:
             dummies_dtype = np.bool_
-        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype)
+        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype, order="F")
 
         def _isin(test_elements: str, element: str) -> bool:
             return element in test_elements
@@ -454,6 +454,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_isalpha(self):
         return self._str_map(str.isalpha, dtype="bool")
+
+    def _str_isascii(self):
+        return self._str_map(str.isascii, dtype="bool")
 
     def _str_isdecimal(self):
         return self._str_map(str.isdecimal, dtype="bool")

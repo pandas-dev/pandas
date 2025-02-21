@@ -447,7 +447,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if isinstance(values.dtype, ArrowDtype) and issubclass(
                 values.dtype.type, CategoricalDtypeType
             ):
-                arr = values._pa_array.combine_chunks()
+                from pandas import Index
+
+                if isinstance(values, Index):
+                    arr = values._data._pa_array.combine_chunks()
+                else:
+                    arr = values._pa_array.combine_chunks()
                 categories = arr.dictionary.to_pandas(types_mapper=ArrowDtype)
                 codes = arr.indices.to_numpy()
                 dtype = CategoricalDtype(categories, values.dtype.pyarrow_dtype.ordered)
@@ -2736,7 +2741,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
         dtype = self.dtype
-        if how in ["sum", "prod", "cumsum", "cumprod", "skew"]:
+        if how in ["sum", "prod", "cumsum", "cumprod", "skew", "kurt"]:
             raise TypeError(f"{dtype} type does not support {how} operations")
         if how in ["min", "max", "rank", "idxmin", "idxmax"] and not dtype.ordered:
             # raise TypeError instead of NotImplementedError to ensure we
