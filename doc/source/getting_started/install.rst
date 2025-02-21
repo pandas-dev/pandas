@@ -287,7 +287,7 @@ Traditional drivers are installable with ``pip install "pandas[postgresql, mysql
 ================================================================== ================== =============== ============================================
 Dependency                                                         Minimum Version    pip extra       Notes
 ================================================================== ================== =============== ============================================
-`SQLAlchemy <https://github.com/sqlalchemy/sqlalchemy>`__          2.0.0              postgresql,     SQL support for databases other than sqlite
+`SQLAlchemy <https://github.com/sqlalchemy/sqlalchemy>`__          1.4.36             postgresql,     SQL support for databases other than sqlite
                                                                                       mysql,
                                                                                       sql-other
 `psycopg2 <https://github.com/psycopg/psycopg2>`__                 2.9.6              postgresql      PostgreSQL engine for sqlalchemy

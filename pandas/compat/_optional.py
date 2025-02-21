@@ -47,7 +47,7 @@ VERSIONS = {
     "pyxlsb": "1.0.10",
     "s3fs": "2022.11.0",
     "scipy": "1.10.0",
-    "sqlalchemy": "2.0.0",
+    "sqlalchemy": "1.4.36",
     "tables": "3.8.0",
     "tabulate": "0.9.0",
     "xarray": "2022.12.0",
