@@ -4665,7 +4665,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         errors: IgnoreRaise = ...,
     ) -> Series: ...
 
-
     def rename(
         self,
         index: Renamer | Hashable | None = None,
