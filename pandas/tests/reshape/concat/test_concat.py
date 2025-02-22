@@ -326,7 +326,8 @@ class TestConcatenate:
     def test_concat_mixed_objs_index_names(self):
         # Test row-wise concat for mixed series/frames with distinct names
         # GH2385, GH15047 ()
-        # GH #60723 Updated the test case, as the previous ones were incorrect
+        # GH #60723 & GH #56257 (Updated the test case,
+        # as the above GH PR ones were incorrect)
 
         index = date_range("01-Jan-2013", periods=10, freq="h")
         arr = np.arange(10, dtype="int64")
