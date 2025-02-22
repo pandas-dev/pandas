@@ -124,6 +124,7 @@ values will have ``object`` data type.
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove("stata.dta")
 
 .. _io.stata-categorical:

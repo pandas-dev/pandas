@@ -23,6 +23,7 @@ any pickled pandas object (or any other pickled object) from file:
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove("foo.pkl")
 
 .. warning::

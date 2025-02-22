@@ -59,4 +59,5 @@ Read only certain columns of an orc file.
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove("example_pa.orc")

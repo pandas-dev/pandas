@@ -221,6 +221,7 @@ should be passed to ``index_col`` and ``header``:
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove("path_to_file.xlsx")
 
 Missing values in columns specified in ``index_col`` will be forward filled to

@@ -105,8 +105,9 @@ Read only certain columns of a parquet file.
 
 
 .. ipython:: python
-   :suppress:
+   :okexcept:
 
+   import os
    os.remove("example_pa.parquet")
    os.remove("example_fp.parquet")
 
@@ -145,7 +146,7 @@ Passing ``index=True`` will *always* write the index, even if that's not the
 underlying engine's default behavior.
 
 .. ipython:: python
-   :suppress:
+   :okexcept:
 
    os.remove("test.parquet")
 

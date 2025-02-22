@@ -120,6 +120,7 @@ as a string:
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove("tmp.html")
 
 You can even pass in an instance of ``StringIO`` if you so desire:

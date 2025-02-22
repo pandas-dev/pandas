@@ -604,6 +604,7 @@ indicate missing values and the subsequent read cannot distinguish the intent.
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove("test.json")
 
 When using ``orient='table'`` along with user-defined ``ExtensionArray``,

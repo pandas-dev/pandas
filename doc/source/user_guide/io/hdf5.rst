@@ -21,6 +21,7 @@ for some advanced strategies
    :suppress:
    :okexcept:
 
+   import os
    os.remove("store.h5")
 
 .. ipython:: python

@@ -64,4 +64,5 @@ Read from a feather file.
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove("example.feather")

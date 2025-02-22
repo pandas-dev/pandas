@@ -133,6 +133,7 @@ Specify only elements or only attributes to parse:
 .. ipython:: python
    :suppress:
 
+   import os
    os.remove("books.xml")
 
 XML documents can have namespaces with prefixes and default namespaces without
