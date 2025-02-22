@@ -943,3 +943,15 @@ def test_concat_with_moot_ignore_index_and_keys():
     msg = f"Cannot set {ignore_index=} and specify keys. Either should be used."
     with pytest.raises(ValueError, match=msg):
         concat([df1, df2], keys=keys, ignore_index=ignore_index)
+
+
+def test_concat_of_series_and_frame_with_names_for_ignore_index():
+    # GH #60723 and #56257
+    ser = Series([4, 5], name="c")
+    df = DataFrame({"a": [0, 1], "b": [2, 3]})
+
+    result = concat([df, ser], ignore_index=True)
+    expected = DataFrame(
+        {"a": [0, 1, None, None], "b": [2, 3, None, None], "c": [None, None, 4, 5]}
+    )
+    tm.assert_frame_equal(result, expected)
