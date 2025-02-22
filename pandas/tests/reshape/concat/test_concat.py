@@ -280,7 +280,7 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            np.repeat(arr, 5).reshape(-1, 5), index=index, columns=[0, 0, 1, 2, 3]
+            np.repeat(arr, 5).reshape(-1, 5), index=index, columns=[0, 0, 0, 0, 0]
         )
         result = concat([s1, df, s2, s2, s1], axis=1)
         tm.assert_frame_equal(result, expected)
@@ -325,7 +325,8 @@ class TestConcatenate:
 
     def test_concat_mixed_objs_index_names(self):
         # Test row-wise concat for mixed series/frames with distinct names
-        # GH2385, GH15047
+        # GH2385, GH15047 ()
+        # GH #60723 Updated the test case, as the previous ones were incorrect
 
         index = date_range("01-Jan-2013", periods=10, freq="h")
         arr = np.arange(10, dtype="int64")
@@ -333,16 +334,11 @@ class TestConcatenate:
         s2 = Series(arr, index=index, name="bar")
         df = DataFrame(arr.reshape(-1, 1), index=index)
 
-        expected = DataFrame(
-            np.kron(np.where(np.identity(3) == 1, 1, np.nan), arr).T,
-            index=index.tolist() * 3,
-            columns=["foo", 0, "bar"],
-        )
+        expected = concat([s1.to_frame(), df, s2.to_frame()])
         result = concat([s1, df, s2])
         tm.assert_frame_equal(result, expected)
 
-        # Rename all series to 0 when ignore_index=True
-        expected = DataFrame(np.tile(arr, 3).reshape(-1, 1), columns=[0])
+        expected = concat([s1.to_frame(), df, s2.to_frame()], ignore_index=True)
         result = concat([s1, df, s2], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
