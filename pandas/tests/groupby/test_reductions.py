@@ -961,7 +961,7 @@ def test_min_empty_string_dtype(func, string_dtype_no_object):
 def test_string_dtype_all_na(
     string_dtype_no_object, reduction_func, skipna, min_count, test_series
 ):
-    # https://github.com/pandas-dev/pandas/issues/60229
+    # https://github.com/pandas-dev/pandas/issues/60985
     if reduction_func == "corrwith":
         # corrwith is deprecated.
         return

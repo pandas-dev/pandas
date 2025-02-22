@@ -4651,7 +4651,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace: Literal[True],
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
-    ) -> Series | None: ...
+    ) -> None: ...
 
     @overload
     def rename(
@@ -4664,6 +4664,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
     ) -> Series: ...
+
+    @overload
+    def rename(
+        self,
+        index: Renamer | Hashable | None = ...,
+        *,
+        axis: Axis | None = ...,
+        copy: bool | lib.NoDefault = ...,
+        inplace: bool = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> Series | None: ...
 
     def rename(
         self,
@@ -4722,9 +4734,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        Series
-            A shallow copy with index labels or name altered, or the same object
-            if ``inplace=True`` and index is not a dict or callable else None.
+        Series or None
+            Series with index labels or name altered or None if ``inplace=True``.
 
         See Also
         --------
