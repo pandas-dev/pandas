@@ -212,8 +212,6 @@ class MultiIndex(Index):
         level).
     names : optional sequence of objects
         Names for each of the index levels. (name is accepted for compat).
-    dtype : Numpy dtype or pandas type, optional
-        Data type for the MultiIndex.
     copy : bool, default False
         Copy the meta-data.
     name : Label
@@ -305,7 +303,6 @@ class MultiIndex(Index):
         codes=None,
         sortorder=None,
         names=None,
-        dtype=None,
         copy: bool = False,
         name=None,
         verify_integrity: bool = True,
@@ -1760,7 +1757,7 @@ class MultiIndex(Index):
         """
         fillna is not implemented for MultiIndex
         """
-        raise NotImplementedError("isna is not defined for MultiIndex")
+        raise NotImplementedError("fillna is not defined for MultiIndex")
 
     @doc(Index.dropna)
     def dropna(self, how: AnyAll = "any") -> MultiIndex:
