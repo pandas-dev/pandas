@@ -981,15 +981,13 @@ def get_level_sorter(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
+def count_level_2d(const uint8_t[:, :] mask,
                    const intp_t[:] labels,
                    Py_ssize_t max_bin,
                    ):
     cdef:
-        Py_ssize_t i, j, k, n
+        Py_ssize_t i, j, k = mask.shape[1], n = mask.shape[0]
         ndarray[int64_t, ndim=2] counts
-
-    n, k = (<object>mask).shape
 
     counts = np.zeros((n, max_bin), dtype="i8")
     with nogil:
