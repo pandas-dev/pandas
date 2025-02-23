@@ -70,7 +70,8 @@ which will first group the data by the specified keys and then perform a windowi
 
     Some windowing aggregation, ``mean``, ``sum``, ``var`` and ``std`` methods may suffer from numerical
     imprecision due to the underlying windowing algorithms accumulating sums. When values differ
-    with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be
+    with magnitude ``1/np.finfo(np.double).eps`` (approximately :math:`4.5 \times 10^{15}`),
+    this results in truncation. It must be
     noted, that large values may have an impact on windows, which do not include these values. `Kahan summation
     <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used
     to compute the rolling sums to preserve accuracy as much as possible.
