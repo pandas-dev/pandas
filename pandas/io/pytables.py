@@ -39,6 +39,7 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
+from pandas.compat import HAS_PYARROW
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
@@ -375,6 +376,13 @@ def read_hdf(
     -------
     object
         The selected object. Return type depends on the object stored.
+
+    Notes
+    -----
+    When ``errors="surrogatepass"``, ``pd.options.future.infer_string`` is true,
+    and PyArrow is installed, if a UTF-16 surrogate is encountered when decoding
+    to UTF-8, the resulting dtype will be
+    ``pd.StringDtype(storage="python", na_value=np.nan)``.
 
     See Also
     --------
@@ -2257,6 +2265,20 @@ class IndexCol:
         # making an Index instance could throw a number of different errors
         try:
             new_pd_index = factory(values, **kwargs)
+        except UnicodeEncodeError as err:
+            if (
+                errors == "surrogatepass"
+                and get_option("future.infer_string")
+                and str(err).endswith("surrogates not allowed")
+                and HAS_PYARROW
+            ):
+                new_pd_index = factory(
+                    values,
+                    dtype=StringDtype(storage="python", na_value=np.nan),
+                    **kwargs,
+                )
+            else:
+                raise
         except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
@@ -3182,12 +3204,13 @@ class GenericFixed(Fixed):
                     self.errors == "surrogatepass"
                     and get_option("future.infer_string")
                     and str(err).endswith("surrogates not allowed")
+                    and HAS_PYARROW
                 ):
                     index = factory(
                         _unconvert_index(
                             data, kind, encoding=self.encoding, errors=self.errors
                         ),
-                        dtype="object",
+                        dtype=StringDtype(storage="python", na_value=np.nan),
                         **kwargs,
                     )
                 else:
@@ -3332,11 +3355,16 @@ class SeriesFixed(GenericFixed):
         except UnicodeEncodeError as err:
             if (
                 self.errors == "surrogatepass"
-                and using_string_dtype()
+                and get_option("future.infer_string")
                 and str(err).endswith("surrogates not allowed")
+                and HAS_PYARROW
             ):
                 result = Series(
-                    values, index=index, name=self.name, copy=False, dtype="object"
+                    values,
+                    index=index,
+                    name=self.name,
+                    copy=False,
+                    dtype=StringDtype(storage="python", na_value=np.nan),
                 )
             else:
                 raise
@@ -4786,7 +4814,24 @@ class AppendableFrameTable(AppendableTable):
                 values = values.reshape((1, values.shape[0]))
 
             if isinstance(values, (np.ndarray, DatetimeArray)):
-                df = DataFrame(values.T, columns=cols_, index=index_, copy=False)
+                try:
+                    df = DataFrame(values.T, columns=cols_, index=index_, copy=False)
+                except UnicodeEncodeError as err:
+                    if (
+                        self.errors == "surrogatepass"
+                        and get_option("future.infer_string")
+                        and str(err).endswith("surrogates not allowed")
+                        and HAS_PYARROW
+                    ):
+                        df = DataFrame(
+                            values.T,
+                            columns=cols_,
+                            index=index_,
+                            copy=False,
+                            dtype=StringDtype(storage="python", na_value=np.nan),
+                        )
+                    else:
+                        raise
             elif isinstance(values, Index):
                 df = DataFrame(values, columns=cols_, index=index_)
             else:
@@ -4796,23 +4841,10 @@ class AppendableFrameTable(AppendableTable):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
 
             # If str / string dtype is stored in meta, use that.
-            converted = False
             for column in cols_:
                 dtype = getattr(self.table.attrs, f"{column}_meta", None)
                 if dtype in ["str", "string"]:
                     df[column] = df[column].astype(dtype)
-                    converted = True
-            # Otherwise try inference.
-            if (
-                not converted
-                and using_string_dtype()
-                and isinstance(values, np.ndarray)
-                and is_string_array(
-                    values,
-                    skipna=True,
-                )
-            ):
-                df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
 
         if len(frames) == 1:

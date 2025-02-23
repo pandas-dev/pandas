@@ -383,7 +383,7 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
 
 
 @pytest.mark.parametrize("format", ["fixed", "table"])
-def test_to_hdf_errors(tmp_path, format, setup_path):
+def test_to_hdf_errors(tmp_path, format, setup_path, using_infer_string):
     data = ["\ud800foo"]
     ser = Series(data, index=Index(data, dtype="object"), dtype="object")
     path = tmp_path / setup_path
@@ -391,7 +391,15 @@ def test_to_hdf_errors(tmp_path, format, setup_path):
     ser.to_hdf(path, key="table", format=format, errors="surrogatepass")
 
     result = read_hdf(path, "table", errors="surrogatepass")
-    tm.assert_series_equal(result, ser)
+
+    if using_infer_string:
+        # https://github.com/pandas-dev/pandas/pull/60993
+        # Surrogates fallback to python storage.
+        dtype = pd.StringDtype(storage="python", na_value=np.nan)
+    else:
+        dtype = "object"
+    expected = Series(data, index=Index(data, dtype=dtype), dtype=dtype)
+    tm.assert_series_equal(result, expected)
 
 
 def test_create_table_index(setup_path):
