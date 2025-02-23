@@ -335,11 +335,19 @@ class TestConcatenate:
         s2 = Series(arr, index=index, name="bar")
         df = DataFrame(arr.reshape(-1, 1), index=index)
 
-        expected = concat([s1.to_frame(), df, s2.to_frame()])
+        expected = DataFrame(
+            np.kron(np.where(np.identity(3) == 1, 1, np.nan), arr).T,
+            index=index.tolist() * 3,
+            columns=["foo", 0, "bar"],
+        )
         result = concat([s1, df, s2])
         tm.assert_frame_equal(result, expected)
 
-        expected = concat([s1.to_frame(), df, s2.to_frame()], ignore_index=True)
+        expected = DataFrame(
+            np.kron(np.where(np.identity(3) == 1, 1, np.nan), arr).T,
+            index=np.arange(30, dtype=np.int64),
+            columns=["foo", 0, "bar"],
+        )
         result = concat([s1, df, s2], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
