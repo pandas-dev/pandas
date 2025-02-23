@@ -361,3 +361,16 @@ class TestPeriodIndex:
             freq="D",
         )
         tm.assert_index_equal(result, expected)
+
+    def test_difference_periodindex_with_index(self):
+        # GH#58971
+        index1 = period_range("2022-01", periods=5, freq="M")
+        index2 = pd.Index(["2022-02", "2022-03"])
+
+        result1 = index1.difference(index2)
+        expected1 = PeriodIndex(["2022-01", "2022-04", "2022-05"], freq="M")
+        tm.assert_index_equal(result1, expected1)
+
+        result2 = index2.difference(index1)
+        expected2 = pd.Index([])
+        tm.assert_index_equal(result2, expected2)
