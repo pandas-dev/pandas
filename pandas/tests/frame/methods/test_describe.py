@@ -413,3 +413,9 @@ class TestDataFrameDescribe:
             dtype=pd.ArrowDtype(pa.float64()),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_describe_single_percentile():
+        df = pd.DataFrame({'A': [1, 2, 3, 4, 5]})
+        result = df.describe(percentiles=[0.25])
+        assert 0.25 in result.index
+        assert 0.5 not in result.index
