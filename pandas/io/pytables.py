@@ -3170,12 +3170,28 @@ class GenericFixed(Fixed):
                 **kwargs,
             )
         else:
-            index = factory(
-                _unconvert_index(
-                    data, kind, encoding=self.encoding, errors=self.errors
-                ),
-                **kwargs,
-            )
+            try:
+                index = factory(
+                    _unconvert_index(
+                        data, kind, encoding=self.encoding, errors=self.errors
+                    ),
+                    **kwargs,
+                )
+            except UnicodeEncodeError as err:
+                if (
+                    self.errors == "surrogatepass"
+                    and get_option("future.infer_string")
+                    and str(err).endswith("surrogates not allowed")
+                ):
+                    index = factory(
+                        _unconvert_index(
+                            data, kind, encoding=self.encoding, errors=self.errors
+                        ),
+                        dtype="object",
+                        **kwargs,
+                    )
+                else:
+                    raise
 
         index.name = name
 
@@ -3311,13 +3327,19 @@ class SeriesFixed(GenericFixed):
         self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
-        result = Series(values, index=index, name=self.name, copy=False)
-        if (
-            using_string_dtype()
-            and isinstance(values, np.ndarray)
-            and is_string_array(values, skipna=True)
-        ):
-            result = result.astype(StringDtype(na_value=np.nan))
+        try:
+            result = Series(values, index=index, name=self.name, copy=False)
+        except UnicodeEncodeError as err:
+            if (
+                self.errors == "surrogatepass"
+                and using_string_dtype()
+                and str(err).endswith("surrogates not allowed")
+            ):
+                result = Series(
+                    values, index=index, name=self.name, copy=False, dtype="object"
+                )
+            else:
+                raise
         return result
 
     def write(self, obj, **kwargs) -> None:
@@ -5224,7 +5246,7 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel(), copy=False)
+            Series(data.ravel(), copy=False, dtype="object")
             .str.encode(encoding, errors)
             ._values.reshape(data.shape)
         )
@@ -5264,7 +5286,9 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            ser = Series(data, copy=False).str.decode(encoding, errors=errors)
+            ser = Series(data, copy=False).str.decode(
+                encoding, errors=errors, dtype="object"
+            )
             data = ser.to_numpy()
             data.flags.writeable = True
         else:
