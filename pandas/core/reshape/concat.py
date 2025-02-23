@@ -482,13 +482,13 @@ def _sanitize_mixed_ndim(
                 if axis == 1:
                     # doing a row-wise concatenation so need everything
                     # to line up
-                    if name is None:
-                        name_none_flag = True
-                        name = 0
+                    name = 0
                 else:
                     # doing a column-wise concatenation so need series
                     # to have unique names
-                    name = current_column
+                    if name is None:
+                        name_none_flag = True
+                        name = current_column
                     current_column += 1
                 obj = sample._constructor(obj, copy=False)
                 if isinstance(obj, ABCDataFrame) and name_none_flag:

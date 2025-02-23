@@ -280,7 +280,7 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            np.repeat(arr, 5).reshape(-1, 5), index=index, columns=[0, 0, 0, 0, 0]
+            np.repeat(arr, 5).reshape(-1, 5), index=index, columns=[0, 0, 1, 2, 3]
         )
         result = concat([s1, df, s2, s2, s1], axis=1)
         tm.assert_frame_equal(result, expected)
