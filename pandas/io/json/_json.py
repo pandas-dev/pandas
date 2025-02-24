@@ -981,13 +981,19 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             elif self.nrows:
                 lines = list(islice(self.data, self.nrows))
                 lines_json = self._combine_lines(lines)
-                obj: DataFrame | Series = self._get_object_parser(lines_json)
+                obj: DataFrame | Series = self._get_object_parser(
+                    lines_json
+                    )
             else:
                 data = ensure_str(self.data)
                 data_lines = data.split("\n")
-                obj: DataFrame | Series = self._get_object_parser(self._combine_lines(data_lines))
+                obj: DataFrame | Series = self._get_object_parser(
+                    self._combine_lines(data_lines)
+                )
         else:
-            obj: DataFrame | Series = self._get_object_parser(self.data)
+            obj: DataFrame | Series = self._get_object_parser(
+                self.data
+            )
         if self.dtype_backend is not lib.no_default:
             return obj.convert_dtypes(
                 infer_objects=False, dtype_backend=self.dtype_backend
