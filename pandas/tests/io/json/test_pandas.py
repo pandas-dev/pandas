@@ -2183,7 +2183,7 @@ class TestPandasContainer:
         # string_storage setting -> ignore that for checking the result
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
-    @td.skip_if_no("pyarrow") # type: ignore
+    @td.skip_if_no("pyarrow")
     def test_read_json_pyarrow_with_dtype(self, datapath):
         dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
 

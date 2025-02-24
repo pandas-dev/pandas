@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     MultiIndex,
@@ -44,7 +45,6 @@ from pandas import (
     isna,
     notna,
     to_datetime,
-    ArrowDtype,
 )
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
@@ -947,7 +947,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 obj = self._read_pyarrow()
             elif self.engine == "ujson":
                 obj = self._read_ujson()
-        
+
         return obj
 
     def _read_pyarrow(self) -> DataFrame:
@@ -967,10 +967,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
             schema = pa.schema(fields)
             options = pyarrow_json.ParseOptions(explicit_schema=schema)
-            
+
         pa_table = pyarrow_json.read_json(self.data, parse_options=options)
         return arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
-    
+
     def _read_ujson(self) -> DataFrame | Series:
         """
         Read JSON using the ujson engine.
