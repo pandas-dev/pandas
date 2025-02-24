@@ -959,11 +959,11 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
         if isinstance(self.dtype, dict):
             pa = import_optional_dependency("pyarrow")
-            fields = [
-                (field, pandas_dtype(dtype).pyarrow_dtype)
-                for field, dtype in self.dtype.items()
-                if isinstance(pandas_dtype(dtype), ArrowDtype)
-            ]
+            fields = []
+            for field, dtype in self.dtype.items():
+                pd_dtype = pandas_dtype(dtype)
+                if isinstance(pd_dtype, ArrowDtype):
+                    fields.append((field, pd_dtype.pyarrow_dtype))
 
             schema = pa.schema(fields)
             options = pyarrow_json.ParseOptions(explicit_schema=schema)
