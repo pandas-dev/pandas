@@ -132,8 +132,7 @@ workgroups:
     contact: infrastructure@pandas.pydata.org
     responsibilities: "Keep the pandas infrastructure up and working. In particular the servers for the website, benchmarks, CI and others needed."
     members:
-    - Marc Garcia
-    - Matthew Roeschke
+    - William Ayd
     - Thomas Li
   communications:
     name: Communications
@@ -141,7 +140,6 @@ workgroups:
     responsibilities: "Share relevant information with the broader community, mainly via our social networks, as well as being the main point of contact between NumFOCUS and the core team."
     members:
     - Marco Gorelli
-    - Marc Garcia
 sponsors:
   active:
   - name: "NumFOCUS"
