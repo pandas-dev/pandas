@@ -1441,16 +1441,17 @@ class TestSeriesConstructors:
         s = Series(data)
         assert tuple(s) == data
 
-    def test_constructor_dict_of_tuples(self):
-        data = {(1, 2): 3, (None, 5): 6}
+    @pytest.mark.parametrize(
+        "data, expected_values, expected_index",
+        [
+            ({(1, 2): 3, (None, 5): 6}, [3, 6], [(1, 2), (None, 5)]),
+            # GH 60695 test case
+            ({(1,): 3, (4, 5): 6}, [3, 6], [(1, None), (4, 5)]),
+        ],
+    )
+    def test_constructor_dict_of_tuples(self, data, expected_values, expected_index):
         result = Series(data).sort_values()
-        expected = Series([3, 6], index=MultiIndex.from_tuples([(1, 2), (None, 5)]))
-        tm.assert_series_equal(result, expected)
-
-        # GH 60695
-        data = {(1,): 3, (4, 5): 6}
-        result = Series(data).sort_values()
-        expected = Series([3, 6], index=MultiIndex.from_tuples([(1, None), (4, 5)]))
+        expected = Series(expected_values, index=MultiIndex.from_tuples(expected_index))
         tm.assert_series_equal(result, expected)
 
     # https://github.com/pandas-dev/pandas/issues/22698
@@ -1866,32 +1867,40 @@ class TestSeriesConstructors:
         series = Series(A(data))
         tm.assert_series_equal(series, expected)
 
-    def test_constructor_dict_multiindex(self):
-        d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
-        _d = sorted(d.items())
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=MultiIndex.from_tuples([x[0] for x in _d])
-        )
-        tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize(
+        "data, expected_index_multi, expected_index_single",
+        [
+            (
+                {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0},
+                MultiIndex.from_tuples([("a", "a"), ("b", "a"), ("b", "c")]),
+                None,
+            ),
+            (
+                {("a",): 0.0, ("a", "b"): 1.0},
+                MultiIndex.from_tuples([("a",), ("a", "b")]),
+                None,
+            ),
+            (
+                {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0, "z": 111.0},
+                None,
+                Index(["z", ("a", "a"), ("b", "a"), ("b", "c")], tupleize_cols=False),
+            ),
+        ],
+    )
+    def test_constructor_dict_multiindex(
+        data, expected_index_multi, expected_index_single
+    ):
+        _d = sorted(data.items())
 
-        d["z"] = 111.0
-        _d.insert(0, ("z", d["z"]))
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
-        )
-        result = result.reindex(index=expected.index)
-        tm.assert_series_equal(result, expected)
+        result = Series(data)
+        if expected_index_multi:
+            expected = Series([x[1] for x in _d], index=expected_index_multi)
+            tm.assert_series_equal(result, expected)
 
-        # GH 60695
-        d = {("a",): 0.0, ("a", "b"): 1.0}
-        _d = sorted(d.items())
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=MultiIndex.from_tuples([x[0] for x in _d])
-        )
-        tm.assert_series_equal(result, expected)
+        if expected_index_single:
+            result = result.reindex(index=expected_index_single)
+            expected = Series([x[1] for x in _d], index=expected_index_single)
+            tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_multiindex_reindex_flat(self):
         # construction involves reindexing with a MultiIndex corner case
