@@ -2183,6 +2183,28 @@ class TestPandasContainer:
         # string_storage setting -> ignore that for checking the result
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
+    @td.skip_if_no("pyarrow") # type: ignore
+    def test_read_json_pyarrow_with_dtype(self, datapath):
+        dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
+
+        df = read_json(
+            datapath("io", "json", "data", "line_delimited.json"),
+            dtype=dtype,
+            lines=True,
+            engine="pyarrow",
+            dtype_backend="pyarrow",
+        )
+
+        result = df.dtypes
+        expected = Series(
+            [
+                pd.ArrowDtype.construct_from_string("int32[pyarrow]"),
+                pd.ArrowDtype.construct_from_string("int64[pyarrow]"),
+            ],
+            index=["a", "b"],
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("orient", ["split", "records", "index"])
     def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):
         # GH#50750
