@@ -1883,23 +1883,31 @@ class TestSeriesConstructors:
             (
                 {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0, "z": 111.0},
                 None,
-                Index(["z", ("a", "a"), ("b", "a"), ("b", "c")], tupleize_cols=False),
+                Index(["z", ("a", "a"), ("b", "a"), ("b", "c")], dtype=object),
             ),
         ],
     )
     def test_constructor_dict_multiindex(
-        data, expected_index_multi, expected_index_single
+        self, data, expected_index_multi, expected_index_single
     ):
-        _d = sorted(data.items())
+        if all(isinstance(k, tuple) for k in data.keys()):
+            sorted_data = sorted(data.items())
+        else:
+            sorted_data = list(data.items())
 
         result = Series(data)
-        if expected_index_multi:
-            expected = Series([x[1] for x in _d], index=expected_index_multi)
+
+        if expected_index_multi is not None:
+            expected = Series([x[1] for x in sorted_data], index=expected_index_multi)
             tm.assert_series_equal(result, expected)
 
-        if expected_index_single:
-            result = result.reindex(index=expected_index_single)
-            expected = Series([x[1] for x in _d], index=expected_index_single)
+        if expected_index_single is not None:
+            result = result.reindex(index=expected_index_single, fill_value=np.nan)
+            expected_values = [
+                data[idx] if idx in data else np.nan for idx in expected_index_single
+            ]
+            expected = Series(expected_values, index=expected_index_single)
+
             tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_multiindex_reindex_flat(self):
