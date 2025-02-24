@@ -5,8 +5,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import PY312
 
@@ -516,7 +514,6 @@ def test_append_with_empty_string(setup_path):
         tm.assert_frame_equal(store.select("df"), df)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_append_with_data_columns(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
