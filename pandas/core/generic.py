@@ -6267,6 +6267,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Cast a pandas object to a specified dtype ``dtype``.
 
+        This method allows the conversion of the data types of pandas objects,
+        including DataFrames and Series, to the specified dtype. It supports casting
+        entire objects to a single data type or applying different data types to
+        individual columns using a mapping.
+
         Parameters
         ----------
         dtype : str, data type, Series or Mapping of column name -> data type
