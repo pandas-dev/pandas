@@ -354,10 +354,6 @@ def _refine_percentiles(
     # get them all to be in [0, 1]
     validate_percentile(percentiles)
 
-    # median should always be included
-    if 0.5 not in percentiles:
-        percentiles.append(0.5)
-
     percentiles = np.asarray(percentiles)
 
     # sort and check for duplicates
