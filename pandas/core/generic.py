@@ -9732,7 +9732,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if not is_bool_dtype(cond):
                     raise TypeError(msg.format(dtype=cond.dtype))
             else:
-                for _dt in cond.dtypes:
+                for _dt in [blk.dtype for blk in cond._mgr.blocks]:
                     if not is_bool_dtype(_dt):
                         raise TypeError(msg.format(dtype=_dt))
                 if cond._mgr.any_extension_types:
