@@ -25,6 +25,7 @@ Attributes
    Series.array
    Series.values
    Series.dtype
+   Series.info
    Series.shape
    Series.nbytes
    Series.ndim

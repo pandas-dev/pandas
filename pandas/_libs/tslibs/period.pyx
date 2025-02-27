@@ -2140,6 +2140,12 @@ cdef class _Period(PeriodMixin):
         """
         Get day of the month that a Period falls on.
 
+        The `day` property provides a simple way to access the day component
+        of a `Period` object, which represents time spans in various frequencies
+        (e.g., daily, hourly, monthly). If the period's frequency does not include
+        a day component (e.g., yearly or quarterly periods), the returned day
+        corresponds to the first day of that period.
+
         Returns
         -------
         int
@@ -2835,6 +2841,11 @@ cdef class _Period(PeriodMixin):
 class Period(_Period):
     """
     Represents a period of time.
+
+    A `Period` represents a specific time span rather than a point in time.
+    Unlike `Timestamp`, which represents a single instant, a `Period` defines a
+    duration, such as a month, quarter, or year. The exact representation is
+    determined by the `freq` parameter.
 
     Parameters
     ----------
