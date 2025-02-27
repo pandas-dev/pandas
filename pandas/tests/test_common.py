@@ -17,84 +17,91 @@ import pandas.core.common as com
 from pandas.util.version import Version
 
 
-def test_get_callable_name():
-    getname = com.get_callable_name
-
-    def fn(x):
+class TestGetCallableName:
+    def fn(self, x):
         return x
 
+    partial1 = partial(fn)
+    partial2 = partial(partial1)
     lambda_ = lambda x: x
-    part1 = partial(fn)
-    part2 = partial(part1)
 
-    class somecall:
+    class SomeCall:
         def __call__(self):
-            # This shouldn't actually get called below; somecall.__init__
+            # This shouldn't actually get called below; SomeCall.__init__
             #  should.
             raise NotImplementedError
 
-    assert getname(fn) == "fn"
-    assert getname(lambda_)
-    assert getname(part1) == "fn"
-    assert getname(part2) == "fn"
-    assert getname(somecall()) == "somecall"
-    assert getname(1) is None
-
-
-def test_any_none():
-    assert com.any_none(1, 2, 3, None)
-    assert not com.any_none(1, 2, 3, 4)
-
-
-def test_all_not_none():
-    assert com.all_not_none(1, 2, 3, 4)
-    assert not com.all_not_none(1, 2, 3, None)
-    assert not com.all_not_none(None, None, None, None)
-
-
-def test_random_state():
-    # Check with seed
-    state = com.random_state(5)
-    assert state.uniform() == np.random.RandomState(5).uniform()
-
-    # Check with random state object
-    state2 = np.random.RandomState(10)
-    assert com.random_state(state2).uniform() == np.random.RandomState(10).uniform()
-
-    # check with no arg random state
-    assert com.random_state() is np.random
-
-    # check array-like
-    # GH32503
-    state_arr_like = np.random.default_rng(None).integers(
-        0, 2**31, size=624, dtype="uint32"
+    @pytest.mark.parametrize(
+        "func, expected",
+        [
+            (fn, "fn"),
+            (partial1, "fn"),
+            (partial2, "fn"),
+            (lambda_, "<lambda>"),
+            (SomeCall(), "SomeCall"),
+            (1, None),
+        ],
     )
-    assert (
-        com.random_state(state_arr_like).uniform()
-        == np.random.RandomState(state_arr_like).uniform()
-    )
+    def test_get_callable_name(self, func, expected):
+        assert com.get_callable_name(func) == expected
 
-    # Check BitGenerators
-    # GH32503
-    assert (
-        com.random_state(np.random.MT19937(3)).uniform()
-        == np.random.RandomState(np.random.MT19937(3)).uniform()
-    )
-    assert (
-        com.random_state(np.random.PCG64(11)).uniform()
-        == np.random.RandomState(np.random.PCG64(11)).uniform()
-    )
 
-    # Error for floats or strings
-    msg = (
-        "random_state must be an integer, array-like, a BitGenerator, Generator, "
-        "a numpy RandomState, or None"
-    )
-    with pytest.raises(ValueError, match=msg):
-        com.random_state("test")
+class TestRandomState:
+    def test_seed(self):
+        seed = 5
+        assert com.random_state(seed).uniform() == np.random.RandomState(seed).uniform()
 
-    with pytest.raises(ValueError, match=msg):
-        com.random_state(5.5)
+    def test_object(self):
+        seed = 10
+        state_obj = np.random.RandomState(seed)
+        assert (
+            com.random_state(state_obj).uniform()
+            == np.random.RandomState(seed).uniform()
+        )
+
+    def test_default(self):
+        assert com.random_state() is np.random
+
+    def test_array_like(self):
+        state = np.random.default_rng(None).integers(0, 2**31, size=624, dtype="uint32")
+        assert (
+            com.random_state(state).uniform() == np.random.RandomState(state).uniform()
+        )
+
+    def test_bit_generators(self):
+        seed = 3
+        assert (
+            com.random_state(np.random.MT19937(seed)).uniform()
+            == np.random.RandomState(np.random.MT19937(seed)).uniform()
+        )
+
+        seed = 11
+        assert (
+            com.random_state(np.random.PCG64(seed)).uniform()
+            == np.random.RandomState(np.random.PCG64(seed)).uniform()
+        )
+
+    @pytest.mark.parametrize("state", ["test", 5.5])
+    def test_error(self, state):
+        msg = (
+            "random_state must be an integer, array-like, a BitGenerator, Generator, "
+            "a numpy RandomState, or None"
+        )
+        with pytest.raises(ValueError, match=msg):
+            com.random_state(state)
+
+
+@pytest.mark.parametrize("args, expected", [((1, 2, None), True), ((1, 2, 3), False)])
+def test_any_none(args, expected):
+    assert com.any_none(*args) is expected
+
+
+@pytest.mark.parametrize(
+    "args, expected",
+    [((1, 2, 3), True), ((1, 2, None), False), ((None, None, None), False)],
+)
+def test_all_not_none(args, expected):
+    assert com.all_not_none(*args) is expected
 
 
 @pytest.mark.parametrize(
@@ -136,21 +143,32 @@ def test_maybe_match_name(left, right, expected):
     assert res is expected or res == expected
 
 
+@pytest.mark.parametrize(
+    "into, msg",
+    [
+        (
+            # uninitialized defaultdict
+            collections.defaultdict,
+            r"to_dict\(\) only accepts initialized defaultdicts",
+        ),
+        (
+            # non-mapping subtypes,, instance
+            [],
+            "unsupported type: <class 'list'>",
+        ),
+        (
+            # non-mapping subtypes, class
+            list,
+            "unsupported type: <class 'list'>",
+        ),
+    ],
+)
+def test_standardize_mapping_type_error(into, msg):
+    with pytest.raises(TypeError, match=msg):
+        com.standardize_mapping(into)
+
+
 def test_standardize_mapping():
-    # No uninitialized defaultdicts
-    msg = r"to_dict\(\) only accepts initialized defaultdicts"
-    with pytest.raises(TypeError, match=msg):
-        com.standardize_mapping(collections.defaultdict)
-
-    # No non-mapping subtypes, instance
-    msg = "unsupported type: <class 'list'>"
-    with pytest.raises(TypeError, match=msg):
-        com.standardize_mapping([])
-
-    # No non-mapping subtypes, class
-    with pytest.raises(TypeError, match=msg):
-        com.standardize_mapping(list)
-
     fill = {"bad": "data"}
     assert com.standardize_mapping(fill) == dict
 

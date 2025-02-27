@@ -520,6 +520,12 @@ def read_json(
     """
     Convert a JSON string to pandas object.
 
+    This method reads JSON files or JSON-like data and converts them into pandas
+    objects. It supports a variety of input formats, including line-delimited JSON,
+    compressed files, and various data representations (table, records, index-based,
+    etc.). When `chunksize` is specified, an iterator is returned instead of loading
+    the entire data into memory.
+
     Parameters
     ----------
     path_or_buf : a str path, path object or file-like object
@@ -917,7 +923,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         Combines a list of JSON objects into one JSON object.
         """
         return (
-            f'[{",".join([line for line in (line.strip() for line in lines) if line])}]'
+            f"[{','.join([line for line in (line.strip() for line in lines) if line])}]"
         )
 
     @overload
