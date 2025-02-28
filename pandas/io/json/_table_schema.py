@@ -366,17 +366,29 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
         :class:`Index` name of 'index'  and :class:`MultiIndex` names starting
         with 'level_' are not supported.
 
+        To handle cases where column names are non-string types (e.g., integers),
+        all column names are first converted to strings when constructing the DataFrame.
+        After applying the correct data types using `astype(dtypes)`, the column names
+        are restored to their original types as specified in the schema.
+        This ensures compatibility with `to_json(orient="table")` while maintaining
+        the integrity of non-string column names.
+
     See Also
     --------
     build_table_schema : Inverse function.
     pandas.read_json
     """
     table = ujson_loads(json, precise_float=precise_float)
-    col_order = [field["name"] for field in table["schema"]["fields"]]
+    col_order = [
+        field["name"] if isinstance(field["name"], str) else str(field["name"])
+        for field in table["schema"]["fields"]
+    ]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 
     dtypes = {
-        field["name"]: convert_json_field_to_pandas_type(field)
+        field["name"]
+        if isinstance(field["name"], str)
+        else str(field["name"]): convert_json_field_to_pandas_type(field)
         for field in table["schema"]["fields"]
     }
 
@@ -387,6 +399,15 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
         )
 
     df = df.astype(dtypes)
+
+    # Convert column names back to their original types
+    original_types = {
+        str(field["name"])
+        if not isinstance(field["name"], str)
+        else field["name"]: field["name"]
+        for field in table["schema"]["fields"]
+    }
+    df.columns = [original_types[col] for col in df.columns]
 
     if "primaryKey" in table["schema"]:
         df = df.set_index(table["schema"]["primaryKey"])
