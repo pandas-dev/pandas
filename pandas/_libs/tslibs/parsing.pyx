@@ -15,7 +15,8 @@ from cpython.datetime cimport (
     tzinfo,
 )
 
-from datetime import timezone
+from datetime import timezone, datetime
+
 
 from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from cython cimport Py_ssize_t
@@ -755,6 +756,22 @@ cdef _find_subsecond_reso(str timestr, int64_t* nanos):
             reso = "microsecond"
     return reso
 
+
+# Parsing for iso_ordinal date 
+# ----------------------------------------------------------------------
+def _parse_iso_ordinal_date(value: str):
+    """
+    Parses an ISO 8601 ordinal date format (YYYY-DDD).
+    
+    Example:
+        "1981-095" → "1981-04-05"
+    """
+    match = re.match(r"^(\d{4})-(\d{3})$", value)
+    if match:
+        year, day_of_year = match.groups()
+        date = datetime.strptime(f"{year}-{day_of_year}", "%Y-%j").date()
+        return f"{date.year}-{date.month:02d}-{date.day:02d}"  # Convert to YYYY-MM-DD
+    return None  # Not a match
 
 # ----------------------------------------------------------------------
 # Parsing for type-inference
