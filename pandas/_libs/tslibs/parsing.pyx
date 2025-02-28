@@ -4,6 +4,7 @@ Parsing functions for datetime and datetime-like strings.
 import re
 import time
 import warnings
+import pandas as pd 
 
 from pandas.util._exceptions import find_stack_level
 
@@ -772,6 +773,43 @@ def _parse_iso_ordinal_date(value: str):
         date = datetime.strptime(f"{year}-{day_of_year}", "%Y-%j").date()
         return f"{date.year}-{date.month:02d}-{date.day:02d}"  # Convert to YYYY-MM-DD
     return None  # Not a match
+
+
+def parse_time_string(time_str, freq=None):
+    """
+    Extended parsing logic to handle:
+    1. ISO 8601 ordinal dates (e.g., "1981-095").
+    2. Multi-year spans (e.g., "2019-2021").
+    3. Multi-quarter spans (e.g., "2019Q1-2021Q4").
+    """
+
+    # Handle ISO 8601 Ordinal Dates (YYYY-DDD)
+    ordinal_match = re.match(r"^(\d{4})-(\d{3})$", time_str)
+
+    # Handle Multi-Year Spans (e.g., "2019-2021")
+    multi_year_match = re.match(r"^(\d{4})-(\d{4})$", time_str)
+
+    # Handle Multi-Quarter Spans (e.g., "2019Q1-2021Q4")
+    multi_quarter_match = re.match(r"^(\d{4}Q[1-4])-(\d{4}Q[1-4])$", time_str)
+
+    if ordinal_match:
+        try:
+            year, day_of_year = map(int, ordinal_match.groups())
+            return pd.Period(pd.Timestamp(f"{year}-01-01") + pd.Timedelta(days=day_of_year - 1), freq="D")
+        except ValueError:
+            return None  # Invalid ordinal date
+
+    elif multi_year_match:
+        start_year, end_year = map(int, multi_year_match.groups())
+        if start_year <= end_year:  # Ensure valid range
+            return pd.period_range(start=f"{start_year}", end=f"{end_year}", freq="Y")
+        return None  # Invalid range
+
+    elif multi_quarter_match:
+        start_q, end_q = multi_quarter_match.groups()
+        return pd.period_range(start=start_q, end=end_q, freq="Q")
+
+    return None  # No match found
 
 # ----------------------------------------------------------------------
 # Parsing for type-inference
