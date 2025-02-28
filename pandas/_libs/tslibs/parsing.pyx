@@ -758,23 +758,8 @@ cdef _find_subsecond_reso(str timestr, int64_t* nanos):
     return reso
 
 
-# Parsing for iso_ordinal date 
+# Parsing for iso_ordinal date, multi-year period, quarter-based multi-year period, and multi-week period
 # ----------------------------------------------------------------------
-def _parse_iso_ordinal_date(value: str):
-    """
-    Parses an ISO 8601 ordinal date format (YYYY-DDD).
-    
-    Example:
-        "1981-095" → "1981-04-05"
-    """
-    match = re.match(r"^(\d{4})-(\d{3})$", value)
-    if match:
-        year, day_of_year = match.groups()
-        date = datetime.strptime(f"{year}-{day_of_year}", "%Y-%j").date()
-        return f"{date.year}-{date.month:02d}-{date.day:02d}"  # Convert to YYYY-MM-DD
-    return None  # Not a match
-
-
 def parse_time_string(time_str, freq=None):
     """
     Extended parsing logic to handle:
@@ -791,6 +776,10 @@ def parse_time_string(time_str, freq=None):
 
     # Handle Multi-Quarter Spans (e.g., "2019Q1-2021Q4")
     multi_quarter_match = re.match(r"^(\d{4}Q[1-4])-(\d{4}Q[1-4])$", time_str)
+
+    # Handle Week Start-End Format (YYYYMMDD-YYYYMMDD)
+    week_match = re.match(r"^(\d{8})-(\d{8})$", time_str)
+
 
     if ordinal_match:
         try:
@@ -809,7 +798,18 @@ def parse_time_string(time_str, freq=None):
         start_q, end_q = multi_quarter_match.groups()
         return pd.period_range(start=start_q, end=end_q, freq="Q")
 
+    elif week_match:
+        start_date, end_date = week_match.groups()
+        start = pd.Timestamp(start_date)
+        end = pd.Timestamp(end_date)
+
+        # Ensure the range actually covers a full week (7 days)
+        if (end - start).days == 6:
+            return pd.Period(start, freq="W")
+
+
     return None  # No match found
+
 
 # ----------------------------------------------------------------------
 # Parsing for type-inference
