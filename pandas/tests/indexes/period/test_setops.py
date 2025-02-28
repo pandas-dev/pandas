@@ -372,5 +372,5 @@ class TestPeriodIndex:
         tm.assert_index_equal(result1, expected1)
 
         result2 = index2.difference(index1)
-        expected2 = pd.Index([])
+        expected2 = pd.Index([], dtype=index2.dtype)
         tm.assert_index_equal(result2, expected2)
