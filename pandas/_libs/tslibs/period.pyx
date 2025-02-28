@@ -37,7 +37,7 @@ from libc.time cimport (
     strftime,
     tm,
 )
-from pandas._libs.tslibs.parsing import _parse_iso_ordinal_date
+from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.dtypes cimport c_OFFSET_TO_PERIOD_FREQSTR
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
@@ -2896,12 +2896,11 @@ class Period(_Period):
 
         # ordinal is the period offset from the gregorian proleptic epoch
         
+        if isinstance(value, str):
+            parsed = parse_time_string(value, freq)
+            if parsed is not None:
+                return parsed  # Use the parsed Period range if matched
         
-        # Check for ISO 8601 Ordinal Date
-        parsed_value = _parse_iso_ordinal_date(value)
-        if parsed_value:
-            return super().__new__(cls, parsed_value, freq="D")  # Daily frequency
-
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
             try:
