@@ -113,7 +113,7 @@ class DateArray(ExtensionArray):
 
             # error: "object_" object is not iterable
             obj = np.char.split(dates, sep="-")
-            for (i,), (y, m, d) in np.ndenumerate(obj):  # type: ignore[misc]
+            for (i,), (y, m, d) in np.ndenumerate(obj):
                 self._year[i] = int(y)
                 self._month[i] = int(m)
                 self._day[i] = int(d)
