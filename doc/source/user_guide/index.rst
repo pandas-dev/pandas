@@ -63,7 +63,7 @@ Guides
     10min
     dsintro
     basics
-    io
+    io/index
     pyarrow
     indexing
     advanced
