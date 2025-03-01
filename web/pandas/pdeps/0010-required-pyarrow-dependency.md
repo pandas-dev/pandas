@@ -8,6 +8,10 @@
           [Patrick Hoefler](https://github.com/phofl)
 - Revision: 1
 
+# Note
+
+This PDEP is superseded by PDEP-15.
+
 ## Abstract
 
 This PDEP proposes that:
