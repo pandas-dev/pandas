@@ -14,6 +14,7 @@ from typing import (
 )
 
 import numpy as np
+from pandas.core.dtypes.missing import isna
 
 from pandas._libs.internals import BlockValuesRefs
 from pandas._typing import (
@@ -1389,7 +1390,8 @@ class SeriesApply(NDFrameApply):
 
     def apply(self) -> DataFrame | Series:
         obj = self.obj
-
+        
+        
         if len(obj) == 0:
             return self.apply_empty_result()
 
@@ -1444,7 +1446,7 @@ class SeriesApply(NDFrameApply):
         except (ValueError, AttributeError, TypeError):
             result = obj.apply(func, by_row=False)
         return result
-
+import pandas as pd
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable
         func = cast(Callable, self.func)
@@ -1455,14 +1457,19 @@ class SeriesApply(NDFrameApply):
                 return func(obj, *self.args, **self.kwargs)
         elif not self.by_row:
             return func(obj, *self.args, **self.kwargs)
-
-        if self.args or self.kwargs:
-            # _map_values does not support args/kwargs
-            def curried(x):
-                return func(x, *self.args, **self.kwargs)
-
+        
+        #Check if type is integer and nullable, return pd.NA for None values and
+        #normal func for other values
+        if pd.api.types.is_integer_dtype(obj) and 
+        pd.api.types.is_nullable(obj.dtype):
+            def wrapped_func(x):
+                if x is None:
+                    return pd.NA
+                return func(x,*self.args, **self.kwargs)
+                #testing123
         else:
             curried = func
+
         mapped = obj._map_values(mapper=curried)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):

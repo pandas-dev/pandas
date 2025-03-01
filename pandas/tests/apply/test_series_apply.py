@@ -665,3 +665,4 @@ def test_series_apply_unpack_nested_data():
     result = ser.apply(lambda x: Series(x))
     expected = DataFrame({0: [1.0, 4.0], 1: [2.0, 5.0], 2: [3.0, 6.0], 3: [np.nan, 7]})
     tm.assert_frame_equal(result, expected)
+
