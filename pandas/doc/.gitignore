@@ -1,0 +1,4 @@
+data/
+timeseries.csv
+timeseries.parquet
+timeseries_wide.parquet

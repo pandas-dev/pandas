@@ -195,17 +195,15 @@ def _get_fill_value(
     if _na_ok_dtype(dtype):
         if fill_value_typ is None:
             return np.nan
+        elif fill_value_typ == "+inf":
+            return np.inf
         else:
-            if fill_value_typ == "+inf":
-                return np.inf
-            else:
-                return -np.inf
+            return -np.inf
+    elif fill_value_typ == "+inf":
+        # need the max int here
+        return lib.i8max
     else:
-        if fill_value_typ == "+inf":
-            # need the max int here
-            return lib.i8max
-        else:
-            return iNaT
+        return iNaT
 
 
 def _maybe_get_mask(
@@ -654,9 +652,8 @@ def _mask_datetimelike_result(
         # error: Unsupported target for indexed assignment ("Union[ndarray[Any, Any],
         # datetime64, timedelta64]")
         result[axis_mask] = iNaT  # type: ignore[index]
-    else:
-        if mask.any():
-            return np.int64(iNaT).view(orig_values.dtype)
+    elif mask.any():
+        return np.int64(iNaT).view(orig_values.dtype)
     return result
 
 
@@ -1447,11 +1444,10 @@ def _maybe_arg_null_out(
             raise ValueError("Encountered all NA values")
         elif not skipna and mask.any():
             raise ValueError("Encountered an NA value with skipna=False")
-    else:
-        if skipna and mask.all(axis).any():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and mask.any(axis).any():
-            raise ValueError("Encountered an NA value with skipna=False")
+    elif skipna and mask.all(axis).any():
+        raise ValueError("Encountered all NA values")
+    elif not skipna and mask.any(axis).any():
+        raise ValueError("Encountered an NA value with skipna=False")
     return result
 
 

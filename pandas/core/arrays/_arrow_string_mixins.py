@@ -216,16 +216,15 @@ class ArrowStringArrayMixin:
     ):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple we return null for missing values and False
+            #  for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple we return null for missing values and False
-                #  for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
+            result = pc.starts_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         return self._convert_bool_result(result, na=na, method_name="startswith")
 
     def _str_endswith(
@@ -233,16 +232,15 @@ class ArrowStringArrayMixin:
     ):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple we return null for missing values and False
+            #  for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple we return null for missing values and False
-                #  for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
+            result = pc.ends_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         return self._convert_bool_result(result, na=na, method_name="endswith")
 
     def _str_isalnum(self):

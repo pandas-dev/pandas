@@ -1250,11 +1250,10 @@ class ExtensionArray:
             else:
                 new_values = self.copy()
             new_values[mask] = value
+        elif not copy:
+            new_values = self[:]
         else:
-            if not copy:
-                new_values = self[:]
-            else:
-                new_values = self.copy()
+            new_values = self.copy()
         return new_values
 
     def dropna(self) -> Self:

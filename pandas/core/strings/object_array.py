@@ -148,12 +148,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             pat = re.compile(pat, flags=flags)
 
             f = lambda x: pat.search(x) is not None
+        elif case:
+            f = lambda x: pat in x
         else:
-            if case:
-                f = lambda x: pat in x
-            else:
-                upper_pat = pat.upper()
-                f = lambda x: upper_pat in x.upper()
+            upper_pat = pat.upper()
+            f = lambda x: upper_pat in x.upper()
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
             # GH#59561
             warnings.warn(
@@ -382,11 +381,10 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             elif regex is False:
                 new_pat = pat
             # regex is None so link to old behavior #43563
+            elif len(pat) == 1:
+                new_pat = pat
             else:
-                if len(pat) == 1:
-                    new_pat = pat
-                else:
-                    new_pat = re.compile(pat)
+                new_pat = re.compile(pat)
 
             if isinstance(new_pat, re.Pattern):
                 if n is None or n == -1:

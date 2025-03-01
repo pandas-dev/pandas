@@ -1026,12 +1026,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise TypeError(
                     "Cannot specify both 'mapper' and any of 'index' or 'columns'"
                 )
+        # use the mapper argument
+        elif axis and self._get_axis_number(axis) == 1:
+            columns = mapper
         else:
-            # use the mapper argument
-            if axis and self._get_axis_number(axis) == 1:
-                columns = mapper
-            else:
-                index = mapper
+            index = mapper
 
         self._check_inplace_and_allows_duplicate_labels(inplace)
         result = self if inplace else self.copy(deep=False)
@@ -5371,11 +5370,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     columns = labels
                 else:
                     index = labels
+        elif axis and self._get_axis_number(axis) == 1:
+            columns = labels
         else:
-            if axis and self._get_axis_number(axis) == 1:
-                columns = labels
-            else:
-                index = labels
+            index = labels
         axes: dict[Literal["index", "columns"], Any] = {
             "index": index,
             "columns": columns,
@@ -7089,40 +7087,37 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 if not inplace:
                     result[k] = res_k
-                else:
-                    # We can write into our existing column(s) iff dtype
-                    #  was preserved.
-                    if isinstance(res_k, ABCSeries):
-                        # i.e. 'k' only shows up once in self.columns
-                        if res_k.dtype == result[k].dtype:
-                            result.loc[:, k] = res_k
-                        else:
-                            # Different dtype -> no way to do inplace.
-                            result[k] = res_k
+                # We can write into our existing column(s) iff dtype
+                #  was preserved.
+                elif isinstance(res_k, ABCSeries):
+                    # i.e. 'k' only shows up once in self.columns
+                    if res_k.dtype == result[k].dtype:
+                        result.loc[:, k] = res_k
                     else:
-                        # see test_fillna_dict_inplace_nonunique_columns
-                        locs = result.columns.get_loc(k)
-                        if isinstance(locs, slice):
-                            locs = range(self.shape[1])[locs]
-                        elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
-                            locs = locs.nonzero()[0]
-                        elif not (
-                            isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
-                        ):
-                            # Should never be reached, but let's cover our bases
-                            raise NotImplementedError(
-                                "Unexpected get_loc result, please report a bug at "
-                                "https://github.com/pandas-dev/pandas"
-                            )
+                        # Different dtype -> no way to do inplace.
+                        result[k] = res_k
+                else:
+                    # see test_fillna_dict_inplace_nonunique_columns
+                    locs = result.columns.get_loc(k)
+                    if isinstance(locs, slice):
+                        locs = range(self.shape[1])[locs]
+                    elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
+                        locs = locs.nonzero()[0]
+                    elif not (isinstance(locs, np.ndarray) and locs.dtype.kind == "i"):
+                        # Should never be reached, but let's cover our bases
+                        raise NotImplementedError(
+                            "Unexpected get_loc result, please report a bug at "
+                            "https://github.com/pandas-dev/pandas"
+                        )
 
-                        for i, loc in enumerate(locs):
-                            res_loc = res_k.iloc[:, i]
-                            target = self.iloc[:, loc]
+                    for i, loc in enumerate(locs):
+                        res_loc = res_k.iloc[:, i]
+                        target = self.iloc[:, loc]
 
-                            if res_loc.dtype == target.dtype:
-                                result.iloc[:, loc] = res_loc
-                            else:
-                                result.isetitem(loc, res_loc)
+                        if res_loc.dtype == target.dtype:
+                            result.iloc[:, loc] = res_loc
+                        else:
+                            result.isetitem(loc, res_loc)
             if inplace:
                 return self._update_inplace(result)
             else:
@@ -7605,34 +7600,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"you passed a {type(regex).__name__!r}"
                     )
                 return self.replace(regex, value, inplace=inplace, regex=True)
-            else:
-                # dest iterable dict-like
-                if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
-                    # Operate column-wise
-                    if self.ndim == 1:
-                        raise ValueError(
-                            "Series.replace cannot use dict-value and "
-                            "non-None to_replace"
-                        )
-                    mapping = {col: (to_replace, val) for col, val in value.items()}
-                    return self._replace_columnwise(mapping, inplace, regex)
-
-                elif not is_list_like(value):  # NA -> 0
-                    regex = should_use_regex(regex, to_replace)
-                    if regex:
-                        new_data = self._mgr.replace_regex(
-                            to_replace=to_replace,
-                            value=value,
-                            inplace=inplace,
-                        )
-                    else:
-                        new_data = self._mgr.replace(
-                            to_replace=to_replace, value=value, inplace=inplace
-                        )
-                else:
-                    raise TypeError(
-                        f'Invalid "to_replace" type: {type(to_replace).__name__!r}'
+            # dest iterable dict-like
+            elif is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
+                # Operate column-wise
+                if self.ndim == 1:
+                    raise ValueError(
+                        "Series.replace cannot use dict-value and non-None to_replace"
                     )
+                mapping = {col: (to_replace, val) for col, val in value.items()}
+                return self._replace_columnwise(mapping, inplace, regex)
+
+            elif not is_list_like(value):  # NA -> 0
+                regex = should_use_regex(regex, to_replace)
+                if regex:
+                    new_data = self._mgr.replace_regex(
+                        to_replace=to_replace,
+                        value=value,
+                        inplace=inplace,
+                    )
+                else:
+                    new_data = self._mgr.replace(
+                        to_replace=to_replace, value=value, inplace=inplace
+                    )
+            else:
+                raise TypeError(
+                    f'Invalid "to_replace" type: {type(to_replace).__name__!r}'
+                )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:

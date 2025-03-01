@@ -522,11 +522,10 @@ def _bins_to_cuts(
                 "labels must be unique if ordered=True; pass ordered=False "
                 "for duplicate labels"
             )
-        else:
-            if len(labels) != len(bins) - 1:
-                raise ValueError(
-                    "Bin labels must be one fewer than the number of bin edges"
-                )
+        elif len(labels) != len(bins) - 1:
+            raise ValueError(
+                "Bin labels must be one fewer than the number of bin edges"
+            )
 
         if not isinstance(getattr(labels, "dtype", None), CategoricalDtype):
             labels = Categorical(

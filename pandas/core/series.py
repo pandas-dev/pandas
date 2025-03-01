@@ -1554,12 +1554,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if buf is None:
             return result
+        elif hasattr(buf, "write"):
+            buf.write(result)
         else:
-            if hasattr(buf, "write"):
-                buf.write(result)
-            else:
-                with open(buf, "w", encoding="utf-8") as f:
-                    f.write(result)
+            with open(buf, "w", encoding="utf-8") as f:
+                f.write(result)
         return None
 
     @overload
@@ -5615,11 +5614,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if self._can_hold_na:
             result = remove_na_arraylike(self)
+        elif not inplace:
+            result = self.copy(deep=False)
         else:
-            if not inplace:
-                result = self.copy(deep=False)
-            else:
-                result = self
+            result = self
 
         if ignore_index:
             result.index = default_index(len(result))

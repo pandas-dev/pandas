@@ -1,0 +1,45 @@
+.. _whatsnew_214:
+
+What's new in 2.1.4 (December 8, 2023)
+---------------------------------------
+
+These are the changes in pandas 2.1.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_214.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression when trying to read a pickled pandas :class:`DataFrame` from pandas 1.3 (:issue:`55137`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_214.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :class:`Series` constructor raising DeprecationWarning when ``index`` is a list of :class:`Series` (:issue:`55228`)
+- Bug in :class:`Series` when trying to cast date-like string inputs to :class:`ArrowDtype` of ``pyarrow.timestamp`` (:issue:`56266`)
+- Bug in :class:`Timestamp` construction with ``ts_input="now"`` or ``ts_input="today"`` giving a different unit from :meth:`Timestamp.now` or :meth:`Timestamp.today` (:issue:`55879`)
+- Bug in :meth:`Index.__getitem__` returning wrong result for Arrow dtypes and negative stepsize (:issue:`55832`)
+- Fixed bug in :func:`read_csv` not respecting object dtype when ``infer_string`` option is set (:issue:`56047`)
+- Fixed bug in :func:`to_numeric` converting to extension dtype for ``string[pyarrow_numpy]`` dtype (:issue:`56179`)
+- Fixed bug in :meth:`.DataFrameGroupBy.min` and :meth:`.DataFrameGroupBy.max` not preserving extension dtype for empty object (:issue:`55619`)
+- Fixed bug in :meth:`DataFrame.__setitem__` casting :class:`Index` with object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
+- Fixed bug in :meth:`DataFrame.to_hdf` raising when columns have ``StringDtype`` (:issue:`55088`)
+- Fixed bug in :meth:`Index.insert` casting object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
+- Fixed bug in :meth:`Series.__ne__` resulting in False for comparison between ``NA`` and string value for ``dtype="string[pyarrow_numpy]"`` (:issue:`56122`)
+- Fixed bug in :meth:`Series.mode` not keeping object dtype when ``infer_string`` is set (:issue:`56183`)
+- Fixed bug in :meth:`Series.reset_index` not preserving object dtype when ``infer_string`` is set (:issue:`56160`)
+- Fixed bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` when ``pat=None`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56271`)
+- Fixed bug in :meth:`Series.str.translate` losing object dtype when string option is set (:issue:`56152`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_214.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.1.3..v2.1.4

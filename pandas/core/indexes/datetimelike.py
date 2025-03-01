@@ -804,14 +804,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            else:
-                # Adding a single item to an empty index may preserve freq
-                if isinstance(self.freq, Tick):
-                    # all TimedeltaIndex cases go through here; is_on_offset
-                    #  would raise TypeError
-                    freq = self.freq
-                elif self.freq.is_on_offset(item):
-                    freq = self.freq
+            # Adding a single item to an empty index may preserve freq
+            elif isinstance(self.freq, Tick):
+                # all TimedeltaIndex cases go through here; is_on_offset
+                #  would raise TypeError
+                freq = self.freq
+            elif self.freq.is_on_offset(item):
+                freq = self.freq
         return freq
 
     @doc(NDArrayBackedExtensionIndex.delete)

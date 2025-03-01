@@ -1,0 +1,5 @@
+{
+    "esbonio.server.pythonPath": "/usr/local/bin/python",
+    "restructuredtext.linter.disabledLinters": ["doc8","rst-lint", "rstcheck"],
+    "python.defaultInterpreterPath": "/usr/local/bin/python"
+}

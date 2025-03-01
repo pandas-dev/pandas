@@ -1,0 +1,53 @@
+name: Performance Issue
+description: Report slow performance or memory issues when running pandas code
+title: "PERF: "
+labels: [Performance, Needs Triage]
+
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pandas version checks
+      options:
+        - label: >
+            I have checked that this issue has not already been reported.
+          required: true
+        - label: >
+            I have confirmed this issue exists on the
+            [latest version](https://pandas.pydata.org/docs/whatsnew/index.html) of pandas.
+          required: true
+        - label: >
+            I have confirmed this issue exists on the main branch of pandas.
+  - type: textarea
+    id: example
+    attributes:
+      label: Reproducible Example
+      description: >
+        Please provide a minimal, copy-pastable example that quantifies
+        [slow runtime](https://docs.python.org/3/library/timeit.html) or
+        [memory](https://pypi.org/project/memory-profiler/) issues.
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Installed Versions
+      description: >
+        Please paste the output of ``pd.show_versions()``
+      value: >
+        <details>
+
+
+        Replace this line with the output of pd.show_versions()
+
+
+        </details>
+    validations:
+      required: true
+  - type: textarea
+    id: prior-performance
+    attributes:
+      label: Prior Performance
+      description: >
+        If applicable, please provide the prior version of pandas and output
+        of the same reproducible example where the performance issue did not exist.

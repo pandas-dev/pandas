@@ -366,9 +366,8 @@ class Grouper:
                     level = ax._get_level_number(level)
                     ax = Index(ax._get_level_values(level), name=ax.names[level])
 
-                else:
-                    if level not in (0, ax.name):
-                        raise ValueError(f"The level {level} is not valid")
+                elif level not in (0, ax.name):
+                    raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
         indexer: npt.NDArray[np.intp] | None = None

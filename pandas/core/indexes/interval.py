@@ -1287,12 +1287,11 @@ def interval_range(
                 breaks,  # type: ignore[arg-type]
                 dtype,
             )
+    # delegate to the appropriate range function
+    elif isinstance(endpoint, Timestamp):
+        breaks = date_range(start=start, end=end, periods=periods, freq=freq)
     else:
-        # delegate to the appropriate range function
-        if isinstance(endpoint, Timestamp):
-            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
-        else:
-            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
+        breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(
         breaks,

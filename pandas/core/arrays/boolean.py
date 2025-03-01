@@ -226,17 +226,15 @@ def coerce_to_array(
         mask = np.zeros(values.shape, dtype=bool)
     elif mask is None:
         mask = mask_values
+    elif isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
+        if mask_values is not None:
+            mask = mask | mask_values
+        elif copy:
+            mask = mask.copy()
     else:
-        if isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
-            if mask_values is not None:
-                mask = mask | mask_values
-            else:
-                if copy:
-                    mask = mask.copy()
-        else:
-            mask = np.array(mask, dtype=bool)
-            if mask_values is not None:
-                mask = mask | mask_values
+        mask = np.array(mask, dtype=bool)
+        if mask_values is not None:
+            mask = mask | mask_values
 
     if values.shape != mask.shape:
         raise ValueError("values.shape and mask.shape must match")

@@ -1,0 +1,39 @@
+name: Linkcheck
+on:
+  schedule:
+  # Run monthly on the 1st day of the month
+    - cron: '0 0 1 * *'
+  pull_request:
+    paths:
+      - ".github/workflows/broken-linkcheck.yml"
+      - "doc/make.py"
+jobs:
+  linkcheck:
+    if: false
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Conda
+        uses: ./.github/actions/setup-conda
+
+      - name: Build Pandas
+        uses: ./.github/actions/build_pandas
+
+      - name: Run linkcheck script
+        working-directory: ./doc
+        run: |
+          set -o pipefail
+          python make.py linkcheck | tee linkcheck.txt
+
+      - name: Display broken links
+        if: failure()
+        working-directory: ./doc
+        run: grep broken linkcheck.txt

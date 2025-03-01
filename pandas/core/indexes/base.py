@@ -3163,12 +3163,11 @@ class Index(IndexOpsMixin, PandasObject):
             # Preserve MultiIndex to avoid losing dtypes
             result = self.append(other.take(missing))
 
+        elif len(missing) > 0:
+            other_diff = rvals.take(missing)
+            result = concat_compat((lvals, other_diff))
         else:
-            if len(missing) > 0:
-                other_diff = rvals.take(missing)
-                result = concat_compat((lvals, other_diff))
-            else:
-                result = lvals
+            result = lvals
 
         if not self.is_monotonic_increasing or not other.is_monotonic_increasing:
             # if both are monotonic then result should already be sorted
@@ -4187,21 +4186,19 @@ class Index(IndexOpsMixin, PandasObject):
                 target, level, how="right", keep_order=not self._is_multi
             )
 
+        elif self.equals(target):
+            indexer = None
+        elif self._index_as_unique:
+            indexer = self.get_indexer(
+                target, method=method, limit=limit, tolerance=tolerance
+            )
+        elif self._is_multi:
+            raise ValueError("cannot handle a non-unique multi-index!")
+        elif not self.is_unique:
+            # GH#42568
+            raise ValueError("cannot reindex on an axis with duplicate labels")
         else:
-            if self.equals(target):
-                indexer = None
-            else:
-                if self._index_as_unique:
-                    indexer = self.get_indexer(
-                        target, method=method, limit=limit, tolerance=tolerance
-                    )
-                elif self._is_multi:
-                    raise ValueError("cannot handle a non-unique multi-index!")
-                elif not self.is_unique:
-                    # GH#42568
-                    raise ValueError("cannot reindex on an axis with duplicate labels")
-                else:
-                    indexer, _ = self.get_indexer_non_unique(target)
+            indexer, _ = self.get_indexer_non_unique(target)
 
         target = self._wrap_reindex_result(target, indexer, preserve_names)
         return target, indexer
@@ -4739,31 +4736,30 @@ class Index(IndexOpsMixin, PandasObject):
                     new_codes = [lab[mask] for lab in new_codes]
                     left_indexer = left_indexer[mask]
 
-            else:  # tie out the order with other
-                if level == 0:  # outer most level, take the fast route
-                    max_new_lev = 0 if len(new_lev_codes) == 0 else new_lev_codes.max()
-                    ngroups = 1 + max_new_lev
-                    left_indexer, counts = libalgos.groupsort_indexer(
-                        new_lev_codes, ngroups
-                    )
+            elif level == 0:  # outer most level, take the fast route
+                max_new_lev = 0 if len(new_lev_codes) == 0 else new_lev_codes.max()
+                ngroups = 1 + max_new_lev
+                left_indexer, counts = libalgos.groupsort_indexer(
+                    new_lev_codes, ngroups
+                )
 
-                    # missing values are placed first; drop them!
-                    left_indexer = left_indexer[counts[0] :]
-                    new_codes = [lab[left_indexer] for lab in new_codes]
+                # missing values are placed first; drop them!
+                left_indexer = left_indexer[counts[0] :]
+                new_codes = [lab[left_indexer] for lab in new_codes]
 
-                else:  # sort the leaves
-                    mask = new_lev_codes != -1
-                    mask_all = mask.all()
-                    if not mask_all:
-                        new_codes = [lab[mask] for lab in new_codes]
+            else:  # sort the leaves
+                mask = new_lev_codes != -1
+                mask_all = mask.all()
+                if not mask_all:
+                    new_codes = [lab[mask] for lab in new_codes]
 
-                    left_indexer = _get_leaf_sorter(new_codes[: level + 1])
-                    new_codes = [lab[left_indexer] for lab in new_codes]
+                left_indexer = _get_leaf_sorter(new_codes[: level + 1])
+                new_codes = [lab[left_indexer] for lab in new_codes]
 
-                    # left_indexers are w.r.t masked frame.
-                    # reverse to original frame!
-                    if not mask_all:
-                        left_indexer = mask.nonzero()[0][left_indexer]
+                # left_indexers are w.r.t masked frame.
+                # reverse to original frame!
+                if not mask_all:
+                    left_indexer = mask.nonzero()[0][left_indexer]
 
             join_index = MultiIndex(
                 levels=new_levels,
@@ -6727,11 +6723,10 @@ class Index(IndexOpsMixin, PandasObject):
                 return slc.start
             else:
                 return slc.stop
+        elif side == "right":
+            return slc + 1
         else:
-            if side == "right":
-                return slc + 1
-            else:
-                return slc
+            return slc
 
     def slice_locs(
         self,

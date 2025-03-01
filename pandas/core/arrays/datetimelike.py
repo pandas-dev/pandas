@@ -1675,10 +1675,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                     f"'{how}' with PeriodDtype is no longer supported. "
                     f"Use (obj != pd.Period(0, freq)).{how}() instead."
                 )
-        else:
-            # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod", "skew", "kurt", "var"]:
-                raise TypeError(f"timedelta64 type does not support {how} operations")
+        # timedeltas we can add but not multiply
+        elif how in ["prod", "cumprod", "skew", "kurt", "var"]:
+            raise TypeError(f"timedelta64 type does not support {how} operations")
 
         # All of the functions implemented here are ordinal, so we can
         #  operate on the tz-naive equivalents

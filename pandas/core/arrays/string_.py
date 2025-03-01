@@ -674,11 +674,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
+        elif using_string_dtype():
+            dtype = StringDtype(storage="python", na_value=np.nan)
         else:
-            if using_string_dtype():
-                dtype = StringDtype(storage="python", na_value=np.nan)
-            else:
-                dtype = StringDtype(storage="python")
+            dtype = StringDtype(storage="python")
 
         from pandas.core.arrays.masked import BaseMaskedArray
 

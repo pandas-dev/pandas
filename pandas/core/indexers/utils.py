@@ -389,10 +389,9 @@ def check_key_length(columns: Index, key, value: DataFrame) -> None:
     if columns.is_unique:
         if len(value.columns) != len(key):
             raise ValueError("Columns must be same length as key")
-    else:
-        # Missing keys in columns are represented as -1
-        if len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
-            raise ValueError("Columns must be same length as key")
+    # Missing keys in columns are represented as -1
+    elif len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
+        raise ValueError("Columns must be same length as key")
 
 
 def unpack_tuple_and_ellipses(item: tuple):

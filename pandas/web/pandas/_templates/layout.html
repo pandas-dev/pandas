@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script defer data-domain="pandas.pydata.org" src="https://views.scientific-python.org/js/script.js"></script>
+        <title>pandas - Python Data Analysis Library</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel='shortcut icon' type='image/x-icon' id='favicon-tag' href='{{ base_url }}static/img/favicon.ico'/>
+        <link rel="stylesheet"
+              href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css"
+              integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x"
+              crossorigin="anonymous">
+        {% for stylesheet in static.css %}
+            <link rel="stylesheet"
+                  href="{{ base_url }}{{ stylesheet }}">
+        {% endfor %}
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    </head>
+    <body>
+        <header>
+            <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+                <div class="container">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav-content" aria-controls="nav-content" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    {% if static.logo %}<a class="navbar-brand" href="{{ base_url }}."><img alt="" src="{{ base_url }}{{ static.logo }}"/></a>{% endif %}
+
+                    <div class="collapse navbar-collapse" id="nav-content">   
+                        <ul class="navbar-nav ms-auto">
+                            {% for item in navbar %}
+                                {% if not item.has_subitems %}
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% if not item.target.startswith("http") %}{{ base_url }}{% endif %}{{ item.target }}">{{ item.name }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle"
+                                           data-bs-toggle="dropdown"
+                                           id="{{ item.slug }}"
+                                           href="#"
+                                           role="button"
+                                           aria-haspopup="true"
+                                           aria-expanded="false">{{ item.name }}</a>
+                                        <div class="dropdown-menu" aria-labelledby="{{ item.slug }}">
+                                        {% for subitem in item.target %}
+                                            <a class="dropdown-item" href="{% if not subitem.target.startswith("http") %}{{ base_url }}{% endif %}{{ subitem.target }}">{{ subitem.name }}</a>
+                                        {% endfor %}
+                                        </div>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <main role="main">
+            <div class="container">
+                {% block body %}{% endblock %}
+            </div>
+        </main>
+        <footer class="container pt-4 pt-md-5 border-top">
+            <ul class="list-inline social-buttons float-end">
+                <li class="list-inline-item">
+                    <a href="https://t.me/s/pandas_dev">
+                        <i class="fab bi bi-telegram"></i>
+                    </a>
+                </li>
+                <li class="list-inline-item">
+                    <a href="https://fosstodon.org/@pandas_dev" rel="me">
+                        <i class="fab bi bi-mastodon"></i>
+                    </a>
+                </li>
+                <li class="list-inline-item">
+                    <a href="https://x.com/pandas_dev">
+                        <i class="fab bi bi-twitter-x"></i>
+                    </a>
+                </li>
+                <li class="list-inline-item">
+                    <a href="https://github.com/pandas-dev/pandas">
+                        <i class="fab bi bi-github"></i>
+                    </a>
+                </li>
+                <li class="list-inline-item">
+                    <a href="https://stackoverflow.com/questions/tagged/pandas">
+                        <i class="fab bi bi-stack-overflow"></i>
+                    </a>
+                </li>
+            </ul>
+            <p>
+                &copy; {{ current_year }} pandas via <a href="https://numfocus.org">NumFOCUS, Inc.</a> Hosted by <a href="https://www.ovhcloud.com">OVHcloud</a>.
+            </p>
+        </footer>
+        
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" 
+                integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" 
+                crossorigin="anonymous"></script>
+        <script type="text/javascript">
+            const faviconTag = document.getElementById('favicon-tag');
+            const matcher = window.matchMedia('(prefers-color-scheme:dark)');
+            
+            const onUpdate = () => {
+                if (matcher.matches) faviconTag.href = "{{ base_url }}/static/img/favicon_white.ico";
+                else faviconTag.href = "{{ base_url }}/static/img/favicon.ico";
+            };
+            
+            onUpdate();
+            
+            matcher.addEventListener('change', onUpdate);
+        </script>
+    </body>
+</html>

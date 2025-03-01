@@ -155,9 +155,8 @@ def zsqrt(x):
     if isinstance(x, ABCDataFrame):
         if mask._values.any():
             result[mask] = 0
-    else:
-        if mask.any():
-            result[mask] = 0
+    elif mask.any():
+        result[mask] = 0
 
     return result
 

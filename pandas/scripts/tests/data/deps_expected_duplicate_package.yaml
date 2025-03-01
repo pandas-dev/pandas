@@ -1,0 +1,4 @@
+# Test: duplicate package
+dependencies:
+  - jinja2>=3.0.0
+  - jinja2>=3.0.0

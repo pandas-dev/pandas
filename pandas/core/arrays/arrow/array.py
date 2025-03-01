@@ -1802,11 +1802,10 @@ class ArrowExtensionArray(
                         # binary_join returns null if there is any null ->
                         # have to filter out any nulls
                         data = data.filter(pc.invert(mask))
-                else:
-                    if mask is not None or check_below_min_count(
-                        (len(data),), None, min_count
-                    ):
-                        return pa.scalar(None, type=data.type)
+                elif mask is not None or check_below_min_count(
+                    (len(data),), None, min_count
+                ):
+                    return pa.scalar(None, type=data.type)
 
                 if pa.types.is_large_string(data.type):
                     # binary_join only supports string, not large_string

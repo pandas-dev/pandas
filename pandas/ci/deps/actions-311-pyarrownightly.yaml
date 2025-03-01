@@ -1,0 +1,29 @@
+name: pandas-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+
+  # build dependencies
+  - versioneer
+  - meson=1.2.1
+  - cython>=0.29.33
+  - meson-python=0.13.1
+
+  # test dependencies
+  - pytest>=7.3.2
+  - pytest-cov
+  - pytest-xdist>=3.4.0
+  - hypothesis>=6.84.0
+
+  # required dependencies
+  - python-dateutil
+  - numpy
+  - pip
+
+  - pip:
+    - "tzdata>=2022.7"
+    - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+    - "--prefer-binary"
+    - "--pre"
+    - "pyarrow"

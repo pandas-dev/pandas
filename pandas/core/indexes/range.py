@@ -722,10 +722,9 @@ class RangeIndex(Index):
                 if self.step < 0:
                     sorted_index = self[::-1]
                     inverse_indexer = True
-            else:
-                if self.step > 0:
-                    sorted_index = self[::-1]
-                    inverse_indexer = True
+            elif self.step > 0:
+                sorted_index = self[::-1]
+                inverse_indexer = True
 
         if return_indexer:
             if inverse_indexer:

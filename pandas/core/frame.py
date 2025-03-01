@@ -4205,29 +4205,28 @@ class DataFrame(NDFrame, OpsMixin):
                 value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
 
+        # Note: unlike self.iloc[:, indexer] = value, this will
+        #  never try to overwrite values inplace
+
+        elif isinstance(value, DataFrame):
+            check_key_length(self.columns, key, value)
+            for k1, k2 in zip(key, value.columns):
+                self[k1] = value[k2]
+
+        elif not is_list_like(value):
+            for col in key:
+                self[col] = value
+
+        elif isinstance(value, np.ndarray) and value.ndim == 2:
+            self._iset_not_inplace(key, value)
+
+        elif np.ndim(value) > 1:
+            # list of lists
+            value = DataFrame(value).values
+            self._setitem_array(key, value)
+
         else:
-            # Note: unlike self.iloc[:, indexer] = value, this will
-            #  never try to overwrite values inplace
-
-            if isinstance(value, DataFrame):
-                check_key_length(self.columns, key, value)
-                for k1, k2 in zip(key, value.columns):
-                    self[k1] = value[k2]
-
-            elif not is_list_like(value):
-                for col in key:
-                    self[col] = value
-
-            elif isinstance(value, np.ndarray) and value.ndim == 2:
-                self._iset_not_inplace(key, value)
-
-            elif np.ndim(value) > 1:
-                # list of lists
-                value = DataFrame(value).values
-                self._setitem_array(key, value)
-
-            else:
-                self._iset_not_inplace(key, value)
+            self._iset_not_inplace(key, value)
 
     def _iset_not_inplace(self, key, value) -> None:
         # GH#39510 when setting with df[key] = obj with a list-like key and
@@ -7094,11 +7093,10 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = nargsort(
                 k, kind=kind, ascending=ascending, na_position=na_position, key=key
             )
+        elif inplace:
+            return self._update_inplace(self)
         else:
-            if inplace:
-                return self._update_inplace(self)
-            else:
-                return self.copy(deep=False)
+            return self.copy(deep=False)
 
         if is_range_indexer(indexer, len(indexer)):
             result = self.copy(deep=False)

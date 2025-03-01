@@ -1,0 +1,18 @@
+codecov:
+  branch: main
+  notify:
+    after_n_builds: 10
+comment: false
+
+coverage:
+  status:
+    project:
+      default:
+        target: '82'
+    patch:
+      default:
+        target: '50'
+        informational: true
+
+github_checks:
+    annotations: false

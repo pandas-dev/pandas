@@ -71,11 +71,10 @@ def sliding_min_max(
         # Save output based on index in input value array
         if Q and curr_win_size > 0 and nobs >= min_periods:
             output[i] = values[Q[0]]
+        elif values.dtype.kind != "i":
+            output[i] = np.nan
         else:
-            if values.dtype.kind != "i":
-                output[i] = np.nan
-            else:
-                na_pos.append(i)
+            na_pos.append(i)
 
     return output, na_pos
 
@@ -118,9 +117,8 @@ def grouped_min_max(
         if is_max:
             if val > output[lab]:
                 output[lab] = val
-        else:
-            if val < output[lab]:
-                output[lab] = val
+        elif val < output[lab]:
+            output[lab] = val
 
     # Set labels that don't satisfy min_periods as np.nan
     for lab, count in enumerate(nobs):

@@ -882,38 +882,35 @@ def value_counts_internal(
         # normalizing is by len of all (regardless of dropna)
         counts = np.array([len(ii)])
 
+    elif is_extension_array_dtype(values):
+        # handle Categorical and sparse,
+        result = Series(values, copy=False)._values.value_counts(dropna=dropna)
+        result.name = name
+        result.index.name = index_name
+        counts = result._values
+        if not isinstance(counts, np.ndarray):
+            # e.g. ArrowExtensionArray
+            counts = np.asarray(counts)
+
+    elif isinstance(values, ABCMultiIndex):
+        # GH49558
+        levels = list(range(values.nlevels))
+        result = (
+            Series(index=values, name=name).groupby(level=levels, dropna=dropna).size()
+        )
+        result.index.names = values.names
+        counts = result._values
+
     else:
-        if is_extension_array_dtype(values):
-            # handle Categorical and sparse,
-            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
-            result.name = name
-            result.index.name = index_name
-            counts = result._values
-            if not isinstance(counts, np.ndarray):
-                # e.g. ArrowExtensionArray
-                counts = np.asarray(counts)
+        values = _ensure_arraylike(values, func_name="value_counts")
+        keys, counts, _ = value_counts_arraylike(values, dropna)
+        if keys.dtype == np.float16:
+            keys = keys.astype(np.float32)
 
-        elif isinstance(values, ABCMultiIndex):
-            # GH49558
-            levels = list(range(values.nlevels))
-            result = (
-                Series(index=values, name=name)
-                .groupby(level=levels, dropna=dropna)
-                .size()
-            )
-            result.index.names = values.names
-            counts = result._values
-
-        else:
-            values = _ensure_arraylike(values, func_name="value_counts")
-            keys, counts, _ = value_counts_arraylike(values, dropna)
-            if keys.dtype == np.float16:
-                keys = keys.astype(np.float32)
-
-            # Starting in 3.0, we no longer perform dtype inference on the
-            #  Index object we construct here, xref GH#56161
-            idx = Index(keys, dtype=keys.dtype, name=index_name)
-            result = Series(counts, index=idx, name=name, copy=False)
+        # Starting in 3.0, we no longer perform dtype inference on the
+        #  Index object we construct here, xref GH#56161
+        idx = Index(keys, dtype=keys.dtype, name=index_name)
+        result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
         result = result.sort_values(ascending=ascending)

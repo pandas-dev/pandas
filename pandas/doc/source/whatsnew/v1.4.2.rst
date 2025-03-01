@@ -1,0 +1,45 @@
+.. _whatsnew_142:
+
+What's new in 1.4.2 (April 2, 2022)
+-----------------------------------
+
+These are the changes in pandas 1.4.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_142.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)
+- Fixed regression in :func:`read_csv` killing python process when invalid file input was given for ``engine="c"`` (:issue:`45957`)
+- Fixed memory performance regression in :meth:`Series.fillna` when called on a :class:`DataFrame` column with ``inplace=True`` (:issue:`46149`)
+- Provided an alternative solution for passing custom Excel formats in :meth:`.Styler.to_excel`, which was a regression based on stricter CSS validation. Examples available in the documentation for :meth:`.Styler.format` (:issue:`46152`)
+- Fixed regression in :meth:`DataFrame.replace` when a replacement value was also a target for replacement (:issue:`46306`)
+- Fixed regression in :meth:`DataFrame.replace` when the replacement value was explicitly ``None`` when passed in a dictionary to ``to_replace`` (:issue:`45601`, :issue:`45836`)
+- Fixed regression when setting values with :meth:`DataFrame.loc` losing :class:`MultiIndex` names if :class:`DataFrame`  was empty before (:issue:`46317`)
+- Fixed regression when rendering boolean datatype columns with :meth:`.Styler` (:issue:`46384`)
+- Fixed regression in :meth:`Groupby.rolling` with a frequency window that would raise a ``ValueError`` even if the datetimes within each group were monotonic (:issue:`46061`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_142.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fix some cases for subclasses that define their ``_constructor`` properties as general callables (:issue:`46018`)
+- Fixed "longtable" formatting in :meth:`.Styler.to_latex` when ``column_format`` is given in extended format (:issue:`46037`)
+- Fixed incorrect rendering in :meth:`.Styler.format` with ``hyperlinks="html"`` when the url contains a colon or other special characters (:issue:`46389`)
+- Improved error message in :class:`.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_142.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.1..v1.4.2

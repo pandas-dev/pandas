@@ -735,11 +735,11 @@ def waitForNewPaste(timeout=None):
 
 __all__ = [
     "copy",
-    "paste",
-    "waitForPaste",
-    "waitForNewPaste",
-    "set_clipboard",
     "determine_clipboard",
+    "paste",
+    "set_clipboard",
+    "waitForNewPaste",
+    "waitForPaste",
 ]
 
 # pandas aliases

@@ -320,11 +320,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
             else:
                 new_values = self
 
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self
+            new_values = self
         return new_values
 
     @doc(ExtensionArray.fillna)

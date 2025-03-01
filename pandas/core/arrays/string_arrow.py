@@ -247,9 +247,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             else:
                 values = values.fill_null(na)
             return values.to_numpy()
-        else:
-            if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-                values = values.fill_null(na)
+        elif na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+            values = values.fill_null(na)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
