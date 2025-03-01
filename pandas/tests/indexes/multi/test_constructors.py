@@ -857,3 +857,50 @@ def test_dtype_representation(using_infer_string):
         dtype=object,
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_from_tuples_different_lengths_gh60695():
+    """
+    Test that MultiIndex.from_tuples properly handles tuples of different lengths.
+
+    GH#60695
+    """
+    # Test case 1: Basic string tuples
+    tuples = [("l1",), ("l1", "l2")]
+    result = MultiIndex.from_tuples(tuples)
+    expected = MultiIndex.from_tuples([("l1", np.nan), ("l1", "l2")])
+    tm.assert_index_equal(result, expected, exact=True)
+
+    # Test case 2: Series with tuple keys
+    s = pd.Series({("l1",): "v1", ("l1", "l2"): "v2"})
+    expected = pd.Series(
+        ["v1", "v2"],
+        index=MultiIndex.from_tuples([("l1", np.nan), ("l1", "l2")])
+    )
+    tm.assert_series_equal(s, expected, check_index_type=True)
+
+    # Test case 3: Empty input with names
+    empty_idx = MultiIndex.from_tuples([], names=["a", "b"])
+    assert isinstance(empty_idx, MultiIndex)
+    assert empty_idx.names == ["a", "b"]
+    assert len(empty_idx) == 0
+
+    # Test case 4: Empty input without names
+    with pytest.raises(TypeError, match="Cannot infer number of levels"):
+        MultiIndex.from_tuples([])
+
+    # Test case 5: None values
+    tuples = [(1, None), (1, 2)]
+    result = MultiIndex.from_tuples(tuples)
+    expected = MultiIndex.from_tuples([(1, np.nan), (1, 2)])
+    tm.assert_index_equal(result, expected, exact=True)
+
+    # Test case 6: Mixed types
+    tuples = [(1, "a"), (1,), (2, "b", "c")]
+    result = MultiIndex.from_tuples(tuples)
+    expected = MultiIndex.from_tuples([
+        (1, "a", np.nan),
+        (1, np.nan, np.nan),
+        (2, "b", "c")
+    ])
+    tm.assert_index_equal(result, expected, exact=True)
