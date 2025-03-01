@@ -7784,13 +7784,15 @@ def get_values_for_csv(
         if float_format is None and decimal == ".":
             mask = isna(values)
 
-            if not quoting:
-                values = values.astype(str)
-            else:
-                values = np.array(values, dtype="object")
+            # GH60699
+            # Ensure quoting don't add extra decimal places in output
+            # for float16, float32
+            if values.dtype in [np.float16, np.float32]:
+                values = np.array(values, dtype="str")
+                values = values.astype(float, copy=False)
 
-            values[mask] = na_rep
             values = values.astype(object, copy=False)
+            values[mask] = na_rep
             return values
 
         from pandas.io.formats.format import FloatArrayFormatter
