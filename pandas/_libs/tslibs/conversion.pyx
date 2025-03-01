@@ -142,6 +142,7 @@ def cast_from_unit_vectorized(
     for i in range(len(values)):
         if is_nan(values[i]):
             base[i] = NPY_NAT
+            frac[i] = 0
         else:
             base[i] = <int64_t>values[i]
             frac[i] = values[i] - base[i]
