@@ -5868,6 +5868,10 @@ class DataFrame(NDFrame, OpsMixin):
         columns or arrays (of the correct length). The index can replace the
         existing index or expand on it.
 
+        .. warning::
+            Setting a new index will remove the current index column,
+            unless you first call `reset_index`.
+
         Parameters
         ----------
         keys : label or array-like or list of labels/arrays
