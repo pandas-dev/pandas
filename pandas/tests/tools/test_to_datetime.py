@@ -3713,3 +3713,30 @@ def test_to_datetime_wrapped_datetime64_ps():
         ["1970-01-01 00:00:01.901901901"], dtype="datetime64[ns]", freq=None
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_scalar_out_of_bounds():
+    """Ensure pd.to_datetime raises an error for out-of-bounds scalar values."""
+    uint64_max = np.iinfo("uint64").max
+    int64_min = np.iinfo("int64").min
+
+    # Expect an OverflowError when passing uint64_max as a scalar
+    with pytest.raises(OutOfBoundsDatetime):
+        to_datetime(uint64_max, unit="ns")
+
+    # Expect the same behavior when passing it as a list
+    with pytest.raises(OutOfBoundsDatetime):
+        to_datetime([uint64_max], unit="ns")
+
+    # Expect NAT  when passing int64_min as a scalar
+    value = to_datetime(int64_min, unit="ns")
+    assert value is NaT
+
+    # Expect the same behavior when passing it as a list
+    value = to_datetime([int64_min], unit="ns")
+    assert value[0] is NaT
+
+    # Test a valid value (should not raise an error)
+    valid_timestamp = 1_700_000_000_000_000_000  # A reasonable nanosecond timestamp
+    result = to_datetime(valid_timestamp, unit="ns")
+    assert isinstance(result, Timestamp)

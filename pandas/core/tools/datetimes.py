@@ -481,9 +481,18 @@ def _array_strptime_with_fallback(
 
 def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     """
-    to_datetime specalized to the case where a 'unit' is passed.
+    to_datetime specialized to the case where a 'unit' is passed.
+
+    Note: This function currently treats values at the upper bound differently
+    from values at the lower bound.
+    For upper bound, it raises OutOfBoundsDatetime.
+    For lower bound, it returns NaT.
     """
     arg = extract_array(arg, extract_numpy=True)
+    # Fix GH#60677
+    # Ensure scalar and array-like both become arrays
+    #    (so both paths use the same code).
+    arg = np.atleast_1d(arg)
 
     # GH#30050 pass an ndarray to tslib.array_to_datetime
     # because it expects an ndarray argument
@@ -496,6 +505,31 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         if arg.dtype.kind in "iu":
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
+            # Fix GH#60677
+            # ------------------------------------------------
+            # A) **Check for uint64 values above int64 max**
+            #    so we don't accidentally wrap around to -1, etc.
+            # ------------------------------------------------
+            if arg.dtype.kind == "u":  # unsigned
+                above_max = arg > np.iinfo(np.int64).max
+                if above_max.any():
+                    if errors == "raise":
+                        raise OutOfBoundsDatetime(
+                            "Cannot convert uint64 values above"
+                            f"{np.iinfo(np.int64).max}"
+                            "to a 64-bit signed datetime64[ns]."
+                        )
+                    else:
+                        # For errors != "raise" (e.g. "coerce" or "ignore"),
+                        # we can replace out-of-range entries with NaN (-> NaT),
+                        # then switch to the fallback object path:
+                        arg = arg.astype(object)
+                        arg[above_max] = np.nan
+                        return _to_datetime_with_unit(arg, unit, name, utc, errors)
+
+            # ------------------------------------------------
+            # B) Proceed with normal numeric -> datetime logic
+            # ------------------------------------------------
             arr = arg.astype(f"datetime64[{unit}]", copy=False)
             try:
                 arr = astype_overflowsafe(arr, np.dtype("M8[ns]"), copy=False)
