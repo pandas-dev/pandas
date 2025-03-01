@@ -10254,7 +10254,7 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
-        engine: Literal["python", "numba"] = "python",
+        engine: Literal["python", "numba", "bodo"] = "python",
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
@@ -10316,7 +10316,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 2.1.0
 
-        engine : {'python', 'numba'}, default 'python'
+        engine : {'python', 'numba', 'bodo'}, default 'python'
             Choose between the python (default) engine or the numba engine in apply.
 
             The numba engine will attempt to JIT compile the passed function,
@@ -10338,6 +10338,19 @@ class DataFrame(NDFrame, OpsMixin):
             and `supported numpy features
             <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
             in numba to learn what you can or cannot use in the passed function.
+
+            The bodo engine will attempt to JIT compile the passed function, spawn
+            multiple workers and apply the function in parallel over the Dataframe,
+            which may result in a speedup for large DataFrames.
+
+            Bodo supports a subset of valid Python, numpy, pandas and scikit-learn.
+            Please refer to the `bodo documentation
+            <https://docs.bodo.ai/latest/api_docs/>`_ to learn more about which
+            operations and APIs are supported inside JIT compiled functions.
+
+            Code that does not have JIT support yet can still utilize Bodo's parallel
+            constructs by decorating the function with `@wrap_python
+            <https://docs.bodo.ai/latest/objmode/?h=wrap_py>`_.
 
             .. versionadded:: 2.2.0
 
