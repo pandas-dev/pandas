@@ -3296,6 +3296,66 @@ class TestLocSeries:
         expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "df, row_index, col_index, expected_df",
+        [
+            [
+                DataFrame([[1, 2, 3], [4, 5, 6]], columns=list("ABC")),
+                slice(0, 3),
+                ["A", "B", "C"],
+                DataFrame([[10, 10, 10], [20, 20, 20]], columns=list("ABC")),
+            ],
+            [
+                DataFrame([[1, 2, 3], [4, 5, 6]], columns=list("ABC")),
+                slice(None),
+                ["A", "B", "C"],
+                DataFrame([[10, 10, 10], [20, 20, 20]], columns=list("ABC")),
+            ],
+            [
+                DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC")),
+                [True, True, True],
+                ["A", "B", "C"],
+                DataFrame(
+                    [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
+                ),
+            ],
+            [
+                DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC")),
+                slice(0, 4),
+                ["A", "B", "C"],
+                DataFrame(
+                    [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
+                ),
+            ],
+            [
+                DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC")),
+                slice(None),
+                slice("A", "C"),
+                DataFrame(
+                    [[10, 10, 10], [20, 20, 20], [30, 30, 30]], columns=list("ABC")
+                ),
+            ],
+            [
+                DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("ABC")),
+                slice(None),
+                Series(
+                    {
+                        "A": True,
+                        "C": False,
+                        "B": True,
+                    }
+                ),
+                DataFrame([[10, 10, 3], [20, 20, 6], [30, 30, 9]], columns=list("ABC")),
+            ],
+        ],
+    )
+    def test_loc_set_series_to_multiple_columns(
+        self, df, row_index, col_index, expected_df
+    ):
+        # GH 59933
+        df.loc[row_index, col_index] = Series([10, 20, 30])
+        tm.assert_frame_equal(df, expected_df)
+
     def test_loc_setitem_matching_index(self):
         # GH 25548
         s = Series(0.0, index=list("abcd"))
