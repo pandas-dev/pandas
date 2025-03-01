@@ -352,10 +352,7 @@ def _refine_percentiles(
     percentiles = list(percentiles)
 
     # get them all to be in [0, 1]
-    validate_percentile(percentiles)
-
-    if percentiles == []:
-        percentiles.append(0.5) # By default, if percentiles is empty then append 50th percentile.
+    validate_percentile(percentiles)   
 
     percentiles = np.asarray(percentiles)
 
