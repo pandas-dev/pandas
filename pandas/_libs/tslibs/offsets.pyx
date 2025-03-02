@@ -32,6 +32,8 @@ cnp.import_array()
 
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
 
+from typing import ClassVar
+
 from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
@@ -2524,8 +2526,7 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     _attributes = tuple(["n", "normalize", "month"])
 
-    # FIXME(cython#4446): python annotation here gives compile-time errors
-    # _default_month: int
+    _default_month: ClassVar[int]
 
     cdef readonly:
         int month
@@ -2788,9 +2789,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    # FIXME(cython#4446): python annotation here gives compile-time errors
-    # _default_starting_month: int
-    # _from_name_starting_month: int
+    _default_starting_month: ClassVar[int]
+    _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
         int startingMonth
@@ -3018,9 +3018,8 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     _attributes = tuple(["n", "normalize", "startingMonth"])
     # TODO: Consider combining HalfYearOffset, QuarterOffset and YearOffset
 
-    # FIXME(cython#4446): python annotation here gives compile-time errors
-    # _default_starting_month: int
-    # _from_name_starting_month: int
+    _default_starting_month: ClassVar[int]
+    _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
         int startingMonth
