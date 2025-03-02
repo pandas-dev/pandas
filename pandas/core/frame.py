@@ -5958,8 +5958,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Append a column to the existing index:
 
-        >>> df.set_index("month", inplace=True)
-        >>> df.set_index("year", append=True)
+        >>> a = df.set_index("month")
+        >>> a.set_index("year", append=True)
                       sale
         month  year
         1      2012    55
@@ -5967,7 +5967,7 @@ class DataFrame(NDFrame, OpsMixin):
         7      2013    84
         10     2014    31
 
-        >>> df.set_index("year", append=False)
+        >>> a.set_index("year", append=False)
                sale
         year
         2012    55
