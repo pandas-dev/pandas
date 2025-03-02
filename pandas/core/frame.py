@@ -5293,16 +5293,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        labels : single label or list-like
+        labels : single label or iterable of labels
             Index or column labels to drop. A tuple will be used as a single
-            label and not treated as a list-like.
+            label and not treated as an iterable.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
-        index : single label or list-like
+        index : single label or iterable of labels
             Alternative to specifying axis (``labels, axis=0``
             is equivalent to ``index=labels``).
-        columns : single label or list-like
+        columns : single label or iterable of labels
             Alternative to specifying axis (``labels, axis=1``
             is equivalent to ``columns=labels``).
         level : int or level name, optional

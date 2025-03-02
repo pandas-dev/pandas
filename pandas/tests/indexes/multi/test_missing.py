@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 def test_fillna(idx):
     # GH 11343
-    msg = "isna is not defined for MultiIndex"
+    msg = "fillna is not defined for MultiIndex"
     with pytest.raises(NotImplementedError, match=msg):
         idx.fillna(idx[0])
 

@@ -1113,7 +1113,7 @@ def convert_dtypes(
     else:
         inferred_dtype = input_array.dtype
 
-    if dtype_backend == "pyarrow":
+    if dtype_backend == "pyarrow" and not isinstance(inferred_dtype, ArrowDtype):
         from pandas.core.arrays.arrow.array import to_pyarrow_type
         from pandas.core.arrays.string_ import StringDtype
 

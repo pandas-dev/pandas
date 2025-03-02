@@ -3329,6 +3329,18 @@ def test_factorize_chunked_dictionary():
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
+def test_factorize_dictionary_with_na():
+    # GH#60567
+    arr = pd.array(
+        ["a1", pd.NA], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+    )
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([0, 1], dtype=np.intp)
+    expected_uniques = pd.array(["a1", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
 def test_dictionary_astype_categorical():
     # GH#56672
     arrs = [
@@ -3510,4 +3522,21 @@ def test_map_numeric_na_action():
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
     expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_categorical_from_arrow_dictionary():
+    # GH 60563
+    df = pd.DataFrame(
+        {"A": ["a1", "a2"]}, dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+    )
+    result = df.value_counts(dropna=False)
+    expected = pd.Series(
+        [1, 1],
+        index=pd.MultiIndex.from_arrays(
+            [pd.Index(["a1", "a2"], dtype=ArrowDtype(pa.string()), name="A")]
+        ),
+        name="count",
+        dtype="int64",
+    )
     tm.assert_series_equal(result, expected)
