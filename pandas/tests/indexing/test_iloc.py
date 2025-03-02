@@ -1467,8 +1467,8 @@ class TestILocSeries:
             )
             tm.assert_frame_equal(dftest, expected_orig)
 
-            # Check that view is modified correctly
-            expected_view = DataFrame(
+            # Check that df is modified correctly
+            expected_df = DataFrame(
                 {"B": [2, 2, 2, 2], "C": [3, 2, 1, 2]}, index=df.index
             )
-            tm.assert_frame_equal(df, expected_view)
+            tm.assert_frame_equal(df, expected_df)
