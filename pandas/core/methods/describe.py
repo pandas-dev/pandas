@@ -227,7 +227,12 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     """
     from pandas import Series
 
+    # Fix for issue #60550 :
+    # if percentiles != []:
     formatted_percentiles = format_percentiles(percentiles)
+
+    # else:
+    #     formatted_percentiles = []
 
     stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
     d = (
@@ -345,14 +350,21 @@ def _refine_percentiles(
     percentiles : list-like of numbers, optional
         The percentiles to include in the output.
     """
+    # Fix for issue #60550 :
+    from pandas import Series
+
     if percentiles is None:
         return np.array([0.25, 0.5, 0.75])
+
+    # Fix for issue #60550 :
+    elif isinstance(percentiles, (list, np.ndarray, Series)) and len(percentiles) == 0:
+        return np.array([])
 
     # explicit conversion of `percentiles` to list
     percentiles = list(percentiles)
 
     # get them all to be in [0, 1]
-    validate_percentile(percentiles)   
+    validate_percentile(percentiles)
 
     percentiles = np.asarray(percentiles)
 

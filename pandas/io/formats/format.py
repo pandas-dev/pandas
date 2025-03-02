@@ -1565,6 +1565,7 @@ def format_percentiles(
     >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
     ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     """
+
     percentiles = np.asarray(percentiles)
 
     # It checks for np.nan as well
@@ -1575,7 +1576,9 @@ def format_percentiles(
     ):
         raise ValueError("percentiles should all be in the interval [0,1]")
 
-    percentiles = 100 * percentiles
+    # Fix for issue #60550
+    percentiles = 100 * percentiles if percentiles else np.array([])
+
     prec = get_precision(percentiles)
     percentiles_round_type = percentiles.round(prec).astype(int)
 
@@ -1595,6 +1598,10 @@ def format_percentiles(
 
 
 def get_precision(array: np.ndarray | Sequence[float]) -> int:
+    # Fix for issue #60550
+    if array.size == 0:
+        return 0
+
     to_begin = array[0] if array[0] > 0 else None
     to_end = 100 - array[-1] if array[-1] < 100 else None
     diff = np.ediff1d(array, to_begin=to_begin, to_end=to_end)
