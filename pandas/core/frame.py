@@ -10348,9 +10348,12 @@ class DataFrame(NDFrame, OpsMixin):
             see the documentation for the engine argument for more information.
 
         jit : function, optional
-            Numba or Bodo decorator to JIT compile the execution. The main available
-            options are ``numba.jit``, ``numba.njit`` or ``bodo.jit``. Parameters can
-            be used in the same way as the decorators ``numba.jit(parallel=True)`` etc.
+            Decorator to JIT compile the execution. The main available options are
+            ``numba.jit``, ``numba.njit`` or ``bodo.jit``. Parameters can be used in
+            the same way as the decorators, for example ``numba.jit(parallel=True)``.
+
+            Refer to the the [1]_ and [2]_ documentation to learn about limitations
+            on what code can be JIT compiled.
 
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
@@ -10374,6 +10377,12 @@ class DataFrame(NDFrame, OpsMixin):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
+        References
+        ----------
+        .. [1] `Numba documentation
+                <https://numba.readthedocs.io/en/stable/index.html>`_
+        .. [2] `Bodo documentation
+                <https://docs.bodo.ai/latest/>`/
         Examples
         --------
         >>> df = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
@@ -10462,12 +10471,13 @@ class DataFrame(NDFrame, OpsMixin):
                 obj=self,
                 method="apply",
                 func=func,
+                args=args,
+                kwargs=kwargs,
                 axis=axis,
                 raw=raw,
                 result_type=result_type,
                 by_row=by_row,
-                args=args,
-                kwargs=kwargs)
+            )
 
         from pandas.core.apply import frame_apply
 
@@ -10600,9 +10610,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             index = Index(
                 [other.name],
-                name=self.index.names
-                if isinstance(self.index, MultiIndex)
-                else self.index.name,
+                name=(
+                    self.index.names
+                    if isinstance(self.index, MultiIndex)
+                    else self.index.name
+                ),
             )
             row_df = other.to_frame().T
             # infer_objects is needed for
