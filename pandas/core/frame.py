@@ -10383,6 +10383,7 @@ class DataFrame(NDFrame, OpsMixin):
                 <https://numba.readthedocs.io/en/stable/index.html>`_
         .. [2] `Bodo documentation
                 <https://docs.bodo.ai/latest/>`/
+
         Examples
         --------
         >>> df = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])

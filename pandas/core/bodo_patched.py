@@ -2,15 +2,27 @@
 This file is here as an example, this code will live in the Numba and
 Bodo libraries.
 """
-from __future__ import annotations
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Literal, Any
 
-import pandas as pd
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+)
+
 import bodo
 
+import pandas as pd
+
 if TYPE_CHECKING:
-    from pandas._typing import Axis, AggFuncType
+    from collections.abc import Callable
+
+    from pandas._typing import (
+        AggFuncType,
+        Axis,
+    )
+
 
 def __pandas_udf__(
     jit_decorator: Callable,
@@ -24,7 +36,6 @@ def __pandas_udf__(
     kwargs: dict[str, Any],
     by_row: Literal[False, "compat"],
 ):
-
     if isinstance(obj, pd.DataFrame) and method == "apply":
         if result_type is not None:
             raise NotImplementedError(
@@ -32,9 +43,7 @@ def __pandas_udf__(
             )
 
         if raw:
-            raise NotImplementedError(
-                "engine='bodo' not supported when raw=True"
-            )
+            raise NotImplementedError("engine='bodo' not supported when raw=True")
         if isinstance(func, str) and axis != 1:
             raise NotImplementedError(
                 "engine='bodo' only supports axis=1 when func is the name of a "
@@ -44,6 +53,7 @@ def __pandas_udf__(
             raise NotImplementedError(
                 "engine='bodo' not supported when args or kwargs are specified"
             )
+
         @jit_decorator
         def jit_func(df, func, axis):
             return df.apply(func, axis=axis)
@@ -51,7 +61,8 @@ def __pandas_udf__(
         return jit_func(obj, func, axis)
     else:
         raise NotImplementedError(
-            f"engine='bodo' not supported for {obj.__class__.__name__}.{method}"
+            f"engine='bodo' not supported for {obj.__name__}.{method}"
         )
+
 
 bodo.jit.__pandas_udf__ = __pandas_udf__
