@@ -264,7 +264,7 @@ def test_attr_wrapper(ts):
     # make sure raises error
     msg = "'SeriesGroupBy' object has no attribute 'foo'"
     with pytest.raises(AttributeError, match=msg):
-        getattr(grouped, "foo")
+        grouped.foo
 
 
 def test_frame_groupby(tsframe):
@@ -1278,7 +1278,7 @@ def test_groupby_2d_malformed():
     d["label"] = ["l1", "l2"]
     tmp = d.groupby(["group"]).mean(numeric_only=True)
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
-    tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"], dtype=object))
+    tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
     tm.assert_numpy_array_equal(tmp.values, res_values)
 
 
@@ -2978,3 +2978,21 @@ def test_groupby_multi_index_codes():
 
     index = df_grouped.index
     tm.assert_index_equal(index, MultiIndex.from_frame(index.to_frame()))
+
+
+def test_groupby_datetime_with_nat():
+    # GH##35202
+    df = DataFrame(
+        {
+            "a": [
+                to_datetime("2019-02-12"),
+                to_datetime("2019-02-12"),
+                to_datetime("2019-02-13"),
+                pd.NaT,
+            ],
+            "b": [1, 2, 3, 4],
+        }
+    )
+    grouped = df.groupby("a", dropna=False)
+    result = len(grouped)
+    assert result == 3

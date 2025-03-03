@@ -86,7 +86,6 @@ def stata_responder(df):
         return bio.getvalue()
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "responder, read_method",
     [
@@ -107,6 +106,7 @@ def stata_responder(df):
             marks=[
                 td.skip_if_no("fastparquet"),
                 td.skip_if_no("fsspec"),
+                pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string"),
             ],
         ),
         (pickle_respnder, pd.read_pickle),
