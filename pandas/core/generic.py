@@ -9698,15 +9698,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
+        cond = common.apply_if_callable(cond, self)
+
         # We should not be filling NA. See GH#60729
         if isinstance(cond, np.ndarray):
             cond = np.array(cond)
-            cond[np.isnan(cond)] = True
+            cond[isna(cond)] = True
         elif isinstance(cond, NDFrame):
             cond = cond.fillna(True)
+        elif isinstance(cond, (list, tuple)):
+            cond = np.array(cond)
+            cond[isna(cond)] = True
 
         # align the cond to same shape as myself
-        cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
