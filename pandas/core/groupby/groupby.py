@@ -81,6 +81,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -1725,6 +1726,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
+        elif is_string_dtype(ser.dtype) and how in ["min", "max"]:
+            dtype = ser.dtype
+            string_array_cls = dtype.construct_array_type()
+            res_values = string_array_cls._from_sequence(res_values, dtype=dtype)
 
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
         # then we need to reshape
