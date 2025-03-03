@@ -1627,7 +1627,7 @@ def union_with_duplicates(
 def map_array(
     arr: ArrayLike,
     mapper,
-    na_action: Literal["ignore"] | None = None,
+    na_action: Literal["ignore", "raise"] | None = None,
 ) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
@@ -1636,9 +1636,10 @@ def map_array(
     ----------
     mapper : function, dict, or Series
         Mapping correspondence.
-    na_action : {None, 'ignore'}, default None
+    na_action : {None, 'ignore', 'raise'}, default None
         If 'ignore', propagate NA values, without passing them to the
-        mapping correspondence.
+        mapping correspondence. If 'raise', an error is raised when the
+        mapping correspondence does not cover all elements in the array.
 
     Returns
     -------
@@ -1647,7 +1648,7 @@ def map_array(
         If the function returns a tuple with more than one element
         a MultiIndex will be returned.
     """
-    if na_action not in (None, "ignore"):
+    if na_action not in (None, "ignore", "raise"):
         msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
         raise ValueError(msg)
 
@@ -1686,6 +1687,11 @@ def map_array(
         # Since values were input this means we came from either
         # a dict or a series and mapper should be an index
         indexer = mapper.index.get_indexer(arr)
+
+        if na_action == "raise" and (indexer == -1).any():
+            raise ValueError("Provided mapping is not sufficient to cover"
+                             "all values in the input array!")
+        
         new_values = take_nd(mapper._values, indexer)
 
         return new_values
