@@ -10256,6 +10256,7 @@ class DataFrame(NDFrame, OpsMixin):
         by_row: Literal[False, "compat"] = "compat",
         engine: Literal["python", "numba"] = "python",
         engine_kwargs: dict[str, bool] | None = None,
+        jit: Callable | None = None,
         **kwargs,
     ):
         """
@@ -10345,6 +10346,15 @@ class DataFrame(NDFrame, OpsMixin):
             Pass keyword arguments to the engine.
             This is currently only used by the numba engine,
             see the documentation for the engine argument for more information.
+
+        jit : function, optional
+            Decorator to JIT compile the execution. The main available options are
+            ``numba.jit``, ``numba.njit`` or ``bodo.jit``. Parameters can be used in
+            the same way as the decorators, for example ``numba.jit(parallel=True)``.
+
+            Refer to the the [1]_ and [2]_ documentation to learn about limitations
+            on what code can be JIT compiled.
+
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10366,6 +10376,13 @@ class DataFrame(NDFrame, OpsMixin):
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
+
+        References
+        ----------
+        .. [1] `Numba documentation
+                <https://numba.readthedocs.io/en/stable/index.html>`_
+        .. [2] `Bodo documentation
+                <https://docs.bodo.ai/latest/>`/
 
         Examples
         --------
@@ -10435,7 +10452,34 @@ class DataFrame(NDFrame, OpsMixin):
         0  1  2
         1  1  2
         2  1  2
+
+        Advanced users can speed up their code by using a Just-in-time (JIT) compiler
+        with ``apply``. The main JIT compilers available for pandas are Numba and Bodo.
+        In general, JIT compilation is only possible when the function passed to
+        ``apply`` has type stability (variables in the function do not change their
+        type during the execution).
+
+        >>> import bodo
+        >>> df.apply(lambda x: x.A + x.B, axis=1, jit=bodo.jit(parallel=True))
+
+        Note that JIT compilation is only recommended for functions that take a
+        significant amount of time to run. Fast functions are unlikely to run faster
+        with JIT compilation.
         """
+        if hasattr(jit, "__pandas_udf__"):
+            return jit.__pandas_udf__(
+                jit_decorator=jit,
+                obj=self,
+                method="apply",
+                func=func,
+                args=args,
+                kwargs=kwargs,
+                axis=axis,
+                raw=raw,
+                result_type=result_type,
+                by_row=by_row,
+            )
+
         from pandas.core.apply import frame_apply
 
         op = frame_apply(
@@ -10567,9 +10611,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             index = Index(
                 [other.name],
-                name=self.index.names
-                if isinstance(self.index, MultiIndex)
-                else self.index.name,
+                name=(
+                    self.index.names
+                    if isinstance(self.index, MultiIndex)
+                    else self.index.name
+                ),
             )
             row_df = other.to_frame().T
             # infer_objects is needed for
