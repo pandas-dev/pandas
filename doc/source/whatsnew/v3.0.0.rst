@@ -691,11 +691,11 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Bug in :meth:`Series.mask` unexpectedly filling ``pd.NA`` (:issue:`60729`)
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 - Bug in :meth:`DataFrame.from_records` throwing a ``ValueError`` when passed an empty list in ``index`` (:issue:`58594`)
 - Bug in :meth:`DataFrame.loc` with inconsistent behavior of loc-set with 2 given indexes to Series (:issue:`59933`)
 - Bug in :meth:`MultiIndex.insert` when a new value inserted to a datetime-like level gets cast to ``NaT`` and fails indexing (:issue:`60388`)
+- Bug in :meth:`Series.mask` unexpectedly filling ``pd.NA`` (:issue:`60729`)
 - Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 
 Missing
