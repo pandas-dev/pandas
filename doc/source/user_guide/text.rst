@@ -90,7 +90,7 @@ Behavior differences
 These are places where the behavior of ``StringDtype`` objects differ from
 ``object`` dtype:
 
-l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
+1. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
    rather than either int or float dtype, depending on the presence of NA values.
    Methods returning **boolean** output will return a nullable boolean dtype.
@@ -332,8 +332,8 @@ regular expression object will raise a ``ValueError``.
     ---------------------------------------------------------------------------
     ValueError: case and flags cannot be set when pat is a compiled regex
 
-``removeprefix`` and ``removesuffix`` have the same effect as ``str.removeprefix`` and ``str.removesuffix`` added in Python 3.9
-<https://docs.python.org/3/library/stdtypes.html#str.removeprefix>`__:
+``removeprefix`` and ``removesuffix`` have the same effect as ``str.removeprefix`` and ``str.removesuffix`` added in
+`Python 3.9 <https://docs.python.org/3/library/stdtypes.html#str.removeprefix>`__:
 
 .. versionadded:: 1.4.0
 
