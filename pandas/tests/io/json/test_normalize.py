@@ -162,21 +162,27 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "data, record_path, exception_type",
+        "data, record_path, exception_type, expected",
         [
-            ([{"a": 0}, {"a": 1}], None, None),
-            ({"a": [{"a": 0}, {"a": 1}]}, "a", None),
-            ('{"a": [{"a": 0}, {"a": 1}]}', None, None),
-            (None, None, NotImplementedError),
+            # List of dicts
+            ([{"a": 0}, {"a": 1}], None, None, DataFrame([0, 1], columns=["a"])),
+            
+            # Dict with array
+            ({"a": [{"a": 0}, {"a": 1}]}, "a", None, DataFrame([0, 1], columns=["a"])),
+            
+            # JSON string of array
+            ('[{"a": 0}, {"a": 1}]', None, None, DataFrame([0, 1], columns=["a"])),
+            
+            # None input
+            (None, None, NotImplementedError, None),
         ],
     )
-    def test_accepted_input(self, data, record_path, exception_type):
+    def test_accepted_input(self, data, record_path, exception_type, expected):
         if exception_type is not None:
             with pytest.raises(exception_type, match=""):
                 json_normalize(data, record_path=record_path)
         else:
             result = json_normalize(data, record_path=record_path)
-            expected = DataFrame([0, 1], columns=["a"])
             tm.assert_frame_equal(result, expected)
 
     def test_simple_normalize_with_separator(self, deep_nested):
