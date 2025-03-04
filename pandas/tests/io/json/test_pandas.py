@@ -2197,7 +2197,8 @@ class TestPandasContainer:
         )
 
         result = df.dtypes
-        expected = Series(
+        pa = pytest.importorskip("pyarrow")
+        expected = Series([pd.ArrowDtype(pa.int32()), pd.ArrowDtype(pa.int64())], ...)
             [
                 pd.ArrowDtype.construct_from_string("int32[pyarrow]"),
                 pd.ArrowDtype.construct_from_string("int64[pyarrow]"),
