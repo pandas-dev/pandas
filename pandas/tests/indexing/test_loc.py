@@ -807,7 +807,7 @@ class TestLocBaseIndependent:
 
         result = df.loc[0, [1, 2]]
         expected = Series(
-            [1, 3], index=Index([1, 2], dtype=object), dtype=object, name=0
+            [1, 3], index=Index([1, 2], dtype=object), dtype="int64", name=0
         )
         tm.assert_series_equal(result, expected)
 
