@@ -60,6 +60,14 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
     tm.assert_frame_equal(df.notna(), ~expected)
 
 
+def test_loc_dtype():
+    # GH 60600
+    df = DataFrame([["a", 1.0, 2.0], ["b", 3.0, 4.0]])
+    result = df.loc[0, [1, 2]]
+    expected = df[[1, 2]].loc[0]
+    tm.assert_frame_equal(result, expected)
+
+
 class TestLoc:
     def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
