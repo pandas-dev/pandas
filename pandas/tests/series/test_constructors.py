@@ -1870,11 +1870,11 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "data, expected_index_multi, expected_index_single",
         [
-            ({("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, True, None),
-            ({("a",): 0.0, ("a", "b"): 1.0}, True, None),
+            ({("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, True, False),
+            ({("a",): 0.0, ("a", "b"): 1.0}, True, False),
             (
                 {"z": 111.0, ("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0},
-                None,
+                False,
                 True,
             ),
         ],
@@ -1885,14 +1885,14 @@ class TestSeriesConstructors:
         # GH#60695
         result = Series(data)
 
-        if expected_index_multi is not None:
+        if expected_index_multi:
             expected = Series(
                 list(data.values()),
                 index=MultiIndex.from_tuples(list(data.keys())),
             )
             tm.assert_series_equal(result, expected)
 
-        if expected_index_single is not None:
+        if expected_index_single:
             expected = Series(
                 list(data.values()),
                 index=Index(list(data.keys())),
