@@ -815,6 +815,19 @@ class TestDataFrameSetItem:
             }
         )
         tm.assert_frame_equal(df, expected)
+        
+    def test_setitem_2d_object_array(self):
+        # GH#61026
+        df = DataFrame({
+            "c1": [1, 2, 3, 4, 5],
+        })
+        arr = np.array([["A"], ["B"], ["C"], ["D"], ["E"]], dtype=object)
+        df["c1"] = arr
+        
+        expected = DataFrame({
+            "c1": ["A", "B", "C", "D", "E"],
+        })
+        tm.assert_frame_equal(df, expected)
 
 
 class TestSetitemTZAwareValues:
