@@ -32,12 +32,10 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     ensure_str,
     is_string_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas import (
-    ArrowDtype,
     DataFrame,
     Index,
     MultiIndex,
