@@ -1094,7 +1094,16 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if com.is_null_slice(new_key):
                     return section
                 # This is an elided recursive call to iloc/loc
-                return getattr(section, self.name)[new_key]
+                out = getattr(section, self.name)[new_key]
+                # Re-interpret dtype of out.values for loc/iloc[int, list/slice].
+                # GH60600
+                if (
+                    i == 0
+                    and isinstance(key, int)
+                    and isinstance(new_key, (list, slice))
+                ):
+                    out = out.infer_objects()
+                return out
 
         raise IndexingError("not applicable")
 
