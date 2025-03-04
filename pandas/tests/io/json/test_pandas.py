@@ -2186,9 +2186,10 @@ class TestPandasContainer:
     @td.skip_if_no("pyarrow")
     def test_read_json_pyarrow_with_dtype(self, datapath):
         dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
+        json = '{"a": 1, "b": 2}'
 
         df = read_json(
-            datapath("io", "json", "data", "line_delimited.json"),
+            StringIO(json),
             dtype=dtype,
             lines=True,
             engine="pyarrow",
