@@ -957,7 +957,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         pa_table = pyarrow_json.read_json(self.data)
         df = arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
 
-        if isinstance(dict, self.dtype):
+        if isinstance(self.dtype, dict):
             df = df.astype(self.dtype)
 
         return df
