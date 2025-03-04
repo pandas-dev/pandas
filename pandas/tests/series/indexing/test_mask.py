@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Series,
-)
+import pandas.util._test_decorators as td
+
+from pandas import Series
 import pandas._testing as tm
 
 
@@ -71,10 +71,14 @@ def test_mask_inplace():
     tm.assert_series_equal(rs, s.mask(cond, -s))
 
 
-@pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
 def test_mask_na(dtype):
-    if dtype == "int64[pyarrow]":
-        pytest.importorskip("pyarrow")
     # We should not be filling pd.NA. See GH#60729
     series = Series([None, 1, 2, None, 3, 4, None], dtype=dtype)
     result = series.mask(series <= 2, -99)
