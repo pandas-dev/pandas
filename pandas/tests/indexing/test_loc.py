@@ -65,7 +65,7 @@ def test_loc_dtype():
     df = DataFrame([["a", 1.0, 2.0], ["b", 3.0, 4.0]])
     result = df.loc[0, [1, 2]]
     expected = df[[1, 2]].loc[0]
-    tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 class TestLoc:
