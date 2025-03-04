@@ -955,7 +955,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         Read JSON using the pyarrow engine.
         """
         pyarrow_json = import_optional_dependency("pyarrow.json")
-        options = None
 
         pa_table = pyarrow_json.read_json(self.data)
         df = arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
