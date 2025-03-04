@@ -2520,6 +2520,15 @@ class TestToDatetimeMisc:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
+    def test_to_datetime_float_with_nans_floating_point_error(self):
+        # GH#58419
+        ser = Series([np.nan] * 1000 + [1712219033.0], dtype=np.float64)
+        result = to_datetime(ser, unit="s", errors="coerce")
+        expected = Series(
+            [NaT] * 1000 + [Timestamp("2024-04-04 08:23:53")], dtype="datetime64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_string_invalid_operation(self, cache):
         invalid = np.array(["87156549591102612381000001219H5"], dtype=object)
         # GH #51084
