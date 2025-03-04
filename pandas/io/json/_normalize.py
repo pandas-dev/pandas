@@ -147,7 +147,7 @@ def nested_to_record(
     return new_ds
 
 
-def _normalise_json(
+def _normalize_json(
     data: Any,
     key_string: str,
     normalized_dict: dict[str, Any],
@@ -177,7 +177,7 @@ def _normalise_json(
             if not key_string:
                 new_key = new_key.removeprefix(separator)
 
-            _normalise_json(
+            _normalize_json(
                 data=value,
                 key_string=new_key,
                 normalized_dict=normalized_dict,
@@ -188,7 +188,7 @@ def _normalise_json(
     return normalized_dict
 
 
-def _normalise_json_ordered(data: dict[str, Any], separator: str) -> dict[str, Any]:
+def _normalize_json_ordered(data: dict[str, Any], separator: str) -> dict[str, Any]:
     """
     Order the top level keys and then recursively go to depth
 
@@ -201,10 +201,10 @@ def _normalise_json_ordered(data: dict[str, Any], separator: str) -> dict[str, A
 
     Returns
     -------
-    dict or list of dicts, matching `normalised_json_object`
+    dict or list of dicts, matching `normalized_json_object`
     """
     top_dict_ = {k: v for k, v in data.items() if not isinstance(v, dict)}
-    nested_dict_ = _normalise_json(
+    nested_dict_ = _normalize_json(
         data={k: v for k, v in data.items() if isinstance(v, dict)},
         key_string="",
         normalized_dict={},
@@ -235,7 +235,7 @@ def _simple_json_normalize(
     Returns
     -------
     frame : DataFrame
-    d - dict or list of dicts, matching `normalised_json_object`
+    d - dict or list of dicts, matching `normalized_json_object`
 
     Examples
     --------
@@ -256,14 +256,14 @@ def _simple_json_normalize(
 }
 
     """
-    normalised_json_object = {}
+    normalized_json_object = {}
     # expect a dictionary, as most jsons are. However, lists are perfectly valid
     if isinstance(ds, dict):
-        normalised_json_object = _normalise_json_ordered(data=ds, separator=sep)
+        normalized_json_object = _normalize_json_ordered(data=ds, separator=sep)
     elif isinstance(ds, list):
-        normalised_json_list = [_simple_json_normalize(row, sep=sep) for row in ds]
-        return normalised_json_list
-    return normalised_json_object
+        normalized_json_list = [_simple_json_normalize(row, sep=sep) for row in ds]
+        return normalized_json_list
+    return normalized_json_object
 
 
 def json_normalize(
