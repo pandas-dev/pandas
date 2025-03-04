@@ -72,8 +72,10 @@ Other enhancements
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
 - Add ``"delete_rows"`` option to ``if_exists`` argument in :meth:`DataFrame.to_sql` deleting all records of the table before inserting data (:issue:`37210`).
+- Added half-year offset classes :class:`HalfYearBegin`, :class:`HalfYearEnd`, :class:`BHalfYearBegin` and :class:`BHalfYearEnd` (:issue:`60928`)
 - Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library (:issue:`60748`)
 - Implemented :meth:`Series.str.isascii` and :meth:`Series.str.isascii` (:issue:`59091`)
+- Improved deprecation message for offset aliases (:issue:`60820`)
 - Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
 - Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
@@ -614,7 +616,9 @@ Performance improvements
 - Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`, :issue:`57752`)
 - Performance improvement in :func:`merge` if hash-join can be used (:issue:`57970`)
 - Performance improvement in :meth:`CategoricalDtype.update_dtype` when ``dtype`` is a :class:`CategoricalDtype` with non ``None`` categories and ordered (:issue:`59647`)
+- Performance improvement in :meth:`DataFrame.__getitem__` when ``key`` is a :class:`DataFrame` with many columns (:issue:`61010`)
 - Performance improvement in :meth:`DataFrame.astype` when converting to extension floating dtypes, e.g. "Float64" (:issue:`60066`)
+- Performance improvement in :meth:`DataFrame.where` when ``cond`` is a :class:`DataFrame` with many columns (:issue:`61010`)
 - Performance improvement in :meth:`to_hdf` avoid unnecessary reopenings of the HDF5 file to speedup data addition to files with a very large number of groups . (:issue:`58248`)
 - Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
@@ -647,6 +651,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.union` and :meth:`DatetimeIndex.intersection` when ``unit`` was non-nanosecond (:issue:`59036`)
 - Bug in :meth:`Series.dt.microsecond` producing incorrect results for pyarrow backed :class:`Series`. (:issue:`59154`)
 - Bug in :meth:`to_datetime` not respecting dayfirst if an uncommon date string was passed. (:issue:`58859`)
+- Bug in :meth:`to_datetime` on float array with missing values throwing ``FloatingPointError`` (:issue:`58419`)
 - Bug in :meth:`to_datetime` on float32 df with year, month, day etc. columns leads to precision issues and incorrect result. (:issue:`60506`)
 - Bug in :meth:`to_datetime` reports incorrect index in case of any failure scenario. (:issue:`58298`)
 - Bug in :meth:`to_datetime` wrongly converts when ``arg`` is a ``np.datetime64`` object with unit of ``ps``. (:issue:`60341`)
@@ -690,6 +695,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 - Bug in :meth:`DataFrame.from_records` throwing a ``ValueError`` when passed an empty list in ``index`` (:issue:`58594`)
+- Bug in :meth:`DataFrame.loc` with inconsistent behavior of loc-set with 2 given indexes to Series (:issue:`59933`)
 - Bug in :meth:`MultiIndex.insert` when a new value inserted to a datetime-like level gets cast to ``NaT`` and fails indexing (:issue:`60388`)
 - Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 
@@ -705,6 +711,7 @@ MultiIndex
 - :meth:`MultiIndex.insert` would not insert NA value correctly at unified location of index -1 (:issue:`59003`)
 - :func:`MultiIndex.get_level_values` accessing a :class:`DatetimeIndex` does not carry the frequency attribute along (:issue:`58327`, :issue:`57949`)
 - Bug in :class:`DataFrame` arithmetic operations in case of unaligned MultiIndex columns (:issue:`60498`)
+- Bug in :class:`DataFrame` arithmetic operations with :class:`Series` in case of unaligned MultiIndex (:issue:`61009`)
 -
 
 I/O

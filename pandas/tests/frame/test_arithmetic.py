@@ -832,6 +832,43 @@ class TestFrameFlexArithmetic:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_multiindex_operations_part_align_axis1(self):
+        # GH#61009 Test DataFrame-Series arithmetic operation
+        # with partly aligned MultiIndex and axis = 1
+        df = DataFrame(
+            [[1, 2, 3], [3, 4, 5]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            [[1.4, 2.4, np.nan], [3.4, 4.4, np.nan]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=1)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):

@@ -9636,10 +9636,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             left = self._constructor_from_mgr(fdata, axes=fdata.axes)
 
-            if ridx is None:
-                right = other.copy(deep=False)
-            else:
-                right = other.reindex(join_index, level=level)
+            right = other._reindex_indexer(join_index, ridx)
 
         # fill
         fill_na = notna(fill_value)
@@ -9732,9 +9729,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if not is_bool_dtype(cond):
                     raise TypeError(msg.format(dtype=cond.dtype))
             else:
-                for _dt in cond.dtypes:
-                    if not is_bool_dtype(_dt):
-                        raise TypeError(msg.format(dtype=_dt))
+                for block in cond._mgr.blocks:
+                    if not is_bool_dtype(block.dtype):
+                        raise TypeError(msg.format(dtype=block.dtype))
                 if cond._mgr.any_extension_types:
                     # GH51574: avoid object ndarray conversion later on
                     cond = cond._constructor(
