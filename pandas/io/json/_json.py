@@ -957,19 +957,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         pyarrow_json = import_optional_dependency("pyarrow.json")
         options = None
 
-        if isinstance(self.dtype, dict):
-            pa = import_optional_dependency("pyarrow")
-            fields = []
-            for field, dtype in self.dtype.items():
-                pd_dtype = pandas_dtype(dtype)
-                if isinstance(pd_dtype, ArrowDtype):
-                    fields.append((field, pd_dtype.pyarrow_dtype))
+        pa_table = pyarrow_json.read_json(self.data)
+        df = arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
 
-            schema = pa.schema(fields)
-            options = pyarrow_json.ParseOptions(explicit_schema=schema)
+        if self.dtype:
+            df = df.astype(self.dtype)
 
-        pa_table = pyarrow_json.read_json(self.data, parse_options=options)
-        return arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
+        return df
 
     def _read_ujson(self) -> DataFrame | Series:
         """
