@@ -166,7 +166,7 @@ class TestJSONNormalize:
         [
             ([{"a": 0}, {"a": 1}], None, None),
             ({"a": [{"a": 0}, {"a": 1}]}, "a", None),
-            ('{"a": [{"a": 0}, {"a": 1}]}', None, NotImplementedError),
+            ('{"a": [{"a": 0}, {"a": 1}]}', None, None),
             (None, None, NotImplementedError),
         ],
     )
@@ -630,14 +630,17 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     def test_invalid_json_string(self):
-        invalid_json = '{"id": 1, "name": {"first": "John", "last": "Doe"'
+        incomplete_json = '{"id": 1, "name": {"first": "John", "last": "Doe"'
         with pytest.raises(json.JSONDecodeError):
-            json_normalize(invalid_json)
+            json_normalize(incomplete_json)
 
-    def test_non_json_string(self):
         non_json = "Hello World"
         with pytest.raises(json.JSONDecodeError):
             json_normalize(non_json)
+
+        malformed_json = '{"a": 1,}'
+        with pytest.raises(json.JSONDecodeError):
+            json_normalize(malformed_json)
 
 
 class TestNestedToRecord:
