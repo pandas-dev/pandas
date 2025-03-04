@@ -612,8 +612,10 @@ def sanitize_array(
         if dtype is None:
             subarr = data
             if data.dtype == object and infer_object:
-                fltarr = data.ravel()  # GH#61026
-                subarr = maybe_infer_to_datetimelike(fltarr)
+                if data.ndim != 1:
+                    # GH#61026
+                    subarr = data.ravel()
+                subarr = maybe_infer_to_datetimelike(subarr)
             elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
