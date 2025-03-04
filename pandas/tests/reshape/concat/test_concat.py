@@ -955,8 +955,86 @@ def test_concat_of_series_and_frame_with_names_for_ignore_index():
     ser = Series([4, 5], name="c")
     df = DataFrame({"a": [0, 1], "b": [2, 3]})
 
+    result = concat([df, ser])
+    expected = DataFrame(
+        {"a": [0, 1, None, None], "b": [2, 3, None, None], "c": [None, None, 4, 5]},
+        index=[0, 1, 0, 1],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    ser = Series([4, 5], name="c")
+    df = DataFrame({"a": [0, 1], "b": [2, 3]})
+
     result = concat([df, ser], ignore_index=True)
     expected = DataFrame(
-        {"a": [0, 1, None, None], "b": [2, 3, None, None], "c": [None, None, 4, 5]}
+        {"a": [0, 1, None, None], "b": [2, 3, None, None], "c": [None, None, 4, 5]},
+        index=[0, 1, 2, 3],
     )
+    tm.assert_frame_equal(result, expected)
+
+    ser = Series([4, 5])
+    df = DataFrame({"a": [0, 1], "b": [2, 3]})
+
+    result = concat([df, ser, ser], axis=1)
+    expected = DataFrame({"a": [0, 1], "b": [2, 3], 0: [4, 5], 1: [4, 5]}, index=[0, 1])
+    tm.assert_frame_equal(result, expected)
+
+    ser = Series([4, 5])
+    df = DataFrame({"a": [0, 1], "b": [2, 3]})
+
+    result = concat([df, ser, ser], axis=1, ignore_index=True)
+    expected = DataFrame({0: [0, 1], 1: [2, 3], 2: [4, 5], 3: [4, 5]}, index=[0, 1])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "inputs, ignore_index, axis, expected",
+    [
+        # Concatenating DataFrame and named Series without ignore_index
+        (
+            [DataFrame({"a": [0, 1], "b": [2, 3]}), Series([4, 5], name="c")],
+            False,
+            0,
+            DataFrame(
+                {
+                    "a": [0, 1, None, None],
+                    "b": [2, 3, None, None],
+                    "c": [None, None, 4, 5],
+                },
+                index=[0, 1, 0, 1],
+            ),
+        ),
+        # Concatenating DataFrame and named Series with ignore_index
+        (
+            [DataFrame({"a": [0, 1], "b": [2, 3]}), Series([4, 5], name="c")],
+            True,
+            0,
+            DataFrame(
+                {
+                    "a": [0, 1, None, None],
+                    "b": [2, 3, None, None],
+                    "c": [None, None, 4, 5],
+                },
+                index=[0, 1, 2, 3],
+            ),
+        ),
+        # Concatenating DataFrame and unnamed Series along columns
+        (
+            [DataFrame({"a": [0, 1], "b": [2, 3]}), Series([4, 5]), Series([4, 5])],
+            False,
+            1,
+            DataFrame({"a": [0, 1], "b": [2, 3], 0: [4, 5], 1: [4, 5]}, index=[0, 1]),
+        ),
+        # Concatenating DataFrame and unnamed Series along columns with ignore_index
+        (
+            [DataFrame({"a": [0, 1], "b": [2, 3]}), Series([4, 5]), Series([4, 5])],
+            True,
+            1,
+            DataFrame({0: [0, 1], 1: [2, 3], 2: [4, 5], 3: [4, 5]}, index=[0, 1]),
+        ),
+    ],
+)
+def test_concat_of_series_and_frame(inputs, ignore_index, axis, expected):
+    # GH #60723 and #56257
+    result = concat(inputs, ignore_index=ignore_index, axis=axis)
     tm.assert_frame_equal(result, expected)
