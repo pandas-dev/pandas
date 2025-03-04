@@ -9698,20 +9698,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
-        cond = common.apply_if_callable(cond, self)
-
-        # We should not be filling NA. See GH#60729
-        if isinstance(cond, np.ndarray):
-            cond = np.array(cond)
-            cond[isna(cond)] = True
-        elif isinstance(cond, NDFrame):
-            cond = cond.fillna(True)
-        elif isinstance(cond, (list, tuple)):
-            cond = np.array(cond)
-            cond[isna(cond)] = True
-
         # align the cond to same shape as myself
+        cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
+            cond = cond.fillna(True)
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
                 cond = cond._constructor_expanddim(
@@ -9723,6 +9713,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
+            cond[isna(cond)] = True
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
