@@ -1445,11 +1445,11 @@ class TestSeriesConstructors:
         "data, expected_values, expected_index",
         [
             ({(1, 2): 3, (None, 5): 6}, [3, 6], [(1, 2), (None, 5)]),
-            # GH 60695 test case
             ({(1,): 3, (4, 5): 6}, [3, 6], [(1, None), (4, 5)]),
         ],
     )
     def test_constructor_dict_of_tuples(self, data, expected_values, expected_index):
+        # GH 60695
         result = Series(data).sort_values()
         expected = Series(expected_values, index=MultiIndex.from_tuples(expected_index))
         tm.assert_series_equal(result, expected)
@@ -1870,44 +1870,33 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "data, expected_index_multi, expected_index_single",
         [
+            ({("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, True, None),
+            ({("a",): 0.0, ("a", "b"): 1.0}, True, None),
             (
-                {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0},
-                MultiIndex.from_tuples([("a", "a"), ("b", "a"), ("b", "c")]),
+                {"z": 111.0, ("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0},
                 None,
-            ),
-            (
-                {("a",): 0.0, ("a", "b"): 1.0},
-                MultiIndex.from_tuples([("a",), ("a", "b")]),
-                None,
-            ),
-            (
-                {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0, "z": 111.0},
-                None,
-                Index(["z", ("a", "a"), ("b", "a"), ("b", "c")], dtype=object),
+                True,
             ),
         ],
     )
     def test_constructor_dict_multiindex(
         self, data, expected_index_multi, expected_index_single
     ):
-        if all(isinstance(k, tuple) for k in data.keys()):
-            sorted_data = sorted(data.items())
-        else:
-            sorted_data = list(data.items())
-
+        # GH#60695
         result = Series(data)
 
         if expected_index_multi is not None:
-            expected = Series([x[1] for x in sorted_data], index=expected_index_multi)
+            expected = Series(
+                list(data.values()),
+                index=MultiIndex.from_tuples(list(data.keys())),
+            )
             tm.assert_series_equal(result, expected)
 
         if expected_index_single is not None:
-            result = result.reindex(index=expected_index_single, fill_value=np.nan)
-            expected_values = [
-                data[idx] if idx in data else np.nan for idx in expected_index_single
-            ]
-            expected = Series(expected_values, index=expected_index_single)
-
+            expected = Series(
+                list(data.values()),
+                index=Index(list(data.keys())),
+            )
             tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_multiindex_reindex_flat(self):
