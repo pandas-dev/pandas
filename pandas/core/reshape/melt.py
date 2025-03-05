@@ -616,6 +616,9 @@ def wide_to_long(
         return df.columns[df.columns.str.match(regex)]
 
     def melt_stub(df, stub: str, i, j, value_vars, sep: str):
+        # Ensure value_name and var_name are different when passing to melt
+        j_original = j
+        j = f"{j}_1" if stub == j else j
         newdf = melt(
             df,
             id_vars=i,
@@ -632,7 +635,10 @@ def wide_to_long(
             # TODO: anything else to catch?
             pass
 
-        return newdf.set_index(i + [j])
+        newdf = newdf.set_index(i + [j])
+        if j != j_original:
+            newdf.index = newdf.index.set_names(j_original, level=-1)
+        return newdf
 
     if not is_list_like(stubnames):
         stubnames = [stubnames]
