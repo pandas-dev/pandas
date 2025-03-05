@@ -85,7 +85,7 @@ feedparser
 pyyaml
 requests
 pygments
-jupyterlite-core
+jupyterlite-sphinx
 jupyterlite-pyodide-kernel
 adbc-driver-postgresql>=0.10.0
 adbc-driver-sqlite>=0.8.0
