@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
+    Union,
     overload,
 )
 
@@ -267,7 +268,7 @@ def _simple_json_normalize(
 
 
 def json_normalize(
-    data: dict | list[dict] | Series | str | bytes,
+    data: Union[dict[Any, Any], list[dict[Any, Any]], Series, str, bytes],
     record_path: str | list | None = None,
     meta: str | list[str | list[str]] | None = None,
     meta_prefix: str | None = None,
@@ -285,7 +286,7 @@ def json_normalize(
 
     Parameters
     ----------
-    data : dict, list of dicts, Series of dicts/JSON strings/bytes, or JSON string/bytes
+    data : dict, list of dicts, Series of dicts/JSON str/bytes, or JSON str/bytes
         Unserialized JSON objects or JSON strings/bytes.
     record_path : str or list of str, default None
         Path in each object to list of records. If not passed, data will be
@@ -449,7 +450,7 @@ def json_normalize(
     if isinstance(data, Series):
         if data.empty:
             return DataFrame()
-
+        
         sample = data.iloc[0]
         if isinstance(sample, (str, bytes)):
             import json
