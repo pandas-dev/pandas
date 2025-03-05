@@ -423,6 +423,8 @@ nbsphinx_allow_errors = True
 
 # -- Options for jupyterlite-sphinx --------------------------------------
 
+jupyterlite_bind_ipynb_suffix = False
+
 # Configuration for interactive documentation using jupyterlite-sphinx and
 # Pyodide. See https://jupyterlite-sphinx.readthedocs.io/en/stable/ for
 # more options.
