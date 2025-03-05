@@ -572,7 +572,12 @@ class BaseBlockManager(PandasObject):
                         0, blk_loc, values
                     )
                     # first block equals values
-                    self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
+                    col_indexer: slice | np.ndarray
+                    if isinstance(indexer[1], slice) and indexer[1] == slice(None):
+                        col_indexer = slice(None)
+                    else:
+                        col_indexer = np.arange(len(blk_loc))
+                    self.blocks[0].setitem((indexer[0], col_indexer), value)
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
