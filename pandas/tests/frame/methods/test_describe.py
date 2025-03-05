@@ -413,3 +413,32 @@ class TestDataFrameDescribe:
             dtype=pd.ArrowDtype(pa.float64()),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_describe_empty_percentiles(self):
+        # 60550 :
+        # Create a simple DataFrame
+        df = DataFrame({"a": [1, 2, 3, 4, 5]})
+
+        # Case 1: Passing an empty list
+        result = df.describe(percentiles=[])
+        expected = DataFrame(
+            {"a": [5, 3, 1, 5]},
+            index=["count", "mean", "min", "max"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Case 2: Passing an empty numpy array
+        result = df.describe(percentiles=np.array([]))
+        tm.assert_frame_equal(result, expected)
+
+    def test_describe_with_single_percentile(self):
+        # 60550 :
+        # Create a simple DataFrame
+        df = DataFrame({"a": [1, 2, 3, 4, 5]})
+        # Case 1: Passing a single percentile
+        result = df.describe(percentiles=[0.5])
+        expected = DataFrame(
+            {"a": [5, 3, 1, 3.0]},
+            index=["count", "mean", "min", "50%"],
+        )
+        tm.assert_frame_equal(result, expected)
