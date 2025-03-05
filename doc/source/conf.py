@@ -436,7 +436,7 @@ try_examples_global_warning_text = (
     "[pandas issue tracker](https://github.com/pandas-dev/pandas/issues/new)."
 )
 # uncomment to ease debugging
-jupyterlite_silence = False
+# jupyterlite_silence = False
 
 # -- Options for LaTeX output --------------------------------------------
 
