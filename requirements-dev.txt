@@ -80,6 +80,8 @@ ipywidgets
 nbformat
 notebook>=7.0.6
 ipykernel
+jupyterlite-sphinx
+jupyterlite-pyodide-kernel
 markdown
 feedparser
 pyyaml
