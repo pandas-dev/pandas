@@ -1,6 +1,9 @@
 import datetime
 from datetime import timedelta
-from io import StringIO, BytesIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import json
 import os
 import sys
@@ -2197,7 +2200,6 @@ class TestPandasContainer:
         )
 
         result = df.dtypes
-        pa = pytest.importorskip("pyarrow")
         expected = Series(
             data=[
                 pd.ArrowDtype.construct_from_string("int32[pyarrow]"),
