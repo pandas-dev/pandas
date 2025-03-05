@@ -164,16 +164,9 @@ class TestJSONNormalize:
     @pytest.mark.parametrize(
         "data, record_path, exception_type, expected",
         [
-            # List of dicts
             ([{"a": 0}, {"a": 1}], None, None, DataFrame([0, 1], columns=["a"])),
-            
-            # Dict with array
             ({"a": [{"a": 0}, {"a": 1}]}, "a", None, DataFrame([0, 1], columns=["a"])),
-            
-            # JSON string of array
             ('[{"a": 0}, {"a": 1}]', None, None, DataFrame([0, 1], columns=["a"])),
-            
-            # None input
             (None, None, NotImplementedError, None),
         ],
     )
@@ -579,60 +572,42 @@ class TestJSONNormalize:
         # GH61006: Accept JSON as str input
         json_str = '{"id": 1, "name": {"first": "John", "last": "Doe"}}'
         result = json_normalize(json_str)
-        expected = DataFrame({
-            "id": [1],
-            "name.first": ["John"],
-            "name.last": ["Doe"]
-        })
+        expected = DataFrame({"id": [1], "name.first": ["John"], "name.last": ["Doe"]})
         tm.assert_frame_equal(result, expected)
 
-        json_array_str = '''[
+        json_array_str = """[
             {"id": 1, "name": {"first": "John", "last": "Doe"}},
             {"id": 2, "name": {"first": "Jane", "last": "Smith"}}
-        ]'''
+        ]"""
         result = json_normalize(json_array_str)
-        expected = DataFrame({
-            "id": [1, 2],
-            "name.first": ["John", "Jane"],
-            "name.last": ["Doe", "Smith"]
-        })
+        expected = DataFrame(
+            {
+                "id": [1, 2],
+                "name.first": ["John", "Jane"],
+                "name.last": ["Doe", "Smith"],
+            }
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_json_bytes_input(self):
         # GH61006: Accept JSON as bytes input
         json_bytes = b'{"id": 1, "name": {"first": "John", "last": "Doe"}}'
         result = json_normalize(json_bytes)
-        expected = DataFrame({
-            "id": [1],
-            "name.first": ["John"],
-            "name.last": ["Doe"]
-        })
+        expected = DataFrame({"id": [1], "name.first": ["John"], "name.last": ["Doe"]})
         tm.assert_frame_equal(result, expected)
 
     def test_series_json_string(self):
         # GH61006:
-        s = Series([
-            '{"value": 0.0}',
-            '{"value": 0.5}',
-            '{"value": 1.0}'
-        ])
+        s = Series(['{"value": 0.0}', '{"value": 0.5}', '{"value": 1.0}'])
         result = json_normalize(s)
-        expected = DataFrame({
-            "value": [0.0, 0.5, 1.0]
-        })
+        expected = DataFrame({"value": [0.0, 0.5, 1.0]})
         tm.assert_frame_equal(result, expected)
 
     def test_series_json_string_with_index(self):
         # GH61006:
-        s = Series(
-            ['{"value": 0.0}', '{"value": 0.5}'],
-            index=['a', 'b']
-        )
+        s = Series(['{"value": 0.0}', '{"value": 0.5}'], index=["a", "b"])
         result = json_normalize(s)
-        expected = DataFrame(
-            {"value": [0.0, 0.5]},
-            index=['a', 'b']
-        )
+        expected = DataFrame({"value": [0.0, 0.5]}, index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
     def test_invalid_json_string(self):

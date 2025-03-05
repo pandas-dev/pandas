@@ -443,15 +443,17 @@ def json_normalize(
     """
     if isinstance(data, (str, bytes)):
         import json
+
         data = json.loads(data)
-    
+
     if isinstance(data, Series):
         if data.empty:
             return DataFrame()
-        
+
         sample = data.iloc[0]
         if isinstance(sample, (str, bytes)):
             import json
+
             data = data.apply(json.loads)
         index = data.index
     else:
