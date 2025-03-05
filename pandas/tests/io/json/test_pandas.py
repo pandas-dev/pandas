@@ -1,6 +1,6 @@
 import datetime
 from datetime import timedelta
-from io import StringIO
+from io import StringIO, BytesIO
 import json
 import os
 import sys
@@ -2186,10 +2186,10 @@ class TestPandasContainer:
     @td.skip_if_no("pyarrow")
     def test_read_json_pyarrow_with_dtype(self):
         dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
-        json = '{"a": 1, "b": 2}'
+        json = b'{"a": 1, "b": 2}\n'
 
         df = read_json(
-            StringIO(json),
+            BytesIO(json),
             dtype=dtype,
             lines=True,
             engine="pyarrow",
@@ -2199,8 +2199,7 @@ class TestPandasContainer:
         result = df.dtypes
         pa = pytest.importorskip("pyarrow")
         expected = Series(
-            [pd.ArrowDtype(pa.int32()), pd.ArrowDtype(pa.int64())],
-            [
+            data=[
                 pd.ArrowDtype.construct_from_string("int32[pyarrow]"),
                 pd.ArrowDtype.construct_from_string("int64[pyarrow]"),
             ],
