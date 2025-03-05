@@ -58,6 +58,7 @@ extensions = [
     "numpydoc",
     "sphinx_copybutton",
     "sphinx_design",
+    "jupyterlite_sphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -419,6 +420,23 @@ htmlhelp_basename = "pandas"
 # -- Options for nbsphinx ------------------------------------------------
 
 nbsphinx_allow_errors = True
+
+# -- Options for jupyterlite-sphinx --------------------------------------
+
+# Configuration for interactive documentation using jupyterlite-sphinx and
+# Pyodide. See https://jupyterlite-sphinx.readthedocs.io/en/stable/ for
+# more options.
+
+global_enable_try_examples = True
+try_examples_global_button_text = "Try it!"
+try_examples_global_warning_text = (
+    "Interactive examples for pandas are experimental and may not always "
+    "work as expected. If you encounter any issues or wish to provide any "
+    "feedback, please reach out to us on the "
+    "[pandas issue tracker](https://github.com/pandas-dev/pandas/issues/new)."
+)
+# uncomment to ease debugging
+jupyterlite_silence = False
 
 # -- Options for LaTeX output --------------------------------------------
 
