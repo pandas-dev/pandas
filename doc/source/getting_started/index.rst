@@ -657,6 +657,28 @@ The community produces a wide variety of tutorials available online. Some of the
 material is enlisted in the community contributed :ref:`communitytutorials`.
 
 
+Try pandas online (experimental)
+--------------------------------
+
+Try our experimental `JupyterLite <https://jupyterlite.readthedocs.io/en/stable/>`__ live shell with ``pandas``, powered by `Pyodide <https://pyodide.org/en/stable/>`__.
+
+**Please note it can take a while (>30 seconds) before the shell is initialized and ready to run commands.**
+
+**Running it requires a reasonable amount of bandwidth and resources (>70 MiB on the first load), so
+it may not work properly on all devices or networks.**
+
+
+.. replite::
+  :kernel: pyodide
+  :height: 600px
+  :prompt: Try pandas online!
+  :execute: False
+  :prompt_color: #E70288
+
+  import pandas as pd
+  df = pd.DataFrame({"num_legs": [2, 4], "num_wings": [2, 0]}, index=["falcon", "dog"])
+  df
+
 .. If you update this toctree, also update the manual toctree in the
    main index.rst.template
 
