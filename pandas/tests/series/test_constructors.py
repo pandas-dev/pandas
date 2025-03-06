@@ -1868,20 +1868,14 @@ class TestSeriesConstructors:
         tm.assert_series_equal(series, expected)
 
     @pytest.mark.parametrize(
-        "data, expected_index_multi, expected_index_single",
+        "data, expected_index_multi",
         [
-            ({("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, True, False),
-            ({("a",): 0.0, ("a", "b"): 1.0}, True, False),
-            (
-                {"z": 111.0, ("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0},
-                False,
-                True,
-            ),
+            ({("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, True),
+            ({("a",): 0.0, ("a", "b"): 1.0}, True),
+            ({"z": 111.0, ("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, False),
         ],
     )
-    def test_constructor_dict_multiindex(
-        self, data, expected_index_multi, expected_index_single
-    ):
+    def test_constructor_dict_multiindex(self, data, expected_index_multi):
         # GH#60695
         result = Series(data)
 
@@ -1891,8 +1885,7 @@ class TestSeriesConstructors:
                 index=MultiIndex.from_tuples(list(data.keys())),
             )
             tm.assert_series_equal(result, expected)
-
-        if expected_index_single:
+        else:
             expected = Series(
                 list(data.values()),
                 index=Index(list(data.keys())),
