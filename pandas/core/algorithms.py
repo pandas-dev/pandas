@@ -1689,8 +1689,10 @@ def map_array(
         indexer = mapper.index.get_indexer(arr)
 
         if na_action == "raise" and (indexer == -1).any():
-            raise ValueError("Provided mapping is not sufficient to cover"
-                             "all values in the input array!")
+            raise ValueError(
+                "Provided mapping is not sufficient to cover"
+                "all values in the input array!"
+            )
 
         new_values = take_nd(mapper._values, indexer)
 
