@@ -32,10 +32,12 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     ensure_str,
     is_string_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     MultiIndex,
@@ -953,12 +955,23 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         Read JSON using the pyarrow engine.
         """
         pyarrow_json = import_optional_dependency("pyarrow.json")
-
-        pa_table = pyarrow_json.read_json(self.data)
-        df = arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
+        options = None
 
         if isinstance(self.dtype, dict):
-            df = df.astype(self.dtype)
+            pa = import_optional_dependency("pyarrow")
+            fields = []
+            for field, dtype in self.dtype.items():
+                pd_dtype = pandas_dtype(dtype)
+                if isinstance(pd_dtype, ArrowDtype):
+                    fields.append((field, pd_dtype.pyarrow_dtype))
+
+            schema = pa.schema(fields)
+            options = pyarrow_json.ParseOptions(
+                explicit_schema=schema, unexpected_field_behavior="infer"
+            )
+
+        pa_table = pyarrow_json.read_json(self.data, parse_options=options)
+        df = arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
 
         return df
 
