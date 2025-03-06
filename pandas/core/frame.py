@@ -5880,6 +5880,8 @@ class DataFrame(NDFrame, OpsMixin):
             Delete columns to be used as the new index.
         append : bool, default False
             Whether to append columns to existing index.
+            Setting to True will add the new columns to existing index.
+            When set to False, the current index will be dropped from the DataFrame.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
         verify_integrity : bool, default False
@@ -5953,6 +5955,25 @@ class DataFrame(NDFrame, OpsMixin):
         2 4       4  2014    40
         3 9       7  2013    84
         4 16     10  2014    31
+
+        Append a column to the existing index:
+
+        >>> df = df.set_index("month")
+        >>> df.set_index("year", append=True)
+                      sale
+        month  year
+        1      2012    55
+        4      2014    40
+        7      2013    84
+        10     2014    31
+
+        >>> df.set_index("year", append=False)
+               sale
+        year
+        2012    55
+        2014    40
+        2013    84
+        2014    31
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
