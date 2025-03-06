@@ -1753,6 +1753,7 @@ class TestPandasContainer:
         [
             "s3://example-fsspec/",
             "gcs://another-fsspec/file.json",
+            "filecache::s3://yet-another-fsspec/file.json",
             "https://example-site.com/data",
             "some-protocol://data.txt",
         ],
