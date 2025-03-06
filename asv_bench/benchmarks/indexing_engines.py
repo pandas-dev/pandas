@@ -67,7 +67,11 @@ class NumericEngineIndexing:
     def setup(self, engine_and_dtype, index_type, unique, N):
         engine, dtype = engine_and_dtype
 
-        if index_type == "non_monotonic" and dtype in ["int16", "int8", "uint8"]:
+        if (
+            index_type == "non_monotonic"
+            and dtype in [np.int16, np.int8, np.uint8]
+            and unique
+        ):
             # Values overflow
             raise NotImplementedError
 
@@ -118,6 +122,14 @@ class MaskedNumericEngineIndexing:
     def setup(self, engine_and_dtype, index_type, unique, N):
         engine, dtype = engine_and_dtype
         dtype = dtype.lower()
+
+        if (
+            index_type == "non_monotonic"
+            and dtype in ["int16", "int8", "uint8"]
+            and unique
+        ):
+            # Values overflow
+            raise NotImplementedError
 
         if index_type == "monotonic_incr":
             if unique:

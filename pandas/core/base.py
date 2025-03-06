@@ -558,7 +558,7 @@ class IndexOpsMixin(OpsMixin):
 
         >>> pd.Series([1, 2, 3]).array
         <NumpyExtensionArray>
-        [1, 2, 3]
+        [np.int64(1), np.int64(2), np.int64(3)]
         Length: 3, dtype: int64
 
         For extension types, like Categorical, the actual ExtensionArray
@@ -804,9 +804,9 @@ class IndexOpsMixin(OpsMixin):
         dtype: float64
 
         >>> s.argmax()
-        2
+        np.int64(2)
         >>> s.argmin()
-        0
+        np.int64(0)
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -1360,7 +1360,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: int64
 
         >>> ser.searchsorted(4)
-        3
+        np.int64(3)
 
         >>> ser.searchsorted([0, 4])
         array([0, 3])

@@ -1072,7 +1072,7 @@ class ExtensionArray:
         ...     limit_area="inside",
         ... )
         <NumpyExtensionArray>
-        [0.0, 1.0, 2.0, 3.0]
+        [np.float64(0.0), np.float64(1.0), np.float64(2.0), np.float64(3.0)]
         Length: 4, dtype: float64
 
         Interpolating values in a FloatingArray:
@@ -1962,7 +1962,7 @@ class ExtensionArray:
         ...         return lambda x: "*" + str(x) + "*" if boxed else repr(x) + "*"
         >>> MyExtensionArray(np.array([1, 2, 3, 4]))
         <MyExtensionArray>
-        [1*, 2*, 3*, 4*]
+        [np.int64(1)*, np.int64(2)*, np.int64(3)*, np.int64(4)*]
         Length: 4, dtype: int64
         """
         if boxed:
@@ -2176,11 +2176,11 @@ class ExtensionArray:
         Examples
         --------
         >>> pd.array([1, 2, 3])._reduce("min")
-        1
+        np.int64(1)
         >>> pd.array([1, 2, 3])._reduce("max")
-        3
+        np.int64(3)
         >>> pd.array([1, 2, 3])._reduce("sum")
-        6
+        np.int64(6)
         >>> pd.array([1, 2, 3])._reduce("mean")
         2.0
         >>> pd.array([1, 2, 3])._reduce("median")
