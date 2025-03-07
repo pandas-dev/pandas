@@ -1640,7 +1640,7 @@ def map_array(
         If 'ignore', propagate NA values, without passing them to the
         mapping correspondence. If 'raise', an error is raised when the
         array contains non-NA values which do not exist as keys in the mapping
-        correspondance (does not apply to function & dict-like mappers with
+        correspondence (does not apply to function & dict-like mappers with
         a '__missing__' attribute).
 
     Returns
