@@ -150,7 +150,9 @@ class TestPeriodIndex:
             if period == "B"
             else "Resampling with a PeriodIndex is deprecated"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             result = getattr(ts.resample(period, convention=conv), meth)()
             expected = result.to_timestamp(period, how=conv)
             expected = expected.asfreq(offset, meth).to_period()
@@ -193,7 +195,9 @@ class TestPeriodIndex:
         result = ts.resample("Y-DEC").mean()
 
         msg = "The 'convention' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             resampled = result.resample(freq, convention="end").ffill()
         expected = result.to_timestamp(freq, how="end")
         expected = expected.asfreq(freq, "ffill").to_period(freq)
@@ -204,7 +208,9 @@ class TestPeriodIndex:
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
 
         msg = "The 'convention' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             result = ts.resample("M", convention="end").ffill(limit=2)
         expected = ts.asfreq("M").reindex(result.index, method="ffill", limit=2)
         tm.assert_series_equal(result, expected)
@@ -249,7 +255,9 @@ class TestPeriodIndex:
             if period == "B"
             else "Resampling with a PeriodIndex is deprecated"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             result = ts.resample(period, convention=convention).ffill()
             expected = result.to_timestamp(period, how=convention)
             expected = expected.asfreq(offset, "ffill").to_period()
@@ -265,7 +273,9 @@ class TestPeriodIndex:
             if target == "D"
             else r"PeriodDtype\[B\] is deprecated"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             result = ts.resample(target, convention=convention).ffill()
             expected = result.to_timestamp(target, how=convention)
             expected = expected.asfreq(target, "ffill").to_period()
@@ -346,7 +356,7 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         series = series.tz_convert(local_timezone)
         msg = "Converting to PeriodArray/Index representation will drop timezone"
-        with tm.assert_produces_warning(UserWarning, match=msg):
+        with tm.assert_produces_warning(UserWarning, match=msg, check_stacklevel=False):
             result = series.resample("D").mean().to_period()
 
         # Create the expected series
@@ -438,7 +448,7 @@ class TestPeriodIndex:
         if warn is None:
             msg = "Resampling with a PeriodIndex is deprecated"
             warn = FutureWarning
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
             result = ts.resample(target, convention=convention).ffill()
             expected = result.to_timestamp(target, how=convention)
             expected = expected.asfreq(target, "ffill").to_period()
@@ -473,7 +483,9 @@ class TestPeriodIndex:
         # conforms, but different month
         ts = simple_period_range_series("1990", "1992", freq="Y-JUN")
         msg = "The 'convention' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             result = ts.resample("Q-MAR", convention=how).ffill()
         expected = ts.asfreq("Q-MAR", how=how)
         expected = expected.reindex(result.index, method="ffill")
@@ -523,7 +535,9 @@ class TestPeriodIndex:
 
         ts = simple_period_range_series("1/1/2000", "2/1/2000")
         msg = "The 'convention' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             result = ts.resample("h", convention="s").asfreq()
         exp_rng = period_range("1/1/2000", "2/1/2000 23:00", freq="h")
         expected = ts.asfreq("h", how="s").reindex(exp_rng)
@@ -586,7 +600,7 @@ class TestPeriodIndex:
 
         # for good measure
         msg = "Converting to PeriodArray/Index representation will drop timezone "
-        with tm.assert_produces_warning(UserWarning, match=msg):
+        with tm.assert_produces_warning(UserWarning, match=msg, check_stacklevel=False):
             result = s.resample("D").mean().to_period()
         ex_index = period_range("2001-09-20", periods=1, freq="D")
         expected = Series([1.5], index=ex_index)
@@ -885,7 +899,9 @@ class TestPeriodIndex:
         )
         expected = DataFrame(expected_values, index=expected_index)
         msg = "Resampling with a PeriodIndex is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             rs = frame.resample(freq)
         result = rs.mean()
         tm.assert_frame_equal(result, expected)
@@ -924,7 +940,9 @@ class TestPeriodIndex:
         pi = period_range(start, end, freq=start_freq)
         ser = Series(np.arange(len(pi)), index=pi)
         msg = "Resampling with a PeriodIndex is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             rs = ser.resample(end_freq, offset=offset)
         result = rs.mean()
         result = result.to_timestamp(end_freq)
@@ -937,7 +955,9 @@ class TestPeriodIndex:
         pi = period_range("19910905 12:00", "19910909 1:00", freq="h")
         ser = Series(np.arange(len(pi)), index=pi)
         msg = "Resampling with a PeriodIndex is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             rs = ser.resample("M", offset="3h")
         result = rs.mean()
         result = result.to_timestamp("M")
@@ -985,7 +1005,9 @@ class TestPeriodIndex:
         data[3:6] = np.nan
         s = Series(data, index).to_period()
         msg = "Resampling with a PeriodIndex is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             rs = s.resample("Q")
         result = rs.sum(min_count=1)
         expected = Series(
@@ -1073,7 +1095,7 @@ def test_corner_cases_period(simple_period_range_series):
     len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
     # it works
     msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
         result = len0pts.resample("Y-DEC").mean()
     assert len(result) == 0
 
