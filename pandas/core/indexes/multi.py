@@ -9,6 +9,7 @@ from collections.abc import (
     Sequence,
 )
 from functools import wraps
+from itertools import zip_longest
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
@@ -588,7 +589,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrs = zip(*tuples)
+            arrs = zip_longest(*tuples, fillvalue=np.nan)
             arrays = cast(list[Sequence[Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
