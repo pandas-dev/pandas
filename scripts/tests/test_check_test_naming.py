@@ -24,7 +24,10 @@ from scripts.check_test_naming import main
             0,
         ),
         (
-            "class Foo:  # not a test\n    pass\ndef test_foo():\n    Class.foo()\n",
+            "class Foo:  # not a test\n"
+            "    pass\n"
+            "def test_foo():\n"
+            "    Class.foo()\n",
             "",
             0,
         ),

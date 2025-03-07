@@ -30,7 +30,8 @@ import sys
 from typing import NamedTuple
 
 ERROR_MESSAGE = (
-    "{path}:{lineno}:{col_offset}: Found both '{prefix}.{name}' and '{name}' in {path}"
+    "{path}:{lineno}:{col_offset}: "
+    "Found both '{prefix}.{name}' and '{name}' in {path}"
 )
 
 
