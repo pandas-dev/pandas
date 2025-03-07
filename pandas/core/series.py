@@ -4321,7 +4321,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def map(
         self,
         arg: Callable | Mapping | Series,
-        na_action: Literal["ignore"] | None = None,
+        na_action: Literal["ignore", "raise"] | None = None,
         **kwargs,
     ) -> Series:
         """
