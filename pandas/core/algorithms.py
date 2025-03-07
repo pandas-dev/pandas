@@ -1691,9 +1691,7 @@ def map_array(
         indexer = mapper.index.get_indexer(arr)
 
         if na_action == "raise" and (indexer == -1).any():
-            raise ValueError(
-                "At least one value is not covered in the mapping!"
-            )
+            raise ValueError("At least one value is not covered in the mapping!")
 
         new_values = take_nd(mapper._values, indexer)
 
