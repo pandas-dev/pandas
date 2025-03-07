@@ -402,10 +402,18 @@ def nselect_method(request):
     return request.param
 
 
-@pytest.fixture(params=[None, "ignore"])
+@pytest.fixture(params=[None, "ignore", "raise"])
 def na_action(request):
     """
-    Fixture for 'na_action' argument in map.
+    Fixture for 'na_action' argument in Series.map.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, "ignore"])
+def na_action_frame(request):
+    """
+    Fixture for 'na_action' argument in DataFrame.map.
     """
     return request.param
 
