@@ -4335,9 +4335,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         arg : function, collections.abc.Mapping subclass or Series
             Mapping correspondence.
-        na_action : {None, 'ignore'}, default None
+        na_action : {None, 'ignore', 'raise'}, default None
             If 'ignore', propagate NaN values, without passing them to the
-            mapping correspondence.
+            mapping correspondence. With 'raise' a missing value in the mapping
+            correspondence raises a ``ValueError`` instead of replacing it
+            with ``NaN``.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `arg`.
@@ -4359,7 +4361,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Notes
         -----
         When ``arg`` is a dictionary, values in Series that are not in the
-        dictionary (as keys) are converted to ``NaN``. However, if the
+        dictionary (as keys) are converted to ``NaN``. This conversion
+        can be anticipated with ``na_action = 'raise'``. However, if the
         dictionary is a ``dict`` subclass that defines ``__missing__`` (i.e.
         provides a method for default values), then this default is used
         rather than ``NaN``.

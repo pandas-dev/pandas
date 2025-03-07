@@ -402,7 +402,7 @@ def nselect_method(request):
     return request.param
 
 
-@pytest.fixture(params=[None, "ignore"])
+@pytest.fixture(params=[None, "ignore", "raise"])
 def na_action(request):
     """
     Fixture for 'na_action' argument in map.

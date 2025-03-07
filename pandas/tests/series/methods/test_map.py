@@ -322,6 +322,19 @@ def test_map_dict_na_key():
     tm.assert_series_equal(result, expected)
 
 
+def test_map_missing_key(na_action):
+    s = Series([1, 2, 42])
+    mapping = {1: "a", 2: "b", 3: "c"}
+
+    if na_action == "raise":
+        with pytest.raises(ValueError):
+            s.map(mapping, na_action=na_action)
+    else:
+        expected = Series(["a", "b", np.nan])
+        result = s.map(mapping, na_action=na_action)
+        tm.assert_series_equal(result, expected)
+
+
 def test_map_defaultdict_na_key(na_action):
     # GH 48813
     s = Series([1, 2, np.nan])
@@ -380,7 +393,7 @@ def test_map_categorical_na_ignore(na_action, expected):
     tm.assert_series_equal(result, expected)
 
 
-def test_map_dict_subclass_with_missing():
+def test_map_dict_subclass_with_missing(na_action):
     """
     Test Series.map with a dictionary subclass that defines __missing__,
     i.e. sets a default value (GH #15999).
@@ -392,30 +405,40 @@ def test_map_dict_subclass_with_missing():
 
     s = Series([1, 2, 3])
     dictionary = DictWithMissing({3: "three"})
-    result = s.map(dictionary)
+    result = s.map(dictionary, na_action=na_action)  # also works with 'raise'
     expected = Series(["missing", "missing", "three"])
     tm.assert_series_equal(result, expected)
 
 
-def test_map_dict_subclass_without_missing():
+def test_map_dict_subclass_without_missing(na_action):
     class DictWithoutMissing(dict):
         pass
 
     s = Series([1, 2, 3])
     dictionary = DictWithoutMissing({3: "three"})
-    result = s.map(dictionary)
-    expected = Series([np.nan, np.nan, "three"])
-    tm.assert_series_equal(result, expected)
+
+    if na_action == "raise":
+        with pytest.raises(ValueError):
+            _ = s.map(dictionary, na_action=na_action)
+    else:
+        result = s.map(dictionary, na_action=na_action)
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
 
 
-def test_map_abc_mapping(non_dict_mapping_subclass):
+def test_map_abc_mapping(non_dict_mapping_subclass, na_action):
     # https://github.com/pandas-dev/pandas/issues/29733
     # Check collections.abc.Mapping support as mapper for Series.map
     s = Series([1, 2, 3])
     not_a_dictionary = non_dict_mapping_subclass({3: "three"})
-    result = s.map(not_a_dictionary)
-    expected = Series([np.nan, np.nan, "three"])
-    tm.assert_series_equal(result, expected)
+
+    if na_action == "raise":
+        with pytest.raises(ValueError):
+            _ = s.map(not_a_dictionary, na_action=na_action)
+    else:
+        result = s.map(not_a_dictionary, na_action=na_action)
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
 
 
 def test_map_abc_mapping_with_missing(non_dict_mapping_subclass):
