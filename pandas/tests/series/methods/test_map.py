@@ -327,7 +327,7 @@ def test_map_missing_key(na_action):
     mapping = {1: "a", 2: "b", 3: "c"}
 
     if na_action == "raise":
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="not covered"):
             s.map(mapping, na_action=na_action)
     else:
         expected = Series(["a", "b", np.nan])
@@ -418,7 +418,7 @@ def test_map_dict_subclass_without_missing(na_action):
     dictionary = DictWithoutMissing({3: "three"})
 
     if na_action == "raise":
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="not covered"):
             _ = s.map(dictionary, na_action=na_action)
     else:
         result = s.map(dictionary, na_action=na_action)
@@ -433,7 +433,7 @@ def test_map_abc_mapping(non_dict_mapping_subclass, na_action):
     not_a_dictionary = non_dict_mapping_subclass({3: "three"})
 
     if na_action == "raise":
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="not covered"):
             _ = s.map(not_a_dictionary, na_action=na_action)
     else:
         result = s.map(not_a_dictionary, na_action=na_action)
