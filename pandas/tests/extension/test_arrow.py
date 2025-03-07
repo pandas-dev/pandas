@@ -3553,3 +3553,11 @@ def test_categorical_from_arrow_dictionary():
         dtype="int64",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_arrow_json_type():
+    # GH 60958
+
+    dtype = pd.ArrowDtype(pa.json_(pa.string()))
+    result = pd.api.types.pandas_dtype(dtype).type
+    assert result == str

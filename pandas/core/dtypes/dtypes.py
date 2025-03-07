@@ -2267,6 +2267,8 @@ class ArrowDtype(StorageExtensionDtype):
             return type(pa_type)
         elif isinstance(pa_type, pa.ExtensionType):
             return type(self)(pa_type.storage_type).type
+        elif isinstance(pa_type, pa.JsonType):
+            return str
         raise NotImplementedError(pa_type)
 
     @property
