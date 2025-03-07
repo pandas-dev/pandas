@@ -30,6 +30,7 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 from pandas.io.json import ujson_dumps
 
@@ -2187,12 +2188,10 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_read_json_pyarrow_with_dtype(self, request):
         pa = pytest.importorskip("pyarrow")
-        version_tuple = tuple(map(int, pa.__version__.split(".")))
 
-        if version_tuple[0] < 16:
+        if Version(pa.__version__) < Version("16.0"):
             request.applymarker(
                 pytest.mark.filterwarnings("ignore::DeprecationWarning")
             )
