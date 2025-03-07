@@ -1379,7 +1379,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: datetime64[s]
 
         >>> ser.searchsorted('3/14/2000')
-        3
+        np.int64(3)
 
         >>> ser = pd.Categorical(
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True

@@ -941,7 +941,7 @@ class ExtensionArray:
         --------
         >>> arr = pd.array([3, 1, 2, 5, 4])
         >>> arr.argmin()
-        1
+        np.int64(1)
         """
         # Implementer note: You have two places to override the behavior of
         # argmin.
@@ -975,7 +975,7 @@ class ExtensionArray:
         --------
         >>> arr = pd.array([3, 1, 2, 5, 4])
         >>> arr.argmax()
-        3
+        np.int64(3)
         """
         # Implementer note: You have two places to override the behavior of
         # argmax.
@@ -2182,9 +2182,9 @@ class ExtensionArray:
         >>> pd.array([1, 2, 3])._reduce("sum")
         np.int64(6)
         >>> pd.array([1, 2, 3])._reduce("mean")
-        2.0
+        np.float64(2.0)
         >>> pd.array([1, 2, 3])._reduce("median")
-        2.0
+        np.float64(2.0)
         """
         meth = getattr(self, name, None)
         if meth is None:

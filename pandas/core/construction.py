@@ -186,7 +186,7 @@ def array(
 
     >>> pd.array(["a", "b"], dtype=np.dtype("<U1"))
     <NumpyExtensionArray>
-    ['a', 'b']
+    [np.str_('a'), np.str_('b')]
     Length: 2, dtype: str32
 
     Finally, Pandas has arrays that mostly overlap with NumPy

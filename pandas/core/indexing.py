@@ -585,7 +585,7 @@ class IndexingMixin:
         Single tuple for the index with a single label for the column
 
         >>> df.loc[("cobra", "mark i"), "shield"]
-        2
+        np.int64(2)
 
         Slice from index tuple to single label
 
@@ -677,7 +677,7 @@ class IndexingMixin:
         Get value within a Series
 
         >>> df.loc[5].at["B"]
-        np.int64(5)
+        np.int64(4)
         """
         return _AtIndexer("at", self)
 
