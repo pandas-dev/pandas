@@ -827,6 +827,8 @@ class PlotAccessor(PandasObject):
     Notes
     -----
     - See matplotlib documentation online for more on this subject
+    - For more information on plotting backends, see the `documentation here 
+        <https://pandas.pydata.org/pandas-docs/dev/user_guide/visualization.html#plotting-backends>`_.
     - If `kind` = 'bar' or 'barh', you can specify relative alignments
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
