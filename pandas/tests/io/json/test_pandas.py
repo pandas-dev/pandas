@@ -2190,10 +2190,12 @@ class TestPandasContainer:
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_read_json_pyarrow_with_dtype(self, request):
         pa = pytest.importorskip("pyarrow")
-        version_tuple = tuple(map(int, pa.__version__.split('.')))
+        version_tuple = tuple(map(int, pa.__version__.split(".")))
 
         if version_tuple[0] < 16:
-            request.applymarker(pytest.mark.filterwarnings("ignore::DeprecationWarning"))
+            request.applymarker(
+                pytest.mark.filterwarnings("ignore::DeprecationWarning")
+            )
 
         dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
         json = b'{"a": 1, "b": 2}\n'
