@@ -9713,7 +9713,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
-            cond[isna(cond)] = True
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
