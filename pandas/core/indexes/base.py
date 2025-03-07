@@ -4912,9 +4912,8 @@ class Index(IndexOpsMixin, PandasObject):
            :meth:`Index.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
-           Modifying 'Index.values' directly is not supported and can lead to memory
-           corruption or segmentation faults. This is because 'Index.values' provides
-           a direct reference to internal NumPy data.
+           .. versionchanged:: 3.0.0
+            The returned array is read-only.
 
         Returns
         -------
