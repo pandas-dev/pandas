@@ -422,8 +422,8 @@ class TestDataFrameDescribe:
         # Case 1: Passing an empty list
         result = df.describe(percentiles=[])
         expected = DataFrame(
-            {"a": [5, 3, 1, 5]},
-            index=["count", "mean", "min", "max"],
+            {"a": [5,3, 1.581139,1,5]},
+            index=["count","mean","std","min","max"],
         )
         tm.assert_frame_equal(result, expected)
 
@@ -438,7 +438,37 @@ class TestDataFrameDescribe:
         # Case 1: Passing a single percentile
         result = df.describe(percentiles=[0.5])
         expected = DataFrame(
-            {"a": [5, 3, 1, 3.0]},
-            index=["count", "mean", "min", "50%"],
+            {"a": [5, 3, 1.581139,1,3,5]},
+            index=["count","mean","std","min","50%","max"],
         )
+        tm.assert_frame_equal(result, expected)
+    
+
+    def test_describe_empty_numpy_percentile(self):
+        df = DataFrame({"a": [1, 2, 3, 4, 5]})
+    
+    # Passing empty NumPy array as percentiles
+        result = df.describe(percentiles=np.array([]))
+
+    # Expected output should only include count, mean, std, min, and max (no percentiles)
+        expected = DataFrame(
+        {"a": [5, 3.0, 1.581139, 1, 5]},
+        index=["count", "mean", "std", "min", "max"]
+    )
+        tm.assert_frame_equal(result, expected)
+
+
+
+    def test_describe_empty_series_percentile(self):
+        df = DataFrame({"a": [1, 2, 3, 4, 5]})
+    
+    # Passing empty Series as percentiles
+        result = df.describe(percentiles=pd.Series([], dtype=float))
+
+    # Expected output should only include count, mean, std, min, and max (no percentiles)
+        expected = DataFrame(
+        {"a": [5, 3.0, 1.581139, 1, 5]},
+        index=["count", "mean", "std", "min", "max"]
+    )
+
         tm.assert_frame_equal(result, expected)
