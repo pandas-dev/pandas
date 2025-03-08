@@ -330,7 +330,7 @@ def test_factorize_unsigned():
 
 
 def test_array_repr(any_numpy_array):
-    # GH#???
+    # GH#61085
     nparray = any_numpy_array
     arr = NumpyExtensionArray(nparray)
     if nparray.dtype == "object":
