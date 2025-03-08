@@ -1269,7 +1269,7 @@ cdef class _Timestamp(ABCTimestamp):
             int64_t ppd = periods_per_day(self._creso)
             _Timestamp ts
 
-        normalized = normalize_i8_stamp(local_val, ppd)
+        normalized = normalize_i8_stamp(self, local_val, ppd)
         ts = type(self)._from_value_and_reso(normalized, reso=self._creso, tz=None)
         return ts.tz_localize(self.tzinfo)
 
@@ -3438,9 +3438,9 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 # ----------------------------------------------------------------------
 # Scalar analogues to functions in vectorized.pyx
 
-
+@cython.overflowcheck(True)
 @cython.cdivision(False)
-cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) noexcept nogil:
+def normalize_i8_stamp(self, int64_t local_val, int64_t ppd):
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 
@@ -3454,4 +3454,15 @@ cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) noexcept nogil:
     -------
     int64_t
     """
-    return local_val - (local_val % ppd)
+    cdef:
+        int64_t remainder
+        int64_t result
+    try:
+        remainder = local_val % ppd
+        result = local_val - remainder
+    except (OverflowError, OutOfBoundsDatetime) as err:
+        raise OutOfBoundsDatetime(
+            f"Cannot normalize {self} to midnight without overflow"
+        ) from err
+
+    return result
