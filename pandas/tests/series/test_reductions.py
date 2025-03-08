@@ -111,6 +111,20 @@ def test_prod_numpy16_bug():
     assert not isinstance(result, Series)
 
 
+@pytest.mark.parametrize("nan_val", [np.nan, pd.NA])
+def test_object_sum_allna(nan_val):
+    # GH#60229
+    ser = Series([nan_val] * 5, dtype=object)
+
+    result = ser.sum(axis=0, skipna=True)
+    expected = np.nan
+    tm.assert_equal(result, expected)
+
+    result = ser.sum(axis=0, skipna=False)
+    expected = nan_val
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize("func", [np.any, np.all])
 @pytest.mark.parametrize("kwargs", [{"keepdims": True}, {"out": object()}])
 def test_validate_any_all_out_keepdims_raises(kwargs, func):
