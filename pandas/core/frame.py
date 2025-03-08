@@ -10286,7 +10286,9 @@ class DataFrame(NDFrame, OpsMixin):
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
         (``axis=1``). By default (``result_type=None``), the final return type
         is inferred from the return type of the applied function. Otherwise,
-        it depends on the `result_type` argument.
+        it depends on the `result_type` argument. The return type of the applied
+        function is inferred based on the first computed result obtained after
+        applying the function to a Series object.
 
         Parameters
         ----------

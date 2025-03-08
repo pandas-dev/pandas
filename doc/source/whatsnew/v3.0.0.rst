@@ -694,8 +694,10 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
+- Bug in :meth:`DataFrame.__getitem__` when slicing a :class:`DataFrame` with many rows raised an ``OverflowError`` (:issue:`59531`)
 - Bug in :meth:`DataFrame.from_records` throwing a ``ValueError`` when passed an empty list in ``index`` (:issue:`58594`)
 - Bug in :meth:`DataFrame.loc` with inconsistent behavior of loc-set with 2 given indexes to Series (:issue:`59933`)
+- Bug in :meth:`Index.get_indexer` and similar methods when ``NaN`` is located at or after position 128 (:issue:`58924`)
 - Bug in :meth:`MultiIndex.insert` when a new value inserted to a datetime-like level gets cast to ``NaT`` and fails indexing (:issue:`60388`)
 - Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 
@@ -712,7 +714,7 @@ MultiIndex
 - :func:`MultiIndex.get_level_values` accessing a :class:`DatetimeIndex` does not carry the frequency attribute along (:issue:`58327`, :issue:`57949`)
 - Bug in :class:`DataFrame` arithmetic operations in case of unaligned MultiIndex columns (:issue:`60498`)
 - Bug in :class:`DataFrame` arithmetic operations with :class:`Series` in case of unaligned MultiIndex (:issue:`61009`)
--
+- Bug in :meth:`MultiIndex.from_tuples` causing wrong output with input of type tuples having NaN values (:issue:`60695`, :issue:`60988`)
 
 I/O
 ^^^
@@ -787,6 +789,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` incorrectly subaggregating results when called without an ``index`` argument (:issue:`58722`)
 - Bug in :meth:`DataFrame.stack` with the new implementation where ``ValueError`` is raised when ``level=[]`` (:issue:`60740`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
+- Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index = True`` drops the series name (:issue:`60723`, :issue:`56257`)
 
 Sparse
 ^^^^^^
