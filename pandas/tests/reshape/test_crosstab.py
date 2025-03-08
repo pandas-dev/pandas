@@ -877,3 +877,17 @@ def test_categoricals(a_dtype, b_dtype):
         expected = expected.loc[[0, 2, "All"]]
         expected["All"] = expected["All"].astype("int64")
     tm.assert_frame_equal(result, expected)
+
+def test_crosstab_aggfunc_skew():
+    # Test case for crosstab with aggfunc='skew'
+    result = crosstab(
+        index=["index1", "index2"],
+        columns=["one", "one"],
+        values=[12, 10],
+        normalize=1,
+        margins=True,
+        dropna=True,
+        aggfunc='skew'
+    )
+    assert isinstance(result, DataFrame)
+    assert not result.empty

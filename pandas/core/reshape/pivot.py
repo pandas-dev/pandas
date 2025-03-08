@@ -1144,6 +1144,10 @@ def _normalize(
         # keep index and column of pivoted table
         table_index = table.index
         table_columns = table.columns
+
+        if table.empty:
+            return table
+
         last_ind_or_col = table.iloc[-1, :].name
 
         # check if margin name is not in (for MI cases) and not equal to last
