@@ -7,6 +7,8 @@
 - Author: [Marc Garcia](https://github.com/datapythonista)
 - Revision: 1
 
+[TOC]
+
 ## PDEP Summary
 
 This document proposes that third-party projects implementing I/O or memory
