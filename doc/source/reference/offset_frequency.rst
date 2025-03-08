@@ -777,7 +777,7 @@ Methods
     QuarterBegin.is_year_end
 
 BHalfYearEnd
------------
+------------
 .. autosummary::
    :toctree: api/
 
@@ -812,7 +812,7 @@ Methods
     BHalfYearEnd.is_year_end
 
 BHalfYearBegin
--------------
+--------------
 .. autosummary::
    :toctree: api/
 
@@ -847,7 +847,7 @@ Methods
     BHalfYearBegin.is_year_end
 
 HalfYearEnd
-----------
+-----------
 .. autosummary::
    :toctree: api/
 
@@ -882,7 +882,7 @@ Methods
     HalfYearEnd.is_year_end
 
 HalfYearBegin
-------------
+-------------
 .. autosummary::
    :toctree: api/
 
