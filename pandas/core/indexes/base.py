@@ -4912,8 +4912,9 @@ class Index(IndexOpsMixin, PandasObject):
            :meth:`Index.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
-           .. versionchanged:: 3.0.0
-            The returned array is read-only.
+       .. versionchanged:: 3.0.0
+
+          The returned array is read-only.
 
         Returns
         -------
