@@ -352,7 +352,7 @@ def _refine_percentiles(
         return np.array([0.25, 0.5, 0.75])
 
     # Fix for issue #60550 :
-    elif isinstance(percentiles, (list, np.ndarray, Series)) and len(percentiles) == 0:
+    if isinstance(percentiles, (list, np.ndarray, Series)) and len(percentiles) == 0:
         return np.array([])
 
     # explicit conversion of `percentiles` to list
