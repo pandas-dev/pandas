@@ -181,4 +181,5 @@ def test_repr_large():
         "'2001-01-01']\n"
         "Length: 1000, dtype: period[D]"
     )
+    print(result)
     assert result == expected
