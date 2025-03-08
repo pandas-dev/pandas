@@ -22,7 +22,7 @@ from pandas.arrays import NumpyExtensionArray
         np.array([True, False], dtype=bool),
         np.array([0, 1], dtype="datetime64[ns]"),
         np.array([0, 1], dtype="timedelta64[ns]"),
-    ]
+    ],
 )
 def any_numpy_array(request):
     """
@@ -30,7 +30,7 @@ def any_numpy_array(request):
 
     This excludes string and bytes.
     """
-    return request.param
+    return request.param.copy()
 
 
 # ----------------------------------------------------------------------------
