@@ -1478,7 +1478,7 @@ def roll_nunique(const float64_t[:] values, ndarray[int64_t] start,
     """
     cdef:
         Py_ssize_t i, j, s, e, N = len(start)
-        int64_t nobs = 0, num_unique = 0
+        int64_t nobs = 0
         float64_t val
         float64_t[::1] output
         unordered_map[float64_t, int64_t] value_counts
@@ -1506,8 +1506,6 @@ def roll_nunique(const float64_t[:] values, ndarray[int64_t] start,
                         nobs += 1
                         value_counts[val] += 1
 
-                num_unique = value_counts.size()
-
             else:
                 # calculate deletes
                 for j in range(start[i - 1], s):
@@ -1525,9 +1523,8 @@ def roll_nunique(const float64_t[:] values, ndarray[int64_t] start,
                         nobs += 1
                         value_counts[val] += 1
 
-                num_unique = value_counts.size()
             if nobs >= minp:
-                output[i] = num_unique
+                output[i] = value_counts.size()
             else:
                 output[i] = NaN
 
