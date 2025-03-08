@@ -5850,6 +5850,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _cmp_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)
 
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.__finalize__(other)
+
         if isinstance(other, Series) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
@@ -5861,6 +5864,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._construct_result(res_values, name=res_name)
 
     def _logical_method(self, other, op):
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.attrs = other.attrs
         res_name = ops.get_op_result_name(self, other)
         self, other = self._align_for_op(other, align_asobject=True)
 
@@ -5872,6 +5877,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _arith_method(self, other, op):
         self, other = self._align_for_op(other)
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.attrs = other.attrs
         return base.IndexOpsMixin._arith_method(self, other, op)
 
     def _align_for_op(self, right, align_asobject: bool = False):
@@ -5930,6 +5937,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
+
+        if not getattr(this, "attrs", None) and getattr(other, "attrs", None):
+            this.__finalize__(other)
+
         out = this._construct_result(result, name)
         return cast(Series, out)
 
