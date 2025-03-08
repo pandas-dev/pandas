@@ -535,7 +535,7 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{c_type}} val
             khiter_t k
-            int8_t na_position = self.na_position
+            Py_ssize_t na_position = self.na_position
 
         if self.uses_mask and mask is None:
             raise NotImplementedError  # pragma: no cover
@@ -567,7 +567,7 @@ cdef class {{name}}HashTable(HashTable):
             Int64Vector self_locs = Int64Vector()
             Int64VectorData *l
             Int64VectorData *sl
-            int8_t na_position = self.na_position
+            Py_ssize_t na_position = self.na_position
 
         l = &locs.data
         sl = &self_locs.data
@@ -609,7 +609,7 @@ cdef class {{name}}HashTable(HashTable):
             {{c_type}} val
             khiter_t k
             intp_t[::1] locs = np.empty(n, dtype=np.intp)
-            int8_t na_position = self.na_position
+            Py_ssize_t na_position = self.na_position
 
         if self.uses_mask and mask is None:
             raise NotImplementedError  # pragma: no cover
