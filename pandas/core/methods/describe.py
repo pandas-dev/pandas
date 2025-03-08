@@ -345,14 +345,14 @@ def _refine_percentiles(
     percentiles : list-like of numbers, optional
         The percentiles to include in the output.
     """
-    # Fix for issue #60550 :
+
     from pandas import Series
 
     if percentiles is None:
         return np.array([0.25, 0.5, 0.75])
 
-    # Fix for issue #60550 :
-    if isinstance(percentiles, (list, np.ndarray, Series)) and len(percentiles) == 0:
+    # Handling empty list , empty numpy array and empty Series :
+    elif isinstance(percentiles, (list, np.ndarray, Series)) and len(percentiles) == 0:
         return np.array([])
 
     # explicit conversion of `percentiles` to list
