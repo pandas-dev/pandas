@@ -534,6 +534,22 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             )
         return self + periods
 
+    def _convert_can_do_setop(self, other):
+        if (
+            not isinstance(other, Index)
+            or other.empty
+            or isinstance(other, PeriodIndex)
+        ):
+            return super()._convert_can_do_setop(other)
+
+        # Convert non-PeriodIndex to PeriodIndex
+        try:
+            other = PeriodIndex(other, freq=self.freq)
+        except (TypeError, ValueError):
+            pass
+
+        return super()._convert_can_do_setop(other)
+
 
 def period_range(
     start=None,
