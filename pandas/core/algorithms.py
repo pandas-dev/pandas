@@ -17,6 +17,7 @@ import warnings
 
 import numpy as np
 
+import pandas as pd
 from pandas._libs import (
     algos,
     hashtable as htable,
@@ -1623,7 +1624,7 @@ def union_with_duplicates(
     repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)
 
-
+import pandas as pd
 def map_array(
     arr: ArrayLike,
     mapper,
@@ -1650,9 +1651,10 @@ def map_array(
     from pandas import Index
 
     if na_action not in (None, "ignore"):
-        msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
+        msg = f"na_acti(on must either be 'ignore' or None, {na_action} was passed"
         raise ValueError(msg)
-
+    
+        
     # we can fastpath dict/Series to an efficient map
     # as we know that we are not going to have to yield
     # python types
@@ -1700,8 +1702,18 @@ def map_array(
         return arr.copy()
 
     # we must convert to python types
-    values = arr.astype(object, copy=False)
-    if na_action is None:
-        return lib.map_infer(values, mapper)
-    else:
-        return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))
+    #values = arr.astype(object, copy=False)
+
+    if is_integer_dtype(arr) and is_nullable(arr.dtype):
+        def mapper_check(x):
+            if x is None:
+                return pd.NA
+            else:
+                return mapper(x)
+        values = arr.copy()
+
+        if na_action is None:
+            #return lib.map_infer(values, mapper)
+            return pd.array([mapper_check(x) for x in values], dtype = arr.dtype)
+        else:
+            return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))
