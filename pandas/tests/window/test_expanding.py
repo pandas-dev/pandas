@@ -255,6 +255,27 @@ def test_rank(window, method, pct, ascending, test_data):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("window", [1, 3, 10, 20])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
+def test_nunique(window, test_data):
+    length = 20
+    if test_data == "default":
+        ser = Series(data=np.random.default_rng(2).random(length))
+    elif test_data == "duplicates":
+        ser = Series(data=np.random.default_rng(2).choice(3, length))
+    elif test_data == "nans":
+        ser = Series(
+            data=np.random.default_rng(2).choice(
+                [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
+            )
+        )
+
+    expected = ser.expanding(window).apply(lambda x: x.nunique())
+    result = ser.expanding(window).nunique()
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_expanding_corr(series):
     A = series.dropna()
     B = (A + np.random.default_rng(2).standard_normal(len(A)))[:-5]
