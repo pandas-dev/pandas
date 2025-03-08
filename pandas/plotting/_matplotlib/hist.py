@@ -113,10 +113,10 @@ class HistPlot(LinePlot):
         column_num: int = 0,
         stacking_id=None,
         *,
-        bins,
         **kwds,
-        # might return a subset from the possible return types of Axes.hist(...)[2]?
+        # might return a subset from the possible return types of Axes.hist(...)?
     ) -> BarContainer | Polygon | list[BarContainer | Polygon]:
+        bins = kwds.pop("bins")
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
 
