@@ -349,4 +349,4 @@ def test_array_repr(any_numpy_array):
         values = "[0 nanoseconds, 1 nanoseconds]"
     expected = f"<NumpyExtensionArray>\n{values}\nLength: 2, dtype: {nparray.dtype}"
     result = repr(arr)
-    assert result == expected
+    assert result == expected, f"{result} vs {expected}"
