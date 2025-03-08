@@ -190,8 +190,8 @@ def eval(
 
     .. warning::
 
-        ``eval`` can run arbitrary code which can make you vulnerable to code
-         injection and untrusted data.
+        This function can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
 
     Parameters
     ----------
@@ -204,7 +204,7 @@ def eval(
 
         By default, with the numexpr engine, the following operations are supported:
 
-        - Arthimetic operations: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``
+        - Arithmetic operations: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``
         - Boolean operations: ``|`` (or), ``&`` (and), and ``~`` (not)
         - Comparison operators: ``<``, ``<=``, ``==``, ``!=``, ``>=``, ``>``
 
@@ -371,10 +371,12 @@ def eval(
                 is_extension_array_dtype(parsed_expr.terms.return_type)
                 and not is_string_dtype(parsed_expr.terms.return_type)
             )
-            or getattr(parsed_expr.terms, "operand_types", None) is not None
-            and any(
-                (is_extension_array_dtype(elem) and not is_string_dtype(elem))
-                for elem in parsed_expr.terms.operand_types
+            or (
+                getattr(parsed_expr.terms, "operand_types", None) is not None
+                and any(
+                    (is_extension_array_dtype(elem) and not is_string_dtype(elem))
+                    for elem in parsed_expr.terms.operand_types
+                )
             )
         ):
             warnings.warn(

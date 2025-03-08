@@ -10,7 +10,10 @@ import numpy as np
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas.compat import pa_version_under18p0
+from pandas.compat import (
+    pa_version_under18p0,
+    pa_version_under19p0,
+)
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -60,8 +63,11 @@ def arrow_table_to_pandas(
     table: pyarrow.Table,
     dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault = lib.no_default,
     null_to_int64: bool = False,
+    to_pandas_kwargs: dict | None = None,
 ) -> pd.DataFrame:
     pa = import_optional_dependency("pyarrow")
+
+    to_pandas_kwargs = {} if to_pandas_kwargs is None else to_pandas_kwargs
 
     types_mapper: type[pd.ArrowDtype] | None | Callable
     if dtype_backend == "numpy_nullable":
@@ -74,11 +80,14 @@ def arrow_table_to_pandas(
     elif dtype_backend == "pyarrow":
         types_mapper = pd.ArrowDtype
     elif using_string_dtype():
-        types_mapper = _arrow_string_types_mapper()
+        if pa_version_under19p0:
+            types_mapper = _arrow_string_types_mapper()
+        else:
+            types_mapper = None
     elif dtype_backend is lib.no_default or dtype_backend == "numpy":
         types_mapper = None
     else:
         raise NotImplementedError
 
-    df = table.to_pandas(types_mapper=types_mapper)
+    df = table.to_pandas(types_mapper=types_mapper, **to_pandas_kwargs)
     return df

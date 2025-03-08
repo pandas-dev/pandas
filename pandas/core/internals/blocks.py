@@ -514,9 +514,8 @@ class Block(PandasObject, libinternals.Block):
             convert_non_numeric=True,
         )
         refs = None
-        if (
-            res_values is values
-            or isinstance(res_values, NumpyExtensionArray)
+        if res_values is values or (
+            isinstance(res_values, NumpyExtensionArray)
             and res_values._ndarray is values
         ):
             refs = self.refs
@@ -2265,8 +2264,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
     if values.ndim > ndim:
         # Check for both np.ndarray and ExtensionArray
         raise ValueError(
-            "Wrong number of dimensions. "
-            f"values.ndim > ndim [{values.ndim} > {ndim}]"
+            f"Wrong number of dimensions. values.ndim > ndim [{values.ndim} > {ndim}]"
         )
 
     if not is_1d_only_ea_dtype(values.dtype):

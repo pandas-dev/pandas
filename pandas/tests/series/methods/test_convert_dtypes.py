@@ -297,3 +297,14 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.Series([None, None], dtype=pd.ArrowDtype(pa.null()))
         tm.assert_series_equal(result, expected)
+
+    def test_convert_dtype_pyarrow_timezone_preserve(self):
+        # GH 60237
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(
+            pd.to_datetime(range(5), utc=True, unit="h"),
+            dtype="timestamp[ns, tz=UTC][pyarrow]",
+        )
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        expected = ser.copy()
+        tm.assert_series_equal(result, expected)

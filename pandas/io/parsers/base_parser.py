@@ -112,8 +112,7 @@ class ParserBase:
             parse_dates = bool(parse_dates)
         elif not isinstance(parse_dates, list):
             raise TypeError(
-                "Only booleans and lists are accepted "
-                "for the 'parse_dates' parameter"
+                "Only booleans and lists are accepted for the 'parse_dates' parameter"
             )
         self.parse_dates: bool | list = parse_dates
         self.date_parser = kwds.pop("date_parser", lib.no_default)
@@ -368,7 +367,7 @@ class ParserBase:
                     index_converter = converters.get(self.index_names[i]) is not None
 
             try_num_bool = not (
-                cast_type and is_string_dtype(cast_type) or index_converter
+                (cast_type and is_string_dtype(cast_type)) or index_converter
             )
 
             arr, _ = self._infer_types(

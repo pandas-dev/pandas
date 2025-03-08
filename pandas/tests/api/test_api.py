@@ -261,6 +261,7 @@ class TestApi(Base):
         "JsonReader",
         "NaTType",
         "NAType",
+        "NoDefault",
         "PeriodIndexResamplerGroupby",
         "Resampler",
         "Rolling",
@@ -417,6 +418,7 @@ def test_set_module():
     assert pd.Period.__module__ == "pandas"
     assert pd.Timestamp.__module__ == "pandas"
     assert pd.Timedelta.__module__ == "pandas"
+    assert pd.concat.__module__ == "pandas"
     assert pd.isna.__module__ == "pandas"
     assert pd.notna.__module__ == "pandas"
     assert pd.merge.__module__ == "pandas"

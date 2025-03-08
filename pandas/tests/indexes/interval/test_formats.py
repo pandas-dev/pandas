@@ -21,12 +21,7 @@ class TestIntervalIndexRendering:
         [
             (
                 Series,
-                (
-                    "(0.0, 1.0]    a\n"
-                    "NaN           b\n"
-                    "(2.0, 3.0]    c\n"
-                    "dtype: object"
-                ),
+                ("(0.0, 1.0]    a\nNaN           b\n(2.0, 3.0]    c\ndtype: object"),
             ),
             (DataFrame, ("            0\n(0.0, 1.0]  a\nNaN         b\n(2.0, 3.0]  c")),
         ],
@@ -59,6 +54,9 @@ class TestIntervalIndexRendering:
         expected = "(329.973, 345.137]    1\n(345.137, 360.191]    2\ndtype: int64"
         assert result == expected
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     @pytest.mark.parametrize(
         "tuples, closed, expected_data",
         [

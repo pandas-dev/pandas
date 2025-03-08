@@ -19,12 +19,11 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import (
     WASM,
     is_platform_windows,
 )
+from pandas.compat.pyarrow import pa_version_under19p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -154,8 +153,8 @@ Look,a snake,🐍"""
         s = StringIO(data)
         with icom.get_handle(s, "rb", is_text=False) as handles:
             df = pa_csv.read_csv(handles.handle).to_pandas()
-            # TODO will have to update this when pyarrow' to_pandas() is fixed
-            expected = expected.astype("object")
+            if pa_version_under19p0:
+                expected = expected.astype("object")
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 
@@ -365,7 +364,6 @@ Look,a snake,🐍"""
                     expected = f_path.read()
                     assert result == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) hdf support")
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -501,6 +499,18 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("{'url': 'gs://pandas/somethingelse.com'}")
     # accept everything that conforms to RFC 3986 schema
     assert icom.is_fsspec_url("RFC-3986+compliant.spec://something")
+
+
+def test_is_fsspec_url_chained():
+    # GH#48978 Support chained fsspec URLs
+    # See https://filesystem-spec.readthedocs.io/en/latest/features.html#url-chaining.
+    assert icom.is_fsspec_url("filecache::s3://pandas/test.csv")
+    assert icom.is_fsspec_url("zip://test.csv::filecache::gcs://bucket/file.zip")
+    assert icom.is_fsspec_url("filecache::zip://test.csv::gcs://bucket/file.zip")
+    assert icom.is_fsspec_url("filecache::dask::s3://pandas/test.csv")
+    assert not icom.is_fsspec_url("filecache:s3://pandas/test.csv")
+    assert not icom.is_fsspec_url("filecache:::s3://pandas/test.csv")
+    assert not icom.is_fsspec_url("filecache::://pandas/test.csv")
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])

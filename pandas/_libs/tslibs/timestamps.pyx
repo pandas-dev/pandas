@@ -1309,7 +1309,7 @@ cdef class _Timestamp(ABCTimestamp):
         By default, the fractional part is omitted if self.microsecond == 0
         and self._nanosecond == 0.
 
-        If self.tzinfo is not None, the UTC offset is also attached, giving
+        If self.tzinfo is not None, the UTC offset is also attached,
         giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
 
         Parameters
@@ -2217,7 +2217,7 @@ class Timestamp(_Timestamp):
         difference between the current timezone and UTC.
 
         Returns
-        --------
+        -------
         timedelta
             The difference between UTC and the local time as a `timedelta` object.
 

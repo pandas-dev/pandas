@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import iNaT
 from pandas.compat import (
     is_ci_environment,
@@ -280,7 +278,7 @@ def test_empty_pyarrow(data):
     expected = pd.DataFrame(data)
     arrow_df = pa_from_dataframe(expected)
     result = from_dataframe(arrow_df)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_column_type=False)
 
 
 def test_multi_chunk_pyarrow() -> None:
@@ -290,8 +288,7 @@ def test_multi_chunk_pyarrow() -> None:
     table = pa.table([n_legs], names=names)
     with pytest.raises(
         RuntimeError,
-        match="To join chunks a copy is required which is "
-        "forbidden by allow_copy=False",
+        match="Cannot do zero copy conversion into multi-column DataFrame block",
     ):
         pd.api.interchange.from_dataframe(table, allow_copy=False)
 
@@ -401,7 +398,6 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     pd.api.interchange.from_dataframe(df)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_empty_string_column():
     # https://github.com/pandas-dev/pandas/issues/56703
     df = pd.DataFrame({"a": []}, dtype=str)
@@ -410,13 +406,12 @@ def test_empty_string_column():
     tm.assert_frame_equal(df, result)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_large_string():
     # GH#56702
     pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
     result = pd.api.interchange.from_dataframe(df.__dataframe__())
-    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    expected = pd.DataFrame({"a": ["x"]}, dtype="str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -427,7 +422,6 @@ def test_non_str_names():
     assert names == ["0"]
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_non_str_names_w_duplicates():
     # https://github.com/pandas-dev/pandas/issues/56701
     df = pd.DataFrame({"0": [1, 2, 3], 0: [4, 5, 6]})
@@ -438,7 +432,7 @@ def test_non_str_names_w_duplicates():
             "Expected a Series, got a DataFrame. This likely happened because you "
             "called __dataframe__ on a DataFrame which, after converting column "
             r"names to string, resulted in duplicated names: Index\(\['0', '0'\], "
-            r"dtype='object'\). Please rename these columns before using the "
+            r"dtype='(str|object)'\). Please rename these columns before using the "
             "interchange protocol."
         ),
     ):
@@ -646,3 +640,12 @@ def test_buffer_dtype_categorical(
     col = dfi.get_column_by_name("data")
     assert col.dtype == expected_dtype
     assert col.get_buffers()["data"][1] == expected_buffer_dtype
+
+
+def test_from_dataframe_list_dtype():
+    pa = pytest.importorskip("pyarrow", "14.0.0")
+    data = {"a": [[1, 2], [4, 5, 6]]}
+    tbl = pa.table(data)
+    result = from_dataframe(tbl)
+    expected = pd.DataFrame(data)
+    tm.assert_frame_equal(result, expected)

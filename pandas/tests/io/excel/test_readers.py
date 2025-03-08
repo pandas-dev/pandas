@@ -17,8 +17,6 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -625,7 +623,6 @@ class TestReaders:
         expected = DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_dtype_backend(self, read_ext, dtype_backend, engine, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -913,8 +910,7 @@ class TestReaders:
 
             error = XLRDError
             msg = (
-                "Unsupported format, or corrupt file: Expected BOF "
-                "record; found b'foo'"
+                "Unsupported format, or corrupt file: Expected BOF record; found b'foo'"
             )
         elif engine == "calamine":
             from python_calamine import CalamineError
