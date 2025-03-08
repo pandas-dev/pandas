@@ -111,13 +111,20 @@ class SelectNSeries(SelectN[Series]):
         if n <= 0:
             return self.obj[[]]
 
-        dropped = self.obj.dropna()
-        nan_index = self.obj.drop(dropped.index)
+        # Save index and reset to default index to avoid performance impact 
+        # from when index contains duplicates
+        original_index = self.obj.index
+        cur_series = self.obj.reset_index(drop=True)
+
+        dropped = cur_series.dropna()
+        nan_index = cur_series.drop(dropped.index)
 
         # slow method
-        if n >= len(self.obj):
+        if n >= len(cur_series):
             ascending = method == "nsmallest"
-            return self.obj.sort_values(ascending=ascending).head(n)
+            final_series =  cur_series.sort_values(ascending=ascending, kind="mergesort").head(n)
+            final_series.index = original_index.take(final_series.index)
+            return final_series
 
         # fast method
         new_dtype = dropped.dtype
@@ -173,7 +180,9 @@ class SelectNSeries(SelectN[Series]):
             # reverse indices
             inds = narr - 1 - inds
 
-        return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        final_series = concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        final_series.index = original_index.take(final_series.index)
+        return final_series
 
 
 class SelectNFrame(SelectN[DataFrame]):
