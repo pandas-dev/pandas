@@ -408,16 +408,18 @@ class TestGetitemBooleanMask:
         tm.assert_series_equal(result, expected)
 
     def test_series_boolean_indexer_iloc_consistency(self):
-    # GH#60994 - Test consistency between __getitem__ and __setitem__ for Series boolean indexers
+        # GH#60994 - Test consistency between __getitem__ and __setitem__ for Series
+        # boolean indexers
         ser = Series([0, 1, 2])
         mask = Series([True, False, False])
-        
+
         # __getitem__ should raise NotImplementedError
-        with pytest.raises(NotImplementedError, match="iLocation based boolean indexing on an integer type is not available"):
+        msg = "iLocation based boolean indexing on an integer type is not available"
+        with pytest.raises(NotImplementedError, match=msg):
             ser.iloc[mask]
-            
+
         # __setitem__ should also raise NotImplementedError for consistency
-        with pytest.raises(NotImplementedError, match="iLocation based boolean indexing on an integer type is not available"):
+        with pytest.raises(NotImplementedError, match=msg):
             ser.iloc[mask] = 10
 
 

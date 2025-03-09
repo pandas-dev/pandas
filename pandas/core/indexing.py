@@ -1638,7 +1638,11 @@ class _iLocIndexer(_LocationIndexer):
             )
 
         # Check for Series boolean indexer
-        if com.is_bool_indexer(indexer) and hasattr(indexer, "index") and isinstance(indexer.index, Index):
+        if (
+            com.is_bool_indexer(indexer)
+            and hasattr(indexer, "index")
+            and isinstance(indexer.index, Index)
+        ):
             if indexer.index.inferred_type == "integer":
                 raise NotImplementedError(
                     "iLocation based boolean "
