@@ -8,10 +8,10 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
 )
 
 import bodo
+import numpy as np
 
 import pandas as pd
 
@@ -24,45 +24,50 @@ if TYPE_CHECKING:
     )
 
 
-def __pandas_udf__(
-    jit_decorator: Callable,
-    obj: pd.Series | pd.DataFrame,
-    method: Literal["apply", "map"],
-    func: AggFuncType,
-    axis: Axis,
-    raw: bool,
-    result_type: Literal["expand", "reduce", "broadcast"] | None,
-    args: tuple,
-    kwargs: dict[str, Any],
-    by_row: Literal[False, "compat"],
-):
-    if isinstance(obj, pd.DataFrame) and method == "apply":
-        if result_type is not None:
-            raise NotImplementedError(
-                "engine='bodo' not supported when result_type is not None"
-            )
+class BodoExecutionEngine(pd.api.executors.BaseExecutionEngine):
+    @staticmethod
+    def map(
+        data: pd.Series | pd.DataFrame | np.ndarray,
+        func: AggFuncType,
+        args: tuple,
+        kwargs: dict[str, Any],
+        decorator: Callable,
+        skip_na: bool,
+    ):
+        raise NotImplementedError("engine='bodo' not supported for map")
 
-        if raw:
+    @staticmethod
+    def apply(
+        data: pd.Series | pd.DataFrame | np.ndarray,
+        func: AggFuncType,
+        args: tuple,
+        kwargs: dict[str, Any],
+        decorator: Callable,
+        axis: Axis,
+    ):
+        if isinstance(data, pd.Series):
+            raise NotImplementedError("engine='bodo' not supported for Series.apply")
+
+        if isinstance(data, np.ndarray):
             raise NotImplementedError("engine='bodo' not supported when raw=True")
-        if isinstance(func, str) and axis != 1:
-            raise NotImplementedError(
-                "engine='bodo' only supports axis=1 when func is the name of a "
-                "user-defined function"
-            )
+
         if args or kwargs:
             raise NotImplementedError(
                 "engine='bodo' not supported when args or kwargs are specified"
             )
 
-        @jit_decorator
+        if isinstance(func, str) and axis != 1:
+            raise NotImplementedError(
+                "engine='bodo' only supports axis=1 when func is the name of a "
+                "user-defined function"
+            )
+
         def jit_func(df, func, axis):
             return df.apply(func, axis=axis)
 
-        return jit_func(obj, func, axis)
-    else:
-        raise NotImplementedError(
-            f"engine='bodo' not supported for {obj.__name__}.{method}"
-        )
+        jit_func = decorator(jit_func)
+
+        return jit_func(data, func, axis)
 
 
-bodo.jit.__pandas_udf__ = __pandas_udf__
+bodo.jit.__pandas_udf__ = BodoExecutionEngine
