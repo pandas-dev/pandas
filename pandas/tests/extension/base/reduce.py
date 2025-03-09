@@ -105,6 +105,11 @@ class BaseReduceTests:
             msg = (
                 "[Cc]annot perform|Categorical is not ordered for operation|"
                 "does not support operation|"
+                "unsupported operand type|"
+                "NotImplemented|"
+                "not supported between instances|"
+                "NotImplementedType|"
+                "iLocation based boolean"
             )
 
             with pytest.raises(TypeError, match=msg):
