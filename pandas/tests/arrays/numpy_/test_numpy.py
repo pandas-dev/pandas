@@ -337,7 +337,7 @@ def test_array_repr(any_numpy_array):
         values = "['a', 'b']"
     elif nparray.dtype == "float64":
         values = "[0.0, 1.0]"
-    elif nparray.dtype == "int64":
+    elif str(nparray.dtype).startswith("int"):
         values = "[0, 1]"
     elif nparray.dtype == "complex128":
         values = "[0j, (1+2j)]"

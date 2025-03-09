@@ -571,7 +571,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         # NEP 51: https://github.com/numpy/numpy/pull/22449
-        if self.dtype == "object":
+        if self.dtype.kind in "SU":
+            return "'{}'".format
+        elif self.dtype == "object":
             return repr
         else:
             return str
