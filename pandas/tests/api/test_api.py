@@ -6,6 +6,7 @@ import pandas as pd
 from pandas import api
 import pandas._testing as tm
 from pandas.api import (
+    executors as api_executors,
     extensions as api_extensions,
     indexers as api_indexers,
     interchange as api_interchange,
@@ -243,6 +244,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
     allowed_api_dirs = [
+        "executors",
         "types",
         "extensions",
         "indexers",
@@ -338,6 +340,7 @@ class TestApi(Base):
         "ExtensionArray",
         "ExtensionScalarOpsMixin",
     ]
+    allowed_api_executors = ["BaseExecutionEngine"]
 
     def test_api(self):
         self.check(api, self.allowed_api_dirs)
@@ -356,6 +359,9 @@ class TestApi(Base):
 
     def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
+
+    def test_api_executors(self):
+        self.check(api_executors, self.allowed_api_executors)
 
 
 class TestErrors(Base):
