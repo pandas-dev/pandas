@@ -212,7 +212,7 @@ class HistPlot(LinePlot):
                 self.xlabel if isinstance(self.xlabel, str) else str(self.xlabel)  # type: ignore[arg-type]
             )
             ax.set_ylabel(
-                "Frequency" if self.ylabel is None else ylabel  # type: ignore[arg-type]
+                "Frequency" if self.ylabel is None else self.ylabel  # type: ignore[arg-type]
             )
 
     @property
