@@ -98,7 +98,7 @@ def grouped_min_max(
     for i in range(N):
         lab = labels[i]
         val = values[i]
-        if lab < 0 or (nobs[lab] >= 1 and np.isnan(output[lab])):
+        if lab < 0 or (not skipna and nobs[lab] >= 1 and np.isnan(output[lab])):
             continue
 
         if values.dtype.kind == "i" or not np.isnan(val):

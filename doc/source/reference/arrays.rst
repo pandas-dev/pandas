@@ -61,7 +61,7 @@ is an :class:`ArrowDtype`.
 support as NumPy including first-class nullability support for all data types, immutability and more.
 
 The table below shows the equivalent pyarrow-backed (``pa``), pandas extension, and numpy (``np``) types that are recognized by pandas.
-Pyarrow-backed types below need to be passed into :class:`ArrowDtype` to be recognized by pandas e.g. ``pd.ArrowDtype(pa.bool_())``
+Pyarrow-backed types below need to be passed into :class:`ArrowDtype` to be recognized by pandas e.g. ``pd.ArrowDtype(pa.bool_())``.
 
 =============================================== ========================== ===================
 PyArrow type                                    pandas extension type      NumPy type
@@ -114,7 +114,7 @@ values.
 
    ArrowDtype
 
-For more information, please see the :ref:`PyArrow user guide <pyarrow>`
+For more information, please see the :ref:`PyArrow user guide <pyarrow>`.
 
 .. _api.arrays.datetime:
 
@@ -495,7 +495,7 @@ a :class:`CategoricalDtype`.
    CategoricalDtype.categories
    CategoricalDtype.ordered
 
-Categorical data can be stored in a :class:`pandas.Categorical`
+Categorical data can be stored in a :class:`pandas.Categorical`:
 
 .. autosummary::
    :toctree: api/

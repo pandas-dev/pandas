@@ -4281,7 +4281,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict(), copy=False)
 
-        if key.size and not all(is_bool_dtype(dtype) for dtype in key.dtypes):
+        if key.size and not all(is_bool_dtype(blk.dtype) for blk in key._mgr.blocks):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -5293,16 +5293,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        labels : single label or list-like
+        labels : single label or iterable of labels
             Index or column labels to drop. A tuple will be used as a single
-            label and not treated as a list-like.
+            label and not treated as an iterable.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
-        index : single label or list-like
+        index : single label or iterable of labels
             Alternative to specifying axis (``labels, axis=0``
             is equivalent to ``index=labels``).
-        columns : single label or list-like
+        columns : single label or iterable of labels
             Alternative to specifying axis (``labels, axis=1``
             is equivalent to ``columns=labels``).
         level : int or level name, optional
@@ -5880,6 +5880,8 @@ class DataFrame(NDFrame, OpsMixin):
             Delete columns to be used as the new index.
         append : bool, default False
             Whether to append columns to existing index.
+            Setting to True will add the new columns to existing index.
+            When set to False, the current index will be dropped from the DataFrame.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
         verify_integrity : bool, default False
@@ -5953,6 +5955,25 @@ class DataFrame(NDFrame, OpsMixin):
         2 4       4  2014    40
         3 9       7  2013    84
         4 16     10  2014    31
+
+        Append a column to the existing index:
+
+        >>> df = df.set_index("month")
+        >>> df.set_index("year", append=True)
+                      sale
+        month  year
+        1      2012    55
+        4      2014    40
+        7      2013    84
+        10     2014    31
+
+        >>> df.set_index("year", append=False)
+               sale
+        year
+        2012    55
+        2014    40
+        2013    84
+        2014    31
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
@@ -8029,10 +8050,15 @@ class DataFrame(NDFrame, OpsMixin):
             return False
 
         if (
-            isinstance(self.columns, MultiIndex)
-            or isinstance(right.columns, MultiIndex)
-        ) and not self.columns.equals(right.columns):
+            (
+                isinstance(self.columns, MultiIndex)
+                or isinstance(right.columns, MultiIndex)
+            )
+            and not self.columns.equals(right.columns)
+            and fill_value is None
+        ):
             # GH#60498 Reindex if MultiIndexe columns are not matching
+            # GH#60903 Don't reindex if fill_value is provided
             return True
 
         if fill_value is None and level is None and axis == 1:
@@ -10260,7 +10286,9 @@ class DataFrame(NDFrame, OpsMixin):
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
         (``axis=1``). By default (``result_type=None``), the final return type
         is inferred from the return type of the applied function. Otherwise,
-        it depends on the `result_type` argument.
+        it depends on the `result_type` argument. The return type of the applied
+        function is inferred based on the first computed result obtained after
+        applying the function to a Series object.
 
         Parameters
         ----------
