@@ -1637,6 +1637,18 @@ class _iLocIndexer(_LocationIndexer):
                 "Consider using .loc with a DataFrame indexer for automatic alignment.",
             )
 
+        # Check for Series boolean indexer
+        if com.is_bool_indexer(indexer) and hasattr(indexer, "index") and isinstance(indexer.index, Index):
+            if indexer.index.inferred_type == "integer":
+                raise NotImplementedError(
+                    "iLocation based boolean "
+                    "indexing on an integer type "
+                    "is not available"
+                )
+            raise ValueError(
+                "iLocation based boolean indexing cannot use an indexable as a mask"
+            )
+
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
 
