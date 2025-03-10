@@ -929,6 +929,41 @@ class Expanding(RollingAndExpandingMixin):
 
     @doc(
         template_header,
+        ".. versionadded:: 3.0.0 \n\n",
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """
+        >>> s = pd.Series([1, 4, 2, 3, 5, 3])
+        >>> s.expanding().nunique()
+        0    1.0
+        1    2.0
+        2    3.0
+        3    4.0
+        4    5.0
+        5    5.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="nunique",
+        agg_method="nunique",
+    )
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        return super().nunique(
+            numeric_only=numeric_only,
+        )
+
+    @doc(
+        template_header,
         create_section_header("Parameters"),
         dedent(
             """
