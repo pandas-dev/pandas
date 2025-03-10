@@ -1752,9 +1752,6 @@ cdef class _Period(PeriodMixin):
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
         self.freq = freq
-        # Note: this is more performant than PeriodDtype.from_date_offset(freq)
-        #  because from_date_offset cannot be made a cdef method (until cython
-        #  supported cdef classmethods)
         self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
     @classmethod
