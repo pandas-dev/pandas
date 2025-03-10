@@ -14,7 +14,10 @@ for _dependency in _hard_dependencies:
 
 if _missing_dependencies:  # pragma: no cover
     raise ImportError(
-        "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
+        "Unable to import required dependencies:\n"
+        + "\n".join(_missing_dependencies)
+        + "\n\nTo see the full error message, "
+        + "try importing the missing dependencies directly."
     )
 del _hard_dependencies, _dependency, _missing_dependencies
 
