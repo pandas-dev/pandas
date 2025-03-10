@@ -42,6 +42,7 @@ from pandas.compat import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
+    pa_version_under20p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -453,7 +454,7 @@ class TestArrowArray(base.ExtensionTests):
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if op_name in ["kurt", "skew"]:
+        if op_name == "kurt" or (pa_version_under20p0 and op_name == "skew"):
             return False
 
         dtype = ser.dtype
