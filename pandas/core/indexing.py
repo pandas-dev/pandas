@@ -28,6 +28,7 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
+    find_common_type,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -1094,7 +1095,14 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if com.is_null_slice(new_key):
                     return section
                 # This is an elided recursive call to iloc/loc
-                return getattr(section, self.name)[new_key]
+                out = getattr(section, self.name)[new_key]
+                # Re-interpret dtype of out.values for loc/iloc[int, list-like].
+                # GH60600
+                if i == 0 and isinstance(key, int) and is_list_like(tup[1]):
+                    dt = self.obj.dtypes.__getitem__(tup[1])
+                    if len(dt) > 0:
+                        out = out.astype(find_common_type(dt.tolist()))
+                return out
 
         raise IndexingError("not applicable")
 
