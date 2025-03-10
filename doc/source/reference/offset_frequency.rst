@@ -776,6 +776,146 @@ Methods
     QuarterBegin.is_year_start
     QuarterBegin.is_year_end
 
+BHalfYearEnd
+------------
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearEnd
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearEnd.freqstr
+    BHalfYearEnd.kwds
+    BHalfYearEnd.name
+    BHalfYearEnd.nanos
+    BHalfYearEnd.normalize
+    BHalfYearEnd.rule_code
+    BHalfYearEnd.n
+    BHalfYearEnd.startingMonth
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearEnd.copy
+    BHalfYearEnd.is_on_offset
+    BHalfYearEnd.is_month_start
+    BHalfYearEnd.is_month_end
+    BHalfYearEnd.is_quarter_start
+    BHalfYearEnd.is_quarter_end
+    BHalfYearEnd.is_year_start
+    BHalfYearEnd.is_year_end
+
+BHalfYearBegin
+--------------
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearBegin
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearBegin.freqstr
+    BHalfYearBegin.kwds
+    BHalfYearBegin.name
+    BHalfYearBegin.nanos
+    BHalfYearBegin.normalize
+    BHalfYearBegin.rule_code
+    BHalfYearBegin.n
+    BHalfYearBegin.startingMonth
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearBegin.copy
+    BHalfYearBegin.is_on_offset
+    BHalfYearBegin.is_month_start
+    BHalfYearBegin.is_month_end
+    BHalfYearBegin.is_quarter_start
+    BHalfYearBegin.is_quarter_end
+    BHalfYearBegin.is_year_start
+    BHalfYearBegin.is_year_end
+
+HalfYearEnd
+-----------
+.. autosummary::
+   :toctree: api/
+
+    HalfYearEnd
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    HalfYearEnd.freqstr
+    HalfYearEnd.kwds
+    HalfYearEnd.name
+    HalfYearEnd.nanos
+    HalfYearEnd.normalize
+    HalfYearEnd.rule_code
+    HalfYearEnd.n
+    HalfYearEnd.startingMonth
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    HalfYearEnd.copy
+    HalfYearEnd.is_on_offset
+    HalfYearEnd.is_month_start
+    HalfYearEnd.is_month_end
+    HalfYearEnd.is_quarter_start
+    HalfYearEnd.is_quarter_end
+    HalfYearEnd.is_year_start
+    HalfYearEnd.is_year_end
+
+HalfYearBegin
+-------------
+.. autosummary::
+   :toctree: api/
+
+    HalfYearBegin
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    HalfYearBegin.freqstr
+    HalfYearBegin.kwds
+    HalfYearBegin.name
+    HalfYearBegin.nanos
+    HalfYearBegin.normalize
+    HalfYearBegin.rule_code
+    HalfYearBegin.n
+    HalfYearBegin.startingMonth
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    HalfYearBegin.copy
+    HalfYearBegin.is_on_offset
+    HalfYearBegin.is_month_start
+    HalfYearBegin.is_month_end
+    HalfYearBegin.is_quarter_start
+    HalfYearBegin.is_quarter_end
+    HalfYearBegin.is_year_start
+    HalfYearBegin.is_year_end
+
 BYearEnd
 --------
 .. autosummary::
