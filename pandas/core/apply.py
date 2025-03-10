@@ -120,7 +120,7 @@ class BaseExecutionEngine(abc.ABC):
             For JIT compilers and other engines that need to decorate the
             function ``func``, this is the decorator to use. While the
             executor may already know which is the decorator to use, this
-            is useful as for a single executor the user can specify for a
+            is useful as for a single executor the user can specify for
             example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
             decorator parameter will contain the exact decortor from the
             executor the user wants to use.
@@ -163,7 +163,7 @@ class BaseExecutionEngine(abc.ABC):
             For JIT compilers and other engines that need to decorate the
             function ``func``, this is the decorator to use. While the
             executor may already know which is the decorator to use, this
-            is useful as for a single executor the user can specify for a
+            is useful as for a single executor the user can specify for
             example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
             decorator parameter will contain the exact decortor from the
             executor the user wants to use.

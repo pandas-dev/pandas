@@ -10459,6 +10459,9 @@ class DataFrame(NDFrame, OpsMixin):
             if engine is None:
                 engine = "python"
 
+            if engine not in ["python", "numba"]:
+                raise ValueError(f"Unknown engine '{engine}'")
+
             op = frame_apply(
                 self,
                 func=func,
@@ -10478,6 +10481,31 @@ class DataFrame(NDFrame, OpsMixin):
                     f"{result_type=} only implemented for the default engine"
                 )
 
+            agg_axis = self._get_agg_axis(axis)
+
+            # one axis is empty
+            if not all(self.shape):
+                try:
+                    if axis == 0:
+                        r = func(Series([], dtype=np.float64), *args, **kwargs)
+                    else:
+                        r = func(
+                            Series(index=self.columns, dtype=np.float64),
+                            *args,
+                            **kwargs,
+                        )
+                except Exception:
+                    pass
+                else:
+                    if not isinstance(r, Series):
+                        if len(agg_axis):
+                            r = func(Series([], dtype=np.float64), *args, **kwargs)
+                        else:
+                            r = np.nan
+
+                        return self._constructor_sliced(r, index=agg_axis)
+                return self.copy()
+
             data = self
             if raw:
                 # This will upcast the whole DataFrame to the same type,
@@ -10485,7 +10513,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # We should probably pass a list of 1D arrays instead, at
                 # lest for ``axis=0``
                 data = data.values
-            return engine.__pandas_udf__.apply(
+            result = engine.__pandas_udf__.apply(
                 data=data,
                 func=func,
                 args=args,
@@ -10493,6 +10521,16 @@ class DataFrame(NDFrame, OpsMixin):
                 decorator=engine,
                 axis=axis,
             )
+            if raw:
+                if result.ndim == 2:
+                    return self._constructor(
+                        result, index=self.index, columns=self.columns
+                    )
+                else:
+                    return self._constructor_sliced(result, index=agg_axis)
+            return result
+        else:
+            raise ValueError(f"Unknown engine {engine}")
 
     def map(
         self, func: PythonFuncType, na_action: Literal["ignore"] | None = None, **kwargs
