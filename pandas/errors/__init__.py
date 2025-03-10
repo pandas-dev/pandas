@@ -417,6 +417,21 @@ class NumbaUtilError(Exception):
     """
 
 
+class ExecutionError(Exception):
+    """
+    Error raised from internal errors originating in engines.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": ["1", "2", "3"]})
+    >>> df.apply(lambda x: x.A + x.B, engine="bodo", axis=1)
+    Traceback (most recent call last):
+        ...
+    pandas.errors.ExecutionError: Execution with engine='bodo' failed.
+
+    """
+
+
 class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
@@ -916,6 +931,7 @@ __all__ = [
     "DtypeWarning",
     "DuplicateLabelError",
     "EmptyDataError",
+    "ExecutionError",
     "IncompatibilityWarning",
     "IndexingError",
     "IntCastingNaNError",

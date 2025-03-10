@@ -212,6 +212,7 @@ jobs:
         uses: ./.github/actions/setup-conda
         with:
           environment-file: ci/deps/${{ matrix.env_file }}
+          os: ${{ matrix.os }}
 
       - name: Build Pandas
         uses: ./.github/actions/build_pandas
