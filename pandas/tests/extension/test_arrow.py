@@ -555,7 +555,7 @@ class TestArrowArray(base.ExtensionTests):
             else:
                 cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
-            if op_name not in ["median", "var", "std", "sem"]:
+            if op_name not in ["median", "var", "std", "sem", "skew"]:
                 cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
@@ -572,6 +572,24 @@ class TestArrowArray(base.ExtensionTests):
                 "f": "float64[pyarrow]",
             }[arr.dtype.kind]
         return cmp_dtype
+
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if (
+            skipna
+            and all_numeric_reductions == "skew"
+            and (
+                pa.types.is_integer(data.dtype.pyarrow_dtype)
+                or pa.types.is_floating(data.dtype.pyarrow_dtype)
+            )
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="https://github.com/apache/arrow/issues/45733",
+                )
+            )
+        return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
