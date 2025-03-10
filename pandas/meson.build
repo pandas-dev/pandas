@@ -4,17 +4,24 @@ incdir_numpy = run_command(
         '-c',
         '''
 import os
-import numpy as np
+
+try:
+    import numpy as np
+    base_incdir = np.get_include()
+except Exception:
+    base_incdir = os.getenv('NUMPY_INC_DIR')
+
 try:
     # Check if include directory is inside the pandas dir
     # e.g. a venv created inside the pandas dir
     # If so, convert it to a relative path
-    incdir = os.path.relpath(np.get_include())
+    incdir = os.path.relpath(base_incdir)
 except Exception:
-    incdir = np.get_include()
+    incdir = base_incdir
 print(incdir)
      ''',
     ],
+    env: {'NUMPY_INC_DIR': get_option('numpy_inc_dir')},
     check: true,
 ).stdout().strip()
 
