@@ -126,8 +126,7 @@ class PandasObject(DirNamesMixin):
         Generates the total memory usage for an object that returns
         either a value or Series of values
         """
-        memory_usage = getattr(self, "memory_usage", None)
-        if memory_usage:
+        if (memory_usage := getattr(self, "memory_usage", None)):
             mem = memory_usage(deep=True)
             return int(mem if is_scalar(mem) else mem.sum())
 

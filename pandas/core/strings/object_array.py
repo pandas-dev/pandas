@@ -530,8 +530,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         def f(x):
             if not isinstance(x, str):
                 return empty_row
-            m = regex.search(x)
-            if m:
+            if (m := regex.search(x)):
                 return [na_value if item is None else item for item in m.groups()]
             else:
                 return empty_row

@@ -36,9 +36,8 @@ def _check_ne_builtin_clash(expr: Expr) -> None:
         Terms can contain
     """
     names = expr.names
-    overlap = names & _ne_builtins
 
-    if overlap:
+    if (overlap := names & _ne_builtins):
         s = ", ".join([repr(x) for x in overlap])
         raise NumExprClobberingError(
             f'Variables in expression "{expr}" overlap with builtins: ({s})'

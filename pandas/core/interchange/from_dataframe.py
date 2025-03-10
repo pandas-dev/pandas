@@ -144,8 +144,7 @@ def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True) -> pd.DataFrame:
     else:
         pandas_df = pd.concat(pandas_dfs, axis=0, ignore_index=True, copy=False)
 
-    index_obj = df.metadata.get("pandas.index", None)
-    if index_obj is not None:
+    if (index_obj := df.metadata.get("pandas.index", None)) is not None:
         pandas_df.index = index_obj
 
     return pandas_df
@@ -372,8 +371,7 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
 def parse_datetime_format_str(format_str, data) -> pd.Series | np.ndarray:
     """Parse datetime `format_str` to interpret the `data`."""
     # timestamp 'ts{unit}:tz'
-    timestamp_meta = re.match(r"ts([smun]):(.*)", format_str)
-    if timestamp_meta:
+    if (timestamp_meta := re.match(r"ts([smun]):(.*)", format_str)):
         unit, tz = timestamp_meta.group(1), timestamp_meta.group(2)
         if unit != "s":
             # the format string describes only a first letter of the unit, so
@@ -386,8 +384,7 @@ def parse_datetime_format_str(format_str, data) -> pd.Series | np.ndarray:
         return data
 
     # date 'td{Days/Ms}'
-    date_meta = re.match(r"td([Dm])", format_str)
-    if date_meta:
+    if (date_meta := re.match(r"td([Dm])", format_str)):
         unit = date_meta.group(1)
         if unit == "D":
             # NumPy doesn't support DAY unit, so converting days to seconds

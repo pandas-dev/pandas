@@ -889,8 +889,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             )
 
         msg = f"Cannot construct a 'DatetimeTZDtype' from '{string}'"
-        match = cls._match.match(string)
-        if match:
+        if (match := cls._match.match(string)):
             d = match.groupdict()
             try:
                 return cls(unit=d["unit"], tz=d["tz"])
@@ -1999,9 +1998,8 @@ class SparseDtype(ExtensionDtype):
             When the subtype cannot be extracted.
         """
         xpr = re.compile(r"Sparse\[(?P<subtype>[^,]*)(, )?(?P<fill_value>.*?)?\]$")
-        m = xpr.match(dtype)
         has_fill_value = False
-        if m:
+        if (m := xpr.match(dtype)):
             subtype = m.groupdict()["subtype"]
             has_fill_value = bool(m.groupdict()["fill_value"])
         elif dtype == "Sparse":

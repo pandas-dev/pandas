@@ -6108,9 +6108,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Count missing values
         missing_mask = indexer < 0
-        nmissing = missing_mask.sum()
 
-        if nmissing:
+        if (nmissing := missing_mask.sum()):
             if nmissing == len(indexer):
                 raise KeyError(f"None of [{key}] are in the [{axis_name}]")
 

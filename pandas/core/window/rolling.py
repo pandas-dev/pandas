@@ -741,8 +741,7 @@ class BaseWindowGroupby(BaseWindow):
         codes = self._grouper.codes
         levels = copy.copy(self._grouper.levels)
 
-        group_indices = self._grouper.indices.values()
-        if group_indices:
+        if (group_indices := self._grouper.indices.values()):
             indexer = np.concatenate(list(group_indices))
         else:
             indexer = np.array([], dtype=np.intp)

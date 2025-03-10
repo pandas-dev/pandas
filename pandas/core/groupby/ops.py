@@ -695,9 +695,8 @@ class BaseGrouper:
         Compute group sizes.
         """
         ids = self.ids
-        ngroups = self.ngroups
         out: np.ndarray | list
-        if ngroups:
+        if (ngroups := self.ngroups):
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
             out = []
