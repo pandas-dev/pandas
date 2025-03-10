@@ -3440,7 +3440,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 @cython.overflowcheck(True)
 @cython.cdivision(False)
-def normalize_i8_stamp(self, int64_t local_val, int64_t ppd):
+cdef normalize_i8_stamp(self, int64_t local_val, int64_t ppd):
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 
