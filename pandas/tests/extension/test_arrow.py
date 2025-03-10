@@ -461,24 +461,17 @@ class TestArrowArray(base.ExtensionTests):
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
-        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod"]:
+        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod", "skew"]:
             if pa.types.is_duration(pa_dtype) and op_name in ["sum"]:
                 # summing timedeltas is one case that *is* well-defined
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name == "sum":
+        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew"]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and op_name in [
-            "mean",
-            "median",
-            "prod",
-            "std",
-            "sem",
-            "var",
-        ]:
+        ) and op_name in ["mean", "median", "prod", "std", "sem", "var", "skew"]:
             return False
 
         if (
@@ -583,7 +576,7 @@ class TestArrowArray(base.ExtensionTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
-        if op_name == "skew":
+        if op_name == "skew" and pa_version_under20p0:
             if data.dtype._is_numeric:
                 mark = pytest.mark.xfail(reason="skew not implemented")
                 request.applymarker(mark)
