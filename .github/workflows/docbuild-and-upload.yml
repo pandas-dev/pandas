@@ -40,11 +40,18 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Determine NumPy pkg-config location
+      run: |
+        echo "PKG_CONFIG_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')/numpy/_core/lib/pkgconfig" >> $GITHUB_ENV
+
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
+      env:
+        CIBW_ENVIRONMENT: "PKG_CONFIG_PATH=${{env.PKG_CONFIG_PATH}}"
+        PKG_CONFIG_PATH: ${{env.PKG_CONFIG_PATH}}
 
     - name: Extra installs
       # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd

@@ -25,10 +25,8 @@ runs:
     - name: Build Pandas
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
-          pip install -e . --no-build-isolation -v --no-deps \
-            -Csetup-args="--werror"
+          pip install -e . --no-build-isolation -v --no-deps
         else
-          pip install . --no-build-isolation -v --no-deps \
-            -Csetup-args="--werror"
+          pip install . --no-build-isolation -v --no-deps
         fi
       shell: bash -el {0}

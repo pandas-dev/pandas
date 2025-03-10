@@ -13,6 +13,7 @@ on:
 env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
+  PKG_CONFIG_PATH: "${{env.PYTHONHOME}}/numpy/_core/lib/pkgconfig"
 
 permissions:
   contents: read
