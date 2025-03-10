@@ -3557,7 +3557,6 @@ def test_categorical_from_arrow_dictionary():
 
 def test_arrow_json_type():
     # GH 60958
-
-    dtype = pd.ArrowDtype(pa.json_(pa.string()))
-    result = pd.api.types.pandas_dtype(dtype).type
+    dtype = ArrowDtype(pa.json_(pa.string()))
+    result = dtype.type
     assert result == str
