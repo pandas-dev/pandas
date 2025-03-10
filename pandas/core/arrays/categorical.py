@@ -2974,8 +2974,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         from pandas import Series
 
         method = getattr(self._parent, name)
-        res = method(*args, **kwargs)
-        if res is not None:
+        if (res := method(*args, **kwargs)) is not None:
             return Series(res, index=self._index, name=self._name)
 
 
