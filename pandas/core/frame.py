@@ -10481,10 +10481,11 @@ class DataFrame(NDFrame, OpsMixin):
                     f"{result_type=} only implemented for the default engine"
                 )
 
-            agg_axis = self._get_agg_axis(axis)
+            agg_axis = self._get_agg_axis(self._get_axis_number(axis))
 
             # one axis is empty
             if not all(self.shape):
+                func = cast(Callable, func)
                 try:
                     if axis == 0:
                         r = func(Series([], dtype=np.float64), *args, **kwargs)
@@ -10506,13 +10507,13 @@ class DataFrame(NDFrame, OpsMixin):
                         return self._constructor_sliced(r, index=agg_axis)
                 return self.copy()
 
-            data = self
+            data: DataFrame | np.ndarray = self
             if raw:
                 # This will upcast the whole DataFrame to the same type,
                 # and likely result in an object 2D array.
                 # We should probably pass a list of 1D arrays instead, at
                 # lest for ``axis=0``
-                data = data.values
+                data = self.values
             result = engine.__pandas_udf__.apply(
                 data=data,
                 func=func,
