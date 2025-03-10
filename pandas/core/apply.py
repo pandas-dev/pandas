@@ -122,7 +122,7 @@ class BaseExecutionEngine(abc.ABC):
             executor may already know which is the decorator to use, this
             is useful as for a single executor the user can specify for
             example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
-            decorator parameter will contain the exact decortor from the
+            decorator parameter will contain the exact decorator from the
             executor the user wants to use.
         skip_na : bool
             Whether the function should be called for missing values or not.
@@ -165,7 +165,7 @@ class BaseExecutionEngine(abc.ABC):
             executor may already know which is the decorator to use, this
             is useful as for a single executor the user can specify for
             example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
-            decorator parameter will contain the exact decortor from the
+            decorator parameter will contain the exact decorator from the
             executor the user wants to use.
         axis : {0 or 'index', 1 or 'columns'}
             0 or 'index' should execute the function passing each column as

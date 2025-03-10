@@ -10447,7 +10447,7 @@ class DataFrame(NDFrame, OpsMixin):
         type during the execution).
 
         >>> import bodo
-        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit(parallel=True))
+        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)
 
         Note that JIT compilation is only recommended for functions that take a
         significant amount of time to run. Fast functions are unlikely to run faster
