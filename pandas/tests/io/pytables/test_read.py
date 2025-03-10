@@ -5,8 +5,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import is_platform_windows
 
 import pandas as pd
@@ -72,7 +70,6 @@ def test_read_missing_key_opened_store(tmp_path, setup_path):
         read_hdf(store, "k1")
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_read_column(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),

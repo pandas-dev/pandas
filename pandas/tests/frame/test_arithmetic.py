@@ -832,6 +832,43 @@ class TestFrameFlexArithmetic:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_multiindex_operations_part_align_axis1(self):
+        # GH#61009 Test DataFrame-Series arithmetic operation
+        # with partly aligned MultiIndex and axis = 1
+        df = DataFrame(
+            [[1, 2, 3], [3, 4, 5]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            [[1.4, 2.4, np.nan], [3.4, 4.4, np.nan]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=1)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -2055,6 +2092,26 @@ def test_arithmetic_multiindex_column_align():
         index=["C1", "C2"],
     )
     result = df1 * df2
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arithmetic_multiindex_column_align_with_fillvalue():
+    # GH#60903
+    df1 = DataFrame(
+        data=[[1.0, 2.0]],
+        columns=MultiIndex.from_tuples([("A", "one"), ("A", "two")]),
+    )
+    df2 = DataFrame(
+        data=[[3.0, 4.0]],
+        columns=MultiIndex.from_tuples([("B", "one"), ("B", "two")]),
+    )
+    expected = DataFrame(
+        data=[[1.0, 2.0, 3.0, 4.0]],
+        columns=MultiIndex.from_tuples(
+            [("A", "one"), ("A", "two"), ("B", "one"), ("B", "two")]
+        ),
+    )
+    result = df1.add(df2, fill_value=0)
     tm.assert_frame_equal(result, expected)
 
 

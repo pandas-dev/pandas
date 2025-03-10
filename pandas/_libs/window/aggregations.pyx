@@ -6,6 +6,7 @@ from libc.math cimport (
     sqrt,
 )
 from libcpp.deque cimport deque
+from libcpp.unordered_map cimport unordered_map
 
 from pandas._libs.algos cimport TiebreakEnumType
 
@@ -1466,6 +1467,66 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                 output[i] = NaN
 
     skiplist_destroy(skiplist)
+
+    return np.asarray(output)
+
+
+def roll_nunique(const float64_t[:] values, ndarray[int64_t] start,
+                 ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+    """
+    Rolling number of unique elements in the window
+    """
+    cdef:
+        Py_ssize_t i, j, s, e, N = len(start)
+        int64_t nobs = 0
+        float64_t val
+        float64_t[::1] output
+        unordered_map[float64_t, int64_t] value_counts
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    output = np.empty(N, dtype=np.float64)
+    value_counts = unordered_map[float64_t, int64_t]()
+
+    with nogil:
+        for i in range(N):
+            s = start[i]
+            e = end[i]
+
+            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
+                if i != 0:
+                    nobs = 0
+                    value_counts.clear()
+
+                # setup
+                for j in range(s, e):
+                    val = values[j]
+                    if val == val:
+                        nobs += 1
+                        value_counts[val] += 1
+
+            else:
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if val == val:
+                        value_counts[val] -= 1
+                        if value_counts[val] == 0:
+                            value_counts.erase(val)
+                        nobs -= 1
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = values[j]
+                    if val == val:
+                        nobs += 1
+                        value_counts[val] += 1
+
+            if nobs >= minp:
+                output[i] = value_counts.size()
+            else:
+                output[i] = NaN
 
     return np.asarray(output)
 
