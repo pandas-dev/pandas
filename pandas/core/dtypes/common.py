@@ -1819,8 +1819,7 @@ def pandas_dtype(dtype) -> DtypeObj:
         return StringDtype(na_value=np.nan)
 
     # registered extension types
-    result = registry.find(dtype)
-    if result is not None:
+    if (result := registry.find(dtype)) is not None:
         if isinstance(result, type):
             # GH 31356, GH 54592
             warnings.warn(

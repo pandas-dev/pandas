@@ -1910,7 +1910,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str, BaseOffset
+        freq : str, DateOffset
             The target frequency to convert the Period object to.
             If a string is provided,
             it must be a valid :ref:`period alias <timeseries.period_aliases>`.
@@ -2596,7 +2596,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str, BaseOffset
+        freq : str, DateOffset
             Frequency to use for the returned period.
 
         See Also
