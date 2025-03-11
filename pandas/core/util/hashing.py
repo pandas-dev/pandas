@@ -94,6 +94,7 @@ def hash_pandas_object(
     Parameters
     ----------
     obj : Index, Series, or DataFrame
+        The input object to hash.
     index : bool, default True
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
@@ -106,9 +107,14 @@ def hash_pandas_object(
 
     Returns
     -------
-    Series of uint64
-        Same length as the object.
+    Series
+        Containing unsigned integers, same length as object.
 
+    See Also
+    --------
+    util.hash_tuples : Hash an MultiIndex / listlike-of-tuples efficiently.
+    util.hash_array : Hash an array.
+    
     Examples
     --------
     >>> pd.util.hash_pandas_object(pd.Series([1, 2, 3]))
