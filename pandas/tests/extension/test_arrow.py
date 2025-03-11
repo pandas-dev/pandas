@@ -577,7 +577,8 @@ class TestArrowArray(base.ExtensionTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         if (
-            skipna
+            not pa_version_under20p0
+            and skipna
             and all_numeric_reductions == "skew"
             and (
                 pa.types.is_integer(data.dtype.pyarrow_dtype)
