@@ -114,7 +114,7 @@ def hash_pandas_object(
     --------
     util.hash_tuples : Hash an MultiIndex / listlike-of-tuples efficiently.
     util.hash_array : Hash an array.
-    
+
     Examples
     --------
     >>> pd.util.hash_pandas_object(pd.Series([1, 2, 3]))
