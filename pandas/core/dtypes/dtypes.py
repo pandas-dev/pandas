@@ -2265,10 +2265,8 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
-        elif isinstance(pa_type, pa.ExtensionType):
+        elif isinstance(pa_type, pa.BaseExtensionType):
             return type(self)(pa_type.storage_type).type
-        elif isinstance(pa_type, pa.JsonType):
-            return str
         raise NotImplementedError(pa_type)
 
     @property
