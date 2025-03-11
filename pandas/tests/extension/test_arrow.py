@@ -529,7 +529,7 @@ class TestArrowArray(base.ExtensionTests):
                 f"pyarrow={pa.__version__} for {pa_dtype}"
             ),
         )
-        if all_numeric_reductions in {"skew", "kurt"} and (
+        if all_numeric_reductions == "kurt" and (
             dtype._is_numeric or dtype.kind == "b"
         ):
             request.applymarker(xfail_mark)
