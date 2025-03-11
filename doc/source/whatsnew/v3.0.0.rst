@@ -62,6 +62,7 @@ Other enhancements
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
 - :meth:`DataFrame.plot.scatter` argument ``c`` now accepts a column of strings, where rows with the same string are colored identically (:issue:`16827` and :issue:`16485`)
 - :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` methods ``sum``, ``mean``, ``median``, ``prod``, ``min``, ``max``, ``std``, ``var`` and ``sem`` now accept ``skipna`` parameter (:issue:`15675`)
+- :class:`Rolling` and :class:`Expanding` now support ``nunique`` (:issue:`26958`)
 - :class:`Rolling` and :class:`Expanding` now support aggregations ``first`` and ``last`` (:issue:`33155`)
 - :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.SeriesGroupBy.apply`, :meth:`.DataFrameGroupBy.apply` now support ``kurt`` (:issue:`40139`)
@@ -73,8 +74,10 @@ Other enhancements
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
 - Add ``"delete_rows"`` option to ``if_exists`` argument in :meth:`DataFrame.to_sql` deleting all records of the table before inserting data (:issue:`37210`).
+- Added half-year offset classes :class:`HalfYearBegin`, :class:`HalfYearEnd`, :class:`BHalfYearBegin` and :class:`BHalfYearEnd` (:issue:`60928`)
 - Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library (:issue:`60748`)
 - Implemented :meth:`Series.str.isascii` and :meth:`Series.str.isascii` (:issue:`59091`)
+- Improved deprecation message for offset aliases (:issue:`60820`)
 - Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
 - Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
@@ -693,8 +696,10 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
+- Bug in :meth:`DataFrame.__getitem__` when slicing a :class:`DataFrame` with many rows raised an ``OverflowError`` (:issue:`59531`)
 - Bug in :meth:`DataFrame.from_records` throwing a ``ValueError`` when passed an empty list in ``index`` (:issue:`58594`)
 - Bug in :meth:`DataFrame.loc` with inconsistent behavior of loc-set with 2 given indexes to Series (:issue:`59933`)
+- Bug in :meth:`Index.get_indexer` and similar methods when ``NaN`` is located at or after position 128 (:issue:`58924`)
 - Bug in :meth:`MultiIndex.insert` when a new value inserted to a datetime-like level gets cast to ``NaT`` and fails indexing (:issue:`60388`)
 - Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 
@@ -711,12 +716,13 @@ MultiIndex
 - :func:`MultiIndex.get_level_values` accessing a :class:`DatetimeIndex` does not carry the frequency attribute along (:issue:`58327`, :issue:`57949`)
 - Bug in :class:`DataFrame` arithmetic operations in case of unaligned MultiIndex columns (:issue:`60498`)
 - Bug in :class:`DataFrame` arithmetic operations with :class:`Series` in case of unaligned MultiIndex (:issue:`61009`)
--
+- Bug in :meth:`MultiIndex.from_tuples` causing wrong output with input of type tuples having NaN values (:issue:`60695`, :issue:`60988`)
 
 I/O
 ^^^
 - Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping`` elements. (:issue:`57915`)
 - Bug in :meth:`.DataFrame.to_json` when ``"index"`` was a value in the :attr:`DataFrame.column` and :attr:`Index.name` was ``None``. Now, this will fail with a ``ValueError`` (:issue:`58925`)
+- Bug in :meth:`.io.common.is_fsspec_url` not recognizing chained fsspec URLs (:issue:`48978`)
 - Bug in :meth:`DataFrame._repr_html_` which ignored the ``"display.float_format"`` option (:issue:`59876`)
 - Bug in :meth:`DataFrame.from_records` where ``columns`` parameter with numpy structured array was not reordering and filtering out the columns (:issue:`59717`)
 - Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
@@ -785,6 +791,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` incorrectly subaggregating results when called without an ``index`` argument (:issue:`58722`)
 - Bug in :meth:`DataFrame.stack` with the new implementation where ``ValueError`` is raised when ``level=[]`` (:issue:`60740`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
+- Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index = True`` drops the series name (:issue:`60723`, :issue:`56257`)
 
 Sparse
 ^^^^^^
