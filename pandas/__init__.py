@@ -10,14 +10,13 @@ for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
     except ImportError as _e:  # pragma: no cover
-        _missing_dependencies.append(f"{_dependency}: {_e}")
+        raise ImportError(
+            f"Unable to import required dependency {_dependency} ..."
+        ) from _e
 
 if _missing_dependencies:  # pragma: no cover
     raise ImportError(
-        "Unable to import required dependencies:\n"
-        + "\n".join(_missing_dependencies)
-        + "\n\nTo see the full error message, "
-        + "try importing the missing dependencies directly."
+        "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
     )
 del _hard_dependencies, _dependency, _missing_dependencies
 
