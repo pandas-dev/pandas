@@ -782,6 +782,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :func:`qcut` where values at the quantile boundaries could be incorrectly assigned (:issue:`59355`)
 - Bug in :meth:`DataFrame.combine_first` not preserving the column order (:issue:`60427`)
+- Bug in :meth:`DataFrame.explode` producing incorrect result for :class:`pyarrow.large_list` type (:issue:`61091`)
 - Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Bug in :meth:`DataFrame.join` when a :class:`DataFrame` with a :class:`MultiIndex` would raise an ``AssertionError`` when :attr:`MultiIndex.names` contained ``None``. (:issue:`58721`)
 - Bug in :meth:`DataFrame.merge` where merging on a column containing only ``NaN`` values resulted in an out-of-bounds array access (:issue:`59421`)

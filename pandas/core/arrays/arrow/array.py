@@ -1938,7 +1938,10 @@ class ArrowExtensionArray(
         """
         # child class explode method supports only list types; return
         # default implementation for non list types.
-        if not pa.types.is_list(self.dtype.pyarrow_dtype):
+        if not (
+            pa.types.is_list(self.dtype.pyarrow_dtype)
+            or pa.types.is_large_list(self.dtype.pyarrow_dtype)
+        ):
             return super()._explode()
         values = self
         counts = pa.compute.list_value_length(values._pa_array)
