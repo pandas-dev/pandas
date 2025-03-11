@@ -402,10 +402,11 @@ To let original data structures have additional properties, you should let ``pan
 
 1. Define ``_internal_names`` and ``_internal_names_set`` for temporary properties which WILL NOT be passed to manipulation results.
 2. Define ``_metadata`` for normal properties which will be passed to manipulation results.
-If used, a ``Series`` subclass must also be defined with the same ``_metadata`` property and the first parameter of the constructors must be the data.
+
+If ``_metadata`` is used, a ``Series`` subclass must also be defined with the same ``_metadata`` property and the first parameter of the constructors must be the data.
 Avoid the following names for your normal properties: ``data``, ``index``, ``columns``, ``dtype``, ``copy``, ``name``, ``_name`` and ``fastpath``.
 
-Below is an example to define two original properties, "internal_cache" as a temporary property and "added_property" as a normal property
+Below is an example to define two original properties, "internal_cache" as a temporary property and "added_property" as a normal property.
 
 .. code-block:: python
 
