@@ -4,6 +4,7 @@ Testing that we work in the downstream packages
 
 import array
 from functools import partial
+import importlib
 import subprocess
 import sys
 
@@ -186,41 +187,31 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
-@pytest.mark.single_cpu
-def test_missing_required_dependency():
-    # GH 23868
-    # To ensure proper isolation, we pass these flags
-    # -S : disable site-packages
-    # -s : disable user site-packages
-    # -E : disable PYTHON* env vars, especially PYTHONPATH
-    # https://github.com/MacPython/pandas-wheels/pull/50
+@pytest.mark.parametrize("dependency", ["numpy", "dateutil"])
+def test_missing_required_dependency(monkeypatch, dependency):
+    # GH#61030
+    # test pandas raises appropriate error when a required dependency is missing
+    real_module = sys.modules.get(dependency)
+    mock_error = ImportError(f"Mock error for {dependency}")
 
-    pyexe = sys.executable.replace("\\", "/")
+    def mock_import(name, *args, **kwargs):
+        if name == dependency:
+            raise mock_error
+        return importlib.import_module(name)
 
-    # We skip this test if pandas is installed as a site package. We first
-    # import the package normally and check the path to the module before
-    # executing the test which imports pandas with site packages disabled.
-    call = [pyexe, "-c", "import pandas;print(pandas.__file__)"]
-    output = subprocess.check_output(call).decode()
-    if "site-packages" in output:
-        pytest.skip("pandas installed as site package")
+    try:
+        monkeypatch.setattr("builtins.__import__", mock_import)
 
-    # This test will fail if pandas is installed as a site package. The flags
-    # prevent pandas being imported and the test will report Failed: DID NOT
-    # RAISE <class 'subprocess.CalledProcessError'>
-    call = [pyexe, "-sSE", "-c", "import pandas"]
+        if dependency in sys.modules:
+            del sys.modules[dependency]
 
-    msg = (
-        rf"Command '\['{pyexe}', '-sSE', '-c', 'import pandas'\]' "
-        "returned non-zero exit status 1."
-    )
+        with pytest.raises(ImportError) as excinfo:
+            importlib.reload(importlib.import_module("pandas"))
 
-    with pytest.raises(subprocess.CalledProcessError, match=msg) as exc:
-        subprocess.check_output(call, stderr=subprocess.STDOUT)
-
-    output = exc.value.stdout.decode()
-    for name in ["numpy", "dateutil"]:
-        assert name in output
+        assert dependency in str(excinfo.value)
+    finally:
+        if real_module is not None:
+            sys.modules[dependency] = real_module
 
 
 def test_frame_setitem_dask_array_into_new_col(request):
