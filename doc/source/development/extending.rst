@@ -402,23 +402,50 @@ To let original data structures have additional properties, you should let ``pan
 
 1. Define ``_internal_names`` and ``_internal_names_set`` for temporary properties which WILL NOT be passed to manipulation results.
 2. Define ``_metadata`` for normal properties which will be passed to manipulation results.
+If used, a ``Series`` subclass must also be defined with the same ``_metadata`` property and the first parameter of the constructors must be the data.
+Avoid the following names for your normal properties: ``data``, ``index``, ``columns``, ``dtype``, ``copy``, ``name``, ``_name`` and ``fastpath``.
 
 Below is an example to define two original properties, "internal_cache" as a temporary property and "added_property" as a normal property
 
 .. code-block:: python
 
-   class SubclassedDataFrame2(pd.DataFrame):
+    class SubclassedDataFrame(pd.DataFrame):
 
-       # temporary properties
-       _internal_names = pd.DataFrame._internal_names + ["internal_cache"]
-       _internal_names_set = set(_internal_names)
+        # temporary properties
+        _internal_names = pd.DataFrame._internal_names + ["internal_cache"]
+        _internal_names_set = set(_internal_names)
 
-       # normal properties
-       _metadata = ["added_property"]
+        # normal properties
+        _metadata = ["added_property"]
 
-       @property
-       def _constructor(self):
-           return SubclassedDataFrame2
+        def __init__(self, data=None, added_property=None, *args, **kwargs):
+            super().__init__(data, *args, **kwargs)
+            self.added_property = added_property
+
+        @property
+        def _constructor(self):
+            return SubclassedDataFrame
+
+        @property
+        def _constructor_sliced(self):
+            return SubclassedSeries
+
+    class SubclassedSeries(pd.Series):
+
+        # normal properties
+        _metadata = ["original_property"]
+
+        def __init__(self, data=None, original_property=None, *args, **kwargs):
+            super().__init__(data, *args, **kwargs)
+            self.original_property = original_property
+
+        @property
+        def _constructor(self):
+            return SubclassedSeries
+
+        @property
+        def _constructor_expanddim(self):
+            return SubclassedDataFrame
 
 .. code-block:: python
 

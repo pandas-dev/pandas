@@ -325,32 +325,35 @@ def to_array(obj):
 
 
 class SubclassedSeries(Series):
-    _metadata = ["testattr", "name"]
+    _metadata = ["testattr"]
+
+    def __init__(self, data=None, testattr=None, *args, **kwargs):
+        super().__init__(data, *args, **kwargs)
+        self.testattr = testattr
 
     @property
     def _constructor(self):
-        # For testing, those properties return a generic callable, and not
-        # the actual class. In this case that is equivalent, but it is to
-        # ensure we don't rely on the property returning a class
-        # See https://github.com/pandas-dev/pandas/pull/46018 and
-        # https://github.com/pandas-dev/pandas/issues/32638 and linked issues
-        return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
+        return SubclassedSeries
 
     @property
     def _constructor_expanddim(self):
-        return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
+        return SubclassedDataFrame
 
 
 class SubclassedDataFrame(DataFrame):
     _metadata = ["testattr"]
 
+    def __init__(self, data=None, testattr=None, *args, **kwargs):
+        super().__init__(data, *args, **kwargs)
+        self.testattr = testattr
+
     @property
     def _constructor(self):
-        return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
+        return SubclassedDataFrame
 
     @property
     def _constructor_sliced(self):
-        return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
+        return SubclassedSeries
 
 
 def convert_rows_list_to_csv_str(rows_list: list[str]) -> str:
