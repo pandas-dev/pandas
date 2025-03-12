@@ -10,7 +10,8 @@ for _dependency in _hard_dependencies:
         __import__(_dependency)
     except ImportError as _e:  # pragma: no cover
         raise ImportError(
-            f"Unable to import required dependency {_dependency}. Please see the traceback for details."
+            f"Unable to import required dependency {_dependency}. "
+            "Please see the traceback for details."
         ) from _e
 
 del _hard_dependencies, _dependency
