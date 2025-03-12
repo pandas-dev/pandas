@@ -2229,7 +2229,7 @@ class Timestamp(_Timestamp):
         --------
         >>> ts = pd.Timestamp("2023-01-01 12:00:00", tz="UTC")
         >>> ts.tzinfo
-        UTC
+        datetime.timezone.utc
 
         >>> ts_naive = pd.Timestamp("2023-01-01 12:00:00")
         >>> ts_naive.tzinfo
