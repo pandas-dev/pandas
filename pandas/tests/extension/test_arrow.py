@@ -534,6 +534,7 @@ class TestArrowArray(base.ExtensionTests):
             "std",
             "var",
             "median",
+            "skew",
         }:
             request.applymarker(xfail_mark)
         elif (
