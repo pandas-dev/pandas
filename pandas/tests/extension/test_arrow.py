@@ -529,12 +529,7 @@ class TestArrowArray(base.ExtensionTests):
                 f"pyarrow={pa.__version__} for {pa_dtype}"
             ),
         )
-        if all_numeric_reductions == "kurt" and (
-            dtype._is_numeric or dtype.kind == "b"
-        ):
-            request.applymarker(xfail_mark)
-
-        elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
+        if pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
             "sem",
             "std",
             "var",
