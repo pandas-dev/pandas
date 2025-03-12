@@ -31,7 +31,7 @@ class TestCombineFirst:
         result = datetime_series.combine_first(datetime_series[:5])
         assert result.name == datetime_series.name
 
-    def test_combine_first(self):
+    def test_combine_first(self, using_infer_string):
         values = np.arange(20, dtype=np.float64)
         series = Series(values, index=np.arange(20, dtype=np.int64))
 
@@ -66,7 +66,8 @@ class TestCombineFirst:
         msg = "The behavior of array concatenation with empty entries is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ser.combine_first(empty)
-        ser.index = ser.index.astype("O")
+        if not using_infer_string:
+            ser.index = ser.index.astype("O")
         tm.assert_series_equal(ser, result)
 
     def test_combine_first_dt64(self, unit):
