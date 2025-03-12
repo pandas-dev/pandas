@@ -534,7 +534,6 @@ class TestArrowArray(base.ExtensionTests):
             "std",
             "var",
             "median",
-            "skew",
         }:
             request.applymarker(xfail_mark)
         elif (
@@ -542,8 +541,9 @@ class TestArrowArray(base.ExtensionTests):
             and skipna
             and all_numeric_reductions == "skew"
             and (
-                pa.types.is_integer(data.dtype.pyarrow_dtype)
-                or pa.types.is_floating(data.dtype.pyarrow_dtype)
+                pa.types.is_integer(pa_dtype)
+                or pa.types.is_floating(pa_dtype)
+                or pa.types.is_boolean(pa_dtype)
             )
         ):
             request.applymarker(
