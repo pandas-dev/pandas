@@ -538,12 +538,15 @@ class TestArrowArray(base.ExtensionTests):
             request.applymarker(xfail_mark)
         elif (
             not pa_version_under20p0
-            and skipna
             and all_numeric_reductions == "skew"
             and (
-                pa.types.is_integer(pa_dtype)
-                or pa.types.is_floating(pa_dtype)
-                or pa.types.is_boolean(pa_dtype)
+                pa.types.is_boolean(pa_dtype)
+                or (
+                    skipna
+                    and (
+                        pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)
+                    )
+                )
             )
         ):
             request.applymarker(
