@@ -38,7 +38,7 @@ Results of the benchmarks are available at:
 
 - Original server: [asv](https://asv-runner.github.io/asv-collection/pandas/)
 - OVH server: [asv](https://pandas.pydata.org/benchmarks/asv/) (benchmarks results can
-  also be visualized in this [Conbench PoC](http://57.128.112.95:5000/)
+  also be visualized in this [GitHub Pages site](https://pandas-dev.github.io/asv-runner/))
 
 ### Original server configuration
 
