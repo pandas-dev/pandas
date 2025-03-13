@@ -28,7 +28,6 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
-    find_common_type,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -1067,7 +1066,13 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         tup = self._validate_key_length(tup)
 
-        for i, key in enumerate(tup):
+        # Reverse tuple so that we are indexing along columns before rows
+        # and avoid unintended dtype inference. # GH60600
+        if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
+            enum = enumerate(tup)
+        else:
+            enum = zip(range(len(tup) - 1, -1, -1), reversed(tup))
+        for i, key in enum:
             if is_label_like(key):
                 # We don't need to check for tuples here because those are
                 #  caught by the _is_nested_tuple_indexer check above.
@@ -1095,14 +1100,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if com.is_null_slice(new_key):
                     return section
                 # This is an elided recursive call to iloc/loc
-                out = getattr(section, self.name)[new_key]
-                # Re-interpret dtype of out.values for loc/iloc[int, list-like].
-                # GH60600
-                if i == 0 and isinstance(key, int) and is_list_like(tup[1]):
-                    dt = self.obj.dtypes.__getitem__(tup[1])
-                    if len(dt) > 0:
-                        out = out.astype(find_common_type(dt.tolist()))
-                return out
+                return getattr(section, self.name)[new_key]
 
         raise IndexingError("not applicable")
 
