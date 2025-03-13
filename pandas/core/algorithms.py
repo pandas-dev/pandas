@@ -1647,6 +1647,8 @@ def map_array(
         If the function returns a tuple with more than one element
         a MultiIndex will be returned.
     """
+    from pandas import Index
+
     if na_action not in (None, "ignore"):
         msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
         raise ValueError(msg)
@@ -1676,6 +1678,10 @@ def map_array(
 
             if len(mapper) == 0:
                 mapper = Series(mapper, dtype=np.float64)
+            elif isinstance(mapper, dict):
+                mapper = Series(
+                    mapper.values(), index=Index(mapper.keys(), tupleize_cols=False)
+                )
             else:
                 mapper = Series(mapper)
 

@@ -10,7 +10,19 @@ class Methods:
         ["DataFrame", "Series"],
         [("rolling", {"window": 10}), ("rolling", {"window": 1000}), ("expanding", {})],
         ["int", "float"],
-        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum", "sem"],
+        [
+            "median",
+            "mean",
+            "max",
+            "min",
+            "std",
+            "count",
+            "skew",
+            "kurt",
+            "sum",
+            "sem",
+            "nunique",
+        ],
     )
     param_names = ["constructor", "window_kwargs", "dtype", "method"]
 
