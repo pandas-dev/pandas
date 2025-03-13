@@ -19,8 +19,10 @@ df_loaded = pd.read_csv(csv_file)
 print("\nLoaded DataFrame:")
 print(df_loaded)
 
-# Check if numpy arrays were converted to strings
-if isinstance(df_loaded["embedding"][0], str):
-    print("\nTest Passed: NumPy arrays were converted to strings in CSV")
-else:
-    print("\nTest Failed: NumPy arrays were not converted as expected")
+# ✅ **Make the test fail by checking if we correctly load NumPy arrays**
+try:
+    assert isinstance(df_loaded["embedding"][0], np.ndarray), "Test Failed: Embeddings were not preserved as NumPy arrays!"
+    print("\nTest Passed: Embeddings were correctly preserved as NumPy arrays")
+except AssertionError as e:
+    print("\nTest Failed: Pandas does not preserve NumPy arrays in CSV, needs improvement!")
+    raise e
