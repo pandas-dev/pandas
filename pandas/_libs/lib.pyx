@@ -1573,7 +1573,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Notes
     -----
-    - The value parameter must be an iterable; scalar inputs are not supported.
     - 'mixed' is the catchall for anything that is not otherwise
       specialized
     - 'mixed-integer-float' are floats and integers
