@@ -159,7 +159,7 @@ class TestTableOrient:
         expected = OrderedDict(
             [
                 ("schema", schema),
-                ("data", [OrderedDict([("id", 0), ("a", 10.0)])]),
+                ("data", [OrderedDict([("id", 0), ("a", "10")])]),
             ]
         )
 
@@ -245,7 +245,7 @@ class TestTableOrient:
                 [
                     ("idx", 0),
                     ("A", "2021-10-10T00:00:00.000"),
-                    ("B", 10.0),
+                    ("B", "10"),
                     ("C", "pandas"),
                     ("D", 10),
                 ]

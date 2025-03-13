@@ -5,8 +5,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import ParserError
 
 import pandas as pd
@@ -438,20 +436,18 @@ class TestDataFrameToCSV:
         result, expected = self._return_result_expected(df, 1000)
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.slow
     def test_to_csv_chunksize(self):
         chunksize = 1000
         rows = chunksize // 2 + 1
         df = DataFrame(
             np.ones((rows, 2)),
-            columns=Index(list("ab"), dtype=object),
+            columns=Index(list("ab")),
             index=MultiIndex.from_arrays([range(rows) for _ in range(2)]),
         )
         result, expected = self._return_result_expected(df, chunksize, rnlvl=2)
         tm.assert_frame_equal(result, expected, check_names=False)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.slow
     @pytest.mark.parametrize(
         "nrows", [2, 10, 99, 100, 101, 102, 198, 199, 200, 201, 202, 249, 250, 251]
@@ -480,7 +476,7 @@ class TestDataFrameToCSV:
                 for _ in range(df_params["c_idx_nlevels"])
             )
         else:
-            columns = Index([f"i-{i}" for i in range(ncols)], dtype=object)
+            columns = Index([f"i-{i}" for i in range(ncols)])
         df = DataFrame(np.ones((nrows, ncols)), index=index, columns=columns)
         result, expected = self._return_result_expected(df, 1000, **func_params)
         tm.assert_frame_equal(result, expected, check_names=False)
@@ -738,7 +734,6 @@ class TestDataFrameToCSV:
         df2 = self.read_csv(path)
         tm.assert_frame_equal(df2, df)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_mixed(self, temp_file):
         def create_cols(name):
             return [f"{name}{i:03d}" for i in range(5)]
@@ -755,7 +750,7 @@ class TestDataFrameToCSV:
         )
         df_bool = DataFrame(True, index=df_float.index, columns=create_cols("bool"))
         df_object = DataFrame(
-            "foo", index=df_float.index, columns=create_cols("object")
+            "foo", index=df_float.index, columns=create_cols("object"), dtype="object"
         )
         df_dt = DataFrame(
             Timestamp("20010101"),
@@ -824,13 +819,12 @@ class TestDataFrameToCSV:
             result.columns = df.columns
             tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_dups_cols2(self, temp_file):
         # GH3457
         df = DataFrame(
             np.ones((5, 3)),
             index=Index([f"i-{i}" for i in range(5)], name="foo"),
-            columns=Index(["a", "a", "b"], dtype=object),
+            columns=Index(["a", "a", "b"]),
         )
 
         path = str(temp_file)

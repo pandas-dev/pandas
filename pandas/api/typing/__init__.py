@@ -3,6 +3,7 @@ Public API classes that store intermediate results useful for type-hinting.
 """
 
 from pandas._libs import NaTType
+from pandas._libs.lib import NoDefault
 from pandas._libs.missing import NAType
 
 from pandas.core.groupby import (
@@ -44,6 +45,7 @@ __all__ = [
     "JsonReader",
     "NAType",
     "NaTType",
+    "NoDefault",
     "PeriodIndexResamplerGroupby",
     "Resampler",
     "Rolling",

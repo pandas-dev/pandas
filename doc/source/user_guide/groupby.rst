@@ -418,7 +418,7 @@ You can also include the grouping columns if you want to operate on them.
 
 .. note::
 
-   The ``groupby`` operation in Pandas drops the ``name`` field of the columns Index object
+   The ``groupby`` operation in pandas drops the ``name`` field of the columns Index object
    after the operation. This change ensures consistency in syntax between different
    column selection methods within groupby operations.
 
@@ -1074,7 +1074,7 @@ missing values with the ``ffill()`` method.
    ).set_index("date")
    df_re
 
-   df_re.groupby("group").resample("1D", include_groups=False).ffill()
+   df_re.groupby("group").resample("1D").ffill()
 
 .. _groupby.filter:
 
@@ -1252,13 +1252,13 @@ the argument ``group_keys`` which defaults to ``True``. Compare
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=True).apply(lambda x: x, include_groups=False)
+    df.groupby("A", group_keys=True).apply(lambda x: x)
 
 with
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=False).apply(lambda x: x, include_groups=False)
+    df.groupby("A", group_keys=False).apply(lambda x: x)
 
 
 Numba accelerated routines
@@ -1742,7 +1742,7 @@ column index name will be used as the name of the inserted column:
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
 
-   result = df.groupby("a").apply(compute_metrics, include_groups=False)
+   result = df.groupby("a").apply(compute_metrics)
 
    result
 

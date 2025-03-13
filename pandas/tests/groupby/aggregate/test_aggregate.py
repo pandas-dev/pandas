@@ -159,6 +159,7 @@ def test_agg_apply_corner(ts, tsframe):
     tm.assert_frame_equal(grouped.agg("sum"), exp_df)
 
     res = grouped.apply(np.sum, axis=0)
+    exp_df = exp_df.reset_index(drop=True)
     tm.assert_frame_equal(res, exp_df)
 
 

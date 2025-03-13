@@ -9,7 +9,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import WASM
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
@@ -475,12 +474,14 @@ class TestSetitemCallable:
 
 
 class TestSetitemWithExpansion:
-    def test_setitem_empty_series(self):
-        # GH#10193, GH#51363 changed in 3.0 to not do inference in Index.insert
+    def test_setitem_empty_series(self, using_infer_string):
+        # GH#10193
         key = Timestamp("2012-01-01")
         series = Series(dtype=object)
         series[key] = 47
-        expected = Series(47, Index([key], dtype=object))
+        expected = Series(
+            47, index=[key] if using_infer_string else Index([key], dtype=object)
+        )
         tm.assert_series_equal(series, expected)
 
     def test_setitem_empty_series_datetimeindex_preserves_freq(self):
@@ -537,10 +538,7 @@ class TestSetitemWithExpansion:
         ser["a"] = Timestamp("2016-01-01")
         ser["b"] = 3.0
         ser["c"] = "foo"
-        expected = Series(
-            [Timestamp("2016-01-01"), 3.0, "foo"],
-            index=Index(["a", "b", "c"], dtype=object),
-        )
+        expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_not_contained(self, string_series):
@@ -1449,7 +1447,6 @@ class TestCoercionFloat64(CoercionTest):
                         np_version_gte1p24
                         and os.environ.get("NPY_PROMOTION_STATE", "weak") != "weak"
                     )
-                    or WASM
                 ),
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",

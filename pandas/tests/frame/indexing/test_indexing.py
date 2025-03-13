@@ -9,8 +9,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import iNaT
 from pandas.errors import InvalidIndexError
 
@@ -503,7 +501,6 @@ class TestDataFrameIndexing:
         else:
             assert dm[2].dtype == np.object_
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_None(self, float_frame):
         # GH #766
         float_frame[None] = float_frame["A"]
@@ -1141,7 +1138,7 @@ class TestDataFrameIndexing:
         result = df.dtypes
         expected = Series(
             [np.dtype("timedelta64[ns]")] * 6 + [np.dtype("datetime64[ns]")] * 2,
-            index=Index(list("ABCDEFGH"), dtype=object),
+            index=list("ABCDEFGH"),
         )
         tm.assert_series_equal(result, expected)
 

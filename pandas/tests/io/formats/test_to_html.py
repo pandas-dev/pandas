@@ -94,8 +94,7 @@ def test_to_html_with_column_specific_col_space_raises():
     )
 
     msg = (
-        "Col_space length\\(\\d+\\) should match "
-        "DataFrame number of columns\\(\\d+\\)"
+        "Col_space length\\(\\d+\\) should match DataFrame number of columns\\(\\d+\\)"
     )
     with pytest.raises(ValueError, match=msg):
         df.to_html(col_space=[30, 40])

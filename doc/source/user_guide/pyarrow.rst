@@ -22,7 +22,7 @@ Data Structure Integration
 
 A :class:`Series`, :class:`Index`, or the columns of a :class:`DataFrame` can be directly backed by a :external+pyarrow:py:class:`pyarrow.ChunkedArray`
 which is similar to a NumPy array. To construct these from the main pandas data structures, you can pass in a string of the type followed by
-``[pyarrow]``, e.g. ``"int64[pyarrow]""`` into the ``dtype`` parameter
+``[pyarrow]``, e.g. ``"int64[pyarrow]"`` into the ``dtype`` parameter
 
 .. ipython:: python
 

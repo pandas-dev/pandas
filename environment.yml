@@ -116,6 +116,13 @@ dependencies:
   - requests
   - pygments # Code highlighting
 
+  # web interactive REPL
+  # see the following links for more context:
+  # 1. https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/#compatibility
+  # 2. https://pyodide.org/en/stable/usage/packages-in-pyodide.html
+  - jupyterlite-core
+  - jupyterlite-pyodide-kernel
+
   - pip:
       - adbc-driver-postgresql>=0.10.0
       - adbc-driver-sqlite>=0.8.0

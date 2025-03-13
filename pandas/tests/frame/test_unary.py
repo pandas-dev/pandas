@@ -3,9 +3,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
@@ -122,9 +119,6 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
-    @pytest.mark.xfail(
-        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
-    )
     @pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
     def test_pos_object_raises(self):
         # GH#21380

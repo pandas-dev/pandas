@@ -1607,17 +1607,10 @@ class TestSeriesMode:
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
-    def test_mode_sortwarning(self):
-        # Check for the warning that is raised when the mode
-        # results cannot be sorted
-
-        expected = Series(["foo", np.nan], dtype=object)
+    def test_mode_sort_with_na(self):
         s = Series([1, "foo", "foo", np.nan, np.nan])
-
-        with tm.assert_produces_warning(UserWarning, match="Unable to sort modes"):
-            result = s.mode(dropna=False)
-            result = result.sort_values().reset_index(drop=True)
-
+        expected = Series(["foo", np.nan], dtype=object)
+        result = s.mode(dropna=False)
         tm.assert_series_equal(result, expected)
 
     def test_mode_boolean_with_na(self):

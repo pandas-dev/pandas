@@ -10,7 +10,10 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat.pyarrow import pa_version_under12p0
+from pandas.compat.pyarrow import (
+    pa_version_under12p0,
+    pa_version_under19p0,
+)
 
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -539,7 +542,7 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         assert table.field("a").type == "large_string"
     with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
-    if dtype.na_value is np.nan and not using_string_dtype():
+    if dtype.na_value is np.nan and not using_infer_string:
         assert result["a"].dtype == "object"
     else:
         assert isinstance(result["a"].dtype, pd.StringDtype)
@@ -551,6 +554,21 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         tm.assert_frame_equal(result, expected)
         # ensure the missing value is represented by NA and not np.nan or None
         assert result.loc[2, "a"] is result["a"].dtype.na_value
+
+
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
+def test_arrow_from_string(using_infer_string):
+    # not roundtrip,  but starting with pyarrow table without pandas metadata
+    pa = pytest.importorskip("pyarrow")
+    table = pa.table({"a": pa.array(["a", "b", None], type=pa.string())})
+
+    result = table.to_pandas()
+
+    if using_infer_string and not pa_version_under19p0:
+        expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="str")
+    else:
+        expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="object")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
@@ -740,3 +758,9 @@ def test_tolist(dtype):
     result = arr.tolist()
     expected = vals
     tm.assert_equal(result, expected)
+
+
+def test_string_array_view_type_error():
+    arr = pd.array(["a", "b", "c"], dtype="string")
+    with pytest.raises(TypeError, match="Cannot change data-type for string array."):
+        arr.view("i8")

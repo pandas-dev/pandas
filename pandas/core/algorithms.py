@@ -23,6 +23,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -544,10 +545,15 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # isin is faster for small sizes
+
+    # GH60678
+    # Ensure values don't contain <NA>, otherwise it throws exception with np.in1d
+
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
+        and not any(v is NA for v in values)
     ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
@@ -1012,7 +1018,7 @@ def mode(
         return npresult, res_mask  # type: ignore[return-value]
 
     try:
-        npresult = np.sort(npresult)
+        npresult = safe_sort(npresult)
     except TypeError as err:
         warnings.warn(
             f"Unable to sort modes: {err}",
@@ -1641,6 +1647,8 @@ def map_array(
         If the function returns a tuple with more than one element
         a MultiIndex will be returned.
     """
+    from pandas import Index
+
     if na_action not in (None, "ignore"):
         msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
         raise ValueError(msg)
@@ -1670,6 +1678,10 @@ def map_array(
 
             if len(mapper) == 0:
                 mapper = Series(mapper, dtype=np.float64)
+            elif isinstance(mapper, dict):
+                mapper = Series(
+                    mapper.values(), index=Index(mapper.keys(), tupleize_cols=False)
+                )
             else:
                 mapper = Series(mapper)
 

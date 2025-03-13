@@ -481,6 +481,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 return result.to_numpy(np.bool_, na_value=False)
         return result
 
+    def __pos__(self) -> Self:
+        raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
+
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _na_value = np.nan

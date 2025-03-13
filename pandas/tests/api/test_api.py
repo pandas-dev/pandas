@@ -261,6 +261,7 @@ class TestApi(Base):
         "JsonReader",
         "NaTType",
         "NAType",
+        "NoDefault",
         "PeriodIndexResamplerGroupby",
         "Resampler",
         "Rolling",

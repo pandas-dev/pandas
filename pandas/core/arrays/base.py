@@ -1791,9 +1791,11 @@ class ExtensionArray:
                # type for the array, to the physical storage type for
                # the data, before passing to take.
 
-               result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
+               result = take(
+                   data, indices, fill_value=fill_value, allow_fill=allow_fill
+               )
                return self._from_sequence(result, dtype=self.dtype)
-        """  # noqa: E501
+        """
         # Implementer note: The `fill_value` parameter should be a user-facing
         # value, an instance of self.dtype.type. When passed `fill_value=None`,
         # the default of `self.dtype.na_value` should be used.
@@ -2618,6 +2620,7 @@ class ExtensionArray:
                 "sem",
                 "var",
                 "skew",
+                "kurt",
             ]:
                 raise TypeError(
                     f"dtype '{self.dtype}' does not support operation '{how}'"
@@ -2625,7 +2628,15 @@ class ExtensionArray:
             if op.how not in ["any", "all"]:
                 # Fail early to avoid conversion to object
                 op._get_cython_function(op.kind, op.how, np.dtype(object), False)
-            npvalues = self.to_numpy(object, na_value=np.nan)
+
+            arr = self
+            if op.how == "sum":
+                # https://github.com/pandas-dev/pandas/issues/60229
+                # All NA should result in the empty string.
+                assert "skipna" in kwargs
+                if kwargs["skipna"] and min_count == 0:
+                    arr = arr.fillna("")
+            npvalues = arr.to_numpy(object, na_value=np.nan)
         else:
             raise NotImplementedError(
                 f"function is not implemented for this dtype: {self.dtype}"

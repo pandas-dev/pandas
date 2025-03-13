@@ -506,6 +506,11 @@ class IndexOpsMixin(OpsMixin):
         """
         The ExtensionArray of the data backing this Series or Index.
 
+        This property provides direct access to the underlying array data of a
+        Series or Index without requiring conversion to a NumPy array. It
+        returns an ExtensionArray, which is the native storage format for
+        pandas extension dtypes.
+
         Returns
         -------
         ExtensionArray

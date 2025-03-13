@@ -6,6 +6,7 @@ from libc.math cimport (
     sqrt,
 )
 from libcpp.deque cimport deque
+from libcpp.unordered_map cimport unordered_map
 
 from pandas._libs.algos cimport TiebreakEnumType
 
@@ -1133,6 +1134,89 @@ cdef _roll_min_max(ndarray[float64_t] values,
 
     return output
 
+# ----------------------------------------------------------------------
+# Rolling first, last
+
+
+def roll_first(const float64_t[:] values, ndarray[int64_t] start,
+               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+    return _roll_first_last(values, start, end, minp, is_first=1)
+
+
+def roll_last(const float64_t[:] values, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+    return _roll_first_last(values, start, end, minp, is_first=0)
+
+
+cdef _roll_first_last(const float64_t[:] values, ndarray[int64_t] start,
+                      ndarray[int64_t] end, int64_t minp, bint is_first):
+    cdef:
+        Py_ssize_t i, j, fl_idx
+        bint is_monotonic_increasing_bounds
+        int64_t nobs = 0, N = len(start), s, e
+        float64_t val, res
+        ndarray[float64_t] output
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+
+    output = np.empty(N, dtype=np.float64)
+
+    if (end - start).max() == 0:
+        output[:] = NaN
+        return output
+
+    with nogil:
+        for i in range(0, N):
+            s = start[i]
+            e = end[i]
+
+            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
+                fl_idx = -1
+                nobs = 0
+                for j in range(s, e):
+                    val = values[j]
+                    if val == val:
+                        if not is_first or fl_idx < s:
+                            fl_idx = j
+                        nobs += 1
+            else:
+                # handle deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if val == val:
+                        nobs -= 1
+
+                # update fl_idx if out of range, if first
+                if is_first and fl_idx < s:
+                    fl_idx = -1
+                    for j in range(s, end[i - 1]):
+                        val = values[j]
+                        if val == val:
+                            fl_idx = j
+                            break
+
+                # handle adds
+                for j in range(end[i - 1], e):
+                    val = values[j]
+                    if val == val:
+                        if not is_first or fl_idx < s:
+                            fl_idx = j
+                        nobs += 1
+
+            if nobs >= minp and fl_idx >= s:
+                res = values[fl_idx]
+            else:
+                res = NaN
+
+            output[i] = res
+
+            if not is_monotonic_increasing_bounds:
+                nobs = 0
+
+    return output
+
 
 cdef enum InterpolationType:
     LINEAR,
@@ -1383,6 +1467,66 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                 output[i] = NaN
 
     skiplist_destroy(skiplist)
+
+    return np.asarray(output)
+
+
+def roll_nunique(const float64_t[:] values, ndarray[int64_t] start,
+                 ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+    """
+    Rolling number of unique elements in the window
+    """
+    cdef:
+        Py_ssize_t i, j, s, e, N = len(start)
+        int64_t nobs = 0
+        float64_t val
+        float64_t[::1] output
+        unordered_map[float64_t, int64_t] value_counts
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    output = np.empty(N, dtype=np.float64)
+    value_counts = unordered_map[float64_t, int64_t]()
+
+    with nogil:
+        for i in range(N):
+            s = start[i]
+            e = end[i]
+
+            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
+                if i != 0:
+                    nobs = 0
+                    value_counts.clear()
+
+                # setup
+                for j in range(s, e):
+                    val = values[j]
+                    if val == val:
+                        nobs += 1
+                        value_counts[val] += 1
+
+            else:
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if val == val:
+                        value_counts[val] -= 1
+                        if value_counts[val] == 0:
+                            value_counts.erase(val)
+                        nobs -= 1
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = values[j]
+                    if val == val:
+                        nobs += 1
+                        value_counts[val] += 1
+
+            if nobs >= minp:
+                output[i] = value_counts.size()
+            else:
+                output[i] = NaN
 
     return np.asarray(output)
 

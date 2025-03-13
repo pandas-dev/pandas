@@ -459,7 +459,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df
 
    # List the size of the animals with the highest weight.
-   df.groupby("animal").apply(lambda subf: subf["size"][subf["weight"].idxmax()], include_groups=False)
+   df.groupby("animal").apply(lambda subf: subf["size"][subf["weight"].idxmax()])
 
 `Using get_group
 <https://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__
@@ -482,7 +482,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
        return pd.Series(["L", avg_weight, True], index=["size", "weight", "adult"])
 
 
-   expected_df = gb.apply(GrowUp, include_groups=False)
+   expected_df = gb.apply(GrowUp)
    expected_df
 
 `Expanding apply
@@ -874,7 +874,7 @@ Timeseries
 <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
 `Aggregation and plotting time series
-<https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html>`__
+<https://nipunbatra.github.io/blog/posts/2013-05-01-aggregation-timeseries.html>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
 `How to rearrange a Python pandas DataFrame?
@@ -1043,7 +1043,7 @@ CSV
 
 The :ref:`CSV <io.read_csv_table>` docs
 
-`read_csv in action <https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/>`__
+`read_csv in action <https://www.datacamp.com/tutorial/pandas-read-csv>`__
 
 `appending to a csv
 <https://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__

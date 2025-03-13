@@ -34,11 +34,9 @@ static void *traced_calloc(size_t num, size_t size) {
 }
 
 static void *traced_realloc(void *old_ptr, size_t size) {
+  PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
   void *ptr = realloc(old_ptr, size);
   if (ptr != NULL) {
-    if (old_ptr != ptr) {
-      PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
-    }
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
   }
   return ptr;

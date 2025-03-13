@@ -679,7 +679,7 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
     c_date.tm_yday = get_day_of_year(dts.year, dts.month, dts.day) - 1
     c_date.tm_isdst = -1
 
-    result = <char*>malloc(result_len * sizeof(char))
+    result = <char*>malloc(result_len)
     if result is NULL:
         raise MemoryError()
 
@@ -2140,6 +2140,12 @@ cdef class _Period(PeriodMixin):
         """
         Get day of the month that a Period falls on.
 
+        The `day` property provides a simple way to access the day component
+        of a `Period` object, which represents time spans in various frequencies
+        (e.g., daily, hourly, monthly). If the period's frequency does not include
+        a day component (e.g., yearly or quarterly periods), the returned day
+        corresponds to the first day of that period.
+
         Returns
         -------
         int
@@ -2835,6 +2841,11 @@ cdef class _Period(PeriodMixin):
 class Period(_Period):
     """
     Represents a period of time.
+
+    A `Period` represents a specific time span rather than a point in time.
+    Unlike `Timestamp`, which represents a single instant, a `Period` defines a
+    duration, such as a month, quarter, or year. The exact representation is
+    determined by the `freq` parameter.
 
     Parameters
     ----------

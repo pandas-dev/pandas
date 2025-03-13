@@ -45,6 +45,11 @@ class NullFrequencyError(ValueError):
     Particularly ``DatetimeIndex.shift``, ``TimedeltaIndex.shift``,
     ``PeriodIndex.shift``.
 
+    See Also
+    --------
+    Index.shift : Shift values of Index.
+    Series.shift : Shift values of Series.
+
     Examples
     --------
     >>> df = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
@@ -57,6 +62,12 @@ class NullFrequencyError(ValueError):
 class PerformanceWarning(Warning):
     """
     Warning raised when there is a possible performance impact.
+
+    See Also
+    --------
+    DataFrame.set_index : Set the DataFrame index using existing columns.
+    DataFrame.loc : Access a group of rows and columns by label(s) \
+    or a boolean array.
 
     Examples
     --------
@@ -385,6 +396,13 @@ class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
 
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+    Series.groupby : Group Series using a mapper or by a Series of columns.
+    DataFrame.agg : Aggregate using one or more operations over the specified axis.
+    Series.agg : Aggregate using one or more operations over the specified axis.
+
     Examples
     --------
     >>> df = pd.DataFrame(
@@ -569,6 +587,20 @@ class UndefinedVariableError(NameError):
     Exception raised by ``query`` or ``eval`` when using an undefined variable name.
 
     It will also specify whether the undefined variable is local or not.
+
+    Parameters
+    ----------
+    name : str
+        The name of the undefined variable.
+    is_local : bool or None, optional
+        Indicates whether the undefined variable is considered a local variable.
+        If ``True``, the error message specifies it as a local variable.
+        If ``False`` or ``None``, the variable is treated as a non-local name.
+
+    See Also
+    --------
+    DataFrame.query : Query the columns of a DataFrame with a boolean expression.
+    DataFrame.eval : Evaluate a string describing operations on DataFrame columns.
 
     Examples
     --------
@@ -787,6 +819,16 @@ class PossiblePrecisionLoss(Warning):
 class ValueLabelTypeMismatch(Warning):
     """
     Warning raised by to_stata on a category column that contains non-string values.
+
+    When exporting data to Stata format using the `to_stata` method, category columns
+    must have string values as labels. If a category column contains non-string values
+    (e.g., integers, floats, or other types), this warning is raised to indicate that
+    the Stata file may not correctly represent the data.
+
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+    Series.cat : Accessor for categorical properties of the Series values.
 
     Examples
     --------

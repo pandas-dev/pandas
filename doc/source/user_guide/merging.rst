@@ -586,7 +586,7 @@ A string argument to ``indicator`` will use the value as the name for the indica
 Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The merge ``suffixes`` argument takes a tuple of list of strings to append to
+The merge ``suffixes`` argument takes a tuple or list of strings to append to
 overlapping column names in the input :class:`DataFrame` to disambiguate the result
 columns:
 
@@ -906,7 +906,7 @@ resetting indexes.
 Joining multiple :class:`DataFrame`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A list or tuple of ``:class:`DataFrame``` can also be passed to :meth:`~DataFrame.join`
+A list or tuple of :class:`DataFrame` can also be passed to :meth:`~DataFrame.join`
 to join them together on their indexes.
 
 .. ipython:: python
@@ -979,7 +979,7 @@ nearest key rather than equal keys. For each row in the ``left`` :class:`DataFra
 the last row in the ``right`` :class:`DataFrame` are selected where the ``on`` key is less
 than the left's key. Both :class:`DataFrame` must be sorted by the key.
 
-Optionally an :func:`merge_asof` can perform a group-wise merge by matching the
+Optionally :func:`merge_asof` can perform a group-wise merge by matching the
 ``by`` key in addition to the nearest match on the ``on`` key.
 
 .. ipython:: python

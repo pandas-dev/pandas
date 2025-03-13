@@ -190,9 +190,30 @@ class RangeIndex(Index):
         """
         Create :class:`pandas.RangeIndex` from a ``range`` object.
 
+        This method provides a way to create a :class:`pandas.RangeIndex` directly
+        from a Python ``range`` object. The resulting :class:`RangeIndex` will have
+        the same start, stop, and step values as the input ``range`` object.
+        It is particularly useful for constructing indices in an efficient and
+        memory-friendly manner.
+
+        Parameters
+        ----------
+        data : range
+            The range object to be converted into a RangeIndex.
+        name : str, default None
+            Name to be stored in the index.
+        dtype : Dtype or None
+            Data type for the RangeIndex. If None, the default integer type will
+            be used.
+
         Returns
         -------
         RangeIndex
+
+        See Also
+        --------
+        RangeIndex : Immutable Index implementing a monotonic integer range.
+        Index : Immutable sequence used for indexing and alignment.
 
         Examples
         --------

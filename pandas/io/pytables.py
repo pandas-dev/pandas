@@ -86,12 +86,16 @@ from pandas.core.arrays import (
     PeriodArray,
 )
 from pandas.core.arrays.datetimes import tz_to_dtype
+from pandas.core.arrays.string_ import BaseStringArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import (
     PyTablesExpr,
     maybe_expression,
 )
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    array as pd_array,
+    extract_array,
+)
 from pandas.core.indexes.api import ensure_index
 
 from pandas.io.common import stringify_path
@@ -1126,6 +1130,12 @@ class HDFStore:
     ) -> None:
         """
         Store object in HDFStore.
+
+        This method writes a pandas DataFrame or Series into an HDF5 file using
+        either the fixed or table format. The `table` format allows additional
+        operations like incremental appends and queries but may have performance
+        trade-offs. The `fixed` format provides faster read/write operations but
+        does not support appends or queries.
 
         Parameters
         ----------
@@ -3023,6 +3033,9 @@ class GenericFixed(Fixed):
 
         if isinstance(node, tables.VLArray):
             ret = node[0][start:stop]
+            dtype = getattr(attrs, "value_type", None)
+            if dtype is not None:
+                ret = pd_array(ret, dtype=dtype)
         else:
             dtype = getattr(attrs, "value_type", None)
             shape = getattr(attrs, "shape", None)
@@ -3262,6 +3275,11 @@ class GenericFixed(Fixed):
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+        elif isinstance(value, BaseStringArray):
+            vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
+            vlarr.append(value.to_numpy())
+            node = getattr(self.group, key)
+            node._v_attrs.value_type = str(value.dtype)
         elif empty_array:
             self.write_array_empty(key, value)
         else:
@@ -3294,7 +3312,11 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_string_dtype() and is_string_array(values, skipna=True):
+        if (
+            using_string_dtype()
+            and isinstance(values, np.ndarray)
+            and is_string_array(values, skipna=True)
+        ):
             result = result.astype(StringDtype(na_value=np.nan))
         return result
 
@@ -3363,7 +3385,11 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if using_string_dtype() and is_string_array(values, skipna=True):
+            if (
+                using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and is_string_array(values, skipna=True)
+            ):
                 df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
@@ -3504,6 +3530,12 @@ class Table(Fixed):
                     # Value of type "Optional[Any]" is not indexable  [index]
                     oax = ov[i]  # type: ignore[index]
                     if sax != oax:
+                        if c == "values_axes" and sax.kind != oax.kind:
+                            raise ValueError(
+                                f"Cannot serialize the column [{oax.values[0]}] "
+                                f"because its data contents are not [{sax.kind}] "
+                                f"but [{oax.kind}] object dtype"
+                            )
                         raise ValueError(
                             f"invalid combination of [{c}] on appending data "
                             f"[{sax}] vs current table [{oax}]"
@@ -4127,6 +4159,8 @@ class Table(Fixed):
                 ordered = data_converted.ordered
                 meta = "category"
                 metadata = np.asarray(data_converted.categories).ravel()
+            elif isinstance(blk.dtype, StringDtype):
+                meta = str(blk.dtype)
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
@@ -4387,7 +4421,8 @@ class Table(Fixed):
                     errors=self.errors,
                 )
                 cvs = col_values[1]
-                return Series(cvs, name=column, copy=False)
+                dtype = getattr(self.table.attrs, f"{column}_meta", None)
+                return Series(cvs, name=column, copy=False, dtype=dtype)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4737,9 +4772,23 @@ class AppendableFrameTable(AppendableTable):
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
             if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_string_dtype() and is_string_array(
-                values,  # type: ignore[arg-type]
-                skipna=True,
+
+            # If str / string dtype is stored in meta, use that.
+            converted = False
+            for column in cols_:
+                dtype = getattr(self.table.attrs, f"{column}_meta", None)
+                if dtype in ["str", "string"]:
+                    df[column] = df[column].astype(dtype)
+                    converted = True
+            # Otherwise try inference.
+            if (
+                not converted
+                and using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and is_string_array(
+                    values,
+                    skipna=True,
+                )
             ):
                 df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
@@ -5088,6 +5137,9 @@ def _maybe_convert_for_string_atom(
     errors,
     columns: list[str],
 ):
+    if isinstance(bvalues.dtype, StringDtype):
+        # "ndarray[Any, Any]" has no attribute "to_numpy"
+        bvalues = bvalues.to_numpy()  # type: ignore[union-attr]
     if bvalues.dtype != object:
         return bvalues
 
@@ -5111,6 +5163,9 @@ def _maybe_convert_for_string_atom(
     mask = isna(bvalues)
     data = bvalues.copy()
     data[mask] = nan_rep
+
+    if existing_col and mask.any() and len(nan_rep) > existing_col.itemsize:
+        raise ValueError("NaN representation is too large for existing column size")
 
     # see if we have a valid string type
     inferred_type = lib.infer_dtype(data, skipna=False)
@@ -5209,7 +5264,9 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data, copy=False).str.decode(encoding, errors=errors)._values
+            ser = Series(data, copy=False).str.decode(encoding, errors=errors)
+            data = ser.to_numpy()
+            data.flags.writeable = True
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
@@ -5297,6 +5354,8 @@ def _dtype_to_kind(dtype_str: str) -> str:
         kind = "integer"
     elif dtype_str == "object":
         kind = "object"
+    elif dtype_str == "str":
+        kind = "str"
     else:
         raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
 

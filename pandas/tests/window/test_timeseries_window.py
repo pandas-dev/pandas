@@ -541,6 +541,42 @@ class TestRollingTS:
         expected["B"] = [0.0, 1, 2, 3, 4]
         tm.assert_frame_equal(result, expected)
 
+    def test_ragged_first(self, ragged):
+        df = ragged
+
+        result = df.rolling(window="1s", min_periods=1).first()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(window="2s", min_periods=1).first()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 1, 3, 3]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(window="5s", min_periods=1).first()
+        expected = df.copy()
+        expected["B"] = [0.0, 0, 0, 1, 1]
+        tm.assert_frame_equal(result, expected)
+
+    def test_ragged_last(self, ragged):
+        df = ragged
+
+        result = df.rolling(window="1s", min_periods=1).last()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(window="2s", min_periods=1).last()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(window="5s", min_periods=1).last()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "freq, op, result_data",
         [
@@ -586,6 +622,8 @@ class TestRollingTS:
             "skew",
             "min",
             "max",
+            "first",
+            "last",
         ],
     )
     def test_all(self, f, regular):

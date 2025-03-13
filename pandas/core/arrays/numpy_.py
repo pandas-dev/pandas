@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -29,6 +30,8 @@ from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         AxisInt,
         Dtype,
@@ -70,6 +73,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
     Methods
     -------
     None
+
+    See Also
+    --------
+    array : Create an array.
+    Series.to_numpy : Convert a Series to a NumPy array.
 
     Examples
     --------
@@ -287,6 +295,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
         See NDFrame.interpolate.__doc__.
         """
         # NB: we return type(self) even if copy=False
+        if not self.dtype._is_numeric:
+            raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
+
         if not copy:
             out_data = self._ndarray
         else:
@@ -557,3 +568,12 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
             return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
+
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
+        # NEP 51: https://github.com/numpy/numpy/pull/22449
+        if self.dtype.kind in "SU":
+            return "'{}'".format
+        elif self.dtype == "object":
+            return repr
+        else:
+            return str
