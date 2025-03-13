@@ -11,6 +11,7 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Generic,
+    Literal,
     cast,
     final,
 )
@@ -54,7 +55,9 @@ else:
 
 
 class SelectN(Generic[NDFrameT]):
-    def __init__(self, obj: NDFrameT, n: int, keep: str) -> None:
+    def __init__(
+        self, obj: NDFrameT, n: int, keep: Literal["first", "last", "all"]
+    ) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -111,9 +114,9 @@ class SelectNSeries(SelectN[Series]):
         if n <= 0:
             return self.obj[[]]
 
-        # Save index and reset to default index to avoid performance impact 
+        # Save index and reset to default index to avoid performance impact
         # from when index contains duplicates
-        original_index = self.obj.index
+        original_index: Index = self.obj.index
         cur_series = self.obj.reset_index(drop=True)
 
         dropped = cur_series.dropna()
@@ -122,7 +125,9 @@ class SelectNSeries(SelectN[Series]):
         # slow method
         if n >= len(cur_series):
             ascending = method == "nsmallest"
-            final_series =  cur_series.sort_values(ascending=ascending, kind="mergesort").head(n)
+            final_series = cur_series.sort_values(
+                ascending=ascending, kind="mergesort"
+            ).head(n)
             final_series.index = original_index.take(final_series.index)
             return final_series
 
