@@ -119,17 +119,17 @@ class SelectNSeries(SelectN[Series]):
         original_index: Index = self.obj.index
         cur_series = self.obj.reset_index(drop=True)
 
-        dropped = cur_series.dropna()
-        nan_index = cur_series.drop(dropped.index)
-
         # slow method
         if n >= len(cur_series):
             ascending = method == "nsmallest"
             final_series = cur_series.sort_values(
-                ascending=ascending, kind="mergesort"
+                ascending=ascending, kind="stable"
             ).head(n)
             final_series.index = original_index.take(final_series.index)
             return final_series
+
+        dropped = cur_series.dropna()
+        nan_index = cur_series.drop(dropped.index)
 
         # fast method
         new_dtype = dropped.dtype
@@ -291,4 +291,4 @@ class SelectNFrame(SelectN[DataFrame]):
 
         ascending = method == "nsmallest"
 
-        return frame.sort_values(columns, ascending=ascending, kind="mergesort")
+        return frame.sort_values(columns, ascending=ascending, kind="stable")
