@@ -1033,9 +1033,77 @@ cdef class _Timedelta(timedelta):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
-    min = MinMaxReso("min")
-    max = MinMaxReso("max")
-    resolution = MinMaxReso("resolution")
+
+    @property
+    def min(self):
+        """
+        Returns the minimum bound possible for Timedelta.
+
+        Returns the smallest possible value represented by 64 bits.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Timedelta.max: Returns the maximum bound possible for Timedelta.
+        Timedelta.resolution: Returns the smallest possible difference between
+            non-equal Timedelta objects.
+
+        Examples
+        --------
+        >>> pd.Timedelta.min
+        -9223372036854775807
+        """
+        return MinMaxReso("min")
+
+    @property
+    def max(self):
+        """
+        Returns the maximum bound possible for Timedelta.
+
+        Returns the largest possible value represented by 64 bits.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Timedelta.min: Returns the minimum bound possible for Timedelta.
+        Timedelta.resolution: Returns the smallest possible difference between
+            non-equal Timedelta objects.
+
+        Examples
+        --------
+        >>> pd.Timedelta.max
+        9223372036854775807
+        """
+        return MinMaxReso("max")
+
+    @property
+    def resolution(self):
+        """
+        Returns the smalleset possible difference between non-equal Timedelta objects.
+
+        Returns the integer 1.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Timedelta.max: Returns the maximum bound possible for Timedelta.
+        Timedelta.min: Returns the minimum bound possible for Timedelta.
+
+        Examples
+        --------
+        >>> pd.Timedelta.resolution
+        1
+        """
+        return MinMaxReso("resolution")
 
     @property
     def value(self):
