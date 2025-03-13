@@ -610,22 +610,38 @@ class TestAstypeCategorical:
     def test_astype_categorical_to_categorical(
         self, name, dtype_ordered, series_ordered
     ):
+      
+        def check_deprecation_warning(series):
+            ''' Helper function to check DeprecationWarning for ordered = True conversions'''
+            msg = "The 'category' dtype is being set to ordered=False by default."
+            with tm.assert_produces_warning(DeprecationWarning, match = msg):
+                result = series.astype("category")
+            assert result.dtype.ordered is False
+            
         # GH#10696, GH#18593
         s_data = list("abcaacbab")
         s_dtype = CategoricalDtype(list("bac"), ordered=series_ordered)
         ser = Series(s_data, dtype=s_dtype, name=name)
+        
+        # GH#61074
+        if series_ordered is True:
+            check_deprecation_warning(ser)
+            s_dtype = CategoricalDtype(list("bac"), ordered=False)
+            ser = Series(s_data, dtype=s_dtype, name=name)
 
+        # GH#61074
         # unspecified categories
-        dtype = CategoricalDtype(ordered=dtype_ordered)
-        result = ser.astype(dtype)
-        exp_dtype = CategoricalDtype(s_dtype.categories, dtype_ordered)
+        dtype = CategoricalDtype(ordered=False)
+        result = ser.astype(dtype)        
+        exp_dtype = CategoricalDtype(s_dtype.categories, ordered=False)
         expected = Series(s_data, name=name, dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
 
+        # GH#61074
         # different categories
-        dtype = CategoricalDtype(list("adc"), dtype_ordered)
+        dtype = CategoricalDtype(list("adc"), False)
         result = ser.astype(dtype)
-        expected = Series(s_data, name=name, dtype=dtype)
+        expected = Series(s_data, name=name, dtype=dtype)    
         tm.assert_series_equal(result, expected)
 
         if dtype_ordered is False:
