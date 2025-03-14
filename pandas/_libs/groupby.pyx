@@ -725,8 +725,12 @@ def group_sum(
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    # the below is equivalent to `np.zeros_like(out)` but faster
-    sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    if sum_t is object:
+        # For object dtype, fill value should not be 0 (#60229)
+        sumx = np.full((<object>out).shape, NAN, dtype=object)
+    else:
+        # the below is equivalent to `np.zeros_like(out)` but faster
+        sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
@@ -760,7 +764,10 @@ def group_sum(
                     if uses_mask:
                         isna_result = result_mask[lab, j]
                     else:
-                        isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
+                        isna_result = (
+                            _treat_as_na(sumx[lab, j], is_datetimelike) and
+                            nobs[lab, j] > 0
+                        )
 
                     if isna_result:
                         # If sum is already NA, don't add to it. This is important for
@@ -795,6 +802,7 @@ def group_sum(
                             compensation[lab, j] = 0
                         sumx[lab, j] = t
                 elif not skipna:
+                    nobs[lab, j] += 1
                     if uses_mask:
                         result_mask[lab, j] = True
                     else:
