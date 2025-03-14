@@ -146,16 +146,6 @@ sponsors:
     url: https://numfocus.org/
     logo: static/img/partners/numfocus.svg
     kind: numfocus
-  - name: "Two Sigma"
-    url: https://www.twosigma.com/
-    logo: static/img/partners/two_sigma.svg
-    kind: partner
-    description: "Jeff Reback"
-  - name: "Voltron Data"
-    url: https://voltrondata.com/
-    logo: static/img/partners/voltron_data.svg
-    kind: partner
-    description: "Joris Van den Bossche"
   - name: "Coiled"
     url: https://www.coiled.io
     logo: static/img/partners/coiled.svg
@@ -171,21 +161,11 @@ sponsors:
     logo: static/img/partners/nvidia.svg
     kind: partner
     description: "Matthew Roeschke"
-  - name: "Intel"
-    url: https://www.intel.com/
-    logo: /static/img/partners/intel.svg
-    kind: partner
-    description: "Brock Mendel"
   - name: "Tidelift"
     url: https://tidelift.com
     logo: static/img/partners/tidelift.svg
     kind: regular
     description: "<i>pandas</i> is part of the <a href=\"https://tidelift.com/subscription/pkg/pypi-pandas?utm_source=pypi-pandas&utm_medium=referral&utm_campaign=readme\">Tidelift subscription</a>. You can support pandas by becoming a Tidelift subscriber."
-  - name: "Chan Zuckerberg Initiative"
-    url: https://chanzuckerberg.com/
-    logo: static/img/partners/czi.svg
-    kind: regular
-    description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintenance, improve extension types, and a efficient string type."
   - name: "Bodo"
     url: https://www.bodo.ai/
     logo: static/img/partners/bodo.svg
