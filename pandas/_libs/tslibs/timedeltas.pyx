@@ -1039,7 +1039,7 @@ cdef class _Timedelta(timedelta):
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
 
-    docstring_min = """
+    _docstring_min = """
     Returns the minimum bound possible for Timedelta.
 
     This property provides access to the smallest possible value that
@@ -1061,7 +1061,7 @@ cdef class _Timedelta(timedelta):
     -106752 days +00:12:43.145224193
     """
 
-    docstring_max = """
+    _docstring_max = """
     Returns the maximum bound possible for Timedelta.
 
     This property provides access to the largest possible value that
@@ -1083,7 +1083,7 @@ cdef class _Timedelta(timedelta):
     106751 days 23:47:16.854775807
     """
 
-    docstring_reso = """
+    _docstring_reso = """
     Returns the smallest possible difference between non-equal Timedelta objects.
 
     The resolution value is determined by the underlying representation of time
@@ -1104,9 +1104,9 @@ cdef class _Timedelta(timedelta):
     0 days 00:00:00.000000001
     """
 
-    min = MinMaxReso("min", docstring_min)
-    max = MinMaxReso("max", docstring_max)
-    resolution = MinMaxReso("resolution", docstring_reso)
+    min = MinMaxReso("min", _docstring_min)
+    max = MinMaxReso("max", _docstring_max)
+    resolution = MinMaxReso("resolution", _docstring_reso)
 
     @property
     def value(self):
