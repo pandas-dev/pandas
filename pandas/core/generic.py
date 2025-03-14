@@ -6463,7 +6463,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         warnings.warn(
                             "The 'category' dtype is being set to ordered=False by default.",
                             DeprecationWarning,
-                            stacklevel=find_stack_level()
+                            stacklevel=find_stack_level(),
                         )
 
                     if isinstance(dtype, CategoricalDtype):

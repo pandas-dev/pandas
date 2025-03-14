@@ -1319,14 +1319,14 @@ class TestDataFrameReplace:
             ["cat1", "catX", "cat3", "cat4"], ordered=False
         )
 
-        # replace values in input dataframe        
-        # GH#61074        
+        # replace values in input dataframe
+        # GH#61074
         msg = "The 'category' dtype is being set to ordered=False by default."
         for col in ["col2", "col4"]:
             if input_df[col].dtype.ordered:
                 with tm.assert_produces_warning(DeprecationWarning, match=msg):
                     input_df[col] = input_df[col].astype("category")
-                    
+
         input_df["col5"] = input_df["col5"].astype("category")
 
         input_df["col2"] = input_df["col2"].cat.rename_categories({"d": "z"})
