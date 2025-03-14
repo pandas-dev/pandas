@@ -121,10 +121,10 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
-    CategoricalDtype
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -6455,25 +6455,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         else:
             # else, only a single dtype is given
-            
-             # GH 61074: Make dtype="category" imply "ordered" = False + add deprecation warning
+
+            # GH 61074: Make dtype="category" imply "ordered" = False + add deprecation warning
             if dtype == "category":
                 if isinstance(self.dtype, CategoricalDtype):
                     if self.dtype.ordered:
                         warnings.warn(
                             "The 'category' dtype is being set to ordered=False by default.",
                             DeprecationWarning,
-                            stacklevel=3
-                            )
-                        
-                    if isinstance(dtype, CategoricalDtype):                
-                        dtype = CategoricalDtype(categories=dtype.categories ,ordered=False)
+                            stacklevel=3,
+                        )
+
+                    if isinstance(dtype, CategoricalDtype):
+                        dtype = CategoricalDtype(
+                            categories=dtype.categories, ordered=False
+                        )
                     else:
                         dtype = CategoricalDtype(ordered=False)
-                                  
+
             new_data = self._mgr.astype(dtype=dtype, errors=errors)
             res = self._constructor_from_mgr(new_data, axes=new_data.axes)
-            
+
             return res.__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
