@@ -11,6 +11,7 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Generic,
+    Literal,
     cast,
     final,
 )
@@ -54,7 +55,9 @@ else:
 
 
 class SelectN(Generic[NDFrameT]):
-    def __init__(self, obj: NDFrameT, n: int, keep: str) -> None:
+    def __init__(
+        self, obj: NDFrameT, n: int, keep: Literal["first", "last", "all"]
+    ) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -111,13 +114,22 @@ class SelectNSeries(SelectN[Series]):
         if n <= 0:
             return self.obj[[]]
 
-        dropped = self.obj.dropna()
-        nan_index = self.obj.drop(dropped.index)
+        # Save index and reset to default index to avoid performance impact
+        # from when index contains duplicates
+        original_index: Index = self.obj.index
+        cur_series = self.obj.reset_index(drop=True)
 
         # slow method
-        if n >= len(self.obj):
+        if n >= len(cur_series):
             ascending = method == "nsmallest"
-            return self.obj.sort_values(ascending=ascending).head(n)
+            final_series = cur_series.sort_values(
+                ascending=ascending, kind="stable"
+            ).head(n)
+            final_series.index = original_index.take(final_series.index)
+            return final_series
+
+        dropped = cur_series.dropna()
+        nan_index = cur_series.drop(dropped.index)
 
         # fast method
         new_dtype = dropped.dtype
@@ -173,7 +185,9 @@ class SelectNSeries(SelectN[Series]):
             # reverse indices
             inds = narr - 1 - inds
 
-        return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        final_series = concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        final_series.index = original_index.take(final_series.index)
+        return final_series
 
 
 class SelectNFrame(SelectN[DataFrame]):
@@ -192,7 +206,13 @@ class SelectNFrame(SelectN[DataFrame]):
     nordered : DataFrame
     """
 
-    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel) -> None:
+    def __init__(
+        self,
+        obj: DataFrame,
+        n: int,
+        keep: Literal["first", "last", "all"],
+        columns: IndexLabel,
+    ) -> None:
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
@@ -277,4 +297,4 @@ class SelectNFrame(SelectN[DataFrame]):
 
         ascending = method == "nsmallest"
 
-        return frame.sort_values(columns, ascending=ascending, kind="mergesort")
+        return frame.sort_values(columns, ascending=ascending, kind="stable")
