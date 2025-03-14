@@ -613,7 +613,7 @@ class TestAstypeCategorical:
         # GH 61074
         def check_deprecation_warning(series):
             """
-            Helper function to check DeprecationWarning 
+            Helper function to check DeprecationWarning
             for ordered = True conversions
             """
             msg = "The 'category' dtype is being set to ordered=False by default."

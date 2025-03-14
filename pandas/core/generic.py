@@ -6456,15 +6456,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # else, only a single dtype is given
 
-            # GH 61074: Make dtype="category" imply "ordered" = False 
+            # GH 61074: Make dtype="category" imply "ordered" = False
             # and add a deprecation warning
             if dtype == "category":
                 if isinstance(self.dtype, CategoricalDtype):
                     if self.dtype.ordered:
                         warnings.warn(
                             (
-                            "The 'category' dtype is being set to ordered=False "
-                            " by default."
+                                "The 'category' dtype is being set to ordered=False "
+                                " by default."
                             ),
                             DeprecationWarning,
                             stacklevel=find_stack_level(),
