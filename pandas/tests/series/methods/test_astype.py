@@ -610,8 +610,12 @@ class TestAstypeCategorical:
     def test_astype_categorical_to_categorical(
         self, name, dtype_ordered, series_ordered
     ):
+        # GH 61074
         def check_deprecation_warning(series):
-            """Helper function to check DeprecationWarning for ordered = True conversions"""
+            """
+            Helper function to check DeprecationWarning 
+            for ordered = True conversions
+            """
             msg = "The 'category' dtype is being set to ordered=False by default."
             with tm.assert_produces_warning(DeprecationWarning, match=msg):
                 result = series.astype("category")
