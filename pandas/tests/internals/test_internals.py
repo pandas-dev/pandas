@@ -1320,6 +1320,16 @@ class TestCanHoldElement:
         with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, pi, False)
 
+    def test_period_reindex_axis(self):
+        # GH#60273 Test reindexing of block with PeriodDtype
+        pi = period_range("2020", periods=5, freq="Y")
+        blk = new_block(pi._data.reshape(5, 1), BlockPlacement(slice(5)), ndim=2)
+        mgr = BlockManager(blocks=(blk,), axes=[Index(np.arange(5)), Index(["a"])])
+        reindexed = mgr.reindex_axis(Index([0, 2, 4]), axis=0)
+        result = DataFrame._from_mgr(reindexed, axes=reindexed.axes)
+        expected = DataFrame([[pi[0], pi[2], pi[4]]], columns=[0, 2, 4], index=["a"])
+        tm.assert_frame_equal(result, expected)
+
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
         if inplace:
