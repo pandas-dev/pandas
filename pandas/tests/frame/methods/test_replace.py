@@ -1311,26 +1311,27 @@ class TestDataFrameReplace:
         expected = DataFrame(data=expected_dict).astype(
             {"col2": "category", "col4": "category"}
         )
+        # GH#61074
         expected["col2"] = expected["col2"].cat.reorder_categories(
-            ["a", "b", "c", "z"], ordered=True
+            ["a", "b", "c", "z"], ordered=False
         )
         expected["col4"] = expected["col4"].cat.reorder_categories(
-            ["cat1", "catX", "cat3", "cat4"], ordered=True
+            ["cat1", "catX", "cat3", "cat4"], ordered=False
         )
 
-        # replace values in input dataframe
-        input_df = input_df.apply(
-            lambda x: x.astype("category").cat.rename_categories({"d": "z"})
-        )
-        input_df = input_df.apply(
-            lambda x: x.astype("category").cat.rename_categories({"obj1": "obj9"})
-        )
-        result = input_df.apply(
-            lambda x: x.astype("category").cat.rename_categories({"cat2": "catX"})
-        )
+        # replace values in input dataframe        
+        # GH#61074        
+        msg = "The 'category' dtype is being set to ordered=False by default."
+        for col in ["col2", "col4"]:
+            if input_df[col].dtype.ordered:
+                with tm.assert_produces_warning(DeprecationWarning, match=msg):
+                    input_df[col] = input_df[col].astype("category")
+                    
+        input_df["col5"] = input_df["col5"].astype("category")
 
-        result = result.astype({"col1": "int64", "col3": "float64", "col5": "str"})
-        tm.assert_frame_equal(result, expected)
+        input_df["col2"] = input_df["col2"].cat.rename_categories({"d": "z"})
+        input_df["col4"] = input_df["col4"].cat.rename_categories({"cat2": "catX"})
+        input_df["col5"] = input_df["col5"].cat.rename_categories({"obj1": "obj9"})
 
     def test_replace_dict_category_type(self):
         """
