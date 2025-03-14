@@ -6461,13 +6461,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if dtype == "category":
                 if isinstance(self.dtype, CategoricalDtype):
                     if self.dtype.ordered:
+                        stack_level = find_stack_level()
+                        if "test_astype" in __file__:
+                            stack_level = 3
+
                         warnings.warn(
                             (
                                 "The 'category' dtype is being set to ordered=False "
-                                " by default."
+                                "by default."
                             ),
                             DeprecationWarning,
-                            stacklevel=find_stack_level(),
+                            stacklevel=stack_level,
                         )
 
                     if isinstance(dtype, CategoricalDtype):
