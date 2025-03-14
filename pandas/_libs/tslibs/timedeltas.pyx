@@ -1448,16 +1448,17 @@ cdef class _Timedelta(timedelta):
 
         Parameters
         ----------
-        dtype : NoneType
-            It is available here only for compatibility. Its value will not
-            affect the return value.
+        dtype : None, optional
+            Data type of the output, ignored in this method as the return type
+            is always `numpy.datetime64`.
         copy : bool, default False
-            It is available here only for compatibility. Its value will not
-            affect the return value.
+            Whether to ensure that the returned value is a new object. This
+            parameter is also ignored as the method does not support copying.
 
         Returns
         -------
         numpy.timedelta64
+            NumPy timedelta64 representation of the Timedelta
 
         See Also
         --------
