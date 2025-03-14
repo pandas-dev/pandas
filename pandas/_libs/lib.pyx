@@ -1518,7 +1518,7 @@ cdef object _try_infer_map(object dtype):
 
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Return a string label of the type of a scalar or list-like of values.
+    Return a string label of the type of the elements in a list-like input.
 
     This method inspects the elements of the provided input and determines
     classification of its data type. It is particularly useful for
@@ -1527,7 +1527,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Parameters
     ----------
-    value : scalar, list, ndarray, or pandas type
+    value : list, ndarray, or pandas type
         The input data to infer the dtype.
     skipna : bool, default True
         Ignore NaN values when inferring the type.
