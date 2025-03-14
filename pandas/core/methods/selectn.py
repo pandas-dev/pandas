@@ -206,7 +206,13 @@ class SelectNFrame(SelectN[DataFrame]):
     nordered : DataFrame
     """
 
-    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel) -> None:
+    def __init__(
+        self,
+        obj: DataFrame,
+        n: int,
+        keep: Literal["first", "last", "all"],
+        columns: IndexLabel,
+    ) -> None:
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
