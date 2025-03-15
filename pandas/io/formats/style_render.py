@@ -6,6 +6,7 @@ from collections.abc import (
     Sequence,
 )
 from functools import partial
+import pathlib
 import re
 from typing import (
     TYPE_CHECKING,
@@ -71,7 +72,9 @@ class StylerRenderer:
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    thisdir = pathlib.Path(__file__).parent.resolve()
+    template_dir = thisdir / "templates"
+    loader = jinja2.FileSystemLoader(template_dir)
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
     template_html_table = env.get_template("html_table.tpl")
