@@ -299,6 +299,19 @@ class TestSeriesConvertDtypes:
         expected = pd.Series([None, None], dtype=pd.ArrowDtype(pa.null()))
         tm.assert_series_equal(result, expected)
 
+    @td.skip_if_no("pyarrow")
+    def test_convert_empty_categorical_to_pyarrow(self):
+        # GH#59934
+        ser1 = pd.Series(pd.Categorical([None] * 5))
+        converted1 = ser1.convert_dtypes(dtype_backend="pyarrow")
+        expected = ser1
+        tm.assert_series_equal(converted1, expected)
+
+        ser2 = pd.Series(pd.Categorical([None] * 5, categories=["S1", "S2"]))
+        converted2 = ser2.convert_dtypes(dtype_backend="pyarrow")
+        expected = ser2
+        tm.assert_series_equal(converted2, expected)
+
     def test_convert_dtype_pyarrow_timezone_preserve(self):
         # GH 60237
         pytest.importorskip("pyarrow")

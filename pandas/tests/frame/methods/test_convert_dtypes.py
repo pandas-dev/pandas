@@ -37,6 +37,7 @@ class TestConvertDtypes:
         empty_df = pd.DataFrame()
         tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
 
+    @td.skip_if_no("pyarrow")
     def test_convert_empty_categorical_to_pyarrow(self):
         # GH#59934
         df = pd.DataFrame(
@@ -48,13 +49,6 @@ class TestConvertDtypes:
         converted = df.convert_dtypes(dtype_backend="pyarrow")
         expected = df
         tm.assert_frame_equal(converted, expected)
-
-        assert converted.A.dtype == "category", "Dtype in column A is not 'category'"
-        assert converted.B.dtype == "category", "Dtype in column B is not 'category'"
-        assert converted.A.cat.categories.empty, "Categories in column A are not empty"
-        assert converted.B.cat.categories.isin(
-            ["B1", "B2"]
-        ).all(), "Categories in column B doesn't contain adequate categories"
 
     def test_convert_dtypes_retain_column_names(self):
         # GH#41435
