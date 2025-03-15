@@ -4322,6 +4322,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         arg: Callable | Mapping | Series,
         na_action: Literal["ignore"] | None = None,
+        engine: Callable | None = None,
         **kwargs,
     ) -> Series:
         """
@@ -4338,6 +4339,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
+        engine : decorator, optional
+            Choose the execution engine to use. If not provided the function
+            will be executed by the regular Python interpreter.
+
+            Other options include JIT compilers such as Numba and Bodo, which in some
+            cases can speed up the execution. To use an executor you can provide
+            the decorators ``numba.jit``, ``numba.njit`` or ``bodo.jit``. You can
+            also provide the decorator with parameters, like ``numba.jit(nogit=True)``.
+
+            Not all functions can be executed with all execution engines. In general,
+            JIT compilers will require type stability in the function (no variable
+            should change data type during the execution). And not all pandas and
+            NumPy APIs are supported. Check the engine documentation [1]_ and [2]_
+            for limitations.
+
+            .. versionadded:: 3.0.0
+
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `arg`.
@@ -4404,6 +4422,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3  I am a rabbit
         dtype: object
         """
+        if engine is not None:
+            if not hasattr(engine, "__pandas_udf__"):
+                raise ValueError(f"Not a valid engine: {engine}")
+            return engine.__pandas_udf__.map(
+                data=self,
+                func=arg,
+                args=(),
+                kwargs=kwargs,
+                decorator=engine,
+                skip_na=na_action == "ignore",
+            ).__finalize__(self, method="map")
+
         if callable(arg):
             arg = functools.partial(arg, **kwargs)
         new_values = self._map_values(arg, na_action=na_action)
