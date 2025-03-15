@@ -124,4 +124,9 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
                     data_row + (max_width - len(data_row)) * empty_cell
                     for data_row in data
                 ]
+
+        # Ensure we return exactly file_rows_needed rows if specified
+        if file_rows_needed is not None and len(data) > file_rows_needed:
+            data = data[:file_rows_needed]
+
         return data

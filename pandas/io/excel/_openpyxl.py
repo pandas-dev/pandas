@@ -625,7 +625,10 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
                 break
 
         # Trim trailing empty rows
-        data = data[: last_row_with_data + 1]
+        if file_rows_needed is None:
+            # Only trim trailing empty rows when file_rows_needed is None
+            # to ensure we return exactly file_rows_needed rows when specified
+            data = data[: last_row_with_data + 1]
 
         if len(data) > 0:
             # extend rows to max width
