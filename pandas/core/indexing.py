@@ -1066,7 +1066,13 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         tup = self._validate_key_length(tup)
 
-        for i, key in enumerate(tup):
+        # Reverse tuple so that we are indexing along columns before rows
+        # and avoid unintended dtype inference. # GH60600
+        if any(isinstance(ax, MultiIndex) for ax in self.obj.axes):
+            enum = enumerate(tup)
+        else:
+            enum = zip(range(len(tup) - 1, -1, -1), reversed(tup))
+        for i, key in enum:
             if is_label_like(key):
                 # We don't need to check for tuples here because those are
                 #  caught by the _is_nested_tuple_indexer check above.
