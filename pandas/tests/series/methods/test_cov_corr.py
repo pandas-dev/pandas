@@ -5,11 +5,41 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    Categorical,
     Series,
     date_range,
     isna,
 )
 import pandas._testing as tm
+
+
+@pytest.fixture
+def A():
+    return Series(
+        np.concatenate([np.arange(5, dtype=np.float64)] * 2),
+        index=date_range("2020-01-01", periods=10),
+        name="ts",
+    )
+
+
+@pytest.fixture
+def B():
+    return Series(
+        np.arange(10, dtype=np.float64),
+        index=date_range("2020-01-01", periods=10),
+        name="ts",
+    )
+
+
+@pytest.fixture
+def C():
+    s = Series(
+        data=Categorical(list("12345") * 2, categories=list("54321"), ordered=True),
+        index=date_range("2020-01-01", periods=10),
+        name="categorical",
+    )
+    s["2020-01-03"] = np.nan
+    return s
 
 
 class TestSeriesCov:
@@ -56,7 +86,7 @@ class TestSeriesCov:
 
 
 class TestSeriesCorr:
-    def test_corr(self, datetime_series, any_float_dtype):
+    def test_corr(self, B, datetime_series, any_float_dtype):
         stats = pytest.importorskip("scipy.stats")
 
         datetime_series = datetime_series.astype(any_float_dtype)
@@ -81,29 +111,14 @@ class TestSeriesCorr:
         cp[:] = np.nan
         assert isna(cp.corr(cp))
 
-        A = Series(
-            np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10),
-            name="ts",
-        )
-        result = A.corr(A)
-        expected, _ = stats.pearsonr(A, A)
+        result = B.corr(B)
+        expected, _ = stats.pearsonr(B, B)
         tm.assert_almost_equal(result, expected)
 
-    def test_corr_rank(self):
+    def test_corr_rank(self, A, B):
         stats = pytest.importorskip("scipy.stats")
 
         # kendall and spearman
-        B = Series(
-            np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10),
-            name="ts",
-        )
-        A = Series(
-            np.concatenate([np.arange(5, dtype=np.float64)] * 2),
-            index=date_range("2020-01-01", periods=10),
-            name="ts",
-        )
         result = A.corr(B, method="kendall")
         expected = stats.kendalltau(A, B)[0]
         tm.assert_almost_equal(result, expected)
@@ -145,6 +160,29 @@ class TestSeriesCorr:
         sexp = 0.5853767
         tm.assert_almost_equal(A.corr(B, method="kendall"), kexp)
         tm.assert_almost_equal(A.corr(B, method="spearman"), sexp)
+
+    def test_corr_category(self, A, C):
+        stats = pytest.importorskip("scipy.stats")
+
+        def get_codes(s: Series) -> Series:
+            return C.cat.codes.replace(-1, np.nan)
+
+        result = A.corr(C, method="pearson")
+        expected = stats.pearsonr(A[C.notna()], C.dropna().astype("float"))[0]
+        tm.assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, 1)
+
+        result = A.corr(C, method="spearman")
+        expected = stats.spearmanr(A, get_codes(C), nan_policy="omit")[0]
+        expected_pearson = stats.pearsonr(A[C.notna()], get_codes(C).dropna())[0]
+
+        tm.assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected_pearson)
+        tm.assert_almost_equal(result, -1)
+
+        result = A.corr(C, method="kendall")
+        expected = stats.kendalltau(A, get_codes(C), nan_policy="omit")[0]
+        tm.assert_almost_equal(result, expected)
 
     def test_corr_invalid_method(self):
         # GH PR #22298
