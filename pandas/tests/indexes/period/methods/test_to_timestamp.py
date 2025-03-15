@@ -141,6 +141,18 @@ class TestToTimestamp:
         result = index.to_timestamp()
         assert result[0] == Timestamp("1/1/2012")
 
+    def test_cast_to_timestamps_at_beginning_of_period(self):
+        # GH 59371
+        index = period_range("2000", periods=3, freq="M")
+        result = index.to_timestamp("M")
+
+        expected = DatetimeIndex(
+            ["2000-01-01", "2000-02-01", "2000-03-01"],
+            dtype="datetime64[ns]",
+            freq="MS",
+        )
+        tm.assert_equal(result, expected)
+
 
 def test_ms_to_timestamp_error_message():
     # https://github.com/pandas-dev/pandas/issues/58974#issuecomment-2164265446
