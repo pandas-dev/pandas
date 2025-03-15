@@ -696,6 +696,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         # the number of rows read from file
         return None
 
+    # This method calculates how many rows to read from the file
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
@@ -748,6 +749,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             if verbose:
                 print(f"Reading sheet {asheetname}")
 
+            # Get the sheet object based on name or index
             if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
             else:  # assume an integer if not a string
@@ -755,6 +757,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
             file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
             data = self.get_sheet_data(sheet, file_rows_needed)
+
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
@@ -763,6 +766,11 @@ class BaseExcelReader(Generic[_WorkbookT]):
             if not data:
                 output[asheetname] = DataFrame()
                 continue
+
+            # Ensure we don't process more rows than requested with nrows
+            # This is a safeguard in case get_sheet_data returns more rows than requested
+            if nrows is not None and len(data) > nrows:
+                data = data[:nrows + (0 if header is None else header + 1)]
 
             output = self._parse_sheet(
                 data=data,

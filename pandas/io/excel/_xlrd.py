@@ -110,6 +110,7 @@ class XlrdReader(BaseExcelReader["Book"]):
                     cell_contents = time(
                         cell_contents.hour,
                         cell_contents.minute,
+            # xlrd implementation already correctly limits rows to file_rows_needed
                         cell_contents.second,
                         cell_contents.microsecond,
                     )
