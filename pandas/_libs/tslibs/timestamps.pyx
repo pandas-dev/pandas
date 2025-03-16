@@ -2233,7 +2233,6 @@ class Timestamp(_Timestamp):
 
         >>> ts_naive = pd.Timestamp("2023-01-01 12:00:00")
         >>> ts_naive.tzinfo
-        None
         """
         return super().tzinfo
 
