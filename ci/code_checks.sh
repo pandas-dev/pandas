@@ -77,7 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.resolution PR02" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.min PR02" \
-        -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
@@ -274,8 +273,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.YearEnd.month GL08" \
         -i "pandas.tseries.offsets.YearEnd.n GL08" \
-        -i "pandas.tseries.offsets.YearEnd.normalize GL08" \
-        -i "pandas.util.hash_pandas_object PR07,SA01" # There should be no backslash in the final line, please keep this comment in the last ignored function
+        -i "pandas.tseries.offsets.YearEnd.normalize GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
