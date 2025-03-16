@@ -2997,7 +2997,7 @@ timedelta}, default 'raise'
         >>> ts.tzinfo
         zoneinfo.ZoneInfo(key='Europe/Stockholm')
         """
-        return self.tzinfo
+        return super().tzinfo
 
     @tz.setter
     def tz(self, value):
