@@ -7,7 +7,10 @@ import pandas._testing as tm
 
 
 # Skip the entire test class if openpyxl is not installed
-pytestmark = pytest.importorskip("openpyxl")
+pytestmark = pytest.mark.skipif(
+    pytest.importorskip("openpyxl", reason="openpyxl not installed") is None,
+    reason="openpyxl not installed"
+)
 
 
 class TestExcelAdjacentTables:

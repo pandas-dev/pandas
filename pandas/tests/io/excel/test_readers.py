@@ -1542,11 +1542,13 @@ class TestReaders:
         For various parameters, we should get the same result whether we
         limit the rows during load (nrows=3) or after (df.iloc[:3]).
         """
-        """
-        For various parameters, we should get the same result whether we
-        limit the rows during load (nrows=3) or after (df.iloc[:3]).
-        """
         # GH 46894
+
+        # Skip tests for calamine engine with ODS files due to known issues
+        # with nrows parameter handling
+        if read_ext == '.ods' and 'calamine' in str(self.engine):
+            pytest.skip("Skipping test for calamine engine with ODS files")
+
         expected = pd.read_excel(
             filename + read_ext,
             sheet_name=sheet_name,
@@ -1554,11 +1556,6 @@ class TestReaders:
             index_col=index_col,
             skiprows=skiprows,
         ).iloc[:3]
-
-        # Skip tests for calamine engine with ODS files due to known issues
-        # with nrows parameter handling
-        if read_ext == '.ods' and 'calamine' in str(self.engine):
-            pytest.skip("Skipping test for calamine engine with ODS files")
         actual = pd.read_excel(
             filename + read_ext,
             sheet_name=sheet_name,
