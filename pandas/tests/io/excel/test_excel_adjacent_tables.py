@@ -6,6 +6,10 @@ import pandas as pd
 import pandas._testing as tm
 
 
+# Skip the entire test class if openpyxl is not installed
+pytestmark = pytest.importorskip("openpyxl")
+
+
 class TestExcelAdjacentTables:
     """Tests for reading Excel files with adjacent tables."""
 
