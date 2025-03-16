@@ -2977,6 +2977,28 @@ timedelta}, default 'raise'
         """
         return self.tzinfo
 
+    @property
+    def tzinfo(self):
+        """
+        Returns the timezone information of the Timestamp.
+
+        For pandas-specific timezone operations, the `tz` property is the
+        recommended interface.
+
+        See Also
+        --------
+        Timestamp.tz : Alias for tzinfo.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
+        >>> ts.tzinfo
+        zoneinfo.ZoneInfo(key='Europe/Stockholm')
+        """
+        return self.tzinfo
+
     @tz.setter
     def tz(self, value):
         # GH 3746: Prevent localizing or converting the index by setting tz
