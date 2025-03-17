@@ -2511,8 +2511,9 @@ class ExtensionArray:
             Sorted, if possible.
         """
         # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "Self")
-        return mode(self, dropna=dropna)  # type: ignore[return-value]
+        # Tuple[np.ndarray, npt.NDArray[np.bool_]]", expected "Self")
+        result, _ = mode(self, dropna=dropna)
+        return result  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
