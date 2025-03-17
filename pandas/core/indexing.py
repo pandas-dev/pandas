@@ -1073,7 +1073,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         else:
             enum = zip(range(len(tup) - 1, -1, -1), reversed(tup))
         for i, key in enum:
-            if is_label_like(key):
+            if is_label_like(key) or is_list_like(key):
                 # We don't need to check for tuples here because those are
                 #  caught by the _is_nested_tuple_indexer check above.
                 section = self._getitem_axis(key, axis=i)
