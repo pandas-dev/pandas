@@ -1127,6 +1127,7 @@ def convert_dtypes(
             or (
                 inferred_dtype.kind not in "iufcb"
                 and not isinstance(inferred_dtype, StringDtype)
+                and not isinstance(inferred_dtype, CategoricalDtype)
             )
         ):
             if isinstance(inferred_dtype, PandasExtensionDtype) and not isinstance(
@@ -1143,7 +1144,6 @@ def convert_dtypes(
                 base_dtype.kind == "O"  # type: ignore[union-attr]
                 and input_array.size > 0
                 and isna(input_array).all()
-                and not isinstance(input_array.dtype, CategoricalDtype)
             ):
                 import pyarrow as pa
 
