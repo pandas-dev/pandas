@@ -2519,8 +2519,13 @@ def _validate_inferred_freq(
     -------
     freq : DateOffset or None
     """
+    offset1 = to_offset(freq)
+    offset2 = to_offset(inferred_freq)
+
+    freq_equal = type(offset1) == type(offset2)
+
     if inferred_freq is not None:
-        if freq is not None and freq != inferred_freq:
+        if freq is not None and not freq_equal:
             raise ValueError(
                 f"Inferred frequency {inferred_freq} from passed "
                 "values does not conform to passed frequency "

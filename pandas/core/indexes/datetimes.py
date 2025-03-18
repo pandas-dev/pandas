@@ -421,6 +421,34 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
+    def _set_freq(self, freq, *, inplace: bool = False):
+        """
+        Set a new frequency for this DatetimeIndex.
+
+        Parameters
+        ----------
+        freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'S'
+            Frequency strings can have multiples, e.g. '5h'. See
+            :ref:`here <timeseries.offset_aliases>` for a list of
+            frequency aliases.
+        inplace : bool, default False
+            If True, modifies object in place. Otherwise, returns a new DateTimeIndex
+
+        Returns
+        -------
+        DatetimeIndex
+            Fixed frequency DatetimeIndex
+        """
+
+        if inplace:
+            self._freq = to_offset(freq)
+        else:
+            new_index = self.copy()
+            new_index.freq = to_offset(freq)
+            return new_index
+
+    # --------------------------------------------------------------------
+
     def _get_time_micros(self) -> npt.NDArray[np.int64]:
         """
         Return the number of microseconds since midnight.
