@@ -2208,6 +2208,34 @@ class Timestamp(_Timestamp):
         """
         return super().tzname()
 
+    @property
+    def tzinfo(self):
+        """
+        Returns the timezone info of the Timestamp.
+
+        This property returns a `datetime.tzinfo` object if the Timestamp
+        is timezone-aware. If the Timestamp has no timezone, it returns `None`.
+        If the Timestamp is in UTC or a fixed-offset timezone,
+        it returns `datetime.timezone`. If the Timestamp uses an
+        IANA timezone (e.g., "America/New_York"), it returns `zoneinfo.ZoneInfo`.
+
+        See Also
+        --------
+        Timestamp.tz : Alias for `tzinfo`, may return a `zoneinfo.ZoneInfo` object.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a specific timezone.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2023-01-01 12:00:00", tz="UTC")
+        >>> ts.tzinfo
+        datetime.timezone.utc
+
+        >>> ts_naive = pd.Timestamp("2023-01-01 12:00:00")
+        >>> ts_naive.tzinfo
+        """
+        return super().tzinfo
+
     def utcoffset(self):
         """
         Return utc offset.

@@ -30,6 +30,12 @@ modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
 
+### [skrub](https://skrub-data.org)
+
+Skrub facilitates machine learning on dataframes. It bridges pandas
+to scikit-learn and related. In particular it facilitates building
+features from dataframes.
+
 ### [Featuretools](https://github.com/alteryx/featuretools/)
 
 Featuretools is a Python library for automated feature engineering built

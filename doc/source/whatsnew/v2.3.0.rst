@@ -37,6 +37,7 @@ Other enhancements
   updated to work correctly with NumPy >= 2 (:issue:`57739`)
 - :meth:`Series.str.decode` result now has ``StringDtype`` when ``future.infer_string`` is True (:issue:`60709`)
 - :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
+- Improved ``repr`` of :class:`.NumpyExtensionArray` to account for NEP51 (:issue:`61085`)
 - The :meth:`Series.str.decode` has gained the argument ``dtype`` to control the dtype of the result (:issue:`60940`)
 - The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns (:issue:`60633`)
 - The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
@@ -118,6 +119,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` on :class:`StringDtype` with all NA values resulted in ``0`` and is now the empty string ``""`` (:issue:`60229`)
 - Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` did not raise for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
 - Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` incorrectly returning integer results in case of ``method="average"`` and raising an error if it would truncate results (:issue:`59768`)
 - Bug in :meth:`Series.replace` with :class:`StringDtype` when replacing with a non-string value was not upcasting to ``object`` dtype (:issue:`60282`)

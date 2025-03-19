@@ -430,7 +430,7 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
 
     if na_counter > 0:
         res_mask = np.zeros(j+1, dtype=np.bool_)
-        res_mask[j] = True
+        res_mask[j] = (na_counter == max_count)
     return modes[:j + 1], res_mask
 
 

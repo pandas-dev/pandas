@@ -1127,6 +1127,7 @@ def convert_dtypes(
             or (
                 inferred_dtype.kind not in "iufcb"
                 and not isinstance(inferred_dtype, StringDtype)
+                and not isinstance(inferred_dtype, CategoricalDtype)
             )
         ):
             if isinstance(inferred_dtype, PandasExtensionDtype) and not isinstance(
