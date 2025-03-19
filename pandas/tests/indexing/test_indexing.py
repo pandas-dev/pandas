@@ -763,6 +763,27 @@ class TestMisc:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_period_column_slicing(self):
+        # GH#60273 The transpose operation creates a single 5x1 block of PeriodDtype
+        # Make sure it is reindexed correctly
+        df = DataFrame(
+            pd.period_range("2021-01-01", periods=5, freq="D"),
+            columns=["A"],
+        ).T
+        result = df[[0, 1, 2]]
+        expected = DataFrame(
+            [
+                [
+                    pd.Period("2021-01-01", freq="D"),
+                    pd.Period("2021-01-02", freq="D"),
+                    pd.Period("2021-01-03", freq="D"),
+                ]
+            ],
+            index=["A"],
+            columns=[0, 1, 2],
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_no_reference_cycle(self):
         df = DataFrame({"a": [0, 1], "b": [2, 3]})
         for name in ("loc", "iloc", "at", "iat"):
