@@ -314,16 +314,19 @@ def get_interp_index(method, index: Index) -> Index:
         # prior default
         from pandas import Index
 
-        if isinstance(index.dtype, DatetimeTZDtype) or lib.is_np_dtype(
-            index.dtype, "mM"
-        ):
-            # Convert datetime-like indexes to int64
-            index = Index(index.view("i8"))
+        index = Index(range(len(index)))
 
-        elif not is_numeric_dtype(index.dtype):
-            # We keep behavior consistent with prior versions of pandas for
-            # non-numeric, non-datetime indexes
-            index = Index(range(len(index)))
+        # if isinstance(index.dtype, DatetimeTZDtype) or lib.is_np_dtype(
+        #     index.dtype, "mM"
+        # ):
+        #     # Convert datetime-like indexes to int64
+        #     index = Index(index.view("i8"))
+        #
+        # elif not is_numeric_dtype(index.dtype):
+        #     # We keep behavior consistent with prior versions of pandas for
+        #     # non-numeric, non-datetime indexes
+        #     index = Index(range(len(index)))
+
     else:
         methods = {"index", "values", "nearest", "time"}
         is_numeric_or_datetime = (

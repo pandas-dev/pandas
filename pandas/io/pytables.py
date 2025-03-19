@@ -377,17 +377,17 @@ def read_hdf(
     object
         The selected object. Return type depends on the object stored.
 
+    See Also
+    --------
+    DataFrame.to_hdf : Write a HDF file from a DataFrame.
+    HDFStore : Low-level access to HDF files.
+
     Notes
     -----
     When ``errors="surrogatepass"``, ``pd.options.future.infer_string`` is true,
     and PyArrow is installed, if a UTF-16 surrogate is encountered when decoding
     to UTF-8, the resulting dtype will be
     ``pd.StringDtype(storage="python", na_value=np.nan)``.
-
-    See Also
-    --------
-    DataFrame.to_hdf : Write a HDF file from a DataFrame.
-    HDFStore : Low-level access to HDF files.
 
     Examples
     --------

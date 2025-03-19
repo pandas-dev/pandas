@@ -412,8 +412,15 @@ def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df)
     with resampling that results in missing anchor points when interpolating.
     See GH#21351."""
     # GH#21351
+    print(groupy_test_df)
+
+    def foo(x):
+        print(x)
+        return x.resample("265h").interpolate(method="linear")
+
     result = groupy_test_df.groupby("volume").apply(
-        lambda x: x.resample("265h").interpolate(method="linear")
+        # lambda x: x.resample("265h").interpolate(method="linear")
+        foo
     )
 
     volume = [50, 50, 60]
