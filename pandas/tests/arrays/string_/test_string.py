@@ -10,6 +10,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.pyarrow import (
     pa_version_under12p0,
     pa_version_under19p0,
@@ -45,15 +46,20 @@ def cls(dtype):
     return dtype.construct_array_type()
 
 
-DTYPE_HIERARCHY = [
-    pd.StringDtype("python", na_value=np.nan),
-    pd.StringDtype("pyarrow", na_value=np.nan),
-    pd.StringDtype("python", na_value=pd.NA),
-    pd.StringDtype("pyarrow", na_value=pd.NA),
-]
-
-
 def string_dtype_highest_priority(dtype1, dtype2):
+    if HAS_PYARROW:
+        DTYPE_HIERARCHY = [
+            pd.StringDtype("python", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("python", na_value=pd.NA),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+        ]
+    else:
+        DTYPE_HIERARCHY = [
+            pd.StringDtype("python", na_value=np.nan),
+            pd.StringDtype("python", na_value=pd.NA),
+        ]
+
     h1 = DTYPE_HIERARCHY.index(dtype1)
     h2 = DTYPE_HIERARCHY.index(dtype2)
     return DTYPE_HIERARCHY[max(h1, h2)]
