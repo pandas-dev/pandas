@@ -22,8 +22,6 @@ from typing import cast
 import numpy as np
 import pytest
 
-from pandas.compat import HAS_PYARROW
-
 from pandas.core.dtypes.base import StorageExtensionDtype
 
 import pandas as pd
@@ -31,6 +29,7 @@ import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.tests.arrays.string_.test_string import string_dtype_highest_priority
 from pandas.tests.extension import base
 
 
@@ -202,10 +201,13 @@ class TestStringArray(base.ExtensionTests):
         dtype = cast(StringDtype, tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
+            dtype_other = tm.get_dtype(other) if not isinstance(other, str) else None
+            if isinstance(dtype_other, StringDtype):
+                cast_to = string_dtype_highest_priority(dtype, dtype_other)
         elif dtype.na_value is np.nan:
             cast_to = np.bool_  # type: ignore[assignment]
         elif dtype.storage == "pyarrow":
-            cast_to = "boolean[pyarrow]"  # type: ignore[assignment]
+            cast_to = "bool[pyarrow]"  # type: ignore[assignment]
         else:
             cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)
@@ -236,9 +238,7 @@ class TestStringArray(base.ExtensionTests):
         if (
             using_infer_string
             and all_arithmetic_operators == "__radd__"
-            and (
-                (dtype.na_value is pd.NA) or (dtype.storage == "python" and HAS_PYARROW)
-            )
+            and dtype.na_value is pd.NA
         ):
             mark = pytest.mark.xfail(
                 reason="The pointwise operation result will be inferred to "

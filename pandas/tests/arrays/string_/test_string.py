@@ -53,6 +53,12 @@ DTYPE_HIERARCHY = [
 ]
 
 
+def string_dtype_highest_priority(dtype1, dtype2):
+    h1 = DTYPE_HIERARCHY.index(dtype1)
+    h2 = DTYPE_HIERARCHY.index(dtype2)
+    return DTYPE_HIERARCHY[max(h1, h2)]
+
+
 def test_dtype_constructor():
     pytest.importorskip("pyarrow")
 
@@ -347,9 +353,7 @@ def test_comparison_methods_array(comparison_op, dtype, dtype2):
         tm.assert_numpy_array_equal(result, expected)
 
     else:
-        h1 = DTYPE_HIERARCHY.index(dtype)
-        h2 = DTYPE_HIERARCHY.index(dtype2)
-        max_dtype = DTYPE_HIERARCHY[max(h1, h2)]
+        max_dtype = string_dtype_highest_priority(dtype, dtype2)
         if max_dtype.storage == "python":
             expected_dtype = "boolean"
         else:
