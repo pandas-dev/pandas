@@ -2063,14 +2063,13 @@ or a passed ``Series``), then it will be preserved in DataFrame operations. Furt
 different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
 .. ipython:: python
-   :okwarning:
 
-   df1 = pd.DataFrame(np.random.randn(8, 1), columns=["A"], dtype="float32")
+   df1 = pd.DataFrame(np.random.randn(8, 1), columns=["A"], dtype="float64")
    df1
    df1.dtypes
    df2 = pd.DataFrame(
        {
-           "A": pd.Series(np.random.randn(8), dtype="float16"),
+           "A": pd.Series(np.random.randn(8), dtype="float32"),
            "B": pd.Series(np.random.randn(8)),
            "C": pd.Series(np.random.randint(0, 255, size=8), dtype="uint8"),  # [0,255] (range of uint8)
        }
