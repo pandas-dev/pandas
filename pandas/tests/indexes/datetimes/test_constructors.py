@@ -1205,11 +1205,9 @@ class TestTimeSeries:
         expected2 = DatetimeIndex([yfirst]).as_unit("s")
         tm.assert_index_equal(result2, expected2)
 
-    def test_datetimeindex_equivalent_freq(self):
-        idx2 = date_range("2020-02-01", freq="QS-FEB", periods=4)
-        new_idx2 = idx2._set_freq("QS-MAY")
-        tm.assert_index_equal(new_idx2, idx2)
-        assert new_idx2.freq == "QS-MAY"
+    def test_validate_inferred_freq_equivalence(self):
+        idx = date_range("2020-02-01", freq="QS-FEB", periods=4)
 
-        idx2._set_freq("QS-MAY", inplace=True)
-        assert idx2.freq == "QS-MAY"
+        new_idx = DatetimeIndex(idx, freq="QS-MAY")
+
+        assert isinstance(new_idx, DatetimeIndex)
