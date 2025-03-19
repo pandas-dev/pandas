@@ -2188,14 +2188,8 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @td.skip_if_no("pyarrow")
-    def test_read_json_pyarrow_with_dtype(self, request):
-        pa = pytest.importorskip("pyarrow")
-
-        if Version(pa.__version__) <= Version("16.0"):
-            request.applymarker(
-                pytest.mark.filterwarnings("ignore::DeprecationWarning")
-            )
-
+    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
+    def test_read_json_pyarrow_with_dtype(self):
         dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
         json = b'{"a": 1, "b": 2}\n'
 
