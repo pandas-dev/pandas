@@ -22,6 +22,8 @@ from typing import cast
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
+
 from pandas.core.dtypes.base import StorageExtensionDtype
 
 import pandas as pd
@@ -238,8 +240,12 @@ class TestStringArray(base.ExtensionTests):
         if (
             using_infer_string
             and all_arithmetic_operators == "__radd__"
-            and dtype.na_value is pd.NA
+            and (
+                dtype.na_value is pd.NA
+                and not (not HAS_PYARROW and dtype.storage == "python")
+            )
         ):
+            # TODO(infer_string)
             mark = pytest.mark.xfail(
                 reason="The pointwise operation result will be inferred to "
                 "string[nan, pyarrow], which does not match the input dtype"
