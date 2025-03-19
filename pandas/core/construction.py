@@ -177,7 +177,7 @@ def array(
 
     >>> pd.array(["a", "b"], dtype=str)
     <NumpyExtensionArray>
-    [np.str_('a'), np.str_('b')]
+    ['a', 'b']
     Length: 2, dtype: str32
 
     This would instead return the new ExtensionArray dedicated for string
@@ -186,7 +186,7 @@ def array(
 
     >>> pd.array(["a", "b"], dtype=np.dtype("<U1"))
     <NumpyExtensionArray>
-    [np.str_('a'), np.str_('b')]
+    ['a', 'b']
     Length: 2, dtype: str32
 
     Finally, Pandas has arrays that mostly overlap with NumPy

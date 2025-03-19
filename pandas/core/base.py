@@ -558,7 +558,7 @@ class IndexOpsMixin(OpsMixin):
 
         >>> pd.Series([1, 2, 3]).array
         <NumpyExtensionArray>
-        [np.int64(1), np.int64(2), np.int64(3)]
+        [1, 2, 3]
         Length: 3, dtype: int64
 
         For extension types, like Categorical, the actual ExtensionArray
@@ -1389,7 +1389,7 @@ class IndexOpsMixin(OpsMixin):
         Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
-        1
+        np.int64(1)
 
         >>> ser.searchsorted(['bread'], side='right')
         array([3])

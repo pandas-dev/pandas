@@ -83,7 +83,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
     --------
     >>> pd.arrays.NumpyExtensionArray(np.array([0, 1, 2, 3]))
     <NumpyExtensionArray>
-    [np.int64(0), np.int64(1), np.int64(2), np.int64(3)]
+    [0, 1, 2, 3]
     Length: 4, dtype: int64
     """
 

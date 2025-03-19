@@ -1072,7 +1072,7 @@ class ExtensionArray:
         ...     limit_area="inside",
         ... )
         <NumpyExtensionArray>
-        [np.float64(0.0), np.float64(1.0), np.float64(2.0), np.float64(3.0)]
+        [0.0, 1.0, 2.0, 3.0]
         Length: 4, dtype: float64
 
         Interpolating values in a FloatingArray:

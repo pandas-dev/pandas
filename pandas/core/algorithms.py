@@ -415,7 +415,7 @@ def unique(values):
 
     >>> pd.unique(pd.array([1 + 1j, 2, 3]))
     <NumpyExtensionArray>
-    [np.complex128(1+1j), np.complex128(2+0j), np.complex128(3+0j)]
+    [(1+1j), (2+0j), (3+0j)]
     Length: 3, dtype: complex128
     """
     return unique_with_mask(values)
