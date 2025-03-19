@@ -30,7 +30,6 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
-from pandas.util.version import Version
 
 from pandas.io.json import ujson_dumps
 
