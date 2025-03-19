@@ -30,6 +30,12 @@ modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
 
+### [skrub](https://skrub-data.org)
+
+Skrub facilitates machine learning on dataframes. It bridges pandas
+to scikit-learn and related. In particular it facilitates building
+features from dataframes.
+
 ### [Featuretools](https://github.com/alteryx/featuretools/)
 
 Featuretools is a Python library for automated feature engineering built
@@ -590,7 +596,7 @@ df = pd.read_csv("big.csv")  # use all your cores!
 ### [Pandarallel](https://github.com/nalepae/pandarallel)
 
 Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
-If also displays progress bars.
+It also displays progress bars.
 
 ```python
 from pandarallel import pandarallel
