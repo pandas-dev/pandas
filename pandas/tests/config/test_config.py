@@ -205,7 +205,7 @@ class TestConfig:
         assert cf.get_option("b.b") is None
 
         options_dict = {"a": "2", "b.c": None, "b.b": 10.0}
-        cf.set_option(**options_dict)
+        cf.set_option(options_dict)
 
         assert cf.get_option("a") == "2"
         assert cf.get_option("b.c") is None
