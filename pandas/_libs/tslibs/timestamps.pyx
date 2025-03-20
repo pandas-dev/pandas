@@ -2635,6 +2635,14 @@ class Timestamp(_Timestamp):
         elif not (999 >= nanosecond >= 0):
             raise ValueError("nanosecond must be in 0..999")
 
+        if ts_input == "":
+            warnings.warn(
+                "Passing an empty string to Timestamp is deprecated and will raise "
+                "a ValueError in a future version.",
+                FutureWarning,
+                stacklevel = 2
+            )
+
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond)
 
         if ts.value == NPY_NAT:
