@@ -493,7 +493,7 @@ class TestDataFrameCorrWith:
         tm.assert_equal(result1, expected1)
 
         rng = np.random.default_rng(seed=42)
-        df2 = DataFrame(rng.random(100, 4))
+        df2 = DataFrame(rng.random((100, 4)))
         corr_matrix = df2.corr()
         assert corr_matrix.min().min() >= -1.0
         assert corr_matrix.max().max() <= 1.0
