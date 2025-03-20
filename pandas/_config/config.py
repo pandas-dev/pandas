@@ -188,6 +188,9 @@ def get_option(pat: str) -> Any:
     return root[k]
 
 
+### First Approach supports pd.set_option(options) where options=dict
+
+
 def set_option(*args) -> None:
     """
     Set the value of the specified option or options.
@@ -199,18 +202,22 @@ def set_option(*args) -> None:
 
     Parameters
     ----------
-    *args : str | object
-        Arguments provided in pairs, which will be interpreted as (pattern, value)
-        pairs.
-        pattern: str
-        Regexp which should match a single option
-        value: object
-        New value of option
+    *args : str | object | dict
+        Options can be provided in one of two forms:
+
+        1. As pairs of arguments, where each pair is interpreted as (pattern, value):
+           - pattern: str
+             Regexp which should match a single option.
+           - value: object
+             New value of option.
+
+        2. As a single dictionary, where each key is a pattern and the corresponding
+           value is the new option value.
 
         .. warning::
 
             Partial pattern matches are supported for convenience, but unless you
-            use the full option name (e.g. x.y.z.option_name), your code may break in
+            use the full option name (e.g. ``x.y.z.option_name``), your code may break in
             future versions if new options with similar names are introduced.
 
     Returns
@@ -220,17 +227,19 @@ def set_option(*args) -> None:
 
     Raises
     ------
-    ValueError if odd numbers of non-keyword arguments are provided
-    TypeError if keyword arguments are provided
-    OptionError if no such option exists
+    ValueError
+        If an odd number of non-keyword arguments is provided.
+    TypeError
+        If keyword arguments are provided.
+    OptionError
+        If no such option exists.
 
     See Also
     --------
     get_option : Retrieve the value of the specified option.
     reset_option : Reset one or more options to their default value.
     describe_option : Print the description for one or more registered options.
-    option_context : Context manager to temporarily set options in a ``with``
-        statement.
+    option_context : Context manager to temporarily set options in a ``with`` statement.
 
     Notes
     -----
@@ -239,33 +248,167 @@ def set_option(*args) -> None:
 
     Examples
     --------
+    Setting options using pairs:
+
     >>> pd.set_option("display.max_columns", 4)
     >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
     >>> df
-    0  1  ...  3   4
-    0  1  2  ...  4   5
-    1  6  7  ...  9  10
+         0  1  ...  3   4
+    0    1  2  ...  4   5
+    1    6  7  ...  9  10
     [2 rows x 5 columns]
     >>> pd.reset_option("display.max_columns")
+
+    Setting options using a dictionary:
+
+    >>> pd.set_option({"display.max_columns": 4, "display.width": 80})
     """
-    # must at least 1 arg deal with constraints later
     nargs = len(args)
-    if not nargs or nargs % 2 != 0:
-        raise ValueError("Must provide an even number of non-keyword arguments")
+    pairs = []
 
-    for k, v in zip(args[::2], args[1::2]):
+    if nargs == 1 and isinstance(args[0], dict):
+        pairs = args[0].items()
+    else:
+        if not nargs or nargs % 2 != 0:
+            raise ValueError(
+                "Must provide an even number of non-keyword arguments or a single dictionary"
+            )
+        pairs = zip(args[::2], args[1::2])
+
+    for k, v in pairs:
         key = _get_single_key(k)
-
         opt = _get_registered_option(key)
         if opt and opt.validator:
             opt.validator(v)
-
-        # walk the nested dict
         root, k_root = _get_root(key)
         root[k_root] = v
-
         if opt.cb:
             opt.cb(key)
+
+
+### Second Approach Supports both *args[pd.set_option(options)] and **kwargs[pd.set_option(**options)] where options=dict
+
+
+# def set_option(*args, **kwargs) -> None:
+#     """
+#     Set the value of the specified option or options.
+
+#     This function allows fine-grained control over the behavior and display settings
+#     of pandas. Options affect various functionalities such as output formatting,
+#     display limits, and operational behavior. Settings can be modified at runtime
+#     without requiring changes to global configurations or environment variables.
+
+#     Options can be provided in any one of the following forms:
+
+#     1. **Dictionary as a single positional argument:**
+#        Pass a dictionary where each key is an option pattern and its corresponding value
+#        is the new option value.
+
+#        Example:
+
+#        >>> pd.set_option({"display.max_columns": 4, "display.width": 80})
+
+#     2. **Keyword arguments or dictionary unpacking:**
+#        Pass options as keyword arguments, where each keyword is the option name and its
+#        corresponding value is the new option value. This also supports dictionary unpacking
+#        using the double asterisk syntax.
+
+#        Example:
+
+#        >>> pd.set_option(display_max_columns=4, display_width=80)
+#        >>> options = {"display.max_columns": 4, "display.width": 80}
+#        >>> pd.set_option(**options)
+
+#     3. **Traditional paired positional arguments:**
+#        Provide an even number of positional arguments that are interpreted as (pattern, value)
+#        pairs.
+
+#        Example:
+
+#        >>> pd.set_option("display.max_columns", 4, "display.width", 80)
+
+#     Parameters
+#     ----------
+#     *args : str | object | dict
+#         Depending on the form:
+#           - A single dictionary of options.
+#           - Or an even number of arguments representing (pattern, value) pairs.
+#     **kwargs : object
+#         When provided, keyword arguments are treated as options where the keyword is the option
+#         name and the value is the new option value. This includes dictionary unpacking using
+#         the ** syntax.
+
+#     Returns
+#     -------
+#     None
+#         This function does not return a value.
+
+#     Raises
+#     ------
+#     ValueError
+#         If an odd number of non-keyword arguments is provided.
+#     TypeError
+#         If the passed arguments do not match the expected types.
+#     OptionError
+#         If a specified option does not exist.
+
+#     See Also
+#     --------
+#     get_option : Retrieve the value of the specified option.
+#     reset_option : Reset one or more options to their default value.
+#     describe_option : Print the description for one or more registered options.
+#     option_context : Context manager to temporarily set options in a ``with`` statement.
+
+#     Notes
+#     -----
+#     For a complete list of available options, please refer to the :ref:`User Guide <options.available>`
+#     or use ``pandas.describe_option()``.
+
+#     Examples
+#     --------
+#     Using a dictionary:
+
+#     >>> pd.set_option({"display.max_columns": 4, "display.width": 80})
+
+#     Using keyword arguments or dictionary unpacking:
+
+#     >>> pd.set_option(display_max_columns=4, display_width=80)
+#     >>> options = {"display.max_columns": 4, "display.width": 80}
+#     >>> pd.set_option(**options)
+
+#     Using paired positional arguments:
+
+#     >>> pd.set_option("display.max_columns", 4, "display.width", 80)
+#     """
+#     # Handle dictionary passed directly
+#     if len(args) == 1 and isinstance(args[0], dict):
+#         options = args[0]
+#         for key, value in options.items():
+#             _set_single_option(key, value)
+#     # Handle keyword arguments (unpacked dictionary)
+#     elif kwargs:
+#         for key, value in kwargs.items():
+#             _set_single_option(key, value)
+#     # Handle traditional paired arguments
+#     else:
+#         if not args or len(args) % 2 != 0:
+#             raise ValueError(
+#                 "Must provide an even number of non-keyword arguments or a single dictionary"
+#             )
+#         for key, value in zip(args[::2], args[1::2]):
+#             _set_single_option(key, value)
+
+
+# def _set_single_option(key: Any, value: Any) -> None:
+#     """Helper function to set a single option."""
+#     key = _get_single_key(key)
+#     opt = _get_registered_option(key)
+#     if opt and opt.validator:
+#         opt.validator(value)
+#     root, k_root = _get_root(key)
+#     root[k_root] = value
+#     if opt.cb:
+#         opt.cb(key)
 
 
 def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
