@@ -970,6 +970,7 @@ class DataFrameRenderer:
         escapechar: str | None = None,
         errors: str = "strict",
         storage_options: StorageOptions | None = None,
+        preserve_complex: bool = False,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
