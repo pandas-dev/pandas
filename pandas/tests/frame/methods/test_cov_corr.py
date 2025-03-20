@@ -485,3 +485,15 @@ class TestDataFrameCorrWith:
         result = df_bool.corrwith(ser_bool, min_periods=3)
         expected = Series([0.57735, 0.57735], index=["A", "B"])
         tm.assert_series_equal(result, expected)
+
+    def test_corr_within_bounds(self):
+        df1 = DataFrame({"x": [0, 1], "y": [1.35951, 1.3595100000000007]})
+        result1 = df1.corr().max().max()
+        expected1 = 1.0
+        tm.assert_equal(result1, expected1)
+
+        rng = np.random.default_rng(seed=42)
+        df2 = DataFrame(rng.random(100, 4))
+        corr_matrix = df2.corr()
+        assert corr_matrix.min().min() >= -1.0
+        assert corr_matrix.max().max() <= 1.0
