@@ -199,9 +199,9 @@ def set_option(*args) -> None:
 
     Parameters
     ----------
-    *args : str | object
+    *args : str | object | dict
         Arguments provided in pairs, which will be interpreted as (pattern, value)
-        pairs.
+        pairs, or as a single dictionary containing multiple option-value pairs.
         pattern: str
         Regexp which should match a single option
         value: object
@@ -248,6 +248,21 @@ def set_option(*args) -> None:
     [2 rows x 5 columns]
     >>> pd.reset_option("display.max_columns")
     """
+    # Handle dictionary input
+    if len(args) == 1 and isinstance(args[0], dict):
+        options_dict = args[0]
+        for k, v in options_dict.items():
+            key = _get_single_key(k)
+            opt = _get_registered_option(key)
+            if opt and opt.validator:
+                opt.validator(v)
+            # walk the nested dict
+            root, k_root = _get_root(key)
+            root[k_root] = v
+            if opt.cb:
+                opt.cb(key)
+        return
+    
     # must at least 1 arg deal with constraints later
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
