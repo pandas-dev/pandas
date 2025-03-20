@@ -389,13 +389,12 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 else:
                     divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
 
+                    # clip `covxy / divisor` to ensure coeff is within bounds
                     if divisor != 0:
-                        result[xi, yi] = result[yi, xi] = covxy / divisor
+                        val = np.clip(covxy / divisor, -1, 1)
+                        result[xi, yi] = result[yi, xi] = val
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
-
-    # clip coefficient to ensure it is within theoretical bounds
-    result = np.clip(result, -1, 1)
 
     return result.base
 
