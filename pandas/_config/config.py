@@ -262,7 +262,7 @@ def set_option(*args) -> None:
             if opt.cb:
                 opt.cb(key)
         return
-    
+
     # must at least 1 arg deal with constraints later
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
