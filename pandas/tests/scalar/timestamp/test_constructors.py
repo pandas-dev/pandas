@@ -1078,6 +1078,7 @@ def test_non_nano_value():
     assert result == -52700112000
 
 
+@pytest.mark.filterwarnings("ignore:empty string to Timestamp is deprecated")
 @pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
 def test_timestamp_constructor_na_value(na_value):
     # GH45481

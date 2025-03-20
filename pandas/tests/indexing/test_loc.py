@@ -2067,7 +2067,12 @@ class TestLocSetitemWithExpansion:
         expected = Index([0, 1, np.inf], dtype=np.float64)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
+    @pytest.mark.filterwarnings(
+        [
+            "ignore:indexing past lexsort depth",
+            "ignore:empty string to Timestamp is deprecated",
+        ]
+    )
     def test_loc_setitem_with_expansion_nonunique_index(self, index):
         # GH#40096
         if not len(index):

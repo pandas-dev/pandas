@@ -295,6 +295,7 @@ class TestMultiLevel:
         df[na, "B"] = 1
         tm.assert_frame_equal(df[na], DataFrame([1], columns=["B"]))
 
+    @pytest.mark.filterwarnings("ignore:empty string to Timestamp is deprecated")
     def test_multiindex_dt_with_nan(self):
         # GH#60388
         df = DataFrame(
