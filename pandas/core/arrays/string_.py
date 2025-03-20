@@ -123,10 +123,10 @@ class StringDtype(StorageExtensionDtype):
     Examples
     --------
     >>> pd.StringDtype()
-    StringDtype(storage='python', na_value=<NA>)>
+    <StringDtype(storage='python', na_value=<NA>)>
 
     >>> pd.StringDtype(storage="pyarrow")
-    StringDtype(na_value=<NA>)>
+    <StringDtype(na_value=<NA>)>
     """
 
     @property
