@@ -394,6 +394,9 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
 
+    # clip coefficient to ensure it is within theoretical bounds
+    result = np.clip(result, -1, 1)
+
     return result.base
 
 # ----------------------------------------------------------------------
