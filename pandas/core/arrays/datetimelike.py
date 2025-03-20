@@ -2519,20 +2519,41 @@ def _validate_inferred_freq(
     -------
     freq : DateOffset or None
     """
-    offset1 = to_offset(freq)
-    offset2 = to_offset(inferred_freq)
 
-    freq_equal = type(offset1) == type(offset2)
 
+def _validate_inferred_freq(freq, inferred_freq):
+    """
+    Ensure that freq matches inferred_freq unless they are logically equivalent.
+    """
     if inferred_freq is not None:
-        if freq is not None and not freq_equal:
+        if freq is not None:
+            offset1, offset2 = to_offset(freq), to_offset(inferred_freq)
+            if type(offset1) == type(offset2):
+                if hasattr(offset1, "startingMonth") and hasattr(
+                    offset2, "startingMonth"
+                ):
+                    if (offset1.startingMonth - offset2.startingMonth) % 3 != 0:
+                        raise ValueError(
+                            f"Inferred frequency {inferred_freq} from passed "
+                            "values does not conform to passed frequency "
+                            f"{freq.freqstr}"
+                        )
+                if (
+                    hasattr(offset1, "n")
+                    and hasattr(offset2, "n")
+                    and offset1.n != offset2.n
+                ):
+                    raise ValueError(
+                        f"Inferred frequency {inferred_freq} from passed "
+                        "values does not conform to passed frequency "
+                        f"{freq.freqstr}"
+                    )
             raise ValueError(
                 f"Inferred frequency {inferred_freq} from passed "
                 "values does not conform to passed frequency "
                 f"{freq.freqstr}"
             )
-        if freq is None:
-            freq = inferred_freq
+        freq = inferred_freq
 
     return freq
 
