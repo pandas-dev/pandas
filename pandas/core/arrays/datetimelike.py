@@ -2520,10 +2520,6 @@ def _validate_inferred_freq(
     freq : DateOffset or None
     """
     if inferred_freq is not None:
-        offset1 = to_offset(freq)
-        offset2 = to_offset(inferred_freq)
-        print(offset1, offset2)
-        print(type(offset1), type(offset2))
         if freq is not None and freq != inferred_freq:
             raise ValueError(
                 f"Inferred frequency {inferred_freq} from passed "
