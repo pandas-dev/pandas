@@ -217,8 +217,8 @@ def set_option(*args) -> None:
         .. warning::
 
             Partial pattern matches are supported for convenience, but unless you
-            use the full option name (e.g. ``x.y.z.option_name``), your code may break in
-            future versions if new options with similar names are introduced.
+            use the full option name (e.g. ``x.y.z.option_name``), your code may break
+            in future versions if new options with similar names are introduced.
 
     Returns
     -------
@@ -239,7 +239,7 @@ def set_option(*args) -> None:
     get_option : Retrieve the value of the specified option.
     reset_option : Reset one or more options to their default value.
     describe_option : Print the description for one or more registered options.
-    option_context : Context manager to temporarily set options in a ``with`` statement.
+    option_context : Context manager to temporarily set options in a `with` statement.
 
     Notes
     -----
@@ -271,7 +271,7 @@ def set_option(*args) -> None:
     else:
         if not nargs or nargs % 2 != 0:
             raise ValueError(
-                "Must provide an even number of non-keyword arguments or a single dictionary"
+                "Must provide an even number of non-keyword arguments or a dictionary"
             )
         pairs = zip(args[::2], args[1::2])
 
@@ -286,7 +286,8 @@ def set_option(*args) -> None:
             opt.cb(key)
 
 
-### Second Approach Supports both *args[pd.set_option(options)] and **kwargs[pd.set_option(**options)] where options=dict
+### Second Approach Supports both *args[pd.set_option(options)]
+### and **kwargs[pd.set_option(**options)] where options=dict
 
 
 # def set_option(*args, **kwargs) -> None:
@@ -301,17 +302,17 @@ def set_option(*args) -> None:
 #     Options can be provided in any one of the following forms:
 
 #     1. **Dictionary as a single positional argument:**
-#        Pass a dictionary where each key is an option pattern and its corresponding value
-#        is the new option value.
+#        Pass a dictionary where each key is an option pattern and its corresponding
+#        value is the new option value.
 
 #        Example:
 
 #        >>> pd.set_option({"display.max_columns": 4, "display.width": 80})
 
 #     2. **Keyword arguments or dictionary unpacking:**
-#        Pass options as keyword arguments, where each keyword is the option name and its
-#        corresponding value is the new option value. This also supports dictionary unpacking
-#        using the double asterisk syntax.
+#        Pass options as keyword arguments, where each keyword is the option name and
+#        its corresponding value is the new option value. This also supports
+#        dictionary unpacking using the double asterisk syntax.
 
 #        Example:
 
@@ -320,8 +321,8 @@ def set_option(*args) -> None:
 #        >>> pd.set_option(**options)
 
 #     3. **Traditional paired positional arguments:**
-#        Provide an even number of positional arguments that are interpreted as (pattern, value)
-#        pairs.
+#        Provide an even number of positional arguments that are interpreted as
+#        (pattern, value) pairs.
 
 #        Example:
 
@@ -334,9 +335,9 @@ def set_option(*args) -> None:
 #           - A single dictionary of options.
 #           - Or an even number of arguments representing (pattern, value) pairs.
 #     **kwargs : object
-#         When provided, keyword arguments are treated as options where the keyword is the option
-#         name and the value is the new option value. This includes dictionary unpacking using
-#         the ** syntax.
+#         When provided, keyword arguments are treated as options where the keyword
+#         is the option name and the value is the new option value. This includes
+#         dictionary unpacking using the ** syntax.
 
 #     Returns
 #     -------
@@ -357,12 +358,12 @@ def set_option(*args) -> None:
 #     get_option : Retrieve the value of the specified option.
 #     reset_option : Reset one or more options to their default value.
 #     describe_option : Print the description for one or more registered options.
-#     option_context : Context manager to temporarily set options in a ``with`` statement.
+#     option_context : Context manager to temporarily set options in a statement.
 
 #     Notes
 #     -----
-#     For a complete list of available options, please refer to the :ref:`User Guide <options.available>`
-#     or use ``pandas.describe_option()``.
+#     For a complete list of available options, please refer to the
+#     :ref:`User Guide <options.available>` or use ``pandas.describe_option()``.
 
 #     Examples
 #     --------
@@ -393,7 +394,7 @@ def set_option(*args) -> None:
 #     else:
 #         if not args or len(args) % 2 != 0:
 #             raise ValueError(
-#                 "Must provide an even number of non-keyword arguments or a single dictionary"
+#                 "Must provide an even number of non-keyword arguments or a dict"
 #             )
 #         for key, value in zip(args[::2], args[1::2]):
 #             _set_single_option(key, value)
