@@ -2070,7 +2070,7 @@ class TestLocSetitemWithExpansion:
     @pytest.mark.filterwarnings(
         [
             "ignore:indexing past lexsort depth",
-            "ignore:empty string to Timestamp is deprecated",
+            "ignore:Passing an empty string to Timestamp",
         ]
     )
     def test_loc_setitem_with_expansion_nonunique_index(self, index):
