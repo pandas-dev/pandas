@@ -10275,7 +10275,7 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
-        engine: Literal["python", "numba"] = "python",
+        engine: Callable | None | Literal["python", "numba"] = None,
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
@@ -10339,28 +10339,24 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 2.1.0
 
-        engine : {'python', 'numba'}, default 'python'
-            Choose between the python (default) engine or the numba engine in apply.
+        engine : decorator or {'python', 'numba'}, optional
+            Choose the execution engine to use. If not provided the function
+            will be executed by the regular Python interpreter.
 
-            The numba engine will attempt to JIT compile the passed function,
-            which may result in speedups for large DataFrames.
-            It also supports the following engine_kwargs :
+            Other options include JIT compilers such Numba and Bodo, which in some
+            cases can speed up the execution. To use an executor you can provide
+            the decorators ``numba.jit``, ``numba.njit`` or ``bodo.jit``. You can
+            also provide the decorator with parameters, like ``numba.jit(nogit=True)``.
 
-            - nopython (compile the function in nopython mode)
-            - nogil (release the GIL inside the JIT compiled function)
-            - parallel (try to apply the function in parallel over the DataFrame)
+            Not all functions can be executed with all execution engines. In general,
+            JIT compilers will require type stability in the function (no variable
+            should change data type during the execution). And not all pandas and
+            NumPy APIs are supported. Check the engine documentation [1]_ and [2]_
+            for limitations.
 
-              Note: Due to limitations within numba/how pandas interfaces with numba,
-              you should only use this if raw=True
+            .. warning::
 
-            Note: The numba compiler only supports a subset of
-            valid Python/numpy operations.
-
-            Please read more about the `supported python features
-            <https://numba.pydata.org/numba-doc/dev/reference/pysupported.html>`_
-            and `supported numpy features
-            <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
-            in numba to learn what you can or cannot use in the passed function.
+                String parameters will stop being supported in a future pandas version.
 
             .. versionadded:: 2.2.0
 
@@ -10368,6 +10364,7 @@ class DataFrame(NDFrame, OpsMixin):
             Pass keyword arguments to the engine.
             This is currently only used by the numba engine,
             see the documentation for the engine argument for more information.
+
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10389,6 +10386,13 @@ class DataFrame(NDFrame, OpsMixin):
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
+
+        References
+        ----------
+        .. [1] `Numba documentation
+                <https://numba.readthedocs.io/en/stable/index.html>`_
+        .. [2] `Bodo documentation
+                <https://docs.bodo.ai/latest/>`/
 
         Examples
         --------
@@ -10458,22 +10462,99 @@ class DataFrame(NDFrame, OpsMixin):
         0  1  2
         1  1  2
         2  1  2
-        """
-        from pandas.core.apply import frame_apply
 
-        op = frame_apply(
-            self,
-            func=func,
-            axis=axis,
-            raw=raw,
-            result_type=result_type,
-            by_row=by_row,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-            args=args,
-            kwargs=kwargs,
-        )
-        return op.apply().__finalize__(self, method="apply")
+        Advanced users can speed up their code by using a Just-in-time (JIT) compiler
+        with ``apply``. The main JIT compilers available for pandas are Numba and Bodo.
+        In general, JIT compilation is only possible when the function passed to
+        ``apply`` has type stability (variables in the function do not change their
+        type during the execution).
+
+        >>> import bodo
+        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)
+
+        Note that JIT compilation is only recommended for functions that take a
+        significant amount of time to run. Fast functions are unlikely to run faster
+        with JIT compilation.
+        """
+        if engine is None or isinstance(engine, str):
+            from pandas.core.apply import frame_apply
+
+            if engine is None:
+                engine = "python"
+
+            if engine not in ["python", "numba"]:
+                raise ValueError(f"Unknown engine '{engine}'")
+
+            op = frame_apply(
+                self,
+                func=func,
+                axis=axis,
+                raw=raw,
+                result_type=result_type,
+                by_row=by_row,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+                kwargs=kwargs,
+            )
+            return op.apply().__finalize__(self, method="apply")
+        elif hasattr(engine, "__pandas_udf__"):
+            if result_type is not None:
+                raise NotImplementedError(
+                    f"{result_type=} only implemented for the default engine"
+                )
+
+            agg_axis = self._get_agg_axis(self._get_axis_number(axis))
+
+            # one axis is empty
+            if not all(self.shape):
+                func = cast(Callable, func)
+                try:
+                    if axis == 0:
+                        r = func(Series([], dtype=np.float64), *args, **kwargs)
+                    else:
+                        r = func(
+                            Series(index=self.columns, dtype=np.float64),
+                            *args,
+                            **kwargs,
+                        )
+                except Exception:
+                    pass
+                else:
+                    if not isinstance(r, Series):
+                        if len(agg_axis):
+                            r = func(Series([], dtype=np.float64), *args, **kwargs)
+                        else:
+                            r = np.nan
+
+                        return self._constructor_sliced(r, index=agg_axis)
+                return self.copy()
+
+            data: DataFrame | np.ndarray = self
+            if raw:
+                # This will upcast the whole DataFrame to the same type,
+                # and likely result in an object 2D array.
+                # We should probably pass a list of 1D arrays instead, at
+                # lest for ``axis=0``
+                data = self.values
+            result = engine.__pandas_udf__.apply(
+                data=data,
+                func=func,
+                args=args,
+                kwargs=kwargs,
+                decorator=engine,
+                axis=axis,
+            )
+            if raw:
+                if result.ndim == 2:
+                    return self._constructor(
+                        result, index=self.index, columns=self.columns
+                    )
+                else:
+                    return self._constructor_sliced(result, index=agg_axis)
+            return result
+        else:
+            raise ValueError(f"Unknown engine {engine}")
 
     def map(
         self, func: PythonFuncType, na_action: Literal["ignore"] | None = None, **kwargs
@@ -10590,9 +10671,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             index = Index(
                 [other.name],
-                name=self.index.names
-                if isinstance(self.index, MultiIndex)
-                else self.index.name,
+                name=(
+                    self.index.names
+                    if isinstance(self.index, MultiIndex)
+                    else self.index.name
+                ),
             )
             row_df = other.to_frame().T
             # infer_objects is needed for

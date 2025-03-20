@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -34,6 +36,19 @@ class TestConvertDtypes:
         # Empty DataFrame can pass convert_dtypes, see GH#40393
         empty_df = pd.DataFrame()
         tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
+
+    @td.skip_if_no("pyarrow")
+    def test_convert_empty_categorical_to_pyarrow(self):
+        # GH#59934
+        df = pd.DataFrame(
+            {
+                "A": pd.Categorical([None] * 5),
+                "B": pd.Categorical([None] * 5, categories=["B1", "B2"]),
+            }
+        )
+        converted = df.convert_dtypes(dtype_backend="pyarrow")
+        expected = df
+        tm.assert_frame_equal(converted, expected)
 
     def test_convert_dtypes_retain_column_names(self):
         # GH#41435
