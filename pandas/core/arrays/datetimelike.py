@@ -2520,11 +2520,6 @@ def _validate_inferred_freq(
     freq : DateOffset or None
     """
 
-
-def _validate_inferred_freq(freq, inferred_freq):
-    """
-    Ensure that freq matches inferred_freq unless they are logically equivalent.
-    """
     if inferred_freq is not None:
         if freq is not None:
             offset1, offset2 = to_offset(freq), to_offset(inferred_freq)
