@@ -195,6 +195,22 @@ class TestConfig:
         assert cf.get_option("b.c") is None
         assert cf.get_option("b.b") == 10.0
 
+    def test_set_option_dict(self):
+        cf.register_option("a", 1, "doc")
+        cf.register_option("b.c", "hullo", "doc2")
+        cf.register_option("b.b", None, "doc2")
+
+        assert cf.get_option("a") == 1
+        assert cf.get_option("b.c") == "hullo"
+        assert cf.get_option("b.b") is None
+
+        options_dict = {"a": "2", "b.c": None, "b.b": 10.0}
+        cf.set_option(**options_dict)
+
+        assert cf.get_option("a") == "2"
+        assert cf.get_option("b.c") is None
+        assert cf.get_option("b.b") == 10.0
+
     def test_validation(self):
         cf.register_option("a", 1, "doc", validator=cf.is_int)
         cf.register_option("d", 1, "doc", validator=cf.is_nonnegative_int)
