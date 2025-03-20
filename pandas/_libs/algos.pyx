@@ -353,10 +353,9 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         float64_t[:, ::1] result
         uint8_t[:, :] mask
         int64_t nobs = 0
-        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
+        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
 
     N, K = (<object>mat).shape
-
     if minp is None:
         minpv = 1
     else:
@@ -391,7 +390,11 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
                     # clip `covxy / divisor` to ensure coeff is within bounds
                     if divisor != 0:
-                        val = np.clip(covxy / divisor, -1, 1)
+                        val = covxy / divisor
+                        if val > 1.0:
+                            val = 1.0
+                        elif val < -1.0:
+                            val = -1.0
                         result[xi, yi] = result[yi, xi] = val
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
