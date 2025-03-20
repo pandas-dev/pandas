@@ -2538,6 +2538,7 @@ def _validate_inferred_freq(freq, inferred_freq):
                             "values does not conform to passed frequency "
                             f"{freq.freqstr}"
                         )
+                    return freq
                 if (
                     hasattr(offset1, "n")
                     and hasattr(offset2, "n")
@@ -2548,6 +2549,7 @@ def _validate_inferred_freq(freq, inferred_freq):
                         "values does not conform to passed frequency "
                         f"{freq.freqstr}"
                     )
+                return freq
             raise ValueError(
                 f"Inferred frequency {inferred_freq} from passed "
                 "values does not conform to passed frequency "
