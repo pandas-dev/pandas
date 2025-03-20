@@ -276,6 +276,7 @@ def set_option(*args) -> None:
         if opt.cb:
             opt.cb(key)
 
+
 ### Second Approach Supports both *args[pd.set_option(options)]
 ### and **kwargs[pd.set_option(**options)] where options=dict
 
