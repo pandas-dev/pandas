@@ -11233,6 +11233,9 @@ class DataFrame(NDFrame, OpsMixin):
                 f"'{method}' was supplied"
             )
 
+        # clip coefficient to ensure it is within theoretical bounds
+        correl = np.clip(correl, -1, 1)
+
         result = self._constructor(correl, index=idx, columns=cols, copy=False)
         return result.__finalize__(self, method="corr")
 
