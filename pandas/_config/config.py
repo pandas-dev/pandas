@@ -203,22 +203,19 @@ def set_option(*args) -> None:
     Parameters
     ----------
     *args : str | object | dict
-        Options can be provided in one of two forms:
-
-        1. As pairs of arguments, where each pair is interpreted as (pattern, value):
-           - pattern: str
-             Regexp which should match a single option.
-           - value: object
-             New value of option.
-
-        2. As a single dictionary, where each key is a pattern and the corresponding
-           value is the new option value.
+        Arguments provided in pairs, which will be interpreted as (pattern, value)
+        pairs and in a single dictionary, where each key is a pattern and the
+        corresponding value is the new option value.
+        pattern: str
+        Regexp which should match a single option
+        value: object
+        New value of option
 
         .. warning::
 
             Partial pattern matches are supported for convenience, but unless you
-            use the full option name (e.g. ``x.y.z.option_name``), your code may break
-            in future versions if new options with similar names are introduced.
+            use the full option name (e.g. x.y.z.option_name), your code may break in
+            future versions if new options with similar names are introduced.
 
     Returns
     -------
@@ -227,19 +224,17 @@ def set_option(*args) -> None:
 
     Raises
     ------
-    ValueError
-        If an odd number of non-keyword arguments is provided.
-    TypeError
-        If keyword arguments are provided.
-    OptionError
-        If no such option exists.
+    ValueError if odd numbers of non-keyword arguments are provided
+    TypeError if keyword arguments are provided
+    OptionError if no such option exists
 
     See Also
     --------
     get_option : Retrieve the value of the specified option.
     reset_option : Reset one or more options to their default value.
     describe_option : Print the description for one or more registered options.
-    option_context : Context manager to temporarily set options in a `with` statement.
+    option_context : Context manager to temporarily set options in a ``with``
+        statement.
 
     Notes
     -----
@@ -248,32 +243,28 @@ def set_option(*args) -> None:
 
     Examples
     --------
-    Setting options using pairs:
-
     >>> pd.set_option("display.max_columns", 4)
+    >>> # another way of passing options
+    >>> # pd.set_option({"display.max_columns": 4, "display.width": 80})
     >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
     >>> df
-         0  1  ...  3   4
-    0    1  2  ...  4   5
-    1    6  7  ...  9  10
+    0  1  ...  3   4
+    0  1  2  ...  4   5
+    1  6  7  ...  9  10
     [2 rows x 5 columns]
     >>> pd.reset_option("display.max_columns")
-
-    Setting options using a dictionary:
-
-    >>> pd.set_option({"display.max_columns": 4, "display.width": 80})
     """
     nargs = len(args)
-    pairs = []
+    pairs: list[tuple[Any, Any]] = []
 
     if nargs == 1 and isinstance(args[0], dict):
-        pairs = args[0].items()
+        pairs = list(args[0].items())
     else:
         if not nargs or nargs % 2 != 0:
             raise ValueError(
                 "Must provide an even number of non-keyword arguments or a dictionary"
             )
-        pairs = zip(args[::2], args[1::2])
+        pairs = list(zip(args[::2], args[1::2]))
 
     for k, v in pairs:
         key = _get_single_key(k)
@@ -284,7 +275,6 @@ def set_option(*args) -> None:
         root[k_root] = v
         if opt.cb:
             opt.cb(key)
-
 
 ### Second Approach Supports both *args[pd.set_option(options)]
 ### and **kwargs[pd.set_option(**options)] where options=dict
