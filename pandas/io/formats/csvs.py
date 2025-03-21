@@ -75,6 +75,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions | None = None,
+        preserve_complex: bool = False,
     ) -> None:
         self.fmt = formatter
 
@@ -85,6 +86,7 @@ class CSVFormatter:
         self.compression: CompressionOptions = compression
         self.mode = mode
         self.storage_options = storage_options
+        self.preserve_complex = preserve_complex
 
         self.sep = sep
         self.index_label = self._initialize_index_label(index_label)
