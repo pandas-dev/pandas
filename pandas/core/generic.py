@@ -10818,12 +10818,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         percentiles : list-like of numbers, optional
             The percentiles to include in the output. All should
-            fall between 0 and 1. Here are the options:
-
-            - A list-like of numbers : To include the percentiles listed. If
-              that list is empty, no percentiles will be returned.
-            - None (default) : To include the default percentiles, which are the
-              25th, 50th, and 75th ones.
+            fall between 0 and 1. The default, ``None``, will automatically
+            return the 25th, 50th, and 75th percentiles.
         include : 'all', list-like of dtypes or None (default), optional
             A white list of data types to include in the result. Ignored
             for ``Series``. Here are the options:

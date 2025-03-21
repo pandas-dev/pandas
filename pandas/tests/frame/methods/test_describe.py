@@ -431,7 +431,7 @@ class TestDataFrameDescribe:
         if percentiles is None:
             percentiles = [0.25, 0.5, 0.75]
 
-        expected = Series(
+        expected = DataFrame(
             {
                 "count": len(df.a),
                 "mean": df.a.mean(),
@@ -440,6 +440,7 @@ class TestDataFrameDescribe:
                 **{f"{p:.0%}": df.a.quantile(p) for p in percentiles},
                 "max": df.a.max(),
             },
-        ).to_frame(name="a")
+            index=["a"],
+        ).T
 
         tm.assert_frame_equal(result, expected)
