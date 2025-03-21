@@ -1,6 +1,7 @@
 import pytest
-
+import numpy as np
 from pandas import DataFrame
+from pandas import unique
 from pandas.tests.plotting.common import (
     _check_plot_works,
     _check_ticks_props,
@@ -58,3 +59,33 @@ class TestCommon:
 
         fig.colorbar(cs0, ax=[axes["A"], axes["B"]], location="right")
         DataFrame(x).plot(ax=axes["C"])
+    
+    def test_bar_subplot_stacking(self):
+        #GH Issue 61018
+        #Extracts height and location data 
+        test_data = np.random.default_rng(3).integers(0,100,5)
+        df = DataFrame({"a": test_data, "b": test_data[::-1]})
+        ax = _check_plot_works(df.plot, subplots= [('a','b')], kind="bar", stacked=True)
+
+        #get xy and height of squares that represent the data graphed from the df
+        #we would expect the height value of A to be reflected in the Y coord of B
+        data_from_plot_mat = [(x.get_x(), x.get_y(), x.get_height()) for x in ax[0].findobj(plt.Rectangle) if x.get_height() in test_data]
+        data_from_plot_df = DataFrame(data = data_from_plot_mat, columns = ["x_coord", "y_coord", "height"])
+        unique_x_loc = unique(data_from_plot_df["x_coord"])
+
+        plot_a_df = data_from_plot_df.iloc[:len(test_data)]
+        plot_b_df = data_from_plot_df.iloc[len(test_data):].reset_index()
+        total_bar_height = plot_a_df["height"].add(plot_b_df["height"])
+
+        print(test_data + test_data[::-1])
+
+        #check number of bars matches the number of data plotted
+        assert len(unique_x_loc) == len(test_data)
+
+        #checks that the first set of bars are the correct height and that the second one starts at the top of the first, additional checks the combined height of the bars are correct
+        assert (plot_a_df["height"] == test_data).all()
+        assert (plot_b_df["y_coord"] == test_data).all()
+        assert (total_bar_height == test_data + test_data[::-1]).all()
+
+
+
