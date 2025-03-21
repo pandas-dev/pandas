@@ -734,7 +734,6 @@ class TestiLocBaseIndependent:
             df.iloc[mask]
 
         mask.index = range(len(mask))
-        result = df.iloc[mask]
         msg = "Unalignable boolean Series provided as indexer"
         with pytest.raises(IndexingError, match=msg):
             df.iloc[mask]
