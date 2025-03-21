@@ -432,15 +432,25 @@ class TestDataFrameDescribe:
             percentiles = [0.25, 0.5, 0.75]
 
         expected = DataFrame(
-            {
-                "count": len(df.a),
-                "mean": df.a.mean(),
-                "std": df.a.std(),
-                "min": df.a.min(),
-                **{f"{p:.0%}": df.a.quantile(p) for p in percentiles},
-                "max": df.a.max(),
-            },
-            index=["a"],
-        ).T
+            [
+                len(df.a),
+                df.a.mean(),
+                df.a.std(),
+                df.a.min(),
+                *[df.a.quantile(p) for p in percentiles],
+                df.a.max(),
+            ],
+            index=pd.Index(
+                [
+                    "count",
+                    "mean",
+                    "std",
+                    "min",
+                    *[f"{p:.0%}" for p in percentiles],
+                    "max",
+                ]
+            ),
+            columns=["a"],
+        )
 
         tm.assert_frame_equal(result, expected)
