@@ -1582,11 +1582,7 @@ class _iLocIndexer(_LocationIndexer):
         if com.is_bool_indexer(key):
             if hasattr(key, "index") and isinstance(key.index, Index):
                 if key.index.inferred_type == "integer":
-                    raise NotImplementedError(
-                        "iLocation based boolean "
-                        "indexing on an integer type "
-                        "is not available"
-                    )
+                    return
                 raise ValueError(
                     "iLocation based boolean indexing cannot use an indexable as a mask"
                 )
