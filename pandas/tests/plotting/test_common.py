@@ -77,8 +77,6 @@ class TestCommon:
         plot_b_df = data_from_plot_df.iloc[len(test_data):].reset_index()
         total_bar_height = plot_a_df["height"].add(plot_b_df["height"])
 
-        print(test_data + test_data[::-1])
-
         #check number of bars matches the number of data plotted
         assert len(unique_x_loc) == len(test_data)
 
