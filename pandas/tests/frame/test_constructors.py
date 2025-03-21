@@ -2779,6 +2779,13 @@ class TestDataFrameConstructors:
             ["NaT", "0 days 00:00:00.000000001"], dtype="timedelta64[ns]"
         )
         tm.assert_frame_equal(result, expected)
+    
+    def test_from_records_empty_iterator_with_preserve_columns(self):
+        
+        rows = []
+        df = pd.DataFrame.from_records(iter(rows), columns=["col_1", "Col_2"], nrows=0)
+        assert list(df.columns) == ["col_1", "Col_2"]
+        assert len(df) == 0
 
 
 class TestDataFrameConstructorIndexInference:
