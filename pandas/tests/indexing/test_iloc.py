@@ -726,16 +726,17 @@ class TestiLocBaseIndependent:
 
     @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_iloc_mask(self):
-        # GH 3631, iloc with a mask (of a series) should raise
+        # GH 60994, iloc with a mask (of a series) should return accordingly
         df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
         mask = df.a % 2 == 0
         msg = "iLocation based boolean indexing cannot use an indexable as a mask"
         with pytest.raises(ValueError, match=msg):
             df.iloc[mask]
+
         mask.index = range(len(mask))
-        msg = "iLocation based boolean indexing on an integer type is not available"
-        with pytest.raises(NotImplementedError, match=msg):
-            df.iloc[mask]
+        result = df.iloc[mask]
+        expected = df.iloc[[0, 2, 4]]
+        tm.assert_frame_equal(result, expected)
 
         # ndarray ok
         result = df.iloc[np.array([True] * len(mask), dtype=bool)]
@@ -753,18 +754,14 @@ class TestiLocBaseIndependent:
             (None, ".iloc"): "0b1100",
             ("index", ""): "0b11",
             ("index", ".loc"): "0b11",
-            ("index", ".iloc"): (
-                "iLocation based boolean indexing cannot use an indexable as a mask"
-            ),
+            ("index", ".iloc"): "0b11",
             ("locs", ""): "Unalignable boolean Series provided as indexer "
             "(index of the boolean Series and of the indexed "
             "object do not match).",
             ("locs", ".loc"): "Unalignable boolean Series provided as indexer "
             "(index of the boolean Series and of the "
             "indexed object do not match).",
-            ("locs", ".iloc"): (
-                "iLocation based boolean indexing on an integer type is not available"
-            ),
+            ("locs", ".iloc"): "0b1",
         }
 
         # UserWarnings from reindex of a boolean mask
@@ -780,7 +777,10 @@ class TestiLocBaseIndependent:
                     else:
                         accessor = df
                     answer = str(bin(accessor[mask]["nums"].sum()))
-                except (ValueError, IndexingError, NotImplementedError) as err:
+                except (
+                    ValueError,
+                    IndexingError,
+                ) as err:
                     answer = str(err)
 
                 key = (
