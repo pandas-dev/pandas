@@ -189,7 +189,12 @@ class TestConfig:
         assert cf.get_option("b.c") == "hullo"
         assert cf.get_option("b.b") is None
 
-        cf.set_option("a", "2", "b.c", None, "b.b", 10.0)
+        # Expect the deprecation warning
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="Setting multiple options using multiple arguments is deprecated",
+        ):
+            cf.set_option("a", "2", "b.c", None, "b.b", 10.0)
 
         assert cf.get_option("a") == "2"
         assert cf.get_option("b.c") is None
