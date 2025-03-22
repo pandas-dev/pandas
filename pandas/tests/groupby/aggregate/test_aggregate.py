@@ -1811,6 +1811,7 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
     "input_dtype, output_dtype",
     [
@@ -1842,6 +1843,7 @@ def test_agg_lambda_pyarrow_dtype_conversion(input_dtype, output_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
 def test_agg_lambda_complex128_dtype_conversion():
     # GH#59601
     df = DataFrame(
@@ -1861,6 +1863,7 @@ def test_agg_lambda_complex128_dtype_conversion():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
 def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
     # GH#59601
     df = DataFrame(
