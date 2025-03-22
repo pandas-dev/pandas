@@ -200,8 +200,8 @@ def set_option(*args) -> None:
     Parameters
     ----------
     *args : str | object | dict
-        Arguments provided in pairs, which will be interpreted as (pattern, value)
-        pairs, or as a single dictionary containing multiple option-value pairs.
+        Arguments provided in a pair, which will be interpreted as (pattern, value),
+        or as a single dictionary containing multiple option-value pairs.
         pattern: str
         Regexp which should match a single option
         value: object
@@ -239,6 +239,8 @@ def set_option(*args) -> None:
 
     Examples
     --------
+    Option-Value Pair Input:
+
     >>> pd.set_option("display.max_columns", 4)
     >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
     >>> df
@@ -247,6 +249,18 @@ def set_option(*args) -> None:
     1  6  7  ...  9  10
     [2 rows x 5 columns]
     >>> pd.reset_option("display.max_columns")
+
+    Dictionary Input:
+
+    >>> pd.set_option({"display.max_columns": 4, "display.precision", 1})
+    >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+    >>> df
+    0  1  ...  3   4
+    0  1  2  ...  4   5
+    1  6  7  ...  9  10
+    [2 rows x 5 columns]
+    >>> pd.reset_option("display.max_columns")
+    >>> pd.reset_option("display.precision")
     """
     # Handle dictionary input
     if len(args) == 1 and isinstance(args[0], dict):
