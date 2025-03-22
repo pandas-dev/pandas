@@ -1862,7 +1862,7 @@ def test_agg_lambda_complex128_dtype_conversion():
 
 
 def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
-    # GH#53030
+    # GH#59601
     df = DataFrame(
         {
             "A": ["c1", "c2", "c3"],
@@ -1883,7 +1883,7 @@ def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
 
 @td.skip_if_no("pyarrow")
 def test_agg_lambda_pyarrow_struct_to_object_dtype_conversion():
-    # GH#53030
+    # GH#59601
     import pyarrow as pa
 
     df = DataFrame(

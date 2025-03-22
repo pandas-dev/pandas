@@ -965,11 +965,6 @@ class BaseGrouper:
                 out = maybe_cast_pointwise_result(
                     npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
                 )
-
-                # if isinstance(out.dtype, ArrowDtype) and pa.types.is_struct(
-                #     out.dtype.pyarrow_dtype
-                # ):
-                #     out = npvalues
             else:
                 out = npvalues
 
@@ -981,7 +976,6 @@ class BaseGrouper:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
             out = npvalues
-
         return out
 
     @final
