@@ -420,6 +420,7 @@ Other Deprecations
 - Deprecated lowercase strings ``d``, ``b`` and ``c`` denoting frequencies in :class:`Day`, :class:`BusinessDay` and :class:`CustomBusinessDay` in favour of ``D``, ``B`` and ``C`` (:issue:`58998`)
 - Deprecated lowercase strings ``w``, ``w-mon``, ``w-tue``, etc. denoting frequencies in :class:`Week` in favour of ``W``, ``W-MON``, ``W-TUE``, etc. (:issue:`58998`)
 - Deprecated parameter ``method`` in :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like` (:issue:`58667`)
+- Deprecated passing multiple option-value pairs parameter in :meth:`DataFrame.set_option` (:issue:`61093`)
 - Deprecated strings ``w``, ``d``, ``MIN``, ``MS``, ``US`` and ``NS`` denoting units in :class:`Timedelta` in favour of ``W``, ``D``, ``min``, ``ms``, ``us`` and ``ns`` (:issue:`59051`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
 
