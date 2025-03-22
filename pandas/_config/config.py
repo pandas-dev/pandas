@@ -105,6 +105,10 @@ class OptionError(AttributeError, KeyError):
 
     Backwards compatible with KeyError checks.
 
+    See Also
+    --------
+    options : Access and modify global pandas settings.
+
     Examples
     --------
     >>> pd.options.context
@@ -136,6 +140,10 @@ def _get_single_key(pat: str) -> str:
 def get_option(pat: str) -> Any:
     """
     Retrieve the value of the specified option.
+
+    This method allows users to query the current value of a given option
+    in the pandas configuration system. Options control various display,
+    performance, and behavior-related settings within pandas.
 
     Parameters
     ----------
@@ -183,6 +191,11 @@ def get_option(pat: str) -> Any:
 def set_option(*args) -> None:
     """
     Set the value of the specified option or options.
+
+    This method allows fine-grained control over the behavior and display settings
+    of pandas. Options affect various functionalities such as output formatting,
+    display limits, and operational behavior. Settings can be modified at runtime
+    without requiring changes to global configurations or environment variables.
 
     Parameters
     ----------
@@ -312,6 +325,11 @@ def reset_option(pat: str) -> None:
     """
     Reset one or more options to their default value.
 
+    This method resets the specified pandas option(s) back to their default
+    values. It allows partial string matching for convenience, but users should
+    exercise caution to avoid unintended resets due to changes in option names
+    in future versions.
+
     Parameters
     ----------
     pat : str/regex
@@ -411,9 +429,14 @@ options = DictWrapper(_global_config)
 
 
 @contextmanager
-def option_context(*args) -> Generator[None, None, None]:
+def option_context(*args) -> Generator[None]:
     """
     Context manager to temporarily set options in a ``with`` statement.
+
+    This method allows users to set one or more pandas options temporarily
+    within a controlled block. The previous options' values are restored
+    once the block is exited. This is useful when making temporary adjustments
+    to pandas' behavior without affecting the global state.
 
     Parameters
     ----------
@@ -718,7 +741,7 @@ def _build_option_description(k: str) -> str:
 
 
 @contextmanager
-def config_prefix(prefix: str) -> Generator[None, None, None]:
+def config_prefix(prefix: str) -> Generator[None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

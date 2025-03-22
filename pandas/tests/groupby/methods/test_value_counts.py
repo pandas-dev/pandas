@@ -255,10 +255,10 @@ def test_basic(education_df, request):
         index=MultiIndex.from_tuples(
             [
                 ("FR", "male", "low"),
-                ("FR", "female", "high"),
                 ("FR", "male", "medium"),
-                ("US", "female", "high"),
+                ("FR", "female", "high"),
                 ("US", "male", "low"),
+                ("US", "female", "high"),
             ],
             names=["country", "gender", "education"],
         ),
@@ -324,12 +324,9 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        warn = DeprecationWarning if groupby == "column" else None
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = gp.apply(
-                _frame_value_counts, ["gender", "education"], normalize, sort, ascending
-            )
+        expected = gp.apply(
+            _frame_value_counts, ["gender", "education"], normalize, sort, ascending
+        )
 
         if as_index:
             tm.assert_series_equal(result, expected)
@@ -472,11 +469,11 @@ def test_data_frame_value_counts(
         (
             False,
             False,
-            [0, 1, 3, 5, 7, 6, 8, 2, 4],
+            [0, 1, 3, 5, 6, 7, 8, 2, 4],
             [0.5, 0.5, 1.0, 0.25, 0.25, 0.25, 0.25, 1.0, 1.0],
         ),
         (False, True, [0, 1, 3, 5, 2, 4], [0.5, 0.5, 1.0, 1.0, 1.0, 1.0]),
-        (True, False, [0, 1, 5, 7, 6, 8], [0.5, 0.5, 0.25, 0.25, 0.25, 0.25]),
+        (True, False, [0, 1, 5, 6, 7, 8], [0.5, 0.5, 0.25, 0.25, 0.25, 0.25]),
         (True, True, [0, 1, 5], [0.5, 0.5, 1.0]),
     ],
 )
@@ -518,7 +515,7 @@ def test_dropna_combinations(
             True,
             [1, 1],
             MultiIndex.from_arrays(
-                [(1, 1), ("Beth", "John"), ("Louise", "Smith")],
+                [(1, 1), ("John", "Beth"), ("Smith", "Louise")],
                 names=["key", "first_name", "middle_name"],
             ),
         ),
@@ -531,7 +528,7 @@ def test_dropna_combinations(
                     Index(["Anne", "Beth", "John"]),
                     Index(["Louise", "Smith", np.nan]),
                 ],
-                codes=[[0, 0, 0, 0], [0, 1, 2, 2], [2, 0, 1, 2]],
+                codes=[[0, 0, 0, 0], [2, 0, 2, 1], [1, 2, 2, 0]],
                 names=["key", "first_name", "middle_name"],
             ),
         ),
@@ -609,17 +606,17 @@ def test_categorical_single_grouper_with_only_observed_categories(
     expected_index = MultiIndex.from_tuples(
         [
             ("FR", "male", "low"),
-            ("FR", "female", "high"),
             ("FR", "male", "medium"),
+            ("FR", "female", "high"),
+            ("FR", "male", "high"),
             ("FR", "female", "low"),
             ("FR", "female", "medium"),
-            ("FR", "male", "high"),
-            ("US", "female", "high"),
             ("US", "male", "low"),
+            ("US", "female", "high"),
+            ("US", "male", "medium"),
+            ("US", "male", "high"),
             ("US", "female", "low"),
             ("US", "female", "medium"),
-            ("US", "male", "high"),
-            ("US", "male", "medium"),
         ],
         names=["country", "gender", "education"],
     )
@@ -711,17 +708,17 @@ def test_categorical_single_grouper_observed_true(
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
     ]
 
     assert_categorical_single_grouper(
@@ -791,23 +788,23 @@ def test_categorical_single_grouper_observed_false(
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
-        ("ASIA", "female", "high"),
-        ("ASIA", "female", "low"),
-        ("ASIA", "female", "medium"),
-        ("ASIA", "male", "high"),
         ("ASIA", "male", "low"),
         ("ASIA", "male", "medium"),
+        ("ASIA", "male", "high"),
+        ("ASIA", "female", "low"),
+        ("ASIA", "female", "medium"),
+        ("ASIA", "female", "high"),
     ]
 
     assert_categorical_single_grouper(
@@ -837,8 +834,8 @@ def test_categorical_single_grouper_observed_false(
                 ("US", "high", "male"),
                 ("US", "low", "male"),
                 ("US", "low", "female"),
-                ("US", "medium", "female"),
                 ("US", "medium", "male"),
+                ("US", "medium", "female"),
             ],
         ),
         (
@@ -949,17 +946,17 @@ def test_categorical_non_groupers(
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
     ]
     expected_series = Series(
         data=expected_data,
@@ -1178,7 +1175,7 @@ def test_value_counts_sort(sort, vc_sort, normalize):
     if sort and vc_sort:
         taker = [0, 1, 2]
     elif sort and not vc_sort:
-        taker = [0, 1, 2]
+        taker = [1, 0, 2]
     elif not sort and vc_sort:
         taker = [0, 2, 1]
     else:
@@ -1217,5 +1214,27 @@ def test_value_counts_sort_categorical(sort, vc_sort, normalize):
     else:
         taker = [2, 1, 0, 3]
     expected = expected.take(taker)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("groupby_sort", [True, False])
+def test_value_counts_all_na(sort, dropna, groupby_sort):
+    # GH#59989
+    df = DataFrame({"a": [2, 1, 1], "b": np.nan})
+    gb = df.groupby("a", sort=groupby_sort)
+    result = gb.value_counts(sort=sort, dropna=dropna)
+
+    kwargs = {"levels": [[1, 2], [np.nan]], "names": ["a", "b"]}
+    if dropna:
+        data = []
+        index = MultiIndex(codes=[[], []], **kwargs)
+    elif not groupby_sort and not sort:
+        data = [1, 2]
+        index = MultiIndex(codes=[[1, 0], [0, 0]], **kwargs)
+    else:
+        data = [2, 1]
+        index = MultiIndex(codes=[[0, 1], [0, 0]], **kwargs)
+    expected = Series(data, index=index, dtype="int64", name="count")
 
     tm.assert_series_equal(result, expected)

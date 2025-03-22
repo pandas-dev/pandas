@@ -14,6 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    final,
+    overload,
 )
 
 import numpy as np
@@ -26,7 +28,11 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -44,7 +50,10 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
-from pandas.core.apply import ResamplerWindowApply
+from pandas.core.apply import (
+    ResamplerWindowApply,
+    reconstruct_func,
+)
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
@@ -65,6 +74,7 @@ from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
+    prepare_function_arguments,
 )
 from pandas.core.window.common import (
     flex_binary_moment,
@@ -77,6 +87,7 @@ from pandas.core.window.doc import (
     kwargs_scipy,
     numba_notes,
     template_header,
+    template_pipe,
     template_returns,
     template_see_also,
     window_agg_numba_parameters,
@@ -98,8 +109,12 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        Concatenate,
         NDFrameT,
         QuantileInterpolation,
+        P,
+        Self,
+        T,
         WindowingRankType,
         npt,
     )
@@ -268,7 +283,7 @@ class BaseWindow(SelectionMixin):
         """
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
-            obj = obj.reindex(columns=obj.columns.difference([self.on]))
+            obj = obj.reindex(columns=obj.columns.difference([self.on], sort=False))
         if obj.ndim > 1 and numeric_only:
             obj = self._make_numeric_only(obj)
         return obj
@@ -645,8 +660,12 @@ class BaseWindow(SelectionMixin):
             out = obj._constructor(result, index=index, columns=columns)
             return self._resolve_output(out, obj)
 
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        if isinstance(result, ABCDataFrame) and relabeling:
+            result = result.iloc[:, order]
+            result.columns = columns  # type: ignore[union-attr]
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
@@ -862,10 +881,10 @@ class Window(BaseWindow):
     Parameters
     ----------
     window : int, timedelta, str, offset, or BaseIndexer subclass
-        Size of the moving window.
+        Interval of the moving window.
 
-        If an integer, the fixed number of observations used for
-        each window.
+        If an integer, the delta between the start and end of each window.
+        The number of points in the window depends on the ``closed`` argument.
 
         If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
@@ -910,14 +929,22 @@ class Window(BaseWindow):
         an integer index is not used to calculate the rolling window.
 
     closed : str, default None
-        If ``'right'``, the first point in the window is excluded from calculations.
+        Determines the inclusivity of points in the window
 
-        If ``'left'``, the last point in the window is excluded from calculations.
+        If ``'right'``, uses the window (first, last] meaning the last point
+        is included in the calculations.
 
-        If ``'both'``, no point in the window is excluded from calculations.
+        If ``'left'``, uses the window [first, last) meaning the first point
+        is included in the calculations.
 
-        If ``'neither'``, the first and last points in the window are excluded
-        from calculations.
+        If ``'both'``, uses the window [first, last] meaning all points in
+        the window are included in the calculations.
+
+        If ``'neither'``, uses the window (first, last) meaning the first
+        and last points in the window are excluded from calculations.
+
+        () and [] are referencing open and closed set
+        notation respetively.
 
         Default ``None`` (``'right'``).
 
@@ -1238,7 +1265,7 @@ class Window(BaseWindow):
         klass="Series/DataFrame",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             # these must apply directly
@@ -1472,14 +1499,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            numba_args = args
+            numba_args, kwargs = prepare_function_arguments(
+                func, args, kwargs, num_required_args=1
+            )
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    func, **get_jit_arguments(engine_kwargs, kwargs)
+                    func, **get_jit_arguments(engine_kwargs)
                 )
             else:
                 apply_func = generate_numba_table_func(
-                    func, **get_jit_arguments(engine_kwargs, kwargs)
+                    func, **get_jit_arguments(engine_kwargs)
                 )
         elif engine in ("cython", None):
             if engine_kwargs is not None:
@@ -1507,7 +1536,7 @@ class RollingAndExpandingMixin(BaseWindow):
             window_aggregations.roll_apply,
             args=args,
             kwargs=kwargs,
-            raw=raw,
+            raw=bool(raw),
             function=function,
         )
 
@@ -1518,6 +1547,30 @@ class RollingAndExpandingMixin(BaseWindow):
             return window_func(values, begin, end, min_periods)
 
         return apply_func
+
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T: ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T: ...
+
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        return com.pipe(self, func, *args, **kwargs)
 
     def sum(
         self,
@@ -1695,6 +1748,22 @@ class RollingAndExpandingMixin(BaseWindow):
             numeric_only=numeric_only,
         )
 
+    def first(self, numeric_only: bool = False):
+        window_func = window_aggregations.roll_first
+        return self._apply(
+            window_func,
+            name="first",
+            numeric_only=numeric_only,
+        )
+
+    def last(self, numeric_only: bool = False):
+        window_func = window_aggregations.roll_last
+        return self._apply(
+            window_func,
+            name="last",
+            numeric_only=numeric_only,
+        )
+
     def quantile(
         self,
         q: float,
@@ -1729,6 +1798,16 @@ class RollingAndExpandingMixin(BaseWindow):
         )
 
         return self._apply(window_func, name="rank", numeric_only=numeric_only)
+
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        window_func = partial(
+            window_aggregations.roll_nunique,
+        )
+
+        return self._apply(window_func, name="nunique", numeric_only=numeric_only)
 
     def cov(
         self,
@@ -1948,7 +2027,7 @@ class Rolling(RollingAndExpandingMixin):
         klass="Series/Dataframe",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
@@ -2033,6 +2112,54 @@ class Rolling(RollingAndExpandingMixin):
             args=args,
             kwargs=kwargs,
         )
+
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T: ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T: ...
+
+    @final
+    @Substitution(
+        klass="Rolling",
+        examples="""
+    >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+    ...                   index=pd.date_range('2012-08-02', periods=4))
+    >>> df
+                A
+    2012-08-02  1
+    2012-08-03  2
+    2012-08-04  3
+    2012-08-05  4
+
+    To get the difference between each rolling 2-day window's maximum and minimum
+    value in one pass, you can do
+
+    >>> df.rolling('2D').pipe(lambda x: x.max() - x.min())
+                  A
+    2012-08-02  0.0
+    2012-08-03  1.0
+    2012-08-04  1.0
+    2012-08-05  1.0""",
+    )
+    @Appender(template_pipe)
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        return super().pipe(func, *args, **kwargs)
 
     @doc(
         template_header,
@@ -2532,6 +2659,78 @@ class Rolling(RollingAndExpandingMixin):
     @doc(
         template_header,
         create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        dedent(
+            """
+        GroupBy.first : Similar method for GroupBy objects.
+        Rolling.last : Method to get the last element in each window.\n
+        """
+        ).replace("\n", "", 1),
+        create_section_header("Examples"),
+        dedent(
+            """
+        The example below will show a rolling calculation with a window size of
+        three.
+
+        >>> s = pd.Series(range(5))
+        >>> s.rolling(3).first()
+        0         NaN
+        1         NaN
+        2         0.0
+        3         1.0
+        4         2.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="First (left-most) element of the window",
+        agg_method="first",
+    )
+    def first(self, numeric_only: bool = False):
+        return super().first(numeric_only=numeric_only)
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        dedent(
+            """
+        GroupBy.last : Similar method for GroupBy objects.
+        Rolling.first : Method to get the first element in each window.\n
+        """
+        ).replace("\n", "", 1),
+        create_section_header("Examples"),
+        dedent(
+            """
+        The example below will show a rolling calculation with a window size of
+        three.
+
+        >>> s = pd.Series(range(5))
+        >>> s.rolling(3).last()
+        0         NaN
+        1         NaN
+        2         2.0
+        3         3.0
+        4         4.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="Last (right-most) element of the window",
+        agg_method="last",
+    )
+    def last(self, numeric_only: bool = False):
+        return super().last(numeric_only=numeric_only)
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
         dedent(
             """
         q : float
@@ -2663,6 +2862,43 @@ class Rolling(RollingAndExpandingMixin):
             method=method,
             ascending=ascending,
             pct=pct,
+            numeric_only=numeric_only,
+        )
+
+    @doc(
+        template_header,
+        ".. versionadded:: 3.0.0 \n\n",
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """
+        >>> s = pd.Series([1, 4, 2, np.nan, 3, 3, 4, 5])
+        >>> s.rolling(3).nunique()
+        0    NaN
+        1    NaN
+        2    3.0
+        3    NaN
+        4    NaN
+        5    NaN
+        6    2.0
+        7    3.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="nunique",
+        agg_method="nunique",
+    )
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        return super().nunique(
             numeric_only=numeric_only,
         )
 

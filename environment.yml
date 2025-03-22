@@ -7,9 +7,9 @@ dependencies:
   - pip
 
   # build dependencies
-  - versioneer[toml]
+  - versioneer
   - cython~=3.0.5
-  - meson[ninja]=1.2.1
+  - meson=1.2.1
   - meson-python=0.13.1
 
   # test dependencies
@@ -35,6 +35,7 @@ dependencies:
   - hypothesis>=6.84.0
   - gcsfs>=2022.11.0
   - ipython
+  - pickleshare  # Needed for IPython Sphinx directive in the docs GH#60429
   - jinja2>=3.1.2
   - lxml>=4.9.2
   - matplotlib>=3.6.3
@@ -55,7 +56,7 @@ dependencies:
   - scipy>=1.10.0
   - sqlalchemy>=2.0.0
   - tabulate>=0.9.0
-  - xarray>=2022.12.0
+  - xarray>=2022.12.0, <=2024.9.0
   - xlrd>=2.0.1
   - xlsxwriter>=3.0.5
   - zstandard>=0.19.0
@@ -76,10 +77,10 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - flake8=6.1.0  # run in subprocess over docstring examples
-  - mypy=1.9.0  # pre-commit uses locally installed mypy
+  - flake8=7.1.0  # run in subprocess over docstring examples
+  - mypy=1.13.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
-  - pre-commit>=3.6.0
+  - pre-commit>=4.0.1
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
@@ -87,7 +88,7 @@ dependencies:
   - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pydata-sphinx-theme=0.14
+  - pydata-sphinx-theme=0.16
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design
@@ -114,6 +115,13 @@ dependencies:
   - pyyaml
   - requests
   - pygments # Code highlighting
+
+  # web interactive REPL
+  # see the following links for more context:
+  # 1. https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/#compatibility
+  # 2. https://pyodide.org/en/stable/usage/packages-in-pyodide.html
+  - jupyterlite-core
+  - jupyterlite-pyodide-kernel
 
   - pip:
       - adbc-driver-postgresql>=0.10.0

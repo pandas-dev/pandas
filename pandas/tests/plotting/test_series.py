@@ -427,7 +427,7 @@ class TestSeriesPlots:
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
-        pcts = [f"{s*100:.2f}" for s in series.values / series.sum()]
+        pcts = [f"{s * 100:.2f}" for s in series.values / series.sum()]
         expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         _check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
@@ -958,3 +958,16 @@ class TestSeriesPlots:
         # TODO(3.0): this can be removed once Period[B] deprecation is enforced
         with tm.assert_produces_warning(False):
             _ = ts.plot()
+
+    def test_secondary_y_subplot_axis_labels(self):
+        # GH#14102
+        s1 = Series([5, 7, 6, 8, 7], index=[1, 2, 3, 4, 5])
+        s2 = Series([6, 4, 5, 3, 4], index=[1, 2, 3, 4, 5])
+
+        ax = plt.subplot(2, 1, 1)
+        s1.plot(ax=ax)
+        s2.plot(ax=ax, secondary_y=True)
+        ax2 = plt.subplot(2, 1, 2)
+        s1.plot(ax=ax2)
+        assert len(ax.xaxis.get_minor_ticks()) == 0
+        assert len(ax.get_xticklabels()) > 0

@@ -7,10 +7,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1206,9 +1202,6 @@ class TestSeriesReductions:
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmin(skipna=False)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_idxminmax_object_frame(self):
         # GH#4279
         df = DataFrame([["zimm", 2.5], ["biff", 1.0], ["bid", 12.0]])
@@ -1431,12 +1424,14 @@ class TestSeriesMode:
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
-        "dropna, expected1, expected2, expected3",
-        [(True, ["b"], ["bar"], ["nan"]), (False, ["b"], [np.nan], ["nan"])],
+        "dropna, expected1, expected2",
+        [
+            (True, ["b"], ["bar"]),
+            (False, ["b"], [np.nan]),
+        ],
     )
-    def test_mode_str_obj(self, dropna, expected1, expected2, expected3):
+    def test_mode_object(self, dropna, expected1, expected2):
         # Test string and object types.
         data = ["a"] * 2 + ["b"] * 3
 
@@ -1449,17 +1444,32 @@ class TestSeriesMode:
 
         s = Series(data, dtype=object)
         result = s.mode(dropna)
-        expected2 = Series(expected2, dtype=None if expected2 == ["bar"] else object)
+        expected2 = Series(expected2, dtype=object)
         tm.assert_series_equal(result, expected2)
+
+    @pytest.mark.parametrize(
+        "dropna, expected1, expected2",
+        [
+            (True, ["b"], ["bar"]),
+            (False, ["b"], [np.nan]),
+        ],
+    )
+    def test_mode_string(self, dropna, expected1, expected2, any_string_dtype):
+        # Test string and object types.
+        data = ["a"] * 2 + ["b"] * 3
+
+        s = Series(data, dtype=any_string_dtype)
+        result = s.mode(dropna)
+        expected1 = Series(expected1, dtype=any_string_dtype)
+        tm.assert_series_equal(result, expected1)
 
         data = ["foo", "bar", "bar", np.nan, np.nan, np.nan]
 
-        s = Series(data, dtype=object).astype(str)
+        s = Series(data, dtype=any_string_dtype)
         result = s.mode(dropna)
-        expected3 = Series(expected3)
-        tm.assert_series_equal(result, expected3)
+        expected2 = Series(expected2, dtype=any_string_dtype)
+        tm.assert_series_equal(result, expected2)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dropna, expected1, expected2",
         [(True, ["foo"], ["foo"]), (False, ["foo"], [np.nan])],
@@ -1467,12 +1477,12 @@ class TestSeriesMode:
     def test_mode_mixeddtype(self, dropna, expected1, expected2):
         s = Series([1, "foo", "foo"])
         result = s.mode(dropna)
-        expected = Series(expected1)
+        expected = Series(expected1, dtype=object)
         tm.assert_series_equal(result, expected)
 
         s = Series([1, "foo", "foo", np.nan, np.nan, np.nan])
         result = s.mode(dropna)
-        expected = Series(expected2, dtype=None if expected2 == ["foo"] else object)
+        expected = Series(expected2, dtype=object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1597,18 +1607,10 @@ class TestSeriesMode:
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_mode_sortwarning(self):
-        # Check for the warning that is raised when the mode
-        # results cannot be sorted
-
-        expected = Series(["foo", np.nan])
+    def test_mode_sort_with_na(self):
         s = Series([1, "foo", "foo", np.nan, np.nan])
-
-        with tm.assert_produces_warning(UserWarning, match="Unable to sort modes"):
-            result = s.mode(dropna=False)
-            result = result.sort_values().reset_index(drop=True)
-
+        expected = Series(["foo", np.nan], dtype=object)
+        result = s.mode(dropna=False)
         tm.assert_series_equal(result, expected)
 
     def test_mode_boolean_with_na(self):

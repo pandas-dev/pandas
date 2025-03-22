@@ -413,13 +413,10 @@ def interpolate_2d_inplace(
             **kwargs,
         )
 
-    # error: Argument 1 to "apply_along_axis" has incompatible type
-    # "Callable[[ndarray[Any, Any]], None]"; expected "Callable[...,
-    # Union[_SupportsArray[dtype[<nothing>]], Sequence[_SupportsArray
-    # [dtype[<nothing>]]], Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]],
-    # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
-    # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
-    np.apply_along_axis(func, axis, data)  # type: ignore[arg-type]
+    # error: No overload variant of "apply_along_axis" matches
+    # argument types "Callable[[ndarray[Any, Any]], None]",
+    # "int", "ndarray[Any, Any]"
+    np.apply_along_axis(func, axis, data)  # type: ignore[call-overload]
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:

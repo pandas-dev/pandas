@@ -726,7 +726,9 @@ def nanmean(
 
 
 @bottleneck_switch()
-def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=None):
+def nanmedian(
+    values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None
+) -> float | np.ndarray:
     """
     Parameters
     ----------
@@ -738,7 +740,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     Returns
     -------
-    result : float
+    result : float | ndarray
         Unless input is a float array, in which case use the same
         precision as the input array.
 
@@ -758,7 +760,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     # cases we never need to set NaN to the masked values
     using_nan_sentinel = values.dtype.kind == "f" and mask is None
 
-    def get_median(x, _mask=None):
+    def get_median(x: np.ndarray, _mask=None):
         if _mask is None:
             _mask = notna(x)
         else:
@@ -793,6 +795,8 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         values[mask] = np.nan
 
     notempty = values.size
+
+    res: float | np.ndarray
 
     # an array from a frame
     if values.ndim > 1 and axis is not None:
@@ -1089,11 +1093,14 @@ def _nanminmax(meth, fill_value_typ):
         if values.size == 0:
             return _na_for_min_count(values, axis)
 
+        dtype = values.dtype
         values, mask = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
         result = getattr(values, meth)(axis)
-        result = _maybe_null_out(result, axis, mask, values.shape)
+        result = _maybe_null_out(
+            result, axis, mask, values.shape, datetimelike=dtype.kind in "mM"
+        )
         return result
 
     return reduction
@@ -1495,6 +1502,7 @@ def _maybe_null_out(
     mask: npt.NDArray[np.bool_] | None,
     shape: tuple[int, ...],
     min_count: int = 1,
+    datetimelike: bool = False,
 ) -> np.ndarray | float | NaTType:
     """
     Returns
@@ -1516,7 +1524,10 @@ def _maybe_null_out(
             null_mask = np.broadcast_to(below_count, new_shape)
 
         if np.any(null_mask):
-            if is_numeric_dtype(result):
+            if datetimelike:
+                # GH#60646 For datetimelike, no need to cast to float
+                result[null_mask] = iNaT
+            elif is_numeric_dtype(result):
                 if np.iscomplexobj(result):
                     result = result.astype("c16")
                 elif not is_float_dtype(result):

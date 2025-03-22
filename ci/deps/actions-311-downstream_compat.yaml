@@ -6,9 +6,9 @@ dependencies:
   - python=3.11
 
   # build dependencies
-  - versioneer[toml]
+  - versioneer
   - cython>=0.29.33
-  - meson[ninja]=1.2.1
+  - meson=1.2.1
   - meson-python=0.13.1
 
   # test dependencies
@@ -53,7 +53,7 @@ dependencies:
   - scipy>=1.10.0
   - sqlalchemy>=2.0.0
   - tabulate>=0.9.0
-  - xarray>=2022.12.0
+  - xarray>=2022.12.0, <=2024.9.0
   - xlrd>=2.0.1
   - xlsxwriter>=3.0.5
   - zstandard>=0.19.0

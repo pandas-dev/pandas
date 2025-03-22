@@ -50,6 +50,7 @@ from pandas.util._decorators import (
     Substitution,
     deprecate_nonkeyword_arguments,
     doc,
+    set_module,
 )
 from pandas.util._validators import (
     validate_ascending,
@@ -229,6 +230,7 @@ axis : int or str, optional
 # error: Cannot override final attribute "size" (previously declared in base
 # class "NDFrame")
 # definition in base class "NDFrame"
+@set_module("pandas")
 class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
@@ -498,7 +500,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # create/copy the manager
         if isinstance(data, SingleBlockManager):
             if dtype is not None:
-                data = data.astype(dtype=dtype, errors="ignore")
+                data = data.astype(dtype=dtype)
             elif copy:
                 data = data.copy()
         else:
@@ -565,7 +567,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Export the pandas Series as an Arrow C stream PyCapsule.
 
         This relies on pyarrow to convert the pandas Series to the Arrow
-        format (and follows the default behaviour of ``pyarrow.Array.from_pandas``
+        format (and follows the default behavior of ``pyarrow.Array.from_pandas``
         in its handling of the index, i.e. to ignore it).
         This conversion is not necessarily zero-copy.
 
@@ -813,8 +815,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _references(self) -> BlockValuesRefs:
         return self._mgr._block.refs
 
-    # error: Decorated property not supported
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr.array_values()
@@ -843,7 +844,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             the dtype is inferred from the data.
 
         copy : bool or None, optional
-            Unused.
+            See :func:`numpy.asarray`.
 
         Returns
         -------
@@ -880,8 +881,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
               dtype='datetime64[ns]')
         """
         values = self._values
-        arr = np.asarray(values, dtype=dtype)
-        if astype_is_view(values.dtype, arr.dtype):
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            arr = np.asarray(values, dtype=dtype)
+        else:
+            arr = np.array(values, dtype=dtype, copy=copy)
+
+        if copy is True:
+            return arr
+        if copy is False or astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
@@ -2063,7 +2071,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO: Add option for bins like value_counts()
         values = self._values
         if isinstance(values, np.ndarray):
-            res_values = algorithms.mode(values, dropna=dropna)
+            res_values, _ = algorithms.mode(values, dropna=dropna)
         else:
             res_values = values._mode(dropna=dropna)
 
@@ -2218,7 +2226,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5     hippo
         Name: animal, dtype: object
 
-        With the 'keep' parameter, the selection behaviour of duplicated values
+        With the 'keep' parameter, the selection behavior of duplicated values
         can be changed. The value 'first' keeps the first occurrence for each
         set of duplicated entries. The default value of keep is 'first'.
 
@@ -2483,6 +2491,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
+        Series.dt.round : Round values of data to the specified freq.
 
         Notes
         -----
@@ -3442,7 +3451,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4     5.0
         dtype: float64
 
-        Sort values ascending order (default behaviour)
+        Sort values ascending order (default behavior)
 
         >>> s.sort_values(ascending=True)
         1     1.0
@@ -4089,7 +4098,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         In the following example, we will swap the levels of the indices.
         Here, we will swap the levels column-wise, but levels can be swapped row-wise
-        in a similar manner. Note that column-wise is the default behaviour.
+        in a similar manner. Note that column-wise is the default behavior.
         By not supplying any arguments for i and j, we swap the last and second to
         last indices.
 
@@ -4642,7 +4651,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inplace: Literal[True],
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
-    ) -> None: ...
+    ) -> Series | None: ...
 
     @overload
     def rename(
@@ -4655,18 +4664,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
     ) -> Series: ...
-
-    @overload
-    def rename(
-        self,
-        index: Renamer | Hashable | None = ...,
-        *,
-        axis: Axis | None = ...,
-        copy: bool | lib.NoDefault = ...,
-        inplace: bool = ...,
-        level: Level | None = ...,
-        errors: IgnoreRaise = ...,
-    ) -> Series | None: ...
 
     def rename(
         self,
@@ -4725,8 +4722,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        Series or None
-            Series with index labels or name altered or None if ``inplace=True``.
+        Series
+            A shallow copy with index labels or name altered, or the same object
+            if ``inplace=True`` and index is not a dict or callable else None.
 
         See Also
         --------

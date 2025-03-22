@@ -44,6 +44,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -360,8 +361,11 @@ class IndexOpsMixin(OpsMixin):
         # We need this defined here for mypy
         raise AbstractMethodError(self)
 
+    # Temporarily avoid using `-> Literal[1]:` because of an IPython (jedi) bug
+    # https://github.com/ipython/ipython/issues/14412
+    # https://github.com/davidhalter/jedi/issues/1990
     @property
-    def ndim(self) -> Literal[1]:
+    def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
 
@@ -501,6 +505,11 @@ class IndexOpsMixin(OpsMixin):
     def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
+
+        This property provides direct access to the underlying array data of a
+        Series or Index without requiring conversion to a NumPy array. It
+        returns an ExtensionArray, which is the native storage format for
+        pandas extension dtypes.
 
         Returns
         -------
@@ -1287,13 +1296,18 @@ class IndexOpsMixin(OpsMixin):
         if uniques.dtype == np.float16:
             uniques = uniques.astype(np.float32)
 
-        if isinstance(self, ABCIndex):
-            # preserve e.g. MultiIndex
+        if isinstance(self, ABCMultiIndex):
+            # preserve MultiIndex
             uniques = self._constructor(uniques)
         else:
             from pandas import Index
 
-            uniques = Index(uniques)
+            try:
+                uniques = Index(uniques, dtype=self.dtype)
+            except NotImplementedError:
+                # not all dtypes are supported in Index that are allowed for Series
+                # e.g. float16 or bytes
+                uniques = Index(uniques)
         return codes, uniques
 
     _shared_docs["searchsorted"] = """

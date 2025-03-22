@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
@@ -24,10 +22,7 @@ from pandas.tests.io.pytables.common import (
 )
 from pandas.util import _test_decorators as td
 
-pytestmark = [
-    pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 def test_format_type(tmp_path, setup_path):
@@ -54,8 +49,8 @@ def test_api_default_format(tmp_path, setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
 
         with pd.option_context("io.hdf.default_format", "fixed"):
@@ -79,8 +74,8 @@ def test_api_default_format(tmp_path, setup_path):
     path = tmp_path / setup_path
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     with pd.option_context("io.hdf.default_format", "fixed"):
@@ -106,7 +101,7 @@ def test_put(setup_path):
         )
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=20, freq="B"),
         )
         store["a"] = ts
@@ -166,7 +161,7 @@ def test_put_compression(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
 
@@ -183,7 +178,7 @@ def test_put_compression(setup_path):
 def test_put_compression_blosc(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
@@ -197,10 +192,20 @@ def test_put_compression_blosc(setup_path):
         tm.assert_frame_equal(store["c"], df)
 
 
-def test_put_mixed_type(setup_path, performance_warning):
+def test_put_datetime_ser(setup_path, performance_warning, using_infer_string):
+    # https://github.com/pandas-dev/pandas/pull/60663
+    ser = Series(3 * [Timestamp("20010102").as_unit("ns")])
+    with ensure_clean_store(setup_path) as store:
+        store.put("ser", ser)
+        expected = ser.copy()
+        result = store.get("ser")
+        tm.assert_series_equal(result, expected)
+
+
+def test_put_mixed_type(setup_path, performance_warning, using_infer_string):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df["obj1"] = "foo"
@@ -220,11 +225,40 @@ def test_put_mixed_type(setup_path, performance_warning):
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")
 
-        with tm.assert_produces_warning(performance_warning):
+        warning = None if using_infer_string else performance_warning
+        with tm.assert_produces_warning(warning):
             store.put("df", df)
 
         expected = store.get("df")
         tm.assert_frame_equal(expected, df)
+
+
+def test_put_str_frame(setup_path, performance_warning, string_dtype_arguments):
+    # https://github.com/pandas-dev/pandas/pull/60663
+    dtype = pd.StringDtype(*string_dtype_arguments)
+    df = DataFrame({"a": pd.array(["x", pd.NA, "y"], dtype=dtype)})
+    with ensure_clean_store(setup_path) as store:
+        _maybe_remove(store, "df")
+
+        store.put("df", df)
+        expected_dtype = "str" if dtype.na_value is np.nan else "string"
+        expected = df.astype(expected_dtype)
+        result = store.get("df")
+        tm.assert_frame_equal(result, expected)
+
+
+def test_put_str_series(setup_path, performance_warning, string_dtype_arguments):
+    # https://github.com/pandas-dev/pandas/pull/60663
+    dtype = pd.StringDtype(*string_dtype_arguments)
+    ser = Series(["x", pd.NA, "y"], dtype=dtype)
+    with ensure_clean_store(setup_path) as store:
+        _maybe_remove(store, "df")
+
+        store.put("ser", ser)
+        expected_dtype = "str" if dtype.na_value is np.nan else "string"
+        expected = ser.astype(expected_dtype)
+        result = store.get("ser")
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("format", ["table", "fixed"])
@@ -253,7 +287,7 @@ def test_store_index_types(setup_path, format, index):
         tm.assert_frame_equal(df, store["df"])
 
 
-def test_column_multiindex(setup_path):
+def test_column_multiindex(setup_path, using_infer_string):
     # GH 4710
     # recreate multi-indexes properly
 
@@ -264,6 +298,12 @@ def test_column_multiindex(setup_path):
     expected = df.set_axis(df.index.to_numpy())
 
     with ensure_clean_store(setup_path) as store:
+        if using_infer_string:
+            # TODO(infer_string) make this work for string dtype
+            msg = "Saving a MultiIndex with an extension dtype is not supported."
+            with pytest.raises(NotImplementedError, match=msg):
+                store.put("df", df)
+            return
         store.put("df", df)
         tm.assert_frame_equal(
             store["df"], expected, check_index_type=True, check_column_type=True

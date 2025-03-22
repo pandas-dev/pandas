@@ -10,7 +10,10 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat.pyarrow import pa_version_under12p0
+from pandas.compat.pyarrow import (
+    pa_version_under12p0,
+    pa_version_under19p0,
+)
 
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -40,6 +43,14 @@ def dtype2(string_dtype_arguments2):
 def cls(dtype):
     """Fixture giving array type from parametrized 'dtype'"""
     return dtype.construct_array_type()
+
+
+def test_dtype_constructor():
+    pytest.importorskip("pyarrow")
+
+    with tm.assert_produces_warning(FutureWarning):
+        dtype = pd.StringDtype("pyarrow_numpy")
+    assert dtype == pd.StringDtype("pyarrow", na_value=np.nan)
 
 
 def test_dtype_equality():
@@ -101,14 +112,11 @@ def test_none_to_nan(cls, dtype):
 def test_setitem_validates(cls, dtype):
     arr = cls._from_sequence(["a", "b"], dtype=dtype)
 
-    if dtype.storage == "python":
-        msg = "Cannot set non-string value '10' into a StringArray."
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Invalid value '10' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
-    msg = "Must provide strings"
+    msg = "Invalid value for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 
@@ -444,14 +452,12 @@ def test_astype_float(dtype, any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
     arr = pd.Series(["a", "b", "c"], dtype=dtype)
     result = arr.sum(skipna=skipna)
     assert result == "abc"
 
 
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
     result = arr.sum(skipna=skipna)
@@ -502,10 +508,7 @@ def test_fillna_args(dtype):
     expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
-    if dtype.storage == "pyarrow":
-        msg = "Invalid value '1' for dtype str"
-    else:
-        msg = "Cannot set non-string value '1' into a StringArray."
+    msg = "Invalid value '1' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         arr.fillna(value=1)
 
@@ -539,7 +542,7 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         assert table.field("a").type == "large_string"
     with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
-    if dtype.na_value is np.nan and not using_string_dtype():
+    if dtype.na_value is np.nan and not using_infer_string:
         assert result["a"].dtype == "object"
     else:
         assert isinstance(result["a"].dtype, pd.StringDtype)
@@ -551,6 +554,21 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         tm.assert_frame_equal(result, expected)
         # ensure the missing value is represented by NA and not np.nan or None
         assert result.loc[2, "a"] is result["a"].dtype.na_value
+
+
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
+def test_arrow_from_string(using_infer_string):
+    # not roundtrip,  but starting with pyarrow table without pandas metadata
+    pa = pytest.importorskip("pyarrow")
+    table = pa.table({"a": pa.array(["a", "b", None], type=pa.string())})
+
+    result = table.to_pandas()
+
+    if using_infer_string and not pa_version_under19p0:
+        expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="str")
+    else:
+        expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="object")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
@@ -721,10 +739,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
 
     # for other non-string we should also raise an error
     ser = pd.Series(["a", "b", "c"], dtype=dtype)
-    if dtype.storage == "python":
-        msg = "Cannot set non-string value"
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Invalid value '1' for dtype 'str"
     with pytest.raises(TypeError, match=msg):
         ser[mask] = 1
 
@@ -743,3 +758,9 @@ def test_tolist(dtype):
     result = arr.tolist()
     expected = vals
     tm.assert_equal(result, expected)
+
+
+def test_string_array_view_type_error():
+    arr = pd.array(["a", "b", "c"], dtype="string")
+    with pytest.raises(TypeError, match="Cannot change data-type for string array."):
+        arr.view("i8")

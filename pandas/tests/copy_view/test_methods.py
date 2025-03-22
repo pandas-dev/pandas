@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import HAS_PYARROW
 
 import pandas as pd
@@ -716,14 +714,18 @@ def test_head_tail(method):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
-def test_infer_objects():
-    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
+def test_infer_objects(using_infer_string):
+    df = DataFrame(
+        {"a": [1, 2], "b": Series(["x", "y"], dtype=object), "c": 1, "d": "x"}
+    )
     df_orig = df.copy()
     df2 = df.infer_objects()
 
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    if using_infer_string and HAS_PYARROW:
+        assert not tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    else:
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
 
     df2.iloc[0, 0] = 0
     df2.iloc[0, 1] = "d"
@@ -732,19 +734,16 @@ def test_infer_objects():
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
-def test_infer_objects_no_reference():
+def test_infer_objects_no_reference(using_infer_string):
     df = DataFrame(
         {
             "a": [1, 2],
-            "b": "c",
+            "b": Series(["x", "y"], dtype=object),
             "c": 1,
             "d": Series(
                 [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
             ),
-            "e": "b",
+            "e": Series(["z", "w"], dtype=object),
         }
     )
     df = df.infer_objects()
@@ -757,8 +756,14 @@ def test_infer_objects_no_reference():
     df.iloc[0, 1] = "d"
     df.iloc[0, 3] = Timestamp("2018-12-31")
     assert np.shares_memory(arr_a, get_array(df, "a"))
-    # TODO(CoW): Block splitting causes references here
-    assert not np.shares_memory(arr_b, get_array(df, "b"))
+    if using_infer_string and HAS_PYARROW:
+        # note that the underlying memory of arr_b has been copied anyway
+        # because of the assignment, but the EA is updated inplace so still
+        # appears the share memory
+        assert tm.shares_memory(arr_b, get_array(df, "b"))
+    else:
+        # TODO(CoW): Block splitting causes references here
+        assert not np.shares_memory(arr_b, get_array(df, "b"))
     assert np.shares_memory(arr_d, get_array(df, "d"))
 
 
@@ -766,7 +771,7 @@ def test_infer_objects_reference():
     df = DataFrame(
         {
             "a": [1, 2],
-            "b": "c",
+            "b": Series(["x", "y"], dtype=object),
             "c": 1,
             "d": Series(
                 [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
@@ -904,14 +909,13 @@ def test_sort_values_inplace(obj, kwargs):
     tm.assert_equal(view, obj_orig)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("decimals", [-1, 0, 1])
 def test_round(decimals):
     df = DataFrame({"a": [1, 2], "b": "c"})
     df_orig = df.copy()
     df2 = df.round(decimals=decimals)
 
-    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     # TODO: Make inplace by using out parameter of ndarray.round?
     if decimals >= 0:
         # Ensure lazy copy if no-op

@@ -24,6 +24,8 @@ import pytest
 
 from pandas.compat import HAS_PYARROW
 
+from pandas.core.dtypes.base import StorageExtensionDtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_string_dtype
@@ -105,8 +107,8 @@ class TestStringArray(base.ExtensionTests):
             # only the NA-variant supports parametrized string alias
             assert dtype == f"string[{dtype.storage}]"
         elif dtype.storage == "pyarrow":
-            # TODO(infer_string) deprecate this
-            assert dtype == "string[pyarrow_numpy]"
+            with tm.assert_produces_warning(FutureWarning):
+                assert dtype == "string[pyarrow_numpy]"
 
     def test_is_not_string_type(self, dtype):
         # Different from BaseDtypeTests.test_is_not_string_type
@@ -187,11 +189,14 @@ class TestStringArray(base.ExtensionTests):
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        return (
-            op_name in ["min", "max"]
-            or ser.dtype.na_value is np.nan  # type: ignore[union-attr]
+        return op_name in ["min", "max", "sum"] or (
+            ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
+
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        assert isinstance(ser.dtype, StorageExtensionDtype)
+        return op_name in ["cummin", "cummax", "cumsum"]
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         dtype = cast(StringDtype, tm.get_dtype(obj))

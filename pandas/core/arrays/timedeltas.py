@@ -115,10 +115,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     ----------
     data : array-like
         The timedelta data.
-
     dtype : numpy.dtype
         Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
     freq : Offset, optional
+        Frequency of the data.
     copy : bool, default False
         Whether to copy the underlying array of data.
 
@@ -129,6 +129,12 @@ class TimedeltaArray(dtl.TimelikeOps):
     Methods
     -------
     None
+
+    See Also
+    --------
+    Timedelta : Represents a duration, the difference between two dates or times.
+    TimedeltaIndex : Immutable Index of timedelta64 data.
+    to_timedelta : Convert argument to timedelta.
 
     Examples
     --------

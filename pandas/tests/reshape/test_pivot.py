@@ -935,12 +935,14 @@ class TestPivotTable:
         for value_col in table.columns.levels[0]:
             self._check_output(table[value_col], value_col, data)
 
-    def test_no_col(self, data):
+    def test_no_col(self, data, using_infer_string):
         # no col
 
         # to help with a buglet
         data.columns = [k * 2 for k in data.columns]
         msg = re.escape("agg function failed [how->mean,dtype->")
+        if using_infer_string:
+            msg = "dtype 'str' does not support operation 'mean'"
         with pytest.raises(TypeError, match=msg):
             data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         table = data.drop(columns="CC").pivot_table(
@@ -990,7 +992,7 @@ class TestPivotTable:
         ],
     )
     def test_margin_with_only_columns_defined(
-        self, columns, aggfunc, values, expected_columns
+        self, columns, aggfunc, values, expected_columns, using_infer_string
     ):
         # GH 31016
         df = DataFrame(
@@ -1014,6 +1016,8 @@ class TestPivotTable:
         )
         if aggfunc != "sum":
             msg = re.escape("agg function failed [how->mean,dtype->")
+            if using_infer_string:
+                msg = "dtype 'str' does not support operation 'mean'"
             with pytest.raises(TypeError, match=msg):
                 df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         if "B" not in columns:
@@ -2372,9 +2376,13 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_ea_dtype_dropna(self, dropna):
+    @pytest.mark.parametrize(
+        "dtype,expected_dtype", [("Int64", "Float64"), ("int64", "float64")]
+    )
+    def test_pivot_ea_dtype_dropna(self, dropna, dtype, expected_dtype):
         # GH#47477
-        df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype="Int64")})
+        # GH#47971
+        df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype=dtype)})
         result = df.pivot_table(
             index="x", columns="y", values="age", aggfunc="mean", dropna=dropna
         )
@@ -2382,7 +2390,7 @@ class TestPivotTable:
             [[30]],
             index=Index(["a"], name="x"),
             columns=Index(["b"], name="y"),
-            dtype="Float64",
+            dtype=expected_dtype,
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2660,6 +2668,8 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()
 
+    # this still fails because columns=None gets passed down to unstack as level=None
+    # while at that point None was converted to NaN
     @pytest.mark.xfail(
         using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
     )
@@ -2678,10 +2688,7 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
-    )
-    def test_pivot_index_is_none(self):
+    def test_pivot_index_is_none(self, using_infer_string):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
 
@@ -2692,11 +2699,10 @@ class TestPivot:
 
         result = df.pivot(columns="b", index=None, values="c")
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
+        if using_infer_string:
+            expected.index.name = np.nan
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
-    )
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})

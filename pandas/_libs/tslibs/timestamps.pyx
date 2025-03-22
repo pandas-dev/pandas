@@ -50,6 +50,7 @@ import datetime as dt
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.conversion cimport (
@@ -161,8 +162,8 @@ cdef _Timestamp create_timestamp_from_ts(
                                  dts.sec, dts.us, tz, fold=fold)
 
     ts_base._value = value
-    ts_base.year = dts.year
-    ts_base.nanosecond = dts.ps // 1000
+    ts_base._year = dts.year
+    ts_base._nanosecond = dts.ps // 1000
     ts_base._creso = reso
 
     return ts_base
@@ -355,9 +356,9 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
 
     def __hash__(_Timestamp self):
-        if self.nanosecond:
+        if self._nanosecond:
             return hash(self._value)
-        if not (1 <= self.year <= 9999):
+        if not (1 <= self._year <= 9999):
             # out of bounds for pydatetime
             return hash(self._value)
         if self.fold:
@@ -375,7 +376,7 @@ cdef class _Timestamp(ABCTimestamp):
         elif cnp.is_datetime64_object(other):
             ots = Timestamp(other)
         elif PyDateTime_Check(other):
-            if self.nanosecond == 0:
+            if self._nanosecond == 0:
                 val = self.to_pydatetime()
                 return PyObject_RichCompareBool(val, other, op)
 
@@ -454,7 +455,7 @@ cdef class _Timestamp(ABCTimestamp):
         if not self._can_compare(other):
             return NotImplemented
 
-        if self.nanosecond == 0:
+        if self._nanosecond == 0:
             return PyObject_RichCompareBool(dtval, other, op)
 
         # otherwise we have dtval < self
@@ -463,9 +464,9 @@ cdef class _Timestamp(ABCTimestamp):
         if op == Py_EQ:
             return False
         if op == Py_LE or op == Py_LT:
-            return self.year <= other.year
+            return self._year <= other.year
         if op == Py_GE or op == Py_GT:
-            return self.year >= other.year
+            return self._year >= other.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:
@@ -606,7 +607,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         if own_tz is not None and not is_utc(own_tz):
             pydatetime_to_dtstruct(self, &dts)
-            val = npy_datetimestruct_to_datetime(self._creso, &dts) + self.nanosecond
+            val = npy_datetimestruct_to_datetime(self._creso, &dts) + self._nanosecond
         else:
             val = self._value
         return val
@@ -898,7 +899,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_leap_year
         True
         """
-        return bool(ccalendar.is_leapyear(self.year))
+        return bool(ccalendar.is_leapyear(self._year))
 
     @property
     def day_of_week(self) -> int:
@@ -942,7 +943,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.day_of_year
         74
         """
-        return ccalendar.get_day_of_year(self.year, self.month, self.day)
+        return ccalendar.get_day_of_year(self._year, self.month, self.day)
 
     @property
     def quarter(self) -> int:
@@ -1028,6 +1029,29 @@ cdef class _Timestamp(ABCTimestamp):
         0
         """
         return super().fold
+
+    @property
+    def year(self) -> int:
+        """
+        Return the year of the Timestamp.
+
+        Returns
+        -------
+        int
+            The year of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.month : Return the month of the Timestamp.
+        Timestamp.day : Return the day of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30")
+        >>> ts.year
+        2024
+        """
+        return self._year
 
     @property
     def month(self) -> int:
@@ -1145,6 +1169,29 @@ cdef class _Timestamp(ABCTimestamp):
         return super().microsecond
 
     @property
+    def nanosecond(self) -> int:
+        """
+        Return the nanosecond of the Timestamp.
+
+        Returns
+        -------
+        int
+            The nanosecond of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.second : Return the second of the Timestamp.
+        Timestamp.microsecond : Return the microsecond of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30.230400015")
+        >>> ts.nanosecond
+        15
+        """
+        return self._nanosecond
+
+    @property
     def week(self) -> int:
         """
         Return the week number of the year.
@@ -1164,7 +1211,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.week
         11
         """
-        return ccalendar.get_week_of_year(self.year, self.month, self.day)
+        return ccalendar.get_week_of_year(self._year, self.month, self.day)
 
     @property
     def days_in_month(self) -> int:
@@ -1186,7 +1233,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.days_in_month
         31
         """
-        return ccalendar.get_days_in_month(self.year, self.month)
+        return ccalendar.get_days_in_month(self._year, self.month)
 
     # -----------------------------------------------------------------
     # Transformation Methods
@@ -1260,9 +1307,9 @@ cdef class _Timestamp(ABCTimestamp):
 
         The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
         By default, the fractional part is omitted if self.microsecond == 0
-        and self.nanosecond == 0.
+        and self._nanosecond == 0.
 
-        If self.tzinfo is not None, the UTC offset is also attached, giving
+        If self.tzinfo is not None, the UTC offset is also attached,
         giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
 
         Parameters
@@ -1296,9 +1343,9 @@ cdef class _Timestamp(ABCTimestamp):
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
-        base = f"{self.year:04d}-" + base.split("-", 1)[1]
+        base = f"{self._year:04d}-" + base.split("-", 1)[1]
 
-        if self.nanosecond == 0 and timespec != "nanoseconds":
+        if self._nanosecond == 0 and timespec != "nanoseconds":
             return base
 
         if self.tzinfo is not None:
@@ -1306,11 +1353,11 @@ cdef class _Timestamp(ABCTimestamp):
         else:
             base1, base2 = base, ""
 
-        if timespec == "nanoseconds" or (timespec == "auto" and self.nanosecond):
+        if timespec == "nanoseconds" or (timespec == "auto" and self._nanosecond):
             if self.microsecond or timespec == "nanoseconds":
-                base1 += f"{self.nanosecond:03d}"
+                base1 += f"{self._nanosecond:03d}"
             else:
-                base1 += f".{self.nanosecond:09d}"
+                base1 += f".{self._nanosecond:09d}"
 
         return base1 + base2
 
@@ -1344,14 +1391,14 @@ cdef class _Timestamp(ABCTimestamp):
     def _date_repr(self) -> str:
         # Ideal here would be self.strftime("%Y-%m-%d"), but
         # the datetime strftime() methods require year >= 1900 and is slower
-        return f"{self.year}-{self.month:02d}-{self.day:02d}"
+        return f"{self._year}-{self.month:02d}-{self.day:02d}"
 
     @property
     def _time_repr(self) -> str:
         result = f"{self.hour:02d}:{self.minute:02d}:{self.second:02d}"
 
-        if self.nanosecond != 0:
-            result += f".{self.nanosecond + 1000 * self.microsecond:09d}"
+        if self._nanosecond != 0:
+            result += f".{self._nanosecond + 1000 * self.microsecond:09d}"
         elif self.microsecond != 0:
             result += f".{self.microsecond:06d}"
 
@@ -1515,11 +1562,11 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.NaT.to_pydatetime()
         NaT
         """
-        if self.nanosecond != 0 and warn:
+        if self._nanosecond != 0 and warn:
             warnings.warn("Discarding nonzero nanoseconds in conversion.",
                           UserWarning, stacklevel=find_stack_level())
 
-        return datetime(self.year, self.month, self.day,
+        return datetime(self._year, self.month, self.day,
                         self.hour, self.minute, self.second,
                         self.microsecond, self.tzinfo, fold=self.fold)
 
@@ -1648,7 +1695,7 @@ cdef class _Timestamp(ABCTimestamp):
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 
-
+@set_module("pandas")
 class Timestamp(_Timestamp):
     """
     Pandas replacement for python datetime.datetime object.
@@ -1998,7 +2045,7 @@ class Timestamp(_Timestamp):
         '2020-03-14 15:32:52'
         """
         try:
-            _dt = datetime(self.year, self.month, self.day,
+            _dt = datetime(self._year, self.month, self.day,
                            self.hour, self.minute, self.second,
                            self.microsecond, self.tzinfo, fold=self.fold)
         except ValueError as err:
@@ -2041,7 +2088,7 @@ class Timestamp(_Timestamp):
         'Sun Jan  1 10:00:00 2023'
         """
         try:
-            _dt = datetime(self.year, self.month, self.day,
+            _dt = datetime(self._year, self.month, self.day,
                            self.hour, self.minute, self.second,
                            self.microsecond, self.tzinfo, fold=self.fold)
         except ValueError as err:
@@ -2081,7 +2128,7 @@ class Timestamp(_Timestamp):
         datetime.date(2023, 1, 1)
         """
         try:
-            _dt = dt.date(self.year, self.month, self.day)
+            _dt = dt.date(self._year, self.month, self.day)
         except ValueError as err:
             raise NotImplementedError(
                 "date not yet supported on Timestamps which "
@@ -2130,7 +2177,7 @@ class Timestamp(_Timestamp):
         datetime.IsoCalendarDate(year=2022, week=52, weekday=7)
         """
         try:
-            _dt = datetime(self.year, self.month, self.day,
+            _dt = datetime(self._year, self.month, self.day,
                            self.hour, self.minute, self.second,
                            self.microsecond, self.tzinfo, fold=self.fold)
         except ValueError as err:
@@ -2161,6 +2208,34 @@ class Timestamp(_Timestamp):
         """
         return super().tzname()
 
+    @property
+    def tzinfo(self):
+        """
+        Returns the timezone info of the Timestamp.
+
+        This property returns a `datetime.tzinfo` object if the Timestamp
+        is timezone-aware. If the Timestamp has no timezone, it returns `None`.
+        If the Timestamp is in UTC or a fixed-offset timezone,
+        it returns `datetime.timezone`. If the Timestamp uses an
+        IANA timezone (e.g., "America/New_York"), it returns `zoneinfo.ZoneInfo`.
+
+        See Also
+        --------
+        Timestamp.tz : Alias for `tzinfo`, may return a `zoneinfo.ZoneInfo` object.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a specific timezone.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2023-01-01 12:00:00", tz="UTC")
+        >>> ts.tzinfo
+        datetime.timezone.utc
+
+        >>> ts_naive = pd.Timestamp("2023-01-01 12:00:00")
+        >>> ts_naive.tzinfo
+        """
+        return super().tzinfo
+
     def utcoffset(self):
         """
         Return utc offset.
@@ -2170,7 +2245,7 @@ class Timestamp(_Timestamp):
         difference between the current timezone and UTC.
 
         Returns
-        --------
+        -------
         timedelta
             The difference between UTC and the local time as a `timedelta` object.
 
@@ -2272,7 +2347,7 @@ class Timestamp(_Timestamp):
         tm_hour=10, tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=-1)
         """
         try:
-            _dt = datetime(self.year, self.month, self.day,
+            _dt = datetime(self._year, self.month, self.day,
                            self.hour, self.minute, self.second,
                            self.microsecond, self.tzinfo, fold=self.fold)
         except ValueError as err:
@@ -2333,7 +2408,7 @@ class Timestamp(_Timestamp):
         738521
         """
         try:
-            _dt = datetime(self.year, self.month, self.day,
+            _dt = datetime(self._year, self.month, self.day,
                            self.hour, self.minute, self.second,
                            self.microsecond, self.tzinfo, fold=self.fold)
         except ValueError as err:
@@ -2926,7 +3001,7 @@ timedelta}, default 'raise'
         --------
         >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
         >>> ts.tz
-        <DstTzInfo 'Europe/Stockholm' CET+1:00:00 STD>
+        zoneinfo.ZoneInfo(key='Europe/Stockholm')
         """
         return self.tzinfo
 
@@ -3222,7 +3297,7 @@ default 'raise'
 
         # setup components
         pandas_datetime_to_datetimestruct(value, self._creso, &dts)
-        dts.ps = self.nanosecond * 1000
+        dts.ps = self._nanosecond * 1000
 
         # replace
         def validate(k, v):
@@ -3312,7 +3387,7 @@ default 'raise'
         >>> ts.to_julian_date()
         2458923.147824074
         """
-        year = self.year
+        year = self._year
         month = self.month
         day = self.day
         if month <= 2:
@@ -3329,7 +3404,7 @@ default 'raise'
                  self.minute / 60.0 +
                  self.second / 3600.0 +
                  self.microsecond / 3600.0 / 1e+6 +
-                 self.nanosecond / 3600.0 / 1e+9
+                 self._nanosecond / 3600.0 / 1e+9
                  ) / 24.0)
 
     def isoweekday(self):
@@ -3380,7 +3455,7 @@ default 'raise'
         """
         # same as super().weekday(), but that breaks because of how
         #  we have overridden year, see note in create_timestamp_from_ts
-        return ccalendar.dayofweek(self.year, self.month, self.day)
+        return ccalendar.dayofweek(self._year, self.month, self.day)
 
 
 # Aliases

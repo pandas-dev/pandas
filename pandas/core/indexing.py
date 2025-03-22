@@ -160,7 +160,7 @@ class IndexingMixin:
 
         .. versionchanged:: 3.0
 
-           Returning a tuple from a callable is deprecated.
+           Callables which return a tuple are deprecated as input.
 
         ``.iloc[]`` is primarily integer position based (from ``0`` to
         ``length-1`` of the axis), but may also be used with a boolean
@@ -212,7 +212,7 @@ class IndexingMixin:
         With a scalar integer.
 
         >>> type(df.iloc[0])
-        <class 'pandas.core.series.Series'>
+        <class 'pandas.Series'>
         >>> df.iloc[0]
         a    1
         b    2
@@ -914,7 +914,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
-        iloc = self if self.name == "iloc" else self.obj.iloc
+        iloc: _iLocIndexer = (
+            cast("_iLocIndexer", self) if self.name == "iloc" else self.obj.iloc
+        )
         iloc._setitem_with_indexer(indexer, value, self.name)
 
     def _validate_key(self, key, axis: AxisInt) -> None:
@@ -973,8 +975,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 self._validate_key(k, i)
             except ValueError as err:
                 raise ValueError(
-                    "Location based indexing can only have "
-                    f"[{self._valid_types}] types"
+                    f"Location based indexing can only have [{self._valid_types}] types"
                 ) from err
         return key
 
@@ -1237,8 +1238,10 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, bool) and not (
             is_bool_dtype(ax.dtype)
             or ax.dtype.name == "boolean"
-            or isinstance(ax, MultiIndex)
-            and is_bool_dtype(ax.get_level_values(0).dtype)
+            or (
+                isinstance(ax, MultiIndex)
+                and is_bool_dtype(ax.get_level_values(0).dtype)
+            )
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
@@ -1585,8 +1588,7 @@ class _iLocIndexer(_LocationIndexer):
                         "is not available"
                     )
                 raise ValueError(
-                    "iLocation based boolean indexing cannot use "
-                    "an indexable as a mask"
+                    "iLocation based boolean indexing cannot use an indexable as a mask"
                 )
             return
 
@@ -1990,8 +1992,7 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer((pi, info_axis[0]), value[0])
 
                 raise ValueError(
-                    "Must have equal len keys and value "
-                    "when setting with an iterable"
+                    "Must have equal len keys and value when setting with an iterable"
                 )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
@@ -2019,8 +2020,7 @@ class _iLocIndexer(_LocationIndexer):
 
             else:
                 raise ValueError(
-                    "Must have equal len keys and value "
-                    "when setting with an iterable"
+                    "Must have equal len keys and value when setting with an iterable"
                 )
 
         else:
@@ -2118,7 +2118,7 @@ class _iLocIndexer(_LocationIndexer):
 
         is_full_setter = com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj))
 
-        is_null_setter = com.is_empty_slice(pi) or is_array_like(pi) and len(pi) == 0
+        is_null_setter = com.is_empty_slice(pi) or (is_array_like(pi) and len(pi) == 0)
 
         if is_null_setter:
             # no-op, don't cast dtype later
@@ -2349,11 +2349,17 @@ class _iLocIndexer(_LocationIndexer):
 
         if isinstance(indexer, tuple):
             # flatten np.ndarray indexers
+            if (
+                len(indexer) == 2
+                and isinstance(indexer[1], np.ndarray)
+                and indexer[1].dtype == np.bool_
+            ):
+                indexer = (indexer[0], np.where(indexer[1])[0])
+
             def ravel(i):
                 return i.ravel() if isinstance(i, np.ndarray) else i
 
             indexer = tuple(map(ravel, indexer))
-
             aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
@@ -2371,12 +2377,15 @@ class _iLocIndexer(_LocationIndexer):
 
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
-            if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
+            if all(is_sequence(_) or isinstance(_, slice) for _ in indexer):
                 ser_values = ser.reindex(obj.axes[0][indexer[0]])._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
-                    len_indexer = len(indexer[1])
+                    if isinstance(indexer[1], slice):
+                        len_indexer = len(obj.axes[1][indexer[1]])
+                    else:
+                        len_indexer = len(indexer[1])
                     ser_values = (
                         np.tile(ser_values, len_indexer).reshape(len_indexer, -1).T
                     )
@@ -2742,19 +2751,15 @@ def check_dict_or_set_indexers(key) -> None:
     """
     Check if the indexer is or contains a dict or set, which is no longer allowed.
     """
-    if (
-        isinstance(key, set)
-        or isinstance(key, tuple)
-        and any(isinstance(x, set) for x in key)
+    if isinstance(key, set) or (
+        isinstance(key, tuple) and any(isinstance(x, set) for x in key)
     ):
         raise TypeError(
             "Passing a set as an indexer is not supported. Use a list instead."
         )
 
-    if (
-        isinstance(key, dict)
-        or isinstance(key, tuple)
-        and any(isinstance(x, dict) for x in key)
+    if isinstance(key, dict) or (
+        isinstance(key, tuple) and any(isinstance(x, dict) for x in key)
     ):
         raise TypeError(
             "Passing a dict as an indexer is not supported. Use a list instead."

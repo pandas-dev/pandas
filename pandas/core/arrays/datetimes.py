@@ -205,6 +205,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     -------
     None
 
+    See Also
+    --------
+    DatetimeIndex : Immutable Index for datetime-like data.
+    Series : One-dimensional labeled array capable of holding datetime-like data.
+    Timestamp : Pandas replacement for python datetime.datetime object.
+    to_datetime : Convert argument to datetime.
+    period_range : Return a fixed frequency PeriodIndex.
+
     Examples
     --------
     >>> pd.arrays.DatetimeArray._from_sequence(
@@ -2699,8 +2707,7 @@ def _maybe_infer_tz(tz: tzinfo | None, inferred_tz: tzinfo | None) -> tzinfo | N
         pass
     elif not timezones.tz_compare(tz, inferred_tz):
         raise TypeError(
-            f"data is already tz-aware {inferred_tz}, unable to "
-            f"set specified tz: {tz}"
+            f"data is already tz-aware {inferred_tz}, unable to set specified tz: {tz}"
         )
     return tz
 
@@ -2910,7 +2917,7 @@ def _generate_range(
     offset: BaseOffset,
     *,
     unit: str,
-) -> Generator[Timestamp, None, None]:
+) -> Generator[Timestamp]:
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset

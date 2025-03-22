@@ -18,8 +18,6 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import WASM
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import (
@@ -184,8 +182,7 @@ def test_precise_conversion(c_parser_only, num):
     assert max(precise_errors) <= max(normal_errors)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_usecols_dtypes(c_parser_only):
+def test_usecols_dtypes(c_parser_only, using_infer_string):
     parser = c_parser_only
     data = """\
 1,2,3
@@ -210,8 +207,12 @@ def test_usecols_dtypes(c_parser_only):
         dtype={"b": int, "c": float},
     )
 
-    assert (result.dtypes == [object, int, float]).all()
-    assert (result2.dtypes == [object, float]).all()
+    if using_infer_string:
+        assert (result.dtypes == ["string", int, float]).all()
+        assert (result2.dtypes == ["string", float]).all()
+    else:
+        assert (result.dtypes == [object, int, float]).all()
+        assert (result2.dtypes == [object, float]).all()
 
 
 def test_disable_bool_parsing(c_parser_only):

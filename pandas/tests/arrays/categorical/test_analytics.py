@@ -4,12 +4,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import (
-    HAS_PYARROW,
-    PYPY,
-)
+from pandas.compat import PYPY
 
 from pandas import (
     Categorical,
@@ -299,10 +294,7 @@ class TestCategoricalAnalytics:
         exp = 3 + 3 * 8  # 3 int8s for values + 3 int64s for categories
         assert cat.nbytes == exp
 
-    @pytest.mark.xfail(
-        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
-    )
-    def test_memory_usage(self):
+    def test_memory_usage(self, using_infer_string):
         cat = Categorical([1, 2, 3])
 
         # .categories is an index, so we include the hashtable
@@ -310,7 +302,13 @@ class TestCategoricalAnalytics:
         assert 0 < cat.nbytes <= cat.memory_usage(deep=True)
 
         cat = Categorical(["foo", "foo", "bar"])
-        assert cat.memory_usage(deep=True) > cat.nbytes
+        if using_infer_string:
+            if cat.categories.dtype.storage == "python":
+                assert cat.memory_usage(deep=True) > cat.nbytes
+            else:
+                assert cat.memory_usage(deep=True) >= cat.nbytes
+        else:
+            assert cat.memory_usage(deep=True) > cat.nbytes
 
         if not PYPY:
             # sys.getsizeof will call the .memory_usage with

@@ -755,11 +755,8 @@ def assert_extension_array_equal(
         and atol is lib.no_default
     ):
         check_exact = (
-            is_numeric_dtype(left.dtype)
-            and not is_float_dtype(left.dtype)
-            or is_numeric_dtype(right.dtype)
-            and not is_float_dtype(right.dtype)
-        )
+            is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype)
+        ) or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))
     elif check_exact is lib.no_default:
         check_exact = False
 
@@ -944,11 +941,8 @@ def assert_series_equal(
         and atol is lib.no_default
     ):
         check_exact = (
-            is_numeric_dtype(left.dtype)
-            and not is_float_dtype(left.dtype)
-            or is_numeric_dtype(right.dtype)
-            and not is_float_dtype(right.dtype)
-        )
+            is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype)
+        ) or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))
         left_index_dtypes = (
             [left.index.dtype] if left.index.nlevels == 1 else left.index.dtypes
         )

@@ -4,8 +4,6 @@ import struct
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
@@ -1256,7 +1254,7 @@ class TestValueCounts:
         result_dt = algos.value_counts_internal(dt)
         tm.assert_series_equal(result_dt, exp_dt)
 
-        exp_td = Series({np.timedelta64(10000): 1}, name="count")
+        exp_td = Series([1], index=[np.timedelta64(10000)], name="count")
         result_td = algos.value_counts_internal(td)
         tm.assert_series_equal(result_td, exp_td)
 
@@ -1684,12 +1682,17 @@ class TestDuplicated:
 
 
 class TestHashTable:
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [
-            (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
-            (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
+            (
+                ht.PyObjectHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
+            (
+                ht.StringHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
             (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
             (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
             (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
@@ -1697,7 +1700,7 @@ class TestHashTable:
     )
     def test_hashtable_unique(self, htable, data, writable):
         # output of maker has guaranteed unique elements
-        s = Series(data)
+        s = Series(data, dtype=data.dtype)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1724,12 +1727,17 @@ class TestHashTable:
         reconstr = result_unique[result_inverse]
         tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [
-            (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
-            (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
+            (
+                ht.PyObjectHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
+            (
+                ht.StringHashTable,
+                np.array([f"foo_{i}" for i in range(1000)], dtype=object),
+            ),
             (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
             (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
             (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
@@ -1737,7 +1745,7 @@ class TestHashTable:
     )
     def test_hashtable_factorize(self, htable, writable, data):
         # output of maker has guaranteed unique elements
-        s = Series(data)
+        s = Series(data, dtype=data.dtype)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1823,7 +1831,8 @@ class TestRank:
 class TestMode:
     def test_no_mode(self):
         exp = Series([], dtype=np.float64, index=Index([], dtype=int))
-        tm.assert_numpy_array_equal(algos.mode(np.array([])), exp.values)
+        result, _ = algos.mode(np.array([]))
+        tm.assert_numpy_array_equal(result, exp.values)
 
     def test_mode_single(self, any_real_numpy_dtype):
         # GH 15714
@@ -1835,20 +1844,24 @@ class TestMode:
 
         ser = Series(data_single, dtype=any_real_numpy_dtype)
         exp = Series(exp_single, dtype=any_real_numpy_dtype)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        result, _ = algos.mode(ser.values)
+        tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
         ser = Series(data_multi, dtype=any_real_numpy_dtype)
         exp = Series(exp_multi, dtype=any_real_numpy_dtype)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        result, _ = algos.mode(ser.values)
+        tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_mode_obj_int(self):
         exp = Series([1], dtype=int)
-        tm.assert_numpy_array_equal(algos.mode(exp.values), exp.values)
+        result, _ = algos.mode(exp.values)
+        tm.assert_numpy_array_equal(result, exp.values)
 
         exp = Series(["a", "b", "c"], dtype=object)
-        tm.assert_numpy_array_equal(algos.mode(exp.values), exp.values)
+        result, _ = algos.mode(exp.values)
+        tm.assert_numpy_array_equal(result, exp.values)
 
     def test_number_mode(self, any_real_numpy_dtype):
         exp_single = [1]
@@ -1859,12 +1872,14 @@ class TestMode:
 
         ser = Series(data_single, dtype=any_real_numpy_dtype)
         exp = Series(exp_single, dtype=any_real_numpy_dtype)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        result, _ = algos.mode(ser.values)
+        tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
         ser = Series(data_multi, dtype=any_real_numpy_dtype)
         exp = Series(exp_multi, dtype=any_real_numpy_dtype)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        result, _ = algos.mode(ser.values)
+        tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_strobj_mode(self):
@@ -1873,7 +1888,8 @@ class TestMode:
 
         ser = Series(data, dtype="c")
         exp = Series(exp, dtype="c")
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        result, _ = algos.mode(ser.values)
+        tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     @pytest.mark.parametrize("dt", [str, object])
@@ -1883,10 +1899,11 @@ class TestMode:
 
         ser = Series(data, dtype=dt)
         exp = Series(exp, dtype=dt)
+        result, _ = algos.mode(ser.values)
         if using_infer_string and dt is str:
-            tm.assert_extension_array_equal(algos.mode(ser.values), exp.values)
+            tm.assert_extension_array_equal(result, exp.values)
         else:
-            tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+            tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_datelike_mode(self):
@@ -1920,18 +1937,21 @@ class TestMode:
     def test_mixed_dtype(self):
         exp = Series(["foo"], dtype=object)
         ser = Series([1, "foo", "foo"])
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        result, _ = algos.mode(ser.values)
+        tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_uint64_overflow(self):
         exp = Series([2**63], dtype=np.uint64)
         ser = Series([1, 2**63, 2**63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        result, _ = algos.mode(ser.values)
+        tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
         exp = Series([1, 2**63], dtype=np.uint64)
         ser = Series([1, 2**63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
+        result, _ = algos.mode(ser.values)
+        tm.assert_numpy_array_equal(result, exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_categorical(self):
@@ -1953,15 +1973,18 @@ class TestMode:
     def test_index(self):
         idx = Index([1, 2, 3])
         exp = Series([1, 2, 3], dtype=np.int64)
-        tm.assert_numpy_array_equal(algos.mode(idx), exp.values)
+        result, _ = algos.mode(idx)
+        tm.assert_numpy_array_equal(result, exp.values)
 
         idx = Index([1, "a", "a"])
         exp = Series(["a"], dtype=object)
-        tm.assert_numpy_array_equal(algos.mode(idx), exp.values)
+        result, _ = algos.mode(idx)
+        tm.assert_numpy_array_equal(result, exp.values)
 
         idx = Index([1, 1, 2, 3, 3])
         exp = Series([1, 3], dtype=np.int64)
-        tm.assert_numpy_array_equal(algos.mode(idx), exp.values)
+        result, _ = algos.mode(idx)
+        tm.assert_numpy_array_equal(result, exp.values)
 
         idx = Index(
             ["1 day", "1 day", "-1 day", "-1 day 2 min", "2 min", "2 min"],

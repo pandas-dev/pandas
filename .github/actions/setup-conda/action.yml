@@ -7,10 +7,8 @@ runs:
   using: composite
   steps:
     - name: Install ${{ inputs.environment-file }}
-      uses: mamba-org/setup-micromamba@v1
+      uses: mamba-org/setup-micromamba@v2
       with:
-        # Pinning to avoid 2.0 failures
-        micromamba-version: '1.5.10-0'
         environment-file: ${{ inputs.environment-file }}
         environment-name: test
         condarc-file: ci/.condarc

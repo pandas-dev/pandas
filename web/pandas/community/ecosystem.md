@@ -8,7 +8,7 @@ developers to build powerful and more focused data tools. The creation
 of libraries that complement pandas' functionality also allows pandas
 development to remain focused around its original requirements.
 
-This is an community-maintained list of projects that build on pandas in order
+This is a community-maintained list of projects that build on pandas in order
 to provide tools in the PyData space. The pandas core development team does not necessarily endorse any particular project on this list or have any knowledge of the maintenance status of any particular library.
 
 For a more complete list of projects that depend on pandas, see the [libraries.io usage page for
@@ -29,6 +29,12 @@ Statsmodels provides powerful statistics, econometrics, analysis and
 modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
+
+### [skrub](https://skrub-data.org)
+
+Skrub facilitates machine learning on dataframes. It bridges pandas
+to scikit-learn and related. In particular it facilitates building
+features from dataframes.
 
 ### [Featuretools](https://github.com/alteryx/featuretools/)
 
@@ -158,7 +164,7 @@ df = pd.read_csv("data.csv")
 df  # discover interesting insights!
 ```
 
-By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
+By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
 
 ### [D-Tale](https://github.com/man-group/dtale)
 
@@ -205,7 +211,7 @@ standard output formats (HTML, HTML presentation slides, LaTeX, PDF,
 ReStructuredText, Markdown, Python) through 'Download As' in the web
 interface and `jupyter convert` in a shell.
 
-Pandas DataFrames implement `_repr_html_`and `_repr_latex` methods which
+Pandas DataFrames implement `_repr_html_` and `_repr_latex` methods which
 are utilized by Jupyter Notebook for displaying (abbreviated) HTML or
 LaTeX tables. LaTeX output is properly escaped. (Note: HTML tables may
 or may not be compatible with non-HTML Jupyter output formats.)
@@ -238,6 +244,17 @@ Console](https://docs.spyder-ide.org/current/panes/ipythonconsole.html), and Spy
 [Help pane](https://docs.spyder-ide.org/current/panes/help.html) can retrieve and
 render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
+
+### [marimo](https://marimo.io)
+
+marimo is a reactive notebook for Python and SQL that enhances productivity when working with dataframes. It provides several features to make data manipulation and visualization more interactive and fun:
+
+1. Rich, interactive displays: marimo can display pandas dataframes in interactive tables or charts with filtering and sorting capabilities.
+2. Data selection: Users can select data in tables or pandas-backed plots, and the selections are automatically sent to Python as pandas dataframes.
+3. No-code transformations: Users can interactively transform pandas dataframes using a GUI, without writing code. The generated code can be copied and pasted into the notebook.
+4. Custom filters: marimo allows the creation of pandas-backed filters using UI elements like sliders and dropdowns.
+5. Dataset explorer: marimo automatically discovers and displays all dataframes in the notebook, allowing users to explore and visualize data interactively.
+6. SQL integration: marimo allows users to write SQL queries against any pandas dataframes existing in memory.
 
 ## API
 
@@ -331,7 +348,7 @@ It supports the following data types:
 
 - pandas data types
 - data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
-- data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
+- data types defined in [Table Schema specification](https://datapackage.org/standard/table-schema/)
 
 The interface is always reversible (conversion round trip) with two formats (JSON-NTV and JSON-TableSchema).
 
@@ -457,20 +474,57 @@ df.dtypes
 
 ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/query_builder/).
 
+### [Hugging Face](https://huggingface.co/datasets)
+
+The Hugging Face Dataset Hub provides a large collection of ready-to-use datasets for machine learning shared by the community. The platform offers a user-friendly interface to explore, discover and visualize datasets, and provides tools to easily load and work with these datasets in Python thanks to the [huggingface_hub](https://github.com/huggingface/huggingface_hub) library.
+
+You can access datasets on Hugging Face using `hf://` paths in pandas, in the form `hf://datasets/username/dataset_name/...`.
+
+For example, here is how to load the [stanfordnlp/imdb dataset](https://huggingface.co/datasets/stanfordnlp/imdb):
+
+```python
+import pandas as pd
+
+# Load the IMDB dataset
+df = pd.read_parquet("hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet")
+```
+
+Tip: on a dataset page, click on "Use this dataset" to get the code to load it in pandas.
+
+To save a dataset on Hugging Face you need to [create a public or private dataset](https://huggingface.co/new-dataset) and [login](https://huggingface.co/docs/huggingface_hub/quick-start#login-command), and then you can use `df.to_csv/to_json/to_parquet`:
+
+```python
+# Save the dataset to my Hugging Face account
+df.to_parquet("hf://datasets/username/dataset_name/train.parquet")
+```
+
+You can find more information about the Hugging Face Dataset Hub in the [documentation](https://huggingface.co/docs/hub/en/datasets).
 
 ## Out-of-core
 
-### [Bodo](https://bodo.ai/)
+### [Bodo](https://github.com/bodo-ai/Bodo)
 
-Bodo is a high-performance Python computing engine that automatically parallelizes and
-optimizes your code through compilation using HPC (high-performance computing) techniques.
-Designed to operate with native pandas dataframes, Bodo compiles your pandas code to execute
-across multiple cores on a single machine or distributed clusters of multiple compute nodes efficiently.
-Bodo also makes distributed pandas dataframes queryable with SQL.
 
-The community edition of Bodo is free to use on up to 8 cores. Beyond that, Bodo offers a paid
-enterprise edition. Free licenses of Bodo (for more than 8 cores) are available
-[upon request](https://www.bodo.ai/contact) for academic and non-profit use.
+Bodo is a high-performance compute engine for Python data processing.
+Using an auto-parallelizing just-in-time (JIT) compiler, Bodo simplifies scaling Pandas
+workloads from laptops to clusters without major code changes.
+Under the hood, Bodo relies on MPI-based high-performance computing (HPC) technology—making it
+both easier to use and often much faster than alternatives.
+Bodo also provides a SQL engine that can query distributed pandas dataframes efficiently.
+
+```python
+import pandas as pd
+import bodo
+
+@bodo.jit
+def process_data():
+    df = pd.read_parquet("my_data.pq")
+    df2 = pd.DataFrame({"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)})
+    df2.to_parquet("out.pq")
+
+process_data()
+```
+
 
 ### [Cylon](https://cylondata.org/)
 
@@ -542,7 +596,7 @@ df = pd.read_csv("big.csv")  # use all your cores!
 ### [Pandarallel](https://github.com/nalepae/pandarallel)
 
 Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
-If also displays progress bars.
+It also displays progress bars.
 
 ```python
 from pandarallel import pandarallel
@@ -640,7 +694,7 @@ units aware.
 
 ### [Text Extensions](https://ibm.biz/text-extensions-for-pandas)
 
-Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into Pandas DataFrames.
+Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into pandas DataFrames.
 
 ## Accessors
 

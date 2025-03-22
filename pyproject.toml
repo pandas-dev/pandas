@@ -2,8 +2,8 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python==0.13.1",
-    "meson==1.2.1",
+    "meson-python>=0.13.1",
+    "meson>=1.2.1,<2",
     "wheel",
     "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Force numpy higher than 2.0rc1, so that built wheels are compatible
@@ -45,6 +45,7 @@ classifiers = [
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     'Topic :: Scientific/Engineering'
 ]
 
@@ -159,7 +160,13 @@ free-threaded-support = true
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build.sh"
+before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build_windows.sh"
+before-test = "bash {package}/scripts/cibw_before_test_windows.sh"
+test-command = """
+  set PANDAS_CI='1' && \
+  python -c "import pandas as pd; \
+  pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
+  """
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
@@ -173,13 +180,6 @@ test-command = """
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales"
-
-[[tool.cibuildwheel.overrides]]
-select = "*-win*"
-# We test separately for Windows, since we use
-# the windowsservercore docker image to check if any dlls are
-# missing from the wheel
-test-command = ""
 
 [[tool.cibuildwheel.overrides]]
 # Don't strip wheels on macOS.
@@ -272,8 +272,6 @@ ignore = [
   "B007",
   # controversial
   "B008",
-  # setattr is used to side-step mypy
-  "B009",
   # getattr is used to side-step mypy
   "B010",
   # tests use comparisons but not their returned value
@@ -304,10 +302,6 @@ ignore = [
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
-  # pytest-missing-fixture-name-underscore
-  "PT004",
-  # pytest-incorrect-fixture-name-underscore
-  "PT005",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type
@@ -324,7 +318,8 @@ ignore = [
   "PT019",
   # The following rules may cause conflicts when used with the formatter:
   "ISC001",
-
+  # if-stmt-min-max
+  "PLR1730",
 
   ### TODO: Enable gradually
   # Useless statement
@@ -341,8 +336,10 @@ ignore = [
   "RUF012",
   # type-comparison
   "E721",
-
-  # Additional pylint rules
+  # repeated-equality-comparison
+  "PLR1714",
+  # self-or-cls-assignment
+  "PLW0642",
   # literal-membership
   "PLR6201", # 847 errors
   # Method could be a function, class method, or static method
@@ -363,8 +360,6 @@ ignore = [
   "PLR1733", # 5 errors, it seems like we wannt to ignore these
   # Unnecessary lookup of list item by index
   "PLR1736", # 4 errors, we're currently having inline pylint ignore
-  # empty-comment
-  "PLR2044", # autofixable
   # Unpacking a dictionary in iteration without calling `.items()`
   "PLE1141", # autofixable
   # import-outside-toplevel
@@ -747,5 +742,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru, indx, abd, ABD"
 ignore-regex = 'https://([\w/\.])+'

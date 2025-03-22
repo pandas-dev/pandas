@@ -7,12 +7,11 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import (
     HAS_PYARROW,
     IS64,
     PYPY,
+    is_platform_arm,
 )
 
 from pandas import (
@@ -25,6 +24,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -436,17 +436,24 @@ def test_usage_via_getsizeof():
     assert abs(diff) < 100
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_info_memory_usage_qualified():
+def test_info_memory_usage_qualified(using_infer_string):
     buf = StringIO()
     df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
     df.info(buf=buf)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
-    df = DataFrame(1, columns=list("ab"), index=list("ABC"))
+    df = DataFrame(1, columns=list("ab"), index=Index(list("ABC"), dtype=object))
     df.info(buf=buf)
     assert "+" in buf.getvalue()
+
+    buf = StringIO()
+    df = DataFrame(1, columns=list("ab"), index=Index(list("ABC"), dtype="str"))
+    df.info(buf=buf)
+    if using_infer_string and HAS_PYARROW:
+        assert "+" not in buf.getvalue()
+    else:
+        assert "+" in buf.getvalue()
 
     buf = StringIO()
     df = DataFrame(
@@ -460,7 +467,10 @@ def test_info_memory_usage_qualified():
         1, columns=list("ab"), index=MultiIndex.from_product([range(3), ["foo", "bar"]])
     )
     df.info(buf=buf)
-    assert "+" in buf.getvalue()
+    if using_infer_string and HAS_PYARROW:
+        assert "+" not in buf.getvalue()
+    else:
+        assert "+" in buf.getvalue()
 
 
 def test_info_memory_usage_bug_on_multiindex():
@@ -497,16 +507,15 @@ def test_info_categorical():
     df.info(buf=buf)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
-def test_info_int_columns():
+def test_info_int_columns(using_infer_string):
     # GH#37245
     df = DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])
     buf = StringIO()
     df.info(show_counts=True, buf=buf)
     result = buf.getvalue()
     expected = textwrap.dedent(
-        """\
+        f"""\
         <class 'pandas.DataFrame'>
         Index: 2 entries, A to B
         Data columns (total 2 columns):
@@ -515,26 +524,31 @@ def test_info_int_columns():
          0   1       2 non-null      int64
          1   2       2 non-null      int64
         dtypes: int64(2)
-        memory usage: 48.0+ bytes
+        memory usage: {"50.0" if using_infer_string and HAS_PYARROW else "48.0+"} bytes
         """
     )
     assert result == expected
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
-def test_memory_usage_empty_no_warning():
+def test_memory_usage_empty_no_warning(using_infer_string):
     # GH#50066
     df = DataFrame(index=["a", "b"])
     with tm.assert_produces_warning(None):
         result = df.memory_usage()
-    expected = Series(16 if IS64 else 8, index=["Index"])
+    if using_infer_string and HAS_PYARROW:
+        value = 18
+    else:
+        value = 16 if IS64 else 8
+    expected = Series(value, index=["Index"])
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.single_cpu
 def test_info_compute_numba():
     # GH#51922
-    pytest.importorskip("numba")
+    numba = pytest.importorskip("numba")
+    if Version(numba.__version__) == Version("0.61") and is_platform_arm():
+        pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
     df = DataFrame([[1, 2], [3, 4]])
 
     with option_context("compute.use_numba", True):

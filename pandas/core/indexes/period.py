@@ -20,6 +20,7 @@ from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_integer
@@ -81,6 +82,7 @@ def _new_PeriodIndex(cls, **d):
     wrap=True,
 )
 @inherit_names(["is_leap_year"], PeriodArray)
+@set_module("pandas")
 class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.

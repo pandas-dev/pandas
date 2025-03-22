@@ -595,8 +595,7 @@ class PythonParser(ParserBase):
                         joi = list(map(str, header[:-1] if have_mi_columns else header))
                         msg = f"[{','.join(joi)}], len of {len(joi)}, "
                         raise ValueError(
-                            f"Passed header={msg}"
-                            f"but only {self.line_pos} lines in file"
+                            f"Passed header={msg}but only {self.line_pos} lines in file"
                         ) from err
 
                     # We have an empty file, so check
@@ -1052,8 +1051,9 @@ class PythonParser(ParserBase):
             for line in lines
             if (
                 len(line) > 1
-                or len(line) == 1
-                and (not isinstance(line[0], str) or line[0].strip())
+                or (
+                    len(line) == 1 and (not isinstance(line[0], str) or line[0].strip())
+                )
             )
         ]
         return ret
@@ -1203,7 +1203,7 @@ class PythonParser(ParserBase):
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            content.append(new_l)
+                            content.append(new_l)  # pyright: ignore[reportArgumentType]
                     elif self.on_bad_lines in (
                         self.BadLineHandleMethod.ERROR,
                         self.BadLineHandleMethod.WARN,
@@ -1218,8 +1218,7 @@ class PythonParser(ParserBase):
 
             for row_num, actual_len in bad_lines:
                 msg = (
-                    f"Expected {col_len} fields in line {row_num + 1}, saw "
-                    f"{actual_len}"
+                    f"Expected {col_len} fields in line {row_num + 1}, saw {actual_len}"
                 )
                 if (
                     self.delimiter

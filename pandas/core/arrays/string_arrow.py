@@ -17,6 +17,7 @@ from pandas._libs import (
 from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
+    pa_version_under16p0,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -69,6 +70,10 @@ def _chk_pyarrow_available() -> None:
     if pa_version_under10p1:
         msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
+
+
+def _is_string_view(typ):
+    return not pa_version_under16p0 and pa.types.is_string_view(typ)
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
@@ -128,11 +133,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         _chk_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
             pa.types.is_string(values.type)
+            or _is_string_view(values.type)
             or (
                 pa.types.is_dictionary(values.type)
                 and (
                     pa.types.is_string(values.type.value_type)
                     or pa.types.is_large_string(values.type.value_type)
+                    or _is_string_view(values.type.value_type)
                 )
             )
         ):
@@ -216,12 +223,33 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if self.dtype.na_value is np.nan and item is np.nan:
             item = libmissing.NA
         if not isinstance(item, str) and item is not libmissing.NA:
-            raise TypeError("Scalar must be NA or str")
+            raise TypeError(
+                f"Invalid value '{item}' for dtype 'str'. Value should be a "
+                f"string or missing value, got '{type(item).__name__}' instead."
+            )
         return super().insert(loc, item)
 
-    def _convert_bool_result(self, values):
+    def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
+        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            na = bool(na)
+
         if self.dtype.na_value is np.nan:
-            return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
+            if na is lib.no_default or isna(na):
+                # NaN propagates as False
+                values = values.fill_null(False)
+            else:
+                values = values.fill_null(na)
+            return values.to_numpy()
+        else:
+            if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+                values = values.fill_null(na)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
@@ -230,13 +258,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             if isna(value):
                 value = None
             elif not isinstance(value, str):
-                raise TypeError("Scalar must be NA or str")
+                raise TypeError(
+                    f"Invalid value '{value}' for dtype 'str'. Value should be a "
+                    f"string or missing value, got '{type(value).__name__}' instead."
+                )
         else:
             value = np.array(value, dtype=object, copy=True)
             value[isna(value)] = None
             for v in value:
                 if not (v is None or isinstance(v, str)):
-                    raise TypeError("Must provide strings")
+                    raise TypeError(
+                        "Invalid value for dtype 'str'. Value should be a "
+                        "string or missing value (or array of those)."
+                    )
         return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
@@ -306,21 +340,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_slice = ArrowStringArrayMixin._str_slice
 
     def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na=lib.no_default,
+        regex: bool = True,
     ):
         if flags:
             return super()._str_contains(pat, case, flags, na, regex)
-
-        if not isna(na):
-            if not isinstance(na, bool):
-                # GH#59561
-                warnings.warn(
-                    "Allowing a non-bool 'na' in obj.str.contains is deprecated "
-                    "and will raise in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                na = bool(na)
 
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
@@ -415,11 +443,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 arr = pc.or_kleene(nas, pc.not_equal(self._pa_array, ""))
             else:
                 arr = pc.not_equal(self._pa_array, "")
-            return ArrowExtensionArray(arr)._reduce(
+            result = ArrowExtensionArray(arr)._reduce(
                 name, skipna=skipna, keepdims=keepdims, **kwargs
             )
+            if keepdims:
+                # ArrowExtensionArray will return a length-1 bool[pyarrow] array
+                return result.astype(np.bool_)
+            return result
 
-        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("min", "max", "sum", "argmin", "argmax"):
+            result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        else:
+            raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
             return self._convert_int_result(result)
         elif isinstance(result, pa.Array):
@@ -444,6 +480,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             else:
                 return result.to_numpy(np.bool_, na_value=False)
         return result
+
+    def __pos__(self) -> Self:
+        raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):

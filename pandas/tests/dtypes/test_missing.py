@@ -321,7 +321,7 @@ class TestIsNA:
 
     def test_decimal(self):
         # scalars GH#23530
-        a = Decimal(1.0)
+        a = Decimal("1.0")
         assert isna(a) is False
         assert notna(a) is True
 

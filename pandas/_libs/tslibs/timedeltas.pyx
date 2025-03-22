@@ -1,6 +1,7 @@
 import collections
 import warnings
 
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 cimport cython
@@ -997,8 +998,9 @@ class MinMaxReso:
     and Timedelta class.  On an instance, these depend on the object's _reso.
     On the class, we default to the values we would get with nanosecond _reso.
     """
-    def __init__(self, name):
+    def __init__(self, name, docstring):
         self._name = name
+        self.__doc__ = docstring
 
     def __get__(self, obj, type=None):
         if self._name == "min":
@@ -1011,9 +1013,13 @@ class MinMaxReso:
 
         if obj is None:
             # i.e. this is on the class, default to nanos
-            return Timedelta(val)
+            result = Timedelta(val)
         else:
-            return Timedelta._from_value_and_reso(val, obj._creso)
+            result = Timedelta._from_value_and_reso(val, obj._creso)
+
+        result.__doc__ = self.__doc__
+
+        return result
 
     def __set__(self, obj, value):
         raise AttributeError(f"{self._name} is not settable.")
@@ -1032,9 +1038,75 @@ cdef class _Timedelta(timedelta):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
-    min = MinMaxReso("min")
-    max = MinMaxReso("max")
-    resolution = MinMaxReso("resolution")
+
+    _docstring_min = """
+    Returns the minimum bound possible for Timedelta.
+
+    This property provides access to the smallest possible value that
+    can be represented by a Timedelta object.
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.max: Returns the maximum bound possible for Timedelta.
+    Timedelta.resolution: Returns the smallest possible difference between
+        non-equal Timedelta objects.
+
+    Examples
+    --------
+    >>> pd.Timedelta.min
+    -106752 days +00:12:43.145224193
+    """
+
+    _docstring_max = """
+    Returns the maximum bound possible for Timedelta.
+
+    This property provides access to the largest possible value that
+    can be represented by a Timedelta object.
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.min: Returns the minimum bound possible for Timedelta.
+    Timedelta.resolution: Returns the smallest possible difference between
+        non-equal Timedelta objects.
+
+    Examples
+    --------
+    >>> pd.Timedelta.max
+    106751 days 23:47:16.854775807
+    """
+
+    _docstring_reso = """
+    Returns the smallest possible difference between non-equal Timedelta objects.
+
+    The resolution value is determined by the underlying representation of time
+    units and is equivalent to Timedelta(nanoseconds=1).
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.max: Returns the maximum bound possible for Timedelta.
+    Timedelta.min: Returns the minimum bound possible for Timedelta.
+
+    Examples
+    --------
+    >>> pd.Timedelta.resolution
+    0 days 00:00:00.000000001
+    """
+
+    min = MinMaxReso("min", _docstring_min)
+    max = MinMaxReso("max", _docstring_max)
+    resolution = MinMaxReso("resolution", _docstring_reso)
 
     @property
     def value(self):
@@ -1739,7 +1811,8 @@ cdef class _Timedelta(timedelta):
         Format the Timedelta as ISO 8601 Duration.
 
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
-        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
+        values. See Wikipedia:
+        `ISO 8601 § Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
 
         Returns
         -------
@@ -1854,7 +1927,7 @@ cdef class _Timedelta(timedelta):
 
 # Python front end to C extension type _Timedelta
 # This serves as the box for timedelta64
-
+@set_module("pandas")
 class Timedelta(_Timedelta):
     """
     Represents a duration, the difference between two dates or times.
@@ -1864,10 +1937,12 @@ class Timedelta(_Timedelta):
 
     Parameters
     ----------
-    value : Timedelta, timedelta, np.timedelta64, str, or int
+    value : Timedelta, timedelta, np.timedelta64, str, int or float
         Input value.
     unit : str, default 'ns'
-        Denote the unit of the input, if input is an integer.
+        If input is an integer, denote the unit of the input.
+        If input is a float, denote the unit of the integer parts.
+        The decimal parts with resolution lower than 1 nanosecond are ignored.
 
         Possible values:
 
@@ -1914,7 +1989,7 @@ class Timedelta(_Timedelta):
     --------
     Here we initialize Timedelta object with both value and unit
 
-    >>> td = pd.Timedelta(1, "d")
+    >>> td = pd.Timedelta(1, "D")
     >>> td
     Timedelta('1 days 00:00:00')
 
@@ -2176,8 +2251,10 @@ class Timedelta(_Timedelta):
         Parameters
         ----------
         freq : str
-            Frequency string indicating the ceiling resolution.
-            It uses the same units as class constructor :class:`~pandas.Timedelta`.
+            Frequency string indicating the ceiling resolution. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
 
         Returns
         -------

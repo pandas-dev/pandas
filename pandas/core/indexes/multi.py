@@ -9,6 +9,7 @@ from collections.abc import (
     Sequence,
 )
 from functools import wraps
+from itertools import zip_longest
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
@@ -53,6 +54,7 @@ from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -66,6 +68,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -194,6 +197,7 @@ def names_compat(meth: F) -> F:
     return cast(F, new_meth)
 
 
+@set_module("pandas")
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.
@@ -209,8 +213,6 @@ class MultiIndex(Index):
         level).
     names : optional sequence of objects
         Names for each of the index levels. (name is accepted for compat).
-    dtype : Numpy dtype or pandas type, optional
-        Data type for the MultiIndex.
     copy : bool, default False
         Copy the meta-data.
     name : Label
@@ -302,7 +304,6 @@ class MultiIndex(Index):
         codes=None,
         sortorder=None,
         names=None,
-        dtype=None,
         copy: bool = False,
         name=None,
         verify_integrity: bool = True,
@@ -588,7 +589,7 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrs = zip(*tuples)
+            arrs = zip_longest(*tuples, fillvalue=np.nan)
             arrays = cast(list[Sequence[Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
@@ -1391,6 +1392,15 @@ class MultiIndex(Index):
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """the array interface, return my values"""
+        if copy is False:
+            # self.values is always a newly construct array, so raise.
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        if copy is True:
+            # explicit np.array call to ensure a copy is made and unique objects
+            # are returned, because self.values is cached
+            return np.array(self.values, dtype=dtype)
         return self.values
 
     def view(self, cls=None) -> Self:
@@ -1416,10 +1426,12 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """return a boolean if we need a qualified .info display"""
 
-        def f(level) -> bool:
-            return "mixed" in level or "string" in level or "unicode" in level
+        def f(dtype) -> bool:
+            return is_object_dtype(dtype) or (
+                is_string_dtype(dtype) and dtype.storage == "python"
+            )
 
-        return any(f(level.inferred_type) for level in self.levels)
+        return any(f(level.dtype) for level in self.levels)
 
     # Cannot determine type of "memory_usage"
     @doc(Index.memory_usage)  # type: ignore[has-type]
@@ -1746,7 +1758,7 @@ class MultiIndex(Index):
         """
         fillna is not implemented for MultiIndex
         """
-        raise NotImplementedError("isna is not defined for MultiIndex")
+        raise NotImplementedError("fillna is not defined for MultiIndex")
 
     @doc(Index.dropna)
     def dropna(self, how: AnyAll = "any") -> MultiIndex:
@@ -2664,7 +2676,7 @@ class MultiIndex(Index):
 
     def _recode_for_new_levels(
         self, new_levels, copy: bool = True
-    ) -> Generator[np.ndarray, None, None]:
+    ) -> Generator[np.ndarray]:
         if len(new_levels) > self.nlevels:
             raise AssertionError(
                 f"Length of new_levels ({len(new_levels)}) "
@@ -4070,11 +4082,10 @@ class MultiIndex(Index):
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
                 # other codes
-                if isna(k):  # GH 59003
+                lev_loc = len(level)
+                level = level.insert(lev_loc, k)
+                if isna(level[lev_loc]):  # GH 59003, 60388
                     lev_loc = -1
-                else:
-                    lev_loc = len(level)
-                    level = level.insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 
