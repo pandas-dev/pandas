@@ -1724,11 +1724,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # preserve the kind of exception that raised
             raise type(err)(msg) from err
 
-        if ser.dtype == object:
+        dtype = ser.dtype
+        if dtype == object:
             res_values = res_values.astype(object, copy=False)
-        elif is_string_dtype(ser.dtype) and how in ["min", "max"]:
-            dtype = ser.dtype
-            string_array_cls = dtype.construct_array_type()
+        elif is_string_dtype(dtype) and how in ["min", "max"]:
+            # mypy doesn't infer dtype is an ExtensionDtype
+            string_array_cls = dtype.construct_array_type()  # type: ignore[union-attr]
             res_values = string_array_cls._from_sequence(res_values, dtype=dtype)
 
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
