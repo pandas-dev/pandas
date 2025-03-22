@@ -252,7 +252,7 @@ def set_option(*args) -> None:
 
     Dictionary Input:
 
-    >>> pd.set_option({"display.max_columns": 4, "display.precision", 1})
+    >>> pd.set_option({"display.max_columns": 4, "display.precision": 1})
     >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
     >>> df
     0  1  ...  3   4
