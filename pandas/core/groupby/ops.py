@@ -50,6 +50,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.arrays import Categorical
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -954,18 +955,24 @@ class BaseGrouper:
         -------
         np.ndarray or ExtensionArray
         """
+        result = self._aggregate_series_pure_python(obj, func)
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
 
-        if not isinstance(obj._values, np.ndarray):
+        if isinstance(obj._values, ArrowExtensionArray):
+            from pandas.core.dtypes.common import is_string_dtype
+
+            if not is_string_dtype(obj.dtype) or is_string_dtype(npvalues):
+                out = maybe_cast_pointwise_result(
+                    npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
+                )
+            else:
+                out = npvalues
+
+        elif not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
-            preserve_dtype = True
-
-        result = self._aggregate_series_pure_python(obj, func)
-
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
             out = npvalues
