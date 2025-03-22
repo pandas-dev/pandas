@@ -961,7 +961,11 @@ class BaseGrouper:
         if isinstance(obj._values, ArrowExtensionArray):
             from pandas.core.dtypes.common import is_string_dtype
 
-            if not is_string_dtype(obj.dtype) or is_string_dtype(npvalues):
+            # When obj.dtype is a string, any object can be cast. Only do so if the
+            # UDF returned strings or NA values.
+            if not is_string_dtype(obj.dtype) or is_string_dtype(
+                npvalues[~isna(npvalues)]
+            ):
                 out = maybe_cast_pointwise_result(
                     npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
                 )
