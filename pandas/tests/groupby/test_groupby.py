@@ -26,7 +26,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
-from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 import pandas.core.common as com
 
 pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
@@ -2435,30 +2434,28 @@ def test_rolling_wrong_param_min_period():
 
 def test_by_column_values_with_same_starting_value(any_string_dtype):
     # GH29635
+    dtype = any_string_dtype
     df = DataFrame(
         {
             "Name": ["Thomas", "Thomas", "Thomas John"],
             "Credit": [1200, 1300, 900],
-            "Mood": Series(["sad", "happy", "happy"], dtype=any_string_dtype),
+            "Mood": Series(["sad", "happy", "happy"], dtype=dtype),
         }
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
 
     result = df.groupby(["Name"]).agg(aggregate_details)
-    expected_result = DataFrame(
+    expected = DataFrame(
         {
             "Mood": [["happy", "sad"], "happy"],
             "Credit": [2500, 900],
             "Name": ["Thomas", "Thomas John"],
         },
     ).set_index("Name")
-    if dtype == "string[pyarrow_numpy]":
-        import pyarrow as pa
-
-        mood_values = ArrowStringArrayNumpySemantics(pa.array(["happy", "sad"]))
-        expected_result["Mood"] = [mood_values, "happy"]
-        expected_result["Mood"] = expected_result["Mood"].astype(dtype)
-    tm.assert_frame_equal(result, expected_result)
+    if getattr(dtype, "storage", None) == "pyarrow":
+        mood_values = pd.array(["happy", "sad"], dtype=dtype)
+        expected["Mood"] = [mood_values, "happy"]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_none_in_first_mi_level():

@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import SpecificationError
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -23,6 +24,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.arrays import ArrowExtensionArray
 from pandas.core.groupby.grouper import Grouping
 
 
@@ -1812,6 +1814,9 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
 @pytest.mark.parametrize(
     "input_dtype, output_dtype",
     [
+        # With NumPy arrays, the results from the UDF would be e.g. np.float32 scalars
+        # which we can therefore preserve. However with PyArrow arrays, the results are
+        # Python scalars so we have no information about size or uint vs int.
         ("float[pyarrow]", "double[pyarrow]"),
         ("int64[pyarrow]", "int64[pyarrow]"),
         ("uint64[pyarrow]", "int64[pyarrow]"),
@@ -1819,9 +1824,8 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
     ],
 )
 def test_agg_lambda_pyarrow_dtype_conversion(input_dtype, output_dtype):
-    # GH#53030
-    # test numpy dtype conversion back to pyarrow dtype
-    # complexes, floats, ints, uints, object
+    # GH#59601
+    # Test PyArrow dtype conversion back to PyArrow dtype
     df = DataFrame(
         {
             "A": ["c1", "c2", "c3", "c1", "c2", "c3"],
@@ -1839,7 +1843,7 @@ def test_agg_lambda_pyarrow_dtype_conversion(input_dtype, output_dtype):
 
 
 def test_agg_lambda_complex128_dtype_conversion():
-    # GH#53030
+    # GH#59601
     df = DataFrame(
         {"A": ["c1", "c2", "c3"], "B": pd.array([100, 200, 255], "int64[pyarrow]")}
     )
@@ -1877,8 +1881,11 @@ def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
 def test_agg_lambda_pyarrow_struct_to_object_dtype_conversion():
     # GH#53030
+    import pyarrow as pa
+
     df = DataFrame(
         {
             "A": ["c1", "c2", "c3"],
@@ -1888,8 +1895,10 @@ def test_agg_lambda_pyarrow_struct_to_object_dtype_conversion():
     gb = df.groupby("A")
     result = gb.agg(lambda x: {"number": 1})
 
+    arr = pa.array([{"number": 1}, {"number": 1}, {"number": 1}])
     expected = DataFrame(
-        {"B": pd.array([{"number": 1}, {"number": 1}, {"number": 1}], dtype="object")},
+        {"B": ArrowExtensionArray(arr)},
         index=Index(["c1", "c2", "c3"], name="A"),
     )
+
     tm.assert_frame_equal(result, expected)

@@ -44,7 +44,6 @@ from pandas.core.dtypes.common import (
     ensure_uint64,
     is_1d_only_ea_dtype,
 )
-from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -956,19 +955,22 @@ class BaseGrouper:
         -------
         np.ndarray or ExtensionArray
         """
-
         result = self._aggregate_series_pure_python(obj, func)
         npvalues = lib.maybe_convert_objects(result, try_float=False)
 
         if isinstance(obj._values, ArrowExtensionArray):
-            out = maybe_cast_pointwise_result(
-                npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
-            )
-            import pyarrow as pa
+            from pandas.core.dtypes.common import is_string_dtype
 
-            if isinstance(out.dtype, ArrowDtype) and pa.types.is_struct(
-                out.dtype.pyarrow_dtype
-            ):
+            if not is_string_dtype(obj.dtype) or is_string_dtype(npvalues):
+                out = maybe_cast_pointwise_result(
+                    npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
+                )
+
+                # if isinstance(out.dtype, ArrowDtype) and pa.types.is_struct(
+                #     out.dtype.pyarrow_dtype
+                # ):
+                #     out = npvalues
+            else:
                 out = npvalues
 
         elif not isinstance(obj._values, np.ndarray):
