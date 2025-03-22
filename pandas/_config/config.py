@@ -263,11 +263,36 @@ def set_option(*args) -> None:
                 opt.cb(key)
         return
 
-    # must at least 1 arg deal with constraints later
+    # Handle single option-value pair
+    if len(args) == 2:
+        key = _get_single_key(args[0])
+        v = args[1]
+
+        opt = _get_registered_option(key)
+        if opt and opt.validator:
+            opt.validator(v)
+
+        # walk the nested dict
+        root, k_root = _get_root(key)
+        root[k_root] = v
+
+        if opt.cb:
+            opt.cb(key)
+        return
+
+    # Deprecated (# GH 61093): multiple option-value pairs as separate arguments
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
         raise ValueError("Must provide an even number of non-keyword arguments")
 
+    warnings.warn(
+        "Setting multiple options using multiple arguments is deprecated and will be "
+        "removed in a future version. Use a dictionary instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
+
+    # Backward compatibility
     for k, v in zip(args[::2], args[1::2]):
         key = _get_single_key(k)
 
