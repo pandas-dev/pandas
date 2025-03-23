@@ -9153,8 +9153,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
 
-        if level is None and by is None:
-            raise TypeError("You have to supply one of 'by' and 'level'")
+        if level is None and (by is None or by == []):
+            by = Series(0, index=self.index)
+            # raise TypeError("You have to supply one of 'by' and 'level'")
 
         return DataFrameGroupBy(
             obj=self,
