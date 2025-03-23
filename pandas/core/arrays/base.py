@@ -592,7 +592,17 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-        result = np.asarray(self, dtype=dtype)
+        if dtype == "datetime64" and self.dtype.kind == "M":
+            # Make sure NaT is not tz_aware
+            result = np.array(
+                [
+                    np.datetime64("NaT", "s") if isna(x) else x.tz_localize(None).asm8
+                    for x in self
+                ],
+                dtype="datetime64[s]",
+            )
+        else:
+            result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:
