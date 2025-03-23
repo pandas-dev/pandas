@@ -62,6 +62,7 @@ int object_is_series_type(PyObject *obj);
 int object_is_index_type(PyObject *obj);
 int object_is_nat_type(PyObject *obj);
 int object_is_na_type(PyObject *obj);
+int object_is_ndtypes_type(PyObject *obj);
 
 typedef struct __NpyArrContext {
   PyObject *array;
@@ -392,6 +393,24 @@ static const char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
   Py_ssize_t s_len;
   char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
   *len = s_len;
+
+  return outValue;
+}
+
+static const char *PyNpyDtypesToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
+                                             size_t *len) {
+  PyObject *obj = (PyObject *)_obj;
+  PyObject *str = PyObject_Str(obj);
+
+  if (str == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
+
+  Py_ssize_t s_len;
+  char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
+  *len = s_len;
+  Py_DECREF(str);
 
   return outValue;
 }
@@ -1582,6 +1601,10 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     goto INVALID;
   } else if (object_is_na_type(obj)) {
     tc->type = JT_NULL;
+    return;
+  } else if (object_is_ndtypes_type(obj)) {
+    tc->type = JT_UTF8;
+    pc->PyTypeToUTF8 = PyNpyDtypesToUTF8Callback;
     return;
   }
 

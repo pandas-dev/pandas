@@ -211,6 +211,16 @@ int object_is_na_type(PyObject *obj) {
   }
   return result;
 }
+
+int object_is_ndtypes_type(PyObject * obj){
+  PyObject * ndtype = (PyObject*)&PyArrayDescr_Type;
+  int result = PyObject_IsInstance(obj, ndtype);
+  if (result == -1) {
+    PyErr_Clear();
+    return 0;
+  }
+  return result;
+}
 #else
 /* Used in objToJSON.c */
 int object_is_decimal_type(PyObject *obj) {
