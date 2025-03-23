@@ -9155,7 +9155,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         if level is None and (by is None or by == []):
             by = Series(0, index=self.index)
-            # raise TypeError("You have to supply one of 'by' and 'level'")
 
         return DataFrameGroupBy(
             obj=self,

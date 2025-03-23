@@ -1975,7 +1975,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if level is None and (by is None or by == []):
             by = Series(0, index=self.index)
-            # raise TypeError("You have to supply one of 'by' and 'level'")
         if not as_index:
             raise TypeError("as_index=False only valid with DataFrame")
 
