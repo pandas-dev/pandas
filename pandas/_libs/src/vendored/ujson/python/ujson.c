@@ -212,8 +212,8 @@ int object_is_na_type(PyObject *obj) {
   return result;
 }
 
-int object_is_ndtypes_type(PyObject * obj){
-  PyObject * ndtype = (PyObject*)&PyArrayDescr_Type;
+int object_is_ndtypes_type(PyObject *obj) {
+  PyObject *ndtype = (PyObject *)&PyArrayDescr_Type;
   int result = PyObject_IsInstance(obj, ndtype);
   if (result == -1) {
     PyErr_Clear();

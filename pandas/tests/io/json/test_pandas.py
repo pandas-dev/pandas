@@ -2311,3 +2311,19 @@ def test_large_number():
     )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dataframe, expected_json",
+    [
+        (DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}), '{"A":"int64","B":"int64"}'),
+        (
+            DataFrame({"X": [1.1, 2.2], "Y": ["a", "b"]}),
+            '{"X":"float64","Y":"object"}',
+        ),
+    ],
+)
+def test_dtypes_to_json(dataframe: DataFrame, expected_json):
+    # GH 61170
+    dtypes_json = dataframe.dtypes.to_json()
+    assert json.loads(dtypes_json) == json.loads(expected_json)
