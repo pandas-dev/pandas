@@ -2314,16 +2314,13 @@ def test_large_number():
 
 
 @pytest.mark.parametrize(
-    "dataframe, expected_json",
+    "df",
     [
-        (DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}), '{"A":"int64","B":"int64"}'),
-        (
-            DataFrame({"X": [1.1, 2.2], "Y": ["a", "b"]}),
-            '{"X":"float64","Y":"object"}',
-        ),
+        DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+        DataFrame({"X": [1.1, 2.2], "Y": ["a", "b"]}),
     ],
 )
-def test_dtypes_to_json(dataframe: DataFrame, expected_json):
-    # GH 61170
-    dtypes_json = dataframe.dtypes.to_json()
-    assert json.loads(dtypes_json) == json.loads(expected_json)
+def test_dtypes_to_json_consistency(df: DataFrame):
+    expected = df.dtypes.apply(str).to_json()
+    result = df.dtypes.to_json()
+    assert json.loads(result) == json.loads(expected)
