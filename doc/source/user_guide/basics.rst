@@ -36,7 +36,7 @@ of elements to display is five, but you may pass a custom number.
 Attributes and underlying data
 ------------------------------
 
-pandas objects have a number of attributes enabling you to access the metadata
+pandas objects have a number of attributes enabling you to access the metadata.
 
 * **shape**: gives the axis dimensions of the object, consistent with ndarray
 * Axis labels
@@ -59,7 +59,7 @@ NumPy's type system to add support for custom arrays
 (see :ref:`basics.dtypes`).
 
 To get the actual data inside a :class:`Index` or :class:`Series`, use
-the ``.array`` property
+the ``.array`` property.
 
 .. ipython:: python
 
@@ -88,18 +88,18 @@ NumPy doesn't have a dtype to represent timezone-aware datetimes, so there
 are two possibly useful representations:
 
 1. An object-dtype :class:`numpy.ndarray` with :class:`Timestamp` objects, each
-   with the correct ``tz``
+   with the correct ``tz``.
 2. A ``datetime64[ns]`` -dtype :class:`numpy.ndarray`, where the values have
-   been converted to UTC and the timezone discarded
+   been converted to UTC and the timezone discarded.
 
-Timezones may be preserved with ``dtype=object``
+Timezones may be preserved with ``dtype=object``:
 
 .. ipython:: python
 
    ser = pd.Series(pd.date_range("2000", periods=2, tz="CET"))
    ser.to_numpy(dtype=object)
 
-Or thrown away with ``dtype='datetime64[ns]'``
+Or thrown away with ``dtype='datetime64[ns]'``:
 
 .. ipython:: python
 
