@@ -81,7 +81,14 @@ def test_mask_inplace():
 def test_mask_na(dtype):
     # We should not be filling pd.NA. See GH#60729
     series = Series([None, 1, 2, None, 3, 4, None], dtype=dtype)
-    result = series.mask(series <= 2, -99)
+    cond = series <= 2
     expected = Series([None, -99, -99, None, 3, 4, None], dtype=dtype)
 
+    result = series.mask(cond, -99)
+    tm.assert_series_equal(result, expected)
+
+    result = series.mask(cond.to_list(), expected)
+    tm.assert_series_equal(result, expected)
+
+    result = series.mask(cond.to_numpy(), expected)
     tm.assert_series_equal(result, expected)
