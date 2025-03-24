@@ -438,9 +438,7 @@ def test_resample_size_empty_dataframe(freq, index):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "index", [DatetimeIndex([]), TimedeltaIndex([])]
-)
+@pytest.mark.parametrize("index", [DatetimeIndex([]), TimedeltaIndex([])])
 @pytest.mark.parametrize("freq", ["D", "h"])
 @pytest.mark.parametrize(
     "method", ["ffill", "bfill", "nearest", "asfreq", "interpolate", "mean"]
@@ -456,6 +454,7 @@ def test_resample_apply_empty_dataframe(index, freq, method):
     expected = DataFrame([], index=expected_index)
 
     tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "index",
