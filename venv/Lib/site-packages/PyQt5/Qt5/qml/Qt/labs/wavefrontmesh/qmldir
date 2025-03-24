@@ -1,4 +1,0 @@
-module Qt.labs.wavefrontmesh
-plugin qmlwavefrontmeshplugin
-classname QmlWavefrontMeshPlugin
-typeinfo plugins.qmltypes

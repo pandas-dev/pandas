@@ -1,2 +1,0 @@
-[pytest11]
-localserver = pytest_localserver.plugin
