@@ -1,0 +1,109 @@
+Metadata-Version: 2.1
+Name: ndindex
+Version: 1.9.2
+Summary: A Python library for manipulating indices of ndarrays.
+Home-page: https://quansight-labs.github.io/ndindex/
+Author: Quansight Labs
+License: MIT
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: arrays
+Requires-Dist: numpy ; extra == 'arrays'
+
+# ndindex
+
+![ndindex logo](docs/_static/ndindex_logo_white_bg.svg)
+
+A Python library for manipulating indices of ndarrays.
+
+The documentation for ndindex can be found at https://quansight-labs.github.io/ndindex/
+
+ndindex is a library that allows representing and manipulating objects that
+can be valid indices to numpy arrays, i.e., slices, integers, ellipses,
+None, integer and boolean arrays, and tuples thereof. The goals of the library
+are
+
+- Provide a uniform API to manipulate these objects. Unlike the standard index
+  objects themselves like `slice`, `int`, and `tuple`, which do not share any
+  methods in common related to being indices, ndindex classes can all be
+  manipulated uniformly. For example, `idx.args` always gives the arguments
+  used to construct `idx`.
+
+- Give 100% correct semantics as defined by numpy's ndarray. This means that
+  ndindex will not make a transformation on an index object unless it is
+  correct for all possible input array shapes. The only exception to this rule
+  is that ndindex assumes that any given index will not raise IndexError (for
+  instance, from an out of bounds integer index or from too few dimensions).
+  For those operations where the array shape is known, there is a `reduce()`
+  method to reduce an index to a simpler index that is equivalent for the
+  given shape.
+
+- Enable useful transformation and manipulation functions on index objects.
+
+## Examples
+
+**Canonicalize a slice (over a given shape, or independent of array shape)**
+
+
+```py
+>>> from ndindex import *
+>>> Slice(-2, 10, 3).reduce()
+Slice(-2, 10, 2)
+>>> Slice(-2, 10, 3).reduce(5)
+Slice(3, 4, 1)
+```
+
+**Compute the maximum length of a sliced axis**
+
+
+```py
+>>> import numpy as np
+>>> len(Slice(2, 10, 3))
+3
+>>> len(np.arange(10)[2:10:3])
+3
+```
+
+**Compute the shape of an array of shape `(10, 20)` indexed by `[0, 0:10]`**
+
+```py
+>>> Tuple(0, slice(0, 10)).newshape((10, 20))
+(10,)
+>>> np.ones((10, 20))[0, 0:10].shape
+(10,)
+```
+
+**Check if an indexed array would be empty**
+
+```py
+>>> Tuple(0, ..., Slice(10, 20)).isempty((3, 4, 5))
+True
+>>> np.ones((3, 4, 5))[0,...,10:20]
+array([], shape=(4, 0), dtype=float64)
+```
+
+See the [documentation](https://quansight-labs.github.io/ndindex/) for full details
+on what ndindex can do.
+
+## License
+
+[MIT License](LICENSE)
+
+## Acknowledgments
+
+ndindex development is supported by [Quansight
+Labs](https://labs.quansight.org/) and is sponsored in part by [the D. E.
+Shaw group](https://www.deshaw.com/). The D. E. Shaw group collaborates with
+Quansight on numerous open source projects, including Numba, Dask and Project
+Jupyter.
+
+<p align="center">
+<a href="https://labs.quansight.org/"><img src="https://labs.quansight.org/images/QuansightLabs_logo_V2.png" alt="https://labs.quansight.org/"
+width="200"></a>
+<a href="https://www.deshaw.com"><img src="https://www.deshaw.com/assets/logos/blue_logo_417x125.png" alt="https://www.deshaw.com"
+width="200"></a>
+</p>

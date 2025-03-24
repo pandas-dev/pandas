@@ -1,0 +1,14 @@
+prefix=D:/a/python-blosc/python-blosc/_skbuild/win-amd64-3.12/cmake-install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+sharedlibdir=${libdir}
+includedir=${prefix}/include
+
+Name: blosc
+Description: A blocking, shuffling and lossless compression library
+URL: https://blosc.org/
+Version: 1.21.6
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lblosc
+Cflags: -I${includedir}
