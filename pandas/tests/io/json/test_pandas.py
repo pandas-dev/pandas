@@ -2321,6 +2321,7 @@ def test_large_number():
     ],
 )
 def test_dtypes_to_json_consistency(df: DataFrame):
+    # GH 61170
     expected = df.dtypes.apply(str).to_json()
     result = df.dtypes.to_json()
     assert json.loads(result) == json.loads(expected)
