@@ -407,10 +407,11 @@ static const char *PyNpyDtypesToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
     return NULL;
   }
 
+  GET_TC(tc)->newObj = str;
+
   Py_ssize_t s_len;
   char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
   *len = s_len;
-  Py_DECREF(str);
 
   return outValue;
 }
