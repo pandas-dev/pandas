@@ -1855,7 +1855,6 @@ class BarPlot(MPLPlot):
         self.bar_width = width
         self._align = align
         self._position = position
-        self.tick_pos = np.arange(len(data))
 
         if is_list_like(bottom):
             bottom = np.array(bottom)
@@ -1867,6 +1866,12 @@ class BarPlot(MPLPlot):
         self.log = log
 
         MPLPlot.__init__(self, data, **kwargs)
+
+        self.tick_pos = (
+            np.array(self.ax.xaxis.convert_units(self._get_xticks()))
+            if isinstance(data.index, ABCPeriodIndex)
+            else np.arange(len(data))
+        )
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
