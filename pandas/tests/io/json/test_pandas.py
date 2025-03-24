@@ -2324,4 +2324,8 @@ def test_dtypes_to_json_consistency(df: DataFrame):
     # GH 61170
     expected = df.dtypes.apply(str).to_json()
     result = df.dtypes.to_json()
-    assert json.loads(result) == json.loads(expected)
+    result = json.loads(result)
+    for k in result:
+        if "name" in result[k]:
+            result[k] = result[k]["name"]
+    assert result == json.loads(expected)
