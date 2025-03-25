@@ -197,7 +197,7 @@ skiprows : list-like, int, or callable, optional
     False otherwise. An example of a valid callable argument would be ``lambda
     x: x in [0, 2]``.
 nrows : int, default None
-    Number of rows to parse.
+    Number of rows to parse. Does not include header rows.
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
