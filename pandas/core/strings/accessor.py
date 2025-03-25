@@ -1461,7 +1461,7 @@ class StringMethods(NoNewAttributesMixin):
         match : Similar, but also returns `True` when only a *prefix* of the string
             matches the regular expression.
         extract : Extract matched groups.
-        
+
         Notes
         -----
         This method enforces consistent behavior between Python's string dtype
@@ -1469,6 +1469,7 @@ class StringMethods(NoNewAttributesMixin):
         containing alternation (|). For regex patterns with alternation operators,
         the method ensures proper grouping by wrapping the pattern in parentheses
         when using PyArrow-backed string arrays.
+
         Examples
         --------
         >>> ser = pd.Series(["cat", "duck", "dove"])
@@ -1477,8 +1478,9 @@ class StringMethods(NoNewAttributesMixin):
         1     True
         2     True
         dtype: bool
+
         Ensure consistent behavior with alternation patterns:
-        >>> ser = pd.Series(['asdf', 'as'], dtype='string[pyarrow]')
+        >>> ser = pd.Series(["asdf", "as"], dtype="string[pyarrow]")
         >>> ser.str.fullmatch(r"(as)|(as)")
         0    False
         1     True
