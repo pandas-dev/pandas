@@ -151,23 +151,10 @@ These improvements also fixed certain bugs in groupby:
 - :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
 - :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 
-.. _whatsnew_300.notable_bug_fixes.corr_bounded:
+.. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
-Improved handling of numerical precision errors in ``DataFrame.corr``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Fixed an issue in :meth:`.DataFrame.corr` where numerical precision errors could cause correlation values to
-exceed 1.0 when dealing with data having very small variances. Correlation coefficients are now properly
-bounded to the valid range of [-1.0, 1.0] (:issue:`61120`).
-
-Previously, the code below would return ``1.1547005383792517``. It now returns ``1.0`` as expected.
-
-.. ipython:: python
-
-    data = pd.DataFrame(dict(
-        x=[0, 1],
-        y=[1.35951, 1.3595100000000007]
-    ))
-    data.corr().max().max()
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.api_breaking:
@@ -686,6 +673,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.corr` where numerical precision errors resulted in correlations above ``1.0`` (:issue:`61120`)
 - Bug in :meth:`DataFrame.quantile` where the column type was not preserved when ``numeric_only=True`` with a list-like ``q`` produced an empty result (:issue:`59035`)
 - Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
 
