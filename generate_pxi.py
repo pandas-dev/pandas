@@ -2,8 +2,7 @@ import argparse
 import os
 
 from Cython import Tempita
-
-
+print("pandas edit")
 def process_tempita(pxifile, outfile) -> None:
     with open(pxifile, encoding="utf-8") as f:
         tmpl = f.read()
