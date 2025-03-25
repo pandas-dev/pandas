@@ -23,6 +23,7 @@ import webbrowser
 
 import docutils
 import docutils.parsers.rst
+import pandas
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, "source")
@@ -83,11 +84,11 @@ class DocBuilder:
             if os.path.exists(os.path.join(SOURCE_PATH, single_doc)):
                 return single_doc
             else:
-                raise FileNotFoundError(f"File {single_doc} not found")
+                raise FileNotFoundError(f"File {single_doc} not f ound")
 
         elif single_doc.startswith("pandas."):
             try:
-                obj = pandas  # noqa: F821
+                obj = pandas   # noqa: F821
                 for name in single_doc.split("."):
                     obj = getattr(obj, name)
             except AttributeError as err:
