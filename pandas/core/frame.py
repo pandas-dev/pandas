@@ -5136,7 +5136,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def lookup(self, row_labels, col_labels, dev_version) -> np.ndarray:
+    def lookup(self, row_labels, col_labels) -> np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
 
