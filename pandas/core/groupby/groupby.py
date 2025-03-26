@@ -1727,7 +1727,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dtype = ser.dtype
         if dtype == object:
             res_values = res_values.astype(object, copy=False)
-        elif is_string_dtype(dtype) and how in ["min", "max"]:
+        elif is_string_dtype(dtype):
             # mypy doesn't infer dtype is an ExtensionDtype
             string_array_cls = dtype.construct_array_type()  # type: ignore[union-attr]
             res_values = string_array_cls._from_sequence(res_values, dtype=dtype)
