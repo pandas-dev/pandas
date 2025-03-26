@@ -155,12 +155,9 @@ class Block(PandasObject, libinternals.Block):
     def _validate_ndim(self) -> bool:
         """
         We validate dimension for blocks that can hold 2D values, which for now
-        means numpy dtypes or DatetimeTZDtype.
+        means numpy dtypes or EA dtypes like DatetimeTZDtype and PeriodDtype.
         """
-        dtype = self.dtype
-        return not isinstance(dtype, ExtensionDtype) or isinstance(
-            dtype, DatetimeTZDtype
-        )
+        return not is_1d_only_ea_dtype(self.dtype)
 
     @final
     @cache_readonly

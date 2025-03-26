@@ -96,6 +96,7 @@ class TestRolling:
             "count",
             "kurt",
             "skew",
+            "nunique",
         ],
     )
     def test_rolling(self, f, roll_frame):
@@ -1034,7 +1035,19 @@ class TestExpanding:
         return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
     @pytest.mark.parametrize(
-        "f", ["sum", "mean", "min", "max", "first", "last", "count", "kurt", "skew"]
+        "f",
+        [
+            "sum",
+            "mean",
+            "min",
+            "max",
+            "first",
+            "last",
+            "count",
+            "kurt",
+            "skew",
+            "nunique",
+        ],
     )
     def test_expanding(self, f, frame):
         g = frame.groupby("A", group_keys=False)
