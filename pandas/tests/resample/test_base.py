@@ -126,9 +126,7 @@ def test_resample_interpolate_regular_sampling_off_grid(
     result = ser.resample("1h").interpolate(method)
 
     if method == "linear":
-        values = np.repeat(np.arange(0.0, 4.0), 2) + np.tile(
-            np.arange(1 / 3, 0.7, 1 / 3), 4
-        )
+        values = np.repeat(np.arange(0.0, 4.0), 2) + np.tile([1 / 3, 2 / 3], 4)
     elif method == "nearest":
         values = np.repeat(np.arange(0.0, 5.0), 2)[1:-1]
     elif method == "zero":

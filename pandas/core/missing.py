@@ -312,9 +312,9 @@ def get_interp_index(method, index: Index) -> Index:
     # create/use the index
     if method == "linear":
         # prior default
-        from pandas import Index
+        from pandas import RangeIndex
 
-        index = Index(np.arange(len(index)))
+        index = RangeIndex(len(index))
     else:
         methods = {"index", "values", "nearest", "time"}
         is_numeric_or_datetime = (
