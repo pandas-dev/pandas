@@ -1464,7 +1464,9 @@ class TestDataFrameIndexing:
 
     def test_lookup_requires_unique_axes(self):
         # GH#33041 raise with a helpful error message
-        df = DataFrame(np.random.Generator(6).reshape(3, 2), columns=["A", "A"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 2)), columns=["A", "A"]
+        )
 
         rows = [0, 1]
         cols = ["A", "A"]
