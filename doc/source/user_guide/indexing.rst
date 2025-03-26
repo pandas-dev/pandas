@@ -1458,11 +1458,13 @@ default value.
 
 The :meth:`~pandas.DataFrame.lookup` method
 -------------------------------------------
- Sometimes you want to extract a set of values given a sequence of row labels
- and column labels, and the ``lookup`` method allows for this and returns a
- NumPy array.  For instance:
 
- .. ipython:: python
+Sometimes you want to extract a set of values given a sequence of row labels
+and column labels, and the ``lookup`` method allows for this and returns a
+NumPy array.  For instance:
+
+.. ipython:: python
+
    dflookup = pd.DataFrame(np.random.rand(20, 4), columns = ['A', 'B', 'C', 'D'])
    dflookup.lookup(list(range(0, 10, 2)), ['B', 'C', 'A', 'B', 'D'])
 
