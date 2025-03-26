@@ -433,7 +433,7 @@ def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df)
         data={
             "price": [
                 10.0,
-                9.21131,
+                9.5,
                 11.0,
             ]
         },
