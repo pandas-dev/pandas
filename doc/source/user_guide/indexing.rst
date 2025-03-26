@@ -1457,7 +1457,7 @@ default value.
 .. _indexing.lookup:
 
 The :meth:`~pandas.DataFrame.lookup` method
-----------------------------------------
+-------------------------------------------
  Sometimes you want to extract a set of values given a sequence of row labels
  and column labels, and the ``lookup`` method allows for this and returns a
  NumPy array.  For instance:
