@@ -1456,24 +1456,15 @@ default value.
 
 .. _indexing.lookup:
 
-Looking up values by index/column labels
+The :meth:`~pandas.DataFrame.lookup` method
 ----------------------------------------
+ Sometimes you want to extract a set of values given a sequence of row labels
+ and column labels, and the ``lookup`` method allows for this and returns a
+ NumPy array.  For instance:
 
-Sometimes you want to extract a set of values given a sequence of row labels
-and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing.
-For instance:
-
-.. ipython:: python
-
-    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
-                       'A': [80, 23, np.nan, 22],
-                       'B': [80, 55, 76, 67]})
-    df
-    idx, cols = pd.factorize(df['col'])
-    df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
-
-Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
-which was deprecated in version 1.2.0 and removed in version 2.0.0.
+ .. ipython:: python
+   dflookup = pd.DataFrame(np.random.rand(20, 4), columns = ['A', 'B', 'C', 'D'])
+   dflookup.lookup(list(range(0, 10, 2)), ['B', 'C', 'A', 'B', 'D'])
 
 .. _indexing.class:
 
