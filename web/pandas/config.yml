@@ -84,7 +84,6 @@ maintainers:
   - alimcmaster1
   - bashtage
   - Dr-Irv
-  - MarcoGorelli
   - rhshadrach
   - phofl
   - attack68
@@ -108,6 +107,7 @@ maintainers:
   - gfyoung
   - mzeitlin11
   - twoertwein
+  - MarcoGorelli
 workgroups:
   coc:
     name: Code of Conduct
@@ -139,7 +139,7 @@ workgroups:
     contact: communications@pandas.pydata.org
     responsibilities: "Share relevant information with the broader community, mainly via our social networks, as well as being the main point of contact between NumFOCUS and the core team."
     members:
-    - Marco Gorelli
+    - datapythonista
 sponsors:
   active:
   - name: "NumFOCUS"
@@ -151,11 +151,6 @@ sponsors:
     logo: static/img/partners/coiled.svg
     kind: partner
     description: "Patrick Hoefler"
-  - name: "Quansight"
-    url: https://quansight.com/
-    logo: static/img/partners/quansight_labs.svg
-    kind: partner
-    description: "Marco Gorelli"
   - name: "Nvidia"
     url: https://www.nvidia.com
     logo: static/img/partners/nvidia.svg
