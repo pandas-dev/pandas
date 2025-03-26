@@ -105,6 +105,8 @@ from pandas.core.dtypes.common import (
     is_sequence,
     needs_i8_conversion,
     pandas_dtype,
+    is_timedelta64_dtype,
+    is_datetime64_any_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
@@ -11267,10 +11269,11 @@ class DataFrame(NDFrame, OpsMixin):
         c -0.150812  0.191417  0.895202
         """
         data = self._get_numeric_data() if numeric_only else self
-        if data.select_dtypes(include=[np.datetime64, np.timedelta64]).shape[1] > 0:
+        dtypes = [blk.dtype for blk in self._mgr.blocks]
+        if any(is_datetime64_any_dtype(d) or is_timedelta64_dtype(d) for d in dtypes):
             msg = (
-                "DataFrame contains columns with dtype datetime64[ns] "
-                "or timedelta64[ns], which are not supported for cov."
+                "DataFrame contains columns with dtype datetime64 "
+                "or timedelta64, which are not supported for cov."
             )
             raise TypeError(msg)
         cols = data.columns
