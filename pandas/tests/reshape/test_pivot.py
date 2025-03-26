@@ -2567,7 +2567,7 @@ class TestPivotTable:
         e_index = [None, *range(4)]
         e_columns = [*range(4), None]
         e_data = np.zeros(shape=(5, 5))
-        e_data.fill(np.NaN)
+        e_data.fill(np.nan)
         np.fill_diagonal(a=e_data, val=range(5))
         expected = DataFrame(
             data=e_data,
