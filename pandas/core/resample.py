@@ -507,22 +507,12 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
-        # GH 47705
-        obj = self.obj
-        if (
-            isinstance(result, ABCDataFrame)
-            and len(result) == 0
-            and not isinstance(result.index, PeriodIndex)
-        ):
-            result = result.set_index(
-                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
-            )
-
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
             # When index is all NaT, result is empty but index is not
+            obj = self.obj
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
 
@@ -1756,6 +1746,17 @@ class _GroupByMixin(PandasObject, SelectionMixin):
             return x.apply(f, *args, **kwargs)
 
         result = self._groupby.apply(func)
+
+        # GH 47705
+        if (
+            isinstance(result, ABCDataFrame)
+            and len(result) == 0
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(self.obj.index[:0], freq=self.freq), append=True
+            )
+
         return self._wrap_result(result)
 
     _upsample = _apply
