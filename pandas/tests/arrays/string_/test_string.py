@@ -370,11 +370,6 @@ def test_comparison_methods_array(comparison_op, dtype, dtype2):
         expected = pd.array(expected, dtype=expected_dtype)
         tm.assert_extension_array_equal(result, expected)
 
-    # # with list
-    # other = [None, None, "c"]
-    # result3 = getattr(a, op_name)(other)
-    # tm.assert_equal(result, result3)
-
 
 def test_comparison_methods_list(comparison_op, dtype):
     op_name = f"__{comparison_op.__name__}__"
