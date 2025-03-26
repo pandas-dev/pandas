@@ -376,6 +376,33 @@ def test_comparison_methods_array(comparison_op, dtype, dtype2):
     # tm.assert_equal(result, result3)
 
 
+def test_comparison_methods_list(comparison_op, dtype):
+    op_name = f"__{comparison_op.__name__}__"
+
+    a = pd.array(["a", None, "c"], dtype=dtype)
+    other = [None, None, "c"]
+    result = comparison_op(a, other)
+
+    # ensure operation is commutative
+    result2 = comparison_op(other, a)
+    tm.assert_equal(result, result2)
+
+    if dtype.na_value is np.nan:
+        if operator.ne == comparison_op:
+            expected = np.array([True, True, False])
+        else:
+            expected = np.array([False, False, False])
+            expected[-1] = getattr(other[-1], op_name)(a[-1])
+        tm.assert_numpy_array_equal(result, expected)
+
+    else:
+        expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
+        expected = np.full(len(a), fill_value=None, dtype="object")
+        expected[-1] = getattr(other[-1], op_name)(a[-1])
+        expected = pd.array(expected, dtype=expected_dtype)
+        tm.assert_extension_array_equal(result, expected)
+
+
 def test_constructor_raises(cls):
     if cls is pd.arrays.StringArray:
         msg = "StringArray requires a sequence of strings or pandas.NA"
