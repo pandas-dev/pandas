@@ -2780,6 +2780,12 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_from_records_empty_iterator_with_preserve_columns(self):
+
+        rows = []
+        df = pd.DataFrame.from_records(iter(rows), columns=["col_1", "Col_2"], nrows=0)
+        assert list(df.columns) == ["col_1", "Col_2"]
+        assert len(df) == 0
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
