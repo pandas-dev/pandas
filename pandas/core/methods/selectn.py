@@ -117,21 +117,22 @@ class SelectNSeries(SelectN[Series]):
         # Save index and reset to default index to avoid performance impact
         # from when index contains duplicates
         original_index: Index = self.obj.index
-        cur_series = self.obj.reset_index(drop=True)
+        default_index = self.obj.reset_index(drop=True)
 
-        # slow method
-        if n >= len(cur_series):
+        # Slower method used when taking the full length of the series
+        # In this case, it is equivalent to a sort.
+        if n >= len(default_index):
             ascending = method == "nsmallest"
-            final_series = cur_series.sort_values(
-                ascending=ascending, kind="stable"
-            ).head(n)
-            final_series.index = original_index.take(final_series.index)
-            return final_series
+            result = default_index.sort_values(ascending=ascending, kind="stable").head(
+                n
+            )
+            result.index = original_index.take(result.index)
+            return result
 
-        dropped = cur_series.dropna()
-        nan_index = cur_series.drop(dropped.index)
+        # Fast method used in the general case
+        dropped = default_index.dropna()
+        nan_index = default_index.drop(dropped.index)
 
-        # fast method
         new_dtype = dropped.dtype
 
         # Similar to algorithms._ensure_data
@@ -170,7 +171,7 @@ class SelectNSeries(SelectN[Series]):
         else:
             kth_val = np.nan
         (ns,) = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind="mergesort")]
+        inds = ns[arr[ns].argsort(kind="stable")]
 
         if self.keep != "all":
             inds = inds[:n]
@@ -185,9 +186,9 @@ class SelectNSeries(SelectN[Series]):
             # reverse indices
             inds = narr - 1 - inds
 
-        final_series = concat([dropped.iloc[inds], nan_index]).iloc[:findex]
-        final_series.index = original_index.take(final_series.index)
-        return final_series
+        result = concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        result.index = original_index.take(result.index)
+        return result
 
 
 class SelectNFrame(SelectN[DataFrame]):
