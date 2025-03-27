@@ -10111,7 +10111,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 )
             ):
                 if not cond.flags.writeable:
-                    cond.setflags(write=1)
+                    cond.setflags(write=True)
                 cond[isna(cond)] = False
                 cond = cond.astype(bool)
 
