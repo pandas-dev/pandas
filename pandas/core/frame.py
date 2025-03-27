@@ -5165,14 +5165,20 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#33041
             raise ValueError("DataFrame.lookup requires unique index and columns")
 
-        values = self.to_numpy()
         ridx = self.index.get_indexer(row_labels)
         cidx = self.columns.get_indexer(col_labels)
         if (ridx == -1).any():
             raise KeyError("One or more row labels was not found")
         if (cidx == -1).any():
             raise KeyError("One or more column labels was not found")
-        flat_index = ridx * len(self.columns) + cidx
+        if len(set(col_labels)) < len(self.columns):
+            sub = self.take(np.unique(cidx), axis=1)
+            values = sub.to_numpy()
+            cidx = sub.columns.get_indexer(col_labels)
+            flat_index = ridx * len(sub.columns) + cidx
+        else:
+            values = self.to_numpy()
+            flat_index = ridx * len(self.columns) + cidx
         result = values.flat[flat_index]
 
         if is_object_dtype(result):
