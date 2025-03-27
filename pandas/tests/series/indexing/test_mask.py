@@ -87,8 +87,8 @@ def test_mask_na(dtype):
     result = series.mask(cond, -99)
     tm.assert_series_equal(result, expected)
 
-    result = series.mask(cond.to_list(), expected)
+    result = series.mask(cond.to_list(), -99)
     tm.assert_series_equal(result, expected)
 
-    result = series.mask(cond.to_numpy(), expected)
+    result = series.mask(cond.to_numpy(), -99)
     tm.assert_series_equal(result, expected)
