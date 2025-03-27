@@ -5171,14 +5171,15 @@ class DataFrame(NDFrame, OpsMixin):
             raise KeyError("One or more row labels was not found")
         if (cidx == -1).any():
             raise KeyError("One or more column labels was not found")
-        if len(set(col_labels)) < len(self.columns):
-            sub = self.take(np.unique(cidx), axis=1)
-            values = sub.to_numpy()
-            cidx = sub.columns.get_indexer(col_labels)
-            flat_index = ridx * len(sub.columns) + cidx
-        else:
-            values = self.to_numpy()
-            flat_index = ridx * len(self.columns) + cidx
+
+        sub = self.take(np.unique(cidx), axis=1)
+        if sub._is_mixed_type:
+            sub = sub.take(np.unique(ridx), axis=0)
+            ridx = sub.index.get_indexer(row_labels)
+        values = sub.to_numpy()
+        cidx = sub.columns.get_indexer(col_labels)
+        flat_index = ridx * len(sub.columns) + cidx
+
         result = values.flat[flat_index]
 
         if is_object_dtype(result):
