@@ -28,6 +28,7 @@ from pandas._config import config
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import (
     Period,
     Timestamp,
@@ -10098,6 +10099,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # see gh-21891
         if not hasattr(cond, "__invert__"):
             cond = np.array(cond)
+
+        if isinstance(cond, np.ndarray):
+            if all(
+                np.apply_along_axis(
+                    lambda x: x[0] is NA
+                    or isinstance(x[0], (np.bool_, bool))
+                    or x[0] is np.nan,
+                    axis=1,
+                    arr=cond.flatten().reshape(cond.size, 1),
+                )
+            ):
+                if not cond.flags.writeable:
+                    cond.setflags(write=1)
+                cond[isna(cond)] = False
+                cond = cond.astype(bool)
 
         return self._where(
             ~cond,
