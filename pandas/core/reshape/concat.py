@@ -47,6 +47,10 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals import concatenate_managers
 
+from pandas.core.dtypes.common import is_extension_array_dtype
+
+from pandas.core.construction import array
+
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
@@ -819,7 +823,20 @@ def _get_sample_object(
 
 
 def _concat_indexes(indexes) -> Index:
-    return indexes[0].append(indexes[1:])
+    # try to preserve extension types such as timestamp[pyarrow]
+    values = []
+    for idx in indexes:
+        values.extend(idx._values if hasattr(idx, "_values") else idx)
+
+    # use the first index as a sample to infer the desired dtype
+    sample = indexes[0]
+    try:
+        # this helps preserve extension types like timestamp[pyarrow]
+        arr = array(values, dtype=sample.dtype)
+    except Exception:
+        arr = array(values)  # fallback
+
+    return Index(arr)
 
 
 def validate_unique_levels(levels: list[Index]) -> None:
@@ -876,14 +893,32 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
         concat_index = _concat_indexes(indexes)
 
-        # these go at the end
         if isinstance(concat_index, MultiIndex):
             levels.extend(concat_index.levels)
             codes_list.extend(concat_index.codes)
         else:
-            codes, categories = factorize_from_iterable(concat_index)
-            levels.append(categories)
-            codes_list.append(codes)
+            # handle the case where the resulting index is a flat Index
+            # but contains tuples (i.e., a collapsed MultiIndex)
+            if isinstance(concat_index[0], tuple):
+                # retrieve the original dtypes
+                original_dtypes = [lvl.dtype for lvl in indexes[0].levels]
+
+                unzipped = list(zip(*concat_index))
+                for i, level_values in enumerate(unzipped):
+                    # reconstruct each level using original dtype
+                    arr = array(level_values, dtype=original_dtypes[i])
+                    level_codes, _ = factorize_from_iterable(arr)
+                    levels.append(ensure_index(arr))
+                    codes_list.append(level_codes)
+            else:
+                # simple indexes factorize directly
+                codes, categories = factorize_from_iterable(concat_index)
+                values = getattr(concat_index, "_values", concat_index)
+                if is_extension_array_dtype(values):
+                    levels.append(values)
+                else:
+                    levels.append(categories)
+                codes_list.append(codes)
 
         if len(names) == len(levels):
             names = list(names)
