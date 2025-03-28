@@ -101,6 +101,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -5134,6 +5135,120 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Reindexing and alignment
+
+    def lookup(self, row_labels, col_labels) -> np.ndarray:
+        """
+        Label-based "fancy indexing" function for DataFrame.
+
+        Given equal-length arrays of row and column labels, return an
+        array of the values corresponding to each (row, col) pair.
+
+        Parameters
+        ----------
+        row_labels : sequence
+            The row labels to use for lookup.
+        col_labels : sequence
+            The column labels to use for lookup.
+
+        Returns
+        -------
+        numpy.ndarray
+            The found values.
+
+        Examples
+        --------
+        >>> grades = pd.DataFrame(
+        ...     {
+        ...         "Math_Sem1": [85, 92, 78, 88, 95],
+        ...         "Math_Sem2": [88, 90, 82, 85, 93],
+        ...         "Science_Sem1": [90, 85, 92, 79, 87],
+        ...         "Science_Sem2": [92, 87, 90, 83, 89],
+        ...         "English_Sem1": [95, 80, 85, 90, 82],
+        ...         "English_Sem2": [93, 82, 87, 88, 80],
+        ...     },
+        ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
+        ... )
+        >>> feedback = pd.DataFrame(
+        ...     {
+        ...         "Math_Sem1": [
+        ...             "Strong analytical skills",
+        ...             "Excellent problem-solving",
+        ...             "Needs more practice",
+        ...             "Solid understanding",
+        ...             "Exceptional reasoning",
+        ...         ],
+        ...         "Math_Sem2": [
+        ...             "Improved advanced techniques",
+        ...             "Consistent high performance",
+        ...             "Significant progress",
+        ...             "Steady improvement",
+        ...             "Consistently exceptional",
+        ...         ],
+        ...         "Science_Sem1": [
+        ...             "Excellent inquiry skills",
+        ...             "Good theoretical concepts",
+        ...             "Strong methodological interest",
+        ...             "Needs focus",
+        ...             "Outstanding curiosity",
+        ...         ],
+        ...         "Science_Sem2": [
+        ...             "Advanced scientific principles",
+        ...             "Improved practical skills",
+        ...             "Growing scientific reasoning",
+        ...             "Better lab engagement",
+        ...             "Continued excellence",
+        ...         ],
+        ...         "English_Sem1": [
+        ...             "Exceptional writing",
+        ...             "Strong language use",
+        ...             "Needs confident expression",
+        ...             "Solid literary analysis",
+        ...             "Creative insights",
+        ...         ],
+        ...         "English_Sem2": [
+        ...             "Refined writing techniques",
+        ...             "Improved expression",
+        ...             "More confident analysis",
+        ...             "Developing writing style",
+        ...             "Maintained high-level writing",
+        ...         ],
+        ...     },
+        ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
+        ... )
+        >>> student_top = grades.rank(1).idxmax(1)  #  student's top score
+        >>> feedback.lookup(student_top.index, student_top)
+        array(['Exceptional writing', 'Excellent problem-solving',
+               'Strong methodological interest', 'Solid literary analysis',
+               'Exceptional reasoning'], dtype=object)
+        """
+        n = len(row_labels)
+        if n != len(col_labels):
+            raise ValueError("Row labels must have same size as column labels")
+        if not (self.index.is_unique and self.columns.is_unique):
+            # GH#33041
+            raise ValueError("DataFrame.lookup requires unique index and columns")
+
+        ridx = self.index.get_indexer(row_labels)
+        cidx = self.columns.get_indexer(col_labels)
+        if (ridx == -1).any():
+            raise KeyError("One or more row labels was not found")
+        if (cidx == -1).any():
+            raise KeyError("One or more column labels was not found")
+
+        sub = self.take(np.unique(cidx), axis=1)
+        if sub._is_mixed_type:
+            sub = sub.take(np.unique(ridx), axis=0)
+            ridx = sub.index.get_indexer(row_labels)
+        values = sub.to_numpy()
+        cidx = sub.columns.get_indexer(col_labels)
+        flat_index = ridx * len(sub.columns) + cidx
+
+        result = values.flat[flat_index]
+
+        if is_object_dtype(result):
+            result = lib.maybe_convert_objects(result)
+
+        return result
 
     def _reindex_multi(self, axes: dict[str, Index], fill_value) -> DataFrame:
         """
