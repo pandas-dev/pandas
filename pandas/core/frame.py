@@ -5154,6 +5154,23 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         numpy.ndarray
             The found values.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Math_Sem1": [85, 92, 78, 88, 95],
+        ...         "Math_Sem2": [88, 90, 82, 85, 93],
+        ...         "Science_Sem1": [90, 85, 92, 79, 87],
+        ...         "Science_Sem2": [92, 87, 90, 83, 89],
+        ...         "English_Sem1": [95, 80, 85, 90, 82],
+        ...         "English_Sem2": [93, 82, 87, 88, 80],
+        ...     },
+        ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
+        ... )
+        >>> student_top = df.rank(1).idxmax(1)  # Column name for student's top score
+        >>> df.lookup(df.index, student_top)
+        array([95, 92, 92, 90, 95])
         """
         n = len(row_labels)
         if n != len(col_labels):
