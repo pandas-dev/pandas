@@ -199,9 +199,9 @@ def set_option(*args) -> None:
 
     Parameters
     ----------
-    *args : str | object
-        Arguments provided in pairs, which will be interpreted as (pattern, value)
-        pairs.
+    *args : str | object | dict
+        Arguments provided in a pair, which will be interpreted as (pattern, value),
+        or as a single dictionary containing multiple option-value pairs.
         pattern: str
         Regexp which should match a single option
         value: object
@@ -239,6 +239,8 @@ def set_option(*args) -> None:
 
     Examples
     --------
+    Option-Value Pair Input:
+
     >>> pd.set_option("display.max_columns", 4)
     >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
     >>> df
@@ -247,12 +249,64 @@ def set_option(*args) -> None:
     1  6  7  ...  9  10
     [2 rows x 5 columns]
     >>> pd.reset_option("display.max_columns")
+
+    Dictionary Input:
+
+    >>> pd.set_option({"display.max_columns": 4, "display.precision": 1})
+    >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+    >>> df
+    0  1  ...  3   4
+    0  1  2  ...  4   5
+    1  6  7  ...  9  10
+    [2 rows x 5 columns]
+    >>> pd.reset_option("display.max_columns")
+    >>> pd.reset_option("display.precision")
     """
-    # must at least 1 arg deal with constraints later
+    # Handle dictionary input
+    if len(args) == 1 and isinstance(args[0], dict):
+        options_dict = args[0]
+        for k, v in options_dict.items():
+            key = _get_single_key(k)
+            opt = _get_registered_option(key)
+            if opt and opt.validator:
+                opt.validator(v)
+            # walk the nested dict
+            root, k_root = _get_root(key)
+            root[k_root] = v
+            if opt.cb:
+                opt.cb(key)
+        return
+
+    # Handle single option-value pair
+    if len(args) == 2:
+        key = _get_single_key(args[0])
+        v = args[1]
+
+        opt = _get_registered_option(key)
+        if opt and opt.validator:
+            opt.validator(v)
+
+        # walk the nested dict
+        root, k_root = _get_root(key)
+        root[k_root] = v
+
+        if opt.cb:
+            opt.cb(key)
+        return
+
+    # Deprecated (# GH 61093): multiple option-value pairs as separate arguments
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
         raise ValueError("Must provide an even number of non-keyword arguments")
 
+    warnings.warn(
+        "Setting multiple options using multiple arguments is deprecated and will be "
+        "removed in a future version. Use a dictionary instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
+
+    # Backward compatibility
     for k, v in zip(args[::2], args[1::2]):
         key = _get_single_key(k)
 
