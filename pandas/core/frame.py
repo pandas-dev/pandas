@@ -5157,7 +5157,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(
+        >>> grades = pd.DataFrame(
         ...     {
         ...         "Math_Sem1": [85, 92, 78, 88, 95],
         ...         "Math_Sem2": [88, 90, 82, 85, 93],
@@ -5168,9 +5168,58 @@ class DataFrame(NDFrame, OpsMixin):
         ...     },
         ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
         ... )
-        >>> student_top = df.rank(1).idxmax(1)  # Column name for student's top score
-        >>> df.lookup(df.index, student_top)
-        array([95, 92, 92, 90, 95])
+        >>> feedback = pd.DataFrame(
+        ...     {
+        ...         "Math_Sem1": [
+        ...             "Strong analytical skills",
+        ...             "Excellent problem-solving",
+        ...             "Needs more practice",
+        ...             "Solid understanding",
+        ...             "Exceptional reasoning",
+        ...         ],
+        ...         "Math_Sem2": [
+        ...             "Improved advanced techniques",
+        ...             "Consistent high performance",
+        ...             "Significant progress",
+        ...             "Steady improvement",
+        ...             "Consistently exceptional",
+        ...         ],
+        ...         "Science_Sem1": [
+        ...             "Excellent inquiry skills",
+        ...             "Good theoretical concepts",
+        ...             "Strong methodological interest",
+        ...             "Needs focus",
+        ...             "Outstanding curiosity",
+        ...         ],
+        ...         "Science_Sem2": [
+        ...             "Advanced scientific principles",
+        ...             "Improved practical skills",
+        ...             "Growing scientific reasoning",
+        ...             "Better lab engagement",
+        ...             "Continued excellence",
+        ...         ],
+        ...         "English_Sem1": [
+        ...             "Exceptional writing",
+        ...             "Strong language use",
+        ...             "Needs confident expression",
+        ...             "Solid literary analysis",
+        ...             "Creative insights",
+        ...         ],
+        ...         "English_Sem2": [
+        ...             "Refined writing techniques",
+        ...             "Improved expression",
+        ...             "More confident analysis",
+        ...             "Developing writing style",
+        ...             "Maintained high-level writing",
+        ...         ],
+        ...     },
+        ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
+        ... )
+        >>> student_top = grades.rank(1).idxmax(1)  #  student's top score
+        >>> feedback.lookup(student_top.index, student_top)
+        array(['Exceptional writing', 'Excellent problem-solving',
+               'Strong methodological interest', 'Solid literary analysis',
+               'Exceptional reasoning'], dtype=object)
         """
         n = len(row_labels)
         if n != len(col_labels):
