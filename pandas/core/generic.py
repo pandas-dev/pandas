@@ -10102,13 +10102,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if isinstance(cond, np.ndarray):
             if all(
-                np.apply_along_axis(
-                    lambda x: x[0] is NA
-                    or isinstance(x[0], (np.bool_, bool))
-                    or x[0] is np.nan,
-                    axis=1,
-                    arr=cond.flatten().reshape(cond.size, 1),
-                )
+                x is NA or isinstance(x, (np.bool_, bool)) or x is np.nan
+                for x in cond.flatten()
             ):
                 if not cond.flags.writeable:
                     cond.setflags(write=True)
