@@ -142,4 +142,4 @@ doc/source/savefig/
 ##############################
 /.pyodide-xbuildenv-*
 
-pandas_env/
+pandas-env/
