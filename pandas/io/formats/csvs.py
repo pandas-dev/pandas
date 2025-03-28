@@ -100,24 +100,23 @@ class CSVFormatter:
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
 
+        print("output preserve var: ", self.preserve_complex)
         if self.preserve_complex:
+            print("here1")
             import json
             import numpy as np
 
             for col in self.obj.columns:
                 if self.obj[col].dtype == "O":
-                    try:
-                        first_val = self.obj[col].iloc[0]
-                        if isinstance(first_val, (np.ndarray, list)):
-                            self.obj[col] = self.obj[col].apply(
-                                lambda x: json.dumps(x.tolist())
-                                if isinstance(x, np.ndarray)
-                                else json.dumps(x)
-                                if isinstance(x, list)
-                                else x
-                            )
-                    except Exception:
-                        continue
+                    first_val = self.obj[col].iloc[0]
+                    if isinstance(first_val, (np.ndarray, list)):
+                        self.obj[col] = self.obj[col].apply(
+                            lambda x: json.dumps(x.tolist())
+                            if isinstance(x, np.ndarray)
+                            else json.dumps(x) if isinstance(x, list)
+                            else x
+                        )
+
 
 
     @property

@@ -1000,6 +1000,7 @@ class DataFrameRenderer:
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
+            preserve_complex=preserve_complex,
             formatter=self.fmt,
         )
         csv_formatter.save()

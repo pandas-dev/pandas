@@ -3939,6 +3939,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
+            preserve_complex=preserve_complex,
         )
 
     # ----------------------------------------------------------------------
