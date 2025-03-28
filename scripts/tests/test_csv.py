@@ -9,7 +9,7 @@ df = pd.DataFrame({
 
 # Save to CSV
 csv_file = "test_numpy_array.csv"
-df.to_csv(csv_file, index=False)
+df.to_csv(csv_file, index=False, preserve_complex=True)
 print(f"Saved CSV:\n{open(csv_file).read()}")
 
 # Read back the CSV

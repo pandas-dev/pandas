@@ -141,3 +141,5 @@ doc/source/savefig/
 # Pyodide/WASM related files #
 ##############################
 /.pyodide-xbuildenv-*
+
+pandas_env/

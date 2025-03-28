@@ -1,0 +1,59 @@
+{
+  "name": "@jupyterlab/htmlviewer-extension",
+  "version": "4.3.5",
+  "description": "JupyterLab extension to render HTML files",
+  "keywords": [
+    "jupyter",
+    "jupyterlab"
+  ],
+  "homepage": "https://github.com/jupyterlab/jupyterlab",
+  "bugs": {
+    "url": "https://github.com/jupyterlab/jupyterlab"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlab/jupyterlab.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Project Jupyter Contributors",
+  "sideEffects": [
+    "style/**/*"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "files": [
+    "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
+    "schema/*.json",
+    "style/**/*.{css,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
+    "style/index.js",
+    "src/**/*.{ts,tsx}"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
+    "watch": "tsc -w"
+  },
+  "dependencies": {
+    "@jupyterlab/application": "^4.3.5",
+    "@jupyterlab/apputils": "^4.4.5",
+    "@jupyterlab/docregistry": "^4.3.5",
+    "@jupyterlab/htmlviewer": "^4.3.5",
+    "@jupyterlab/observables": "^5.3.5",
+    "@jupyterlab/settingregistry": "^4.3.5",
+    "@jupyterlab/translation": "^4.3.5",
+    "@jupyterlab/ui-components": "^4.3.5"
+  },
+  "devDependencies": {
+    "rimraf": "~5.0.5",
+    "typescript": "~5.1.6"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "schemaDir": "schema"
+  },
+  "styleModule": "style/index.js"
+}

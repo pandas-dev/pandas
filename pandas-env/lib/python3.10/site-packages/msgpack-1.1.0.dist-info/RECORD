@@ -1,0 +1,15 @@
+msgpack-1.1.0.dist-info/COPYING,sha256=SS3tuoXaWHL3jmCRvNH-pHTWYNNay03ulkuKqz8AdCc,614
+msgpack-1.1.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+msgpack-1.1.0.dist-info/METADATA,sha256=UgNSGURjli2SCAvt62QCD4Ixhpp5KfFYK3IN_gG502Y,8361
+msgpack-1.1.0.dist-info/RECORD,,
+msgpack-1.1.0.dist-info/WHEEL,sha256=8Z4hr4yqEN9AwnUCAkjtEen4xRqKY8Xk34ggzbNFqkg,109
+msgpack-1.1.0.dist-info/top_level.txt,sha256=2tykSY1pXdiA2xYTDR6jPw0qI5ZGxRihyhf4S5hZyXk,8
+msgpack/__init__.py,sha256=reRaiOtEzSjPnr7TpxjgIvbfln5pV66FhricAs2eC-g,1109
+msgpack/__pycache__/__init__.cpython-310.pyc,,
+msgpack/__pycache__/exceptions.cpython-310.pyc,,
+msgpack/__pycache__/ext.cpython-310.pyc,,
+msgpack/__pycache__/fallback.cpython-310.pyc,,
+msgpack/_cmsgpack.cpython-310-darwin.so,sha256=o8-GY7oF7VCJW54f5-rCZdhCilgTTn2Sp6Gv08ov_hA,206080
+msgpack/exceptions.py,sha256=dCTWei8dpkrMsQDcjQk74ATl9HsIBH0ybt8zOPNqMYc,1081
+msgpack/ext.py,sha256=kteJv03n9tYzd5oo3xYopVTo4vRaAxonBQQJhXohZZo,5726
+msgpack/fallback.py,sha256=0g1Pzp0vtmBEmJ5w9F3s_-JMVURP8RS4G1cc5TRaAsI,32390

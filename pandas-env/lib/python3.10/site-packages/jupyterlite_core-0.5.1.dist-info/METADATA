@@ -1,0 +1,122 @@
+Metadata-Version: 2.4
+Name: jupyterlite-core
+Version: 0.5.1
+Dynamic: Summary
+Project-URL: Source, https://github.com/jupyterlite/jupyterlite
+Author: JupyterLite Contributors
+License: BSD 3-Clause License
+        
+        Copyright (c) 2022, JupyterLite Contributors
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+        
+        * Redistributions of source code must retain the above copyright notice, this
+          list of conditions and the following disclaimer.
+        
+        * Redistributions in binary form must reproduce the above copyright notice,
+          this list of conditions and the following disclaimer in the documentation
+          and/or other materials provided with the distribution.
+        
+        * Neither the name of the copyright holder nor the names of its
+          contributors may be used to endorse or promote products derived from
+          this software without specific prior written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+License-File: LICENSE
+Keywords: browser,doit,js,jupyter,jupyterlab,notebook,pyodide,schema
+Classifier: Development Status :: 4 - Beta
+Classifier: Framework :: Jupyter
+Classifier: Framework :: Jupyter :: JupyterLab
+Classifier: Framework :: Jupyter :: JupyterLab :: 4
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Software Development :: Documentation
+Classifier: Topic :: Software Development :: Pre-processors
+Classifier: Topic :: Text Processing :: Markup :: HTML
+Requires-Python: >=3.9
+Requires-Dist: doit<1,>=0.34
+Requires-Dist: importlib-metadata>=3.6; python_version < '3.10'
+Requires-Dist: jupyter-core>=4.7
+Provides-Extra: all
+Requires-Dist: jsonschema>=3; extra == 'all'
+Requires-Dist: jupyter-server; extra == 'all'
+Requires-Dist: jupyterlab-server<3,>=2.8.1; extra == 'all'
+Requires-Dist: jupyterlab<4.4,>=4.3.4; extra == 'all'
+Requires-Dist: libarchive-c>=4.0; extra == 'all'
+Requires-Dist: notebook<7.4,>=7.3.2; extra == 'all'
+Requires-Dist: pkginfo; extra == 'all'
+Requires-Dist: tornado>=6.1; extra == 'all'
+Provides-Extra: check
+Requires-Dist: jsonschema[format-nongpl]>=3; extra == 'check'
+Provides-Extra: contents
+Requires-Dist: jupyter-server; extra == 'contents'
+Provides-Extra: lab
+Requires-Dist: jupyterlab<4.4,>=4.3.4; extra == 'lab'
+Requires-Dist: notebook<7.4,>=7.3.2; extra == 'lab'
+Provides-Extra: libarchive
+Requires-Dist: libarchive-c>=4.0; extra == 'libarchive'
+Provides-Extra: serve
+Requires-Dist: tornado>=6.1; extra == 'serve'
+Provides-Extra: test
+Requires-Dist: ansi2html; extra == 'test'
+Requires-Dist: diffoscope; (sys_platform == 'linux') and extra == 'test'
+Requires-Dist: pytest-console-scripts; extra == 'test'
+Requires-Dist: pytest-cov; extra == 'test'
+Requires-Dist: pytest-html; extra == 'test'
+Requires-Dist: pytest-xdist; extra == 'test'
+Provides-Extra: translation
+Requires-Dist: jupyterlab-server<3,>=2.8.1; extra == 'translation'
+Description-Content-Type: text/markdown
+
+# jupyterlite-core
+
+[![docs-badge]][docs]
+
+[docs-badge]: https://readthedocs.org/projects/jupyterlite/badge/?version=latest
+[docs]: https://jupyterlite.readthedocs.io/en/latest/?badge=latest
+
+The `jupyterlite-core` package provides the core functionality for building JupyterLite
+websites, the `jupyter-lite` CLI, and
+[extension points](https://jupyterlite.readthedocs.io/en/latest/howto/extensions/cli-addons.html)
+for authoring custom addons.
+
+## Getting Started
+
+To get started with JupyterLite, please refer to the
+[Getting Started Guide](https://jupyterlite.readthedocs.io/en/latest/quickstart/index.html).
+
+## Documentation
+
+For more information about how to use JupyterLite, we recommend reading the
+[official documentation](https://jupyterlite.readthedocs.io/).
+
+## Contributing
+
+If you're interested in contributing to JupyterLite, please refer to the
+[Contributing Guide](https://jupyterlite.readthedocs.io/en/latest/contributing.html).
+
+## License
+
+`jupyterlite-core` is licensed under the
+[BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause). For more
+information, please see the
+[LICENSE](https://github.com/jupyterlite/jupyterlite/blob/main/LICENSE) file.

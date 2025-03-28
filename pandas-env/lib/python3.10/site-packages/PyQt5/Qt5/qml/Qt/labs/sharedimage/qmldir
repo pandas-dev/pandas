@@ -1,0 +1,3 @@
+module Qt.labs.sharedimage
+plugin sharedimageplugin
+classname QtQuickSharedImagePlugin

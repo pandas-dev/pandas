@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{{page_config['appName'] | e}} - Console</title>{% block favicon %}<link rel="icon" type="image/x-icon" href="{{ page_config['fullStaticUrl'] | e }}/favicons/favicon-console.ico" class="favicon"/>{% endblock %} {% if custom_css %}<link rel="stylesheet" href="{{ base_url | escape }}custom/custom.css"/>{% endif %}<script defer="defer" src="{{page_config.fullStaticUrl}}/main.407246dd27aed8010549.js?v=407246dd27aed8010549"></script></head><body class="jp-ThemedContainer">{# Copy so we do not modify the page_config with updates. #} {% set page_config_full = page_config.copy() %} {# Set a dummy variable - we just want the side effect of the update. #} {% set _ = page_config_full.update(baseUrl=base_url, wsUrl=ws_url) %} {# Sentinel value to say that we are on the tree page #} {% set _ = page_config_full.update(notebookPage='consoles') %}<script id="jupyter-config-data" type="application/json">{{ page_config_full | tojson }}</script><script>/* Remove token from URL. */
+      (function () {
+        var parsedUrl = new URL(window.location.href);
+        if (parsedUrl.searchParams.get('token')) {
+          parsedUrl.searchParams.delete('token');
+          window.history.replaceState({}, '', parsedUrl.href);
+        }
+      })();</script></body></html>

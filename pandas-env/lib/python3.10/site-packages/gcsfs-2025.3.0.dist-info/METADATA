@@ -1,0 +1,61 @@
+Metadata-Version: 2.2
+Name: gcsfs
+Version: 2025.3.0
+Summary: Convenient Filesystem interface over GCS
+Home-page: https://github.com/fsspec/gcsfs
+Maintainer: Martin Durant
+Maintainer-email: mdurant@anaconda.com
+License: BSD
+Keywords: google-cloud-storage,gcloud,file-system
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.9
+License-File: LICENSE.txt
+Requires-Dist: aiohttp!=4.0.0a0,!=4.0.0a1
+Requires-Dist: decorator>4.1.2
+Requires-Dist: fsspec==2025.3.0
+Requires-Dist: google-auth>=1.2
+Requires-Dist: google-auth-oauthlib
+Requires-Dist: google-cloud-storage
+Requires-Dist: requests
+Provides-Extra: gcsfuse
+Requires-Dist: fusepy; extra == "gcsfuse"
+Provides-Extra: crc
+Requires-Dist: crcmod; extra == "crc"
+Dynamic: classifier
+Dynamic: description
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: maintainer
+Dynamic: maintainer-email
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+gcsfs
+=====
+
+|Build Status| |Doc Status|
+
+Pythonic file-system for Google Cloud Storage
+
+
+For documentation, go to readthedocs_.
+
+.. _readthedocs: http://gcsfs.readthedocs.io/en/latest/
+
+.. |Build Status| image:: https://github.com/fsspec/gcsfs/workflows/CI/badge.svg
+    :target: https://github.com/fsspec/gcsfs/actions
+    :alt: Build Status
+.. |Doc Status| image:: https://readthedocs.org/projects/gcsfs/badge/?version=latest
+    :target: https://gcsfs.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status

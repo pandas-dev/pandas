@@ -1,0 +1,4 @@
+module QtAudioEngine
+plugin declarative_audioengine
+typeinfo plugins.qmltypes
+classname QAudioEngineDeclarativeModule
