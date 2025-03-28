@@ -1,36 +1,47 @@
 import pandas as pd
-import requests
+import os
+import pickle
+from datetime import datetime
 
 class GuepardDataFrame(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.api_url = "https://api.guepard.com"
-        self.dataset_id = kwargs.get('dataset_id', 'default')
+        self.version_dir = kwargs.pop('version_dir', './versions')
+        if not os.path.exists(self.version_dir):
+            os.makedirs(self.version_dir)
     
     def commit(self, message=""):
         version_id = self._generate_version_id()
-        data = self.to_parquet()
-        response = requests.post(f"{self.api_url}/datasets/{self.dataset_id}/versions",
-                                 files={"data": data},
-                                 data={"message": message, "version_id": version_id})
-        response.raise_for_status()
+        version_path = os.path.join(self.version_dir, f"{version_id}.pkl")
+        with open(version_path, 'wb') as f:
+            pickle.dump(self, f)
         return version_id
     
     def list_versions(self):
-        response = requests.get(f"{self.api_url}/datasets/{self.dataset_id}/versions")
-        response.raise_for_status()
-        return response.json()
+        versions = []
+        for filename in os.listdir(self.version_dir):
+            if filename.endswith(".pkl"):
+                version_id = filename.split('.')[0]
+                versions.append(version_id)
+        return versions
     
     def rollback(self, version_id):
-        response = requests.get(f"{self.api_url}/datasets/{self.dataset_id}/versions/{version_id}")
-        response.raise_for_status()
-        data = response.content
-        df = pd.read_parquet(data)
+        version_path = os.path.join(self.version_dir, f"{version_id}.pkl")
+        if not os.path.exists(version_path):
+            raise ValueError("Version ID not found")
+        with open(version_path, 'rb') as f:
+            df = pickle.load(f)
         self.__init__(df)
     
     def next_version(self):
         return self.commit()
 
     def _generate_version_id(self):
-        from datetime import datetime
         return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# Example usage:
+# df = GuepardDataFrame(pd.read_csv("data.csv"), version_dir="path/to/versions")
+# df["new_col"] = df["existing_col"] * 2
+# df.commit("Added new column")
+# print(df.list_versions())
+# df.rollback(version_id="20240326_123456")
