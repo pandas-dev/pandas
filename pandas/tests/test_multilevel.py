@@ -1,4 +1,5 @@
 import datetime
+import io
 
 import numpy as np
 import pytest
@@ -317,6 +318,26 @@ class TestMultiLevel:
         result = df[df.columns[0]]
         expected = Series(["a", "b", "c", "d"], name=("sub", np.nan))
         tm.assert_series_equal(result, expected)
+
+    def test_multiindex_with_pyarrow_categorical(self):
+        # GH#53051
+
+        # Create dataframe with categorical colum
+        df = (
+            pd.DataFrame([("A", 1), ("B", 2), ("C", 3)], columns=["string_column", "number_column"])
+            .astype({"string_column": "string", "number_column": "float32"})
+            .astype({"string_column": "category", "number_column": "float32"})
+        )
+
+        # Convert dataframe to pyarrow backend
+        with io.BytesIO() as buffer:
+            df.to_parquet(buffer)
+            buffer.seek(0)  # Reset buffer position
+            df = pd.read_parquet(buffer, dtype_backend="pyarrow")
+
+
+        # Check that index can be set
+        df.set_index(["string_column", "number_column"])
 
 
 class TestSorted:

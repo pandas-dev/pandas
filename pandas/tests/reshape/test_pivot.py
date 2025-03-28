@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import io
 from itertools import product
 import re
 
@@ -2851,3 +2852,42 @@ class TestPivot:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_with_pyarrow_categorical(self):
+        # GH#53051
+
+        # Create dataframe with categorical colum
+        df = (
+            pd.DataFrame([("A", 1), ("B", 2), ("C", 3)], columns=["string_column", "number_column"])
+            .astype({"string_column": "string", "number_column": "float32"})
+            .astype({"string_column": "category", "number_column": "float32"})
+        )
+
+        # Convert dataframe to pyarrow backend
+        with io.BytesIO() as buffer:
+            df.to_parquet(buffer)
+            buffer.seek(0)  # Reset buffer position
+            df = pd.read_parquet(buffer, dtype_backend="pyarrow")
+
+
+        # Check that pivot works
+        df = df.pivot(columns=["string_column"], values=["number_column"])
+
+        # Assert that values of result are correct to prevent silent failure
+        multi_index = pd.MultiIndex.from_arrays(
+            [
+                ["number_column", "number_column", "number_column"],
+                ["A", "B", "C"]
+            ],
+            names=(None, "string_column")
+        )
+        df_expected = pd.DataFrame(
+            [
+                [1.0, np.nan, np.nan],
+                [np.nan, 2.0, np.nan],
+                [np.nan, np.nan, 3.0]
+            ],
+            columns=multi_index
+        )
+        tm.assert_frame_equal(df, df_expected, check_dtype=False, check_column_type=False)
+
