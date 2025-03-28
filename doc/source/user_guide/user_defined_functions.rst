@@ -11,13 +11,13 @@ functionality by allowing users to apply custom computations to their data. Whil
 pandas comes with a set of built-in functions for data manipulation, UDFs offer
 flexibility when built-in methods are not sufficient. These functions can be 
 applied at different levels: element-wise, row-wise, column-wise, or group-wise,
-depending on the method used.
+and change the data differently, depending on the method used.
 
 Why Use User-Defined Functions?
 -------------------------------
 
 Pandas is designed for high-performance data processing, but sometimes your specific
-needs go beyond standard aggregation, transformation, or filtering. UDFs allow you to:
+needs go beyond standard aggregation, transformation, or filtering. User-defined functions allow you to:
 
 * **Customize Computations**: Implement logic tailored to your dataset, such as complex 
   transformations, domain-specific calculations, or conditional modifications.
@@ -32,7 +32,7 @@ needs go beyond standard aggregation, transformation, or filtering. UDFs allow y
 What functions support User-Defined Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-User-Defined Functions can be applied across various pandas methods that work with Series and DataFrames:
+User-Defined Functions can be applied across various pandas methods:
 
 * :meth:`DataFrame.apply` - A flexible method that allows applying a function to Series,
   DataFrames, or groups of data.
@@ -46,7 +46,7 @@ User-Defined Functions can be applied across various pandas methods that work wi
 * :meth:`DataFrame.pipe` - Allows chaining custom functions to process entire DataFrames or
   Series in a clean, readable manner.
 
-Each of these methods can be used with both Series and DataFrame objects, providing versatile
+All of these pandas methods can be used with both Series and DataFrame objects, providing versatile
 ways to apply user-defined functions across different pandas data structures.
 
 
@@ -184,9 +184,12 @@ values being broadcasted to the original dimensions:
 ------------------------
 
 The :meth:`DataFrame.filter` method is used to select subsets of the DataFrame’s
-columns or rows and accepts user-defined functions. Specifically, these functions
-return boolean values to filter columns or rows. It is useful when you want to 
+columns or rows and accepts user-defined functions. It is useful when you want to 
 extract specific columns or rows that match particular conditions.
+
+.. note::
+    :meth:`DataFrame.filter` expects a user-defined function that returns a boolean
+    value
 
 .. ipython:: python 
     # Sample DataFrame
@@ -204,17 +207,85 @@ extract specific columns or rows that match particular conditions.
 Unlike the methods discussed earlier, :meth:`DataFrame.filter` does not accept
 functions that do not return boolean values, such as `mean` or `sum`.
 
+:meth:`DataFrame.map`
+---------------------
+
+The :meth:`DataFrame.map` method is used to apply a function element-wise to a pandas Series
+or Dataframe. It is particularly useful for substituting values or transforming data.
+
+.. ipython:: python
+    # Sample DataFrame
+    df = pd.DataFrame({ 'A': ['cat', 'dog', 'bird'], 'B': ['pig', 'cow', 'lamb'] })
+
+    # Using map with a user-defined function
+    def animal_to_length(animal):
+        return len(animal)
+
+    df_mapped = df.map(animal_to_length)
+    print(df_mapped)
+
+    # This works with lambda functions too
+    df_lambda = df.map(lambda x: x.upper())
+    print(df_lambda)
+
+:meth:`DataFrame.pipe`
+----------------------
+
+The :meth:`DataFrame.pipe` method allows you to apply a function or a series of functions to a
+DataFrame in a clean and readable way. This is especially useful for building data processing pipelines.
+
+.. ipython:: python
+    # Sample DataFrame
+    df = pd.DataFrame({ 'A': [1, 2, 3], 'B': [4, 5, 6] })
+
+    # User-defined functions for transformation
+    def add_one(df):
+        return df + 1
+
+    def square(df):
+        return df ** 2
+
+    # Applying functions using pipe
+    df_piped = df.pipe(add_one).pipe(square)
+    print(df_piped)
+
+The advantage of using :meth:`DataFrame.pipe` is that it allows you to chain together functions
+without nested calls, promoting a cleaner and more readable code style.
+
 
 Performance Considerations
 --------------------------
 
-While UDFs provide flexibility, their use is currently discouraged as they can introduce performance issues, especially when
-written in pure Python. To improve efficiency:
-
-* Use **vectorized operations** (`NumPy` or `pandas` built-ins) when possible.
-* Leverage **Cython or Numba** to speed up computations.
-* Consider using **pandas' built-in methods** instead of UDFs for common operations.
+While UDFs provide flexibility, their use is currently discouraged as they can introduce
+performance issues, especially when written in pure Python. To improve efficiency,
+consider using built-in `NumPy` or `pandas` functions instead of user-defined functions
+for common operations.
 
 .. note::
-    If performance is critical, explore **pandas' vectorized functions** before resorting
-    to UDFs.
+    If performance is critical, explore **vectorizated operations** before resorting
+    to user-defined functions.
+
+Vectorized Operations
+~~~~~~~~~~~~~~~~~~~~~
+
+Below is an example of vectorized operations in pandas:
+
+.. ipython:: python
+    # Vectorized operation:
+    df["new_col"] = 100 * (df["one"] / df["two"])
+
+    # User-defined function
+    def calc_ratio(row):
+        return 100 * (row["one"] / row["two"])
+
+    df["new_col2"] = df.apply(calc_ratio, axis=1)
+
+Measuring how long each operation takes:
+
+.. ipython:: python
+    Vectorized:             0.0043 secs
+    User-defined function:  5.6435 secs
+
+This happens because user-defined functions loop through each row and apply its function,
+while vectorized operations are applied to underlying `Numpy` arrays, skipping inefficient
+Python code. 
