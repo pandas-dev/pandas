@@ -1,3 +1,0 @@
-module QtRemoteObjects
-plugin qtremoteobjects
-classname QtRemoteObjectsPlugin

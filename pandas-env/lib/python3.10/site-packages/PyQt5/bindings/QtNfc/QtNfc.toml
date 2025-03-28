@@ -1,6 +1,0 @@
-# Automatically generated configuration for PyQt5.QtNfc.
-
-sip-version = "6.8.6"
-sip-abi-version = "12.15"
-module-tags = ["Qt_5_15_14", "WS_MACX"]
-module-disabled-features = []

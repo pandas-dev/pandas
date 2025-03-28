@@ -1,3 +1,0 @@
-module Qt.labs.lottieqt
-plugin lottieqtplugin
-classname BodymovinPlugin

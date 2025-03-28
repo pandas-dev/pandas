@@ -1,2 +1,0 @@
-[matplotlib.backend]
-inline = matplotlib_inline.backend_inline

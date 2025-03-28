@@ -1,4 +1,0 @@
-docs
-google_auth_oauthlib
-scripts
-testing

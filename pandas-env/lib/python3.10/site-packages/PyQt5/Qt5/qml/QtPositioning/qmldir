@@ -1,4 +1,0 @@
-module QtPositioning
-plugin declarative_positioning
-classname QtPositioningDeclarativeModule
-typeinfo plugins.qmltypes

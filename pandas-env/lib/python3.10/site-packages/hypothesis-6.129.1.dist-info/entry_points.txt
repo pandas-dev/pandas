@@ -1,5 +1,0 @@
-[console_scripts]
-hypothesis = hypothesis.extra.cli:main
-
-[pytest11]
-hypothesispytest = _hypothesis_pytestplugin

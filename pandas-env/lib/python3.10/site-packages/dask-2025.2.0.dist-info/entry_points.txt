@@ -1,5 +1,0 @@
-[console_scripts]
-dask = dask.__main__:main
-
-[dask.array.backends]
-cupy = dask.array.cupy_entry_point:CupyBackendEntrypoint

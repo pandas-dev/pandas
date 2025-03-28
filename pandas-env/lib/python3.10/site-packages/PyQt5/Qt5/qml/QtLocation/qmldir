@@ -1,4 +1,0 @@
-module QtLocation
-plugin declarative_location
-classname QtLocationDeclarativeModule
-typeinfo plugins.qmltypes

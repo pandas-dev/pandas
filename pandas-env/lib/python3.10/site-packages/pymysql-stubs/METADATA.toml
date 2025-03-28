@@ -1,6 +1,0 @@
-version = "1.1.*"
-upstream_repository = "https://github.com/PyMySQL/PyMySQL"
-partial_stub = true
-
-[tool.stubtest]
-ignore_missing_stub = true

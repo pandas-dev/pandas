@@ -1,5 +1,0 @@
-module QtQuick3D
-plugin qquick3dplugin
-classname QQuick3DPlugin
-typeinfo plugins.qmltypes
-designersupported
