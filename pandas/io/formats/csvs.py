@@ -19,6 +19,7 @@ from typing import (
 )
 
 import numpy as np
+import json
 
 from pandas._libs import writers as libwriters
 from pandas._typing import SequenceNotStr
@@ -100,12 +101,7 @@ class CSVFormatter:
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
 
-        print("output preserve var: ", self.preserve_complex)
         if self.preserve_complex:
-            print("here1")
-            import json
-            import numpy as np
-
             for col in self.obj.columns:
                 if self.obj[col].dtype == "O":
                     first_val = self.obj[col].iloc[0]

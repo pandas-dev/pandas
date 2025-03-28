@@ -863,22 +863,19 @@ def read_csv(
 
 def _restore_complex_arrays(df: DataFrame) -> None:
     """
-    Loop over each column of df, check if it contains bracketed JSON strings
-    like "[0.1, 0.2, 0.3]", and parse them back into NumPy arrays.
+    Converted bracketed JSON strings in df back to NumPy arrays.
+    eg. "[0.1, 0.2, 0.3]" --> parse into NumPy array.
     """
     def looks_like_json_array(x: str) -> bool:
         return x.startswith("[") and x.endswith("]")
 
     for col in df.columns:
-        # Only parse object columns
         if df[col].dtype == "object":
-            # skip null
             nonnull = df[col].dropna()
             if (
                 len(nonnull) > 0
                 and nonnull.apply(lambda x: isinstance(x, str) and looks_like_json_array(x)).all()
             ):
-                # parse
                 df[col] = df[col].apply(lambda x: np.array(json.loads(x)) if pd.notnull(x) else x)
 
 
