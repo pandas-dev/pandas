@@ -223,18 +223,18 @@ or Dataframe. It is particularly useful for substituting values or transforming 
 .. ipython:: python
 
     # Sample DataFrame
-    s = pd.Series(['cat', 'dog', 'bird'])
+    df = pd.DataFrame({ 'A': ['cat', 'dog', 'bird'], 'B': ['pig', 'cow', 'lamb'] })
 
     # Using map with a user-defined function
     def animal_to_length(animal):
         return len(animal)
 
-    s_mapped = s.map(animal_to_length)
-    print(s_mapped)
+    df_mapped = df.map(animal_to_length)
+    print(df_mapped)
 
     # This works with lambda functions too
-    s_lambda = s.map(lambda x: x.upper())
-    print(s_lambda)
+    df_lambda = df.map(lambda x: x.upper())
+    print(df_lambda)
 
 :meth:`DataFrame.pipe`
 ----------------------
