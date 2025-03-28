@@ -11,6 +11,7 @@ from collections.abc import (
     Sequence,
 )
 import csv as csvlib
+import json
 import os
 from typing import (
     TYPE_CHECKING,
@@ -19,7 +20,6 @@ from typing import (
 )
 
 import numpy as np
-import json
 
 from pandas._libs import writers as libwriters
 from pandas._typing import SequenceNotStr
@@ -109,11 +109,10 @@ class CSVFormatter:
                         self.obj[col] = self.obj[col].apply(
                             lambda x: json.dumps(x.tolist())
                             if isinstance(x, np.ndarray)
-                            else json.dumps(x) if isinstance(x, list)
+                            else json.dumps(x)
+                            if isinstance(x, list)
                             else x
                         )
-
-
 
     @property
     def na_rep(self) -> str:

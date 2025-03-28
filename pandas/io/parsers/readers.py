@@ -11,6 +11,7 @@ from collections import (
     defaultdict,
 )
 import csv
+import json
 import sys
 from textwrap import fill
 from typing import (
@@ -25,8 +26,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import pandas as pd
-import json
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
@@ -49,6 +48,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
+import pandas as pd
 from pandas import Series
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
@@ -866,6 +866,7 @@ def _restore_complex_arrays(df: DataFrame) -> None:
     Converted bracketed JSON strings in df back to NumPy arrays.
     eg. "[0.1, 0.2, 0.3]" --> parse into NumPy array.
     """
+
     def looks_like_json_array(x: str) -> bool:
         return x.startswith("[") and x.endswith("]")
 
@@ -874,9 +875,13 @@ def _restore_complex_arrays(df: DataFrame) -> None:
             nonnull = df[col].dropna()
             if (
                 len(nonnull) > 0
-                and nonnull.apply(lambda x: isinstance(x, str) and looks_like_json_array(x)).all()
+                and nonnull.apply(
+                    lambda x: isinstance(x, str) and looks_like_json_array(x)
+                ).all()
             ):
-                df[col] = df[col].apply(lambda x: np.array(json.loads(x)) if pd.notnull(x) else x)
+                df[col] = df[col].apply(
+                    lambda x: np.array(json.loads(x)) if pd.notnull(x) else x
+                )
 
 
 @overload

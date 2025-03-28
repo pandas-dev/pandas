@@ -1,9 +1,9 @@
 import pandas as pd
+
 print(pd.__file__)
 print(pd.__version__)
 
 import numpy as np
-import os
 
 # # Create a DataFrame with NumPy arrays
 # df = pd.DataFrame({
@@ -35,8 +35,8 @@ import os
 # TEST2
 # Create a DataFrame with NumPy arrays
 df = pd.DataFrame({
-    'id': [1, 2],
-    'embedding': [np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6])]
+    "id": [1, 2],
+    "embedding": [np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6])]
 })
 
 # Save to CSV
