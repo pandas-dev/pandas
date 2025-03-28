@@ -151,25 +151,25 @@ while preserving the original shape of the object.
 
 .. ipython:: python 
 
-    # Sample DataFrame  
-    df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})  
+    # Sample DataFrame
+    df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
 
-    # User-Defined Function  
-    def double(x):  
-        return x * 2  
+    # User-Defined Function
+    def double(x):
+        return x * 2
 
-    # Apply transform  
-    df_transformed = df.transform(double)  
-    print(df_transformed)  
+    # Apply transform
+    df_transformed = df.transform(double)
+    print(df_transformed)
 
-    # This works with lambda functions too  
-    df_lambda = df.transform(lambda x: x * 2)  
-    print(df_lambda)  
+    # This works with lambda functions too
+    df_lambda = df.transform(lambda x: x * 2)
+    print(df_lambda)
 
-Attempting to use common aggregation functions such as `mean` or `sum` will result in
+Attempting to use common aggregation functions such as ``mean`` or ``sum`` will result in
 values being broadcasted to the original dimensions:
 
-.. ipython:: python 
+.. ipython:: python
 
     # Sample DataFrame
     df = pd.DataFrame({
@@ -197,7 +197,7 @@ match particular conditions.
     :meth:`DataFrame.filter` does not accept user-defined functions, but can accept
     list comprehensions that have user-defined functions applied to them.
 
-.. ipython:: python 
+.. ipython:: python
 
     # Sample DataFrame
     df = pd.DataFrame({
@@ -267,7 +267,7 @@ Performance Considerations
 
 While user-defined functions provide flexibility, their use is currently discouraged as they can introduce
 performance issues, especially when written in pure Python. To improve efficiency,
-consider using built-in `NumPy` or `pandas` functions instead of user-defined functions
+consider using built-in ``NumPy`` or ``pandas`` functions instead of user-defined functions
 for common operations.
 
 .. note::
