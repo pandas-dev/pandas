@@ -741,3 +741,55 @@ def test_to_csv_iterative_compression_buffer(compression):
             pd.read_csv(buffer, compression=compression, index_col=0), df
         )
         assert not buffer.closed
+
+
+def test_preserve_numpy_arrays_in_csv(self):
+        df = pd.DataFrame({
+            "id": [1, 2],
+            "embedding": [
+                np.array([0.1, 0.2, 0.3]),
+                np.array([0.4, 0.5, 0.6])
+            ],
+        })
+
+        with tm.ensure_clean("test.csv") as path:
+            df.to_csv(path, index=False, preserve_complex=True)
+            df_loaded = pd.read_csv(path, preserve_complex=True)
+
+            # Validate that embeddings are still NumPy arrays
+            assert isinstance(df_loaded["embedding"][0], np.ndarray), (
+                "Test Failed: The CSV did not preserve embeddings as NumPy arrays!"
+            )
+
+
+def test_preserve_numpy_arrays_in_csv_empty_dataframe(self):
+        df = pd.DataFrame({"embedding": []})
+        expected = """\embedding"""
+
+        with tm.ensure_clean("test.csv") as path:
+            df.to_csv(path, index=False, preserve_complex=True)
+            with open(path, encoding="utf-8") as f:
+                result = f.read()
+
+        assert result == expected, f"CSV output mismatch for empty DataFrame.\nGot:\n{result}"
+
+
+def test_preserve_numpy_arrays_in_csv_mixed_dtypes(self):
+        df = pd.DataFrame({
+            "id": [101, 102],
+            "name": ["alice", "bob"],
+            "scores": [np.array([95.5, 88.0]), np.array([76.0, 90.5])],
+            "age": [25, 30],
+        })
+
+        with tm.ensure_clean("test.csv") as path:
+            df.to_csv(path, index=False, preserve_complex=True)
+            df_loaded = pd.read_csv(path, preserve_complex=True)
+
+        assert isinstance(df_loaded["scores"][0], np.ndarray), (
+            "Failed: 'scores' column not deserialized as np.ndarray."
+        )
+
+        assert df_loaded["id"].dtype == np.int64, "Failed: 'id' should still be int."
+        assert df_loaded["name"].dtype == object, "Failed: 'name' should still be string/object."
+        assert df_loaded["age"].dtype == np.int64, "Failed: 'age' should still be int."
