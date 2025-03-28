@@ -9,7 +9,7 @@ Introduction to User-Defined Functions
 In pandas, User-Defined Functions (UDFs) provide a way to extend the library’s
 functionality by allowing users to apply custom computations to their data. While
 pandas comes with a set of built-in functions for data manipulation, UDFs offer
-flexibility when built-in methods are not sufficient. These functions can be 
+flexibility when built-in methods are not sufficient. These functions can be
 applied at different levels: element-wise, row-wise, column-wise, or group-wise,
 and change the data differently, depending on the method used.
 
@@ -19,13 +19,13 @@ Why Use User-Defined Functions?
 Pandas is designed for high-performance data processing, but sometimes your specific
 needs go beyond standard aggregation, transformation, or filtering. User-defined functions allow you to:
 
-* **Customize Computations**: Implement logic tailored to your dataset, such as complex 
+* **Customize Computations**: Implement logic tailored to your dataset, such as complex
   transformations, domain-specific calculations, or conditional modifications.
 * **Improve Code Readability**: Encapsulate logic into functions rather than writing long,
   complex expressions.
 * **Handle Complex Grouped Operations**: Perform operations on grouped data that standard
   methods do not support.
-* **Extend pandas' Functionality**: Apply external libraries or advanced calculations that 
+* **Extend pandas' Functionality**: Apply external libraries or advanced calculations that
   are not natively available.
 
 
@@ -58,14 +58,14 @@ The :meth:`DataFrame.apply` allows applying a user-defined functions along eithe
 .. ipython:: python
 
     import pandas as pd
-    
+
     # Sample DataFrame
     df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-    
+
     # User-Defined Function
     def add_one(x):
         return x + 1
-    
+
     # Apply function
     df_applied = df.apply(add_one)
     print(df_applied)
@@ -81,14 +81,14 @@ The :meth:`DataFrame.apply` allows applying a user-defined functions along eithe
 
     # Sample DataFrame
     df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 2, 3]})
-    
+
     # User-Defined Function
     def add_one(x):
         return x + 1
 
     def add_two(x):
         return x + 2
-    
+
     # Apply function
     df_applied = df.apply({"A": add_one, "B": add_two})
     print(df_applied)
@@ -103,11 +103,11 @@ The :meth:`DataFrame.apply` allows applying a user-defined functions along eithe
 
     # Sample Series
     s = pd.Series([1, 2, 3])
-    
+
     # User-Defined Function
     def add_one(x):
         return x + 1
-    
+
     # Apply function
     s_applied = s.apply(add_one)
     print(s_applied)
@@ -128,11 +128,11 @@ The :meth:`DataFrame.agg` allows aggregation with a user-defined function along 
         'Category': ['A', 'A', 'B', 'B'],
         'Values': [10, 20, 30, 40]
     })
-    
+
     # Define a function for group operations
     def group_mean(group):
         return group.mean()
-    
+
     # Apply UDF to each group
     grouped_result = df.groupby('Category')['Values'].agg(group_mean)
     print(grouped_result)
@@ -149,7 +149,7 @@ transformations and custom row-wise or element-wise operations.
 The :meth:`DataFrame.transform` allows transforms a Dataframe, Series or Grouped object
 while preserving the original shape of the object.
 
-.. ipython:: python 
+.. ipython:: python
 
     # Sample DataFrame
     df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
