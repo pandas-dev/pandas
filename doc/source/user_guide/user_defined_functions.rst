@@ -40,7 +40,7 @@ User-Defined Functions can be applied across various pandas methods:
   aggregation functions.
 * :meth:`DataFrame.transform` - Applies a function to groups while preserving the shape of
   the original data.
-* :meth:`DataFrame.filter` - Filters groups based on a function returning a Boolean condition.
+* :meth:`DataFrame.filter` - Filters groups based on a list of Boolean conditions.
 * :meth:`DataFrame.map` - Applies an element-wise function to a Series, useful for
   transforming individual values.
 * :meth:`DataFrame.pipe` - Allows chaining custom functions to process entire DataFrames or
@@ -56,6 +56,7 @@ ways to apply user-defined functions across different pandas data structures.
 The :meth:`DataFrame.apply` allows applying a user-defined functions along either axis (rows or columns):
 
 .. ipython:: python
+
     import pandas as pd
     
     # Sample DataFrame
@@ -77,6 +78,7 @@ The :meth:`DataFrame.apply` allows applying a user-defined functions along eithe
 :meth:`DataFrame.apply` also accepts dictionaries of multiple user-defined functions:
 
 .. ipython:: python
+
     # Sample DataFrame
     df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 2, 3]})
     
@@ -98,6 +100,7 @@ The :meth:`DataFrame.apply` allows applying a user-defined functions along eithe
 :meth:`DataFrame.apply` works with Series objects as well:
 
 .. ipython:: python
+
     # Sample Series
     s = pd.Series([1, 2, 3])
     
@@ -119,6 +122,7 @@ The :meth:`DataFrame.apply` allows applying a user-defined functions along eithe
 The :meth:`DataFrame.agg` allows aggregation with a user-defined function along either axis (rows or columns):
 
 .. ipython:: python
+
     # Sample DataFrame
     df = pd.DataFrame({
         'Category': ['A', 'A', 'B', 'B'],
@@ -146,6 +150,7 @@ The :meth:`DataFrame.transform` allows transforms a Dataframe, Series or Grouped
 while preserving the original shape of the object.
 
 .. ipython:: python 
+
     # Sample DataFrame  
     df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})  
 
@@ -165,6 +170,7 @@ Attempting to use common aggregation functions such as `mean` or `sum` will resu
 values being broadcasted to the original dimensions:
 
 .. ipython:: python 
+
     # Sample DataFrame
     df = pd.DataFrame({
         'Category': ['A', 'A', 'B', 'B', 'B'],
@@ -184,28 +190,29 @@ values being broadcasted to the original dimensions:
 ------------------------
 
 The :meth:`DataFrame.filter` method is used to select subsets of the DataFrame’s
-columns or rows and accepts user-defined functions. It is useful when you want to 
-extract specific columns or rows that match particular conditions.
+columns or row. It is useful when you want to extract specific columns or rows that
+match particular conditions.
 
 .. note::
-    :meth:`DataFrame.filter` expects a user-defined function that returns a boolean
-    value
+    :meth:`DataFrame.filter` does not accept user-defined functions, but can accept
+    list comprehensions that have user-defined functions applied to them.
 
 .. ipython:: python 
+
     # Sample DataFrame
     df = pd.DataFrame({
-        'A': [1, 2, 3],
-        'B': [4, 5, 6],
+        'AA': [1, 2, 3],
+        'BB': [4, 5, 6],
         'C': [7, 8, 9],
         'D': [10, 11, 12]
     })
 
-    # Define a function that filters out columns where the name is longer than 1 character
-    df_filtered_func = df.filter(items=lambda x: len(x) > 1)
-    print(df_filtered_func)
+    def is_long_name(column_name):
+        return len(column_name) > 1
 
-Unlike the methods discussed earlier, :meth:`DataFrame.filter` does not accept
-functions that do not return boolean values, such as `mean` or `sum`.
+    # Define a function that filters out columns where the name is longer than 1 character
+    df_filtered = df[[col for col in df.columns if is_long_name(col)]]
+    print(df_filtered)
 
 :meth:`DataFrame.map`
 ---------------------
@@ -214,19 +221,20 @@ The :meth:`DataFrame.map` method is used to apply a function element-wise to a p
 or Dataframe. It is particularly useful for substituting values or transforming data.
 
 .. ipython:: python
+
     # Sample DataFrame
-    df = pd.DataFrame({ 'A': ['cat', 'dog', 'bird'], 'B': ['pig', 'cow', 'lamb'] })
+    s = pd.Series(['cat', 'dog', 'bird'])
 
     # Using map with a user-defined function
     def animal_to_length(animal):
         return len(animal)
 
-    df_mapped = df.map(animal_to_length)
-    print(df_mapped)
+    s_mapped = s.map(animal_to_length)
+    print(s_mapped)
 
     # This works with lambda functions too
-    df_lambda = df.map(lambda x: x.upper())
-    print(df_lambda)
+    s_lambda = s.map(lambda x: x.upper())
+    print(s_lambda)
 
 :meth:`DataFrame.pipe`
 ----------------------
@@ -235,6 +243,7 @@ The :meth:`DataFrame.pipe` method allows you to apply a function or a series of 
 DataFrame in a clean and readable way. This is especially useful for building data processing pipelines.
 
 .. ipython:: python
+
     # Sample DataFrame
     df = pd.DataFrame({ 'A': [1, 2, 3], 'B': [4, 5, 6] })
 
@@ -256,7 +265,7 @@ without nested calls, promoting a cleaner and more readable code style.
 Performance Considerations
 --------------------------
 
-While UDFs provide flexibility, their use is currently discouraged as they can introduce
+While user-defined functions provide flexibility, their use is currently discouraged as they can introduce
 performance issues, especially when written in pure Python. To improve efficiency,
 consider using built-in `NumPy` or `pandas` functions instead of user-defined functions
 for common operations.
@@ -270,9 +279,7 @@ Vectorized Operations
 
 Below is an example of vectorized operations in pandas:
 
-.. ipython:: python
-    # Vectorized operation:
-    df["new_col"] = 100 * (df["one"] / df["two"])
+.. code-block:: text
 
     # User-defined function
     def calc_ratio(row):
@@ -280,12 +287,19 @@ Below is an example of vectorized operations in pandas:
 
     df["new_col2"] = df.apply(calc_ratio, axis=1)
 
+    # Vectorized Operation
+    df["new_col"] = 100 * (df["one"] / df["two"])
+
 Measuring how long each operation takes:
 
-.. ipython:: python
+.. code-block:: text
+
     Vectorized:             0.0043 secs
     User-defined function:  5.6435 secs
 
-This happens because user-defined functions loop through each row and apply its function,
-while vectorized operations are applied to underlying `Numpy` arrays, skipping inefficient
-Python code. 
+Vectorized operations in pandas are significantly faster than using :meth:`DataFrame.apply`
+with user-defined functions because they leverage highly optimized C functions
+via NumPy to process entire arrays at once. This approach avoids the overhead of looping
+through rows in Python and making separate function calls for each row, which is slow and
+inefficient. Additionally, NumPy arrays benefit from memory efficiency and CPU-level
+optimizations, making vectorized operations the preferred choice whenever possible.
