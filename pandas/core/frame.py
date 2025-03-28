@@ -5140,10 +5140,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Label-based "fancy indexing" function for DataFrame.
 
-
         Given equal-length arrays of row and column labels, return an
         array of the values corresponding to each (row, col) pair.
-
 
         Parameters
         ----------
@@ -5151,7 +5149,6 @@ class DataFrame(NDFrame, OpsMixin):
             The row labels to use for lookup.
         col_labels : sequence
             The column labels to use for lookup.
-
 
         Returns
         -------
