@@ -191,3 +191,5 @@ As contributors and maintainers to this project, you are expected to abide by pa
 neva aydın
 
 Heba Walid Awad 
+
+Zeynep Genel 
