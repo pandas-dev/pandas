@@ -25,6 +25,8 @@ from typing import (
 import warnings
 
 import numpy as np
+import pandas as pd
+import json
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
@@ -831,6 +833,7 @@ def read_csv(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
+    preserve_complex: bool = False,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
@@ -850,7 +853,33 @@ def read_csv(
     )
     kwds.update(kwds_defaults)
 
-    return _read(filepath_or_buffer, kwds)
+    df_or_reader = _read(filepath_or_buffer, kwds)
+    # If DataFrame, parse columns containing JSON arrays if preserve_complex=True
+    if preserve_complex and isinstance(df_or_reader, DataFrame):
+        _restore_complex_arrays(df_or_reader)
+
+    return df_or_reader
+
+
+def _restore_complex_arrays(df: DataFrame) -> None:
+    """
+    Loop over each column of df, check if it contains bracketed JSON strings
+    like "[0.1, 0.2, 0.3]", and parse them back into NumPy arrays.
+    """
+    def looks_like_json_array(x: str) -> bool:
+        return x.startswith("[") and x.endswith("]")
+
+    for col in df.columns:
+        # Only parse object columns
+        if df[col].dtype == "object":
+            # skip null
+            nonnull = df[col].dropna()
+            if (
+                len(nonnull) > 0
+                and nonnull.apply(lambda x: isinstance(x, str) and looks_like_json_array(x)).all()
+            ):
+                # parse
+                df[col] = df[col].apply(lambda x: np.array(json.loads(x)) if pd.notnull(x) else x)
 
 
 @overload
