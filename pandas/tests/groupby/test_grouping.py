@@ -695,17 +695,45 @@ class TestGrouping:
         expected = Series([6.0, 18.0], index=[0.0, 1.0])
         tm.assert_series_equal(result, expected)
 
+    def test_groupby_without_by(self):
+        # GH 61160
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [10, 20, 30, 40]})
+
+        # Test basic aggregation with no fields
+        result = df.groupby().sum()
+        expected = df.sum().to_frame().T
+        tm.assert_frame_equal(result, expected)
+
+        # Test with multiple aggregations
+        result = df.groupby().agg(["sum", "mean"])
+        expected = df.agg(["sum", "mean"])
+        tm.assert_frame_equal(result, expected)
+
+        # Test Series.groupby() without any fields
+        s = Series([1, 2, 3, 4])
+        result = s.groupby().sum()
+        expected = Series([10])  # Sum of the values
+        tm.assert_series_equal(result, expected)
+
+        # Test with conditional logic - should work with None/empty list
+        groupby_fields = None
+        result = df.groupby(groupby_fields).sum()
+        expected = df.sum().to_frame().T
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby([]).sum()
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_args(self, multiindex_dataframe_random_data):
         # PR8618 and issue 8015
         frame = multiindex_dataframe_random_data
 
-        msg = "You have to supply one of 'by' and 'level'"
-        with pytest.raises(TypeError, match=msg):
-            frame.groupby()
+        result = frame.groupby().sum()
+        expected = frame.sum().to_frame().T
+        tm.assert_frame_equal(result, expected)
 
-        msg = "You have to supply one of 'by' and 'level'"
-        with pytest.raises(TypeError, match=msg):
-            frame.groupby(by=None, level=None)
+        result = frame.groupby(by=None, level=None).sum()
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "sort,labels",
