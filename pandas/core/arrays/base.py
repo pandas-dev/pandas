@@ -1959,10 +1959,10 @@ class ExtensionArray:
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
         ...     def _formatter(self, boxed=False):
-        ...         return lambda x: "*" + str(x)
+        ...         return lambda x: "*" + str(x) + "*"
         >>> MyExtensionArray(np.array([1, 2, 3, 4]))
         <MyExtensionArray>
-        [1*, 2*, 3*, 4*]
+        [*1*, *2*, *3*, *4*]
         Length: 4, dtype: int64
         """
         if boxed:
