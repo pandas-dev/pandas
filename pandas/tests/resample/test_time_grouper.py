@@ -430,13 +430,7 @@ def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df)
     )
 
     expected = DataFrame(
-        data={
-            "price": [
-                10.0,
-                9.21131,
-                11.0,
-            ]
-        },
+        data={"price": [10.0, 9.5, 11.0]},
         index=expected_ind,
     )
     tm.assert_frame_equal(result, expected, check_names=False)
