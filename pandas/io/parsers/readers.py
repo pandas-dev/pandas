@@ -718,7 +718,6 @@ def _read(
         if kwds.get("return_empty", False):
             raise
         else:
-            print("Empty DataFrame")
             return DataFrame()
 
 
