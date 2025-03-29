@@ -93,6 +93,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_dataclass,
+    is_datetime64_any_dtype,
     is_dict_like,
     is_float,
     is_float_dtype,
@@ -103,6 +104,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_sequence,
+    is_timedelta64_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -11350,6 +11352,13 @@ class DataFrame(NDFrame, OpsMixin):
         c -0.150812  0.191417  0.895202
         """
         data = self._get_numeric_data() if numeric_only else self
+        dtypes = [blk.dtype for blk in self._mgr.blocks]
+        if any(is_datetime64_any_dtype(d) or is_timedelta64_dtype(d) for d in dtypes):
+            msg = (
+                "DataFrame contains columns with dtype datetime64 "
+                "or timedelta64, which are not supported for cov."
+            )
+            raise TypeError(msg)
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
