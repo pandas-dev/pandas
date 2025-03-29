@@ -2645,6 +2645,14 @@ class Timestamp(_Timestamp):
                 "Passed data is timezone-aware, incompatible with 'tz=None'."
             )
 
+        if ts_input == "":
+            warnings.warn(
+                "Passing an empty string to Timestamp is deprecated and will raise "
+                "a ValueError in a future version.",
+                FutureWarning,
+                stacklevel = 2
+            )
+
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, ts.fold, ts.creso)
 
     def _round(self, freq, mode, ambiguous="raise", nonexistent="raise"):

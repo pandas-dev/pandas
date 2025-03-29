@@ -297,6 +297,7 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(index=False) == expected
 
+    @pytest.mark.filterwarnings("ignore:Passing an empty string to Timestamp")
     def test_to_csv_date_format_in_categorical(self):
         # GH#40754
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
