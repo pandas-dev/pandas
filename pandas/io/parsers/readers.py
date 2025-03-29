@@ -455,6 +455,11 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
 
 {storage_options}
 
+preserve_complex : bool, default False
+    If True, arrays (e.g. NumPy arrays) or complex data are serialized and
+    reconstructed in a custom manner. If False (default), standard CSV
+    behavior is used.
+
 dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
     (still experimental). If not specified, the default behavior
