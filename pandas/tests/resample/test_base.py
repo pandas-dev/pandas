@@ -223,6 +223,31 @@ def test_resample_empty_series(freq, index, resample_method):
     assert result.index.freq == expected.index.freq
 
 
+@pytest.mark.parametrize("min_count", [0, 1])
+def test_resample_empty_sum_string(string_dtype_no_object, min_count):
+    # https://github.com/pandas-dev/pandas/issues/60229
+    dtype = string_dtype_no_object
+    ser = Series(
+        pd.NA,
+        index=DatetimeIndex(
+            [
+                "2000-01-01 00:00:00",
+                "2000-01-01 00:00:10",
+                "2000-01-01 00:00:20",
+                "2000-01-01 00:00:30",
+            ]
+        ),
+        dtype=dtype,
+    )
+    rs = ser.resample("20s")
+    result = rs.sum(min_count=min_count)
+
+    value = "" if min_count == 0 else pd.NA
+    index = date_range(start="2000-01-01", freq="20s", periods=2, unit="s")
+    expected = Series(value, index=index, dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "freq",
     [
@@ -411,6 +436,24 @@ def test_resample_size_empty_dataframe(freq, index):
     expected = Series([], dtype="int64", index=index)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("index", [DatetimeIndex([]), TimedeltaIndex([])])
+@pytest.mark.parametrize("freq", ["D", "h"])
+@pytest.mark.parametrize(
+    "method", ["ffill", "bfill", "nearest", "asfreq", "interpolate", "mean"]
+)
+def test_resample_apply_empty_dataframe(index, freq, method):
+    # GH#55572
+    empty_frame_dti = DataFrame(index=index)
+
+    rs = empty_frame_dti.resample(freq)
+    result = rs.apply(getattr(rs, method))
+
+    expected_index = _asfreq_compat(empty_frame_dti.index, freq)
+    expected = DataFrame([], index=expected_index)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

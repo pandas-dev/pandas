@@ -1799,6 +1799,16 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(window_func, name="rank", numeric_only=numeric_only)
 
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        window_func = partial(
+            window_aggregations.roll_nunique,
+        )
+
+        return self._apply(window_func, name="nunique", numeric_only=numeric_only)
+
     def cov(
         self,
         other: DataFrame | Series | None = None,
@@ -2852,6 +2862,43 @@ class Rolling(RollingAndExpandingMixin):
             method=method,
             ascending=ascending,
             pct=pct,
+            numeric_only=numeric_only,
+        )
+
+    @doc(
+        template_header,
+        ".. versionadded:: 3.0.0 \n\n",
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """
+        >>> s = pd.Series([1, 4, 2, np.nan, 3, 3, 4, 5])
+        >>> s.rolling(3).nunique()
+        0    NaN
+        1    NaN
+        2    3.0
+        3    NaN
+        4    NaN
+        5    NaN
+        6    2.0
+        7    3.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="nunique",
+        agg_method="nunique",
+    )
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        return super().nunique(
             numeric_only=numeric_only,
         )
 

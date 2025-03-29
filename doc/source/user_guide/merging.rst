@@ -906,7 +906,7 @@ resetting indexes.
 Joining multiple :class:`DataFrame`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A list or tuple of ``:class:`DataFrame``` can also be passed to :meth:`~DataFrame.join`
+A list or tuple of :class:`DataFrame` can also be passed to :meth:`~DataFrame.join`
 to join them together on their indexes.
 
 .. ipython:: python

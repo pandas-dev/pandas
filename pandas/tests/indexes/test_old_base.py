@@ -454,10 +454,12 @@ class TestBase:
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
 
-        if using_infer_string and (
-            index.dtype == "string" or index.dtype == "category"
-        ):
-            msg = "loc must be an integer between"
+        if using_infer_string:
+            if index.dtype == "string" or index.dtype == "category":
+                msg = "loc must be an integer between"
+            elif index.dtype == "object" and len(index) == 0:
+                msg = "loc must be an integer between"
+                err = TypeError
 
         with pytest.raises(err, match=msg):
             index.insert(0.5, "foo")
@@ -595,7 +597,7 @@ class TestBase:
             pytest.skip(f"Not relevant for Index with {index.dtype}")
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
-            msg = "isna is not defined for MultiIndex"
+            msg = "fillna is not defined for MultiIndex"
             with pytest.raises(NotImplementedError, match=msg):
                 idx.fillna(idx[0])
         else:

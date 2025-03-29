@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_re,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -2102,7 +2103,9 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_slice_replace(start, stop, repl)
         return self._wrap_result(result)
 
-    def decode(self, encoding, errors: str = "strict"):
+    def decode(
+        self, encoding, errors: str = "strict", dtype: str | DtypeObj | None = None
+    ):
         """
         Decode character string in the Series/Index using indicated encoding.
 
@@ -2116,6 +2119,12 @@ class StringMethods(NoNewAttributesMixin):
         errors : str, optional
             Specifies the error handling scheme.
             Possible values are those supported by :meth:`bytes.decode`.
+        dtype : str or dtype, optional
+            The dtype of the result. When not ``None``, must be either a string or
+            object dtype. When ``None``, the dtype of the result is determined by
+            ``pd.options.future.infer_string``.
+
+            .. versionadded:: 2.3.0
 
         Returns
         -------
@@ -2137,6 +2146,10 @@ class StringMethods(NoNewAttributesMixin):
         2   ()
         dtype: object
         """
+        if dtype is not None and not is_string_dtype(dtype):
+            raise ValueError(f"dtype must be string or object, got {dtype=}")
+        if dtype is None and get_option("future.infer_string"):
+            dtype = "str"
         # TODO: Add a similar _bytes interface.
         if encoding in _cpython_optimized_decoders:
             # CPython optimized implementation
@@ -2146,7 +2159,6 @@ class StringMethods(NoNewAttributesMixin):
             f = lambda x: decoder(x, errors)[0]
         arr = self._data.array
         result = arr._str_map(f)
-        dtype = "str" if get_option("future.infer_string") else None
         return self._wrap_result(result, dtype=dtype)
 
     @forbid_nonstring_types(["bytes"])
@@ -3537,12 +3549,29 @@ class StringMethods(NoNewAttributesMixin):
     also includes other characters that can represent quantities such as
     unicode fractions.
 
-    >>> s1 = pd.Series(['one', 'one1', '1', ''])
+    >>> s1 = pd.Series(['one', 'one1', '1', '', '³', '⅕'])
     >>> s1.str.isnumeric()
     0    False
     1    False
     2     True
     3    False
+    4     True
+    5     True
+    dtype: bool
+
+    For a string to be considered numeric, all its characters must have a Unicode
+    numeric property matching :py:meth:`str.is_numeric`. As a consequence,
+    the following cases are **not** recognized as numeric:
+
+    - **Decimal numbers** (e.g., "1.1"): due to period ``"."``
+    - **Negative numbers** (e.g., "-5"):  due to minus sign ``"-"``
+    - **Scientific notation** (e.g., "1e3"): due to characters like ``"e"``
+
+    >>> s2 = pd.Series(["1.1", "-5", "1e3"])
+    >>> s2.str.isnumeric()
+    0    False
+    1    False
+    2    False
     dtype: bool
     """
     _shared_docs["isalnum"] = """

@@ -117,6 +117,12 @@ class Styler(StylerRenderer):
     r"""
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
+    This class provides methods for styling and formatting a Pandas DataFrame or Series.
+    The styled output can be rendered as HTML or LaTeX, and it supports CSS-based
+    styling, allowing users to control colors, font styles, and other visual aspects of
+    tabular data. It is particularly useful for presenting DataFrame objects in a
+    Jupyter Notebook environment or when exporting styled tables for reports and
+
     Parameters
     ----------
     data : Series or DataFrame
@@ -181,6 +187,8 @@ class Styler(StylerRenderer):
 
     Attributes
     ----------
+    index : data.index Index
+    columns : data.columns Index
     env : Jinja2 jinja2.Environment
     template_html : Jinja2 Template
     template_html_table : Jinja2 Template

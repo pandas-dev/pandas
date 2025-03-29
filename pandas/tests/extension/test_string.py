@@ -196,11 +196,7 @@ class TestStringArray(base.ExtensionTests):
 
     def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
         assert isinstance(ser.dtype, StorageExtensionDtype)
-        return ser.dtype.storage == "pyarrow" and op_name in [
-            "cummin",
-            "cummax",
-            "cumsum",
-        ]
+        return op_name in ["cummin", "cummax", "cumsum"]
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         dtype = cast(StringDtype, tm.get_dtype(obj))

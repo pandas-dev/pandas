@@ -1099,12 +1099,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return Series(arr, index=index, name="count", copy=False)
 
     def _mode(self, dropna: bool = True) -> Self:
-        if dropna:
-            result = mode(self._data, dropna=dropna, mask=self._mask)
-            res_mask = np.zeros(result.shape, dtype=np.bool_)
-        else:
-            result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
-        result = type(self)(result, res_mask)  # type: ignore[arg-type]
+        result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+        result = type(self)(result, res_mask)
         return result[result.argsort()]
 
     @doc(ExtensionArray.equals)

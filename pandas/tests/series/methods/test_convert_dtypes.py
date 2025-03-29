@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -296,4 +297,24 @@ class TestSeriesConvertDtypes:
         ser = pd.Series([None, None])
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.Series([None, None], dtype=pd.ArrowDtype(pa.null()))
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    @pytest.mark.parametrize("categories", [None, ["S1", "S2"]])
+    def test_convert_empty_categorical_to_pyarrow(self, categories):
+        # GH#59934
+        ser = pd.Series(pd.Categorical([None] * 5, categories=categories))
+        converted = ser.convert_dtypes(dtype_backend="pyarrow")
+        expected = ser
+        tm.assert_series_equal(converted, expected)
+
+    def test_convert_dtype_pyarrow_timezone_preserve(self):
+        # GH 60237
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(
+            pd.to_datetime(range(5), utc=True, unit="h"),
+            dtype="timestamp[ns, tz=UTC][pyarrow]",
+        )
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        expected = ser.copy()
         tm.assert_series_equal(result, expected)

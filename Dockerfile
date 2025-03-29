@@ -13,5 +13,5 @@ COPY requirements-dev.txt /tmp
 RUN python -m pip install -r /tmp/requirements-dev.txt
 RUN git config --global --add safe.directory /home/pandas
 
-ENV SHELL "/bin/bash"
+ENV SHELL="/bin/bash"
 CMD ["/bin/bash"]
