@@ -1806,3 +1806,70 @@ on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
 
 Developers guide can be found at
 https://pandas.pydata.org/docs/dev/development/extending.html#plotting-backends
+
+Backend-Specific Plotting Arguments
+------------------------------------
+
+Pandas provides a consistent ``plot`` API, but the availability and implementation of 
+optional arguments vary across different backends.
+
+The following table outlines commonly used optional arguments and their alternatives 
+across different backends.
+
++-------------+------------------------------------+---------------------------------+
+| Matplotlib  | Plotly                             | Bokeh                           |
++=============+====================================+=================================+
+| `color`     | `line.color`                       | `line_color`                    |
++-------------+------------------------------------+---------------------------------+
+| `figsize`   | `fig.update_layout(width, height)` | `plot_width`, `plot_height`     |
++-------------+------------------------------------+---------------------------------+
+| `linewidth` | `line_width`                       | `line_width`                    |
++-------------+------------------------------------+---------------------------------+
+| `linestyle` | `dash`                             | `line_dash`                     |
++-------------+------------------------------------+---------------------------------+
+| `marker`    | `marker_symbol`                    | Use Marker glyph (e.g., circle) |
++-------------+------------------------------------+---------------------------------+
+| `alpha`     | `opacity`                          | `line_alpha`, `fill_alpha`      |
++-------------+------------------------------------+---------------------------------+
+| `legend`    | `showlegend`                       | `legend_location`               |
++-------------+------------------------------------+---------------------------------+
+
+**Example Usage:**
+
+- **Matplotlib** (default backend)  
+
+  .. code-block:: python
+
+    >>> df.plot(
+    >>>  kind="line", color="red", figsize=(8, 5), linewidth=2, linestyle="--", 
+    >>>  marker="o", alpha=0.7, legend=True
+    >>> )
+
+- **Plotly**
+
+  .. code-block:: python
+
+    >>> pd.options.plotting.backend = "plotly"
+    >>> fig = df.plot(
+    >>>  color="red", line_width=2, dash="dash", marker_symbol="circle", 
+    >>>   opacity=0.7, showlegend=True
+    >>> )
+    >>> fig.update_layout(width=800, height=500)
+    >>> fig.show()
+
+- **Bokeh**
+
+  .. code-block:: python
+
+    >>> pd.options.plotting.backend = "bokeh"
+    >>> df.plot(
+    >>>  line_color="red", plot_width=800, plot_height=500, line_width=2, 
+    >>>  line_dash="dashed", marker="circle", line_alpha=0.7, 
+    >>>  legend_location="top_right"
+    >>> )
+
+For more details, refer to:
+
+* `Matplotlib Documentation <https://matplotlib.org/stable/contents.html>`_
+* `Plotly Documentation <https://plotly.com/python/>`_
+* `Bokeh Documentation <https://docs.bokeh.org/en/latest/>`_
