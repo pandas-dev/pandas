@@ -351,7 +351,7 @@ Traceback (most recent call last):
 AttributeError: The series must contain integer data only.
 >>> df = pd.Series([1, 2, 3])
 >>> df.int_accessor.sum()
-6"""
+np.int64(6)"""
 
 
 @doc(_register_accessor, klass="Series", examples=_register_series_examples)
