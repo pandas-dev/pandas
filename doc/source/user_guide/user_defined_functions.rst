@@ -13,24 +13,28 @@ flexibility when built-in methods are not sufficient. These functions can be
 applied at different levels: element-wise, row-wise, column-wise, or group-wise,
 and change the data differently, depending on the method used.
 
-Why Use User-Defined Functions?
--------------------------------
+Why Not To Use User-Defined Functions
+-----------------------------------------
 
-Pandas is designed for high-performance data processing, but sometimes your specific
-needs go beyond standard aggregation, transformation, or filtering. User-defined functions allow you to:
+While UDFs provide flexibility, they come with significant drawbacks, primarily
+related to performance. Unlike vectorized pandas operations, UDFs are slower because pandas lacks
+insight into what they are computing, making it difficult to apply efficient handling or optimization
+techniques. As a result, pandas resorts to less efficient processing methods that significantly
+slow down computations. Additionally, relying on UDFs often sacrifices the benefits
+of pandas’ built-in, optimized methods, limiting compatibility and overall performance.
 
-* **Customize Computations**: Implement logic tailored to your dataset, such as complex
-  transformations, domain-specific calculations, or conditional modifications.
-* **Improve Code Readability**: Encapsulate logic into functions rather than writing long,
-  complex expressions.
-* **Handle Complex Grouped Operations**: Perform operations on grouped data that standard
-  methods do not support.
-* **Extend pandas' Functionality**: Apply external libraries or advanced calculations that
-  are not natively available.
+.. note::
+    In general, most tasks can and should be accomplished using pandas’ built-in methods or vectorized operations.
 
+Despite their drawbacks, UDFs can be helpful when:
 
-What functions support User-Defined Functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* **Custom Computations Are Needed**: Implementing complex logic or domain-specific calculations that pandas'
+  built-in methods cannot handle.
+* **Extending pandas' Functionality**: Applying external libraries or specialized algorithms unavailable in pandas.
+* **Handling Complex Grouped Operations**: Performing operations on grouped data that standard methods do not support.
+
+Methods that support User-Defined Functions
+-------------------------------------------
 
 User-Defined Functions can be applied across various pandas methods:
 
@@ -47,124 +51,66 @@ User-Defined Functions can be applied across various pandas methods:
   Series in a clean, readable manner.
 
 All of these pandas methods can be used with both Series and DataFrame objects, providing versatile
-ways to apply user-defined functions across different pandas data structures.
+ways to apply UDFs across different pandas data structures.
 
+
+Choosing the Right Method
+-------------------------
+When applying UDFs in pandas, it is essential to select the appropriate method based
+on your specific task. Each method has its strengths and is designed for different use
+cases. Understanding the purpose and behavior of each method will help you make informed
+decisions, ensuring more efficient and maintainable code.
+
+Below is a table overview of all methods that accept UDFs:
+
++------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
+| Method           | Purpose                              | Supports UDFs             | Keeps Shape        | Performance               | Recommended Use Case                     |
++==================+======================================+===========================+====================+===========================+==========================================+
+| :meth:`apply`    | General-purpose function             | Yes                       | Yes (when axis=1)  | Slow                      | Custom row-wise or column-wise operations|
++------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
+| :meth:`agg`      | Aggregation                          | Yes                       | No                 | Fast (if using built-ins) | Custom aggregation logic                 |
++------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
+| :meth:`transform`| Transform without reducing dimensions| Yes                       | Yes                | Fast (if vectorized)      | Broadcast Element-wise transformations   |
++------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
+| :meth:`map`      | Element-wise mapping                 | Yes                       | Yes                | Moderate                  | Simple element-wise transformations      |
++------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
+| :meth:`pipe`     | Functional chaining                  | Yes                       | Yes                | Depends on function       | Building clean pipelines                 |
++------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
+| :meth:`filter`   | Row/Column selection                 | Not directly              | Yes                | Fast                      | Subsetting based on conditions           |
++------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
 
 :meth:`DataFrame.apply`
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`DataFrame.apply` allows applying a user-defined functions along either axis (rows or columns):
+The :meth:`DataFrame.apply` allows you to apply UDFs along either rows or columns. While flexible,
+it is slower than vectorized operations and should be used only when you need operations
+that cannot be achieved with built-in pandas functions.
 
-.. ipython:: python
+When to use: :meth:`DataFrame.apply` is suitable when no alternative vectorized method is available, but consider
+optimizing performance with vectorized operations wherever possible.
 
-    import pandas as pd
-
-    # Sample DataFrame
-    df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-
-    # User-Defined Function
-    def add_one(x):
-        return x + 1
-
-    # Apply function
-    df_applied = df.apply(add_one)
-    print(df_applied)
-
-    # This works with lambda functions too
-    df_lambda = df.apply(lambda x : x + 1)
-    print(df_lambda)
-
-
-:meth:`DataFrame.apply` also accepts dictionaries of multiple user-defined functions:
-
-.. ipython:: python
-
-    # Sample DataFrame
-    df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 2, 3]})
-
-    # User-Defined Function
-    def add_one(x):
-        return x + 1
-
-    def add_two(x):
-        return x + 2
-
-    # Apply function
-    df_applied = df.apply({"A": add_one, "B": add_two})
-    print(df_applied)
-
-    # This works with lambda functions too
-    df_lambda = df.apply({"A": lambda x : x + 1, "B": lambda x : x + 2})
-    print(df_lambda)
-
-:meth:`DataFrame.apply` works with Series objects as well:
-
-.. ipython:: python
-
-    # Sample Series
-    s = pd.Series([1, 2, 3])
-
-    # User-Defined Function
-    def add_one(x):
-        return x + 1
-
-    # Apply function
-    s_applied = s.apply(add_one)
-    print(s_applied)
-
-    # This works with lambda functions too
-    s_lambda = s.apply(lambda x : x + 1)
-    print(s_lambda)
+Examples of usage can be found at :meth:`DataFrame.apply`
 
 :meth:`DataFrame.agg`
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`DataFrame.agg` allows aggregation with a user-defined function along either axis (rows or columns):
+If you need to aggregate data, :meth:`DataFrame.agg` is a better choice than apply because it is
+specifically designed for aggregation operations.
 
-.. ipython:: python
+When to use: Use :meth:`DataFrame.agg` for performing aggregations like sum, mean, or custom aggregation
+functions across groups.
 
-    # Sample DataFrame
-    df = pd.DataFrame({
-        'Category': ['A', 'A', 'B', 'B'],
-        'Values': [10, 20, 30, 40]
-    })
-
-    # Define a function for group operations
-    def group_mean(group):
-        return group.mean()
-
-    # Apply UDF to each group
-    grouped_result = df.groupby('Category')['Values'].agg(group_mean)
-    print(grouped_result)
-
-In terms of the API, :meth:`DataFrame.agg` has similar usage to :meth:`DataFrame.apply`,
-but it is primarily used for **aggregation**, applying functions that summarize or reduce data.
-Typically, the result of :meth:`DataFrame.agg` reduces the dimensions of data as shown
-in the above example. Conversely, :meth:`DataFrame.apply` is more general and allows for both
-transformations and custom row-wise or element-wise operations.
+Examples of usage can be found at :meth:`DataFrame.agg <api.dataframe.agg>`
 
 :meth:`DataFrame.transform`
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`DataFrame.transform` allows transforms a Dataframe, Series or Grouped object
-while preserving the original shape of the object.
+The transform method is ideal for performing element-wise transformations while preserving the shape of the original DataFrame.
+It’s generally faster than apply because it can take advantage of pandas' internal optimizations.
 
-.. ipython:: python
+When to use: When you need to perform element-wise transformations that retain the original structure of the DataFrame.
 
-    # Sample DataFrame
-    df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-
-    # User-Defined Function
-    def double(x):
-        return x * 2
-
-    # Apply transform
-    df_transformed = df.transform(double)
-    print(df_transformed)
-
-    # This works with lambda functions too
-    df_lambda = df.transform(lambda x: x * 2)
-    print(df_lambda)
+Documentation: DataFrame.transform
 
 Attempting to use common aggregation functions such as ``mean`` or ``sum`` will result in
 values being broadcasted to the original dimensions:
@@ -187,15 +133,17 @@ values being broadcasted to the original dimensions:
     print(df)
 
 :meth:`DataFrame.filter`
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`DataFrame.filter` method is used to select subsets of the DataFrame’s
 columns or row. It is useful when you want to extract specific columns or rows that
 match particular conditions.
 
+When to use: Use :meth:`DataFrame.filter` when you want to use a UDF to create a subset of a DataFrame or Series
+
 .. note::
-    :meth:`DataFrame.filter` does not accept user-defined functions, but can accept
-    list comprehensions that have user-defined functions applied to them.
+    :meth:`DataFrame.filter` does not accept UDFs, but can accept
+    list comprehensions that have UDFs applied to them.
 
 .. ipython:: python
 
@@ -207,72 +155,45 @@ match particular conditions.
         'D': [10, 11, 12]
     })
 
+    # Define a function that filters out columns where the name is longer than 1 character
     def is_long_name(column_name):
         return len(column_name) > 1
 
-    # Define a function that filters out columns where the name is longer than 1 character
     df_filtered = df[[col for col in df.columns if is_long_name(col)]]
     print(df_filtered)
 
 :meth:`DataFrame.map`
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`DataFrame.map` method is used to apply a function element-wise to a pandas Series
-or Dataframe. It is particularly useful for substituting values or transforming data.
+:meth:`DataFrame.map` is used specifically to apply element-wise UDFs and is better
+for this purpose compared to :meth:`DataFrame.apply` because of its better performance.
 
-.. ipython:: python
+When to use: Use map for applying element-wise UDFs to DataFrames or Series.
 
-    # Sample DataFrame
-    df = pd.DataFrame({ 'A': ['cat', 'dog', 'bird'], 'B': ['pig', 'cow', 'lamb'] })
-
-    # Using map with a user-defined function
-    def animal_to_length(animal):
-        return len(animal)
-
-    df_mapped = df.map(animal_to_length)
-    print(df_mapped)
-
-    # This works with lambda functions too
-    df_lambda = df.map(lambda x: x.upper())
-    print(df_lambda)
+Documentation: DataFrame.map
 
 :meth:`DataFrame.pipe`
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`DataFrame.pipe` method allows you to apply a function or a series of functions to a
-DataFrame in a clean and readable way. This is especially useful for building data processing pipelines.
+The pipe method is useful for chaining operations together into a clean and readable pipeline.
+It is a helpful tool for organizing complex data processing workflows.
 
-.. ipython:: python
+When to use: Use pipe when you need to create a pipeline of transformations and want to keep the code readable and maintainable.
 
-    # Sample DataFrame
-    df = pd.DataFrame({ 'A': [1, 2, 3], 'B': [4, 5, 6] })
-
-    # User-defined functions for transformation
-    def add_one(df):
-        return df + 1
-
-    def square(df):
-        return df ** 2
-
-    # Applying functions using pipe
-    df_piped = df.pipe(add_one).pipe(square)
-    print(df_piped)
-
-The advantage of using :meth:`DataFrame.pipe` is that it allows you to chain together functions
-without nested calls, promoting a cleaner and more readable code style.
+Documentation: DataFrame.pipe
 
 
-Performance Considerations
---------------------------
+Best Practices
+--------------
 
-While user-defined functions provide flexibility, their use is currently discouraged as they can introduce
+While UDFs provide flexibility, their use is currently discouraged as they can introduce
 performance issues, especially when written in pure Python. To improve efficiency,
-consider using built-in ``NumPy`` or ``pandas`` functions instead of user-defined functions
+consider using built-in ``NumPy`` or ``pandas`` functions instead of UDFs
 for common operations.
 
 .. note::
     If performance is critical, explore **vectorizated operations** before resorting
-    to user-defined functions.
+    to UDFs.
 
 Vectorized Operations
 ~~~~~~~~~~~~~~~~~~~~~
@@ -285,10 +206,10 @@ Below is an example of vectorized operations in pandas:
     def calc_ratio(row):
         return 100 * (row["one"] / row["two"])
 
-    df["new_col2"] = df.apply(calc_ratio, axis=1)
+    df["new_col"] = df.apply(calc_ratio, axis=1)
 
     # Vectorized Operation
-    df["new_col"] = 100 * (df["one"] / df["two"])
+    df["new_col2"] = 100 * (df["one"] / df["two"])
 
 Measuring how long each operation takes:
 
@@ -298,7 +219,7 @@ Measuring how long each operation takes:
     User-defined function:  5.6435 secs
 
 Vectorized operations in pandas are significantly faster than using :meth:`DataFrame.apply`
-with user-defined functions because they leverage highly optimized C functions
+with UDFs because they leverage highly optimized C functions
 via NumPy to process entire arrays at once. This approach avoids the overhead of looping
 through rows in Python and making separate function calls for each row, which is slow and
 inefficient. Additionally, NumPy arrays benefit from memory efficiency and CPU-level
