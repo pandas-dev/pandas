@@ -770,7 +770,7 @@ class TestiLocBaseIndependent:
         for idx in [None, "index", "locs"]:
             mask = (df.nums > 2).values
             if idx:
-                mask_index = getattr(df, idx if idx == "index" else "locs")[::-1]
+                mask_index = getattr(df, idx)[::-1]
                 mask = Series(mask, list(mask_index))
             for method in ["", ".loc", ".iloc"]:
                 try:
@@ -779,10 +779,7 @@ class TestiLocBaseIndependent:
                     else:
                         accessor = df
                     answer = str(bin(accessor[mask]["nums"].sum()))
-                except (
-                    ValueError,
-                    IndexingError,
-                ) as err:
+                except (ValueError, IndexingError) as err:
                     answer = str(err)
 
                 key = (
