@@ -716,10 +716,8 @@ def _read(
         parser = TextFileReader(filepath_or_buffer, **kwds)
     except pandas.errors.EmptyDataError:
         if kwds.get("return_empty", False):
-            raise
-        else:
             return DataFrame()
-
+        raise
 
     if chunksize or iterator:
         return parser
