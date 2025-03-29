@@ -862,15 +862,12 @@ class TestTSPlot:
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "min"
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_mixed_freq_irreg_period(self):
         ts = Series(
             np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
         )
         irreg = ts.iloc[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 29]]
-        msg = r"PeriodDtype\[B\] is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rng = period_range("1/3/2000", periods=30, freq="B")
+        rng = period_range("1/3/2000", periods=30, freq="D")
         ps = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         irreg.plot(ax=ax)
