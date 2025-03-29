@@ -26,6 +26,7 @@ import warnings
 
 import numpy as np
 
+import pandas.errors
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
@@ -709,8 +710,17 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
-    # Create the parser.
-    parser = TextFileReader(filepath_or_buffer, **kwds)
+    # Check for empty file.
+    try:
+        # Create the parser.
+        parser = TextFileReader(filepath_or_buffer, **kwds)
+    except pandas.errors.EmptyDataError:
+        if kwds.get("return_empty", False):
+            raise
+        else:
+            print("Empty DataFrame")
+            return DataFrame()
+
 
     if chunksize or iterator:
         return parser
@@ -832,6 +842,7 @@ def read_csv(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    return_empty: bool = False,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
     kwds = locals().copy()
@@ -968,6 +979,7 @@ def read_table(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    return_empty: bool = False,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
     kwds = locals().copy()
