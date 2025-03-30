@@ -5850,9 +5850,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _cmp_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)
 
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.__finalize__(other)
-
         if isinstance(other, Series) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
@@ -5861,11 +5858,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         res_values = ops.comparison_op(lvalues, rvalues, op)
 
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     def _logical_method(self, other, op):
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
         res_name = ops.get_op_result_name(self, other)
         self, other = self._align_for_op(other, align_asobject=True)
 
@@ -5873,12 +5868,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     def _arith_method(self, other, op):
         self, other = self._align_for_op(other)
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
         return base.IndexOpsMixin._arith_method(self, other, op)
 
     def _align_for_op(self, right, align_asobject: bool = False):
@@ -5938,14 +5931,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         name = ops.get_op_result_name(self, other)
 
-        if not getattr(this, "attrs", None) and getattr(other, "attrs", None):
-            this.__finalize__(other)
-
-        out = this._construct_result(result, name)
+        out = this._construct_result(result, name, other)
         return cast(Series, out)
 
     def _construct_result(
-        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
+        self,
+        result: ArrayLike | tuple[ArrayLike, ArrayLike],
+        name: Hashable,
+        other=None,
     ) -> Series | tuple[Series, Series]:
         """
         Construct an appropriately-labelled Series from the result of an op.
@@ -5960,11 +5953,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series
             In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
         """
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.__finalize__(other)
         if isinstance(result, tuple):
             # produced by divmod or rdivmod
 
-            res1 = self._construct_result(result[0], name=name)
-            res2 = self._construct_result(result[1], name=name)
+            res1 = self._construct_result(result[0], name=name, other=other)
+            res2 = self._construct_result(result[1], name=name, other=other)
 
             # GH#33427 assertions to keep mypy happy
             assert isinstance(res1, Series)

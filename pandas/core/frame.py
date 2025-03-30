@@ -7882,7 +7882,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # See GH#4537 for discussion of scalar op behavior
         new_data = self._dispatch_frame_op(other, op, axis=axis)
-        return self._construct_result(new_data)
+        return self._construct_result(new_data, other=other)
 
     def _arith_method(self, other, op):
         if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
@@ -7898,7 +7898,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         with np.errstate(all="ignore"):
             new_data = self._dispatch_frame_op(other, op, axis=axis)
-        return self._construct_result(new_data)
+        return self._construct_result(new_data, other=other)
 
     _logical_method = _arith_method
 
@@ -8275,12 +8275,9 @@ class DataFrame(NDFrame, OpsMixin):
 
                 new_data = self._dispatch_frame_op(other, op)
 
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.__finalize__(other)
+        return self._construct_result(new_data, other=other)
 
-        return self._construct_result(new_data)
-
-    def _construct_result(self, result) -> DataFrame:
+    def _construct_result(self, result, other=None) -> DataFrame:
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
 
@@ -8292,6 +8289,8 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
         """
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.__finalize__(other)
         out = self._constructor(result, copy=False).__finalize__(self)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
@@ -8316,11 +8315,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.__finalize__(other)
-
         new_data = self._dispatch_frame_op(other, op, axis=axis)
-        return self._construct_result(new_data)
+        return self._construct_result(new_data, other=other)
 
     @Appender(ops.make_flex_doc("eq", "dataframe"))
     def eq(self, other, axis: Axis = "columns", level=None) -> DataFrame:

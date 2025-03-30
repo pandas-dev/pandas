@@ -1480,9 +1480,9 @@ class IndexOpsMixin(OpsMixin):
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
 
-        return self._construct_result(result, name=res_name)
+        return self._construct_result(result, name=res_name, other=other)
 
-    def _construct_result(self, result, name):
+    def _construct_result(self, result, name, other=None):
         """
         Construct an appropriately-wrapped result from the ArrayLike result
         of an arithmetic-like operation.
