@@ -1003,6 +1003,7 @@ def read_table(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
+    preserve_complex: bool = False,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
