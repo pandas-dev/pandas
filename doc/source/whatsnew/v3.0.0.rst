@@ -660,6 +660,7 @@ Datetimelike
 - Bug in :meth:`to_datetime` reports incorrect index in case of any failure scenario. (:issue:`58298`)
 - Bug in :meth:`to_datetime` wrongly converts when ``arg`` is a ``np.datetime64`` object with unit of ``ps``. (:issue:`60341`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
+- Bug in :attr:`Series.dt.date` where Series with all NaT values would raise an error when compared to a datetime.date (:issue:`61188`)
 
 Timedelta
 ^^^^^^^^^
