@@ -450,6 +450,22 @@ def test_binops(request, args, annotate, all_binary_operators):
     assert result.attrs == {"a": 1}
 
 
+@pytest.mark.parametrize(
+    "left, right, attrs",
+    [
+        (pd.DataFrame([1]), pd.DataFrame([2]), {"a": 1}),
+        (pd.Series([1]), pd.Series([2]), {"a": 1}),
+        (pd.Series([1]), pd.DataFrame([2]), {"a": 1}),
+        (pd.DataFrame([1]), pd.Series([2]), {"a": 1}),
+    ],
+)
+def test_attrs_binary_operations(all_binary_operators, left, right, attrs):
+    # GH 51607
+    left.attrs = attrs
+    assert all_binary_operators(left, right).attrs == attrs
+    assert all_binary_operators(right, left).attrs == attrs
+
+
 # ----------------------------------------------------------------------------
 # Accessors
 
