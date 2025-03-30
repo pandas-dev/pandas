@@ -103,3 +103,21 @@ blockquote {
     color: #787878;
     font-size: 18px;
  }
+footer {
+    margin-top: 2rem;
+    padding-bottom: 1rem;
+}
+
+footer p {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+footer a {
+    color: #130654;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
