@@ -5471,10 +5471,9 @@ class Index(IndexOpsMixin, PandasObject):
             # quickly return if the lengths are different
             return False
 
-        if (
-            (isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype)) and
-            (isinstance(other.dtype, StringDtype) or is_object_dtype(other.dtype))
-            ):
+        if (isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype)) and (
+            isinstance(other.dtype, StringDtype) or is_object_dtype(other.dtype)
+        ):
             return array_equivalent(self._values, other._values)
 
         if (
