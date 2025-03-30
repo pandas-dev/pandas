@@ -1,2 +1,0 @@
-Version: 1.9.0
-Arguments: ['C:\\Python311\\Scripts\\delvewheel', 'repair', '-vv', '--mangle-only=msvcp140.dll', '--no-patch', '-w', 'repaired_wheels', 'C:\\arrow\\python\\dist\\pyarrow-19.0.1-cp311-cp311-win_amd64.whl']

@@ -1,2 +1,0 @@
-[console_scripts]
-google-oauthlib-tool = google_auth_oauthlib.tool.__main__:main [tool]

@@ -1,5 +1,0 @@
-graft test_no_hyphens/labextension
-
-include index.js
-include package.json
-include pyproject.toml

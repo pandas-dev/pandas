@@ -1,4 +1,0 @@
-/*!
-* tabbable 5.3.3
-* @license MIT, https://github.com/focus-trap/tabbable/blob/master/LICENSE
-*/

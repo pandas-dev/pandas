@@ -1,3 +1,0 @@
-[console_scripts]
-natsort = natsort.__main__:main
-

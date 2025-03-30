@@ -1,5 +1,0 @@
-module QtQuick.XmlListModel
-plugin qmlxmllistmodelplugin
-classname QmlXmlListModelPlugin
-typeinfo plugins.qmltypes
-designersupported
