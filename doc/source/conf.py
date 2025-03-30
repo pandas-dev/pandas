@@ -393,6 +393,9 @@ header = f"""\
 html_context = {
     "redirects": dict(moved_api_pages),
     "header": header,
+    "github_user": "pandas-dev",
+    "github_repo": "pandas",
+    "github_version": "main",
 }
 
 # If false, no module index is generated.
