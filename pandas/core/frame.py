@@ -11071,6 +11071,7 @@ class DataFrame(NDFrame, OpsMixin):
         1   0.0   1.0
         2   0.7   0.0
         3   0.2   0.0
+        
         """
         from pandas.core.reshape.concat import concat
 
