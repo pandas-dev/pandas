@@ -1,0 +1,3 @@
+module Qt.labs.animation
+plugin labsanimationplugin
+classname QtLabsAnimationPlugin

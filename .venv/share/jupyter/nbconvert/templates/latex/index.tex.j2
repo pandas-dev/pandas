@@ -1,0 +1,17 @@
+
+((=- Default to the notebook output style -=))
+((*- if not cell_style is defined -*))
+    ((* set cell_style = 'style_jupyter.tex.j2' *))
+((*- endif -*))
+
+((=- Inherit from the specified cell style. -=))
+((* extends cell_style *))
+
+
+%===============================================================================
+% Latex Article
+%===============================================================================
+
+((*- block docclass -*))
+\documentclass[11pt]{article}
+((*- endblock docclass -*))

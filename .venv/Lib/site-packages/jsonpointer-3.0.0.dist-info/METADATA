@@ -1,0 +1,51 @@
+Metadata-Version: 2.1
+Name: jsonpointer
+Version: 3.0.0
+Summary: Identify specific nodes in a JSON document (RFC 6901) 
+Home-page: https://github.com/stefankoegl/python-json-pointer
+Author: Stefan Kögl
+Author-email: stefan@skoegl.net
+License: Modified BSD License
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Utilities
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+License-File: AUTHORS
+
+python-json-pointer
+===================
+
+[![PyPI version](https://img.shields.io/pypi/v/jsonpointer.svg)](https://pypi.python.org/pypi/jsonpointer/)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/jsonpointer.svg)](https://pypi.python.org/pypi/jsonpointer/)
+[![Coverage Status](https://coveralls.io/repos/stefankoegl/python-json-pointer/badge.svg?branch=master)](https://coveralls.io/r/stefankoegl/python-json-pointer?branch=master)
+
+
+Resolve JSON Pointers in Python
+-------------------------------
+
+Library to resolve JSON Pointers according to
+[RFC 6901](http://tools.ietf.org/html/rfc6901)
+
+See source code for examples
+* Website: https://github.com/stefankoegl/python-json-pointer
+* Repository: https://github.com/stefankoegl/python-json-pointer.git
+* Documentation: https://python-json-pointer.readthedocs.org/
+* PyPI: https://pypi.python.org/pypi/jsonpointer
+* Travis CI: https://travis-ci.org/stefankoegl/python-json-pointer
+* Coveralls: https://coveralls.io/r/stefankoegl/python-json-pointer

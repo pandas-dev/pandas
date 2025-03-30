@@ -1,0 +1,16 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "GetAnalysisReportResults": {
+        "non_aggregate_keys": [
+          "EndTime",
+          "ReportTime",
+          "Status",
+          "AnalysisType",
+          "StartTime"
+        ]
+      }
+    }
+  }
+}

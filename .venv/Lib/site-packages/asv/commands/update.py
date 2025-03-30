@@ -1,0 +1,79 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+
+import os
+import re
+
+from . import Command
+from ..machine import Machine, MachineCollection
+from ..results import Results, get_filename
+from ..benchmarks import Benchmarks
+from ..console import log
+from .. import util
+from .run import Run
+
+
+class Update(Command):
+    @classmethod
+    def setup_arguments(cls, subparsers):
+        parser = subparsers.add_parser(
+            "update", help="Update the results and config files "
+            "to the current version",
+            description="Update the results and config files "
+            "to the current version")
+
+        parser.set_defaults(func=cls.run_from_args)
+
+        return parser
+
+    @classmethod
+    def run_from_conf_args(cls, conf, args, _machine_file=None):
+        return cls.run(conf, _machine_file=_machine_file)
+
+    @classmethod
+    def run(cls, conf, _machine_file=None):
+        MachineCollection.update(_path=_machine_file)
+
+        log.info("Updating results data...")
+
+        for root, dirs, files in os.walk(conf.results_dir):
+            for filename in files:
+                path = os.path.join(root, filename)
+                if filename == 'machine.json':
+                    Machine.update(path)
+                elif filename == "benchmarks.json":
+                    pass
+                elif filename.endswith('.json'):
+                    try:
+                        Results.update(path)
+                    except util.UserError as err:
+                        # Conversion failed: just skip the file
+                        log.warning(f"{path}: {err}")
+                        continue
+
+                    # Rename files if necessary
+                    m = re.match(r'^([0-9a-f]+)-(.*)\.json$', os.path.basename(path), re.I)
+                    if m:
+                        new_path = get_filename(root, m.group(1), m.group(2))
+                        if new_path != path:
+                            try:
+                                if os.path.exists(new_path):
+                                    raise OSError()
+                                os.rename(path, new_path)
+                            except OSError:
+                                log.warning(f"{path}: should be renamed to {new_path}")
+                    else:
+                        log.warning(f"{path}: unrecognized file name")
+
+        # Check benchmarks.json
+        log.info("Updating benchmarks.json...")
+        ok = False
+        try:
+            Benchmarks.load(conf)
+            ok = True
+        except util.UserError:
+            pass
+
+        if not ok:
+            # Regenerating the file is needed
+            with log.indent():
+                Run.run(conf, bench=['just-discover'])

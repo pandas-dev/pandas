@@ -1,0 +1,14 @@
+{
+  "title": "Kernel dialogs",
+  "description": "Kernel dialogs settings.",
+  "additionalProperties": false,
+  "properties": {
+    "skipKernelRestartDialog": {
+      "title": "Skip kernel restart Dialog",
+      "description": "Whether the kernel restart confirmation dialog is skipped when restarting the kernel.",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "type": "object"
+}

@@ -1,0 +1,5 @@
+[console_scripts]
+pybind11-config = pybind11.__main__:main
+
+[pipx.run]
+pybind11 = pybind11.__main__:main

@@ -1,0 +1,111 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+import os
+import itertools
+
+from ..console import log
+from ..publishing import OutputPublisher
+from ..graph import Graph
+from .. import util
+
+
+def benchmark_param_iter(benchmark):
+    """
+    Iterate over all combinations of parameterized benchmark parameters.
+
+    Yields
+    ------
+    idx : int
+        Combination flat index. `None` if benchmark not parameterized.
+    params : tuple
+        Tuple of parameter values.
+
+    """
+    if not benchmark['params']:
+        yield None, ()
+    else:
+        for item in enumerate(itertools.product(*benchmark['params'])):
+            yield item
+
+
+class SummaryList(OutputPublisher):
+    name = "summarylist"
+    button_label = "List view"
+    description = "Display as a list"
+    order = 1
+
+    @classmethod
+    def publish(cls, conf, repo, benchmarks, graphs, revisions):
+        results = {}
+
+        # Investigate all benchmarks
+        for benchmark_name, benchmark in sorted(benchmarks.items()):
+            log.dot()
+
+            benchmark_graphs = graphs.get_graph_group(benchmark_name)
+
+            # For parameterized benchmarks, consider each combination separately
+            for idx, benchmark_param in benchmark_param_iter(benchmark):
+                pretty_name = benchmark_name
+
+                if benchmark.get('pretty_name'):
+                    pretty_name = benchmark['pretty_name']
+
+                if idx is not None:
+                    bench_param = ", ".join(benchmark_param)
+                    pretty_name = f'{pretty_name}({bench_param})'
+
+                # Each environment parameter combination is reported
+                # separately on the summarylist page
+                benchmark_graphs = graphs.get_graph_group(benchmark_name)
+                for graph in benchmark_graphs:
+                    # Produce interesting information, based on
+                    # stepwise fit on the benchmark data (reduces noise)
+                    steps = graph.get_steps()
+                    if idx is not None and steps:
+                        steps = graph.get_steps()[idx]
+
+                    last_value = None
+                    last_err = None
+                    change_rev = None
+                    last_rev = None
+                    prev_value = None
+
+                    if not steps:
+                        # No data
+                        pass
+                    else:
+                        last_piece = steps[-1]
+                        last_value = last_piece[2]
+                        last_err = last_piece[4]
+                        last_rev = last_piece[1] - 1
+
+                        if len(steps) > 1:
+                            prev_piece = steps[-2]
+                            prev_value = prev_piece[2]
+                            if prev_piece[1] == last_piece[0]:
+                                # Single commit
+                                change_rev = [None, last_piece[0]]
+                            else:
+                                # Revision range (left-exclusive)
+                                change_rev = [prev_piece[1] - 1, last_piece[0]]
+
+                    row = dict(name=benchmark_name,
+                               idx=idx,
+                               pretty_name=pretty_name,
+                               last_rev=last_rev,
+                               last_value=last_value,
+                               last_err=last_err,
+                               prev_value=prev_value,
+                               change_rev=change_rev)
+
+                    # Generate summary data filename.
+                    # Note that 'summary' is not a valid benchmark name, so that we can
+                    # be sure it can be always used.
+                    path = Graph.get_file_path(graph.params, 'summary') + ".json"
+                    results.setdefault(path, []).append(row)
+
+        # Write results to files
+        for path, data in results.items():
+            filename = os.path.join(conf.html_dir, path)
+            util.write_json(filename, sorted(data, key=lambda x: (x['name'], x['idx'])),
+                            compact=True)

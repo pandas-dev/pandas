@@ -1,0 +1,12 @@
+frozenlist-1.5.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+frozenlist-1.5.0.dist-info/LICENSE,sha256=b9UkPpLdf5jsacesN3co50kFcJ_1J6W_mNbQJjwE9bY,11332
+frozenlist-1.5.0.dist-info/METADATA,sha256=MBrWFeFGtYBYKwyuGohi2KMhAJ56dhuJczAONntPIjY,14239
+frozenlist-1.5.0.dist-info/RECORD,,
+frozenlist-1.5.0.dist-info/WHEEL,sha256=tE2EWZPEv-G0fjAlUUz7IGM64246YKD9fpv4HcsDMkk,101
+frozenlist-1.5.0.dist-info/top_level.txt,sha256=jivtxsPXA3nK3WBWW2LW5Mtu_GHt8UZA13NeCs2cKuA,11
+frozenlist/__init__.py,sha256=ymVtnW3MinO-Ux3cBj_PLEpXnmLawk45el8vcX6IkWY,2371
+frozenlist/__init__.pyi,sha256=vMEoES1xGegPtVXoCi9XydEeHsyuIq-KdeXwP5PdsaA,1470
+frozenlist/__pycache__/__init__.cpython-311.pyc,,
+frozenlist/_frozenlist.cp311-win_amd64.pyd,sha256=AgU_U-sHi-FIhzWHjcaFJPDhAzQiUKCe7K41M9jpx3A,87040
+frozenlist/_frozenlist.pyx,sha256=4YturclNF7wioO7YX3Vzl7Ldb2-iswe6UrjJOMKSswU,2993
+frozenlist/py.typed,sha256=sow9soTwP9T_gEAQSVh7Gb8855h04Nwmhs2We-JRgZM,7

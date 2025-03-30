@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) Jupyter Development Team.
+Distributed under the terms of the Modified BSD License.
+-->
+<html>
+
+<head>
+  <meta charset="utf-8">
+
+  <title>{% block title %}{{page_title | escape}}{% endblock %}</title>
+
+  {% block favicon %}<link rel="shortcut icon" type="image/x-icon" href="/static/favicons/favicon.ico">{% endblock %}
+
+</head>
+
+<body>
+
+{% block stylesheet %}
+<style type="text/css">
+/* disable initial hide */
+div#header, div#site {
+    display: block;
+}
+</style>
+{% endblock %}
+{% block site %}
+
+<div class="error">
+    {% block h1_error %}
+    <h2>JupyterLab assets not detected, please rebuild</h2>
+    <script>
+    console.error('Missing assets in "{{static_dir | escape}}"');
+    </script>
+    {% endblock h1_error %}
+</header>
+
+{% endblock %}
+
+</body>
+
+</html>

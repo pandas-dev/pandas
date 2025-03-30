@@ -1,0 +1,110 @@
+import abc
+from typing import Final, Optional
+
+from moto.stepfunctions.parser.asl.component.common.jsonata.jsonata_template_value_terminal import (
+    JSONataTemplateValueTerminalExpression,
+)
+from moto.stepfunctions.parser.asl.component.common.variable_sample import (
+    VariableSample,
+)
+from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
+from moto.stepfunctions.parser.asl.eval.environment import Environment
+from moto.stepfunctions.parser.asl.utils.json_path import extract_json
+
+
+class Timeout(EvalComponent, abc.ABC):
+    @abc.abstractmethod
+    def is_default_value(self) -> bool: ...
+
+    @abc.abstractmethod
+    def _eval_seconds(self, env: Environment) -> int: ...
+
+    def _eval_body(self, env: Environment) -> None:
+        seconds = self._eval_seconds(env=env)
+        env.stack.append(seconds)
+
+
+class TimeoutSeconds(Timeout):
+    DEFAULT_TIMEOUT_SECONDS: Final[int] = 99999999
+
+    def __init__(self, timeout_seconds: int, is_default: Optional[bool] = None):
+        if not isinstance(timeout_seconds, int) and timeout_seconds <= 0:
+            raise ValueError(
+                f"Expected non-negative integer for TimeoutSeconds, got '{timeout_seconds}' instead."
+            )
+        self.timeout_seconds: Final[int] = timeout_seconds
+        self.is_default: Optional[bool] = is_default
+
+    def is_default_value(self) -> bool:
+        if self.is_default is not None:
+            return self.is_default
+        return self.timeout_seconds == self.DEFAULT_TIMEOUT_SECONDS
+
+    def _eval_seconds(self, env: Environment) -> int:
+        return self.timeout_seconds
+
+
+class TimeoutSecondsJSONata(Timeout):
+    jsonata_template_value_terminal_expression: Final[
+        JSONataTemplateValueTerminalExpression
+    ]
+
+    def __init__(
+        self,
+        jsonata_template_value_terminal_expression: JSONataTemplateValueTerminalExpression,
+    ):
+        super().__init__()
+        self.jsonata_template_value_terminal_expression = (
+            jsonata_template_value_terminal_expression
+        )
+
+    def is_default_value(self) -> bool:
+        return False
+
+    def _eval_seconds(self, env: Environment) -> int:
+        self.jsonata_template_value_terminal_expression.eval(env=env)
+        # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
+        seconds = int(env.stack.pop())
+        return seconds
+
+
+class TimeoutSecondsPath(Timeout):
+    def __init__(self, path: str):
+        self.path: Final[str] = path
+
+    @classmethod
+    def from_raw(cls, path: str):
+        return cls(path=path)
+
+    def is_default_value(self) -> bool:
+        return False
+
+    def _eval_seconds(self, env: Environment) -> int:
+        inp = env.stack[-1]
+        seconds = extract_json(self.path, inp)
+        if not isinstance(seconds, int) and seconds <= 0:
+            raise ValueError(
+                f"Expected non-negative integer for TimeoutSecondsPath, got '{seconds}' instead."
+            )
+        return seconds
+
+
+class TimeoutSecondsPathVar(TimeoutSecondsPath):
+    variable_sample: VariableSample
+
+    def __init__(self, variable_sample: VariableSample):
+        super().__init__(path=variable_sample.expression)
+        self.variable_sample = variable_sample
+
+    def _eval_seconds(self, env: Environment) -> int:
+        self.variable_sample.eval(env=env)
+        seconds = env.stack.pop()
+        if not isinstance(seconds, int) and seconds <= 0:
+            raise ValueError(
+                f"Expected non-negative integer for TimeoutSecondsPath, got '{seconds}' instead."
+            )
+        return seconds
+
+
+class EvalTimeoutError(TimeoutError):
+    pass
