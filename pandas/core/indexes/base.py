@@ -5470,15 +5470,13 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) != len(other):
             # quickly return if the lengths are different
             return False
-        
-        if (
-            (isinstance(self.dtype, StringDtype)
-            or is_object_dtype(self.dtype)) 
-            and 
-            (isinstance(other.dtype, StringDtype)
-            or is_object_dtype(other.dtype))
-            ):
-            return array_equivalent(self.astype("object")._values, other.astype("object")._values)
+
+        if (isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype)) and (
+            isinstance(other.dtype, StringDtype) or is_object_dtype(other.dtype)
+        ):
+            return array_equivalent(
+                self.astype("object")._values, other.astype("object")._values
+            )
 
         if (
             isinstance(self.dtype, StringDtype)
