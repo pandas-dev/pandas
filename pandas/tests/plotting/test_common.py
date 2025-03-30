@@ -62,28 +62,43 @@ class TestCommon:
     
     def test_bar_subplot_stacking(self):
         #GH Issue 61018
-        #Extracts height and location data 
         test_data = np.random.default_rng(3).integers(0,100,5)
-        df = DataFrame({"a": test_data, "b": test_data[::-1]})
-        ax = _check_plot_works(df.plot, subplots= [('a','b')], kind="bar", stacked=True)
+        df = DataFrame({"A": test_data, "B": test_data[::-1], "C": test_data[0]})
+        ax = df.plot(subplots= [('A','B')], kind="bar", stacked=True)
+
+        #finds all the rectangles that represent the values from both subplots
+        data_from_subplots = [[(x.get_x(), x.get_y(), x.get_height()) for x in ax[i].findobj(plt.Rectangle) if x.get_height() in test_data] for i in range(0,2)]
 
         #get xy and height of squares that represent the data graphed from the df
-        #we would expect the height value of A to be reflected in the Y coord of B
-        data_from_plot_mat = [(x.get_x(), x.get_y(), x.get_height()) for x in ax[0].findobj(plt.Rectangle) if x.get_height() in test_data]
-        data_from_plot_df = DataFrame(data = data_from_plot_mat, columns = ["x_coord", "y_coord", "height"])
-        unique_x_loc = unique(data_from_plot_df["x_coord"])
+        #we would expect the height value of A to be reflected in the Y coord of B in subplot 1
+        subplot_data_df_list = []
+        unique_x_loc_list = []
+        for i in range(0,len(data_from_subplots)):
+            subplot_data_df= DataFrame(data = data_from_subplots[i], columns = ["x_coord", "y_coord", "height"])
+            unique_x_loc = unique(subplot_data_df["x_coord"])
 
-        plot_a_df = data_from_plot_df.iloc[:len(test_data)]
-        plot_b_df = data_from_plot_df.iloc[len(test_data):].reset_index()
-        total_bar_height = plot_a_df["height"].add(plot_b_df["height"])
+            subplot_data_df_list.append(subplot_data_df)
+            unique_x_loc_list.append(unique_x_loc)
 
+        #Checks subplot 1
+        plot_A_df = subplot_data_df_list[0].iloc[:len(test_data)]
+        plot_B_df = subplot_data_df_list[0].iloc[len(test_data):].reset_index()
+        total_bar_height = plot_A_df["height"].add(plot_B_df["height"])
         #check number of bars matches the number of data plotted
-        assert len(unique_x_loc) == len(test_data)
-
+        assert len(unique_x_loc_list[0]) == len(test_data)
         #checks that the first set of bars are the correct height and that the second one starts at the top of the first, additional checks the combined height of the bars are correct
-        assert (plot_a_df["height"] == test_data).all()
-        assert (plot_b_df["y_coord"] == test_data).all()
+        assert (plot_A_df["height"] == test_data).all()
+        assert (plot_B_df["y_coord"] == test_data).all()
         assert (total_bar_height == test_data + test_data[::-1]).all()
+
+        #Checks subplot 2
+        plot_C_df = subplot_data_df_list[1].iloc[:len(test_data)]
+        #check number of bars matches the number of data plotted
+        assert len(unique_x_loc_list[1]) == len(test_data)
+        #checks that all the bars start at zero and are the correct height
+        assert (plot_C_df["height"] == test_data[0]).all()
+        assert (plot_C_df["y_coord"] == 0).all()
+
 
 
 
