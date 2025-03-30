@@ -268,8 +268,6 @@ html_theme_options = {
             "icon": "fa-brands fa-mastodon",
         },
     ],
-    "use_edit_page_button": True,
-    "edit_page_url_template": "https://github.com/pandas-dev/pandas/edit/main/doc/source/{filepath}",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -393,9 +391,6 @@ header = f"""\
 html_context = {
     "redirects": dict(moved_api_pages),
     "header": header,
-    "github_user": "pandas-dev",
-    "github_repo": "pandas",
-    "github_version": "main",
 }
 
 # If false, no module index is generated.
