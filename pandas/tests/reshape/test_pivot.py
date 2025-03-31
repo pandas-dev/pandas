@@ -2532,7 +2532,7 @@ class TestPivotTable:
     def test_pivot_table_index_and_column_keys_with_nan(self, dropna: bool) -> None:
         data = {"row": [None, *range(4)], "col": [*range(4), None], "val": range(5)}
         df = DataFrame(data)
-        actual = df.pivot_table(values="val", index="row", columns="col", dropna=dropna)
+        result = df.pivot_table(values="val", index="row", columns="col", dropna=dropna)
         e_index = [None, *range(4)]
         e_columns = [*range(4), None]
         e_data = np.zeros(shape=(5, 5))
@@ -2553,7 +2553,7 @@ class TestPivotTable:
                 .dropna(axis="columns", how="all")
             )
 
-        tm.assert_frame_equal(left=actual, right=expected)
+        tm.assert_frame_equal(left=result, right=expected)
 
 
 class TestPivot:
