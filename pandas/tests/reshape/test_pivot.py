@@ -2530,6 +2530,7 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_index_and_column_keys_with_nan(self, dropna):
+        # GH#61113
         data = {"row": [None, *range(4)], "col": [*range(4), None], "val": range(5)}
         df = DataFrame(data)
         result = df.pivot_table(values="val", index="row", columns="col", dropna=dropna)
