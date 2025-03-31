@@ -5159,66 +5159,34 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         >>> grades = pd.DataFrame(
         ...     {
-        ...         "Math_Sem1": [85, 92, 78, 88, 95],
-        ...         "Math_Sem2": [88, 90, 82, 85, 93],
-        ...         "Science_Sem1": [90, 85, 92, 79, 87],
-        ...         "Science_Sem2": [92, 87, 90, 83, 89],
-        ...         "English_Sem1": [95, 80, 85, 90, 82],
-        ...         "English_Sem2": [93, 82, 87, 88, 80],
+        ...         "Math": [85, 92, 78, 88, 95],
+        ...         "Science": [90, 85, 92, 79, 87],
         ...     },
         ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
         ... )
         >>> feedback = pd.DataFrame(
         ...     {
-        ...         "Math_Sem1": [
+        ...         "Math": [
         ...             "Strong analytical skills",
         ...             "Excellent problem-solving",
         ...             "Needs more practice",
         ...             "Solid understanding",
         ...             "Exceptional reasoning",
         ...         ],
-        ...         "Math_Sem2": [
-        ...             "Improved advanced techniques",
-        ...             "Consistent high performance",
-        ...             "Significant progress",
-        ...             "Steady improvement",
-        ...             "Consistently exceptional",
-        ...         ],
-        ...         "Science_Sem1": [
+        ...         "Science": [
         ...             "Excellent inquiry skills",
         ...             "Good theoretical concepts",
         ...             "Strong methodological interest",
         ...             "Needs focus",
         ...             "Outstanding curiosity",
         ...         ],
-        ...         "Science_Sem2": [
-        ...             "Advanced scientific principles",
-        ...             "Improved practical skills",
-        ...             "Growing scientific reasoning",
-        ...             "Better lab engagement",
-        ...             "Continued excellence",
-        ...         ],
-        ...         "English_Sem1": [
-        ...             "Exceptional writing",
-        ...             "Strong language use",
-        ...             "Needs confident expression",
-        ...             "Solid literary analysis",
-        ...             "Creative insights",
-        ...         ],
-        ...         "English_Sem2": [
-        ...             "Refined writing techniques",
-        ...             "Improved expression",
-        ...             "More confident analysis",
-        ...             "Developing writing style",
-        ...             "Maintained high-level writing",
-        ...         ],
         ...     },
         ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
         ... )
         >>> student_top = grades.rank(1).idxmax(1)  #  student's top score
         >>> feedback.lookup(student_top.index, student_top)
-        array(['Exceptional writing', 'Excellent problem-solving',
-               'Strong methodological interest', 'Solid literary analysis',
+        array(['Excellent inquiry skills', 'Excellent problem-solving',
+               'Strong methodological interest', 'Solid understanding',
                'Exceptional reasoning'], dtype=object)
         """
         n = len(row_labels)
