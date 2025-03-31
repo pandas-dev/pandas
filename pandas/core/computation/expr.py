@@ -644,7 +644,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         ctx = node.ctx
         if isinstance(ctx, ast.Load):
             # resolve the value
-            resolved = self.visit(value).value
+            visited_value = self.visit(value)
+            if hasattr(visited_value, "value"):
+                resolved = visited_value.value
+            else:
+                resolved = visited_value(self.env)
             try:
                 v = getattr(resolved, attr)
                 name = self.env.add_tmp(v)
