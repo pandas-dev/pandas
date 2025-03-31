@@ -2533,25 +2533,22 @@ class TestPivotTable:
         data = {"row": [None, *range(4)], "col": [*range(4), None], "val": range(5)}
         df = DataFrame(data)
         result = df.pivot_table(values="val", index="row", columns="col", dropna=dropna)
-        e_index = [None, *range(4)]
-        e_columns = [*range(4), None]
-        e_data = np.zeros(shape=(5, 5))
-        e_data.fill(np.nan)
-        np.fill_diagonal(a=e_data, val=range(5))
+        e_axis = [*range(4), None]
+        nan = np.nan
+        e_data = [
+            [nan, 1.0, nan, nan, nan],
+            [nan, nan, 2.0, nan, nan],
+            [nan, nan, nan, 3.0, nan],
+            [nan, nan, nan, nan, 4.0],
+            [0.0, nan, nan, nan, nan],
+        ]
         expected = DataFrame(
             data=e_data,
-            index=Index(data=e_index, name="row"),
-            columns=Index(data=e_columns, name="col"),
-        ).sort_index()
+            index=Index(data=e_axis, name="row"),
+            columns=Index(data=e_axis, name="col"),
+        )
         if dropna:
-            expected = (
-                # Drop null index/column keys.
-                expected.loc[expected.index.notna(), expected.columns.notna()]
-                # Drop null rows.
-                .dropna(axis="index", how="all")
-                # Drop null columns.
-                .dropna(axis="columns", how="all")
-            )
+            expected = expected.loc[[0, 1, 2], [1, 2, 3]]
 
         tm.assert_frame_equal(left=result, right=expected)
 
