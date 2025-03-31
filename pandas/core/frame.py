@@ -5136,7 +5136,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def lookup(self, row_labels, col_labels) -> np.ndarray:
+    def lookup(self, row_labels, col_labels) -> ExtensionArray | np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
 
@@ -5207,7 +5207,7 @@ class DataFrame(NDFrame, OpsMixin):
         if sub._is_mixed_type:
             sub = sub.take(np.unique(ridx), axis=0)
             ridx = sub.index.get_indexer(row_labels)
-        values = sub.to_numpy()
+        values = sub.values
         cidx = sub.columns.get_indexer(col_labels)
         flat_index = ridx * len(sub.columns) + cidx
 
