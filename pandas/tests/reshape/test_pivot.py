@@ -2530,37 +2530,6 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_index_and_column_keys_with_nan(self, dropna: bool) -> None:
-        """Index/column keys containing NA values depend on ``dropna``.
-
-        Input data
-        ----------
-            row  col  val
-        0  NaN  0.0    0
-        1  0.0  1.0    1
-        2  1.0  2.0    2
-        3  2.0  3.0    3
-        4  3.0  NaN    4
-
-        ``dropna=True``: Index/column keys containing NA values will be dropped.
-        Expected output
-        ---------------
-        col  1.0  2.0  3.0
-        row
-        0.0  1.0  NaN  NaN
-        1.0  NaN  2.0  NaN
-        2.0  NaN  NaN  3.0
-
-        ``dropna=False``: Index/columns should exist if any non-null values.
-        Expected output
-        ---------------
-        col  0.0  1.0  2.0  3.0  NaN
-        row
-        0.0  NaN  1.0  NaN  NaN  NaN
-        1.0  NaN  NaN  2.0  NaN  NaN
-        2.0  NaN  NaN  NaN  3.0  NaN
-        3.0  NaN  NaN  NaN  NaN  4.0
-        NaN  0.0  NaN  NaN  NaN  NaN
-        """
         data = {"row": [None, *range(4)], "col": [*range(4), None], "val": range(5)}
         df = DataFrame(data)
         actual = df.pivot_table(values="val", index="row", columns="col", dropna=dropna)
