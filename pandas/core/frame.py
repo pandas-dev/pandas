@@ -9347,9 +9347,9 @@ class DataFrame(NDFrame, OpsMixin):
             on the rows and columns.
         dropna : bool, default True
             Do not include columns whose entries are all NaN. If True,
-            - rows with a NA value in any column will be omitted before computing
+             - rows with a NA value in any column will be omitted before computing
             margins,
-            - index/column keys containing NA values will be dropped (see ``dropna``
+             - index/column keys containing NA values will be dropped (see ``dropna``
             parameter in :meth:``DataFrame.groupby``).
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals
