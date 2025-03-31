@@ -1420,8 +1420,8 @@ class TestDataFrameIndexing:
         cols = list(df.columns) * len(df.index)
         result = df.lookup(rows, cols)
 
-        expected = np.array([df.loc[r, c] for r, c in zip(rows, cols)])
-        tm.assert_numpy_array_equal(result, expected)
+        expected = Series([df.loc[r, c] for r, c in zip(rows, cols)])
+        tm.assert_series_equal(result, expected, check_index=False, check_names=False)
 
     def test_lookup_mixed(self, float_string_frame):
         df = float_string_frame
@@ -1429,10 +1429,8 @@ class TestDataFrameIndexing:
         cols = list(df.columns) * len(df.index)
         result = df.lookup(rows, cols)
 
-        expected = np.array(
-            [df.loc[r, c] for r, c in zip(rows, cols)], dtype=np.object_
-        )
-        tm.assert_almost_equal(result, expected)
+        expected = Series([df.loc[r, c] for r, c in zip(rows, cols)], dtype=np.object_)
+        tm.assert_series_equal(result, expected, check_index=False, check_names=False)
 
     def test_lookup_bool(self):
         df = DataFrame(
@@ -1443,14 +1441,16 @@ class TestDataFrameIndexing:
                 "mask_c": [False, True, False, True],
             }
         )
-        df["mask"] = df.lookup(df.index, "mask_" + df["label"])
+        df_mask = df.lookup(df.index, "mask_" + df["label"])
 
-        exp_mask = np.array(
+        exp_mask = Series(
             [df.loc[r, c] for r, c in zip(df.index, "mask_" + df["label"])]
         )
 
-        tm.assert_series_equal(df["mask"], Series(exp_mask, name="mask"))
-        assert df["mask"].dtype == np.bool_
+        tm.assert_series_equal(
+            df_mask, Series(exp_mask, name="mask"), check_index=False, check_names=False
+        )
+        assert df_mask.dtype == np.bool_
 
     def test_lookup_raises(self, float_frame):
         with pytest.raises(KeyError, match="'One or more row labels was not found'"):

@@ -101,7 +101,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -5204,17 +5203,13 @@ class DataFrame(NDFrame, OpsMixin):
             raise KeyError("One or more column labels was not found")
 
         sub = self.take(np.unique(cidx), axis=1)
-        if sub._is_mixed_type:
-            sub = sub.take(np.unique(ridx), axis=0)
-            ridx = sub.index.get_indexer(row_labels)
-        values = sub.values
+        sub = sub.take(np.unique(ridx), axis=0)
+        ridx = sub.index.get_indexer(row_labels)
+        values = sub.melt()["value"]
         cidx = sub.columns.get_indexer(col_labels)
-        flat_index = ridx * len(sub.columns) + cidx
+        flat_index = ridx + cidx * len(sub)
 
-        result = values.flat[flat_index]
-
-        if is_object_dtype(result):
-            result = lib.maybe_convert_objects(result)
+        result = values[flat_index]
 
         return result
 
