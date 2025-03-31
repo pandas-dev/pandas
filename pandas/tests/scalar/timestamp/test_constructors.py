@@ -64,7 +64,7 @@ class TestTimestampConstructorUnitKeyword:
 
     def test_constructor_with_empty_string(self):
         msg = "Passing an empty string to Timestamp"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             Timestamp("")
 
     @pytest.mark.parametrize(
