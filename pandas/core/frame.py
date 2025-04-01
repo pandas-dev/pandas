@@ -4790,12 +4790,6 @@ class DataFrame(NDFrame, OpsMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
         index_resolvers = self._get_index_resolvers()
-
-        if any(isinstance(col, int) for col in self.columns):
-            self = self.rename(
-                columns={col: f"{col}" for col in self.columns if isinstance(col, int)}
-            )
-
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
         if "target" not in kwargs:
