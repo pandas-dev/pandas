@@ -40,6 +40,7 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
+from pandas.testing import assert_series_equal
 
 
 class TestIndex:
@@ -1717,3 +1718,38 @@ def test_is_monotonic_pyarrow_list_type():
     idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     assert not idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing
+
+
+def test_index_equals_string_vs_object():
+    # GH 61099
+    idx1 = Index(["a", "b", "c"])
+    idx2 = Index(["a", "b", "c"], dtype="string")
+    assert idx1.equals(idx2)
+    assert idx2.equals(idx1)
+
+
+def test_compare_string_vs_object_index_equality():
+    # GH 61099
+    s1 = Series([1, 2, 3], index=["a", "b", "c"])  # dtype=object
+    s2 = Series([0, 1, 2], index=Index(["a", "b", "c"], dtype="string"))  # dtype=string
+    result = s1 > s2
+    expected = Series([True, True, True], index=["a", "b", "c"])
+    assert_series_equal(result, expected)
+
+
+def test_align_string_vs_object_index():
+    # GH 61099
+    s1 = Series([1, 2, 3], index=["a", "b", "c"])  # object
+    s2 = Series([1, 2, 3], index=Index(["a", "b", "c"], dtype="string"))  # string
+    s1_aligned, s2_aligned = s1.align(s2)
+    assert list(s1_aligned.index) == list(s2_aligned.index)
+
+
+def test_comparison_without_manual_casting():
+    # GH 61099
+    s1 = Series([1, 2, 3], index=["a", "b", "c"])  # object index
+    s2 = Series([1, 2, 3], index=Index(["a", "b", "c"], dtype="string"))
+    # Should not raise
+    result = s1 == s2
+    expected = Series([True, True, True], index=["a", "b", "c"])
+    assert_series_equal(result, expected)
