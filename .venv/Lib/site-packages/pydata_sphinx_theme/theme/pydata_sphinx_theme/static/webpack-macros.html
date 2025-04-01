@@ -1,0 +1,24 @@
+<!--
+  AUTO-GENERATED from webpack.config.js, do **NOT** edit by hand.
+  These are re-used in layout.html
+-->
+
+{% macro head_pre_assets() %}
+  <!-- Loaded before other Sphinx assets -->
+  <link href="{{ pathto('_static/styles/theme.css', 1) }}?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+<link href="{{ pathto('_static/styles/pydata-sphinx-theme.css', 1) }}?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+{% endmacro %}
+
+{% macro head_js_preload() %}
+  <!-- So that users can add custom icons -->
+  <script src="{{ pathto('_static/scripts/fontawesome.js', 1) }}?digest=26a4bc78f4c0ddb94549"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="{{ pathto('_static/scripts/bootstrap.js', 1) }}?digest=26a4bc78f4c0ddb94549" />
+<link rel="preload" as="script" href="{{ pathto('_static/scripts/pydata-sphinx-theme.js', 1) }}?digest=26a4bc78f4c0ddb94549" />
+{% endmacro %}
+
+{% macro body_post() %}
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="{{ pathto('_static/scripts/bootstrap.js', 1) }}?digest=26a4bc78f4c0ddb94549"></script>
+<script defer src="{{ pathto('_static/scripts/pydata-sphinx-theme.js', 1) }}?digest=26a4bc78f4c0ddb94549"></script>
+{% endmacro %}
