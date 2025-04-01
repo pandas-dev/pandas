@@ -92,7 +92,7 @@ that cannot be achieved with built-in pandas functions.
 When to use: :meth:`DataFrame.apply` is suitable when no alternative vectorized method is available, but consider
 optimizing performance with vectorized operations wherever possible.
 
-Examples of usage can be found :ref:`here <api.dataframe.apply>`.
+Examples of usage can be found :meth:`~DataFrame.apply`.
 
 :meth:`DataFrame.agg`
 ~~~~~~~~~~~~~~~~~~~~~
@@ -103,7 +103,7 @@ specifically designed for aggregation operations.
 When to use: Use :meth:`DataFrame.agg` for performing aggregations like sum, mean, or custom aggregation
 functions across groups.
 
-Examples of usage can be found :ref:`here <api.dataframe.agg>`.
+Examples of usage can be found :meth:`~DataFrame.agg`.
 
 :meth:`DataFrame.transform`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -113,7 +113,7 @@ It’s generally faster than apply because it can take advantage of pandas' inte
 
 When to use: When you need to perform element-wise transformations that retain the original structure of the DataFrame.
 
-Documentation can be found :ref:`here <api.dataframe.transform>`.
+Documentation can be found :meth:`~DataFrame.transform`.
 
 Attempting to use common aggregation functions such as ``mean`` or ``sum`` will result in
 values being broadcasted to the original dimensions:
@@ -168,6 +168,8 @@ When to use: Use :meth:`DataFrame.filter` when you want to use a UDF to create a
 Since filter does not directly accept a UDF, you have to apply the UDF indirectly,
 such as by using list comprehensions.
 
+Documentation can be found :meth:`~DataFrame.filter`.
+
 :meth:`DataFrame.map`
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -176,7 +178,7 @@ for this purpose compared to :meth:`DataFrame.apply` because of its better perfo
 
 When to use: Use map for applying element-wise UDFs to DataFrames or Series.
 
-Documentation can be found :ref:`here <api.dataframe.map>`.
+Documentation can be found :meth:`~DataFrame.map`.
 
 :meth:`DataFrame.pipe`
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -186,7 +188,7 @@ It is a helpful tool for organizing complex data processing workflows.
 
 When to use: Use pipe when you need to create a pipeline of transformations and want to keep the code readable and maintainable.
 
-Documentation can be found :ref:`here <api.dataframe.pipe>`.
+Documentation can be found :meth:`~DataFrame.pipe`.
 
 
 Best Practices
