@@ -495,19 +495,19 @@ def test_compare_datetime_with_all_none():
 def test_dt_date_dtype_all_nat_is_object():
     # Ensure .dt.date on all-NaT Series returns object dtype and not datetime64
     # GH#61188
-    s = pd.Series([pd.NaT, pd.NaT])
+    s = Series([pd.NaT, pd.NaT])
     s = pd.to_datetime(s)
     result = s.dt.date
 
-    expected = pd.Series([pd.NaT, pd.NaT], dtype=object)
+    expected = Series([pd.NaT, pd.NaT], dtype=object)
 
     tm.assert_series_equal(result, expected)
 
 def test_dt_date_all_nat_le_date():
     #All-NaT Series should not raise error when compared to a datetime.date
     # GH#61188
-    s = pd.Series([pd.NaT, pd.NaT])
+    s = Series([pd.NaT, pd.NaT])
     s = pd.to_datetime(s)
     result = s.dt.date <= datetime.now().date()
-    expected = pd.Series([False, False])
+    expected = Series([False, False])
     tm.assert_series_equal(result, expected)

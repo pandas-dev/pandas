@@ -11,10 +11,7 @@ from typing import (
 )
 import warnings
 
-
 import numpy as np
-
-
 
 from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
@@ -111,7 +108,12 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series
-        return Series(result, index=index, name=self.name, dtype=result.dtype).__finalize__(self._parent)
+        return Series(
+            result,
+            index=index,
+            name=self.name,
+            dtype=result.dtype
+        ).__finalize__(self._parent)
 
     def _delegate_property_set(self, name: str, value, *args, **kwargs) -> NoReturn:
         raise ValueError(
