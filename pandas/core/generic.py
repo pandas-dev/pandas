@@ -612,7 +612,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 v, copy=False, index=self.index, name=k, dtype=dtype
             ).__finalize__(self)
             for k, v, dtype in zip(self.columns, self._iter_column_arrays(), dtypes)
-            if not isinstance(k, int)
         }
 
     @final
