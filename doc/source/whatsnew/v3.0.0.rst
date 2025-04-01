@@ -826,6 +826,7 @@ Other
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
 - Bug in :class:`Series` ignoring errors when trying to convert :class:`Series` input data to the given ``dtype`` (:issue:`60728`)
 - Bug in :func:`eval` on :class:`ExtensionArray` on including division ``/`` failed with a ``TypeError``. (:issue:`58748`)
+- Bug in :func:`eval` where method calls on binary operations like ``(x + y).dropna()`` would raise ``AttributeError: 'BinOp' object has no attribute 'value'`` (:issue:`61175`)
 - Bug in :func:`eval` where the names of the :class:`Series` were not preserved when using ``engine="numexpr"``. (:issue:`10239`)
 - Bug in :func:`eval` with ``engine="numexpr"`` returning unexpected result for float division. (:issue:`59736`)
 - Bug in :func:`to_numeric` raising ``TypeError`` when ``arg`` is a :class:`Timedelta` or :class:`Timestamp` scalar. (:issue:`59944`)
