@@ -5938,7 +5938,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         result: ArrayLike | tuple[ArrayLike, ArrayLike],
         name: Hashable,
-        other=None,
+        other: AnyArrayLike | DataFrame | None = None,
     ) -> Series | tuple[Series, Series]:
         """
         Construct an appropriately-labelled Series from the result of an op.
@@ -5947,14 +5947,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         result : ndarray or ExtensionArray
         name : Label
+        other : Series, DataFrame or array-like, default None
 
         Returns
         -------
         Series
             In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
         """
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.__finalize__(other)
         if isinstance(result, tuple):
             # produced by divmod or rdivmod
 
@@ -5975,6 +5974,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Set the result's name after __finalize__ is called because __finalize__
         #  would set it back to self.name
         out.name = name
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            out.__finalize__(other)
         return out
 
     def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0):
