@@ -712,6 +712,7 @@ MultiIndex
 - :func:`MultiIndex.get_level_values` accessing a :class:`DatetimeIndex` does not carry the frequency attribute along (:issue:`58327`, :issue:`57949`)
 - Bug in :class:`DataFrame` arithmetic operations in case of unaligned MultiIndex columns (:issue:`60498`)
 - Bug in :class:`DataFrame` arithmetic operations with :class:`Series` in case of unaligned MultiIndex (:issue:`61009`)
+- Fixed a bug where extension dtypes like ``timestamp[pyarrow]`` were not preserved when building ``MultiIndex`` levels during ``pd.concat`` operations. (:issue:`58421`)
 -
 
 I/O
