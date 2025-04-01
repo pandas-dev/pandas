@@ -38,20 +38,23 @@ Methods that support User-Defined Functions
 
 User-Defined Functions can be applied across various pandas methods:
 
-* :meth:`DataFrame.apply` - A flexible method that allows applying a function to Series,
+* :meth:`~DataFrame.apply` - A flexible method that allows applying a function to Series,
   DataFrames, or groups of data.
-* :meth:`DataFrame.agg` (Aggregate) - Used for summarizing data, supporting multiple
+* :meth:`~DataFrame.agg` (Aggregate) - Used for summarizing data, supporting multiple
   aggregation functions.
-* :meth:`DataFrame.transform` - Applies a function to groups while preserving the shape of
+* :meth:`~DataFrame.transform` - Applies a function to groups while preserving the shape of
   the original data.
-* :meth:`DataFrame.filter` - Filters groups based on a list of Boolean conditions.
-* :meth:`DataFrame.map` - Applies an element-wise function to a Series, useful for
+* :meth:`~DataFrame.filter` - Filters groups based on a list of Boolean conditions.
+* :meth:`~DataFrame.map` - Applies an element-wise function to a Series, useful for
   transforming individual values.
-* :meth:`DataFrame.pipe` - Allows chaining custom functions to process entire DataFrames or
+* :meth:`~DataFrame.pipe` - Allows chaining custom functions to process entire DataFrames or
   Series in a clean, readable manner.
 
 All of these pandas methods can be used with both Series and DataFrame objects, providing versatile
 ways to apply UDFs across different pandas data structures.
+
+.. note::
+    Some of these methods are can also be applied to Groupby Objects. Refer to :ref:`groupby`.
 
 
 Choosing the Right Method
@@ -70,7 +73,7 @@ Below is a table overview of all methods that accept UDFs:
 +------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
 | :meth:`agg`      | Aggregation                          | Yes                       | No                 | Fast (if using built-ins) | Custom aggregation logic                 |
 +------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
-| :meth:`transform`| Transform without reducing dimensions| Yes                       | Yes                | Fast (if vectorized)      | Broadcast Element-wise transformations   |
+| :meth:`transform`| Transform without reducing dimensions| Yes                       | Yes                | Fast (if vectorized)      | Broadcast element-wise transformations   |
 +------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
 | :meth:`map`      | Element-wise mapping                 | Yes                       | Yes                | Moderate                  | Simple element-wise transformations      |
 +------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
@@ -89,7 +92,7 @@ that cannot be achieved with built-in pandas functions.
 When to use: :meth:`DataFrame.apply` is suitable when no alternative vectorized method is available, but consider
 optimizing performance with vectorized operations wherever possible.
 
-Examples of usage can be found at :meth:`DataFrame.apply`
+Examples of usage can be found :ref:`here<api.dataframe.apply>`.
 
 :meth:`DataFrame.agg`
 ~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +103,7 @@ specifically designed for aggregation operations.
 When to use: Use :meth:`DataFrame.agg` for performing aggregations like sum, mean, or custom aggregation
 functions across groups.
 
-Examples of usage can be found at :meth:`DataFrame.agg <api.dataframe.agg>`
+Examples of usage can be found :ref:`here<api.dataframe.agg>`.
 
 :meth:`DataFrame.transform`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,7 +113,7 @@ It’s generally faster than apply because it can take advantage of pandas' inte
 
 When to use: When you need to perform element-wise transformations that retain the original structure of the DataFrame.
 
-Documentation: DataFrame.transform
+Documentation can be found :ref:`here<api.dataframe.transform>`.
 
 Attempting to use common aggregation functions such as ``mean`` or ``sum`` will result in
 values being broadcasted to the original dimensions:
@@ -162,6 +165,9 @@ When to use: Use :meth:`DataFrame.filter` when you want to use a UDF to create a
     df_filtered = df[[col for col in df.columns if is_long_name(col)]]
     print(df_filtered)
 
+Since filter does not direclty accept a UDF, you have to apply the UDF indirectly,
+such as by using list comprehensions.
+
 :meth:`DataFrame.map`
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -170,7 +176,7 @@ for this purpose compared to :meth:`DataFrame.apply` because of its better perfo
 
 When to use: Use map for applying element-wise UDFs to DataFrames or Series.
 
-Documentation: DataFrame.map
+Documentation can be found :ref:`here<api.dataframe.map>`.
 
 :meth:`DataFrame.pipe`
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -180,7 +186,7 @@ It is a helpful tool for organizing complex data processing workflows.
 
 When to use: Use pipe when you need to create a pipeline of transformations and want to keep the code readable and maintainable.
 
-Documentation: DataFrame.pipe
+Documentation can be found :ref:`here<api.dataframe.pipe>`.
 
 
 Best Practices
@@ -198,9 +204,9 @@ for common operations.
 Vectorized Operations
 ~~~~~~~~~~~~~~~~~~~~~
 
-Below is an example of vectorized operations in pandas:
+Below is a comparison of using UDFs versus using Vectorized Operations:
 
-.. code-block:: text
+.. code-block:: python
 
     # User-defined function
     def calc_ratio(row):
@@ -215,8 +221,8 @@ Measuring how long each operation takes:
 
 .. code-block:: text
 
-    Vectorized:             0.0043 secs
     User-defined function:  5.6435 secs
+    Vectorized:             0.0043 secs
 
 Vectorized operations in pandas are significantly faster than using :meth:`DataFrame.apply`
 with UDFs because they leverage highly optimized C functions
