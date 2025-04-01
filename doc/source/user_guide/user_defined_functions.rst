@@ -165,7 +165,7 @@ When to use: Use :meth:`DataFrame.filter` when you want to use a UDF to create a
     df_filtered = df[[col for col in df.columns if is_long_name(col)]]
     print(df_filtered)
 
-Since filter does not direclty accept a UDF, you have to apply the UDF indirectly,
+Since filter does not directly accept a UDF, you have to apply the UDF indirectly,
 such as by using list comprehensions.
 
 :meth:`DataFrame.map`
