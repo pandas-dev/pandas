@@ -498,8 +498,10 @@ def test_dt_date_dtype_all_nat_is_object():
     s = pd.Series([pd.NaT, pd.NaT])
     s = pd.to_datetime(s)
     result = s.dt.date
-    assert result.dtype == object
-    assert result.isna().all()
+
+    expected = pd.Series([pd.NaT, pd.NaT], dtype=object)
+
+    tm.assert_series_equal(result, expected)
 
 def test_dt_date_all_nat_le_date():
     #All-NaT Series should not raise error when compared to a datetime.date

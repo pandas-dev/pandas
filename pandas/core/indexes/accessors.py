@@ -11,7 +11,10 @@ from typing import (
 )
 import warnings
 
+
 import numpy as np
+
+
 
 from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
@@ -108,7 +111,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series
-        return Series(result, index=index, name=self.name).__finalize__(self._parent)
+        return Series(result, index=index, name=self.name, dtype=result.dtype).__finalize__(self._parent)
 
     def _delegate_property_set(self, name: str, value, *args, **kwargs) -> NoReturn:
         raise ValueError(
@@ -396,53 +399,6 @@ class DatetimeProperties(Properties):
         '2YS-JAN'
         """
         return self._get_values().inferred_freq
-    
-    @property
-    def date(self):
-        """
-        Return the date component (year, month, day) of each datetime in the Series.
-
-        This property returns a Series of Python datetime.date objects corresponding to
-        the date portion of each datetime64[ns] value in the Series. For missing values
-        (NaT), the result will be NaT.
-
-        Returns
-        -------
-        Series
-            A Series of datetime.date objects or NaT, with dtype object.
-
-        Notes
-        -----
-        - The result is always returned with object dtype.
-        - This ensures comparisons with Python datetime.date values (e.g. using <=)
-        work even when the Series contains only missing values (NaT).
-
-        Examples
-        --------
-        >>> s = pd.Series(pd.to_datetime(["2020-01-01", pd.NaT]))
-        >>> s.dt.date
-        0    2020-01-01
-        1           NaT
-        dtype: object
-
-        >>> s.dt.date <= datetime.date(2024, 1, 1)
-        0     True
-        1    False
-        dtype: bool
-        """
-        
-        from pandas import Series
-        import datetime
-
-        values = self._get_values()
-        as_dates = values.to_pydatetime()
-
-        def extract_date(x):
-            return x.date() if isinstance(x, datetime.datetime) else pd.NaT
-
-        result = [extract_date(v) for v in as_dates]
-
-        return Series(result, index=self._parent.index, name=self._parent.name, dtype=object).__finalize__(self._parent)
 
     def isocalendar(self) -> DataFrame:
         """
