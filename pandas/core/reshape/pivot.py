@@ -103,7 +103,7 @@ def pivot_table(
     dropna : bool, default True
         Do not include columns whose entries are all NaN. If True,
 
-        * rows with a NA value in any column will be omitted before computing margins,
+        * rows with an NA value in any column will be omitted before computing margins,
         * index/column keys containing NA values will be dropped (see ``dropna``
           parameter in :meth:``DataFrame.groupby``).
 
