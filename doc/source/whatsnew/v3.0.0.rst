@@ -657,6 +657,7 @@ Datetimelike
 - Bug in :meth:`Series.dt.microsecond` producing incorrect results for pyarrow backed :class:`Series`. (:issue:`59154`)
 - Bug in :meth:`to_datetime` not respecting dayfirst if an uncommon date string was passed. (:issue:`58859`)
 - Bug in :meth:`to_datetime` on float array with missing values throwing ``FloatingPointError`` (:issue:`58419`)
+- Bug in :meth:`to_datetime` on float32 df with year, month, day etc. columns leads to precision issues and incorrect result. (:issue:`60506`)
 - Bug in :meth:`to_datetime` reports incorrect index in case of any failure scenario. (:issue:`58298`)
 - Bug in :meth:`to_datetime` wrongly converts when ``arg`` is a ``np.datetime64`` object with unit of ``ps``. (:issue:`60341`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
