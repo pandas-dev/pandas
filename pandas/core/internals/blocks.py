@@ -1749,6 +1749,8 @@ class EABackedBlock(Block):
         try:
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
+        except OutOfBoundsDatetime as e:
+            raise
         except (TypeError, ValueError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
