@@ -2511,8 +2511,9 @@ class ExtensionArray:
             Sorted, if possible.
         """
         # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "Self")
-        return mode(self, dropna=dropna)  # type: ignore[return-value]
+        # Tuple[np.ndarray, npt.NDArray[np.bool_]]", expected "Self")
+        result, _ = mode(self, dropna=dropna)
+        return result  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
@@ -2628,7 +2629,15 @@ class ExtensionArray:
             if op.how not in ["any", "all"]:
                 # Fail early to avoid conversion to object
                 op._get_cython_function(op.kind, op.how, np.dtype(object), False)
-            npvalues = self.to_numpy(object, na_value=np.nan)
+
+            arr = self
+            if op.how == "sum":
+                # https://github.com/pandas-dev/pandas/issues/60229
+                # All NA should result in the empty string.
+                assert "skipna" in kwargs
+                if kwargs["skipna"] and min_count == 0:
+                    arr = arr.fillna("")
+            npvalues = arr.to_numpy(object, na_value=np.nan)
         else:
             raise NotImplementedError(
                 f"function is not implemented for this dtype: {self.dtype}"
