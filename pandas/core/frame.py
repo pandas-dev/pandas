@@ -8088,8 +8088,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        left : DataFrame
-        right : Any
+        other : Any
         axis : int
         flex : bool or None, default False
             Whether this is a flex op, in which case we reindex.
@@ -8101,8 +8100,6 @@ class DataFrame(NDFrame, OpsMixin):
         left : DataFrame
         right : Any
         """
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.__finalize__(other)
 
         left, right = self, other
 
@@ -8203,7 +8200,6 @@ class DataFrame(NDFrame, OpsMixin):
                         "`left, right = left.align(right, axis=1)` "
                         "before operating."
                     )
-
             left, right = left.align(
                 right,
                 join="outer",
@@ -8212,6 +8208,9 @@ class DataFrame(NDFrame, OpsMixin):
             )
             right = left._maybe_align_series_as_frame(right, axis)
 
+            # Ensure attributes are consistent between the aligned and original objects
+            if right.attrs != getattr(other, "attrs", {}):
+                right.attrs = getattr(other, "attrs", {}).copy()
         return left, right
 
     def _maybe_align_series_as_frame(self, series: Series, axis: AxisInt):
