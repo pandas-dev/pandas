@@ -291,7 +291,8 @@ class Preprocessors:
 
         # accepted, rejected and implemented
         pdeps_path = (
-            pathlib.Path(context["source_path"]).parent / context["roadmap"]["pdeps_path"]
+            pathlib.Path(context["source_path"]).parent
+            / context["roadmap"]["pdeps_path"]
         )
         for pdep in sorted(pdeps_path.iterdir()):
             if pdep.suffix != ".md":
@@ -358,6 +359,7 @@ class Preprocessors:
         )
 
         return context
+
 
 def get_callable(obj_as_str: str) -> object:
     """
@@ -463,7 +465,9 @@ def main(
         context["languages"] = languages
         sys.stderr.write("Context generated\n")
 
-        templates_path = pathlib.Path(source_path).parent / context["main"]["templates_path"]
+        templates_path = (
+            pathlib.Path(source_path).parent / context["main"]["templates_path"]
+        )
         jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
         for fname in get_source_files(source_path_lang):
@@ -484,9 +488,15 @@ def main(
                     )
                     # Apply Bootstrap's table formatting manually
                     # Python-Markdown doesn't let us config table attributes by hand
-                    body = body.replace("<table>", '<table class="table table-bordered">')
-                    content = extend_base_template(body, context["main"]["base_template"])
-                context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
+                    body = body.replace(
+                        "<table>", '<table class="table table-bordered">'
+                    )
+                    content = extend_base_template(
+                        body, context["main"]["base_template"]
+                    )
+                context["base_url"] = "".join(
+                    ["../"] * os.path.normpath(fname).count("/")
+                )
                 content = jinja_env.from_string(content).render(**context)
                 fname_html = os.path.splitext(fname)[0] + ".html"
                 with open(
@@ -495,22 +505,28 @@ def main(
                     f.write(content)
             else:
                 shutil.copy(
-                    os.path.join(source_path_lang, fname), os.path.join(target_path_lang, dirname)
+                    os.path.join(source_path_lang, fname),
+                    os.path.join(target_path_lang, dirname),
                 )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Documentation builder.")
     parser.add_argument(
-        "source_path", help="path to the source directory (must contain each language folder)"
+        "source_path",
+        help="path to the source directory (must contain each language folder)",
     )
-    # For each language, the output will be written in a subdirectory named after the language (default: build/en)
+    # For each language, the output will be written in a subdirectory named
+    # after the language (default: build/en)
     parser.add_argument(
         "--target-path", default="build", help="directory where to write the output."
     )
     # e.g. python pandas_web.py --source_path pandas/content --languages en pt
     parser.add_argument(
-        "--languages", nargs="*", default= "en", help="language codes to build (default: en)"
+        "--languages",
+        nargs="*",
+        default="en",
+        help="language codes to build (default: en)",
     )
     args = parser.parse_args()
     sys.exit(main(args.source_path, args.target_path, args.languages))
