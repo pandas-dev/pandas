@@ -1,12 +1,13 @@
-import pandas as pd
 import pytest
 
+import pandas as pd
 
 schema = {
     "id": "int64[pyarrow]",
     "time": "timestamp[s][pyarrow]",
     "value": "float[pyarrow]",
 }
+
 
 @pytest.mark.parametrize("dtype", ["timestamp[s][pyarrow]"])
 def test_concat_preserves_pyarrow_timestamp(dtype):
@@ -38,9 +39,13 @@ def test_concat_preserves_pyarrow_timestamp(dtype):
     )
 
     df = pd.concat([dfA, dfB], keys=[0, 1], names=["run"])
-    
-    # chech whether df.index is multiIndex
-    assert isinstance(df.index, pd.MultiIndex), f"Expected MultiIndex, but received {type(df.index)}"
-    
+
+    # check whether df.index is multiIndex
+    assert isinstance(df.index, pd.MultiIndex), (
+        f"Expected MultiIndex, but received {type(df.index)}"
+    )
+
     # Verifying special dtype timestamp[s][pyarrow] stays intact after concat
-    assert df.index.levels[2].dtype == dtype, f"Expected {dtype}, but received {df.index.levels[2].dtype}"
+    assert df.index.levels[2].dtype == dtype, (
+        f"Expected {dtype}, but received {df.index.levels[2].dtype}"
+    )

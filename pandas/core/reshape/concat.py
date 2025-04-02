@@ -22,6 +22,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_extension_array_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
@@ -36,6 +37,7 @@ from pandas.core.arrays.categorical import (
     factorize_from_iterables,
 )
 import pandas.core.common as com
+from pandas.core.construction import array as pd_array
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -46,10 +48,6 @@ from pandas.core.indexes.api import (
     get_unanimous_names,
 )
 from pandas.core.internals import concatenate_managers
-
-from pandas.core.dtypes.common import is_extension_array_dtype
-
-from pandas.core.construction import array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -832,9 +830,9 @@ def _concat_indexes(indexes) -> Index:
     sample = indexes[0]
     try:
         # this helps preserve extension types like timestamp[pyarrow]
-        arr = array(values, dtype=sample.dtype)
+        arr = pd_array(values, dtype=sample.dtype)
     except Exception:
-        arr = array(values)  # fallback
+        arr = pd_array(values)  # fallback
 
     return Index(arr)
 
@@ -906,7 +904,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 unzipped = list(zip(*concat_index))
                 for i, level_values in enumerate(unzipped):
                     # reconstruct each level using original dtype
-                    arr = array(level_values, dtype=original_dtypes[i])
+                    arr = pd_array(level_values, dtype=original_dtypes[i])
                     level_codes, _ = factorize_from_iterable(arr)
                     levels.append(ensure_index(arr))
                     codes_list.append(level_codes)
