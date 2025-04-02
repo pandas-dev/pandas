@@ -644,6 +644,7 @@ Datetimelike
 - Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56147`)
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
 - Bug in :func:`tseries.frequencies.to_offset` would fail to parse frequency strings starting with "LWOM" (:issue:`59218`)
+- Bug in :meth:`DataFrame.fillna` raising an ``AssertionError`` instead of ``OutOfBoundsDatetime`` when filling a ``datetime64[ns]`` column with an out-of-bounds timestamp. Now correctly raises ``OutOfBoundsDatetime``. (:issue:`61208`)
 - Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` casting ``datetime64`` and ``timedelta64`` columns to ``float64`` and losing precision (:issue:`60850`)
 - Bug in :meth:`Dataframe.agg` with df with missing values resulting in IndexError (:issue:`58810`)
 - Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` does not raise on Custom business days frequencies bigger then "1C" (:issue:`58664`)
