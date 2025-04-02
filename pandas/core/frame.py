@@ -8207,10 +8207,6 @@ class DataFrame(NDFrame, OpsMixin):
                 level=level,
             )
             right = left._maybe_align_series_as_frame(right, axis)
-
-            # Ensure attributes are consistent between the aligned and original objects
-            if right.attrs != getattr(other, "attrs", {}):
-                right.attrs = getattr(other, "attrs", {}).copy()
         return left, right
 
     def _maybe_align_series_as_frame(self, series: Series, axis: AxisInt):
@@ -8239,7 +8235,7 @@ class DataFrame(NDFrame, OpsMixin):
             index=self.index,
             columns=self.columns,
             dtype=rvalues.dtype,
-        )
+        ).__finalize__(series)
 
     def _flex_arith_method(
         self, other, op, *, axis: Axis = "columns", level=None, fill_value=None
@@ -8285,13 +8281,13 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
         """
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.__finalize__(other)
         out = self._constructor(result, copy=False).__finalize__(self)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
         out.index = self.index
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            out = out.__finalize__(other)
         return out
 
     def __divmod__(self, other) -> tuple[DataFrame, DataFrame]:

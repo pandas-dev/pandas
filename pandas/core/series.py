@@ -5970,12 +5970,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype = getattr(result, "dtype", None)
         out = self._constructor(result, index=self.index, dtype=dtype, copy=False)
         out = out.__finalize__(self)
+        if getattr(other, "attrs", None):
+            out.__finalize__(other)
 
         # Set the result's name after __finalize__ is called because __finalize__
         #  would set it back to self.name
         out.name = name
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            out.__finalize__(other)
         return out
 
     def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0):
