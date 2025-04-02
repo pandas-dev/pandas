@@ -449,7 +449,7 @@ class TestLocBaseIndependent:
 
         msg = (
             rf"\"None of \[Index\(\[1, 2\], dtype='{np.dtype(int)}'\)\] are "
-            r"in the \[index\]\""
+            r"in the \[columns\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
