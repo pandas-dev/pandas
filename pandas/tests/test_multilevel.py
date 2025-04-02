@@ -322,9 +322,14 @@ class TestMultiLevel:
     def test_multiindex_with_pyarrow_categorical(self):
         # GH#53051
 
-        # Create dataframe with categorical colum
+        pytest.importorskip("pyarrow")
+
+        # Create dataframe with categorical column
         df = (
-            pd.DataFrame([("A", 1), ("B", 2), ("C", 3)], columns=["string_column", "number_column"])
+            DataFrame(
+                [["A", 1], ["B", 2], ["C", 3]],
+                columns=["string_column", "number_column"],
+            )
             .astype({"string_column": "string", "number_column": "float32"})
             .astype({"string_column": "category", "number_column": "float32"})
         )
@@ -334,7 +339,6 @@ class TestMultiLevel:
             df.to_parquet(buffer)
             buffer.seek(0)  # Reset buffer position
             df = pd.read_parquet(buffer, dtype_backend="pyarrow")
-
 
         # Check that index can be set
         df.set_index(["string_column", "number_column"])
