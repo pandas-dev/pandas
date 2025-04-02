@@ -1565,6 +1565,9 @@ def format_percentiles(
     >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
     ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     """
+    if len(percentiles) == 0:
+        return []
+
     percentiles = np.asarray(percentiles)
 
     # It checks for np.nan as well

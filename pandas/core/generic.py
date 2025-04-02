@@ -612,7 +612,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 v, copy=False, index=self.index, name=k, dtype=dtype
             ).__finalize__(self)
             for k, v, dtype in zip(self.columns, self._iter_column_arrays(), dtypes)
-            if not isinstance(k, int)
         }
 
     @final
@@ -10818,9 +10817,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         percentiles : list-like of numbers, optional
             The percentiles to include in the output. All should
-            fall between 0 and 1. The default is
-            ``[.25, .5, .75]``, which returns the 25th, 50th, and
-            75th percentiles.
+            fall between 0 and 1. The default, ``None``, will automatically
+            return the 25th, 50th, and 75th percentiles.
         include : 'all', list-like of dtypes or None (default), optional
             A white list of data types to include in the result. Ignored
             for ``Series``. Here are the options:
