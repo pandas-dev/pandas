@@ -6076,8 +6076,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # One could make the deepcopy unconditionally, but a deepcopy
                 # of an empty dict is 50x more expensive than the empty check.
                 self.attrs = deepcopy(other.attrs)
-
-            self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
+            self.flags.allows_duplicate_labels = (
+                self.flags.allows_duplicate_labels
+                and other.flags.allows_duplicate_labels
+            )
             # For subclasses using _metadata.
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
