@@ -650,7 +650,7 @@ def test_close_on_error():
                 handles.created_handles.append(TestError())
 
 
-@td.skip_if_no("fsspec", min_version="2023.1.0")
+@td.skip_if_no("fsspec")
 @pytest.mark.parametrize("compression", [None, "infer"])
 def test_read_csv_chained_url_no_error(compression):
     # GH 60100
