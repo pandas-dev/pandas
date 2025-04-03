@@ -8100,7 +8100,6 @@ class DataFrame(NDFrame, OpsMixin):
         left : DataFrame
         right : Any
         """
-
         left, right = self, other
 
         def to_series(right):
@@ -8200,6 +8199,7 @@ class DataFrame(NDFrame, OpsMixin):
                         "`left, right = left.align(right, axis=1)` "
                         "before operating."
                     )
+
             left, right = left.align(
                 right,
                 join="outer",
@@ -8269,7 +8269,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return self._construct_result(new_data, other=other)
 
-    def _construct_result(self, result, other=None) -> DataFrame:
+    def _construct_result(self, result, other) -> DataFrame:
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
 
@@ -8286,8 +8286,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  non-unique columns case
         out.columns = self.columns
         out.index = self.index
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            out = out.__finalize__(other)
+        out = out.__finalize__(other)
         return out
 
     def __divmod__(self, other) -> tuple[DataFrame, DataFrame]:

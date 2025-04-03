@@ -7151,7 +7151,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._construct_result(res_values, name=res_name, other=other)
 
     @final
-    def _construct_result(self, result, name, other=None):
+    def _construct_result(self, result, name, other):
         if isinstance(result, tuple):
             return (
                 Index(result[0], name=name, dtype=result[0].dtype),

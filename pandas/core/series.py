@@ -5938,7 +5938,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         result: ArrayLike | tuple[ArrayLike, ArrayLike],
         name: Hashable,
-        other: AnyArrayLike | DataFrame | None = None,
+        other: AnyArrayLike | DataFrame,
     ) -> Series | tuple[Series, Series]:
         """
         Construct an appropriately-labelled Series from the result of an op.
@@ -5947,7 +5947,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         result : ndarray or ExtensionArray
         name : Label
-        other : Series, DataFrame or array-like, default None
+        other : Series, DataFrame or array-like
 
         Returns
         -------
@@ -5970,8 +5970,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype = getattr(result, "dtype", None)
         out = self._constructor(result, index=self.index, dtype=dtype, copy=False)
         out = out.__finalize__(self)
-        if getattr(other, "attrs", None):
-            out.__finalize__(other)
+        out = out.__finalize__(other)
 
         # Set the result's name after __finalize__ is called because __finalize__
         #  would set it back to self.name
