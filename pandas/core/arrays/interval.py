@@ -1775,7 +1775,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         [(0, 1], (1, 2]]
         Length: 2, dtype: interval[int64, right]
         >>> idx.to_tuples()
-        array([(0, 1), (1, 2)], dtype=object)
+        array([(np.int64(0), np.int64(1)), (np.int64(1), np.int64(2))],
+              dtype=object)
 
         For :class:`pandas.IntervalIndex`:
 
