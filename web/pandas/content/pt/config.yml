@@ -1,4 +1,5 @@
 main:
+  base_url: "pt"
   templates_path: _templates
   base_template: "layout.html"
   production_url: "https://pandas.pydata.org/"
@@ -26,38 +27,39 @@ static:
   - static/css/pandas.css
   - static/css/codehilite.css
 navbar:
-  - name: "About us"
+  - name: "Quem somos"
     target:
-    - name: "About pandas"
+    - name: "Sobre o pandas"
       target: about/
-    - name: "Project roadmap"
+    - name: "Planejamento (roadmap)"
       target: about/roadmap.html
-    - name: "Governance"
+    - name: "Governança"
       target: about/governance.html
-    - name: "Team"
+    - name: "Equipe"
       target: about/team.html
-    - name: "Sponsors"
+    - name: "Patrocinadores"
       target: about/sponsors.html
-    - name: "Citing and logo"
+    - name: "Citações e logo"
       target: about/citing.html
-  - name: "Getting started"
+  - name: "Comece aqui"
     target: getting_started.html
-  - name: "Documentation"
+  - name: "Documentação"
     target: docs/
-  - name: "Community"
+  - name: "Comunidade"
     target:
     - name: "Blog"
       target: community/blog/
-    - name: "Ask a question (StackOverflow)"
+    - name: "Faça uma pergunta (StackOverflow)"
       target: https://stackoverflow.com/questions/tagged/pandas
-    - name: "Code of conduct"
+    - name: "Código de conduta"
       target: community/coc.html
-    - name: "Ecosystem"
+    - name: "Ecossistema"
       target: community/ecosystem.html
     - name: "Benchmarks"
       target: community/benchmarks.html
-  - name: "Contribute"
+  - name: "Contribuir"
     target: contribute.html
+
 blog:
   num_posts: 50
   posts_path: community/blog
@@ -110,7 +112,7 @@ maintainers:
   - MarcoGorelli
 workgroups:
   coc:
-    name: Code of Conduct
+    name: Código de conduta
     contact: coc@pandas.pydata.org
     responsibilities: "Make sure pandas is the welcoming and inclusive community we want it to be. Keeping the CoC updated, and addressing violation reports."
     members:
@@ -119,7 +121,7 @@ workgroups:
     - Wuraola Oyewusi
     - Мария Чакчурина
   finance:
-    name: Finance
+    name: Finanças
     contact: finance@pandas.pydata.org
     responsibilities: "Manage the funding. Coordinate the request of grants. Approve the project expenses."
     members:
@@ -128,14 +130,14 @@ workgroups:
     - Joris Van den Bossche
     - Patrick Hoefler
   infrastructure:
-    name: Infrastructure
+    name: Infraestrutura
     contact: infrastructure@pandas.pydata.org
     responsibilities: "Keep the pandas infrastructure up and working. In particular the servers for the website, benchmarks, CI and others needed."
     members:
     - William Ayd
     - Thomas Li
   communications:
-    name: Communications
+    name: Communicações
     contact: communications@pandas.pydata.org
     responsibilities: "Share relevant information with the broader community, mainly via our social networks, as well as being the main point of contact between NumFOCUS and the core team."
     members:
