@@ -497,3 +497,13 @@ class TestDataFrameCorrWith:
         corr_matrix = df2.corr()
         assert corr_matrix.min().min() >= -1.0
         assert corr_matrix.max().max() <= 1.0
+
+    def test_cov_with_missing_values(self):
+        df = DataFrame({"A": [1, 2, None, 4], "B": [2, 4, None, 9]})
+        expected = DataFrame(
+            {"A": [2.333333, 5.500000], "B": [5.5, 13.0]}, index=["A", "B"]
+        )
+        result1 = df.cov()
+        result2 = df.dropna().cov()
+        tm.assert_frame_equal(result1, expected)
+        tm.assert_frame_equal(result2, expected)

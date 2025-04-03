@@ -391,10 +391,11 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                     # clip `covxy / divisor` to ensure coeff is within bounds
                     if divisor != 0:
                         val = covxy / divisor
-                        if val > 1.0:
-                            val = 1.0
-                        elif val < -1.0:
-                            val = -1.0
+                        if not cov:
+                            if val > 1.0:
+                                val = 1.0
+                            elif val < -1.0:
+                                val = -1.0
                         result[xi, yi] = result[yi, xi] = val
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
