@@ -175,7 +175,13 @@ class _Unstacker:
         codes = list(self.index.codes)
         if not self.sort:
             # Create new codes considering that labels are already sorted
-            codes = [factorize(code)[0] for code in codes]
+            # Make sure to preserve the -1 values before factorizing
+            codes = []
+            for code in self.index.codes:
+                mask = code != -1
+                factorized = np.full_like(code, -1)
+                factorized[mask] = factorize(code[mask])[0]
+                codes.append(factorized)
         levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
         sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
@@ -194,9 +200,15 @@ class _Unstacker:
         return to_sort
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
-        indexer, _ = self._indexer_and_to_sort
-        sorted_values = algos.take_nd(values, indexer, axis=0)
-        return sorted_values
+        if self.sort:
+            indexer, _ = self._indexer_and_to_sort
+            sorted_values = algos.take_nd(values, indexer, axis=0)
+            return sorted_values
+        level_sizes = tuple(len(level) for level in self.new_index_levels)
+        group_ids = get_group_index(
+            self.sorted_labels[:-1], level_sizes, sort=False, xnull=False
+        )
+        return values[np.argsort(group_ids, kind="mergesort")]
 
     def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
@@ -581,7 +593,6 @@ def _unstack_frame(
     unstacker = _Unstacker(
         obj.index, level=level, constructor=obj._constructor, sort=sort
     )
-
     if not obj._can_fast_transpose:
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor_from_mgr(mgr, axes=mgr.axes)
