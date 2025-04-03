@@ -36,8 +36,8 @@ if np_version_gt2:
                 r".*In the future `np\.long` will be defined as.*",
                 FutureWarning,
             )
-            np_long = np.long  # type: ignore[attr-defined]
-            np_ulong = np.ulong  # type: ignore[attr-defined]
+            np_long = np.long
+            np_ulong = np.ulong
     except AttributeError:
         np_long = np.int_
         np_ulong = np.uint
