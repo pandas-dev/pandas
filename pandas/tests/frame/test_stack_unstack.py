@@ -1610,78 +1610,104 @@ def assert_na_safe_equal(left, right):
     left = left.rename(columns={pd.NA: np.nan}, level=1)
     right = right.rename(columns={pd.NA: np.nan}, level=1)
     tm.assert_frame_equal(left, right, check_dtype=False)
-    
+
+
 def test_unstack_sort_false_na():
     # GH 61221
-    levels1 = ['b','a']
-    levels2 = pd.Index([1, 2, 3, pd.NA], dtype=pd.Int64Dtype())
-    index = pd.MultiIndex.from_product([levels1, levels2], names=['level1', 'level2'])
-    df = pd.DataFrame(dict(value=range(len(index))), index=index)
-    result = df.unstack(level='level2', sort=False)
-    expected = pd.DataFrame(
-     {
-         ('value', 1): [0, 4],
-         ('value', 2): [1, 5],
-         ('value', 3): [2, 6],
-         ('value', pd.Int64Dtype().na_value): [3, 7]  
-     },
-     index=pd.Index(['b', 'a'], name='level1'),
-     columns=pd.MultiIndex.from_tuples([
-         ('value', 1), ('value', 2), ('value', 3), ('value', pd.Int64Dtype().na_value)
-     ], names=[None, 'level2'])
- )
+    levels1 = ["b", "a"]
+    levels2 = Index([1, 2, 3, pd.NA], dtype=pd.Int64Dtype())
+    index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
+    df = DataFrame({"value": range(len(index))}, index=index)
+    result = df.unstack(level="level2", sort=False)
+    expected = DataFrame(
+        {
+            ("value", 1): [0, 4],
+            ("value", 2): [1, 5],
+            ("value", 3): [2, 6],
+            ("value", pd.Int64Dtype().na_value): [3, 7],
+        },
+        index=Index(["b", "a"], name="level1"),
+        columns=MultiIndex.from_tuples(
+            [
+                ("value", 1),
+                ("value", 2),
+                ("value", 3),
+                ("value", pd.Int64Dtype().na_value),
+            ],
+            names=[None, "level2"],
+        ),
+    )
     assert_na_safe_equal(result, expected)
-    levels2 = pd.Index([pd.NA, 1, 2, 3], dtype=pd.Int64Dtype())
-    index = pd.MultiIndex.from_product([levels1, levels2], names=['level1', 'level2'])
-    df = pd.DataFrame(dict(value=range(len(index))), index=index)
-    result = df.unstack(level='level2', sort=False)
-    expected = pd.DataFrame(
-     {
-         ('value', pd.Int64Dtype().na_value): [0, 4],
-         ('value', 1): [1, 5],
-         ('value', 2): [2, 6],
-         ('value', 3): [3, 7]  # Use actual pd.NA object
-     },
-     index=pd.Index(['b', 'a'], name='level1'),
-     columns=pd.MultiIndex.from_tuples([
-         ('value', pd.Int64Dtype().na_value), ('value', 1), ('value', 2), ('value', 3)
-     ], names=[None, 'level2'])
- )
+    levels2 = Index([pd.NA, 1, 2, 3], dtype=pd.Int64Dtype())
+    index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
+    df = DataFrame({"value": range(len(index))}, index=index)
+    result = df.unstack(level="level2", sort=False)
+    expected = DataFrame(
+        {
+            ("value", pd.Int64Dtype().na_value): [0, 4],
+            ("value", 1): [1, 5],
+            ("value", 2): [2, 6],
+            ("value", 3): [3, 7],
+        },
+        index=Index(["b", "a"], name="level1"),
+        columns=MultiIndex.from_tuples(
+            [
+                ("value", pd.Int64Dtype().na_value),
+                ("value", 1),
+                ("value", 2),
+                ("value", 3),
+            ],
+            names=[None, "level2"],
+        ),
+    )
     assert_na_safe_equal(result, expected)
-    levels2 = pd.Index([ 1, pd.NA, 2, 3], dtype=pd.Int64Dtype())
-    index = pd.MultiIndex.from_product([levels1, levels2], names=['level1', 'level2'])
-    df = pd.DataFrame(dict(value=range(len(index))), index=index)
-    result = df.unstack(level='level2', sort=False)
-    expected = pd.DataFrame(
-     {
-         ('value', 1): [0, 4],
-         ('value', pd.Int64Dtype().na_value): [1, 5],
-         ('value', 2): [2, 6],
-         ('value', 3): [3, 7]  # Use actual pd.NA object
-     },
-     index=pd.Index(['b', 'a'], name='level1'),
-     columns=pd.MultiIndex.from_tuples([
-         ('value', 1), ('value', pd.Int64Dtype().na_value), ('value', 2), ('value', 3)
-     ], names=[None, 'level2'])
- )
+    levels2 = Index([1, pd.NA, 2, 3], dtype=pd.Int64Dtype())
+    index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
+    df = DataFrame({"value": range(len(index))}, index=index)
+    result = df.unstack(level="level2", sort=False)
+    expected = DataFrame(
+        {
+            ("value", 1): [0, 4],
+            ("value", pd.Int64Dtype().na_value): [1, 5],
+            ("value", 2): [2, 6],
+            ("value", 3): [3, 7],
+        },
+        index=Index(["b", "a"], name="level1"),
+        columns=MultiIndex.from_tuples(
+            [
+                ("value", 1),
+                ("value", pd.Int64Dtype().na_value),
+                ("value", 2),
+                ("value", 3),
+            ],
+            names=[None, "level2"],
+        ),
+    )
     assert_na_safe_equal(result, expected)
-    levels2 = pd.Index([3, pd.NA, 1, 2], dtype=pd.Int64Dtype())
-    index = pd.MultiIndex.from_product([levels1, levels2], names=['level1', 'level2'])
-    df = pd.DataFrame(dict(value=range(len(index))), index=index)
-    result = df.unstack(level='level2', sort=False)
-    expected = pd.DataFrame(
-     {
-         ('value', 3): [0, 4],
-         ('value', pd.Int64Dtype().na_value): [1, 5],
-         ('value', 1): [2, 6],
-         ('value', 2): [3, 7]  # Use actual pd.NA object
-     },
-     index=pd.Index(['b', 'a'], name='level1'),
-     columns=pd.MultiIndex.from_tuples([
-         ('value', 3), ('value', pd.Int64Dtype().na_value), ('value', 1), ('value', 2)
-     ], names=[None, 'level2'])
- )
+    levels2 = Index([3, pd.NA, 1, 2], dtype=pd.Int64Dtype())
+    index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
+    df = DataFrame({"value": range(len(index))}, index=index)
+    result = df.unstack(level="level2", sort=False)
+    expected = DataFrame(
+        {
+            ("value", 3): [0, 4],
+            ("value", pd.Int64Dtype().na_value): [1, 5],
+            ("value", 1): [2, 6],
+            ("value", 2): [3, 7],  # Use actual pd.NA object
+        },
+        index=Index(["b", "a"], name="level1"),
+        columns=MultiIndex.from_tuples(
+            [
+                ("value", 3),
+                ("value", pd.Int64Dtype().na_value),
+                ("value", 1),
+                ("value", 2),
+            ],
+            names=[None, "level2"],
+        ),
+    )
     assert_na_safe_equal(result, expected)
+
 
 @pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
 def test_stack_sort_false_multi_level(future_stack):

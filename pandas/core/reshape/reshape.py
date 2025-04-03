@@ -135,10 +135,10 @@ class _Unstacker:
         if not self.sort:
             unique_codes = unique(self.index.codes[self.level])
             # Bug Fix GH 61221
-            # The -1 in the unsorted unique codes causes for doubling and an eventual ValueError
+            # The -1 in the unsorted unique codes causes for errors
             # saving the NA location to be used in the repeater
             self.na = np.where(unique_codes == -1)[0][0] if -1 in unique_codes else None
-            unique_codes = unique_codes[unique_codes != -1]  
+            unique_codes = unique_codes[unique_codes != -1]
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
@@ -395,13 +395,13 @@ class _Unstacker:
             stride = len(self.removed_level) + self.lift
             if self.sort or not self.na:
                 repeater = np.arange(stride) - self.lift
-            else :
-                #move the -1 to the position at self.na
+            else:
+                # move the -1 to the position at self.na
                 repeater = np.arange(stride)
-                if(self.na):
+                if self.na:
                     repeater[self.na] = -1
-                    if(self.na + 1) < len(repeater):
-                        repeater[self.na + 1:] -= 1
+                    if (self.na + 1) < len(repeater):
+                        repeater[self.na + 1 :] -= 1
 
         return repeater
 
@@ -1065,7 +1065,7 @@ def stack_reshape(
             else:
                 data.columns = default_index(len(data.columns))
         buf.append(data)
- 
+
     if len(buf) > 0 and not frame.empty:
         result = concat(buf, ignore_index=True)
     else:
