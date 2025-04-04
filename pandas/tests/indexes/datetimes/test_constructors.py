@@ -1204,3 +1204,19 @@ class TestTimeSeries:
         result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
         expected2 = DatetimeIndex([yfirst]).as_unit("s")
         tm.assert_index_equal(result2, expected2)
+
+    def test_validate_inferred_freq_equivalence(self):
+        idx = date_range("2022-02-01", freq="QS-FEB", periods=4)
+
+        new_idx = DatetimeIndex(idx, freq="QS-MAY")
+        assert isinstance(new_idx, DatetimeIndex)
+
+        msg = (
+            "Inferred frequency .* from passed "
+            "values does not conform to passed frequency .*"
+        )
+        with pytest.raises(
+            ValueError,
+            match=msg,
+        ):
+            DatetimeIndex(idx, freq="QS-MAR")
