@@ -169,7 +169,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- :meth:`DataFrame.resample` was not keeping the index name when the index had :class:`pyarrow` datetime dtype (:issue:`61222`)
 -
 
 Sparse
