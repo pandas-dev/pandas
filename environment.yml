@@ -107,6 +107,9 @@ dependencies:
   - nbformat
   - notebook>=7.0.6
   - ipykernel
+  # also listed below
+  - jupyterlite-sphinx
+  - jupyterlite-pyodide-kernel
 
   # web
   # - jinja2  # already listed in optional dependencies, but documented here for reference
@@ -116,11 +119,13 @@ dependencies:
   - requests
   - pygments # Code highlighting
 
-  # web interactive REPL
+  # web interactive REPL and interactive documentation utilities,
+  # already listed above, but documented here for reference.
+  #
   # see the following links for more context:
   # 1. https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/#compatibility
   # 2. https://pyodide.org/en/stable/usage/packages-in-pyodide.html
-  - jupyterlite-core
+  - jupyterlite-sphinx
   - jupyterlite-pyodide-kernel
 
   - pip:
