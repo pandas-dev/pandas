@@ -2853,6 +2853,9 @@ class TestPivot:
         )
         tm.assert_frame_equal(result, expected)
 
+    # Ignore deprecation raised by old versions of pyarrow. Already fixed in
+    # newer versions
+    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
     def test_pivot_with_pyarrow_categorical(self):
         # GH#53051
 
