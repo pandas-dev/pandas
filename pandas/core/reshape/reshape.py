@@ -397,22 +397,22 @@ class _Unstacker:
             # In this case, we remap the new codes to the original level:
             repeater = self.removed_level_full.get_indexer(self.removed_level)
             if self.lift:
-                na_index = (self.index.codes[self.level] == -1).nonzero()[0][0]
-                repeater = np.insert(repeater, na_index, -1)
-
+                if not self.sort:
+                    na_index = (self.index.codes[self.level] == -1).nonzero()[0][0]
+                    repeater = np.insert(repeater, na_index, -1)
+                else:
+                    repeater = np.insert(repeater, 0, -1)
         else:
             # Otherwise, we just use each level item exactly once:
             stride = len(self.removed_level) + self.lift
             if self.sort or not self.lift:
-                repeater = np.arange(stride) - self.lift
-            else:
-                # move the -1 to the position at na_index
-                na_index = (self.index.codes[self.level] == -1).nonzero()[0][0]
                 repeater = np.arange(stride)
-                if na_index:
-                    repeater[na_index] = -1
-                    if (na_index + 1) < len(repeater):
-                        repeater[na_index + 1 :] -= 1
+            else:
+                na_index = (self.index.codes[self.level] == -1).nonzero()[0][0]
+                repeater = np.arange(stride) - self.lift
+                if self.na:
+                    repeater[self.na] = -1
+                    repeater[: self.na] += 1
 
         return repeater
 
