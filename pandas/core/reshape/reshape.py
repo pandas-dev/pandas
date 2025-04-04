@@ -137,7 +137,6 @@ class _Unstacker:
             # Bug Fix GH 61221
             # The -1 in the unsorted unique codes causes for errors
             # saving the NA location to be used in the repeater
-            self.na = np.where(unique_codes == -1)[0][0] if -1 in unique_codes else None
             unique_codes = unique_codes[unique_codes != -1]
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
@@ -398,22 +397,22 @@ class _Unstacker:
             # In this case, we remap the new codes to the original level:
             repeater = self.removed_level_full.get_indexer(self.removed_level)
             if self.lift:
-                if not self.sort and self.na:
-                    repeater = np.insert(repeater, self.na, -1)
-                else:
-                    repeater = np.insert(repeater, 0, -1)
+                na_index = (self.index.codes[self.level] == -1).nonzero()[0][0]
+                repeater = np.insert(repeater, na_index, -1)
+
         else:
             # Otherwise, we just use each level item exactly once:
             stride = len(self.removed_level) + self.lift
-            if self.sort or not self.na:
+            if self.sort or not self.lift:
                 repeater = np.arange(stride) - self.lift
             else:
-                # move the -1 to the position at self.na
+                # move the -1 to the position at na_index
+                na_index = (self.index.codes[self.level] == -1).nonzero()[0][0]
                 repeater = np.arange(stride)
-                if self.na:
-                    repeater[self.na] = -1
-                    if (self.na + 1) < len(repeater):
-                        repeater[self.na + 1 :] -= 1
+                if na_index:
+                    repeater[na_index] = -1
+                    if (na_index + 1) < len(repeater):
+                        repeater[na_index + 1 :] -= 1
 
         return repeater
 
