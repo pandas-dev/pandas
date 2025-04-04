@@ -11,6 +11,7 @@ from collections.abc import (
     Sequence,
 )
 import csv as csvlib
+import json
 import os
 from typing import (
     TYPE_CHECKING,
@@ -75,6 +76,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions | None = None,
+        preserve_complex: bool = False,
     ) -> None:
         self.fmt = formatter
 
@@ -85,6 +87,7 @@ class CSVFormatter:
         self.compression: CompressionOptions = compression
         self.mode = mode
         self.storage_options = storage_options
+        self.preserve_complex = preserve_complex
 
         self.sep = sep
         self.index_label = self._initialize_index_label(index_label)
@@ -97,6 +100,19 @@ class CSVFormatter:
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
+
+        if self.preserve_complex:
+            for col in self.obj.columns:
+                if self.obj[col].dtype == "O":
+                    first_val = self.obj[col].iloc[0]
+                    if isinstance(first_val, (np.ndarray, list)):
+                        self.obj[col] = self.obj[col].apply(
+                            lambda x: json.dumps(x.tolist())
+                            if isinstance(x, np.ndarray)
+                            else json.dumps(x)
+                            if isinstance(x, list)
+                            else x
+                        )
 
     @property
     def na_rep(self) -> str:

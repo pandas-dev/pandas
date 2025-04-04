@@ -970,6 +970,7 @@ class DataFrameRenderer:
         escapechar: str | None = None,
         errors: str = "strict",
         storage_options: StorageOptions | None = None,
+        preserve_complex: bool = False,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
@@ -999,6 +1000,7 @@ class DataFrameRenderer:
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
+            preserve_complex=preserve_complex,
             formatter=self.fmt,
         )
         csv_formatter.save()
