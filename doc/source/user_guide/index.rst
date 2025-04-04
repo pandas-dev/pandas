@@ -88,3 +88,4 @@ Guides
     sparse
     gotchas
     cookbook
+    user_defined_functions
