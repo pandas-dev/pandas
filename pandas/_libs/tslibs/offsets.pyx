@@ -568,6 +568,19 @@ cdef class BaseOffset:
             out += ": " + ", ".join(attrs)
         return out
 
+    def toDict(self) -> dict:
+        """
+        Convert BaseOffset object to a dictionary representation
+        and used for JSON serialization.
+        """
+        d = {}
+        # Add all attributes defined in _attributes
+        for attr in self._attributes:
+            if hasattr(self, attr):
+                d[attr] = getattr(self, attr)
+
+        return d
+
     @property
     def name(self) -> str:
         """
@@ -5108,8 +5121,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\'"
-            f" instead.",
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
             )
@@ -5122,8 +5135,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
-                f"\'{_name}\'"
-                f" instead.",
+                f"\'{_name}\' "
+                f"instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
                 )

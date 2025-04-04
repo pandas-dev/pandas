@@ -1227,3 +1227,12 @@ def test_is_yqm_start_end():
 def test_multiply_dateoffset_typeerror(left, right):
     with pytest.raises(TypeError, match="Cannot multiply"):
         left * right
+
+
+def test_toDict(offset_types):
+    offset = offset_types(n=2)
+    d = offset.toDict()
+
+    for attr in offset._attributes:
+        if hasattr(offset, attr):
+            assert d[attr] == getattr(offset, attr)
