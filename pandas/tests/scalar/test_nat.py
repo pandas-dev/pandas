@@ -109,7 +109,7 @@ def test_nat_vector_field_access():
     "value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat", "", "NAT"]
 )
 def test_identity(klass, value):
-    if value == "":
+    if value == "" and klass == Timestamp:
         msg = "Passing an empty string to Timestamp"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = klass(value)
