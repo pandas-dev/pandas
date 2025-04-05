@@ -39,7 +39,10 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.api.types import is_scalar
+from pandas.api.types import (
+    is_datetime64_any_dtype,
+    is_scalar,
+)
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
@@ -2084,7 +2087,21 @@ class TestLocSetitemWithExpansion:
         assert key not in index  # otherwise test is invalid
         # TODO: using a tuple key breaks here in many cases
 
-        exp_index = index.insert(len(index), key)
+        msg = "Passing an empty string to Timestamp"
+        contains_datetime = False
+        if isinstance(index, MultiIndex):
+            for i in range(index.nlevels):
+                if is_datetime64_any_dtype(index.get_level_values(i)):
+                    contains_datetime = True
+                    break
+            if contains_datetime:
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    exp_index = index.insert(len(index), key)
+            else:
+                exp_index = index.insert(len(index), key)
+        else:
+            exp_index = index.insert(len(index), key)
+
         if isinstance(index, MultiIndex):
             assert exp_index[-1][0] == key
         else:
@@ -2094,19 +2111,32 @@ class TestLocSetitemWithExpansion:
 
         # Add new row, but no new columns
         df = orig.copy()
-        df.loc[key, 0] = N
+        if contains_datetime:
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                df.loc[key, 0] = N
+        else:
+            df.loc[key, 0] = N
         tm.assert_frame_equal(df, expected)
 
         # add new row on a Series
         ser = orig.copy()[0]
-        ser.loc[key] = N
+        if contains_datetime:
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                ser.loc[key] = N
+        else:
+            ser.loc[key] = N
+        tm.assert_frame_equal(df, expected)
         # the series machinery lets us preserve int dtype instead of float
         expected = expected[0].astype(np.int64)
         tm.assert_series_equal(ser, expected)
 
         # add new row and new column
         df = orig.copy()
-        df.loc[key, 1] = N
+        if contains_datetime:
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                df.loc[key, 1] = N
+        else:
+            df.loc[key, 1] = N
         expected = DataFrame(
             {0: list(arr) + [np.nan], 1: [np.nan] * N + [float(N)]},
             index=exp_index,

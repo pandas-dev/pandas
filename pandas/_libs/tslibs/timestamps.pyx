@@ -2587,6 +2587,14 @@ class Timestamp(_Timestamp):
                 tzinfo is None):
             return ts_input
         elif isinstance(ts_input, str):
+            if ts_input == "":
+                warnings.warn(
+                    "Passing an empty string to Timestamp is deprecated and will raise "
+                    "a ValueError in a future version.",
+                    FutureWarning,
+                    stacklevel = find_stack_level()
+                )
+
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
