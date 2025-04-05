@@ -431,7 +431,7 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
-        # Special case for scatter plots to enable automatic colors, similar to line plots
+        # Special case for scatter plots to enable auto colors like line plots
         if kwargs.get("kind") == "scatter":
             import matplotlib.pyplot as plt
 
