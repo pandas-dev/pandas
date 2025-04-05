@@ -7148,10 +7148,10 @@ class Index(IndexOpsMixin, PandasObject):
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     @final
-    def _construct_result(self, result, name):
+    def _construct_result(self, result, name, other):
         if isinstance(result, tuple):
             return (
                 Index(result[0], name=name, dtype=result[0].dtype),

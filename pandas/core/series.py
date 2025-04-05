@@ -5858,7 +5858,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         res_values = ops.comparison_op(lvalues, rvalues, op)
 
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     def _logical_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)
@@ -5868,7 +5868,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     def _arith_method(self, other, op):
         self, other = self._align_for_op(other)
@@ -5930,11 +5930,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        out = this._construct_result(result, name)
+
+        out = this._construct_result(result, name, other)
         return cast(Series, out)
 
     def _construct_result(
-        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
+        self,
+        result: ArrayLike | tuple[ArrayLike, ArrayLike],
+        name: Hashable,
+        other: AnyArrayLike | DataFrame,
     ) -> Series | tuple[Series, Series]:
         """
         Construct an appropriately-labelled Series from the result of an op.
@@ -5943,6 +5947,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         result : ndarray or ExtensionArray
         name : Label
+        other : Series, DataFrame or array-like
 
         Returns
         -------
@@ -5952,8 +5957,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(result, tuple):
             # produced by divmod or rdivmod
 
-            res1 = self._construct_result(result[0], name=name)
-            res2 = self._construct_result(result[1], name=name)
+            res1 = self._construct_result(result[0], name=name, other=other)
+            res2 = self._construct_result(result[1], name=name, other=other)
 
             # GH#33427 assertions to keep mypy happy
             assert isinstance(res1, Series)
@@ -5965,6 +5970,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype = getattr(result, "dtype", None)
         out = self._constructor(result, index=self.index, dtype=dtype, copy=False)
         out = out.__finalize__(self)
+        out = out.__finalize__(other)
 
         # Set the result's name after __finalize__ is called because __finalize__
         #  would set it back to self.name
