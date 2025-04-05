@@ -190,28 +190,20 @@ def test_yaml_dump(df):
 @pytest.mark.parametrize("dependency", ["numpy", "dateutil"])
 def test_missing_required_dependency(monkeypatch, dependency):
     # GH#61030
-    # test pandas raises appropriate error when a required dependency is missing
-    real_module = sys.modules.get(dependency)
+    original_import = __import__
     mock_error = ImportError(f"Mock error for {dependency}")
 
     def mock_import(name, *args, **kwargs):
         if name == dependency:
             raise mock_error
-        return importlib.import_module(name)
+        return original_import(name, *args, **kwargs)
 
-    try:
-        monkeypatch.setattr("builtins.__import__", mock_import)
+    monkeypatch.setattr("builtins.__import__", mock_import)
 
-        if dependency in sys.modules:
-            del sys.modules[dependency]
+    with pytest.raises(ImportError) as excinfo:
+        importlib.reload(importlib.import_module("pandas"))
 
-        with pytest.raises(ImportError) as excinfo:
-            importlib.reload(importlib.import_module("pandas"))
-
-        assert dependency in str(excinfo.value)
-    finally:
-        if real_module is not None:
-            sys.modules[dependency] = real_module
+    assert dependency in str(excinfo.value)
 
 
 def test_frame_setitem_dask_array_into_new_col(request):
