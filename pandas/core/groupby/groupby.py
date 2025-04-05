@@ -431,11 +431,35 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
-        def f(self):
-            return self.plot(*args, **kwargs)
+        # Special case for scatter plots to enable auto colors like line plots
+        if kwargs.get("kind") == "scatter":
+            import matplotlib.pyplot as plt
 
-        f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+            # Get colors from matplotlib's color cycle (similar to what LinePlot uses)
+            colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+            # Determine the axis to plot on
+            if "ax" in kwargs:
+                ax = kwargs["ax"]
+            else:
+                _, ax = plt.subplots()
+
+            # Plot each group with a different color
+            results = {}
+            for i, (name, group) in enumerate(self._groupby):
+                group_kwargs = kwargs.copy()
+                group_kwargs["ax"] = ax
+                group_kwargs["color"] = colors[i % len(colors)]
+                results[name] = group.plot(*args, **group_kwargs)
+
+            return results
+        else:
+            # Original implementation for non-scatter plots
+            def f(self):
+                return self.plot(*args, **kwargs)
+
+            f.__name__ = "plot"
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
