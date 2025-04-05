@@ -431,11 +431,35 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
-        def f(self):
-            return self.plot(*args, **kwargs)
+        # Special case for scatter plots to enable automatic colors, similar to line plots
+        if kwargs.get("kind") == "scatter":
+            import matplotlib.pyplot as plt
 
-        f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+            # Get colors from matplotlib's color cycle (similar to what LinePlot uses)
+            colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+            # Determine the axis to plot on
+            if "ax" in kwargs:
+                ax = kwargs["ax"]
+            else:
+                _, ax = plt.subplots()
+
+            # Plot each group with a different color
+            results = {}
+            for i, (name, group) in enumerate(self._groupby):
+                group_kwargs = kwargs.copy()
+                group_kwargs["ax"] = ax
+                group_kwargs["color"] = colors[i % len(colors)]
+                results[name] = group.plot(*args, **group_kwargs)
+
+            return results
+        else:
+            # Original implementation for non-scatter plots
+            def f(self):
+                return self.plot(*args, **kwargs)
+
+            f.__name__ = "plot"
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
@@ -546,8 +570,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-15    4
         dtype: int64
         >>> ser.resample("MS").groups
-        {Timestamp('2023-01-01 00:00:00'): np.int64(2),
-         Timestamp('2023-02-01 00:00:00'): np.int64(4)}
+        {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
         """
         if isinstance(self.keys, list) and len(self.keys) == 1:
             warnings.warn(
@@ -614,7 +637,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         toucan  1  5  6
         eagle   7  8  9
         >>> df.groupby(by=["a"]).indices
-        {np.int64(1): array([0, 1]), np.int64(7): array([2])}
+        {1: array([0, 1]), 7: array([2])}
 
         For Resampler:
 
