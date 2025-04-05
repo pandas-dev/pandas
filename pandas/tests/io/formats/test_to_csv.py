@@ -302,7 +302,9 @@ $1$,$2$
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
         ser = ser.astype("category")
         expected = tm.convert_rows_list_to_csv_str(["0", "2021-03-27", '""'])
-        assert ser.to_csv(index=False) == expected
+        msg = "Passing an empty string to Timestamp"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert ser.to_csv(index=False) == expected
 
         ser = pd.Series(
             pd.date_range(
@@ -310,7 +312,9 @@ $1$,$2$
             ).append(pd.DatetimeIndex([pd.NaT]))
         )
         ser = ser.astype("category")
-        assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
+        msg = "Passing an empty string to Timestamp"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
 
     def test_to_csv_float_ea_float_format(self):
         # GH#45991

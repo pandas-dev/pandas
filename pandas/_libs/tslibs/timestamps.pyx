@@ -2592,7 +2592,7 @@ class Timestamp(_Timestamp):
                     "Passing an empty string to Timestamp is deprecated and will raise "
                     "a ValueError in a future version.",
                     FutureWarning,
-                    stacklevel = 2
+                    stacklevel = find_stack_level()
                 )
 
             # User passed a date string to parse.
