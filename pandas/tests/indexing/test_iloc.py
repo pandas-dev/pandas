@@ -758,9 +758,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(result, df)
 
         result = df.iloc[Series([True, False, True, False, True], dtype=bool)]
-        tm.assert_frame_equal(
-            result, DataFrame({"a": [0, 2, 4]}, index=[0, 2, 4])
-        )
+        tm.assert_frame_equal(result, DataFrame({"a": [0, 2, 4]}, index=[0, 2, 4]))
 
         df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
 
