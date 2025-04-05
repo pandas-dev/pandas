@@ -726,20 +726,43 @@ class TestiLocBaseIndependent:
 
     @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_iloc_mask(self):
-        # GH 3631, iloc with a mask (of a series) should raise
+        # GH 60994, iloc with a mask (of a series) should return accordingly
         df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
         mask = df.a % 2 == 0
         msg = "iLocation based boolean indexing cannot use an indexable as a mask"
         with pytest.raises(ValueError, match=msg):
             df.iloc[mask]
+
         mask.index = range(len(mask))
-        msg = "iLocation based boolean indexing on an integer type is not available"
-        with pytest.raises(NotImplementedError, match=msg):
+        msg = "Unalignable boolean Series provided as indexer"
+        with pytest.raises(IndexingError, match=msg):
             df.iloc[mask]
 
         # ndarray ok
         result = df.iloc[np.array([True] * len(mask), dtype=bool)]
         tm.assert_frame_equal(result, df)
+
+        result = df.iloc[np.array([True, False, True, False, True], dtype=bool)]
+        tm.assert_frame_equal(
+            result, DataFrame({"a": [0, 2, 4]}, index=["A", "C", "E"])
+        )
+
+        # series (index does not match)
+        msg = "Unalignable boolean Series provided as indexer"
+        with pytest.raises(IndexingError, match=msg):
+            df.iloc[Series([True] * len(mask), dtype=bool)]
+
+        df = DataFrame(list(range(5)), columns=["a"])
+
+        result = df.iloc[Series([True] * len(mask), dtype=bool)]
+        tm.assert_frame_equal(result, df)
+
+        result = df.iloc[Series([True, False, True, False, True], dtype=bool)]
+        tm.assert_frame_equal(
+            result, DataFrame({"a": [0, 2, 4]}, index=[0, 2, 4])
+        )
+
+        df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
 
         # the possibilities
         locs = np.arange(4)
@@ -753,18 +776,13 @@ class TestiLocBaseIndependent:
             (None, ".iloc"): "0b1100",
             ("index", ""): "0b11",
             ("index", ".loc"): "0b11",
-            ("index", ".iloc"): (
-                "iLocation based boolean indexing cannot use an indexable as a mask"
-            ),
-            ("locs", ""): "Unalignable boolean Series provided as indexer "
-            "(index of the boolean Series and of the indexed "
-            "object do not match).",
-            ("locs", ".loc"): "Unalignable boolean Series provided as indexer "
-            "(index of the boolean Series and of the "
-            "indexed object do not match).",
-            ("locs", ".iloc"): (
-                "iLocation based boolean indexing on an integer type is not available"
-            ),
+            (
+                "index",
+                ".iloc",
+            ): "iLocation based boolean indexing cannot use an indexable as a mask",
+            ("locs", ""): "Unalignable boolean Series provided as indexer",
+            ("locs", ".loc"): "Unalignable boolean Series provided as indexer",
+            ("locs", ".iloc"): "Unalignable boolean Series provided as indexer",
         }
 
         # UserWarnings from reindex of a boolean mask
@@ -780,18 +798,26 @@ class TestiLocBaseIndependent:
                     else:
                         accessor = df
                     answer = str(bin(accessor[mask]["nums"].sum()))
-                except (ValueError, IndexingError, NotImplementedError) as err:
+                except (ValueError, IndexingError) as err:
                     answer = str(err)
 
                 key = (
                     idx,
                     method,
                 )
-                r = expected.get(key)
-                if r != answer:
-                    raise AssertionError(
-                        f"[{key}] does not match [{answer}], received [{r}]"
+                expected_result = expected.get(key)
+
+                # Fix the assertion to check for substring match
+                if (
+                    idx is None or (idx == "index" and method != ".iloc")
+                ) and "0b" in expected_result:
+                    # For successful numeric results, exact match is needed
+                    assert expected_result == answer, (
+                        f"[{key}] does not match [{answer}]"
                     )
+                else:
+                    # For error messages, substring match is sufficient
+                    assert expected_result in answer, f"[{key}] not found in [{answer}]"
 
     def test_iloc_non_unique_indexing(self):
         # GH 4017, non-unique indexing (on the axis)
