@@ -742,10 +742,27 @@ class TestiLocBaseIndependent:
         result = df.iloc[np.array([True] * len(mask), dtype=bool)]
         tm.assert_frame_equal(result, df)
 
-        result2 = df.iloc[np.array([True, False, True, False, True], dtype=bool)]
+        result = df.iloc[np.array([True, False, True, False, True], dtype=bool)]
         tm.assert_frame_equal(
-            result2, DataFrame({"a": [0, 2, 4]}, index=["A", "C", "E"])
+            result, DataFrame({"a": [0, 2, 4]}, index=["A", "C", "E"])
         )
+
+        # series (index does not match)
+        msg = "Unalignable boolean Series provided as indexer"
+        with pytest.raises(IndexingError, match=msg):
+            df.iloc[Series([True] * len(mask), dtype=bool)]
+
+        df = DataFrame(list(range(5)), columns=["a"])
+
+        result = df.iloc[Series([True] * len(mask), dtype=bool)]
+        tm.assert_frame_equal(result, df)
+
+        result = df.iloc[Series([True, False, True, False, True], dtype=bool)]
+        tm.assert_frame_equal(
+            result, DataFrame({"a": [0, 2, 4]}, index=[0, 2, 4])
+        )
+
+        df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
 
         # the possibilities
         locs = np.arange(4)
