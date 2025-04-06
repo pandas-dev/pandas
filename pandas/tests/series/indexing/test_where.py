@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs.missing import NA
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -443,3 +445,13 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+def test_where_list_with_nan():
+    ser = Series([None, 1, 2, np.nan, 3, 4, NA])
+    cond = [np.nan, False, False, np.nan, True, True, np.nan]
+    expected = Series([None, -99, -99, np.nan, 3, 4, NA])
+
+    res = ser.where(cond, -99)
+
+    tm.assert_series_equal(res, expected)
