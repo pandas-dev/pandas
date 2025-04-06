@@ -30,7 +30,7 @@ dependencies = [
   "numpy>=1.23.5; python_version<'3.12'",
   "numpy>=1.26.0; python_version>='3.12'",
   "python-dateutil>=2.8.2",
-  "tzdata>=2022.7"
+  "tzdata>=2022.7,<2025.2"
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -150,8 +150,7 @@ setup = ['--vsenv'] # For Windows
 skip = "cp36-* cp37-* cp38-* cp39-* pp* *_i686 *_ppc64le *_s390x"
 build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
-# tzdata 2025.2 causing some failures on Windows
-test-requires = "hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 tzdata==2025.1"
+test-requires = "hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
