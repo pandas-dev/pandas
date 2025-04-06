@@ -229,10 +229,15 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
 
     formatted_percentiles = format_percentiles(percentiles)
 
+    if len(percentiles) == 0:
+        quantiles = []
+    else:
+        quantiles = series.quantile(percentiles).tolist()
+
     stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
     d = (
         [series.count(), series.mean(), series.std(), series.min()]
-        + series.quantile(percentiles).tolist()
+        + quantiles
         + [series.max()]
     )
     # GH#48340 - always return float on non-complex numeric data
@@ -353,10 +358,6 @@ def _refine_percentiles(
 
     # get them all to be in [0, 1]
     validate_percentile(percentiles)
-
-    # median should always be included
-    if 0.5 not in percentiles:
-        percentiles.append(0.5)
 
     percentiles = np.asarray(percentiles)
 
