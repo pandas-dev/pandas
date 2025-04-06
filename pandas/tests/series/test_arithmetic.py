@@ -958,3 +958,41 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+from pandas._testing import assert_numpy_array_equal, assert_extension_array_equal
+
+# Test Case 1: Basic numeric unique with NA (dropna=False) 
+def test_unique_numeric_dropna_false():
+    s = pd.Series([1, 2, 2, pd.NA, 3, pd.NA])
+    result = s.unique(dropna=False)
+    expected = np.array([1, 2, pd.NA, 3], dtype=object)
+    assert_numpy_array_equal(result, expected)
+
+# Test Case 2: Empty Series
+def test_unique_empty_series():
+    s = pd.Series([], dtype='float64')
+    result = s.unique()
+    expected = np.array([], dtype='float64')
+    assert_numpy_array_equal(result, expected)
+
+# Test Case 3: Categorical data
+def test_unique_categorical():
+    s = pd.Series(pd.Categorical(['a', 'b', 'a', pd.NA]))
+    result = s.unique(dropna=False)
+    expected = pd.Categorical(['a', 'b', pd.NA])
+    assert_extension_array_equal(result, expected)
+
+# Test Case 4: NA values
+def test_unique_with_nas_simple():
+    s = pd.Series([1, 2, 2, pd.NA, 3, pd.NA], dtype='Int64')
+    
+    # Current behavior (returns ExtensionArray)
+    result = s.unique()
+    expected = pd.array([1, 2, 3], dtype='Int64')
+    tm.assert_extension_array_equal(result, expected)
+    
+    # With dropna=False
+    result_with_na = s.unique(dropna=False)
+    expected_with_na = pd.array([1, 2, pd.NA, 3], dtype='Int64')
+    tm.assert_extension_array_equal(result_with_na, expected_with_na)
