@@ -24,6 +24,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.missing import NA
+from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -79,7 +80,6 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
-from pandas._libs.tslibs.timestamps import Timestamp
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
     array as pd_array,
@@ -1695,7 +1695,7 @@ def map_array(
 
         if isinstance(arr.dtype, ArrowDtype) and arr.dtype.name.startswith("timestamp"):
             try:
-                # Convert elements to pandas.Timestamp (or datetime64[ns]) for dict lookup
+                # Convert elements to pandas.Timestamp (or datetime64[ns])
                 arr = arr.astype("datetime64[ns]")
             except Exception:
                 # fallback: safe, slow path

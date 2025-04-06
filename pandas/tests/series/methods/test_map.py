@@ -605,10 +605,11 @@ def test_map_kwargs():
     expected = Series([4, 6, 7])
     tm.assert_series_equal(result, expected)
 
+
 def test_map_arrow_timestamp_dict():
     # GH 61231
-    ser = pd.Series(pd.date_range("2023-01-01", periods=3)).astype("timestamp[ns][pyarrow]")
+    ser = Series(date_range("2023-01-01", periods=3)).astype("timestamp[ns][pyarrow]")
     mapper = {ts: i for i, ts in enumerate(ser)}
     result = ser.map(mapper)
-    expected = pd.Series([0, 1, 2], dtype="int64")
+    expected = Series([0, 1, 2], dtype="int64")
     tm.assert_series_equal(result, expected)
