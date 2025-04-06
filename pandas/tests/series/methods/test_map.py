@@ -605,6 +605,7 @@ def test_map_kwargs():
     expected = Series([4, 6, 7])
     tm.assert_series_equal(result, expected)
 
+
 def test_map_arrow_timestamp_dict():
     # GH 61231
     pytest.importorskip("pyarrow", minversion="10.0.1")
