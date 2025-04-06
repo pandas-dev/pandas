@@ -42,6 +42,8 @@ from pandas.compat import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
+    pa_version_under19p0,
+    pa_version_under20p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -453,31 +455,24 @@ class TestArrowArray(base.ExtensionTests):
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if op_name in ["kurt", "skew"]:
+        if op_name == "kurt" or (pa_version_under20p0 and op_name == "skew"):
             return False
 
         dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
-        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod"]:
+        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod", "skew"]:
             if pa.types.is_duration(pa_dtype) and op_name in ["sum"]:
                 # summing timedeltas is one case that *is* well-defined
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name == "sum":
+        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew"]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and op_name in [
-            "mean",
-            "median",
-            "prod",
-            "std",
-            "sem",
-            "var",
-        ]:
+        ) and op_name in ["mean", "median", "prod", "std", "sem", "var", "skew"]:
             return False
 
         if (
@@ -561,7 +556,7 @@ class TestArrowArray(base.ExtensionTests):
             else:
                 cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
-            if op_name not in ["median", "var", "std", "sem"]:
+            if op_name not in ["median", "var", "std", "sem", "skew"]:
                 cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
@@ -579,10 +574,29 @@ class TestArrowArray(base.ExtensionTests):
             }[arr.dtype.kind]
         return cmp_dtype
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if (
+            not pa_version_under20p0
+            and skipna
+            and all_numeric_reductions == "skew"
+            and (
+                pa.types.is_integer(data.dtype.pyarrow_dtype)
+                or pa.types.is_floating(data.dtype.pyarrow_dtype)
+            )
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="https://github.com/apache/arrow/issues/45733",
+                )
+            )
+        return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
-        if op_name == "skew":
+        if op_name == "skew" and pa_version_under20p0:
             if data.dtype._is_numeric:
                 mark = pytest.mark.xfail(reason="skew not implemented")
                 request.applymarker(mark)
@@ -3540,3 +3554,13 @@ def test_categorical_from_arrow_dictionary():
         dtype="int64",
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    pa_version_under19p0, reason="pa.json_ was introduced in pyarrow v19.0"
+)
+def test_arrow_json_type():
+    # GH 60958
+    dtype = ArrowDtype(pa.json_(pa.string()))
+    result = dtype.type
+    assert result == str

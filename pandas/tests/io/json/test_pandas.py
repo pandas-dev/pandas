@@ -1,6 +1,9 @@
 import datetime
 from datetime import timedelta
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import json
 import os
 import sys
@@ -1753,6 +1756,7 @@ class TestPandasContainer:
         [
             "s3://example-fsspec/",
             "gcs://another-fsspec/file.json",
+            "filecache::s3://yet-another-fsspec/file.json",
             "https://example-site.com/data",
             "some-protocol://data.txt",
         ],
@@ -2182,6 +2186,30 @@ class TestPandasContainer:
         # the storage of the str columns' Index is also affected by the
         # string_storage setting -> ignore that for checking the result
         tm.assert_frame_equal(result, expected, check_column_type=False)
+
+    @td.skip_if_no("pyarrow")
+    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
+    def test_read_json_pyarrow_with_dtype(self):
+        dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
+        json = b'{"a": 1, "b": 2}\n'
+
+        df = read_json(
+            BytesIO(json),
+            dtype=dtype,
+            lines=True,
+            engine="pyarrow",
+            dtype_backend="pyarrow",
+        )
+
+        result = df.dtypes
+        expected = Series(
+            data=[
+                pd.ArrowDtype.construct_from_string("int32[pyarrow]"),
+                pd.ArrowDtype.construct_from_string("int64[pyarrow]"),
+            ],
+            index=["a", "b"],
+        )
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("orient", ["split", "records", "index"])
     def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):

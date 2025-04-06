@@ -23,7 +23,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy<2
+  - numpy<3
 
   # optional dependencies
   - beautifulsoup4>=4.11.2
@@ -115,6 +115,13 @@ dependencies:
   - pyyaml
   - requests
   - pygments # Code highlighting
+
+  # web interactive REPL
+  # see the following links for more context:
+  # 1. https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/#compatibility
+  # 2. https://pyodide.org/en/stable/usage/packages-in-pyodide.html
+  - jupyterlite-core
+  - jupyterlite-pyodide-kernel
 
   - pip:
       - adbc-driver-postgresql>=0.10.0

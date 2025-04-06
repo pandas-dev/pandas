@@ -4281,7 +4281,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict(), copy=False)
 
-        if key.size and not all(is_bool_dtype(dtype) for dtype in key.dtypes):
+        if key.size and not all(is_bool_dtype(blk.dtype) for blk in key._mgr.blocks):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -5880,6 +5880,8 @@ class DataFrame(NDFrame, OpsMixin):
             Delete columns to be used as the new index.
         append : bool, default False
             Whether to append columns to existing index.
+            Setting to True will add the new columns to existing index.
+            When set to False, the current index will be dropped from the DataFrame.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
         verify_integrity : bool, default False
@@ -5953,6 +5955,25 @@ class DataFrame(NDFrame, OpsMixin):
         2 4       4  2014    40
         3 9       7  2013    84
         4 16     10  2014    31
+
+        Append a column to the existing index:
+
+        >>> df = df.set_index("month")
+        >>> df.set_index("year", append=True)
+                      sale
+        month  year
+        1      2012    55
+        4      2014    40
+        7      2013    84
+        10     2014    31
+
+        >>> df.set_index("year", append=False)
+               sale
+        year
+        2012    55
+        2014    40
+        2013    84
+        2014    31
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
@@ -7858,7 +7879,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # See GH#4537 for discussion of scalar op behavior
         new_data = self._dispatch_frame_op(other, op, axis=axis)
-        return self._construct_result(new_data)
+        return self._construct_result(new_data, other=other)
 
     def _arith_method(self, other, op):
         if self._should_reindex_frame_op(other, op, 1, None, None):
@@ -7871,7 +7892,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         with np.errstate(all="ignore"):
             new_data = self._dispatch_frame_op(other, op, axis=axis)
-        return self._construct_result(new_data)
+        return self._construct_result(new_data, other=other)
 
     _logical_method = _arith_method
 
@@ -8067,8 +8088,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        left : DataFrame
-        right : Any
+        other : Any
         axis : int
         flex : bool or None, default False
             Whether this is a flex op, in which case we reindex.
@@ -8187,7 +8207,6 @@ class DataFrame(NDFrame, OpsMixin):
                 level=level,
             )
             right = left._maybe_align_series_as_frame(right, axis)
-
         return left, right
 
     def _maybe_align_series_as_frame(self, series: Series, axis: AxisInt):
@@ -8216,7 +8235,7 @@ class DataFrame(NDFrame, OpsMixin):
             index=self.index,
             columns=self.columns,
             dtype=rvalues.dtype,
-        )
+        ).__finalize__(series)
 
     def _flex_arith_method(
         self, other, op, *, axis: Axis = "columns", level=None, fill_value=None
@@ -8248,9 +8267,9 @@ class DataFrame(NDFrame, OpsMixin):
 
                 new_data = self._dispatch_frame_op(other, op)
 
-        return self._construct_result(new_data)
+        return self._construct_result(new_data, other=other)
 
-    def _construct_result(self, result) -> DataFrame:
+    def _construct_result(self, result, other) -> DataFrame:
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
 
@@ -8267,6 +8286,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  non-unique columns case
         out.columns = self.columns
         out.index = self.index
+        out = out.__finalize__(other)
         return out
 
     def __divmod__(self, other) -> tuple[DataFrame, DataFrame]:
@@ -8287,7 +8307,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
         new_data = self._dispatch_frame_op(other, op, axis=axis)
-        return self._construct_result(new_data)
+        return self._construct_result(new_data, other=other)
 
     @Appender(ops.make_flex_doc("eq", "dataframe"))
     def eq(self, other, axis: Axis = "columns", level=None) -> DataFrame:
@@ -9326,8 +9346,12 @@ class DataFrame(NDFrame, OpsMixin):
             on the rows and columns.
         dropna : bool, default True
             Do not include columns whose entries are all NaN. If True,
-            rows with a NaN value in any column will be omitted before
-            computing margins.
+
+            * rows with an NA value in any column will be omitted before computing
+              margins,
+            * index/column keys containing NA values will be dropped (see ``dropna``
+              parameter in :meth:`DataFrame.groupby`).
+
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
@@ -10254,7 +10278,7 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
-        engine: Literal["python", "numba"] = "python",
+        engine: Callable | None | Literal["python", "numba"] = None,
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
@@ -10265,7 +10289,9 @@ class DataFrame(NDFrame, OpsMixin):
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
         (``axis=1``). By default (``result_type=None``), the final return type
         is inferred from the return type of the applied function. Otherwise,
-        it depends on the `result_type` argument.
+        it depends on the `result_type` argument. The return type of the applied
+        function is inferred based on the first computed result obtained after
+        applying the function to a Series object.
 
         Parameters
         ----------
@@ -10316,28 +10342,24 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 2.1.0
 
-        engine : {'python', 'numba'}, default 'python'
-            Choose between the python (default) engine or the numba engine in apply.
+        engine : decorator or {'python', 'numba'}, optional
+            Choose the execution engine to use. If not provided the function
+            will be executed by the regular Python interpreter.
 
-            The numba engine will attempt to JIT compile the passed function,
-            which may result in speedups for large DataFrames.
-            It also supports the following engine_kwargs :
+            Other options include JIT compilers such Numba and Bodo, which in some
+            cases can speed up the execution. To use an executor you can provide
+            the decorators ``numba.jit``, ``numba.njit`` or ``bodo.jit``. You can
+            also provide the decorator with parameters, like ``numba.jit(nogit=True)``.
 
-            - nopython (compile the function in nopython mode)
-            - nogil (release the GIL inside the JIT compiled function)
-            - parallel (try to apply the function in parallel over the DataFrame)
+            Not all functions can be executed with all execution engines. In general,
+            JIT compilers will require type stability in the function (no variable
+            should change data type during the execution). And not all pandas and
+            NumPy APIs are supported. Check the engine documentation [1]_ and [2]_
+            for limitations.
 
-              Note: Due to limitations within numba/how pandas interfaces with numba,
-              you should only use this if raw=True
+            .. warning::
 
-            Note: The numba compiler only supports a subset of
-            valid Python/numpy operations.
-
-            Please read more about the `supported python features
-            <https://numba.pydata.org/numba-doc/dev/reference/pysupported.html>`_
-            and `supported numpy features
-            <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
-            in numba to learn what you can or cannot use in the passed function.
+                String parameters will stop being supported in a future pandas version.
 
             .. versionadded:: 2.2.0
 
@@ -10345,6 +10367,7 @@ class DataFrame(NDFrame, OpsMixin):
             Pass keyword arguments to the engine.
             This is currently only used by the numba engine,
             see the documentation for the engine argument for more information.
+
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10366,6 +10389,13 @@ class DataFrame(NDFrame, OpsMixin):
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
+
+        References
+        ----------
+        .. [1] `Numba documentation
+                <https://numba.readthedocs.io/en/stable/index.html>`_
+        .. [2] `Bodo documentation
+                <https://docs.bodo.ai/latest/>`/
 
         Examples
         --------
@@ -10435,22 +10465,99 @@ class DataFrame(NDFrame, OpsMixin):
         0  1  2
         1  1  2
         2  1  2
-        """
-        from pandas.core.apply import frame_apply
 
-        op = frame_apply(
-            self,
-            func=func,
-            axis=axis,
-            raw=raw,
-            result_type=result_type,
-            by_row=by_row,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-            args=args,
-            kwargs=kwargs,
-        )
-        return op.apply().__finalize__(self, method="apply")
+        Advanced users can speed up their code by using a Just-in-time (JIT) compiler
+        with ``apply``. The main JIT compilers available for pandas are Numba and Bodo.
+        In general, JIT compilation is only possible when the function passed to
+        ``apply`` has type stability (variables in the function do not change their
+        type during the execution).
+
+        >>> import bodo
+        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)
+
+        Note that JIT compilation is only recommended for functions that take a
+        significant amount of time to run. Fast functions are unlikely to run faster
+        with JIT compilation.
+        """
+        if engine is None or isinstance(engine, str):
+            from pandas.core.apply import frame_apply
+
+            if engine is None:
+                engine = "python"
+
+            if engine not in ["python", "numba"]:
+                raise ValueError(f"Unknown engine '{engine}'")
+
+            op = frame_apply(
+                self,
+                func=func,
+                axis=axis,
+                raw=raw,
+                result_type=result_type,
+                by_row=by_row,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+                kwargs=kwargs,
+            )
+            return op.apply().__finalize__(self, method="apply")
+        elif hasattr(engine, "__pandas_udf__"):
+            if result_type is not None:
+                raise NotImplementedError(
+                    f"{result_type=} only implemented for the default engine"
+                )
+
+            agg_axis = self._get_agg_axis(self._get_axis_number(axis))
+
+            # one axis is empty
+            if not all(self.shape):
+                func = cast(Callable, func)
+                try:
+                    if axis == 0:
+                        r = func(Series([], dtype=np.float64), *args, **kwargs)
+                    else:
+                        r = func(
+                            Series(index=self.columns, dtype=np.float64),
+                            *args,
+                            **kwargs,
+                        )
+                except Exception:
+                    pass
+                else:
+                    if not isinstance(r, Series):
+                        if len(agg_axis):
+                            r = func(Series([], dtype=np.float64), *args, **kwargs)
+                        else:
+                            r = np.nan
+
+                        return self._constructor_sliced(r, index=agg_axis)
+                return self.copy()
+
+            data: DataFrame | np.ndarray = self
+            if raw:
+                # This will upcast the whole DataFrame to the same type,
+                # and likely result in an object 2D array.
+                # We should probably pass a list of 1D arrays instead, at
+                # lest for ``axis=0``
+                data = self.values
+            result = engine.__pandas_udf__.apply(
+                data=data,
+                func=func,
+                args=args,
+                kwargs=kwargs,
+                decorator=engine,
+                axis=axis,
+            )
+            if raw:
+                if result.ndim == 2:
+                    return self._constructor(
+                        result, index=self.index, columns=self.columns
+                    )
+                else:
+                    return self._constructor_sliced(result, index=agg_axis)
+            return result
+        else:
+            raise ValueError(f"Unknown engine {engine}")
 
     def map(
         self, func: PythonFuncType, na_action: Literal["ignore"] | None = None, **kwargs
@@ -10567,9 +10674,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             index = Index(
                 [other.name],
-                name=self.index.names
-                if isinstance(self.index, MultiIndex)
-                else self.index.name,
+                name=(
+                    self.index.names
+                    if isinstance(self.index, MultiIndex)
+                    else self.index.name
+                ),
             )
             row_df = other.to_frame().T
             # infer_objects is needed for

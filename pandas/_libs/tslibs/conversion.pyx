@@ -137,7 +137,7 @@ def cast_from_unit_vectorized(
 
     out = np.empty(shape, dtype="i8")
     base = np.empty(shape, dtype="i8")
-    frac = np.empty(shape, dtype="f8")
+    frac = np.zeros(shape, dtype="f8")
 
     for i in range(len(values)):
         if is_nan(values[i]):

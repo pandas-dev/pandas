@@ -18,9 +18,9 @@
                     <div class="col-md-4">
                         <h5>Getting started</h5>
                         <ul>
-                            <!-- <li><a href="{{ base_url }}/try.html">Try pandas online</a></li> -->
                             <li><a href="{{ base_url }}getting_started.html">Install pandas</a></li>
                             <li><a href="{{ base_url }}docs/getting_started/index.html">Getting started</a></li>
+                            <li><a href="{{ base_url }}try.html">Try pandas online</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
@@ -46,10 +46,10 @@
                     {% for row in sponsors.active | batch(6, "") %}
                         <div class="row mx-auto h-100">
                             {% for company in row %}
-                                <div class="col-6 col-md-2">
+                                <div class="col-6 col-md-2 d-flex align-items-center justify-content-center">
                                     {% if company %}
                                         <a href="{{ company.url }}" target="_blank">
-                                            <img class="img-fluid img-thumbnail py-5 mx-auto" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
+                                            <img class="img-fluid w-100" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
                                         </a>
                                     {% endif %}
                                 </div>
