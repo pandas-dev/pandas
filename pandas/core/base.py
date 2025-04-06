@@ -16,6 +16,8 @@ from typing import (
 )
 
 import numpy as np
+from typing import Any
+from pandas._typing import ArrayLike
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -1096,13 +1098,28 @@ class IndexOpsMixin(OpsMixin):
             dropna=dropna,
         )
 
-    def unique(self):
+    def unique(self, dropna: bool = True) -> ArrayLike:
+        """
+        Return unique values in the object.
+        
+        Parameters
+        ----------
+        dropna : bool, default True
+            If True, exclude NA/null values.
+            
+        Returns
+        -------
+        ndarray or ExtensionArray
+        """
         values = self._values
         if not isinstance(values, np.ndarray):
-            # i.e. ExtensionArray
+            # For ExtensionArray
             result = values.unique()
         else:
             result = algorithms.unique1d(values)
+        
+        if dropna:
+            result = result[~isna(result)]
         return result
 
     @final
