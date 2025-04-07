@@ -546,7 +546,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-15    4
         dtype: int64
         >>> ser.resample("MS").groups
-        {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
+        {Timestamp('2023-01-01 00:00:00'): np.int64(2),
+         Timestamp('2023-02-01 00:00:00'): np.int64(4)}
         """
         if isinstance(self.keys, list) and len(self.keys) == 1:
             warnings.warn(
@@ -613,7 +614,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         toucan  1  5  6
         eagle   7  8  9
         >>> df.groupby(by=["a"]).indices
-        {1: array([0, 1]), 7: array([2])}
+        {np.int64(1): array([0, 1]), np.int64(7): array([2])}
 
         For Resampler:
 
