@@ -655,7 +655,7 @@ Pandas provides an interface for defining
 The following libraries implement that interface to provide types not found in NumPy or pandas,
 which work well with pandas' data containers.
 
-### [awkward-pandas](https://awkward-pandas.readthedocs.io/)
+### [awkward-pandas](https://github.com/scikit-hep/awkward)
 
 Awkward-pandas provides an extension type for storing [Awkward
 Arrays](https://awkward-array.org/) inside pandas' Series and
