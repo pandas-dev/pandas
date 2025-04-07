@@ -17,11 +17,10 @@ Why Not To Use User-Defined Functions
 -----------------------------------------
 
 While UDFs provide flexibility, they come with significant drawbacks, primarily
-related to performance. Unlike vectorized pandas operations, UDFs are slower because pandas lacks
-insight into what they are computing, making it difficult to apply efficient handling or optimization
-techniques. As a result, pandas resorts to less efficient processing methods that significantly
-slow down computations. Additionally, relying on UDFs often sacrifices the benefits
-of pandas’ built-in, optimized methods, limiting compatibility and overall performance.
+related to performance and behavior. When using UDFs, pandas must perform inference
+on the result, and that inference could be incorrect. Furthermore, unlike vectorized operations,
+UDFs are slower because pandas can't optimize their computations, leading to
+inefficient processing.
 
 .. note::
     In general, most tasks can and should be accomplished using pandas’ built-in methods or vectorized operations.
@@ -32,6 +31,29 @@ Despite their drawbacks, UDFs can be helpful when:
   built-in methods cannot handle.
 * **Extending pandas' Functionality**: Applying external libraries or specialized algorithms unavailable in pandas.
 * **Handling Complex Grouped Operations**: Performing operations on grouped data that standard methods do not support.
+
+For example:
+
+.. code-block:: python
+
+    from sklearn.linear_model import LinearRegression
+
+    # Sample data
+    df = pd.DataFrame({
+        'group': ['A', 'A', 'A', 'B', 'B', 'B'],
+        'x': [1, 2, 3, 1, 2, 3],
+        'y': [2, 4, 6, 1, 2, 1.5]
+    })
+
+    # Function to fit a model to each group
+    def fit_model(group):
+        model = LinearRegression()
+        model.fit(group[['x']], group['y'])
+        group['y_pred'] = model.predict(group[['x']])
+        return group
+
+    result = df.groupby('group').apply(fit_model)
+
 
 Methods that support User-Defined Functions
 -------------------------------------------
@@ -56,6 +78,10 @@ ways to apply UDFs across different pandas data structures.
 .. note::
     Some of these methods are can also be applied to Groupby Objects. Refer to :ref:`groupby`.
 
+Additionally, operations such as :ref:`resample()<timeseries>`, :ref:`rolling()<window>`,
+:ref:`expanding()<window>`, and :ref:`ewm()<window>` also support UDFs for performing custom
+computations over temporal or statistical windows.
+
 
 Choosing the Right Method
 -------------------------
@@ -66,21 +92,21 @@ decisions, ensuring more efficient and maintainable code.
 
 Below is a table overview of all methods that accept UDFs:
 
-+------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
-| Method           | Purpose                              | Supports UDFs             | Keeps Shape        | Performance               | Recommended Use Case                     |
-+==================+======================================+===========================+====================+===========================+==========================================+
-| :meth:`apply`    | General-purpose function             | Yes                       | Yes (when axis=1)  | Slow                      | Custom row-wise or column-wise operations|
-+------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
-| :meth:`agg`      | Aggregation                          | Yes                       | No                 | Fast (if using built-ins) | Custom aggregation logic                 |
-+------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
-| :meth:`transform`| Transform without reducing dimensions| Yes                       | Yes                | Fast (if vectorized)      | Broadcast element-wise transformations   |
-+------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
-| :meth:`map`      | Element-wise mapping                 | Yes                       | Yes                | Moderate                  | Simple element-wise transformations      |
-+------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
-| :meth:`pipe`     | Functional chaining                  | Yes                       | Yes                | Depends on function       | Building clean pipelines                 |
-+------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
-| :meth:`filter`   | Row/Column selection                 | Not directly              | Yes                | Fast                      | Subsetting based on conditions           |
-+------------------+--------------------------------------+---------------------------+--------------------+---------------------------+------------------------------------------+
++------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
+| Method           | Purpose                              | Supports UDFs             | Keeps Shape        | Recommended Use Case                     |
++==================+======================================+===========================+====================+==========================================+
+| :meth:`apply`    | General-purpose function             | Yes                       | Yes (when axis=1)  | Custom row-wise or column-wise operations|
++------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
+| :meth:`agg`      | Aggregation                          | Yes                       | No                 | Custom aggregation logic                 |
++------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
+| :meth:`transform`| Transform without reducing dimensions| Yes                       | Yes                | Broadcast element-wise transformations   |
++------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
+| :meth:`map`      | Element-wise mapping                 | Yes                       | Yes                | Simple element-wise transformations      |
++------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
+| :meth:`pipe`     | Functional chaining                  | Yes                       | Yes                | Building clean operation pipelines       |
++------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
+| :meth:`filter`   | Row/Column selection                 | Not directly              | Yes                | Subsetting based on conditions           |
++------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
 
 :meth:`DataFrame.apply`
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,10 +115,10 @@ The :meth:`DataFrame.apply` allows you to apply UDFs along either rows or column
 it is slower than vectorized operations and should be used only when you need operations
 that cannot be achieved with built-in pandas functions.
 
-When to use: :meth:`DataFrame.apply` is suitable when no alternative vectorized method is available, but consider
-optimizing performance with vectorized operations wherever possible.
+When to use: :meth:`DataFrame.apply` is suitable when no alternative vectorized method or UDF method is available,
+but consider optimizing performance with vectorized operations wherever possible.
 
-Examples of usage can be found :meth:`~DataFrame.apply`.
+Documentation can be found at :meth:`~DataFrame.apply`.
 
 :meth:`DataFrame.agg`
 ~~~~~~~~~~~~~~~~~~~~~
@@ -103,17 +129,17 @@ specifically designed for aggregation operations.
 When to use: Use :meth:`DataFrame.agg` for performing aggregations like sum, mean, or custom aggregation
 functions across groups.
 
-Examples of usage can be found :meth:`~DataFrame.agg`.
+Documentation can be found at :meth:`~DataFrame.agg`.
 
 :meth:`DataFrame.transform`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The transform method is ideal for performing element-wise transformations while preserving the shape of the original DataFrame.
-It’s generally faster than apply because it can take advantage of pandas' internal optimizations.
+It is generally faster than apply because it can take advantage of pandas' internal optimizations.
 
 When to use: When you need to perform element-wise transformations that retain the original structure of the DataFrame.
 
-Documentation can be found :meth:`~DataFrame.transform`.
+Documentation can be found at :meth:`~DataFrame.transform`.
 
 Attempting to use common aggregation functions such as ``mean`` or ``sum`` will result in
 values being broadcasted to the original dimensions:
@@ -158,17 +184,17 @@ When to use: Use :meth:`DataFrame.filter` when you want to use a UDF to create a
         'D': [10, 11, 12]
     })
 
-    # Define a function that filters out columns where the name is longer than 1 character
+    # Function that filters out columns where the name is longer than 1 character
     def is_long_name(column_name):
         return len(column_name) > 1
 
-    df_filtered = df[[col for col in df.columns if is_long_name(col)]]
+    df_filtered = df.filter(items=[col for col in df.columns if is_long_name(col)])
     print(df_filtered)
 
 Since filter does not directly accept a UDF, you have to apply the UDF indirectly,
-such as by using list comprehensions.
+for example, by using list comprehensions.
 
-Documentation can be found :meth:`~DataFrame.filter`.
+Documentation can be found at :meth:`~DataFrame.filter`.
 
 :meth:`DataFrame.map`
 ~~~~~~~~~~~~~~~~~~~~~
@@ -178,7 +204,7 @@ for this purpose compared to :meth:`DataFrame.apply` because of its better perfo
 
 When to use: Use map for applying element-wise UDFs to DataFrames or Series.
 
-Documentation can be found :meth:`~DataFrame.map`.
+Documentation can be found at :meth:`~DataFrame.map`.
 
 :meth:`DataFrame.pipe`
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -186,9 +212,9 @@ Documentation can be found :meth:`~DataFrame.map`.
 The pipe method is useful for chaining operations together into a clean and readable pipeline.
 It is a helpful tool for organizing complex data processing workflows.
 
-When to use: Use pipe when you need to create a pipeline of transformations and want to keep the code readable and maintainable.
+When to use: Use pipe when you need to create a pipeline of operations and want to keep the code readable and maintainable.
 
-Documentation can be found :meth:`~DataFrame.pipe`.
+Documentation can be found at :meth:`~DataFrame.pipe`.
 
 
 Best Practices
@@ -232,3 +258,18 @@ via NumPy to process entire arrays at once. This approach avoids the overhead of
 through rows in Python and making separate function calls for each row, which is slow and
 inefficient. Additionally, NumPy arrays benefit from memory efficiency and CPU-level
 optimizations, making vectorized operations the preferred choice whenever possible.
+
+
+Improving Performance with UDFs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In scenarios where UDFs are necessary, there are still ways to mitigate their performance drawbacks.
+One approach is to use **Numba**, a Just-In-Time (JIT) compiler that can significantly speed up numerical
+Python code by compiling Python functions to optimized machine code at runtime.
+
+By annotating your UDFs with ``@numba.jit``, you can achieve performance closer to vectorized operations,
+especially for computationally heavy tasks.
+
+.. note::
+    You may also refer to the user guide on `Enhancing performance <https://pandas.pydata.org/pandas-docs/dev/user_guide/enhancingperf.html#numba-jit-compilation>`_
+    for a more detailed guide to using **Numba**.
