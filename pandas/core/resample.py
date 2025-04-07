@@ -518,6 +518,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
+            result.index.name = self.obj.index.name
 
         return result
 
