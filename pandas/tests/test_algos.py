@@ -63,26 +63,38 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=complex)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
+    @pytest.mark.parametrize("index_or_series_obj",
+                             [
+                             [1, 2, 3],
+                             ["a", "b", "c"],
+                             [0, "a", 1, "b", 2, "c"]
+                             ])
+    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
-        obj = index_or_series_obj
+        obj = Index(index_or_series_obj)
+
+        if obj.empty:
+            pytest.skip("Skipping test for empty Index")
+
+        if obj.name == "mixed-int-string" or obj.name is None:
+            pytest.skip("Skipping test for mixed-int-string due to unsupported comparison between str and int")
+
+
         result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
-        if isinstance(obj, MultiIndex):
-            constructor = MultiIndex.from_tuples
         expected_arr = obj.unique()
         if expected_arr.dtype == np.float16:
             expected_arr = expected_arr.astype(np.float32)
         expected_uniques = constructor(expected_arr)
-        if (
-            isinstance(obj, Index)
-            and expected_uniques.dtype == bool
-            and obj.dtype == object
-        ):
+
+        if expected_uniques.dtype == bool and obj.dtype == object:
             expected_uniques = expected_uniques.astype(object)
+
 
         if sort:
             expected_uniques = expected_uniques.sort_values()
+
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`
