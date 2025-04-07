@@ -1870,10 +1870,12 @@ class BarPlot(MPLPlot):
 
         MPLPlot.__init__(self, data, **kwargs)
 
-        if isinstance(data.index, ABCPeriodIndex):
-            self.ax.freq = data.index.freq
+        if self._is_ts_plot():
             self.tick_pos = np.array(
-                PeriodConverter.convert(data.index._mpl_repr(), None, self.ax)
+                PeriodConverter.convert_from_freq(
+                    self._get_xticks(),
+                    data.index.freq,
+                )
             )
         else:
             self.tick_pos = np.arange(len(data))
@@ -1907,6 +1909,7 @@ class BarPlot(MPLPlot):
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
+    @register_pandas_matplotlib_converters
     def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
