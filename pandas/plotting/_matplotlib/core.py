@@ -291,6 +291,21 @@ class MPLPlot(ABC):
 
         self.data = self._ensure_frame(self.data)
 
+        from pandas.plotting import plot_params
+
+        self.x_compat = plot_params["x_compat"]
+        if "x_compat" in self.kwds:
+            self.x_compat = bool(self.kwds.pop("x_compat"))
+
+    @final
+    def _is_ts_plot(self) -> bool:
+        # this is slightly deceptive
+        return not self.x_compat and self.use_index and self._use_dynamic_x()
+
+    @final
+    def _use_dynamic_x(self) -> bool:
+        return use_dynamic_x(self._get_ax(0), self.data)
+
     @final
     @staticmethod
     def _validate_sharex(sharex: bool | None, ax, by) -> bool:
@@ -1523,23 +1538,9 @@ class LinePlot(MPLPlot):
         return "line"
 
     def __init__(self, data, **kwargs) -> None:
-        from pandas.plotting import plot_params
-
         MPLPlot.__init__(self, data, **kwargs)
         if self.stacked:
             self.data = self.data.fillna(value=0)
-        self.x_compat = plot_params["x_compat"]
-        if "x_compat" in self.kwds:
-            self.x_compat = bool(self.kwds.pop("x_compat"))
-
-    @final
-    def _is_ts_plot(self) -> bool:
-        # this is slightly deceptive
-        return not self.x_compat and self.use_index and self._use_dynamic_x()
-
-    @final
-    def _use_dynamic_x(self) -> bool:
-        return use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self, fig: Figure) -> None:
         if self._is_ts_plot():
