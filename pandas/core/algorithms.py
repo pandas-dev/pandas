@@ -24,7 +24,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.missing import NA
-from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -60,7 +59,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
@@ -1692,14 +1690,6 @@ def map_array(
     if isinstance(mapper, ABCSeries):
         if na_action == "ignore":
             mapper = mapper[mapper.index.notna()]
-
-        if isinstance(arr.dtype, ArrowDtype) and arr.dtype.name.startswith("timestamp"):
-            try:
-                # Convert elements to pandas.Timestamp (or datetime64[ns])
-                arr = arr.astype("datetime64[ns]")
-            except Exception:
-                # fallback: safe, slow path
-                arr = np.array([Timestamp(x.as_py()) for x in arr])
 
         # Since values were input this means we came from either
         # a dict or a series and mapper should be an index
