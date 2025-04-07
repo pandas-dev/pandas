@@ -804,9 +804,9 @@ class IndexOpsMixin(OpsMixin):
         dtype: float64
 
         >>> s.argmax()
-        2
+        np.int64(2)
         >>> s.argmin()
-        0
+        np.int64(0)
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -1360,7 +1360,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: int64
 
         >>> ser.searchsorted(4)
-        3
+        np.int64(3)
 
         >>> ser.searchsorted([0, 4])
         array([0, 3])
@@ -1379,7 +1379,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: datetime64[s]
 
         >>> ser.searchsorted('3/14/2000')
-        3
+        np.int64(3)
 
         >>> ser = pd.Categorical(
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
@@ -1389,7 +1389,7 @@ class IndexOpsMixin(OpsMixin):
         Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
-        1
+        np.int64(1)
 
         >>> ser.searchsorted(['bread'], side='right')
         array([3])
@@ -1480,9 +1480,9 @@ class IndexOpsMixin(OpsMixin):
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
 
-        return self._construct_result(result, name=res_name)
+        return self._construct_result(result, name=res_name, other=other)
 
-    def _construct_result(self, result, name):
+    def _construct_result(self, result, name, other):
         """
         Construct an appropriately-wrapped result from the ArrayLike result
         of an arithmetic-like operation.
