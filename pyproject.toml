@@ -148,7 +148,7 @@ setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* cp38-* cp39-* pp* *_i686 *_ppc64le *_s390x"
-build-verbosity = "3"
+build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-requires = "hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0"
 test-command = """
@@ -160,7 +160,8 @@ free-threaded-support = true
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build_windows.sh"
+environment = {}
+before-build = "pip install delvewheel ninja<1.11.1.4 && bash {package}/scripts/cibw_before_build_windows.sh"
 before-test = "bash {package}/scripts/cibw_before_test_windows.sh"
 test-command = """
   set PANDAS_CI='1' && \
