@@ -32,7 +32,6 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
     SparseDtype,
 )
-from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.dtypes.inference import (
     is_array_like,
     is_bool,
@@ -1413,21 +1412,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         arr_or_dtype = dtype.categories
         # now we use the special definition for Index
 
-    if isinstance(arr_or_dtype, ABCIndex):
-        # Allow Index[object] that is all-bools or Index["boolean"]
-        if arr_or_dtype.inferred_type == "boolean":
-            if not is_bool_dtype(arr_or_dtype.dtype):
-                # GH#52680
-                warnings.warn(
-                    "The behavior of is_bool_dtype with an object-dtype Index "
-                    "of bool objects is deprecated. In a future version, "
-                    "this will return False. Cast the Index to a bool dtype instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-            return True
-        return False
-    elif isinstance(dtype, ExtensionDtype):
+    if isinstance(dtype, ExtensionDtype):
         return getattr(dtype, "_is_boolean", False)
 
     return issubclass(dtype.type, np.bool_)
