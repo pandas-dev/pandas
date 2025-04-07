@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.9
+    rev: v0.11.4
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -95,14 +95,14 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v19.1.7
+    rev: v20.1.0
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.7.0
+    rev: v1.7.2
     hooks:
     - id: meson-fmt
       args: ['--inplace']
