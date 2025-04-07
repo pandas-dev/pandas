@@ -228,7 +228,7 @@ class CSVFormatter:
         else:
             # self.cols is an ndarray derived from Index._get_values_for_csv,
             #  so its entries are strings, i.e. hashable
-            return cast(SequenceNotStr[Hashable], self.cols)
+            return cast("SequenceNotStr[Hashable]", self.cols)
 
     @property
     def encoded_labels(self) -> list[Hashable]:

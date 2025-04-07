@@ -95,7 +95,7 @@ def describe_ndframe(
         )
 
     result = describer.describe(percentiles=percentiles)
-    return cast(NDFrameT, result)
+    return cast("NDFrameT", result)
 
 
 class NDFrameDescriberAbstract(ABC):

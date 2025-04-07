@@ -664,28 +664,28 @@ class BaseExcelReader(Generic[_WorkbookT]):
         if header is None:
             header_rows = 1
         elif is_integer(header):
-            header = cast(int, header)
+            header = cast("int", header)
             header_rows = 1 + header
         else:
-            header = cast(Sequence, header)
+            header = cast("Sequence", header)
             header_rows = 1 + header[-1]
         # If there is a MultiIndex header and an index then there is also
         # a row containing just the index name(s)
         if is_list_like(header) and index_col is not None:
-            header = cast(Sequence, header)
+            header = cast("Sequence", header)
             if len(header) > 1:
                 header_rows += 1
         if skiprows is None:
             return header_rows + nrows
         if is_integer(skiprows):
-            skiprows = cast(int, skiprows)
+            skiprows = cast("int", skiprows)
             return header_rows + nrows + skiprows
         if is_list_like(skiprows):
 
             def f(skiprows: Sequence, x: int) -> bool:
                 return x in skiprows
 
-            skiprows = cast(Sequence, skiprows)
+            skiprows = cast("Sequence", skiprows)
             return self._check_skiprows_func(partial(f, skiprows), header_rows + nrows)
         if callable(skiprows):
             return self._check_skiprows_func(
@@ -738,7 +738,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
+        sheets = cast("Union[list[int], list[str]]", list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -829,7 +829,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 is_len_one_list_header = True
 
         if is_len_one_list_header:
-            header = cast(Sequence[int], header)[0]
+            header = cast("Sequence[int]", header)[0]
 
         # forward fill and pull out names for MultiIndex column
         header_names = None
@@ -1274,7 +1274,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
         # cast ExcelWriter to avoid adding 'if self._handles is not None'
         self._handles = IOHandles(
-            cast(IO[bytes], path), compression={"compression": None}
+            cast("IO[bytes]", path), compression={"compression": None}
         )
         if not isinstance(path, ExcelWriter):
             self._handles = get_handle(

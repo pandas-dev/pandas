@@ -148,7 +148,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @classmethod
     @doc(ExtensionArray._empty)
     def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
-        dtype = cast(BaseMaskedDtype, dtype)
+        dtype = cast("BaseMaskedDtype", dtype)
         values: np.ndarray = np.empty(shape, dtype=dtype.type)
         values.fill(dtype._internal_fill_value)
         mask = np.ones(shape, dtype=bool)

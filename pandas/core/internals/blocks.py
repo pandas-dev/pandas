@@ -805,7 +805,7 @@ class Block(PandasObject, libinternals.Block):
             for x, y in zip(src_list, dest_list)
             if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
-        if not len(pairs):
+        if not pairs:
             return [self.copy(deep=False)]
 
         src_len = len(pairs) - 1
@@ -817,7 +817,7 @@ class Block(PandasObject, libinternals.Block):
             masks: Iterable[npt.NDArray[np.bool_]] = (
                 extract_bool_array(
                     cast(
-                        ArrayLike,
+                        "ArrayLike",
                         compare_or_regex_search(
                             values, s[0], regex=regex, mask=na_mask
                         ),
@@ -1098,7 +1098,7 @@ class Block(PandasObject, libinternals.Block):
 
         value = self._standardize_fill_value(value)
 
-        values = cast(np.ndarray, self.values)
+        values = cast("np.ndarray", self.values)
         if self.ndim == 2:
             values = values.T
 
@@ -1124,7 +1124,7 @@ class Block(PandasObject, libinternals.Block):
                     casted = setitem_datetimelike_compat(values, len(vi), casted)
 
             self = self._maybe_copy(inplace=True)
-            values = cast(np.ndarray, self.values.T)
+            values = cast("np.ndarray", self.values.T)
             if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
                 # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
                 casted = casted[0, ...]
@@ -1155,7 +1155,7 @@ class Block(PandasObject, libinternals.Block):
         List[Block]
         """
         orig_mask = mask
-        values = cast(np.ndarray, self.values)
+        values = cast("np.ndarray", self.values)
         mask, noop = validate_putmask(values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
@@ -1172,7 +1172,7 @@ class Block(PandasObject, libinternals.Block):
             casted = np_can_hold_element(values.dtype, new)
 
             self = self._maybe_copy(inplace=True)
-            values = cast(np.ndarray, self.values)
+            values = cast("np.ndarray", self.values)
 
             putmask_without_repeat(values.T, mask, casted)
             return [self]
@@ -1226,7 +1226,7 @@ class Block(PandasObject, libinternals.Block):
         cond = extract_bool_array(cond)
 
         # EABlocks override where
-        values = cast(np.ndarray, self.values)
+        values = cast("np.ndarray", self.values)
         orig_other = other
         if transpose:
             values = values.T
@@ -1357,7 +1357,7 @@ class Block(PandasObject, libinternals.Block):
 
         # Dispatch to the NumpyExtensionArray method.
         # We know self.array_values is a NumpyExtensionArray bc EABlock overrides
-        vals = cast(NumpyExtensionArray, self.array_values)
+        vals = cast("NumpyExtensionArray", self.array_values)
         new_values = vals.T._pad_or_backfill(
             method=method,
             limit=limit,
@@ -1449,7 +1449,7 @@ class Block(PandasObject, libinternals.Block):
             return nb.shift(periods, fill_value=fill_value)
 
         else:
-            values = cast(np.ndarray, self.values)
+            values = cast("np.ndarray", self.values)
             new_values = shift(values, periods, axis, casted)
             return [self.make_block_same_class(new_values)]
 
@@ -1525,7 +1525,7 @@ class Block(PandasObject, libinternals.Block):
             loc = [loc]
 
         if self.ndim == 1:
-            values = cast(np.ndarray, self.values)
+            values = cast("np.ndarray", self.values)
             values = np.delete(values, loc)
             mgr_locs = self._mgr_locs.delete(loc)
             return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]

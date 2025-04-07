@@ -534,7 +534,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def _as_range_index(self) -> RangeIndex:
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
-        freq = cast(Tick, self.freq)
+        freq = cast("Tick", self.freq)
         tick = Timedelta(freq).as_unit(self.unit)._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)

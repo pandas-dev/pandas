@@ -775,7 +775,7 @@ def config_prefix(prefix: str) -> Generator[None]:
             pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
-        return cast(F, inner)
+        return cast("F", inner)
 
     _register_option = register_option
     _get_option = get_option

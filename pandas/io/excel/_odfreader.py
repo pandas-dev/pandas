@@ -212,7 +212,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         elif cell_type == "time":
             stamp = pd.Timestamp(str(cell))
             # cast needed here because Scalar doesn't include datetime.time
-            return cast(Scalar, stamp.time())
+            return cast("Scalar", stamp.time())
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")

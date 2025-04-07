@@ -245,7 +245,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             values = np.array(values, dtype="int64", copy=copy)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
-        dtype = cast(PeriodDtype, dtype)
+        dtype = cast("PeriodDtype", dtype)
         NDArrayBacked.__init__(self, values, dtype)
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"

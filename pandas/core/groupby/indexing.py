@@ -114,7 +114,7 @@ class GroupByIndexingMixin:
         4  b  5
         """
         if TYPE_CHECKING:
-            groupby_self = cast(groupby.GroupBy, self)
+            groupby_self = cast("groupby.GroupBy", self)
         else:
             groupby_self = self
 
@@ -125,15 +125,15 @@ class GroupByIndexingMixin:
         arg: PositionalIndexer | tuple,
     ) -> np.ndarray:
         if is_list_like(arg):
-            if all(is_integer(i) for i in cast(Iterable, arg)):
-                mask = self._make_mask_from_list(cast(Iterable[int], arg))
+            if all(is_integer(i) for i in cast("Iterable", arg)):
+                mask = self._make_mask_from_list(cast("Iterable[int]", arg))
             else:
-                mask = self._make_mask_from_tuple(cast(tuple, arg))
+                mask = self._make_mask_from_tuple(cast("tuple", arg))
 
         elif isinstance(arg, slice):
             mask = self._make_mask_from_slice(arg)
         elif is_integer(arg):
-            mask = self._make_mask_from_int(cast(int, arg))
+            mask = self._make_mask_from_int(cast("int", arg))
         else:
             raise TypeError(
                 f"Invalid index {type(arg)}. "
@@ -147,7 +147,7 @@ class GroupByIndexingMixin:
             else:
                 mask = self._ascending_count < 0
 
-        return cast(np.ndarray, mask)
+        return cast("np.ndarray", mask)
 
     def _make_mask_from_int(self, arg: int) -> np.ndarray:
         if arg >= 0:
@@ -174,7 +174,7 @@ class GroupByIndexingMixin:
 
         for arg in args:
             if is_integer(arg):
-                mask |= self._make_mask_from_int(cast(int, arg))
+                mask |= self._make_mask_from_int(cast("int", arg))
             elif isinstance(arg, slice):
                 mask |= self._make_mask_from_slice(arg)
             else:
@@ -229,7 +229,7 @@ class GroupByIndexingMixin:
     @cache_readonly
     def _ascending_count(self) -> np.ndarray:
         if TYPE_CHECKING:
-            groupby_self = cast(groupby.GroupBy, self)
+            groupby_self = cast("groupby.GroupBy", self)
         else:
             groupby_self = self
 
@@ -238,7 +238,7 @@ class GroupByIndexingMixin:
     @cache_readonly
     def _descending_count(self) -> np.ndarray:
         if TYPE_CHECKING:
-            groupby_self = cast(groupby.GroupBy, self)
+            groupby_self = cast("groupby.GroupBy", self)
         else:
             groupby_self = self
 

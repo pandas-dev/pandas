@@ -1231,7 +1231,7 @@ class ArrowExtensionArray(
             uniques = type(self)(combined.dictionary)
 
         if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            uniques = cast(ArrowExtensionArray, uniques.astype(self.dtype))
+            uniques = cast("ArrowExtensionArray", uniques.astype(self.dtype))
         return indices, uniques
 
     def reshape(self, *args, **kwargs):
@@ -1991,7 +1991,7 @@ class ArrowExtensionArray(
 
         elif is_integer(key):
             # fast path
-            key = cast(int, key)
+            key = cast("int", key)
             n = len(self)
             if key < 0:
                 key += n

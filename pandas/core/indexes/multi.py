@@ -194,7 +194,7 @@ def names_compat(meth: F) -> F:
 
         return meth(self_or_cls, *args, **kwargs)
 
-    return cast(F, new_meth)
+    return cast("F", new_meth)
 
 
 @set_module("pandas")
@@ -560,7 +560,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         if is_iterator(tuples):
             tuples = list(tuples)
-        tuples = cast(Collection[tuple[Hashable, ...]], tuples)
+        tuples = cast("Collection[tuple[Hashable, ...]]", tuples)
 
         # handling the empty tuple cases
         if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
@@ -590,7 +590,7 @@ class MultiIndex(Index):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
             arrs = zip_longest(*tuples, fillvalue=np.nan)
-            arrays = cast(list[Sequence[Hashable]], arrs)
+            arrays = cast("list[Sequence[Hashable]]", arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 

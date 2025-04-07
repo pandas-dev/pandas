@@ -1503,7 +1503,7 @@ class StataReader(StataParser, abc.Iterator):
         dtypes = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self._typlist):
             if typ in self.NUMPY_TYPE_MAP:
-                typ = cast(str, typ)  # only strs in NUMPY_TYPE_MAP
+                typ = cast("str", typ)  # only strs in NUMPY_TYPE_MAP
                 dtypes.append((f"s{i}", f"{self._byteorder}{self.NUMPY_TYPE_MAP[typ]}"))
             else:
                 dtypes.append((f"s{i}", f"S{typ}"))
@@ -1832,13 +1832,13 @@ the string values returned are correct."""
                 if fmt not in self.OLD_VALID_RANGE:
                     continue
 
-                fmt = cast(str, fmt)  # only strs in OLD_VALID_RANGE
+                fmt = cast("str", fmt)  # only strs in OLD_VALID_RANGE
                 nmin, nmax = self.OLD_VALID_RANGE[fmt]
             else:
                 if fmt not in self.VALID_RANGE:
                     continue
 
-                fmt = cast(str, fmt)  # only strs in VALID_RANGE
+                fmt = cast("str", fmt)  # only strs in VALID_RANGE
                 nmin, nmax = self.VALID_RANGE[fmt]
             series = data.iloc[:, i]
 

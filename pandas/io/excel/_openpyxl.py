@@ -479,7 +479,7 @@ class OpenpyxlWriter(ExcelWriter):
             wks.title = sheet_name
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast(tuple[int, int], freeze_panes)
+            freeze_panes = cast("tuple[int, int]", freeze_panes)
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )

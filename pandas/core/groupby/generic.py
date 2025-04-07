@@ -1016,7 +1016,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
-            lab_interval = cast(Interval, lab)
+            lab_interval = cast("Interval", lab)
 
             sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
@@ -1930,9 +1930,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
-            result = cast(DataFrame, result)
+            result = cast("DataFrame", result)
             result = result.iloc[:, order]
-            result = cast(DataFrame, result)
+            result = cast("DataFrame", result)
             # error: Incompatible types in assignment (expression has type
             # "Optional[List[str]]", variable has type
             # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
@@ -1980,7 +1980,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 else:
                     # GH#32040, GH#35246
                     # e.g. test_groupby_as_index_select_column_sum_empty_df
-                    result = cast(DataFrame, result)
+                    result = cast("DataFrame", result)
                     result.columns = self._obj_with_exclusions.columns.copy()
 
         if not self.as_index:
@@ -2505,7 +2505,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         results = [func(sgb) for sgb in sgbs]
 
-        if not len(results):
+        if not results:
             # concat would raise
             res_df = DataFrame([], columns=columns, index=self._grouper.result_index)
         else:

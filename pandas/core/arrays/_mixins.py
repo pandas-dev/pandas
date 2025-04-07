@@ -85,7 +85,7 @@ def ravel_compat(meth: F) -> F:
         order = "F" if flags.f_contiguous else "C"
         return result.reshape(self.shape, order=order)
 
-    return cast(F, method)
+    return cast("F", method)
 
 
 # error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"

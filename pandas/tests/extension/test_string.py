@@ -199,7 +199,7 @@ class TestStringArray(base.ExtensionTests):
         return op_name in ["cummin", "cummax", "cumsum"]
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
-        dtype = cast(StringDtype, tm.get_dtype(obj))
+        dtype = cast("StringDtype", tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
         elif dtype.na_value is np.nan:

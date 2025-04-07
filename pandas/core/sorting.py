@@ -112,7 +112,7 @@ def get_indexer_indexer(
         indexer = nargsort(
             target,
             kind=kind,
-            ascending=cast(bool, ascending),
+            ascending=cast("bool", ascending),
             na_position=na_position,
         )
     return indexer
@@ -344,7 +344,7 @@ def lexsort_indexer(
     for k, order in zip(reversed(keys), orders):
         k = ensure_key_mapped(k, key)
         if codes_given:
-            codes = cast(np.ndarray, k)
+            codes = cast("np.ndarray", k)
             n = codes.max() + 1 if len(codes) else 0
         else:
             cat = Categorical(k, ordered=True)

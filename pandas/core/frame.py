@@ -787,7 +787,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
             if data.dtype.names:
                 # i.e. numpy structured array
-                data = cast(np.ndarray, data)
+                data = cast("np.ndarray", data)
                 mgr = rec_array_to_mgr(
                     data,
                     index,
@@ -3814,7 +3814,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 new_values = transpose_homogeneous_masked_arrays(
-                    cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
+                    cast("Sequence[BaseMaskedArray]", self._iter_column_arrays())
                 )
             elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
@@ -3824,7 +3824,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 new_values = transpose_homogeneous_pyarrow(
-                    cast(Sequence[ArrowExtensionArray], self._iter_column_arrays())
+                    cast("Sequence[ArrowExtensionArray]", self._iter_column_arrays())
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
@@ -4409,7 +4409,7 @@ class DataFrame(NDFrame, OpsMixin):
         try:
             if takeable:
                 icol = col
-                iindex = cast(int, index)
+                iindex = cast("int", index)
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
@@ -5743,7 +5743,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
-            periods = cast(Sequence, periods)
+            periods = cast("Sequence", periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
@@ -5758,7 +5758,7 @@ class DataFrame(NDFrame, OpsMixin):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
-                period = cast(int, period)
+                period = cast("int", period)
                 shifted_dataframes.append(
                     super()
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
@@ -5767,7 +5767,7 @@ class DataFrame(NDFrame, OpsMixin):
             return concat(shifted_dataframes, axis=1)
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
-        periods = cast(int, periods)
+        periods = cast("int", periods)
 
         ncols = len(self.columns)
         if axis == 1 and periods != 0 and ncols > 0 and freq is None:
@@ -6548,7 +6548,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             # subset needs to be list
             if not is_list_like(subset):
-                subset = [cast(Hashable, subset)]
+                subset = [cast("Hashable", subset)]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
@@ -6828,7 +6828,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = (subset,)
 
         #  needed for mypy since can't narrow types using np.iterable
-        subset = cast(Sequence, subset)
+        subset = cast("Sequence", subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -10511,7 +10511,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # one axis is empty
             if not all(self.shape):
-                func = cast(Callable, func)
+                func = cast("Callable", func)
                 try:
                     if axis == 0:
                         r = func(Series([], dtype=np.float64), *args, **kwargs)

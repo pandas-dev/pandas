@@ -156,7 +156,9 @@ def get_locales(
         out_locales = []
         for x in split_raw_locales:
             try:
-                out_locales.append(str(x, encoding=cast(str, options.display.encoding)))
+                out_locales.append(
+                    str(x, encoding=cast("str", options.display.encoding))
+                )
             except UnicodeError:
                 # 'locale -a' is used to populated 'raw_locales' and on
                 # Redhat 7 Linux (and maybe others) prints locale names

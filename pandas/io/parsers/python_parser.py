@@ -227,7 +227,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
-                lines_str = cast(list[str], lines)
+                lines_str = cast("list[str]", lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string

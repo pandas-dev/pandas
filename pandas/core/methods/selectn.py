@@ -197,7 +197,7 @@ class SelectNFrame(SelectN[DataFrame]):
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
 
-        columns = cast(Sequence[Hashable], columns)
+        columns = cast("Sequence[Hashable]", columns)
         columns = list(columns)
         self.columns = columns
 

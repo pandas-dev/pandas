@@ -203,7 +203,7 @@ def validate_header_arg(header: object) -> None:
     if header is None:
         return
     if is_integer(header):
-        header = cast(int, header)
+        header = cast("int", header)
         if header < 0:
             # GH 27779
             raise ValueError(
@@ -212,7 +212,7 @@ def validate_header_arg(header: object) -> None:
             )
         return
     if is_list_like(header, allow_sets=False):
-        header = cast(Sequence, header)
+        header = cast("Sequence", header)
         if not all(map(is_integer, header)):
             raise ValueError("header must be integer or list of integers")
         if any(i < 0 for i in header):
@@ -267,7 +267,7 @@ def stringify_path(
         # GH 38125: some fsspec objects implement os.PathLike but have already opened a
         # file. This prevents opening the file a second time. infer_compression calls
         # this function with convert_file_like=True to infer the compression.
-        return cast(BaseBufferT, filepath_or_buffer)
+        return cast("BaseBufferT", filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, os.PathLike):
         filepath_or_buffer = filepath_or_buffer.__fspath__()
@@ -1137,7 +1137,7 @@ def _maybe_memory_map(
         return handle, memory_map, handles
 
     # mmap used by only read_csv
-    handle = cast(ReadCsvBuffer, handle)
+    handle = cast("ReadCsvBuffer", handle)
 
     # need to open the file first
     if isinstance(handle, str):
