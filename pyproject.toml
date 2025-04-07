@@ -161,7 +161,7 @@ before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.s
 
 [tool.cibuildwheel.windows]
 environment = {}
-before-build = "pip install delvewheel 'ninja<1.11.1.4' && bash {package}/scripts/cibw_before_build_windows.sh"
+before-build = """pip install delvewheel "ninja<1.11.1.4" && bash {package}/scripts/cibw_before_build_windows.sh"""
 before-test = "bash {package}/scripts/cibw_before_test_windows.sh"
 test-command = """
   set PANDAS_CI='1' && \
