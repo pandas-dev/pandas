@@ -1901,7 +1901,7 @@ class SQLDatabase(PandasSQL):
                 # Type[str], Type[float], Type[int], Type[complex], Type[bool],
                 # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
                 # dtype[Any], Type[object]]"
-                dtype = dict.fromkeys(frame, dtype)  # type: ignore[misc]
+                dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
                 dtype = cast(dict, dtype)
 
@@ -2859,7 +2859,7 @@ class SQLiteDatabase(PandasSQL):
                 # Type[str], Type[float], Type[int], Type[complex], Type[bool],
                 # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
                 # dtype[Any], Type[object]]"
-                dtype = dict.fromkeys(frame, dtype)  # type: ignore[misc]
+                dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
                 dtype = cast(dict, dtype)
 
