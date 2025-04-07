@@ -1901,7 +1901,7 @@ class SQLDatabase(PandasSQL):
                 # Type[str], Type[float], Type[int], Type[complex], Type[bool],
                 # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
                 # dtype[Any], Type[object]]"
-                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
+                dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
                 dtype = cast(dict, dtype)
 
@@ -2615,7 +2615,7 @@ class SQLiteTable(SQLTable):
         ]
 
         ix_cols = [cname for cname, _, is_index in column_names_and_types if is_index]
-        if len(ix_cols):
+        if ix_cols:
             cnames = "_".join(ix_cols)
             cnames_br = ",".join([escape(c) for c in ix_cols])
             create_stmts.append(
@@ -2859,7 +2859,7 @@ class SQLiteDatabase(PandasSQL):
                 # Type[str], Type[float], Type[int], Type[complex], Type[bool],
                 # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
                 # dtype[Any], Type[object]]"
-                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
+                dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
                 dtype = cast(dict, dtype)
 

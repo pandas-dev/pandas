@@ -632,7 +632,7 @@ class TestSeriesConstructors:
 
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range("20090415", "20090519", freq="B")
-        data = {k: 1 for k in rng}
+        data = dict.fromkeys(rng, 1)
 
         result = Series(data, index=rng)
         assert result.index.is_(rng)

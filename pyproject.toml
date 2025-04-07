@@ -234,8 +234,8 @@ select = [
   "TID",
   # implicit string concatenation
   "ISC",
-  # type-checking imports
-  "TCH",
+  # flake8-type-checking
+  "TC",
   # comprehensions
   "C4",
   # pygrep-hooks
@@ -390,6 +390,8 @@ ignore = [
   "PLW0108",
   # global-statement
   "PLW0603",
+  # runtime-cast-value
+  "TC006",
 ]
 
 exclude = [
@@ -429,7 +431,7 @@ exclude = [
 "pandas/tests/*" = ["B028", "FLY"]
 "scripts/*" = ["B028"]
 # Keep this one enabled
-"pandas/_typing.py" = ["TCH"]
+"pandas/_typing.py" = ["TC"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false

@@ -327,7 +327,7 @@ class Apply(metaclass=abc.ABCMeta):
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
             else:
-                func = {col: func for col in obj}
+                func = dict.fromkeys(obj, func)
 
         if is_dict_like(func):
             func = cast(AggFuncTypeDict, func)

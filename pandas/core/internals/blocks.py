@@ -805,7 +805,7 @@ class Block(PandasObject, libinternals.Block):
             for x, y in zip(src_list, dest_list)
             if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
-        if not len(pairs):
+        if not pairs:
             return [self.copy(deep=False)]
 
         src_len = len(pairs) - 1
