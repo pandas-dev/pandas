@@ -200,8 +200,9 @@ class MinMaxReso:
 
     See also: timedeltas.MinMaxReso
     """
-    def __init__(self, name):
+    def __init__(self, name, docstring):
         self._name = name
+        self.__doc__ = docstring
 
     def __get__(self, obj, type=None):
         cls = Timestamp
@@ -216,11 +217,15 @@ class MinMaxReso:
 
         if obj is None:
             # i.e. this is on the class, default to nanos
-            return cls(val)
+            result = cls(val)
         elif self._name == "resolution":
-            return Timedelta._from_value_and_reso(val, obj._creso)
+            result = Timedelta._from_value_and_reso(val, obj._creso)
         else:
-            return Timestamp._from_value_and_reso(val, obj._creso, tz=None)
+            result = Timestamp._from_value_and_reso(val, obj._creso, tz=None)
+
+        result.__doc__ = self.__doc__
+
+        return result
 
     def __set__(self, obj, value):
         raise AttributeError(f"{self._name} is not settable.")
@@ -235,9 +240,74 @@ cdef class _Timestamp(ABCTimestamp):
     dayofweek = _Timestamp.day_of_week
     dayofyear = _Timestamp.day_of_year
 
-    min = MinMaxReso("min")
-    max = MinMaxReso("max")
-    resolution = MinMaxReso("resolution")  # GH#21336, GH#21365
+    _docstring_min = """
+    Returns the minimum bound possible for Timestamp.
+
+    This property provides access to the smallest possible value that
+    can be represented by a Timestamp object.
+
+    Returns
+    -------
+    Timestamp
+
+    See Also
+    --------
+    Timestamp.max: Returns the maximum bound possible for Timestamp.
+    Timestamp.resolution: Returns the smallest possible difference between
+        non-equal Timestamp objects.
+
+    Examples
+    --------
+    >>> pd.Timestamp.min
+    Timestamp('1677-09-21 00:12:43.145224193')
+    """
+
+    _docstring_max = """
+    Returns the maximum bound possible for Timestamp.
+
+    This property provides access to the largest possible value that
+    can be represented by a Timestamp object.
+
+    Returns
+    -------
+    Timestamp
+
+    See Also
+    --------
+    Timestamp.min: Returns the minimum bound possible for Timestamp.
+    Timestamp.resolution: Returns the smallest possible difference between
+        non-equal Timestamp objects.
+
+    Examples
+    --------
+    >>> pd.Timestamp.max
+    Timestamp('2262-04-11 23:47:16.854775807')
+    """
+
+    _docstring_reso = """
+    Returns the smallest possible difference between non-equal Timestamp objects.
+
+    The resolution value is determined by the underlying representation of time
+    units and is equivalent to Timedelta(nanoseconds=1).
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timestamp.max: Returns the maximum bound possible for Timestamp.
+    Timestamp.min: Returns the minimum bound possible for Timestamp.
+
+    Examples
+    --------
+    >>> pd.Timestamp.resolution
+    Timedelta('0 days 00:00:00.000000001')
+    """
+
+    min = MinMaxReso("min", _docstring_min)
+    max = MinMaxReso("max", _docstring_max)
+    resolution = MinMaxReso("resolution", _docstring_reso)  # GH#21336, GH#21365
 
     @property
     def value(self) -> int:
