@@ -488,6 +488,19 @@ column in a group of values.
    animals
    animals.groupby("kind").sum()
 
+Another real-world style example using sales data:
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       "Region": ["East", "West", "East", "West"],
+       "Sales": [250, 300, 150, 200]
+   })
+   df
+   df.groupby("Region")["Sales"].sum()
+
+   
+
 In the result, the keys of the groups appear in the index by default. They can be
 instead included in the columns by passing ``as_index=False``.
 
