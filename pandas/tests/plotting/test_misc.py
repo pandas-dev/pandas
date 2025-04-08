@@ -681,3 +681,84 @@ class TestDataFramePlots:
             (a.get_text() == b.get_text())
             for a, b in zip(s.plot.bar().get_xticklabels(), expected)
         )
+
+@pytest.fixture(scope="class")
+def BSS_data() -> np.array:
+    yield np.random.default_rng(3).integers(0,100,5)
+
+@pytest.fixture(scope="class")
+def BSS_df(BSS_data) -> DataFrame:
+    BSS_df = DataFrame({"A": BSS_data, "B": BSS_data[::-1], "C": BSS_data[0], "D": BSS_data[-1]})
+    return BSS_df
+
+def _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division):
+    subplot_data_df_list = []
+
+    # get xy and height of squares that represent the data graphed from the df, seperated by subplots
+    for i in range(len(subplot_division)):
+        subplot_data = np.array([(x.get_x(), x.get_y(), x.get_height()) for x in ax[i].findobj(plt.Rectangle) if x.get_height() in BSS_data])
+        subplot_data_df_list.append(DataFrame(data = subplot_data, columns = ["x_coord", "y_coord", "height"]))
+
+    return subplot_data_df_list
+
+def _BSS_subplot_checker(BSS_data, BSS_df, subplot_data_df, subplot_columns):
+    assert_flag = 0
+    subplot_sliced_by_source = [subplot_data_df.iloc[len(BSS_data) * i : len(BSS_data) * (i+1)].reset_index() for i in range(0, len(subplot_columns))]
+    expected_total_height = BSS_df.loc[:,subplot_columns].sum(axis=1)
+    
+    for i in range(len(subplot_columns)):
+        sliced_df = subplot_sliced_by_source[i]
+        if i == 0:
+            #Checks that the bar chart starts y=0
+            assert (sliced_df["y_coord"] == 0).all
+            height_iter = sliced_df["y_coord"].add(sliced_df["height"])
+        else:
+            height_iter = height_iter + sliced_df["height"]
+
+        if i+1 == len(subplot_columns):
+            #Checks final height matches what is expected
+            tm.assert_series_equal(height_iter, expected_total_height, check_names = False, check_dtype= False)
+            
+        else:
+            #Checks each preceding bar ends where the next one starts
+            next_start_coord = subplot_sliced_by_source[i+1]["y_coord"]
+            tm.assert_series_equal(height_iter, next_start_coord, check_names = False, check_dtype= False)
+
+class TestBarSubplotStacked:
+    #GH Issue 61018
+    def test_bar_1_subplot_1_double_stacked(self, BSS_data, BSS_df):
+        columns_used = ["A", "B"]
+        BSS_df_trimmed = BSS_df[columns_used]
+        subplot_division = [columns_used]
+        ax = BSS_df_trimmed.plot(subplots = subplot_division, kind="bar", stacked=True)
+        subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
+        for i in range(len(subplot_data_df_list)):
+            _BSS_subplot_checker(BSS_data, BSS_df_trimmed, subplot_data_df_list[i], subplot_division[i])
+        plt.savefig("1s1d.png")
+
+    
+    def test_bar_2_subplot_1_double_stacked(self, BSS_data, BSS_df):
+        columns_used = ["A", "B", "C"]
+        BSS_df_trimmed = BSS_df[columns_used]
+        subplot_division = [(columns_used[0], columns_used[1]), (columns_used[2],)]
+        ax = BSS_df_trimmed.plot(subplots = subplot_division, kind="bar", stacked=True)
+        subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
+        for i in range(len(subplot_data_df_list)):
+            _BSS_subplot_checker(BSS_data, BSS_df_trimmed, subplot_data_df_list[i], subplot_division[i])
+        plt.savefig("2s1d.png")
+
+    def test_bar_2_subplot_2_double_stacked(self, BSS_data, BSS_df):
+        subplot_division = [('A', 'D'), ('C', 'B')]
+        ax = BSS_df.plot(subplots = subplot_division, kind="bar", stacked=True)
+        subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
+        for i in range(len(subplot_data_df_list)):
+            _BSS_subplot_checker(BSS_data, BSS_df, subplot_data_df_list[i], subplot_division[i])
+        plt.savefig("2s2d.png")
+
+    def test_bar_2_subplots_1_triple_stacked(self, BSS_data, BSS_df):
+        subplot_division = [('A', 'D', 'C')]
+        ax = BSS_df.plot(subplots = subplot_division, kind="bar", stacked=True)
+        subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
+        for i in range(len(subplot_data_df_list)):
+            _BSS_subplot_checker(BSS_data, BSS_df, subplot_data_df_list[i], subplot_division[i])
+        plt.savefig("2s1t.png")
