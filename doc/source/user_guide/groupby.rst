@@ -1590,7 +1590,8 @@ order they are first observed.
 Plotting
 ~~~~~~~~
 
-Groupby also works with some plotting methods.  In this case, suppose we
+GroupBy also works with some plotting methods. In this case, suppose we
+
 suspect that the values in column 1 are 3 times higher on average in group "B".
 
 
