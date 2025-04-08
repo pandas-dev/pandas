@@ -239,13 +239,8 @@ class BinOp(ops.BinOp):
             if conv_val not in metadata:
                 result = -1
             else:
-                # Check if metadata is sorted
-                if np.all(metadata[:-1] <= metadata[1:]):
-                    # If it is, use searchsorted for efficient lookup
-                    result = metadata.searchsorted(conv_val, side="left")
-                else:
-                    # Find the index of the first match of conv_val in metadata
-                    result = np.flatnonzero(metadata == conv_val)[0]
+                # Find the index of the first match of conv_val in metadata
+                result = np.flatnonzero(metadata == conv_val)[0]
             return TermValue(result, result, "integer")
         elif kind == "integer":
             try:
