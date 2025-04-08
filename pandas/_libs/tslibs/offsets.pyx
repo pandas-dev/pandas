@@ -4666,6 +4666,11 @@ cdef class CustomBusinessDay(BusinessDay):
         offset=timedelta(0),
     ):
         BusinessDay.__init__(self, n, normalize, offset)
+        if not isinstance(calendar, (None, np.busdaycalendar)):
+            raise TypeError(
+                f"Only np.busdaycalendar is supported for calendar, "
+                f"got {type(calendar).__name__} instead"
+            )
         self._init_custom(weekmask, holidays, calendar)
 
     cpdef __setstate__(self, state):
@@ -5108,8 +5113,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\'"
-            f" instead.",
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
             )
@@ -5122,8 +5127,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
-                f"\'{_name}\'"
-                f" instead.",
+                f"\'{_name}\' "
+                f"instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
                 )
