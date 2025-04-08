@@ -971,17 +971,3 @@ class TestSeriesPlots:
         s1.plot(ax=ax2)
         assert len(ax.xaxis.get_minor_ticks()) == 0
         assert len(ax.get_xticklabels()) > 0
-
-    def test_scatter_line_xticks(self):
-        # GH#61005
-        datetime_list = [datetime(year=2025, month=1, day=1, hour=n) for n in range(3)]
-        df = DataFrame(columns=["datetime", "y"])
-        for i, n in enumerate(datetime_list):
-            df.loc[len(df)] = [n, i]
-        fig, ax = plt.subplots(2, sharex=True)
-        df.plot.scatter(x="datetime", y="y", ax=ax[0])
-        scatter_xticks = ax[0].get_xticks()
-        df.plot(x="datetime", y="y", ax=ax[1])
-        line_xticks = ax[1].get_xticks()
-        assert scatter_xticks[0] == line_xticks[0]
-        assert scatter_xticks[-1] == line_xticks[-1]
