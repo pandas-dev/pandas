@@ -22,8 +22,6 @@ from pandas import (
 )
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
-from pandas.tseries.holiday import USFederalHolidayCalendar
-
 
 @pytest.fixture
 def offset():
@@ -82,7 +80,7 @@ class TestCustomBusinessDay:
 
     @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
-        calendar = USFederalHolidayCalendar()
+        calendar = np.busdaycalendar(holidays=["2014-01-01", "2014-01-20"])
         dt = datetime(2014, 1, 17)
         assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 

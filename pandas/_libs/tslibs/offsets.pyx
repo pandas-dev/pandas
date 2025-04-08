@@ -4827,6 +4827,11 @@ cdef class CustomBusinessHour(BusinessHour):
         offset=timedelta(0),
     ):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
+        if calendar is not None and not isinstance(calendar, np.busdaycalendar):
+            raise TypeError(
+                f"Only np.busdaycalendar is supported for calendar, "
+                f"got {type(calendar).__name__} instead"
+            )
         self._init_custom(weekmask, holidays, calendar)
 
 
@@ -4845,6 +4850,11 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         offset=timedelta(0),
     ):
         BusinessMixin.__init__(self, n, normalize, offset)
+        if calendar is not None and not isinstance(calendar, np.busdaycalendar):
+            raise TypeError(
+                f"Only np.busdaycalendar is supported for calendar, "
+                f"got {type(calendar).__name__} instead"
+            )
         self._init_custom(weekmask, holidays, calendar)
 
     @cache_readonly
