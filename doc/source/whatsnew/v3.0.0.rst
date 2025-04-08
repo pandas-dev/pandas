@@ -476,6 +476,7 @@ Other Removals
 - Disallow indexing an :class:`Index` with a boolean indexer of length zero, it now raises ``ValueError`` (:issue:`55820`)
 - Disallow non-standard (``np.ndarray``, :class:`Index`, :class:`ExtensionArray`, or :class:`Series`) to :func:`isin`, :func:`unique`, :func:`factorize` (:issue:`52986`)
 - Disallow passing a pandas type to :meth:`Index.view` (:issue:`55709`)
+- Disallow passing objects other than ``np.busdaycalendar`` to ``calendar`` parameter in :class:`CustomBusinessDay` (:issue:`60647`)
 - Disallow units other than "s", "ms", "us", "ns" for datetime64 and timedelta64 dtypes in :func:`array` (:issue:`53817`)
 - Removed "freq" keyword from :class:`PeriodArray` constructor, use "dtype" instead (:issue:`52462`)
 - Removed 'fastpath' keyword in :class:`Categorical` constructor (:issue:`20110`)

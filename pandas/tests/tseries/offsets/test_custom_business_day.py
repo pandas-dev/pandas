@@ -10,7 +10,11 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.offsets import CDay
+from pandas._libs.tslibs.offsets import (
+    BDay,
+    CDay,
+    CustomBusinessDay,
+)
 
 from pandas import (
     _testing as tm,
@@ -97,3 +101,9 @@ class TestCustomBusinessDay:
         cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
+
+    def test_type_error_calendar(self):
+        bd = BDay(1)
+        msg = "Only np.busdaycalendar is supported for calendar"
+        with pytest.raises(TypeError, match=msg):
+            CustomBusinessDay(calendar=bd)
