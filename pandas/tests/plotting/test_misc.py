@@ -734,7 +734,6 @@ class TestBarSubplotStacked:
         subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
         for i in range(len(subplot_data_df_list)):
             _BSS_subplot_checker(BSS_data, BSS_df_trimmed, subplot_data_df_list[i], subplot_division[i])
-        plt.savefig("1s1d.png")
 
     
     def test_bar_2_subplot_1_double_stacked(self, BSS_data, BSS_df):
@@ -745,7 +744,6 @@ class TestBarSubplotStacked:
         subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
         for i in range(len(subplot_data_df_list)):
             _BSS_subplot_checker(BSS_data, BSS_df_trimmed, subplot_data_df_list[i], subplot_division[i])
-        plt.savefig("2s1d.png")
 
     def test_bar_2_subplot_2_double_stacked(self, BSS_data, BSS_df):
         subplot_division = [('A', 'D'), ('C', 'B')]
@@ -753,7 +751,6 @@ class TestBarSubplotStacked:
         subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
         for i in range(len(subplot_data_df_list)):
             _BSS_subplot_checker(BSS_data, BSS_df, subplot_data_df_list[i], subplot_division[i])
-        plt.savefig("2s2d.png")
 
     def test_bar_2_subplots_1_triple_stacked(self, BSS_data, BSS_df):
         subplot_division = [('A', 'D', 'C')]
@@ -761,4 +758,3 @@ class TestBarSubplotStacked:
         subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
         for i in range(len(subplot_data_df_list)):
             _BSS_subplot_checker(BSS_data, BSS_df, subplot_data_df_list[i], subplot_division[i])
-        plt.savefig("2s1t.png")
