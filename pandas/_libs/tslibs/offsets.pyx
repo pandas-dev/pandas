@@ -4666,7 +4666,7 @@ cdef class CustomBusinessDay(BusinessDay):
         offset=timedelta(0),
     ):
         BusinessDay.__init__(self, n, normalize, offset)
-        if not isinstance(calendar, (None, np.busdaycalendar)):
+        if calendar is not None and not isinstance(calendar, np.busdaycalendar):
             raise TypeError(
                 f"Only np.busdaycalendar is supported for calendar, "
                 f"got {type(calendar).__name__} instead"
