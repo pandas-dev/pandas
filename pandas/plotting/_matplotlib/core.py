@@ -1343,11 +1343,12 @@ class ScatterPlot(PlanePlot):
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
-        x_data = Series(index=data[x])
-        if use_dynamic_x(ax, x_data.index):
-            x_data = maybe_convert_index(ax, x_data)
-            freq, x_data = prepare_ts_data(x_data, ax, self.kwds)
-        x_data = x_data.index
+        x_data = data[x]
+        s = Series(index=x_data)
+        if use_dynamic_x(ax, s.index):
+            s = maybe_convert_index(ax, s)
+            freq, s = prepare_ts_data(s, ax, self.kwds)
+            x_data = s.index
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
