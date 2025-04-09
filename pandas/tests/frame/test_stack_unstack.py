@@ -1605,108 +1605,104 @@ def test_stack_sort_false(future_stack):
     tm.assert_frame_equal(result, expected)
 
 
-def assert_na_safe_equal(left, right):
-    """Compare DataFrames ignoring NA type differences"""
-    left = left.rename(columns={pd.NA: np.nan}, level=1)
-    right = right.rename(columns={pd.NA: np.nan}, level=1)
-    tm.assert_frame_equal(left, right, check_dtype=False)
-
-
-def test_unstack_sort_false_na():
+def test_unstack_sort_false_na1():
     # GH 61221
+    # Test unstacking with NA as the last value
+
     levels1 = ["b", "a"]
-    levels2 = Index([1, 2, 3, pd.NA], dtype=pd.Int64Dtype())
+    levels2 = Index([1, 2, 3, None])
     index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
     df = DataFrame({"value": range(len(index))}, index=index)
     result = df.unstack(level="level2", sort=False)
     expected = DataFrame(
         {
-            ("value", 1): [0, 4],
-            ("value", 2): [1, 5],
-            ("value", 3): [2, 6],
-            ("value", pd.Int64Dtype().na_value): [3, 7],
+            ("value", 1.0): [0, 4],
+            ("value", 2.0): [1, 5],
+            ("value", 3.0): [2, 6],
+            ("value", pd.NA): [3, 7],
         },
         index=Index(["b", "a"], name="level1"),
         columns=MultiIndex.from_tuples(
-            [
-                ("value", 1),
-                ("value", 2),
-                ("value", 3),
-                ("value", pd.Int64Dtype().na_value),
-            ],
+            [("value", 1.0), ("value", 2.0), ("value", 3.0), ("value", pd.NA)],
             names=[None, "level2"],
         ),
     )
-    assert_na_safe_equal(result, expected)
-    levels2 = Index([pd.NA, 1, 2, 3], dtype=pd.Int64Dtype())
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_na2():
+    # GH 61221
+    # Test unstacking with NA as the first value
+
+    levels1 = ["b", "a"]
+    levels2 = Index([None, 1, 2, 3])
     index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
     df = DataFrame({"value": range(len(index))}, index=index)
     result = df.unstack(level="level2", sort=False)
     expected = DataFrame(
         {
-            ("value", pd.Int64Dtype().na_value): [0, 4],
-            ("value", 1): [1, 5],
-            ("value", 2): [2, 6],
-            ("value", 3): [3, 7],
+            ("value", pd.NA): [0, 4],
+            ("value", 1.0): [1, 5],
+            ("value", 2.0): [2, 6],
+            ("value", 3.0): [3, 7],
         },
         index=Index(["b", "a"], name="level1"),
         columns=MultiIndex.from_tuples(
-            [
-                ("value", pd.Int64Dtype().na_value),
-                ("value", 1),
-                ("value", 2),
-                ("value", 3),
-            ],
+            [("value", pd.NA), ("value", 1.0), ("value", 2.0), ("value", 3.0)],
             names=[None, "level2"],
         ),
     )
-    assert_na_safe_equal(result, expected)
-    levels2 = Index([1, pd.NA, 2, 3], dtype=pd.Int64Dtype())
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_na3():
+    # GH 61221
+    # Test unstacking with NA in the middle
+
+    levels1 = ["b", "a"]
+    levels2 = Index([1, None, 2, 3])
     index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
     df = DataFrame({"value": range(len(index))}, index=index)
     result = df.unstack(level="level2", sort=False)
     expected = DataFrame(
         {
-            ("value", 1): [0, 4],
-            ("value", pd.Int64Dtype().na_value): [1, 5],
-            ("value", 2): [2, 6],
-            ("value", 3): [3, 7],
+            ("value", 1.0): [0, 4],
+            ("value", pd.NA): [1, 5],
+            ("value", 2.0): [2, 6],
+            ("value", 3.0): [3, 7],
         },
         index=Index(["b", "a"], name="level1"),
         columns=MultiIndex.from_tuples(
-            [
-                ("value", 1),
-                ("value", pd.Int64Dtype().na_value),
-                ("value", 2),
-                ("value", 3),
-            ],
+            [("value", 1.0), ("value", pd.NA), ("value", 2.0), ("value", 3.0)],
             names=[None, "level2"],
         ),
     )
-    assert_na_safe_equal(result, expected)
-    levels2 = Index([3, pd.NA, 1, 2], dtype=pd.Int64Dtype())
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_na_mixed():
+    # GH 61221
+    # Test unstacking to see if order is maintained.
+
+    levels1 = ["b", "a"]
+    levels2 = Index([3, None, 1, 2])
     index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
     df = DataFrame({"value": range(len(index))}, index=index)
     result = df.unstack(level="level2", sort=False)
     expected = DataFrame(
         {
-            ("value", 3): [0, 4],
-            ("value", pd.Int64Dtype().na_value): [1, 5],
-            ("value", 1): [2, 6],
-            ("value", 2): [3, 7],  # Use actual pd.NA object
+            ("value", 3.0): [0, 4],
+            ("value", pd.NA): [1, 5],
+            ("value", 1.0): [2, 6],
+            ("value", 2.0): [3, 7],
         },
         index=Index(["b", "a"], name="level1"),
         columns=MultiIndex.from_tuples(
-            [
-                ("value", 3),
-                ("value", pd.Int64Dtype().na_value),
-                ("value", 1),
-                ("value", 2),
-            ],
+            [("value", 3.0), ("value", pd.NA), ("value", 1.0), ("value", 2.0)],
             names=[None, "level2"],
         ),
     )
-    assert_na_safe_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
