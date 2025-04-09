@@ -64,10 +64,9 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
-    decorate_axes,
     format_dateaxis,
     maybe_convert_index,
-    maybe_resample,
+    prepare_ts_data,
     use_dynamic_x,
 )
 from pandas.plotting._matplotlib.tools import (
@@ -287,6 +286,21 @@ class MPLPlot(ABC):
         assert "color" not in self.kwds
 
         self.data = self._ensure_frame(self.data)
+
+        from pandas.plotting import plot_params
+
+        self.x_compat = plot_params["x_compat"]
+        if "x_compat" in self.kwds:
+            self.x_compat = bool(self.kwds.pop("x_compat"))
+
+    @final
+    def _is_ts_plot(self) -> bool:
+        # this is slightly deceptive
+        return not self.x_compat and self.use_index and self._use_dynamic_x()
+
+    @final
+    def _use_dynamic_x(self) -> bool:
+        return use_dynamic_x(self._get_ax(0), self.data.index)
 
     @final
     @staticmethod
@@ -1324,9 +1338,19 @@ class ScatterPlot(PlanePlot):
             c = self.data.columns[c]
         self.c = c
 
+    @register_pandas_matplotlib_converters
     def _make_plot(self, fig: Figure) -> None:
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
+
+        from pandas import Series
+
+        x_data = data[x]
+        s = Series(index=x_data)
+        if use_dynamic_x(ax, s.index):
+            s = maybe_convert_index(ax, s)
+            freq, s = prepare_ts_data(s, ax, self.kwds)
+            x_data = s.index
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
@@ -1344,7 +1368,7 @@ class ScatterPlot(PlanePlot):
         else:
             label = None
 
-        # if a list of non color strings is passed in as c, color points
+        # if a list of non-color strings is passed in as c, color points
         # by uniqueness of the strings, such same strings get same color
         create_colors = not self._are_valid_colors(c_values)
         if create_colors:
@@ -1360,7 +1384,7 @@ class ScatterPlot(PlanePlot):
             )
 
         scatter = ax.scatter(
-            data[x].values,
+            x_data.values,
             data[y].values,
             c=c_values,
             label=label,
@@ -1520,23 +1544,9 @@ class LinePlot(MPLPlot):
         return "line"
 
     def __init__(self, data, **kwargs) -> None:
-        from pandas.plotting import plot_params
-
         MPLPlot.__init__(self, data, **kwargs)
         if self.stacked:
             self.data = self.data.fillna(value=0)
-        self.x_compat = plot_params["x_compat"]
-        if "x_compat" in self.kwds:
-            self.x_compat = bool(self.kwds.pop("x_compat"))
-
-    @final
-    def _is_ts_plot(self) -> bool:
-        # this is slightly deceptive
-        return not self.x_compat and self.use_index and self._use_dynamic_x()
-
-    @final
-    def _use_dynamic_x(self) -> bool:
-        return use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self, fig: Figure) -> None:
         if self._is_ts_plot():
@@ -1626,15 +1636,8 @@ class LinePlot(MPLPlot):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = maybe_resample(data, ax, kwds)
+        freq, data = prepare_ts_data(data, ax, kwds)
 
-        # Set ax with freq info
-        decorate_axes(ax, freq)
-        # digging deeper
-        if hasattr(ax, "left_ax"):
-            decorate_axes(ax.left_ax, freq)
-        if hasattr(ax, "right_ax"):
-            decorate_axes(ax.right_ax, freq)
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
