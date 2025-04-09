@@ -1,6 +1,6 @@
-from datetime import timedelta
-
 from pandas._libs.tslibs.timedeltas import debug_divmod_bug
+
+import pandas as pd
 
 
 def non_buggy_divmod(delta):
@@ -15,7 +15,7 @@ def non_buggy_divmod(delta):
 
 
 def test_debug_divmod_bug():
-    td = timedelta(minutes=-7)
+    td = pd.Timedelta(minutes=-7).to_pytimedelta()
     result = debug_divmod_bug(td)
     expected = non_buggy_divmod(td)
     assert result == expected
