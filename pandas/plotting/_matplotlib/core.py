@@ -1340,10 +1340,10 @@ class ScatterPlot(PlanePlot):
 
     @register_pandas_matplotlib_converters
     def _make_plot(self, fig: Figure) -> None:
-        from pandas import Series
-
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
+
+        from pandas import Series
 
         x_data = data[x]
         s = Series(index=x_data)
