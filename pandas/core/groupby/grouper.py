@@ -350,9 +350,13 @@ class Grouper:
                     unsorted_ax = self._grouper.take(reverse_indexer)
                     ax = unsorted_ax.take(obj.index)
                 elif isinstance(obj.index, RangeIndex):
+                    # Standard case for RangeIndex
                     ax = self._grouper.take(obj.index)
                 else:
                     # GH 59350
+                    # If index is not RangeIndex and not sorted here,
+                    # avoid re-taking based on potentially mis-ordered obj.index.
+                    # self._grouper should already align with obj's values via key.
                     ax = self._grouper
             else:
                 if key not in obj._info_axis:
