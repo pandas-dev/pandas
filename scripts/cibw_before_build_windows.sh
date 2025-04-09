@@ -10,6 +10,6 @@ FREE_THREADED_BUILD="$(python -c"import sysconfig; print(bool(sysconfig.get_conf
 if [[ $FREE_THREADED_BUILD == "True" ]]; then
     python -m pip install -U pip
     # python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython
-    python -m pip install git+https://github.com/cython/cython.git@3276b588720a053c78488e5de788605950f4b136
+    python -m pip install git+https://github.com/cython/cython.git@0b866bf7d43ced968dba4e9726316f963aae8f3c
     python -m pip install "ninja<1.11.1.4" meson-python versioneer[toml] numpy==2.2.2
 fi
