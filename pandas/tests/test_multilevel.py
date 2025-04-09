@@ -1,11 +1,11 @@
 import datetime
-import io
 
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     DataFrame,
     MultiIndex,
     Series,
@@ -325,23 +325,20 @@ class TestMultiLevel:
     def test_multiindex_with_pyarrow_categorical(self):
         # GH#53051
 
-        pytest.importorskip("pyarrow")
+        pa = pytest.importorskip("pyarrow")
 
         # Create dataframe with categorical column
-        df = (
-            DataFrame(
-                [["A", 1], ["B", 2], ["C", 3]],
-                columns=["string_column", "number_column"],
-            )
-            .astype({"string_column": "string", "number_column": "float32"})
-            .astype({"string_column": "category", "number_column": "float32"})
-        )
+        df = DataFrame(
+            {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
+        ).astype({"string_column": "category", "number_column": "float32"})
 
         # Convert dataframe to pyarrow backend
-        with io.BytesIO() as buffer:
-            df.to_parquet(buffer)
-            buffer.seek(0)  # Reset buffer position
-            df = pd.read_parquet(buffer, dtype_backend="pyarrow")
+        df = df.astype(
+            {
+                "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+                "number_column": "float[pyarrow]",
+            }
+        )
 
         # Check that index can be set
         df.set_index(["string_column", "number_column"])
