@@ -233,6 +233,20 @@ def ints_to_pytimedelta(ndarray m8values, box=False):
 # ----------------------------------------------------------------------
 
 
+cpdef int64_t debug_divmod_bug(delta) except? -1:
+    cdef int64_t n, div, mod, conv = 1000 * 1
+    if PyDelta_Check(delta):
+        n = (
+            delta.days * 24 * 3600 * 1_000_000
+            + delta.seconds * 1_000_000
+            + delta.microseconds
+        )
+    else:
+        raise ValueError("only timedelta is supported")
+    div, mod = divmod(n, conv)
+    return div
+
+
 cpdef int64_t delta_to_nanoseconds(
     delta,
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
