@@ -281,7 +281,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         ]
 
         # short-circuit to return all False array.
-        if not len(value_set):
+        if not value_set:
             return np.zeros(len(self), dtype=bool)
 
         result = pc.is_in(

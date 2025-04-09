@@ -1345,6 +1345,11 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df[" A"] + df["  "]
         tm.assert_series_equal(res, expect)
 
+    def test_ints(self, df):
+        res = df.query("`1` == 7")
+        expect = df[df[1] == 7]
+        tm.assert_frame_equal(res, expect)
+
     def test_lots_of_operators_string(self, df):
         res = df.query("`  &^ :!€$?(} >    <++*''  ` > 4")
         expect = df[df["  &^ :!€$?(} >    <++*''  "] > 4]
