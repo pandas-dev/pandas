@@ -7191,6 +7191,63 @@ class Index(IndexOpsMixin, PandasObject):
         return self._unary_method(operator.inv)
 
     # --------------------------------------------------------------------
+    # String Case Conversion Methods
+
+    def to_snake_case(self):
+        """
+        Convert index labels to snake_case.
+
+        Returns
+        -------
+        Index
+            A new Index with labels converted to snake_case.
+
+        Notes
+        -----
+        This method uses the `inflection.underscore` function to perform the
+        conversion. Non-string values in the index are left unchanged.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["ColumnName", "AnotherColumn", 123])
+        >>> idx.to_snake_case()
+        Index(['column_name', 'another_column', 123], dtype='object')
+        """
+        from inflection import underscore
+
+        return self.map(
+            lambda x: underscore(x.replace(" ", "_")) if isinstance(x, str) else x
+        )
+
+    def to_camel_case(self):
+        """
+        Convert index labels to camelCase.
+
+        Returns
+        -------
+        Index
+            A new Index with labels converted to camelCase.
+
+        Notes
+        -----
+        This method uses the `inflection.camelize` function to perform the
+        conversion. Non-string values in the index are left unchanged.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["column_name", "another_column", 123])
+        >>> idx.to_camel_case()
+        Index(['columnName', 'anotherColumn', 123], dtype='object')
+        """
+        from inflection import camelize
+
+        return self.map(
+            lambda x: camelize(x.replace(" ", "_"), uppercase_first_letter=False)
+            if isinstance(x, str)
+            else x
+        )
+
+    # --------------------------------------------------------------------
     # Reductions
 
     def any(self, *args, **kwargs):

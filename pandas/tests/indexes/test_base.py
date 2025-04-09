@@ -1350,6 +1350,38 @@ class TestIndex:
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "input_labels, expected_snake_case",
+        [
+            (
+                ["ColumnName", "AnotherColumn", 123],
+                ["column_name", "another_column", 123],
+            ),
+            (["MixedCase", "with spaces", None], ["mixed_case", "with_spaces", None]),
+        ],
+    )
+    def test_to_snake_case(self, input_labels, expected_snake_case):
+        idx = Index(input_labels)
+        result = idx.to_snake_case()
+        expected = Index(expected_snake_case)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "input_labels, expected_camel_case",
+        [
+            (
+                ["column_name", "another_column", 123],
+                ["columnName", "anotherColumn", 123],
+            ),
+            (["with_spaces", "Mixed_Case", None], ["withSpaces", "mixedCase", None]),
+        ],
+    )
+    def test_to_camel_case(self, input_labels, expected_camel_case):
+        idx = Index(input_labels)
+        result = idx.to_camel_case()
+        expected = Index(expected_camel_case)
+        tm.assert_index_equal(result, expected)
+
 
 class TestMixedIntIndex:
     # Mostly the tests from common.py for which the results differ
