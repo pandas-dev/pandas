@@ -3,7 +3,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import io
 from itertools import product
 import re
 
@@ -16,6 +15,7 @@ from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     Categorical,
     DataFrame,
     Grouper,
@@ -2853,29 +2853,24 @@ class TestPivot:
         )
         tm.assert_frame_equal(result, expected)
 
-    # Ignore deprecation raised by old versions of pyarrow. Already fixed in
-    # newer versions
     @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
     def test_pivot_with_pyarrow_categorical(self):
         # GH#53051
 
-        pytest.importorskip("pyarrow")
+        pa = pytest.importorskip("pyarrow")
 
         # Create dataframe with categorical column
-        df = (
-            DataFrame(
-                [("A", 1), ("B", 2), ("C", 3)],
-                columns=["string_column", "number_column"],
-            )
-            .astype({"string_column": "string", "number_column": "float32"})
-            .astype({"string_column": "category", "number_column": "float32"})
-        )
+        df = DataFrame(
+            {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
+        ).astype({"string_column": "category", "number_column": "float32"})
 
         # Convert dataframe to pyarrow backend
-        with io.BytesIO() as buffer:
-            df.to_parquet(buffer)
-            buffer.seek(0)  # Reset buffer position
-            df = pd.read_parquet(buffer, dtype_backend="pyarrow")
+        df = df.astype(
+            {
+                "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+                "number_column": "float[pyarrow]",
+            }
+        )
 
         # Check that pivot works
         df = df.pivot(columns=["string_column"], values=["number_column"])
