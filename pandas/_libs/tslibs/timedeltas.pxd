@@ -10,7 +10,7 @@ cpdef int64_t delta_to_nanoseconds(
     delta, NPY_DATETIMEUNIT reso=*, bint round_ok=*
 ) except? -1
 cpdef int64_t debug_divmod_bug(delta) except? -1
-cpdef timedelta debug_2()
+cpdef debug_2()
 cdef convert_to_timedelta64(object ts, str unit)
 cdef bint is_any_td_scalar(object obj)
 

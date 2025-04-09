@@ -233,12 +233,12 @@ def ints_to_pytimedelta(ndarray m8values, box=False):
 # ----------------------------------------------------------------------
 
 
-cpdef timedelta debug_2():
+cpdef debug_2():
     cdef int64_t val = -420000000000
     us, remainder = divmod(val, 1000)
     if remainder >= 500:
         us += 1
-    return timedelta(microseconds=us)
+    return us
 
 
 cpdef int64_t debug_divmod_bug(delta) except? -1:
