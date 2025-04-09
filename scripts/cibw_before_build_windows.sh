@@ -5,11 +5,11 @@ for file in $PACKAGE_DIR/LICENSES/*; do
 done
 
 # TODO: Delete when there's a PyPI Cython release that supports free-threaded Python 3.13
-# and a NumPy Windows wheel for the free-threaded build on PyPI.
 FREE_THREADED_BUILD="$(python -c"import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")"
 if [[ $FREE_THREADED_BUILD == "True" ]]; then
     python -m pip install -U pip
     # python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython
-    python -m pip install git+https://github.com/cython/cython.git@0b866bf7d43ced968dba4e9726316f963aae8f3c
-    python -m pip install "ninja<1.11.1.4" meson-python versioneer[toml] numpy==2.2.2
+    # TODO: Remove below and uncomment above once https://github.com/cython/cython/pull/6717 no longer breaks tests
+    python -m pip install git+https://github.com/cython/cython.git@3276b588720a053c78488e5de788605950f4b136
+    python -m pip install ninja meson-python versioneer[toml] numpy
 fi
