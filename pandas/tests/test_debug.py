@@ -1,4 +1,7 @@
-from pandas._libs.tslibs.timedeltas import debug_divmod_bug
+from pandas._libs.tslibs.timedeltas import (
+    debug_2,
+    debug_divmod_bug,
+)
 
 import pandas as pd
 
@@ -19,3 +22,7 @@ def test_debug_divmod_bug():
     result = debug_divmod_bug(td)
     expected = non_buggy_divmod(td)
     assert result == expected
+
+
+def test_debug_2():
+    assert False, debug_2()
