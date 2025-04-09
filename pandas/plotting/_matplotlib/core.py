@@ -54,7 +54,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas import Series
 import pandas.core.common as com
 from pandas.util.version import Version
 
@@ -95,6 +94,7 @@ if TYPE_CHECKING:
     from pandas import (
         DataFrame,
         Index,
+        Series,
     )
 
 
@@ -1340,6 +1340,8 @@ class ScatterPlot(PlanePlot):
 
     @register_pandas_matplotlib_converters
     def _make_plot(self, fig: Figure) -> None:
+        from pandas import Series
+
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
