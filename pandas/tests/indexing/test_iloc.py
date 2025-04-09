@@ -742,26 +742,6 @@ class TestiLocBaseIndependent:
         result = df.iloc[np.array([True] * len(mask), dtype=bool)]
         tm.assert_frame_equal(result, df)
 
-        result = df.iloc[np.array([True, False, True, False, True], dtype=bool)]
-        tm.assert_frame_equal(
-            result, DataFrame({"a": [0, 2, 4]}, index=["A", "C", "E"])
-        )
-
-        # series (index does not match)
-        msg = "Unalignable boolean Series provided as indexer"
-        with pytest.raises(IndexingError, match=msg):
-            df.iloc[Series([True] * len(mask), dtype=bool)]
-
-        df = DataFrame(list(range(5)), columns=["a"])
-
-        result = df.iloc[Series([True] * len(mask), dtype=bool)]
-        tm.assert_frame_equal(result, df)
-
-        result = df.iloc[Series([True, False, True, False, True], dtype=bool)]
-        tm.assert_frame_equal(result, DataFrame({"a": [0, 2, 4]}, index=[0, 2, 4]))
-
-        df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
-
         # the possibilities
         locs = np.arange(4)
         nums = 2**locs
@@ -816,6 +796,32 @@ class TestiLocBaseIndependent:
                 else:
                     # For error messages, substring match is sufficient
                     assert expected_result in answer, f"[{key}] not found in [{answer}]"
+
+    def test_iloc_with_numpy_bool_array(self):
+        df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
+        result = df.iloc[np.array([True, False, True, False, True], dtype=bool)]
+        expected = DataFrame({"a": [0, 2, 4]}, index=["A", "C", "E"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_iloc_series_mask_with_index_mismatch_raises(self):
+        df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
+        mask = df.a % 2 == 0
+        msg = "Unalignable boolean Series provided as indexer"
+        with pytest.raises(IndexingError, match=msg):
+            df.iloc[Series([True] * len(mask), dtype=bool)]
+
+    def test_iloc_series_mask_all_true(self):
+        df = DataFrame(list(range(5)), columns=["a"])
+        mask = Series([True] * len(df), dtype=bool)
+        result = df.iloc[mask]
+        tm.assert_frame_equal(result, df)
+
+    def test_iloc_series_mask_alternate_true(self):
+        df = DataFrame(list(range(5)), columns=["a"])
+        mask = Series([True, False, True, False, True], dtype=bool)
+        result = df.iloc[mask]
+        expected = DataFrame({"a": [0, 2, 4]}, index=[0, 2, 4])
+        tm.assert_frame_equal(result, expected)
 
     def test_iloc_non_unique_indexing(self):
         # GH 4017, non-unique indexing (on the axis)
