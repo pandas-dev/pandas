@@ -366,8 +366,10 @@ def format_dateaxis(
     plt.draw_if_interactive()
 
 
-def prepare_ts_data(data, ax, kwds):
-    freq, data = maybe_resample(data, ax, kwds)
+def prepare_ts_data(
+    series: Series, ax: Axes, kwargs: dict[str, Any]
+) -> tuple[BaseOffset | str, Series]:
+    freq, data = maybe_resample(series, ax, kwargs)
 
     # Set ax with freq info
     decorate_axes(ax, freq)
