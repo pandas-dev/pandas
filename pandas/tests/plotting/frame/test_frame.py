@@ -849,10 +849,10 @@ class TestDataFramePlots:
 
     def test_scatter_line_xticks(self):
         # GH#61005
-        datetime_list = [datetime(year=2025, month=1, day=1, hour=n) for n in range(3)]
-        df = DataFrame(columns=["datetime", "y"])
-        for i, n in enumerate(datetime_list):
-            df.loc[len(df)] = [n, i]
+        df = DataFrame(
+            [(datetime(year=2025, month=1, day=1, hour=n), n) for n in range(3)],
+            columns=["datetime", "y"],
+        )
         fig, ax = plt.subplots(2, sharex=True)
         df.plot.scatter(x="datetime", y="y", ax=ax[0])
         scatter_xticks = ax[0].get_xticks()
