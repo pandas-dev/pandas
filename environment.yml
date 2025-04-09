@@ -23,7 +23,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy<2
+  - numpy<3
 
   # optional dependencies
   - beautifulsoup4>=4.11.2
@@ -80,7 +80,7 @@ dependencies:
   - flake8=7.1.0  # run in subprocess over docstring examples
   - mypy=1.13.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
-  - pre-commit>=4.0.1
+  - pre-commit>=4.2.0
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew

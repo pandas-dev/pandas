@@ -4922,6 +4922,10 @@ class Index(IndexOpsMixin, PandasObject):
            :meth:`Index.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
+        .. versionchanged:: 3.0.0
+
+           The returned array is read-only.
+
         Returns
         -------
         array: numpy.ndarray or ExtensionArray
@@ -7144,10 +7148,10 @@ class Index(IndexOpsMixin, PandasObject):
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     @final
-    def _construct_result(self, result, name):
+    def _construct_result(self, result, name, other):
         if isinstance(result, tuple):
             return (
                 Index(result[0], name=name, dtype=result[0].dtype),
