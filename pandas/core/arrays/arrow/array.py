@@ -2499,7 +2499,7 @@ class ArrowExtensionArray(
         indices = indices + np.arange(n_rows).repeat(lengths) * n_cols
         dummies = np.zeros(n_rows * n_cols, dtype=np.bool_)
         dummies[indices] = True
-        dummies = dummies.reshape((n_rows, n_cols))
+        dummies = dummies.reshape((n_rows, n_cols))  # type: ignore[assignment]
         result = type(self)(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 

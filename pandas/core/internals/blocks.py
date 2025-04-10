@@ -2635,7 +2635,7 @@ class ExtensionBlock(EABackedBlock):
                 self.values.take(
                     indices, allow_fill=needs_masking[i], fill_value=fill_value
                 ),
-                BlockPlacement(place),
+                BlockPlacement(place),  # type: ignore[arg-type]
                 ndim=2,
             )
             for i, (indices, place) in enumerate(zip(new_values, new_placement))
