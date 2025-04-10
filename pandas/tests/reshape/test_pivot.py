@@ -2856,26 +2856,21 @@ class TestPivot:
     @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
     def test_pivot_with_pyarrow_categorical(self):
         # GH#53051
-
         pa = pytest.importorskip("pyarrow")
 
-        # Create dataframe with categorical column
-        df = DataFrame(
-            {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
-        ).astype({"string_column": "category", "number_column": "float32"})
-
-        # Convert dataframe to pyarrow backend
-        df = df.astype(
-            {
-                "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
-                "number_column": "float[pyarrow]",
-            }
+        df = (
+            DataFrame({"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]})
+            .astype({"string_column": "category", "number_column": "float32"})
+            .astype(
+                {
+                    "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+                    "number_column": "float[pyarrow]",
+                }
+            )
         )
 
-        # Check that pivot works
         df = df.pivot(columns=["string_column"], values=["number_column"])
 
-        # Assert that values of result are correct to prevent silent failure
         multi_index = MultiIndex.from_arrays(
             [["number_column", "number_column", "number_column"], ["A", "B", "C"]],
             names=(None, "string_column"),
