@@ -515,7 +515,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
-        return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
+        return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()  # type: ignore[return-value]
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
@@ -1497,10 +1497,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = values.all(axis=axis)
 
         if skipna:
-            return result
+            return result  # type: ignore[return-value]
         else:
             if not result or len(self) == 0 or not self._mask.any():
-                return result
+                return result  # type: ignore[return-value]
             else:
                 return self.dtype.na_value
 

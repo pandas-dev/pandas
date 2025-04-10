@@ -1468,7 +1468,7 @@ class FixedWidthReader(abc.Iterator):
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
         edge_pairs = list(zip(edges[::2], edges[1::2]))
-        return edge_pairs
+        return edge_pairs  # type: ignore[return-value]
 
     def __next__(self) -> list[str]:
         # Argument 1 to "next" has incompatible type "Union[IO[str],

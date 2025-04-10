@@ -769,8 +769,8 @@ na_vals = (
         np.datetime64("NaT"),
         np.timedelta64("NaT"),
     ]
-    + [np.datetime64("NaT", unit) for unit in m8_units]
-    + [np.timedelta64("NaT", unit) for unit in m8_units]
+    + [np.datetime64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]
+    + [np.timedelta64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]
 )
 
 inf_vals = [

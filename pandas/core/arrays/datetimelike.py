@@ -2394,7 +2394,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         )
 
         indices = np.asarray(indices, dtype=np.intp)
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))  # type: ignore[arg-type]
 
         if isinstance(maybe_slice, slice):
             freq = self._get_getitem_freq(maybe_slice)

@@ -875,7 +875,7 @@ class IndexOpsMixin(OpsMixin):
         >>> idx.to_list()
         [1, 2, 3]
         """
-        return self._values.tolist()
+        return self._values.tolist()  # type: ignore[return-value]
 
     to_list = tolist
 
