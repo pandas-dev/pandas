@@ -68,6 +68,7 @@ Other enhancements
 - :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.SeriesGroupBy.apply`, :meth:`.DataFrameGroupBy.apply` now support ``kurt`` (:issue:`40139`)
 - :meth:`DataFrame.apply` supports using third-party execution engines like the Bodo.ai JIT compiler (:issue:`60668`)
+- :meth:`DataFrame.iloc` and :meth:`Series.iloc` now support boolean masks in ``__getitem__`` for more consistent indexing behavior (:issue:`60994`)
 - :meth:`DataFrameGroupBy.transform`, :meth:`SeriesGroupBy.transform`, :meth:`DataFrameGroupBy.agg`, :meth:`SeriesGroupBy.agg`, :meth:`RollingGroupby.apply`, :meth:`ExpandingGroupby.apply`, :meth:`Rolling.apply`, :meth:`Expanding.apply`, :meth:`DataFrame.apply` with ``engine="numba"`` now supports positional arguments passed as kwargs (:issue:`58995`)
 - :meth:`Rolling.agg`, :meth:`Expanding.agg` and :meth:`ExponentialMovingWindow.agg` now accept :class:`NamedAgg` aggregations through ``**kwargs`` (:issue:`28333`)
 - :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
@@ -762,6 +763,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.bar` with ``stacked=True`` where labels on stacked bars with zero-height segments were incorrectly positioned at the base instead of the label position of the previous segment (:issue:`59429`)
 - Bug in :meth:`DataFrame.plot.line` raising ``ValueError`` when set both color and a ``dict`` style (:issue:`59461`)
 - Bug in :meth:`DataFrame.plot` that causes a shift to the right when the frequency multiplier is greater than one. (:issue:`57587`)
+- Bug in :meth:`Series.plot` preventing a line and scatter plot from being aligned (:issue:`61005`)
 - Bug in :meth:`Series.plot` with ``kind="pie"`` with :class:`ArrowDtype` (:issue:`59192`)
 
 Groupby/resample/rolling

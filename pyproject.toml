@@ -148,7 +148,7 @@ setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* cp38-* cp39-* pp* *_i686 *_ppc64le *_s390x"
-build-verbosity = "3"
+build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-requires = "hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0"
 test-command = """
@@ -160,6 +160,7 @@ free-threaded-support = true
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
+environment = {}
 before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build_windows.sh"
 test-command = """
   set PANDAS_CI='1' && \
@@ -233,8 +234,8 @@ select = [
   "TID",
   # implicit string concatenation
   "ISC",
-  # type-checking imports
-  "TCH",
+  # flake8-type-checking
+  "TC",
   # comprehensions
   "C4",
   # pygrep-hooks
@@ -389,6 +390,8 @@ ignore = [
   "PLW0108",
   # global-statement
   "PLW0603",
+  # runtime-cast-value
+  "TC006",
 ]
 
 exclude = [
@@ -428,7 +431,7 @@ exclude = [
 "pandas/tests/*" = ["B028", "FLY"]
 "scripts/*" = ["B028"]
 # Keep this one enabled
-"pandas/_typing.py" = ["TCH"]
+"pandas/_typing.py" = ["TC"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
