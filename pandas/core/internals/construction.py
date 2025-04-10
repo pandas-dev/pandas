@@ -634,7 +634,7 @@ def reorder_arrays(
                     arr = np.empty(length, dtype=object)
                     arr.fill(np.nan)
                 else:
-                    arr = arrays[k]
+                    arr = arrays[k]  # type: ignore[assignment]
                 new_arrays.append(arr)
 
             arrays = new_arrays
