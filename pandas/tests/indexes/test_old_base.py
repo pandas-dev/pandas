@@ -363,6 +363,7 @@ class TestBase:
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_numpy_argsort(self, index):
+
         result = np.argsort(index)
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)

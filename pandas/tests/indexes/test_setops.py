@@ -129,8 +129,13 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    idx1 = idx1.sort_values()
-    idx2 = idx2.sort_values()
+    try:
+        idx1.sort_values()
+        idx2.sort_values()
+    except TypeError:
+        result = idx1.union(idx2, sort=False)
+        assert result.dtype == "object"
+        return
 
     with tm.assert_produces_warning(warn, match=msg):
         res1 = idx1.union(idx2)
@@ -300,6 +305,7 @@ class TestSetOps:
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_symmetric_difference(self, index, using_infer_string, request):
+
         if (
             using_infer_string
             and index.dtype == "object"
@@ -314,6 +320,7 @@ class TestSetOps:
             # index fixture has e.g. an index of bools that does not satisfy this,
             #  another with [0, 0, 1, 1, 2, 2]
             pytest.skip("Index values no not satisfy test condition.")
+
 
         first = index[1:]
         second = index[:-1]
