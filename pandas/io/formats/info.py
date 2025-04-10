@@ -249,7 +249,7 @@ INFO_DOCSTRING = dedent(
     Print a concise summary of a {klass}.
 
     This method prints information about a {klass} including
-    the index dtype{type_sub}, non-null values and memory usage.
+    the index dtype{type_sub}, non-NA values and memory usage.
     {version_added_sub}\
 
     Parameters
