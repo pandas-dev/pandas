@@ -604,3 +604,27 @@ def test_map_kwargs():
     result = Series([2, 4, 5]).map(lambda x, y: x + y, y=2)
     expected = Series([4, 6, 7])
     tm.assert_series_equal(result, expected)
+
+
+def test_map_arg_as_kwarg():
+    with tm.assert_produces_warning(
+        FutureWarning, match="`arg` has been renamed to `func`"
+    ):
+        Series([1, 2]).map(arg={})
+
+
+def test_map_func_and_arg():
+    # `arg`is considered a normal kwarg that should be passed to the function
+    result = Series([1, 2]).map(lambda _, arg: arg, arg=3)
+    expected = Series([3, 3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_no_func_or_arg():
+    with pytest.raises(ValueError, match="The `func` parameter is required"):
+        Series([1, 2]).map()
+
+
+def test_map_func_is_none():
+    with pytest.raises(ValueError, match="The `func` parameter is required"):
+        Series([1, 2]).map(func=None)

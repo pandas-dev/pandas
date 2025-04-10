@@ -371,6 +371,7 @@ Other API changes
 - Index set operations (like union or intersection) will now ignore the dtype of
   an empty ``RangeIndex`` or empty ``Index`` with object dtype when determining
   the dtype of the resulting Index (:issue:`60797`)
+- Renamed the ``arg`` parameter of ``Series.map`` to ``func``. (:issue:`61260`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
