@@ -319,29 +319,32 @@ class TestMultiLevel:
         expected = Series(["a", "b", "c", "d"], name=("sub", np.nan))
         tm.assert_series_equal(result, expected)
 
-    # Ignore deprecation raised by old versions of pyarrow. Already fixed in
-    # newer versions
     @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
     def test_multiindex_with_pyarrow_categorical(self):
         # GH#53051
-
         pa = pytest.importorskip("pyarrow")
 
-        # Create dataframe with categorical column
-        df = DataFrame(
-            {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
-        ).astype({"string_column": "category", "number_column": "float32"})
-
-        # Convert dataframe to pyarrow backend
-        df = df.astype(
-            {
-                "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
-                "number_column": "float[pyarrow]",
-            }
+        df = (
+            DataFrame({"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]})
+            .astype({"string_column": "category", "number_column": "float32"})
+            .astype(
+                {
+                    "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+                    "number_column": "float[pyarrow]",
+                }
+            )
         )
 
-        # Check that index can be set
-        df.set_index(["string_column", "number_column"])
+        df = df.set_index(["string_column", "number_column"])
+
+        df_expected = DataFrame(
+            index=MultiIndex.from_arrays(
+                [["A", "B", "C"], [1, 2, 3]], names=["string_column", "number_column"]
+            )
+        )
+        tm.assert_frame_equal(
+            df, df_expected, check_dtype=False, check_column_type=False
+        )
 
 
 class TestSorted:
