@@ -10,15 +10,17 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.offsets import CDay
+from pandas._libs.tslibs.offsets import (
+    BDay,
+    CDay,
+    CustomBusinessDay,
+)
 
 from pandas import (
     _testing as tm,
     read_pickle,
 )
 from pandas.tests.tseries.offsets.common import assert_offset_equal
-
-from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
 @pytest.fixture
@@ -78,7 +80,7 @@ class TestCustomBusinessDay:
 
     @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
-        calendar = USFederalHolidayCalendar()
+        calendar = np.busdaycalendar(holidays=["2014-01-01", "2014-01-20"])
         dt = datetime(2014, 1, 17)
         assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
@@ -97,3 +99,9 @@ class TestCustomBusinessDay:
         cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
+
+    def test_type_error_calendar(self):
+        bd = BDay(1)
+        msg = "Only np.busdaycalendar is supported for calendar"
+        with pytest.raises(TypeError, match=msg):
+            CustomBusinessDay(calendar=bd)
