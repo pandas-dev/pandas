@@ -79,6 +79,7 @@ Function application
    DataFrameGroupBy.cumsum
    DataFrameGroupBy.describe
    DataFrameGroupBy.diff
+   DataFrameGroupBy.expanding
    DataFrameGroupBy.ffill
    DataFrameGroupBy.first
    DataFrameGroupBy.head
@@ -130,6 +131,7 @@ Function application
    SeriesGroupBy.cumsum
    SeriesGroupBy.describe
    SeriesGroupBy.diff
+   SeriesGroupBy.expanding
    SeriesGroupBy.ffill
    SeriesGroupBy.first
    SeriesGroupBy.head

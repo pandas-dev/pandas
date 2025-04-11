@@ -3807,12 +3807,51 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Appender(_common_see_also)
     def expanding(self, *args, **kwargs) -> ExpandingGroupby:
         """
-        Return an expanding grouper, providing expanding
+        Return an expanding grouper, providing expanding (cumulative)
         functionality per group.
+
+        Parameters
+        ----------
+        min_periods : int, default 1
+            Minimum number of observations in the window required to have a value;
+            otherwise, the result is ``np.nan``.
 
         Returns
         -------
-        pandas.api.typing.ExpandingGroupby
+        pandas.core.window.ExpandingGroupby
+            An object that supports expanding transformations over each group.
+
+        See Also
+        --------
+        Series.expanding : Expanding transformations for Series.
+        DataFrame.expanding : Expanding transformations for DataFrames.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({
+        ...     "Class": ["A", "A", "A", "B", "B", "B"],
+        ...     "Value": [10, 20, 30, 40, 50, 60]
+        ... })
+        >>> df
+          Class  Value
+        0     A     10
+        1     A     20
+        2     A     30
+        3     B     40
+        4     B     50
+        5     B     60
+
+        >>> df.groupby("Class").expanding().mean().reset_index(drop=True)
+           Value
+        0   10.0
+        1   15.0
+        2   20.0
+        3   40.0
+        4   45.0
+        5   50.0
         """
         from pandas.core.window import ExpandingGroupby
 
