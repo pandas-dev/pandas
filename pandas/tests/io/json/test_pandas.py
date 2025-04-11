@@ -2079,6 +2079,38 @@ class TestPandasContainer:
         series = Series([_TestObject(a=1, b=2, _c=3, d=4)])
         assert json.loads(series.to_json()) == {"0": {"a": 1, "b": 2, "d": 4}}
 
+    def test_to_json_with_period(self):
+        # GH55490
+        ser = Series(pd.period_range(start=2021, freq="Y", periods=1))
+        result = ser.to_json()
+        expected = (
+            '{"0":{'
+            '"day":31,'
+            '"day_of_week":4,'
+            '"day_of_year":365,'
+            '"dayofweek":4,'
+            '"dayofyear":365,'
+            '"days_in_month":31,'
+            '"daysinmonth":31,'
+            '"end_time":1640995199999,'
+            '"freq":{"n":1,"normalize":false,"month":12},'
+            '"freqstr":"Y-DEC",'
+            '"hour":0,'
+            '"is_leap_year":false,'
+            '"minute":0,'
+            '"month":12,'
+            '"ordinal":51,'
+            '"quarter":4,'
+            '"qyear":2021,'
+            '"second":0,'
+            '"start_time":1609459200000,'
+            '"week":52,'
+            '"weekday":4,'
+            '"weekofyear":52,'
+            '"year":2021}}'
+        )
+        assert result == expected
+
     @pytest.mark.parametrize(
         "data,expected",
         [
