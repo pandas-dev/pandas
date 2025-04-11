@@ -3770,6 +3770,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions | None = None,
+        preserve_complex: bool = False,
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3857,6 +3858,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         {storage_options}
 
+        preserve_complex : bool, default False
+            If True, arrays (e.g. NumPy arrays) or complex data are serialized and
+            reconstructed in a custom manner. If False (default), standard CSV
+            behavior is used.
+
         Returns
         -------
         None or str
@@ -3937,6 +3943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
+            preserve_complex=preserve_complex,
         )
 
     # ----------------------------------------------------------------------
