@@ -1131,7 +1131,7 @@ class BinGrouper(BaseGrouper):
         """
         slicer = lambda start, edge: data.iloc[start:edge]
 
-        start = 0
+        start: np.int64 | int = 0
         for edge, label in zip(self.bins, self.binlabels):
             if label is not NaT:
                 yield label, slicer(start, edge)
@@ -1144,7 +1144,7 @@ class BinGrouper(BaseGrouper):
     def indices(self):
         indices = collections.defaultdict(list)
 
-        i = 0
+        i: np.int64 | int = 0
         for label, bin in zip(self.binlabels, self.bins):
             if i < bin:
                 if label is not NaT:
