@@ -604,3 +604,14 @@ def test_map_kwargs():
     result = Series([2, 4, 5]).map(lambda x, y: x + y, y=2)
     expected = Series([4, 6, 7])
     tm.assert_series_equal(result, expected)
+
+
+def test_map_arrow_timestamp_dict():
+    # GH 61231
+    pytest.importorskip("pyarrow", minversion="10.0.1")
+
+    ser = Series(date_range("2023-01-01", periods=3)).astype("timestamp[ns][pyarrow]")
+    mapper = {ts: i for i, ts in enumerate(ser)}
+    result = ser.map(mapper)
+    expected = Series([0, 1, 2], dtype="int64")
+    tm.assert_series_equal(result, expected)
