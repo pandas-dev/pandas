@@ -175,12 +175,8 @@ class _Unstacker:
         if not self.sort:
             # Create new codes considering that labels are already sorted
             # Make sure to preserve the -1 values before factorizing
-            codes = []
-            for code in self.index.codes:
-                mask = code != -1
-                factorized = np.full_like(code, -1)
-                factorized[mask] = factorize(code[mask])[0]
-                codes.append(factorized)
+            codes = [factorize(np.where(code == -1, None, code))[0] for code in codes]
+
         levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
         sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
