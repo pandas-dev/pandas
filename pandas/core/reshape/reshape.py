@@ -174,8 +174,13 @@ class _Unstacker:
         codes = list(self.index.codes)
         if not self.sort:
             # Create new codes considering that labels are already sorted
-            # Make sure to preserve the -1 values before factorizing
-            codes = [factorize(np.where(code == -1, None, code))[0] for code in codes]
+            # setting nans back to nan to maintain the -1 values
+            if self.lift:
+                codes = [
+                    factorize(np.where(code == -1, None, code))[0] for code in codes
+                ]
+            else:
+                codes = [factorize(code)[0] for code in codes]
 
         levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
