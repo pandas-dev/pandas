@@ -52,6 +52,9 @@ from pandas.util._decorators import (
     doc,
     set_module,
 )
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -4320,7 +4323,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def map(
         self,
-        arg: Callable | Mapping | Series,
+        func: Callable | Mapping | Series | None = None,
         na_action: Literal["ignore"] | None = None,
         **kwargs,
     ) -> Series:
@@ -4333,8 +4336,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        arg : function, collections.abc.Mapping subclass or Series
-            Mapping correspondence.
+        func : function, collections.abc.Mapping subclass or Series
+            Function or mapping correspondence.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
@@ -4404,9 +4407,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3  I am a rabbit
         dtype: object
         """
-        if callable(arg):
-            arg = functools.partial(arg, **kwargs)
-        new_values = self._map_values(arg, na_action=na_action)
+        if func is None:
+            if "arg" in kwargs:
+                # `.map(arg=my_func)`
+                func = kwargs.pop("arg")
+                warnings.warn(
+                    "The parameter `arg` has been renamed to `func`, and it "
+                    "will stop being supported in a future version of pandas.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                raise ValueError("The `func` parameter is required")
+
+        if callable(func):
+            func = functools.partial(func, **kwargs)
+        new_values = self._map_values(func, na_action=na_action)
         return self._constructor(new_values, index=self.index, copy=False).__finalize__(
             self, method="map"
         )
