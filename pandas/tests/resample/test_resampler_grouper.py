@@ -129,7 +129,8 @@ def test_getitem_multiple():
 def test_groupby_resample_on_api_with_getitem():
     # GH 17813
     df = DataFrame(
-        {"id": list("aabbb"), "date": date_range("1-1-2016", periods=5), "data": 1}
+        {"id": list("aabbb"), "date": date_range("1-1-2016", periods=5), "data": 1},
+        index=list("xyzab"),
     )
     exp = df.set_index("date").groupby("id").resample("2D")["data"].sum()
     result = df.groupby("id").resample("2D", on="date")["data"].sum()
@@ -672,3 +673,92 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
     rs = gb.resample("2D")
     with pytest.raises(KeyError, match="Columns not found"):
         rs[["val_not_in_dataframe"]]
+
+
+def test_groupby_resample_after_set_index_and_not_on_column():
+    # GH 59350
+    df = DataFrame(
+        data={
+            "datetime": [
+                pd.to_datetime("2024-07-30T00:00Z"),
+                pd.to_datetime("2024-07-30T00:01Z"),
+            ],
+            "group": ["A", "A"],
+            "numbers": [100, 200],
+        },
+        index=[1, 0],
+    ).set_index("datetime")
+    gb = df.groupby("group")
+    rs = gb.resample("1min")
+    result = rs.aggregate({"numbers": "sum"})
+
+    index = pd.MultiIndex.from_arrays(
+        [
+            ["A", "A"],
+            [pd.to_datetime("2024-07-30T00:00Z"), pd.to_datetime("2024-07-30T00:01Z")],
+        ],
+        names=[
+            "group",
+            "datetime",
+        ],
+    )
+    expected = DataFrame({"numbers": [100, 200]}, index=index)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "df",
+    [
+        DataFrame(
+            data={
+                "datetime": [
+                    pd.to_datetime("2024-07-30T00:00Z"),
+                    pd.to_datetime("2024-07-30T00:01Z"),
+                ],
+                "group": ["A", "A"],
+                "numbers": [100, 200],
+            },
+            index=[1, 0],
+        ),
+        DataFrame(
+            data={
+                "datetime": [
+                    pd.to_datetime("2024-07-30T00:00Z"),
+                    pd.to_datetime("2024-07-30T00:01Z"),
+                ],
+                "group": ["A", "A"],
+                "numbers": [100, 200],
+            },
+        ).set_index("group"),
+        DataFrame(
+            data={
+                "datetime": [
+                    pd.to_datetime("2024-07-30T00:00Z"),
+                    pd.to_datetime("2024-07-30T00:01Z"),
+                ],
+                "group": ["A", "A"],
+                "numbers": [100, 200],
+            },
+        ).set_index("datetime", drop=False),
+    ],
+)
+def test_groupby_resample_on_column_when_index_is_unusual(df):
+    # GH 59350
+    gb = df.groupby("group")
+    rs = gb.resample("1min", on="datetime")
+    result = rs.aggregate({"numbers": "sum"})
+
+    index = pd.MultiIndex.from_arrays(
+        [
+            ["A", "A"],
+            [pd.to_datetime("2024-07-30T00:00Z"), pd.to_datetime("2024-07-30T00:01Z")],
+        ],
+        names=[
+            "group",
+            "datetime",
+        ],
+    )
+    expected = DataFrame({"numbers": [100, 200]}, index=index)
+
+    tm.assert_frame_equal(result, expected)
