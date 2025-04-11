@@ -200,10 +200,8 @@ def test_missing_required_dependency(monkeypatch, dependency):
 
     monkeypatch.setattr("builtins.__import__", mock_import)
 
-    with pytest.raises(ImportError) as excinfo:
+    with pytest.raises(ImportError, match=dependency):
         importlib.reload(importlib.import_module("pandas"))
-
-    assert dependency in str(excinfo.value)
 
 
 def test_frame_setitem_dask_array_into_new_col(request):
