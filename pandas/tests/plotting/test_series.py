@@ -971,3 +971,17 @@ class TestSeriesPlots:
         s1.plot(ax=ax2)
         assert len(ax.xaxis.get_minor_ticks()) == 0
         assert len(ax.get_xticklabels()) > 0
+
+    def test_bar_line_plot(self):
+        """
+        Test that bar and line plots with the same x values are superposed
+        """
+        # GH61161
+        index = period_range("2023", periods=3, freq="Y")
+        s = Series([1, 2, 3], index=index)
+        ax = plt.subplot()
+        s.plot(kind="bar", ax=ax)
+        bar_xticks = ax.get_xticks().tolist()
+        s.plot(kind="line", ax=ax, color="r")
+        line_xticks = ax.get_xticks()[: len(s)].tolist()
+        assert line_xticks == bar_xticks

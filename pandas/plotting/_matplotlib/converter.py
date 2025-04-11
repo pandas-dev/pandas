@@ -225,16 +225,20 @@ class TimeFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAcc
 class PeriodConverter(mdates.DateConverter):
     @staticmethod
     def convert(values, units, axis):
+        if not hasattr(axis, "freq"):
+            raise TypeError("Axis must have `freq` set to convert to Periods")
+        return PeriodConverter.convert_from_freq(values, axis.freq)
+
+    @staticmethod
+    def convert_from_freq(values, freq):
         if is_nested_list_like(values):
-            values = [PeriodConverter._convert_1d(v, units, axis) for v in values]
+            values = [PeriodConverter._convert_1d(v, freq) for v in values]
         else:
-            values = PeriodConverter._convert_1d(values, units, axis)
+            values = PeriodConverter._convert_1d(values, freq)
         return values
 
     @staticmethod
-    def _convert_1d(values, units, axis):
-        if not hasattr(axis, "freq"):
-            raise TypeError("Axis must have `freq` set to convert to Periods")
+    def _convert_1d(values, freq):
         valid_types = (str, datetime, Period, pydt.date, pydt.time, np.datetime64)
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -248,17 +252,17 @@ class PeriodConverter(mdates.DateConverter):
                 or is_integer(values)
                 or is_float(values)
             ):
-                return get_datevalue(values, axis.freq)
+                return get_datevalue(values, freq)
             elif isinstance(values, PeriodIndex):
-                return values.asfreq(axis.freq).asi8
+                return values.asfreq(freq).asi8
             elif isinstance(values, Index):
-                return values.map(lambda x: get_datevalue(x, axis.freq))
+                return values.map(lambda x: get_datevalue(x, freq))
             elif lib.infer_dtype(values, skipna=False) == "period":
                 # https://github.com/pandas-dev/pandas/issues/24304
                 # convert ndarray[period] -> PeriodIndex
-                return PeriodIndex(values, freq=axis.freq).asi8
+                return PeriodIndex(values, freq=freq).asi8
             elif isinstance(values, (list, tuple, np.ndarray, Index)):
-                return [get_datevalue(x, axis.freq) for x in values]
+                return [get_datevalue(x, freq) for x in values]
         return values
 
 
