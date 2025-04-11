@@ -134,6 +134,10 @@ class _Unstacker:
         self.removed_level_full = index.levels[self.level]
         if not self.sort:
             unique_codes = unique(self.index.codes[self.level])
+            # Bug Fix GH 61221
+            # The -1 in the unsorted unique codes causes for errors
+            # saving the NA location to be used in the repeater
+            unique_codes = unique_codes[unique_codes != -1]
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
@@ -170,7 +174,14 @@ class _Unstacker:
         codes = list(self.index.codes)
         if not self.sort:
             # Create new codes considering that labels are already sorted
-            codes = [factorize(code)[0] for code in codes]
+            # setting nans back to nan to maintain the -1 values
+            if self.lift:
+                codes = [
+                    factorize(np.where(code == -1, np.nan, code))[0] for code in codes
+                ]
+            else:
+                codes = [factorize(code)[0] for code in codes]
+
         levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
         sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
@@ -189,9 +200,15 @@ class _Unstacker:
         return to_sort
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
-        indexer, _ = self._indexer_and_to_sort
-        sorted_values = algos.take_nd(values, indexer, axis=0)
-        return sorted_values
+        if self.sort:
+            indexer, _ = self._indexer_and_to_sort
+            sorted_values = algos.take_nd(values, indexer, axis=0)
+            return sorted_values
+        level_sizes = tuple(len(level) for level in self.new_index_levels)
+        group_ids = get_group_index(
+            self.sorted_labels[:-1], level_sizes, sort=False, xnull=False
+        )
+        return values[np.argsort(group_ids, kind="mergesort")]
 
     def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
@@ -381,11 +398,22 @@ class _Unstacker:
             # In this case, we remap the new codes to the original level:
             repeater = self.removed_level_full.get_indexer(self.removed_level)
             if self.lift:
-                repeater = np.insert(repeater, 0, -1)
+                if not self.sort:
+                    na_index = (self.index.codes[self.level] == -1).nonzero()[0][0]
+                    repeater = np.insert(repeater, na_index, -1)
+                else:
+                    repeater = np.insert(repeater, 0, -1)
         else:
             # Otherwise, we just use each level item exactly once:
             stride = len(self.removed_level) + self.lift
-            repeater = np.arange(stride) - self.lift
+            if self.sort or not self.lift:
+                repeater = np.arange(stride) - self.lift
+            else:
+                na_index = (self.index.codes[self.level] == -1).nonzero()[0][0]
+                repeater = np.arange(stride) - self.lift
+                if na_index:
+                    repeater[na_index] = -1
+                    repeater[:na_index] += 1
 
         return repeater
 
@@ -565,7 +593,6 @@ def _unstack_frame(
     unstacker = _Unstacker(
         obj.index, level=level, constructor=obj._constructor, sort=sort
     )
-
     if not obj._can_fast_transpose:
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor_from_mgr(mgr, axes=mgr.axes)
