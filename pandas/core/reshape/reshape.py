@@ -177,7 +177,7 @@ class _Unstacker:
             # setting nans back to nan to maintain the -1 values
             if self.lift:
                 codes = [
-                    factorize(np.where(code == -1, None, code))[0] for code in codes
+                    factorize(np.where(code == -1, np.nan, code))[0] for code in codes
                 ]
             else:
                 codes = [factorize(code)[0] for code in codes]
