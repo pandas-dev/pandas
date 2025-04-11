@@ -188,6 +188,9 @@ def get_option(pat: str) -> Any:
     return root[k]
 
 
+### First Approach supports pd.set_option(options) where options=dict
+
+
 def set_option(*args) -> None:
     """
     Set the value of the specified option or options.
@@ -199,9 +202,10 @@ def set_option(*args) -> None:
 
     Parameters
     ----------
-    *args : str | object
+    *args : str | object | dict
         Arguments provided in pairs, which will be interpreted as (pattern, value)
-        pairs.
+        pairs and in a single dictionary, where each key is a pattern and the
+        corresponding value is the new option value.
         pattern: str
         Regexp which should match a single option
         value: object
@@ -240,6 +244,8 @@ def set_option(*args) -> None:
     Examples
     --------
     >>> pd.set_option("display.max_columns", 4)
+    >>> # another way of passing options
+    >>> # pd.set_option({"display.max_columns": 4, "display.width": 80})
     >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
     >>> df
     0  1  ...  3   4
@@ -248,24 +254,63 @@ def set_option(*args) -> None:
     [2 rows x 5 columns]
     >>> pd.reset_option("display.max_columns")
     """
-    # must at least 1 arg deal with constraints later
     nargs = len(args)
-    if not nargs or nargs % 2 != 0:
-        raise ValueError("Must provide an even number of non-keyword arguments")
+    pairs: list[tuple[Any, Any]] = []
 
-    for k, v in zip(args[::2], args[1::2]):
+    if nargs == 1 and isinstance(args[0], dict):
+        pairs = list(args[0].items())
+    else:
+        if not nargs or nargs % 2 != 0:
+            raise ValueError(
+                "Must provide an even number of non-keyword arguments or a dictionary"
+            )
+        pairs = list(zip(args[::2], args[1::2]))
+
+    for k, v in pairs:
         key = _get_single_key(k)
-
         opt = _get_registered_option(key)
         if opt and opt.validator:
             opt.validator(v)
-
-        # walk the nested dict
         root, k_root = _get_root(key)
         root[k_root] = v
-
         if opt.cb:
             opt.cb(key)
+
+
+### Second Approach Supports both *args[pd.set_option(options)]
+### and **kwargs[pd.set_option(**options)] where options=dict
+
+
+# def set_option(*args, **kwargs) -> None:
+#     # Handle dictionary passed directly
+#     if len(args) == 1 and isinstance(args[0], dict):
+#         options = args[0]
+#         for key, value in options.items():
+#             _set_single_option(key, value)
+#     # Handle keyword arguments (unpacked dictionary)
+#     elif kwargs:
+#         for key, value in kwargs.items():
+#             _set_single_option(key, value)
+#     # Handle traditional paired arguments
+#     else:
+#         if not args or len(args) % 2 != 0:
+#             raise ValueError(
+#                 "Must provide an even number of non-keyword arguments or a dict"
+#             )
+#         for key, value in zip(args[::2], args[1::2]):
+#             _set_single_option(key, value)
+
+
+# def _set_single_option(key: Any, value: Any) -> None:
+#     """Helper function to set a single option."""
+#     key = _get_single_key(key)
+#     opt = _get_registered_option(key)
+#     if opt and opt.validator:
+#         opt.validator(value)
+#     root, k_root = _get_root(key)
+#     root[k_root] = value
+#     if opt.cb:
+#         opt.cb(key)
 
 
 def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
