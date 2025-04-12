@@ -42,6 +42,7 @@ from pandas.compat import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
+    pa_version_under19p0,
     pa_version_under20p0,
 )
 
@@ -3553,3 +3554,13 @@ def test_categorical_from_arrow_dictionary():
         dtype="int64",
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    pa_version_under19p0, reason="pa.json_ was introduced in pyarrow v19.0"
+)
+def test_arrow_json_type():
+    # GH 60958
+    dtype = ArrowDtype(pa.json_(pa.string()))
+    result = dtype.type
+    assert result == str

@@ -546,7 +546,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-15    4
         dtype: int64
         >>> ser.resample("MS").groups
-        {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
+        {Timestamp('2023-01-01 00:00:00'): np.int64(2),
+         Timestamp('2023-02-01 00:00:00'): np.int64(4)}
         """
         if isinstance(self.keys, list) and len(self.keys) == 1:
             warnings.warn(
@@ -613,7 +614,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         toucan  1  5  6
         eagle   7  8  9
         >>> df.groupby(by=["a"]).indices
-        {1: array([0, 1]), 7: array([2])}
+        {np.int64(1): array([0, 1]), np.int64(7): array([2])}
 
         For Resampler:
 
@@ -1877,7 +1878,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             mask.fill(False)
             mask[indices.astype(int)] = True
             # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T  # type: ignore[assignment]
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
 
@@ -4440,11 +4441,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     )
 
             if vals.ndim == 1:
-                out = out.ravel("K")
+                out = out.ravel("K")  # type: ignore[assignment]
                 if result_mask is not None:
-                    result_mask = result_mask.ravel("K")
+                    result_mask = result_mask.ravel("K")  # type: ignore[assignment]
             else:
-                out = out.reshape(ncols, ngroups * nqs)
+                out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
             return post_processor(out, inference, result_mask, orig_vals)
 
@@ -5174,8 +5175,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 shifted = shifted.astype("float32")
         else:
             to_coerce = [c for c, dtype in obj.dtypes.items() if dtype in dtypes_to_f32]
-            if len(to_coerce):
-                shifted = shifted.astype({c: "float32" for c in to_coerce})
+            if to_coerce:
+                shifted = shifted.astype(dict.fromkeys(to_coerce, "float32"))
 
         return obj - shifted
 

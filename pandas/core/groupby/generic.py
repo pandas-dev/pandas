@@ -2142,7 +2142,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if stacked_values.dtype == object:
             # We'll have the DataFrame constructor do inference
-            stacked_values = stacked_values.tolist()
+            stacked_values = stacked_values.tolist()  # type: ignore[assignment]
         result = self.obj._constructor(stacked_values, index=index, columns=columns)
 
         if not self.as_index:
@@ -2505,7 +2505,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         results = [func(sgb) for sgb in sgbs]
 
-        if not len(results):
+        if not results:
             # concat would raise
             res_df = DataFrame([], columns=columns, index=self._grouper.result_index)
         else:
