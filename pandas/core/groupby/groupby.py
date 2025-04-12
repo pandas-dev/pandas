@@ -3805,8 +3805,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def expanding(self, *args, **kwargs) -> ExpandingGroupby:
         """
-        Return an expanding grouper, providing expanding
-        functionality per group.
+        Return an expanding grouper, providing expanding functionality per group.
 
         Parameters
         ----------
