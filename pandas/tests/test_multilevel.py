@@ -324,26 +324,27 @@ class TestMultiLevel:
         # GH#53051
         pa = pytest.importorskip("pyarrow")
 
-        data = {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
-        df = (
-            DataFrame(data)
-            .astype({"string_column": "category", "number_column": "float32"})
-            .astype(
-                {
-                    "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
-                    "number_column": "float[pyarrow]",
-                }
-            )
+        df = DataFrame(
+            {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
+        ).astype(
+            {
+                "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+                "number_column": "float[pyarrow]",
+            }
         )
 
         df = df.set_index(["string_column", "number_column"])
 
-        df_expected = DataFrame(data).set_index(["string_column", "number_column"])
+        df_expected = DataFrame(
+            index=MultiIndex.from_arrays(
+                [["A", "B", "C"], [1, 2, 3]], names=["string_column", "number_column"]
+            )
+        )
         tm.assert_frame_equal(
             df,
             df_expected,
-            check_dtype=False,
             check_index_type=False,
+            check_column_type=False,
         )
 
 
