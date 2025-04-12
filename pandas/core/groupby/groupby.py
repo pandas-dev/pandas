@@ -3803,8 +3803,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def expanding(self, *args, **kwargs) -> ExpandingGroupby:
         """
         Return an expanding grouper, providing expanding (cumulative)
