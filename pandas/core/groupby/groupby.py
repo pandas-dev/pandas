@@ -3829,10 +3829,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Examples
         --------
         >>> import pandas as pd
-        >>> df = pd.DataFrame({
-        ...     "Class": ["A", "A", "A", "B", "B", "B"],
-        ...     "Value": [10, 20, 30, 40, 50, 60]
-        ... })
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Class": ["A", "A", "A", "B", "B", "B"],
+        ...         "Value": [10, 20, 30, 40, 50, 60],
+        ...     }
+        ... )
         >>> df
           Class  Value
         0     A     10
