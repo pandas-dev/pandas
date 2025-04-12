@@ -1,4 +1,4 @@
-minimum_pre_commit_version: 2.15.0
+minimum_pre_commit_version: 4.0.0
 exclude: ^LICENSES/|\.(html|csv|svg)$
 # reserve "manual" for relatively slow hooks which we still want to run in CI
 default_stages: [
@@ -19,13 +19,13 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.9
+    rev: v0.11.4
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
         exclude: ^pandas/tests/frame/test_query_eval.py
     -   id: ruff
-        # TODO: remove autofixe-only rules when they are checked by ruff
+        # TODO: remove autofix only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
         files: ^pandas
@@ -34,7 +34,7 @@ repos:
     -   id: ruff-format
         exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.14'
+    rev: v2.14
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -95,14 +95,14 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v19.1.7
+    rev: v20.1.0
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.7.0
+    rev: v1.7.2
     hooks:
     - id: meson-fmt
       args: ['--inplace']

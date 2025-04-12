@@ -282,7 +282,7 @@ def test_apply_broadcast_scalars(float_frame):
 def test_apply_broadcast_scalars_axis1(float_frame):
     result = float_frame.apply(np.mean, axis=1, result_type="broadcast")
     m = float_frame.mean(axis=1)
-    expected = DataFrame({c: m for c in float_frame.columns})
+    expected = DataFrame(dict.fromkeys(float_frame.columns, m))
     tm.assert_frame_equal(result, expected)
 
 
@@ -309,7 +309,7 @@ def test_apply_broadcast_lists_index(float_frame):
     )
     m = list(range(len(float_frame.index)))
     expected = DataFrame(
-        {c: m for c in float_frame.columns},
+        dict.fromkeys(float_frame.columns, m),
         dtype="float64",
         index=float_frame.index,
     )
