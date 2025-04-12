@@ -1682,6 +1682,8 @@ class EABackedBlock(Block):
 
         try:
             res_values = arr._where(cond, other).T
+        except OutOfBoundsDatetime:
+            raise
         except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, (IntervalDtype, StringDtype)):

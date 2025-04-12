@@ -794,4 +794,4 @@ def test_fillna_out_of_bounds_datetime():
 
     msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsDatetime, match=msg):
-        df.fillna(Timestamp("0001-01-01"), inplace=True)
+        df.fillna(Timestamp("0001-01-01"))
