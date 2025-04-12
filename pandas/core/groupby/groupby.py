@@ -3810,9 +3810,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        min_periods : int, default 1
-            Minimum number of observations in the window required to have a value;
-            otherwise, the result is ``np.nan``.
+        *args : tuple
+            Positional arguments passed to the expanding window constructor.
+        **kwargs : dict
+            Keyword arguments passed to the expanding window constructor,
+            such as:
+
+            min_periods : int, default 1
+                Minimum number of observations in the window required to have a value;
+                otherwise, the result is ``np.nan``.
 
         Returns
         -------
