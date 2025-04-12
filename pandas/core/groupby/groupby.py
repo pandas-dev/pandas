@@ -3805,7 +3805,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def expanding(self, *args, **kwargs) -> ExpandingGroupby:
         """
-        Return an expanding grouper, providing expanding (cumulative)
+        Return an expanding grouper, providing expanding
         functionality per group.
 
         Parameters
@@ -3834,7 +3834,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> df = pd.DataFrame(
         ...     {
         ...         "Class": ["A", "A", "A", "B", "B", "B"],
