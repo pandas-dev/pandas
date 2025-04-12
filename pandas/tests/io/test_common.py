@@ -695,3 +695,10 @@ def test_pyarrow_read_csv_datetime_dtype():
     expect = pd.DataFrame({"date": expect_data})
 
     tm.assert_frame_equal(expect, result)
+
+
+def test_iterdir(directory_with_dummy_csv):
+    for file in icom.iterdir(directory_with_dummy_csv):
+        assert file.is_file()
+        assert file.name.startswith("file_")
+        assert file.suffix == ".csv"
