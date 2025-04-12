@@ -372,7 +372,6 @@ Other API changes
 - Index set operations (like union or intersection) will now ignore the dtype of
   an empty ``RangeIndex`` or empty ``Index`` with object dtype when determining
   the dtype of the resulting Index (:issue:`60797`)
-- Renamed the ``arg`` parameter of ``Series.map`` to ``func``. (:issue:`61260`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
@@ -423,6 +422,7 @@ Other Deprecations
 - Deprecated parameter ``method`` in :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like` (:issue:`58667`)
 - Deprecated strings ``w``, ``d``, ``MIN``, ``MS``, ``US`` and ``NS`` denoting units in :class:`Timedelta` in favour of ``W``, ``D``, ``min``, ``ms``, ``us`` and ``ns`` (:issue:`59051`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
+- Renamed the ``arg`` parameter of ``Series.map`` to ``func``. (:issue:`61260`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.prior_deprecations:
