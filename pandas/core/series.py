@@ -4425,14 +4425,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if engine is not None:
             if not hasattr(engine, "__pandas_udf__"):
                 raise ValueError(f"Not a valid engine: {engine}")
-            return engine.__pandas_udf__.map(
+            result = engine.__pandas_udf__.map(
                 data=self,
                 func=arg,
                 args=(),
                 kwargs=kwargs,
                 decorator=engine,
                 skip_na=na_action == "ignore",
-            ).__finalize__(self, method="map")
+            )
+            if not isinstance(result, Series):
+                result = Series(result, index=self.index, name=self.name)
+            return result.__finalize__(self, method="map")
 
         if callable(arg):
             arg = functools.partial(arg, **kwargs)
