@@ -21,7 +21,7 @@ def directory_data_to_file(tmp_path, directory_data):
     for data in data_list:
         file_name = next(iter(data.keys()))
         path = tmp_path / f"{file_name}.csv"
-        with path.open("w", newline="") as file:
+        with path.open("w", newline="", encoding="utf-8") as file:
             writer = DictWriter(file, fieldnames=field_names)
             writer.writeheader()
             writer.writerow(data[file_name])

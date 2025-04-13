@@ -59,6 +59,7 @@ from pandas._typing import (
     BaseBuffer,
     ReadCsvBuffer,
 )
+from pandas.compat import is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -1288,6 +1289,17 @@ def dedup_names(
     return names
 
 
+def _infer_protocol(path: str) -> str:
+    # Treat Windows drive letters like C:\ as local file paths
+    if is_platform_windows() and re.match(r"^[a-zA-Z]:[\\/]", path):
+        return "file"
+
+    parsed = parse_url(path)
+    if parsed.scheme in _VALID_URLS:
+        return parsed.scheme
+    return "file"
+
+
 def _match_file(
     path: Path | PurePosixPath, extensions: set[str] | None, glob: str | None
 ) -> bool:
@@ -1351,15 +1363,11 @@ def iterdir(
         else:
             extensions = {ext.lower() for ext in extensions}
 
-    if isinstance(path, os.PathLike):
-        path = os.fspath(path)
-
-    parsed = parse_url(path)
-    scheme = parsed.scheme or "file"
-    base_path = parsed.path if scheme == "file" else path
+    path_str = os.fspath(path)
+    scheme = _infer_protocol(path_str)
 
     if scheme == "file":
-        resolved_path = Path(base_path)
+        resolved_path = Path(path_str)
         if resolved_path.is_file():
             if _match_file(
                 resolved_path,
@@ -1397,7 +1405,7 @@ def iterdir(
             yield path_obj
         return
     if not fs.isdir(path):
-        raise NotADirectoryError(f"Remote path {path!r} is not a directory.")
+        raise NotADirectoryError(f"Path {path!r} is neither a file nor a directory.")
 
     files = fs.ls(path, detail=True)
     for f in files:
