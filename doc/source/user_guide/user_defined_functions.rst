@@ -2,19 +2,46 @@
 
 {{ header }}
 
-**************************************
-Introduction to User-Defined Functions
-**************************************
+*****************************
+User-Defined Functions (UDFs)
+*****************************
 
 In pandas, User-Defined Functions (UDFs) provide a way to extend the library’s
 functionality by allowing users to apply custom computations to their data. While
 pandas comes with a set of built-in functions for data manipulation, UDFs offer
 flexibility when built-in methods are not sufficient. These functions can be
 applied at different levels: element-wise, row-wise, column-wise, or group-wise,
-and change the data differently, depending on the method used.
+and behave differently, depending on the method used.
+
+Here’s a simple example to illustrate a UDF applied to a Series:
+
+.. ipython:: python
+
+    s = pd.Series([1, 2, 3])
+
+    # Simple UDF that adds 1 to a value
+    def add_one(x):
+        return x + 1
+
+    # Apply the function element-wise using .map
+    s.map(add_one)
+
+You can also apply UDFs to an entire DataFrame. For example:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [10, 20, 30]})
+
+    # UDF that takes a row and returns the sum of columns A and B
+    def sum_row(row):
+        return row["A"] + row["B"]
+
+    # Apply the function row-wise (axis=1 means apply across columns per row)
+    df.apply(sum_row, axis=1)
+
 
 Why Not To Use User-Defined Functions
------------------------------------------
+-------------------------------------
 
 While UDFs provide flexibility, they come with significant drawbacks, primarily
 related to performance and behavior. When using UDFs, pandas must perform inference
@@ -60,27 +87,25 @@ Methods that support User-Defined Functions
 
 User-Defined Functions can be applied across various pandas methods:
 
-* :meth:`~DataFrame.apply` - A flexible method that allows applying a function to Series,
-  DataFrames, or groups of data.
-* :meth:`~DataFrame.agg` (Aggregate) - Used for summarizing data, supporting multiple
+* :meth:`~DataFrame.apply` - A flexible method that allows applying a function to Series and
+  DataFrames.
+* :meth:`~DataFrame.agg` (Aggregate) - Used for summarizing data, supporting custom
   aggregation functions.
-* :meth:`~DataFrame.transform` - Applies a function to groups while preserving the shape of
+* :meth:`~DataFrame.transform` - Applies a function to Series and Dataframes while preserving the shape of
   the original data.
-* :meth:`~DataFrame.filter` - Filters groups based on a list of Boolean conditions.
-* :meth:`~DataFrame.map` - Applies an element-wise function to a Series, useful for
+* :meth:`~DataFrame.filter` - Filters Series and Dataframes based on a list of Boolean conditions.
+* :meth:`~DataFrame.map` - Applies an element-wise function to a Series or Dataframe, useful for
   transforming individual values.
-* :meth:`~DataFrame.pipe` - Allows chaining custom functions to process entire DataFrames or
-  Series in a clean, readable manner.
+* :meth:`~DataFrame.pipe` - Allows chaining custom functions to process Series or
+  Dataframes in a clean, readable manner.
 
 All of these pandas methods can be used with both Series and DataFrame objects, providing versatile
 ways to apply UDFs across different pandas data structures.
 
 .. note::
-    Some of these methods are can also be applied to Groupby Objects. Refer to :ref:`groupby`.
-
-Additionally, operations such as :ref:`resample()<timeseries>`, :ref:`rolling()<window>`,
-:ref:`expanding()<window>`, and :ref:`ewm()<window>` also support UDFs for performing custom
-computations over temporal or statistical windows.
+    Some of these methods are can also be applied to groupby, resample, and various window objects.
+    See :ref:`groupby`, :ref:`resample()<timeseries>`, :ref:`rolling()<window>`, :ref:`expanding()<window>`,
+    and :ref:`ewm()<window>` for details.
 
 
 Choosing the Right Method
@@ -126,8 +151,8 @@ Documentation can be found at :meth:`~DataFrame.apply`.
 If you need to aggregate data, :meth:`DataFrame.agg` is a better choice than apply because it is
 specifically designed for aggregation operations.
 
-When to use: Use :meth:`DataFrame.agg` for performing aggregations like sum, mean, or custom aggregation
-functions across groups.
+When to use: Use :meth:`DataFrame.agg` for performing custom aggregations, where the operation returns
+a scalar value on each input.
 
 Documentation can be found at :meth:`~DataFrame.agg`.
 
@@ -141,25 +166,26 @@ When to use: When you need to perform element-wise transformations that retain t
 
 Documentation can be found at :meth:`~DataFrame.transform`.
 
-Attempting to use common aggregation functions such as ``mean`` or ``sum`` will result in
-values being broadcasted to the original dimensions:
+.. code-block:: python
 
-.. ipython:: python
+    from sklearn.linear_model import LinearRegression
 
-    # Sample DataFrame
     df = pd.DataFrame({
-        'Category': ['A', 'A', 'B', 'B', 'B'],
-        'Values': [10, 20, 30, 40, 50]
-    })
+        'group': ['A', 'A', 'A', 'B', 'B', 'B'],
+        'x': [1, 2, 3, 1, 2, 3],
+        'y': [2, 4, 6, 1, 2, 1.5]
+    }).set_index("x")
 
-    # Using transform with mean
-    df['Mean_Transformed'] = df.groupby('Category')['Values'].transform('mean')
+    # Function to fit a model to each group
+    def fit_model(group):
+        x = group.index.to_frame()
+        y = group
+        model = LinearRegression()
+        model.fit(x, y)
+        pred = model.predict(x)
+        return pred
 
-    # Using transform with sum
-    df['Sum_Transformed'] = df.groupby('Category')['Values'].transform('sum')
-
-    # Result broadcasted to DataFrame
-    print(df)
+    result = df.groupby('group').transform(fit_model)
 
 :meth:`DataFrame.filter`
 ~~~~~~~~~~~~~~~~~~~~~~~~
