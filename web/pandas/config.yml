@@ -146,11 +146,6 @@ sponsors:
     url: https://numfocus.org/
     logo: static/img/partners/numfocus.svg
     kind: numfocus
-  - name: "Coiled"
-    url: https://www.coiled.io
-    logo: static/img/partners/coiled.svg
-    kind: partner
-    description: "Patrick Hoefler"
   - name: "Nvidia"
     url: https://www.nvidia.com
     logo: static/img/partners/nvidia.svg
@@ -191,6 +186,21 @@ sponsors:
     kind: partner
   - name: "d-fine GmbH"
     url: https://www.d-fine.com/en/
+    kind: partner
+  - name: "Two Sigma"
+    url: https://www.twosigma.com/
+    kind: partner
+  - name: "Voltron Data"
+    url: https://voltrondata.com/
+    kind: partner
+  - name: "Intel"
+    url: https://www.intel.com/
+    kind: partner
+  - name: "Chan Zuckerberg Initiative"
+    url: https://chanzuckerberg.com/
+    kind: regular
+  - name: "Coiled"
+    url: https://www.coiled.io
     kind: partner
 roadmap:
   pdeps_path: pdeps
