@@ -8,7 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_little_endian
 
@@ -57,9 +57,7 @@ class TestFromRecords:
         expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(
-        using_pyarrow_string_dtype(), reason="dtype checking logic doesn't work"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="dtype checking logic doesn't work")
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
@@ -147,6 +145,12 @@ class TestFromRecords:
         result = DataFrame.from_records([])
         assert len(result) == 0
         assert len(result.columns) == 0
+
+    def test_from_records_sequencelike_empty_index(self):
+        result = DataFrame.from_records([], index=[])
+        assert len(result) == 0
+        assert len(result.columns) == 0
+        assert len(result.index) == 0
 
     def test_from_records_dictlike(self):
         # test the dict methods
@@ -465,3 +469,26 @@ class TestFromRecords:
 
         alt = DataFrame(arr)
         tm.assert_frame_equal(alt, expected)
+
+    def test_from_records_structured_array(self):
+        # GH 59717
+        data = np.array(
+            [
+                ("John", 25, "New York", 50000),
+                ("Jane", 30, "San Francisco", 75000),
+                ("Bob", 35, "Chicago", 65000),
+                ("Alice", 28, "Los Angeles", 60000),
+            ],
+            dtype=[("name", "U10"), ("age", "i4"), ("city", "U15"), ("salary", "i4")],
+        )
+
+        actual_result = DataFrame.from_records(data, columns=["name", "salary", "city"])
+
+        modified_data = {
+            "name": ["John", "Jane", "Bob", "Alice"],
+            "salary": np.array([50000, 75000, 65000, 60000], dtype="int32"),
+            "city": ["New York", "San Francisco", "Chicago", "Los Angeles"],
+        }
+        expected_result = DataFrame(modified_data)
+
+        tm.assert_frame_equal(actual_result, expected_result)

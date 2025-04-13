@@ -95,6 +95,18 @@ class TestDataFrameColor:
         assert all(i.get_linestyle() == "--" for i in ax.lines)
         assert all(i.get_marker() == "d" for i in ax.lines)
 
+    def test_color_and_style(self):
+        color = {"g": "black", "h": "brown"}
+        style = {"g": "-", "h": "--"}
+        expected_color = ["black", "brown"]
+        expected_style = ["-", "--"]
+        df = DataFrame({"g": [1, 2], "h": [2, 3]}, index=[1, 2])
+        ax = df.plot.line(color=color, style=style)
+        color = [i.get_color() for i in ax.lines]
+        style = [i.get_linestyle() for i in ax.lines]
+        assert color == expected_color
+        assert style == expected_style
+
     def test_bar_colors(self):
         default_colors = _unpack_cycler(plt.rcParams)
 
@@ -205,7 +217,52 @@ class TestDataFrameColor:
                 ax = df.plot.scatter(x=0, y=1, cmap=cmap, c="species")
         else:
             ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
+
+        assert len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == 3  # r/g/b
+        assert (
+            np.unique(ax.collections[0].get_facecolor(), axis=0)
+            == np.array(
+                [[0.0, 0.0, 1.0, 1.0], [0.0, 0.5, 0.0, 1.0], [1.0, 0.0, 0.0, 1.0]]
+            )  # r/g/b
+        ).all()
         assert ax.collections[0].colorbar is None
+
+    def test_scatter_with_c_column_name_without_colors(self):
+        # Given
+        colors = ["NY", "MD", "MA", "CA"]
+        color_count = 4  # 4 unique colors
+
+        # When
+        df = DataFrame(
+            {
+                "dataX": range(100),
+                "dataY": range(100),
+                "color": (colors[i % len(colors)] for i in range(100)),
+            }
+        )
+
+        # Then
+        ax = df.plot.scatter("dataX", "dataY", c="color")
+        assert len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == color_count
+
+        # Given
+        colors = ["r", "g", "not-a-color"]
+        color_count = 3
+        # Also, since not all are mpl-colors, points matching 'r' or 'g'
+        # are not necessarily red or green
+
+        # When
+        df = DataFrame(
+            {
+                "dataX": range(100),
+                "dataY": range(100),
+                "color": (colors[i % len(colors)] for i in range(100)),
+            }
+        )
+
+        # Then
+        ax = df.plot.scatter("dataX", "dataY", c="color")
+        assert len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == color_count
 
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
@@ -217,7 +274,14 @@ class TestDataFrameColor:
         # provided via 'c'. Parameters 'cmap' will be ignored
         df = DataFrame({"x": [1, 2, 3], "y": [1, 2, 3]})
         with tm.assert_produces_warning(None):
-            df.plot.scatter(x="x", y="y", c="b")
+            ax = df.plot.scatter(x="x", y="y", c="b")
+            assert (
+                len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == 1
+            )  # blue
+            assert (
+                np.unique(ax.collections[0].get_facecolor(), axis=0)
+                == np.array([[0.0, 0.0, 1.0, 1.0]])
+            ).all()  # blue
 
     def test_scatter_colors_default(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})

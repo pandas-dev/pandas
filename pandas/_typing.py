@@ -273,7 +273,7 @@ class BaseBuffer(Protocol):
         # for _get_filepath_or_buffer
         ...
 
-    def seek(self, __offset: int, __whence: int = ...) -> int:
+    def seek(self, offset: int, whence: int = ..., /) -> int:
         # with one argument: gzip.GzipFile, bz2.BZ2File
         # with two arguments: zip.ZipFile, read_sas
         ...
@@ -288,13 +288,13 @@ class BaseBuffer(Protocol):
 
 
 class ReadBuffer(BaseBuffer, Protocol[AnyStr_co]):
-    def read(self, __n: int = ...) -> AnyStr_co:
+    def read(self, n: int = ..., /) -> AnyStr_co:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
 
 class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
-    def write(self, __b: AnyStr_contra) -> Any:
+    def write(self, b: AnyStr_contra, /) -> Any:
         # for gzip.GzipFile, bz2.BZ2File
         ...
 
@@ -429,7 +429,7 @@ DateTimeErrorChoices = Literal["raise", "coerce"]
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
 
-# Arguments for nsmalles and n_largest
+# Arguments for nsmallest and nlargest
 NsmallestNlargestKeep = Literal["first", "last", "all"]
 
 # quantile interpolation
@@ -442,7 +442,9 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 AnyAll = Literal["any", "all"]
 
 # merge
-MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+MergeHow = Literal[
+    "left", "right", "inner", "outer", "cross", "left_anti", "right_anti"
+]
 MergeValidate = Literal[
     "one_to_one",
     "1:1",
@@ -524,5 +526,7 @@ UsecolsArgType = Union[
     None,
 ]
 
-# maintaine the sub-type of any hashable sequence
+# maintain the sub-type of any hashable sequence
 SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
+
+SliceType = Optional[Hashable]

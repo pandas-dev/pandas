@@ -67,7 +67,6 @@ def _get_dependency_info() -> dict[str, JSONSerializable]:
         "pandas",
         # required
         "numpy",
-        "pytz",
         "dateutil",
         # install / build,
         "pip",

@@ -7,7 +7,14 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
@@ -96,8 +103,8 @@ def to_numeric(
         is to not use nullable data types. If specified, the behavior
         is as follows:
 
-        * ``"numpy_nullable"``: returns with nullable-dtype-backed
-        * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
+        * ``"numpy_nullable"``: returns nullable-dtype-backed object
+        * ``"pyarrow"``: returns with pyarrow-backed nullable object
 
         .. versionadded:: 2.0
 
@@ -186,6 +193,8 @@ def to_numeric(
             return float(arg)
         if is_number(arg):
             return arg
+        if isinstance(arg, (Timedelta, Timestamp)):
+            return arg._value
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:
@@ -217,19 +226,18 @@ def to_numeric(
             set(),
             coerce_numeric=coerce_numeric,
             convert_to_masked_nullable=dtype_backend is not lib.no_default
-            or isinstance(values_dtype, StringDtype)
-            and not values_dtype.storage == "pyarrow_numpy",
+            or (
+                isinstance(values_dtype, StringDtype)
+                and values_dtype.na_value is libmissing.NA
+            ),
         )
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif (
-        dtype_backend is not lib.no_default
-        and new_mask is None
-        or isinstance(values_dtype, StringDtype)
-        and not values_dtype.storage == "pyarrow_numpy"
+    elif (dtype_backend is not lib.no_default and new_mask is None) or (
+        isinstance(values_dtype, StringDtype) and values_dtype.na_value is libmissing.NA
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 

@@ -31,7 +31,6 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
 )
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
@@ -103,8 +102,11 @@ def pivot_table(
         on the rows and columns.
     dropna : bool, default True
         Do not include columns whose entries are all NaN. If True,
-        rows with a NaN value in any column will be omitted before
-        computing margins.
+
+        * rows with an NA value in any column will be omitted before computing margins,
+        * index/column keys containing NA values will be dropped (see ``dropna``
+          parameter in :meth:``DataFrame.groupby``).
+
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
         when margins is True.
@@ -358,15 +360,11 @@ def __internal_pivot_table(
 
     if not dropna:
         if isinstance(table.index, MultiIndex):
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.index.levels), names=table.index.names
-            )
+            m = MultiIndex.from_product(table.index.levels, names=table.index.names)
             table = table.reindex(m, axis=0, fill_value=fill_value)
 
         if isinstance(table.columns, MultiIndex):
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.columns.levels), names=table.columns.names
-            )
+            m = MultiIndex.from_product(table.columns.levels, names=table.columns.names)
             table = table.reindex(m, axis=1, fill_value=fill_value)
 
     if sort is True and isinstance(table, ABCDataFrame):
@@ -562,7 +560,12 @@ def _generate_marginal_results(
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
         else:
-            from pandas import DataFrame
+            margin = (
+                data[cols[:1] + values]
+                .groupby(cols[:1], observed=observed)
+                .agg(aggfunc, **kwargs)
+                .T
+            )
 
             cat_axis = 0
             for key, piece in table.groupby(level=0, observed=observed):
@@ -571,9 +574,7 @@ def _generate_marginal_results(
                 else:
                     all_key = margins_name
                 table_pieces.append(piece)
-                # GH31016 this is to calculate margin for each group, and assign
-                # corresponded key as index
-                transformed_piece = DataFrame(piece.apply(aggfunc, **kwargs)).T
+                transformed_piece = margin[key].to_frame().T
                 if isinstance(piece.index, MultiIndex):
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(

@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 import zoneinfo
 
 import numpy as np
@@ -276,7 +277,21 @@ def test_join_index(float_frame):
     tm.assert_index_equal(joined.index, float_frame.index.sort_values())
     tm.assert_index_equal(joined.columns, expected_columns)
 
-    with pytest.raises(ValueError, match="join method"):
+    # left anti
+    joined = f.join(f2, how="left_anti")
+    tm.assert_index_equal(joined.index, float_frame.index[:5])
+    tm.assert_index_equal(joined.columns, expected_columns)
+
+    # right anti
+    joined = f.join(f2, how="right_anti")
+    tm.assert_index_equal(joined.index, float_frame.index[10:][::-1])
+    tm.assert_index_equal(joined.columns, expected_columns)
+
+    join_msg = (
+        "'foo' is not a valid Merge type: left, right, inner, outer, "
+        "left_anti, right_anti, cross, asof"
+    )
+    with pytest.raises(ValueError, match=re.escape(join_msg)):
         f.join(f2, how="foo")
 
     # corner case - overlapping columns

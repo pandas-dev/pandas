@@ -4,11 +4,6 @@ import zoneinfo
 
 from dateutil.tz import gettz
 import pytest
-import pytz
-from pytz.exceptions import (
-    AmbiguousTimeError,
-    NonExistentTimeError,
-)
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import OutOfBoundsDatetime
@@ -54,13 +49,14 @@ class TestTimestampTZLocalize:
         # make sure that we are correctly accepting bool values as ambiguous
         # GH#14402
         if isinstance(tz, str) and tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
             tz = pytz.timezone(tz.removeprefix("pytz/"))
         ts = Timestamp("2015-11-01 01:00:03").as_unit(unit)
         expected0 = Timestamp("2015-11-01 01:00:03-0500", tz=tz)
         expected1 = Timestamp("2015-11-01 01:00:03-0600", tz=tz)
 
         msg = "Cannot infer dst time from 2015-11-01 01:00:03"
-        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             ts.tz_localize(tz)
 
         result = ts.tz_localize(tz, ambiguous=True)
@@ -105,10 +101,10 @@ class TestTimestampTZLocalize:
     def test_tz_localize_nonexistent(self, stamp, tz):
         # GH#13057
         ts = Timestamp(stamp)
-        with pytest.raises(NonExistentTimeError, match=stamp):
+        with pytest.raises(ValueError, match=stamp):
             ts.tz_localize(tz)
         # GH 22644
-        with pytest.raises(NonExistentTimeError, match=stamp):
+        with pytest.raises(ValueError, match=stamp):
             ts.tz_localize(tz, nonexistent="raise")
         assert ts.tz_localize(tz, nonexistent="NaT") is NaT
 
@@ -154,7 +150,7 @@ class TestTimestampTZLocalize:
         # GH#13057
         ts = Timestamp("2015-11-1 01:00")
         msg = "Cannot infer dst time from 2015-11-01 01:00:00,"
-        with pytest.raises(AmbiguousTimeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             ts.tz_localize("US/Pacific", ambiguous="raise")
 
     def test_tz_localize_nonexistent_invalid_arg(self, warsaw):
@@ -330,7 +326,7 @@ class TestTimestampTZLocalize:
         tz = warsaw
         ts = Timestamp("2015-03-29 02:20:00").as_unit(unit)
         msg = "2015-03-29 02:20:00"
-        with pytest.raises(pytz.NonExistentTimeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             ts.tz_localize(tz, nonexistent="raise")
         msg = (
             "The nonexistent argument must be one of 'raise', 'NaT', "

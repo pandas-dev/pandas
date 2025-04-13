@@ -73,7 +73,7 @@ def cut(
 
     Parameters
     ----------
-    x : array-like
+    x : 1d ndarray or Series
         The input array to be binned. Must be 1-dimensional.
     bins : int, sequence of scalars, or IntervalIndex
         The criteria to bin by.
@@ -126,7 +126,7 @@ def cut(
           Categorical for all other inputs. The values stored within
           are whatever the type in the sequence is.
 
-        * False : returns an ndarray of integers.
+        * False : returns a 1d ndarray or Series of integers.
 
     bins : numpy.ndarray or IntervalIndex.
         The computed or specified bins. Only returned when `retbins=True`.
@@ -142,11 +142,16 @@ def cut(
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
     IntervalIndex : Immutable Index implementing an ordered, sliceable set.
+    numpy.histogram_bin_edges: Function to calculate only the edges of the bins
+        used by the histogram function.
 
     Notes
     -----
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting Series or Categorical object.
+
+    ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
+    to some predefined methods.
 
     Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
@@ -239,6 +244,16 @@ def cut(
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
+
+    Using np.histogram_bin_edges with cut
+
+    >>> pd.cut(
+    ...     np.array([1, 7, 5, 4]),
+    ...     bins=np.histogram_bin_edges(np.array([1, 7, 5, 4]), bins="auto"),
+    ... )
+    ... # doctest: +ELLIPSIS
+    [NaN, (5.0, 7.0], (3.0, 5.0], (3.0, 5.0]]
+    Categories (3, interval[float64, right]): [(1.0, 3.0] < (3.0, 5.0] < (5.0, 7.0]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
@@ -343,7 +358,16 @@ def qcut(
     x_idx = _preprocess_for_cut(x)
     x_idx, _ = _coerce_to_type(x_idx)
 
-    quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
+    if is_integer(q):
+        quantiles = np.linspace(0, 1, q + 1)
+        # Round up rather than to nearest if not representable in base 2
+        np.putmask(
+            quantiles,
+            q * quantiles != np.arange(q + 1),
+            np.nextafter(quantiles, 1),
+        )
+    else:
+        quantiles = q
 
     bins = x_idx.to_series().dropna().quantile(quantiles)
 

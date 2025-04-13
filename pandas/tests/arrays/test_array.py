@@ -5,6 +5,8 @@ import zoneinfo
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
@@ -215,18 +217,42 @@ def test_dt64_array(dtype_unit):
         ),
         (
             ["a", None],
+            "str",
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype(na_value=np.nan))
+            if using_string_dtype()
+            else NumpyExtensionArray(np.array(["a", "None"])),
+        ),
+        (
+            ["a", None],
             pd.StringDtype(),
             pd.StringDtype()
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
         (
+            ["a", None],
+            pd.StringDtype(na_value=np.nan),
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype(na_value=np.nan)),
+        ),
+        (
             # numpy array with string dtype
             np.array(["a", "b"], dtype=str),
-            None,
+            pd.StringDtype(),
             pd.StringDtype()
             .construct_array_type()
             ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
+        ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            pd.StringDtype(na_value=np.nan),
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
         ),
         # Boolean
         (
@@ -344,11 +370,15 @@ def test_array_copy():
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
-            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[ns]")),
+            TimedeltaArray._from_sequence(
+                np.array([1, 2], dtype="m8[ns]"), dtype=np.dtype("m8[ns]")
+            ),
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[us]")),
+            TimedeltaArray._from_sequence(
+                np.array([1, 2], dtype="m8[us]"), dtype=np.dtype("m8[us]")
+            ),
         ),
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2], dtype="Int64")),
@@ -383,6 +413,13 @@ def test_array_copy():
             pd.StringDtype()
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
+        ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
         ),
         # Boolean
         ([True, False], BooleanArray._from_sequence([True, False], dtype="boolean")),

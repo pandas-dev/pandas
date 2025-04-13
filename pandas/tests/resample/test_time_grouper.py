@@ -193,7 +193,7 @@ def test_aggregate_nth():
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
     ser = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4))
-    result = methodcaller(method, **method_args)(ser.resample("2d"))
+    result = methodcaller(method, **method_args)(ser.resample("2D"))
 
     exp_dti = pd.DatetimeIndex(["2017-01-01", "2017-01-03"], dtype="M8[ns]", freq="2D")
     expected = Series([0.0, unit], index=exp_dti)
@@ -351,14 +351,11 @@ def test_groupby_resample_interpolate_raises(groupy_test_df):
     dfs = [groupy_test_df, groupy_test_df_without_index_name]
 
     for df in dfs:
-        msg = "DataFrameGroupBy.resample operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            with pytest.raises(
-                NotImplementedError,
-                match="Direct interpolation of MultiIndex data frames is "
-                "not supported",
-            ):
-                df.groupby("volume").resample("1D").interpolate(method="linear")
+        with pytest.raises(
+            NotImplementedError,
+            match="Direct interpolation of MultiIndex data frames is not supported",
+        ):
+            df.groupby("volume").resample("1D").interpolate(method="linear")
 
 
 def test_groupby_resample_interpolate_with_apply_syntax(groupy_test_df):
@@ -372,8 +369,7 @@ def test_groupby_resample_interpolate_with_apply_syntax(groupy_test_df):
 
     for df in dfs:
         result = df.groupby("volume").apply(
-            lambda x: x.resample("1d").interpolate(method="linear"),
-            include_groups=False,
+            lambda x: x.resample("1D").interpolate(method="linear"),
         )
 
         volume = [50] * 15 + [60]
@@ -417,7 +413,7 @@ def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df)
     See GH#21351."""
     # GH#21351
     result = groupy_test_df.groupby("volume").apply(
-        lambda x: x.resample("265h").interpolate(method="linear"), include_groups=False
+        lambda x: x.resample("265h").interpolate(method="linear")
     )
 
     volume = [50, 50, 60]
@@ -434,13 +430,7 @@ def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df)
     )
 
     expected = DataFrame(
-        data={
-            "price": [
-                10.0,
-                9.21131,
-                11.0,
-            ]
-        },
+        data={"price": [10.0, 9.5, 11.0]},
         index=expected_ind,
     )
     tm.assert_frame_equal(result, expected, check_names=False)

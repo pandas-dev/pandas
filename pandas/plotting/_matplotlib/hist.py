@@ -137,10 +137,7 @@ class HistPlot(LinePlot):
             if self.by is not None
             else self.data
         )
-
-        # error: Argument "data" to "_iter_data" of "MPLPlot" has incompatible
-        # type "object"; expected "DataFrame | dict[Hashable, Series | DataFrame]"
-        for i, (label, y) in enumerate(self._iter_data(data=data)):  # type: ignore[arg-type]
+        for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
@@ -269,6 +266,7 @@ class KdePlot(HistPlot):
         y: np.ndarray,
         style=None,
         bw_method=None,
+        weights=None,
         ind=None,
         column_num=None,
         stacking_id: int | None = None,
@@ -277,7 +275,7 @@ class KdePlot(HistPlot):
         from scipy.stats import gaussian_kde
 
         y = remove_na_arraylike(y)
-        gkde = gaussian_kde(y, bw_method=bw_method)
+        gkde = gaussian_kde(y, bw_method=bw_method, weights=weights)
 
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)

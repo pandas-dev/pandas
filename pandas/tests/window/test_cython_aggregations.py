@@ -30,6 +30,9 @@ def _get_rolling_aggregations():
             ("roll_median_c", window_aggregations.roll_median_c),
             ("roll_max", window_aggregations.roll_max),
             ("roll_min", window_aggregations.roll_min),
+            ("roll_first", window_aggregations.roll_first),
+            ("roll_last", window_aggregations.roll_last),
+            ("roll_nunique", window_aggregations.roll_nunique),
         ]
         + [
             (

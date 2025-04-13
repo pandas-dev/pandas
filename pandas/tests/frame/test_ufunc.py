@@ -66,14 +66,14 @@ def test_binary_input_dispatch_binop(dtype):
     [
         (np.add, 1, [2, 3, 4, 5]),
         (
-            partial(np.add, where=[[False, True], [True, False]]),
+            partial(np.add, where=[[False, True], [True, False]]),  # type: ignore[misc]
             np.array([[1, 1], [1, 1]]),
             [0, 3, 4, 0],
         ),
         (np.power, np.array([[1, 1], [2, 2]]), [1, 2, 9, 16]),
         (np.subtract, 2, [-1, 0, 1, 2]),
         (
-            partial(np.negative, where=np.array([[False, True], [True, False]])),
+            partial(np.negative, where=np.array([[False, True], [True, False]])),  # type: ignore[misc]
             None,
             [0, -2, -3, 0],
         ),

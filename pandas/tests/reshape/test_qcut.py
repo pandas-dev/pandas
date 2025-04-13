@@ -307,3 +307,15 @@ def test_qcut_nullable_integer(q, any_numeric_ea_dtype):
     expected = qcut(arr.astype(float), q)
 
     tm.assert_categorical_equal(result, expected)
+
+
+@pytest.mark.parametrize("scale", [1.0, 1 / 3, 17.0])
+@pytest.mark.parametrize("q", [3, 7, 9])
+@pytest.mark.parametrize("precision", [1, 3, 16])
+def test_qcut_contains(scale, q, precision):
+    # GH-59355
+    arr = (scale * np.arange(q + 1)).round(precision)
+    result = qcut(arr, q, precision=precision)
+
+    for value, bucket in zip(arr, result):
+        assert value in bucket

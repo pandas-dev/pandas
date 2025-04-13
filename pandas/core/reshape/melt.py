@@ -15,7 +15,6 @@ from pandas.core.dtypes.missing import notna
 import pandas.core.algorithms as algos
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import tile_compat
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
@@ -52,9 +51,9 @@ def melt(
     """
     Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
-    This function is useful to massage a DataFrame into a format where one
+    This function is useful to reshape a DataFrame into a format where one
     or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to
+    columns are considered measured variables (`value_vars`), and are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
 
@@ -266,7 +265,8 @@ def melt(
     result = frame._constructor(mdata, columns=mcolumns)
 
     if not ignore_index:
-        result.index = tile_compat(frame.index, num_cols_adjusted)
+        taker = np.tile(np.arange(len(frame)), num_cols_adjusted)
+        result.index = frame.index.take(taker)
 
     return result
 

@@ -499,7 +499,7 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("method", ["pad", "backfill"])
     def test_fillna_preserves_tz(self, method):
         dti = pd.date_range("2000-01-01", periods=5, freq="D", tz="US/Central")
-        arr = DatetimeArray._from_sequence(dti, copy=True)
+        arr = DatetimeArray._from_sequence(dti, dtype=dti.dtype, copy=True)
         arr[2] = pd.NaT
 
         fill_val = dti[1] if method == "pad" else dti[3]
@@ -665,7 +665,9 @@ class TestDatetimeArray:
         dti = pd.date_range("2016-01-01", periods=3)
 
         dta = dti._data
-        expected = DatetimeArray._from_sequence(np.roll(dta._ndarray, 1))
+        expected = DatetimeArray._from_sequence(
+            np.roll(dta._ndarray, 1), dtype=dti.dtype
+        )
 
         fv = dta[-1]
         for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
@@ -731,7 +733,11 @@ class TestDatetimeArray:
         )
         utc_vals *= 1_000_000_000
 
-        dta = DatetimeArray._from_sequence(utc_vals).tz_localize("UTC").tz_convert(tz)
+        dta = (
+            DatetimeArray._from_sequence(utc_vals, dtype=np.dtype("M8[ns]"))
+            .tz_localize("UTC")
+            .tz_convert(tz)
+        )
 
         left = dta[2]
         right = list(dta)[2]
@@ -760,11 +766,13 @@ class TestDatetimeArray:
         with pytest.raises(ValueError, match=msg):
             pd.date_range("1/1/2000", periods=4, freq=freq)
 
-    @pytest.mark.parametrize("freq_depr", ["2H", "2CBH", "2MIN", "2S", "2mS", "2Us"])
+    @pytest.mark.parametrize("freq_depr", ["2MIN", "2nS", "2Us"])
     def test_date_range_uppercase_frequency_deprecated(self, freq_depr):
         # GH#9586, GH#54939
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
-        f"future version. Please use '{freq_depr.lower()[1:]}' instead."
+        depr_msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+            f"future version, please use '{freq_depr.lower()[1:]}' instead."
+        )
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq_depr.lower())
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
@@ -802,6 +810,13 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("freq", ["1A", "2A-MAR", "2a-mar"])
     def test_date_range_frequency_A_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
+
+        with pytest.raises(ValueError, match=msg):
+            pd.date_range("1/1/2000", periods=4, freq=freq)
+
+    @pytest.mark.parametrize("freq", ["2H", "2CBH", "2S"])
+    def test_date_range_uppercase_frequency_raises(self, freq):
         msg = f"Invalid frequency: {freq}"
 
         with pytest.raises(ValueError, match=msg):

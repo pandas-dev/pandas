@@ -133,8 +133,7 @@ class TestTimeConversionFormats:
         with pytest.raises(
             ValueError,
             match=(
-                'unconverted data remains when parsing with format "%Y%m%d": ".0", '
-                "at position 0"
+                'unconverted data remains when parsing with format "%Y%m%d": ".0". '
             ),
         ):
             # https://github.com/pandas-dev/pandas/issues/50051
@@ -514,10 +513,9 @@ class TestTimeConversionFormats:
 
         msg = "|".join(
             [
-                r'^time data ".*" doesn\'t match format ".*", at position 0. '
+                r'^time data ".*" doesn\'t match format ".*". ' f"{PARSING_ERR_MSG}$",
+                r'^unconverted data remains when parsing with format ".*": ".*". '
                 f"{PARSING_ERR_MSG}$",
-                r'^unconverted data remains when parsing with format ".*": ".*", '
-                f"at position 0. {PARSING_ERR_MSG}$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -539,7 +537,7 @@ class TestToDatetime:
         # TODO: Timestamp raises ValueError("could not convert string to Timestamp")
         #  can we make these more consistent?
         arg = "08335394550"
-        msg = 'Parsing "08335394550" to datetime overflows, at position 0'
+        msg = 'Parsing "08335394550" to datetime overflows'
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arg)
 
@@ -796,11 +794,35 @@ class TestToDatetime:
             ["2015-1-1", "%G-%V-%u", datetime(2014, 12, 29, 0, 0)],
             ["2015-1-4", "%G-%V-%u", datetime(2015, 1, 1, 0, 0)],
             ["2015-1-7", "%G-%V-%u", datetime(2015, 1, 4, 0, 0)],
+            ["2024-52-1", "%G-%V-%u", datetime(2024, 12, 23, 0, 0)],
+            ["2024-52-7", "%G-%V-%u", datetime(2024, 12, 29, 0, 0)],
+            ["2025-1-1", "%G-%V-%u", datetime(2024, 12, 30, 0, 0)],
+            ["2020-53-1", "%G-%V-%u", datetime(2020, 12, 28, 0, 0)],
         ],
     )
     def test_to_datetime_iso_week_year_format(self, s, _format, dt):
         # See GH#16607
         assert to_datetime(s, format=_format) == dt
+
+    @pytest.mark.parametrize(
+        "msg, s, _format",
+        [
+            [
+                "Week 53 does not exist in ISO year 2024",
+                "2024 53 1",
+                "%G %V %u",
+            ],
+            [
+                "Week 53 does not exist in ISO year 2023",
+                "2023 53 1",
+                "%G %V %u",
+            ],
+        ],
+    )
+    def test_invalid_iso_week_53(self, msg, s, _format):
+        # See GH#60885
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(s, format=_format)
 
     @pytest.mark.parametrize(
         "msg, s, _format",
@@ -1309,8 +1331,8 @@ class TestToDatetime:
         with pytest.raises(
             ValueError,
             match=(
-                r'^time data "True" doesn\'t match format "%Y%m%d", '
-                f"at position 1. {PARSING_ERR_MSG}$"
+                r'^time data "True" doesn\'t match format "%Y%m%d". '
+                f"{PARSING_ERR_MSG}$"
             ),
         ):
             to_datetime(["20130101", True], cache=cache)
@@ -1345,12 +1367,12 @@ class TestToDatetime:
 
         msg = "|".join(
             [
-                r'^time data "a" doesn\'t match format "%H:%M:%S", at position 0. '
+                r'^time data "a" doesn\'t match format "%H:%M:%S". '
                 f"{PARSING_ERR_MSG}$",
-                r'^Given date string "a" not likely a datetime, at position 0$',
-                r'^unconverted data remains when parsing with format "%H:%M:%S": "9", '
-                f"at position 0. {PARSING_ERR_MSG}$",
-                r"^second must be in 0..59: 00:01:99, at position 0$",
+                r'^Given date string "a" not likely a datetime$',
+                r'^unconverted data remains when parsing with format "%H:%M:%S": "9". '
+                f"{PARSING_ERR_MSG}$",
+                r"^second must be in 0..59: 00:01:99$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1368,7 +1390,7 @@ class TestToDatetime:
             assert res is NaT
 
         if format is not None:
-            msg = r'^time data ".*" doesn\'t match format ".*", at position 0.'
+            msg = r'^time data ".*" doesn\'t match format ".*"'
             with pytest.raises(ValueError, match=msg):
                 to_datetime(value, errors="raise", format=format)
         else:
@@ -1397,12 +1419,12 @@ class TestToDatetime:
 
         msg = "|".join(
             [
-                r'^Given date string "a" not likely a datetime, at position 0$',
-                r'^time data "a" doesn\'t match format "%H:%M:%S", at position 0. '
+                r'^Given date string "a" not likely a datetime$',
+                r'^time data "a" doesn\'t match format "%H:%M:%S". '
                 f"{PARSING_ERR_MSG}$",
-                r'^unconverted data remains when parsing with format "%H:%M:%S": "9", '
-                f"at position 0. {PARSING_ERR_MSG}$",
-                r"^second must be in 0..59: 00:01:99, at position 0$",
+                r'^unconverted data remains when parsing with format "%H:%M:%S": "9". '
+                f"{PARSING_ERR_MSG}$",
+                r"^second must be in 0..59: 00:01:99$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1582,8 +1604,7 @@ class TestToDatetime:
         ts_strings = ["200622-12-31", "111111-24-11"]
         msg = (
             'Parsed string "200622-12-31" gives an invalid tzoffset, which must '
-            r"be between -timedelta\(hours=24\) and timedelta\(hours=24\), "
-            "at position 0"
+            r"be between -timedelta\(hours=24\) and timedelta\(hours=24\)"
         )
         with pytest.raises(
             ValueError,
@@ -1748,7 +1769,7 @@ class TestToDatetimeUnit:
         with pytest.raises(ValueError, match=msg):
             to_datetime(np.array([1.5]), unit=unit, errors="raise")
 
-        msg = r"Given date string \"1.5\" not likely a datetime, at position 0"
+        msg = r"Given date string \"1.5\" not likely a datetime"
         with pytest.raises(ValueError, match=msg):
             to_datetime(["1.5"], unit=unit, errors="raise")
 
@@ -1802,7 +1823,7 @@ class TestToDatetimeUnit:
     def test_to_datetime_invalid_str_not_out_of_bounds_valuerror(self, cache):
         # if we have a string, then we raise a ValueError
         # and NOT an OutOfBoundsDatetime
-        msg = "Unknown datetime string format, unable to parse: foo, at position 0"
+        msg = "Unknown datetime string format, unable to parse: foo"
         with pytest.raises(ValueError, match=msg):
             to_datetime("foo", errors="raise", unit="s", cache=cache)
 
@@ -1938,12 +1959,9 @@ class TestToDatetimeUnit:
     @pytest.mark.parametrize("bad_val", ["foo", 111111111])
     def test_to_datetime_unit_invalid(self, bad_val):
         if bad_val == "foo":
-            msg = (
-                "Unknown datetime string format, unable to parse: "
-                f"{bad_val}, at position 2"
-            )
+            msg = f"Unknown datetime string format, unable to parse: {bad_val}"
         else:
-            msg = "cannot convert input 111111111 with the unit 'D', at position 2"
+            msg = "cannot convert input 111111111 with the unit 'D'"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1, 2, bad_val], unit="D")
 
@@ -2013,6 +2031,7 @@ class TestToDatetimeDataFrame:
 
         # dict-like
         result = to_datetime(df[["year", "month", "day"]].to_dict(), cache=cache)
+        expected.index = Index([0, 1])
         tm.assert_series_equal(result, expected)
 
     def test_dataframe_dict_with_constructable(self, df, cache):
@@ -2021,7 +2040,8 @@ class TestToDatetimeDataFrame:
         df2["month"] = 2
         result = to_datetime(df2, cache=cache)
         expected2 = Series(
-            [Timestamp("20150204 00:00:00"), Timestamp("20160205 00:0:00")]
+            [Timestamp("20150204 00:00:00"), Timestamp("20160205 00:0:00")],
+            index=Index([0, 1]),
         )
         tm.assert_series_equal(result, expected2)
 
@@ -2088,13 +2108,25 @@ class TestToDatetimeDataFrame:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_dataframe_float32_dtype(self, df, cache):
+        # GH#60506
+        # coerce to float64
+        result = to_datetime(df.astype(np.float32), cache=cache)
+        expected = Series(
+            [
+                Timestamp("20150204 06:58:10.001002003"),
+                Timestamp("20160305 07:59:11.001002003"),
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_dataframe_coerce(self, cache):
         # passing coerce
         df2 = DataFrame({"year": [2015, 2016], "month": [2, 20], "day": [4, 5]})
 
         msg = (
             r'^cannot assemble the datetimes: time data ".+" doesn\'t '
-            r'match format "%Y%m%d", at position 1\.'
+            r'match format "%Y%m%d"\.'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
@@ -2172,7 +2204,7 @@ class TestToDatetimeDataFrame:
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
         msg = (
             r"^cannot assemble the datetimes: unconverted data remains when parsing "
-            r'with format ".*": "1", at position 0.'
+            r'with format ".*": "1".'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
@@ -2194,7 +2226,7 @@ class TestToDatetimeMisc:
         # in an in-bounds datetime
         arr = np.array(["2262-04-11 23:47:16.854775808"], dtype=object)
 
-        msg = "^Out of bounds nanosecond timestamp: .*, at position 0"
+        msg = "^Out of bounds nanosecond timestamp: .*"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr)
 
@@ -2229,10 +2261,7 @@ class TestToDatetimeMisc:
         # `format` is longer than the string, so this fails regardless of `exact`
         with pytest.raises(
             ValueError,
-            match=(
-                rf"time data \"{input}\" doesn't match format "
-                rf"\"{format}\", at position 0"
-            ),
+            match=(rf"time data \"{input}\" doesn't match format " rf"\"{format}\""),
         ):
             to_datetime(input, format=format, exact=exact)
 
@@ -2251,10 +2280,9 @@ class TestToDatetimeMisc:
         # `format` is shorter than the date string, so only fails with `exact=True`
         msg = "|".join(
             [
-                '^unconverted data remains when parsing with format ".*": ".*"'
-                f", at position 0. {PARSING_ERR_MSG}$",
-                f'^time data ".*" doesn\'t match format ".*", at position 0. '
+                '^unconverted data remains when parsing with format ".*": ".*". '
                 f"{PARSING_ERR_MSG}$",
+                f'^time data ".*" doesn\'t match format ".*". {PARSING_ERR_MSG}$',
             ]
         )
         with pytest.raises(
@@ -2295,10 +2323,7 @@ class TestToDatetimeMisc:
         # https://github.com/pandas-dev/pandas/issues/12649
         with pytest.raises(
             ValueError,
-            match=(
-                rf"time data \"{input}\" doesn\'t match format "
-                rf"\"{format}\", at position 0"
-            ),
+            match=(rf"time data \"{input}\" doesn\'t match format " rf"\"{format}\""),
         ):
             to_datetime(input, format=format)
 
@@ -2388,8 +2413,7 @@ class TestToDatetimeMisc:
         # GH 6428
         ser = Series(["10/18/2006", "10/18/2008", " "])
         msg = (
-            r'^time data " " doesn\'t match format "%m/%d/%Y", '
-            rf"at position 2. {PARSING_ERR_MSG}$"
+            r'^time data " " doesn\'t match format "%m/%d/%Y". ' rf"{PARSING_ERR_MSG}$"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, errors="raise", cache=cache)
@@ -2464,7 +2488,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_unprocessable_input(self, cache):
         # GH 4928
         # GH 21864
-        msg = '^Given date string "1" not likely a datetime, at position 1$'
+        msg = '^Given date string "1" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             to_datetime([1, "1"], errors="raise", cache=cache)
 
@@ -2495,6 +2519,15 @@ class TestToDatetimeMisc:
         msg = "Cannot cast 139999 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
+
+    def test_to_datetime_float_with_nans_floating_point_error(self):
+        # GH#58419
+        ser = Series([np.nan] * 1000 + [1712219033.0], dtype=np.float64)
+        result = to_datetime(ser, unit="s", errors="coerce")
+        expected = Series(
+            [NaT] * 1000 + [Timestamp("2024-04-04 08:23:53")], dtype="datetime64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_string_invalid_operation(self, cache):
         invalid = np.array(["87156549591102612381000001219H5"], dtype=object)
@@ -2641,7 +2674,7 @@ class TestToDatetimeMisc:
             ValueError,
             match=(
                 r'^time data "03/30/2011" doesn\'t match format '
-                rf'"%d/%m/%Y", at position 1. {PARSING_ERR_MSG}$'
+                rf'"%d/%m/%Y". {PARSING_ERR_MSG}$'
             ),
         ):
             to_datetime(arr, dayfirst=True)
@@ -2712,7 +2745,7 @@ class TestToDatetimeInferFormat:
         ser = Series(np.array(data))
         msg = (
             r'^time data "01-02-2011 00:00:00" doesn\'t match format '
-            rf'"%m/%d/%Y %H:%M:%S", at position 1. {PARSING_ERR_MSG}$'
+            rf'"%m/%d/%Y %H:%M:%S". {PARSING_ERR_MSG}$'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, cache=cache)
@@ -2818,7 +2851,7 @@ class TestDaysInMonth:
         assert isna(to_datetime(arg, errors="coerce", format=format, cache=cache))
 
     def test_day_not_in_month_raise(self, cache):
-        msg = "day is out of range for month: 2015-02-29, at position 0"
+        msg = "day is out of range for month: 2015-02-29"
         with pytest.raises(ValueError, match=msg):
             to_datetime("2015-02-29", errors="raise", cache=cache)
 
@@ -2828,34 +2861,34 @@ class TestDaysInMonth:
             (
                 "2015-02-29",
                 "%Y-%m-%d",
-                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
+                f"^day is out of range for month. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-29-02",
                 "%Y-%d-%m",
-                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
+                f"^day is out of range for month. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-02-32",
                 "%Y-%m-%d",
-                '^unconverted data remains when parsing with format "%Y-%m-%d": "2", '
-                f"at position 0. {PARSING_ERR_MSG}$",
+                '^unconverted data remains when parsing with format "%Y-%m-%d": "2". '
+                f"{PARSING_ERR_MSG}$",
             ),
             (
                 "2015-32-02",
                 "%Y-%d-%m",
-                '^time data "2015-32-02" doesn\'t match format "%Y-%d-%m", '
-                f"at position 0. {PARSING_ERR_MSG}$",
+                '^time data "2015-32-02" doesn\'t match format "%Y-%d-%m". '
+                f"{PARSING_ERR_MSG}$",
             ),
             (
                 "2015-04-31",
                 "%Y-%m-%d",
-                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
+                f"^day is out of range for month. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-31-04",
                 "%Y-%d-%m",
-                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
+                f"^day is out of range for month. {PARSING_ERR_MSG}$",
             ),
         ],
     )
@@ -2988,6 +3021,8 @@ class TestDatetimeParsingWrappers:
             ("20/12/21", True, False, datetime(2021, 12, 20)),
             ("20/12/21", False, True, datetime(2020, 12, 21)),
             ("20/12/21", True, True, datetime(2020, 12, 21)),
+            # GH 58859
+            ("20201012", True, False, datetime(2020, 12, 10)),
         ],
     )
     def test_parsers_dayfirst_yearfirst(
@@ -3222,9 +3257,7 @@ class TestOrigin:
 
     def test_incorrect_value_exception(self):
         # GH47495
-        msg = (
-            "Unknown datetime string format, unable to parse: yesterday, at position 1"
-        )
+        msg = "Unknown datetime string format, unable to parse: yesterday"
         with pytest.raises(ValueError, match=msg):
             to_datetime(["today", "yesterday"])
 
@@ -3245,7 +3278,7 @@ class TestOrigin:
             assert res.month == 10
             assert res.day == 10
         else:
-            msg = "unconverted data remains when parsing with format.*, at position 0"
+            msg = "unconverted data remains when parsing with format.*"
             with pytest.raises(ValueError, match=msg):
                 to_datetime("2417-10-10 00:00:00.00", format=format)
 
@@ -3469,9 +3502,7 @@ def test_to_datetime_mixed_or_iso_exact(exact, format):
 
 def test_to_datetime_mixed_not_necessarily_iso8601_raise():
     # https://github.com/pandas-dev/pandas/issues/50411
-    with pytest.raises(
-        ValueError, match="Time data 01-01-2000 is not ISO8601 format, at position 1"
-    ):
+    with pytest.raises(ValueError, match="Time data 01-01-2000 is not ISO8601 format"):
         to_datetime(["2020-01-01", "01-01-2000"], format="ISO8601")
 
 
@@ -3494,6 +3525,15 @@ def test_unknown_tz_raises():
         to_datetime(dtstr)
     with pytest.raises(ValueError, match=msg):
         to_datetime([dtstr])
+
+
+def test_unformatted_input_raises():
+    valid, invalid = "2024-01-01", "N"
+    ser = Series([valid] * start_caching_at + [invalid])
+    msg = 'time data "N" doesn\'t match format "%Y-%m-%d"'
+
+    with pytest.raises(ValueError, match=msg):
+        to_datetime(ser, format="%Y-%m-%d", exact=True, cache=True)
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
@@ -3673,3 +3713,12 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
                 to_datetime(vec, format="mixed")
             with pytest.raises(ValueError, match=msg):
                 DatetimeIndex(vec)
+
+
+def test_to_datetime_wrapped_datetime64_ps():
+    # GH#60341
+    result = to_datetime([np.datetime64(1901901901901, "ps")])
+    expected = DatetimeIndex(
+        ["1970-01-01 00:00:01.901901901"], dtype="datetime64[ns]", freq=None
+    )
+    tm.assert_index_equal(result, expected)

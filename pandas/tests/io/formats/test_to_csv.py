@@ -221,7 +221,7 @@ $1$,$2$
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
-        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="d")})
+        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="D")})
 
         expected_rows = [
             ",A",
@@ -482,10 +482,7 @@ $1$,$2$
             # case 3: CRLF as line terminator
             # 'lineterminator' should not change inner element
             expected_crlf = (
-                b"int,str_crlf\r\n"
-                b"1,abc\r\n"
-                b'2,"d\r\nef"\r\n'
-                b'3,"g\r\nh\r\n\r\ni"\r\n'
+                b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
             )
             df.to_csv(path, lineterminator="\r\n", index=False)
             with open(path, "rb") as f:

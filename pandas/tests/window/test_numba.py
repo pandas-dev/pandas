@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -11,8 +12,17 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
+
+numba = pytest.importorskip("numba")
+pytestmark.append(
+    pytest.mark.skipif(
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 @pytest.fixture(params=["single", "table"])
@@ -36,6 +46,11 @@ def method(request):
 )
 def arithmetic_numba_supported_operators(request):
     return request.param
+
+
+@pytest.fixture
+def roll_frame():
+    return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
 
 @td.skip_if_no("numba")
@@ -66,6 +81,62 @@ class TestEngine:
             f, engine="cython", args=args, raw=True
         )
         tm.assert_series_equal(result, expected)
+
+    def test_apply_numba_with_kwargs(self, roll_frame):
+        # GH 58995
+        # rolling apply
+        def func(sr, a=0):
+            return sr.sum() + a
+
+        data = DataFrame(range(10))
+
+        result = data.rolling(5).apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        expected = data.rolling(5).sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = data.rolling(5).apply(func, engine="numba", raw=True, args=(1,))
+        tm.assert_frame_equal(result, expected)
+
+        # expanding apply
+
+        result = data.expanding().apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        expected = data.expanding().sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = data.expanding().apply(func, engine="numba", raw=True, args=(1,))
+        tm.assert_frame_equal(result, expected)
+
+        # groupby rolling
+        result = (
+            roll_frame.groupby("A")
+            .rolling(5)
+            .apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        )
+        expected = roll_frame.groupby("A").rolling(5).sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = (
+            roll_frame.groupby("A")
+            .rolling(5)
+            .apply(func, engine="numba", raw=True, args=(1,))
+        )
+        tm.assert_frame_equal(result, expected)
+        # groupby expanding
+
+        result = (
+            roll_frame.groupby("A")
+            .expanding()
+            .apply(func, engine="numba", raw=True, kwargs={"a": 1})
+        )
+        expected = roll_frame.groupby("A").expanding().sum() + 1
+        tm.assert_frame_equal(result, expected)
+
+        result = (
+            roll_frame.groupby("A")
+            .expanding()
+            .apply(func, engine="numba", raw=True, args=(1,))
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_numba_min_periods(self):
         # GH 58868
@@ -319,12 +390,23 @@ def test_use_global_config():
 
 @td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
+    with pytest.raises(TypeError, match="got an unexpected keyword argument 'a'"):
+        Series(range(1)).rolling(1).apply(
+            lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
+        )
     with pytest.raises(
         NumbaUtilError, match="numba does not support keyword-only arguments"
     ):
         Series(range(1)).rolling(1).apply(
-            lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
+            lambda x, *, a: x, kwargs={"a": 1}, engine="numba", raw=True
         )
+
+    tm.assert_series_equal(
+        Series(range(1), dtype=float) + 1,
+        Series(range(1))
+        .rolling(1)
+        .apply(lambda x, a: (x + a).sum(), kwargs={"a": 1}, engine="numba", raw=True),
+    )
 
 
 @td.skip_if_no("numba")
@@ -386,6 +468,38 @@ class TestTableMethod:
             f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_table_method_rolling_apply_col_order(self):
+        # GH#59666
+        def f(x):
+            return np.nanmean(x[:, 0] - x[:, 1])
+
+        df = DataFrame(
+            {
+                "a": [1, 2, 3, 4, 5, 6],
+                "b": [6, 7, 8, 5, 6, 7],
+            }
+        )
+        result = df.rolling(3, method="table", min_periods=0)[["a", "b"]].apply(
+            f, raw=True, engine="numba"
+        )
+        expected = DataFrame(
+            {
+                "a": [-5, -5, -5, -3.66667, -2.33333, -1],
+                "b": [-5, -5, -5, -3.66667, -2.33333, -1],
+            }
+        )
+        tm.assert_almost_equal(result, expected)
+        result = df.rolling(3, method="table", min_periods=0)[["b", "a"]].apply(
+            f, raw=True, engine="numba"
+        )
+        expected = DataFrame(
+            {
+                "b": [5, 5, 5, 3.66667, 2.33333, 1],
+                "a": [5, 5, 5, 3.66667, 2.33333, 1],
+            }
+        )
+        tm.assert_almost_equal(result, expected)
 
     def test_table_method_rolling_weighted_mean(self, step):
         def weighted_mean(x):

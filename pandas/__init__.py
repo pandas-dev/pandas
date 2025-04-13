@@ -3,7 +3,7 @@ from __future__ import annotations
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-_hard_dependencies = ("numpy", "pytz", "dateutil")
+_hard_dependencies = ("numpy", "dateutil")
 _missing_dependencies = []
 
 for _dependency in _hard_dependencies:
@@ -28,8 +28,8 @@ except ImportError as _err:  # pragma: no cover
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python -m pip install -ve . --no-build-isolation --config-settings "
-        "editable-verbose=true' to build the C extensions first."
+        "'python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true' "
+        "to build the C extensions first."
     ) from _err
 
 from pandas._config import (
@@ -235,6 +235,7 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "NA",
     "ArrowDtype",
     "BooleanDtype",
     "Categorical",
@@ -253,15 +254,14 @@ __all__ = [
     "HDFStore",
     "Index",
     "IndexSlice",
+    "Int8Dtype",
     "Int16Dtype",
     "Int32Dtype",
     "Int64Dtype",
-    "Int8Dtype",
     "Interval",
     "IntervalDtype",
     "IntervalIndex",
     "MultiIndex",
-    "NA",
     "NaT",
     "NamedAgg",
     "Period",
@@ -274,10 +274,10 @@ __all__ = [
     "Timedelta",
     "TimedeltaIndex",
     "Timestamp",
+    "UInt8Dtype",
     "UInt16Dtype",
     "UInt32Dtype",
     "UInt64Dtype",
-    "UInt8Dtype",
     "api",
     "array",
     "arrays",
@@ -290,8 +290,8 @@ __all__ = [
     "errors",
     "eval",
     "factorize",
-    "get_dummies",
     "from_dummies",
+    "get_dummies",
     "get_option",
     "infer_freq",
     "interval_range",

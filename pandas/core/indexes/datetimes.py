@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
-import pytz
 
 from pandas._libs import (
     NaT,
@@ -27,6 +26,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_scalar
@@ -127,6 +127,7 @@ def _new_DatetimeIndex(cls, d):
     + DatetimeArray._bool_ops,
     DatetimeArray,
 )
+@set_module("pandas")
 class DatetimeIndex(DatetimeTimedeltaMixin):
     """
     Immutable ndarray-like of datetime64 data.
@@ -162,7 +163,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           non-DST time (note that this flag is only applicable for ambiguous
           times)
         - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times.
+        - 'raise' will raise a ValueError if there are ambiguous times.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
@@ -264,7 +265,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.strftime)
     def strftime(self, date_format) -> Index:
         arr = self._data.strftime(date_format)
-        return Index(arr, name=self.name, dtype=object)
+        return Index(arr, name=self.name, dtype=arr.dtype)
 
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> Self:
@@ -591,7 +592,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif isinstance(key, str):
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except (ValueError, pytz.NonExistentTimeError) as err:
+            except ValueError as err:
                 raise KeyError(key) from err
             self._disallow_mismatched_indexing(parsed)
 
@@ -815,6 +816,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return mask.nonzero()[0]
 
 
+@set_module("pandas")
 def date_range(
     start=None,
     end=None,
@@ -876,6 +878,7 @@ def date_range(
     Returns
     -------
     DatetimeIndex
+        A DatetimeIndex object of the generated dates.
 
     See Also
     --------
@@ -1018,6 +1021,7 @@ def date_range(
     return DatetimeIndex._simple_new(dtarr, name=name)
 
 
+@set_module("pandas")
 def bdate_range(
     start=None,
     end=None,

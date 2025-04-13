@@ -4,14 +4,14 @@ Tests for CategoricalIndex.__repr__ and related methods.
 
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 import pandas._config.config as cf
 
 from pandas import CategoricalIndex
 
 
 class TestCategoricalIndexRepr:
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr different")
+    @pytest.mark.xfail(using_string_dtype(), reason="repr different")
     def test_string_categorical_index_repr(self):
         # short
         idx = CategoricalIndex(["a", "bb", "ccc"])

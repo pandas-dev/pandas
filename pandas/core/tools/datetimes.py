@@ -44,6 +44,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_float,
+    is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -191,9 +192,9 @@ def should_cache(
         else:
             check_count = 500
     else:
-        assert (
-            0 <= check_count <= len(arg)
-        ), "check_count must be in next bounds: [0; len(arg)]"
+        assert 0 <= check_count <= len(arg), (
+            "check_count must be in next bounds: [0; len(arg)]"
+        )
         if check_count == 0:
             return False
 
@@ -418,7 +419,7 @@ def _convert_listlike_datetimes(
         arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))
     except TypeError:
         if errors == "coerce":
-            npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
+            npvalues = np.full(len(arg), np.datetime64("NaT", "ns"))
             return DatetimeIndex(npvalues, name=name)
         raise
 
@@ -1000,7 +1001,7 @@ def to_datetime(
         dayfirst=dayfirst,
         yearfirst=yearfirst,
         errors=errors,
-        exact=exact,
+        exact=exact,  # type: ignore[arg-type]
     )
     result: Timestamp | NaTType | Series | Index
 
@@ -1152,6 +1153,10 @@ def _assemble_from_unit_mappings(
     def coerce(values):
         # we allow coercion to if errors allows
         values = to_numeric(values, errors=errors)
+
+        # prevent prevision issues in case of float32 # GH#60506
+        if is_float_dtype(values.dtype):
+            values = values.astype("float64")
 
         # prevent overflow in case of int8 or int16
         if is_integer_dtype(values.dtype):

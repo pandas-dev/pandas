@@ -1153,7 +1153,7 @@ def test_timeoffset_as_window_parameter_for_corr(unit):
         index=dti,
     )
 
-    res = df.rolling(window="3d").corr()
+    res = df.rolling(window="3D").corr()
 
     tm.assert_frame_equal(exp, res)
 
@@ -1326,6 +1326,82 @@ def test_rolling_corr_timedelta_index(index, window):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [float("nan"), float("nan"), 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [float("nan")] * 10,
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [float("nan"), float("nan"), 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [float("nan")] * 10,
+        ),
+    ],
+)
+def test_rolling_first_last(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.rolling(3), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.rolling(3), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [1.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [1.0, 1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0],
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0, 9.0],
+        ),
+    ],
+)
+def test_rolling_first_last_no_minp(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.rolling(3, min_periods=0), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.rolling(3, min_periods=0), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
 def test_groupby_rolling_nan_included():
     # GH 35542
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
@@ -1380,17 +1456,20 @@ def test_invalid_method():
         Series(range(1)).rolling(1, method="foo")
 
 
-@pytest.mark.parametrize("window", [1, "1d"])
-def test_rolling_descending_date_order_with_offset(window, frame_or_series):
+def test_rolling_descending_date_order_with_offset(frame_or_series):
     # GH#40002
-    idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
-    obj = frame_or_series(range(1, 4), index=idx)
-    result = obj.rolling("1d", closed="left").sum()
+    msg = "'d' is deprecated and will be removed in a future version."
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
+        obj = frame_or_series(range(1, 4), index=idx)
+        result = obj.rolling("1d", closed="left").sum()
+
     expected = frame_or_series([np.nan, 1, 2], index=idx)
     tm.assert_equal(result, expected)
 
-    result = obj.iloc[::-1].rolling("1d", closed="left").sum()
-    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1d")
+    result = obj.iloc[::-1].rolling("1D", closed="left").sum()
+    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1D")
     expected = frame_or_series([np.nan, 3, 2], index=idx)
     tm.assert_equal(result, expected)
 
@@ -1503,6 +1582,43 @@ def test_rank(window, method, pct, ascending, test_data):
         lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]
     )
     result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("window", [1, 3, 10, 20])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans", "precision"])
+def test_nunique(window, test_data):
+    length = 20
+    if test_data == "default":
+        ser = Series(data=np.random.default_rng(2).random(length))
+    elif test_data == "duplicates":
+        ser = Series(data=np.random.default_rng(2).choice(3, length))
+    elif test_data == "nans":
+        ser = Series(
+            data=np.random.default_rng(2).choice(
+                [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
+            )
+        )
+    elif test_data == "precision":
+        ser = Series(
+            data=[
+                0.3,
+                0.1 * 3,  # Not necessarily exactly 0.3
+                0.6,
+                0.2 * 3,  # Not necessarily exactly 0.6
+                0.9,
+                0.3 * 3,  # Not necessarily exactly 0.9
+                0.5,
+                0.1 * 5,  # Not necessarily exactly 0.5
+                0.8,
+                0.2 * 4,  # Not necessarily exactly 0.8
+            ],
+            dtype=np.float64,
+        )
+
+    expected = ser.rolling(window).apply(lambda x: x.nunique())
+    result = ser.rolling(window).nunique()
 
     tm.assert_series_equal(result, expected)
 

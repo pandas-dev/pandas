@@ -47,6 +47,18 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
     """
     Accessor for SparseSparse from other sparse matrix data types.
 
+    Parameters
+    ----------
+    data : Series or DataFrame
+        The Series or DataFrame to which the SparseAccessor is attached.
+
+    See Also
+    --------
+    Series.sparse.to_coo : Create a scipy.sparse.coo_matrix from a Series with
+        MultiIndex.
+    Series.sparse.from_coo : Create a Series with sparse values from a
+        scipy.sparse.coo_matrix.
+
     Examples
     --------
     >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")
@@ -76,9 +88,17 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         """
         Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
+        This method takes a ``scipy.sparse.coo_matrix`` (coordinate format) as input and
+        returns a pandas ``Series`` where the non-zero elements are represented as
+        sparse values. The index of the Series can either include only the coordinates
+        of non-zero elements (default behavior) or the full sorted set of coordinates
+        from the matrix if ``dense_index`` is set to `True`.
+
         Parameters
         ----------
         A : scipy.sparse.coo_matrix
+            The sparse matrix in coordinate format from which the sparse Series
+            will be created.
         dense_index : bool, default False
             If False (default), the index consists of only the
             coords of the non-null entries of the original coo_matrix.
@@ -89,6 +109,12 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         -------
         s : Series
             A Series with sparse values.
+
+        See Also
+        --------
+        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a scipy sparse
+            matrix.
+        scipy.sparse.coo_matrix : A sparse matrix in COOrdinate format.
 
         Examples
         --------
@@ -135,7 +161,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Parameters
         ----------
         row_levels : tuple/list
+            MultiIndex levels to use for row coordinates, specified by name or index.
         column_levels : tuple/list
+            MultiIndex levels to use for column coordinates, specified by name or index.
         sort_labels : bool, default False
             Sort the row and column labels before forming the sparse matrix.
             When `row_levels` and/or `column_levels` refer to a single level,
@@ -144,8 +172,16 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Returns
         -------
         y : scipy.sparse.coo_matrix
+            The sparse matrix in coordinate format.
         rows : list (row labels)
+            Labels corresponding to the row coordinates.
         columns : list (column labels)
+            Labels corresponding to the column coordinates.
+
+        See Also
+        --------
+        Series.sparse.from_coo : Create a Series with sparse values from a
+            scipy.sparse.coo_matrix.
 
         Examples
         --------
@@ -243,6 +279,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
+    It allows users to interact with a `DataFrame` that contains sparse data types
+    (`SparseDtype`). It provides methods and attributes to efficiently work with sparse
+    storage, reducing memory usage while maintaining compatibility with standard pandas
+    operations.
+
     Parameters
     ----------
     data : scipy.sparse.spmatrix
@@ -256,7 +297,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     --------
     >>> df = pd.DataFrame({"a": [1, 2, 0, 0], "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
     >>> df.sparse.density
-    0.5
+    np.float64(0.5)
     """
 
     def _validate(self, data) -> None:
@@ -347,10 +388,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         1  1
         2  0
         """
-        from pandas import DataFrame
-
         data = {k: v.array.to_dense() for k, v in self._parent.items()}
-        return DataFrame(data, index=self._parent.index, columns=self._parent.columns)
+        return self._parent._constructor(
+            data, index=self._parent.index, columns=self._parent.columns
+        )
 
     def to_coo(self) -> spmatrix:
         """
@@ -418,7 +459,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
         >>> df.sparse.density
-        0.5
+        np.float64(0.5)
         """
         tmp = np.mean([column.array.density for _, column in self._parent.items()])
         return tmp

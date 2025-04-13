@@ -25,14 +25,14 @@ from pandas.tests.copy_view.util import get_array
     ],
 )
 def test_replace(replace_kwargs):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["foo", "bar", "baz"]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     df_replaced = df.replace(**replace_kwargs)
 
     if (df_replaced["b"] == df["b"]).all():
         assert np.shares_memory(get_array(df_replaced, "b"), get_array(df, "b"))
-    assert np.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
+    assert tm.shares_memory(get_array(df_replaced, "c"), get_array(df, "c"))
 
     # mutating squeezed df triggers a copy-on-write for that column/block
     df_replaced.loc[0, "c"] = -1
@@ -61,12 +61,12 @@ def test_replace_regex_inplace():
     arr = get_array(df, "a")
     df.replace(to_replace=r"^a.*$", value="new", inplace=True, regex=True)
     assert df._mgr._has_no_reference(0)
-    assert np.shares_memory(arr, get_array(df, "a"))
+    assert tm.shares_memory(arr, get_array(df, "a"))
 
     df_orig = df.copy()
     df2 = df.replace(to_replace=r"^b.*$", value="new", regex=True)
     tm.assert_frame_equal(df_orig, df)
-    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
 
 def test_replace_regex_inplace_no_op():
@@ -255,7 +255,7 @@ def test_replace_empty_list():
 
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(value):
-    df = DataFrame({"a": ["a", "b", "c"]})
+    df = DataFrame({"a": ["a", "b", "c"]}, dtype=object)
     arr = get_array(df, "a")
     df.replace(["c"], value, inplace=True)
     assert np.shares_memory(arr, get_array(df, "a"))
@@ -278,6 +278,12 @@ def test_replace_list_none():
     tm.assert_frame_equal(df, df_orig)
 
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    # replace multiple values that don't actually replace anything with None
+    # https://github.com/pandas-dev/pandas/issues/59770
+    df3 = df.replace(["d", "e", "f"], value=None)
+    tm.assert_frame_equal(df3, df_orig)
+    assert tm.shares_memory(get_array(df, "a"), get_array(df3, "a"))
 
 
 def test_replace_list_none_inplace_refs():

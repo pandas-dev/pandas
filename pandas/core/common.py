@@ -246,7 +246,8 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         with warnings.catch_warnings():
             # Can remove warning filter once NumPy 1.24 is min version
             if not np_version_gte1p24:
-                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+                # np.VisibleDeprecationWarning only in np.exceptions in 2.0
+                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)  # type: ignore[attr-defined]
             result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like
@@ -359,7 +360,7 @@ def is_full_slice(obj, line: int) -> bool:
 def get_callable_name(obj):
     # typical case has name
     if hasattr(obj, "__name__"):
-        return getattr(obj, "__name__")
+        return obj.__name__
     # some objects don't; could recurse
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
@@ -560,9 +561,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(
-    obj, attr: str, value, condition: bool = True
-) -> Generator[None, None, None]:
+def temp_setattr(obj, attr: str, value, condition: bool = True) -> Generator[None]:
     """
     Temporarily set attribute on an object.
 

@@ -5,9 +5,15 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    final,
+    overload,
 )
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
 
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -20,6 +26,7 @@ from pandas.core.window.doc import (
     kwargs_numeric_only,
     numba_notes,
     template_header,
+    template_pipe,
     template_returns,
     template_see_also,
     window_agg_numba_parameters,
@@ -34,7 +41,11 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pandas._typing import (
+        Concatenate,
+        P,
         QuantileInterpolation,
+        Self,
+        T,
         WindowingRankType,
     )
 
@@ -167,13 +178,15 @@ class Expanding(RollingAndExpandingMixin):
         klass="Series/Dataframe",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
 
     @doc(
         template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -238,6 +251,54 @@ class Expanding(RollingAndExpandingMixin):
             args=args,
             kwargs=kwargs,
         )
+
+    @overload
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T: ...
+
+    @overload
+    def pipe(
+        self,
+        func: tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T: ...
+
+    @final
+    @Substitution(
+        klass="Expanding",
+        examples="""
+    >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+    ...                   index=pd.date_range('2012-08-02', periods=4))
+    >>> df
+                A
+    2012-08-02  1
+    2012-08-03  2
+    2012-08-04  3
+    2012-08-05  4
+
+    To get the difference between each expanding window's maximum and minimum
+    value in one pass, you can do
+
+    >>> df.expanding().pipe(lambda x: x.max() - x.min())
+                  A
+    2012-08-02  0.0
+    2012-08-03  1.0
+    2012-08-04  2.0
+    2012-08-05  3.0""",
+    )
+    @Appender(template_pipe)
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        return super().pipe(func, *args, **kwargs)
 
     @doc(
         template_header,
@@ -665,6 +726,78 @@ class Expanding(RollingAndExpandingMixin):
     @doc(
         template_header,
         create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        dedent(
+            """
+        GroupBy.first : Similar method for GroupBy objects.
+        Expanding.last : Method to get the last element in each window.\n
+        """
+        ).replace("\n", "", 1),
+        create_section_header("Examples"),
+        dedent(
+            """
+        The example below will show an expanding calculation with a window size of
+        three.
+
+        >>> s = pd.Series(range(5))
+        >>> s.expanding(3).first()
+        0         NaN
+        1         NaN
+        2         0.0
+        3         0.0
+        4         0.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="First (left-most) element of the window",
+        agg_method="first",
+    )
+    def first(self, numeric_only: bool = False):
+        return super().first(numeric_only=numeric_only)
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        dedent(
+            """
+        GroupBy.last : Similar method for GroupBy objects.
+        Expanding.first : Method to get the first element in each window.\n
+        """
+        ).replace("\n", "", 1),
+        create_section_header("Examples"),
+        dedent(
+            """
+        The example below will show an expanding calculation with a window size of
+        three.
+
+        >>> s = pd.Series(range(5))
+        >>> s.expanding(3).last()
+        0         NaN
+        1         NaN
+        2         2.0
+        3         3.0
+        4         4.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="Last (right-most) element of the window",
+        agg_method="last",
+    )
+    def last(self, numeric_only: bool = False):
+        return super().last(numeric_only=numeric_only)
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
         dedent(
             """
         q : float
@@ -796,6 +929,41 @@ class Expanding(RollingAndExpandingMixin):
 
     @doc(
         template_header,
+        ".. versionadded:: 3.0.0 \n\n",
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """
+        >>> s = pd.Series([1, 4, 2, 3, 5, 3])
+        >>> s.expanding().nunique()
+        0    1.0
+        1    2.0
+        2    3.0
+        3    4.0
+        4    5.0
+        5    5.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="nunique",
+        agg_method="nunique",
+    )
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        return super().nunique(
+            numeric_only=numeric_only,
+        )
+
+    @doc(
+        template_header,
         create_section_header("Parameters"),
         dedent(
             """
@@ -865,6 +1033,9 @@ class Expanding(RollingAndExpandingMixin):
             output will be a MultiIndexed DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,

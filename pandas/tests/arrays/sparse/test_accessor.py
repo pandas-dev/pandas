@@ -252,3 +252,7 @@ class TestFrameAccessor:
         # https://github.com/pandas-dev/pandas/issues/30758
         df = pd.DataFrame({"sparse": pd.arrays.SparseArray([1, 2])})
         assert isinstance(df.sparse, pd.core.arrays.sparse.accessor.SparseFrameAccessor)
+
+    def test_subclassing(self):
+        df = tm.SubclassedDataFrame({"sparse": pd.arrays.SparseArray([1, 2])})
+        assert isinstance(df.sparse.to_dense(), tm.SubclassedDataFrame)

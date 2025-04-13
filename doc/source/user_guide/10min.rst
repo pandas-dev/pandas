@@ -177,7 +177,7 @@ See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and
 Getitem (``[]``)
 ~~~~~~~~~~~~~~~~
 
-For a :class:`DataFrame`, passing a single label selects a columns and
+For a :class:`DataFrame`, passing a single label selects a column and
 yields a :class:`Series` equivalent to ``df.A``:
 
 .. ipython:: python

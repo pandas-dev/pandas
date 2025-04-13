@@ -164,12 +164,12 @@ class TestPeriodIndex:
             ("Y-DEC", "<YearEnd: month=12>"),
             ("Q-MAR", "<QuarterEnd: startingMonth=3>"),
             ("M", "<MonthEnd>"),
-            ("w-thu", "<Week: weekday=3>"),
+            ("W-THU", "<Week: weekday=3>"),
         ],
     )
     def test_not_subperiod(self, simple_period_range_series, rule, expected_error_msg):
         # These are incompatible period rules for resampling
-        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="w-wed")
+        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="W-WED")
         msg = (
             "Frequency <Week: weekday=2> cannot be resampled to "
             f"{expected_error_msg}, as they are not sub or super periods"

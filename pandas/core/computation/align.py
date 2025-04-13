@@ -213,7 +213,7 @@ def reconstruct_object(typ, obj, axes, dtype, name):
     if hasattr(res_t, "type") and typ == np.bool_ and res_t != np.bool_:
         ret_value = res_t.type(obj)
     else:
-        ret_value = typ(obj).astype(res_t)
+        ret_value = res_t.type(obj)
         # The condition is to distinguish 0-dim array (returned in case of
         # scalar) and 1 element array
         # e.g. np.array(0) and np.array([0])

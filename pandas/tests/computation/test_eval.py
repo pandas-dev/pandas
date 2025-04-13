@@ -1800,7 +1800,7 @@ def test_numexpr_option_incompatible_op():
             {"A": [True, False, True, False, None, None], "B": [1, 2, 3, 4, 5, 6]}
         )
         result = df.query("A.isnull()")
-        expected = DataFrame({"A": [None, None], "B": [5, 6]}, index=[4, 5])
+        expected = DataFrame({"A": [None, None], "B": [5, 6]}, index=range(4, 6))
         tm.assert_frame_equal(result, expected)
 
 
@@ -1998,3 +1998,32 @@ def test_validate_bool_args(value):
     msg = 'For argument "inplace" expected type bool, received type'
     with pytest.raises(ValueError, match=msg):
         pd.eval("2+2", inplace=value)
+
+
+@td.skip_if_no("numexpr")
+def test_eval_float_div_numexpr():
+    # GH 59736
+    result = pd.eval("1 / 2", engine="numexpr")
+    expected = 0.5
+    assert result == expected
+
+
+def test_method_calls_on_binop():
+    # GH 61175
+    x = Series([1, 2, 3, 5])
+    y = Series([2, 3, 4])
+
+    # Method call on binary operation result
+    result = pd.eval("(x + y).dropna()")
+    expected = (x + y).dropna()
+    tm.assert_series_equal(result, expected)
+
+    # Test with other binary operations
+    result = pd.eval("(x * y).dropna()")
+    expected = (x * y).dropna()
+    tm.assert_series_equal(result, expected)
+
+    # Test with method chaining
+    result = pd.eval("(x + y).dropna().reset_index(drop=True)")
+    expected = (x + y).dropna().reset_index(drop=True)
+    tm.assert_series_equal(result, expected)

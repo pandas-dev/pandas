@@ -8,6 +8,7 @@ from collections.abc import (
     Sequence,
 )
 import datetime
+from decimal import Decimal
 from functools import partial
 import os
 from textwrap import fill
@@ -43,6 +44,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_decimal,
     is_file_like,
     is_float,
     is_integer,
@@ -113,7 +115,7 @@ sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
     Lists of strings/integers are used to request multiple sheets.
-    Specify ``None`` to get all worksheets.
+    When ``None``, will return a dictionary containing DataFrames for each sheet.
 
     Available cases:
 
@@ -122,7 +124,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * ``None``: All worksheets.
+    * ``None``: Returns a dictionary containing DataFrames for each sheet..
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -195,7 +197,7 @@ skiprows : list-like, int, or callable, optional
     False otherwise. An example of a valid callable argument would be ``lambda
     x: x in [0, 2]``.
 nrows : int, default None
-    Number of rows to parse.
+    Number of rows to parse. Does not include header rows.
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
@@ -267,14 +269,15 @@ skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 {storage_options}
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
-    (still experimental). Behaviour is as follows:
+    (still experimental). If not specified, the default behavior
+    is to not use nullable data types. If specified, the behavior
+    is as follows:
 
     * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-      (default).
-    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-      DataFrame.
+    * ``"pyarrow"``: returns pyarrow-backed nullable
+      :class:`ArrowDtype` :class:`DataFrame`
 
     .. versionadded:: 2.0
 
@@ -957,7 +960,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
-    * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
+    * `odf <https://pypi.org/project/odfpy/>`__ for ods files
 
     See :meth:`DataFrame.to_excel` for typical usage.
 
@@ -1004,7 +1007,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
         * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
         * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
-        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
+        * odf: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
 
@@ -1347,6 +1350,8 @@ class ExcelWriter(Generic[_WorkbookT]):
             val = float(val)
         elif is_bool(val):
             val = bool(val)
+        elif is_decimal(val):
+            val = Decimal(val)
         elif isinstance(val, datetime.datetime):
             fmt = self._datetime_format
         elif isinstance(val, datetime.date):
@@ -1644,7 +1649,8 @@ class ExcelFile:
             Strings are used for sheet names. Integers are used in zero-indexed
             sheet positions (chart sheets do not count as a sheet position).
             Lists of strings/integers are used to request multiple sheets.
-            Specify ``None`` to get all worksheets.
+            When ``None``, will return a dictionary containing DataFrames for
+            each sheet.
         header : int, list of int, default 0
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will
@@ -1728,14 +1734,15 @@ class ExcelFile:
             comment string and the end of the current line is ignored.
         skipfooter : int, default 0
             Rows at the end to skip (0-indexed).
-        dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        dtype_backend : {{'numpy_nullable', 'pyarrow'}}
             Back-end data type applied to the resultant :class:`DataFrame`
-            (still experimental). Behaviour is as follows:
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              (default).
-            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame.
+            * ``"pyarrow"``: returns pyarrow-backed nullable
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
         **kwds : dict, optional

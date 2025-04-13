@@ -55,7 +55,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
 from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
@@ -65,10 +64,9 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
-    decorate_axes,
     format_dateaxis,
     maybe_convert_index,
-    maybe_resample,
+    prepare_ts_data,
     use_dynamic_x,
 )
 from pandas.plotting._matplotlib.tools import (
@@ -94,6 +92,7 @@ if TYPE_CHECKING:
     )
 
     from pandas import (
+        DataFrame,
         Index,
         Series,
     )
@@ -183,7 +182,7 @@ class MPLPlot(ABC):
         # Assign the rest of columns into self.columns if by is explicitly defined
         # while column is not, only need `columns` in hist/box plot when it's DF
         # TODO: Might deprecate `column` argument in future PR (#28373)
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if column:
                 self.columns = com.maybe_make_list(column)
             elif self.by is None:
@@ -287,6 +286,21 @@ class MPLPlot(ABC):
         assert "color" not in self.kwds
 
         self.data = self._ensure_frame(self.data)
+
+        from pandas.plotting import plot_params
+
+        self.x_compat = plot_params["x_compat"]
+        if "x_compat" in self.kwds:
+            self.x_compat = bool(self.kwds.pop("x_compat"))
+
+    @final
+    def _is_ts_plot(self) -> bool:
+        # this is slightly deceptive
+        return not self.x_compat and self.use_index and self._use_dynamic_x()
+
+    @final
+    def _use_dynamic_x(self) -> bool:
+        return use_dynamic_x(self._get_ax(0), self.data.index)
 
     @final
     @staticmethod
@@ -451,7 +465,9 @@ class MPLPlot(ABC):
             )
 
         if self.style is not None:
-            if is_list_like(self.style):
+            if isinstance(self.style, dict):
+                styles = [self.style[col] for col in self.columns if col in self.style]
+            elif is_list_like(self.style):
                 styles = self.style
             else:
                 styles = [self.style]
@@ -546,7 +562,7 @@ class MPLPlot(ABC):
                 new_ax.set_yscale("log")
             elif self.logy == "sym" or self.loglog == "sym":
                 new_ax.set_yscale("symlog")
-            return new_ax  # type: ignore[return-value]
+            return new_ax
 
     @final
     @cache_readonly
@@ -1322,9 +1338,19 @@ class ScatterPlot(PlanePlot):
             c = self.data.columns[c]
         self.c = c
 
+    @register_pandas_matplotlib_converters
     def _make_plot(self, fig: Figure) -> None:
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
+
+        from pandas import Series
+
+        x_data = data[x]
+        s = Series(index=x_data)
+        if use_dynamic_x(ax, s.index):
+            s = maybe_convert_index(ax, s)
+            freq, s = prepare_ts_data(s, ax, self.kwds)
+            x_data = s.index
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
@@ -1341,8 +1367,24 @@ class ScatterPlot(PlanePlot):
             label = self.label
         else:
             label = None
+
+        # if a list of non-color strings is passed in as c, color points
+        # by uniqueness of the strings, such same strings get same color
+        create_colors = not self._are_valid_colors(c_values)
+        if create_colors:
+            color_mapping = self._get_color_mapping(c_values)
+            c_values = [color_mapping[s] for s in c_values]
+
+            # build legend for labeling custom colors
+            ax.legend(
+                handles=[
+                    mpl.patches.Circle((0, 0), facecolor=c, label=s)
+                    for s, c in color_mapping.items()
+                ]
+            )
+
         scatter = ax.scatter(
-            data[x].values,
+            x_data.values,
             data[y].values,
             c=c_values,
             label=label,
@@ -1351,6 +1393,7 @@ class ScatterPlot(PlanePlot):
             s=self.s,
             **self.kwds,
         )
+
         if cb:
             cbar_label = c if c_is_column else ""
             cbar = self._plot_colorbar(ax, fig=fig, label=cbar_label)
@@ -1389,6 +1432,30 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
         return c_values
+
+    def _are_valid_colors(self, c_values: Series) -> bool:
+        # check if c_values contains strings and if these strings are valid mpl colors.
+        # no need to check numerics as these (and mpl colors) will be validated for us
+        # in .Axes.scatter._parse_scatter_color_args(...)
+        unique = np.unique(c_values)
+        try:
+            if len(c_values) and all(isinstance(c, str) for c in unique):
+                mpl.colors.to_rgba_array(unique)
+
+            return True
+
+        except (TypeError, ValueError) as _:
+            return False
+
+    def _get_color_mapping(self, c_values: Series) -> dict[str, np.ndarray]:
+        unique = np.unique(c_values)
+        n_colors = len(unique)
+
+        # passing `None` here will default to :rc:`image.cmap`
+        cmap = mpl.colormaps.get_cmap(self.colormap)
+        colors = cmap(np.linspace(0, 1, n_colors))  # RGB tuples
+
+        return dict(zip(unique, colors))
 
     def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
         c = self.c
@@ -1477,23 +1544,9 @@ class LinePlot(MPLPlot):
         return "line"
 
     def __init__(self, data, **kwargs) -> None:
-        from pandas.plotting import plot_params
-
         MPLPlot.__init__(self, data, **kwargs)
         if self.stacked:
             self.data = self.data.fillna(value=0)
-        self.x_compat = plot_params["x_compat"]
-        if "x_compat" in self.kwds:
-            self.x_compat = bool(self.kwds.pop("x_compat"))
-
-    @final
-    def _is_ts_plot(self) -> bool:
-        # this is slightly deceptive
-        return not self.x_compat and self.use_index and self._use_dynamic_x()
-
-    @final
-    def _use_dynamic_x(self) -> bool:
-        return use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self, fig: Figure) -> None:
         if self._is_ts_plot():
@@ -1583,15 +1636,8 @@ class LinePlot(MPLPlot):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = maybe_resample(data, ax, kwds)
+        freq, data = prepare_ts_data(data, ax, kwds)
 
-        # Set ax with freq info
-        decorate_axes(ax, freq)
-        # digging deeper
-        if hasattr(ax, "left_ax"):
-            decorate_axes(ax.left_ax, freq)
-        if hasattr(ax, "right_ax"):
-            decorate_axes(ax.right_ax, freq)
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
@@ -1917,7 +1963,7 @@ class BarPlot(MPLPlot):
                 )
                 ax.set_title(label)
             elif self.stacked:
-                mask = y > 0
+                mask = y >= 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base
                 w = self.bar_width / 2
                 rect = self._plot(
@@ -2035,9 +2081,12 @@ class PiePlot(MPLPlot):
 
     _layout_type = "horizontal"
 
-    def __init__(self, data, kind=None, **kwargs) -> None:
+    def __init__(self, data: Series | DataFrame, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
-        if (data < 0).any().any():
+        lt_zero = data < 0
+        if isinstance(data, ABCDataFrame) and lt_zero.any().any():
+            raise ValueError(f"{self._kind} plot doesn't allow negative values")
+        elif isinstance(data, ABCSeries) and lt_zero.any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 

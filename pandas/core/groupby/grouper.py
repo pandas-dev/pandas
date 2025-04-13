@@ -72,6 +72,9 @@ class Grouper:
         Currently unused, reserved for future use.
     **kwargs
         Dictionary of the keyword arguments to pass to Grouper.
+
+    Attributes
+    ----------
     key : str, defaults to None
         Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
@@ -513,8 +516,7 @@ class Grouping:
             ):
                 grper = pprint_thing(grouping_vector)
                 errmsg = (
-                    "Grouper result violates len(labels) == "
-                    f"len(data)\nresult: {grper}"
+                    f"Grouper result violates len(labels) == len(data)\nresult: {grper}"
                 )
                 raise AssertionError(errmsg)
 

@@ -286,6 +286,13 @@ class BooleanArray(BaseMaskedArray):
     -------
     BooleanArray
 
+    See Also
+    --------
+    array : Create an array from data with the appropriate dtype.
+    BooleanDtype : Extension dtype for boolean data.
+    Series : One-dimensional ndarray with axis labels (including time series).
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
     Examples
     --------
     Create an BooleanArray with :func:`pandas.array`:
@@ -362,7 +369,7 @@ class BooleanArray(BaseMaskedArray):
             assert dtype == "boolean"
         return coerce_to_array(value, copy=copy)
 
-    def _logical_method(self, other, op):
+    def _logical_method(self, other, op):  # type: ignore[override]
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_scalar = lib.is_scalar(other)
         mask = None

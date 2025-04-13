@@ -111,6 +111,8 @@ def _pprint_seq(
     """
     if isinstance(seq, set):
         fmt = "{{{body}}}"
+    elif isinstance(seq, frozenset):
+        fmt = "frozenset({{{body}}})"
     else:
         fmt = "[{body}]" if hasattr(seq, "__setitem__") else "({body})"
 
@@ -203,7 +205,7 @@ def pprint_thing(
     def as_escaped_string(
         thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
-        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
+        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
         if isinstance(escape_chars, Mapping):
             if default_escapes:
                 translate.update(escape_chars)
@@ -336,8 +338,8 @@ def format_object_summary(
 
     if indent_for_name:
         name_len = len(name)
-        space1 = f'\n{(" " * (name_len + 1))}'
-        space2 = f'\n{(" " * (name_len + 2))}'
+        space1 = f"\n{(' ' * (name_len + 1))}"
+        space2 = f"\n{(' ' * (name_len + 2))}"
     else:
         space1 = "\n"
         space2 = "\n "  # space for the opening '['

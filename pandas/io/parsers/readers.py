@@ -32,7 +32,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -142,8 +145,7 @@ else:
     _read_shared = dict
 
 
-_doc_read_csv_and_table = (
-    r"""
+_doc_read_csv_and_table = r"""
 {summary}
 
 Also supports optionally iterating or breaking of the file
@@ -269,13 +271,22 @@ skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
 nrows : int, optional
     Number of rows of file to read. Useful for reading pieces of large files.
+    Refers to the number of data rows in the returned DataFrame, excluding:
+
+    * The header row containing column names.
+    * Rows before the header row, if ``header=1`` or larger.
+
+    Example usage:
+
+    * To read the first 999,999 (non-header) rows:
+      ``read_csv(..., nrows=999999)``
+
+    * To read rows 1,000,000 through 1,999,999:
+      ``read_csv(..., skiprows=1000000, nrows=999999)``
 na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
     Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
     per-column ``NA`` values.  By default the following values are interpreted as
-    ``NaN``: " """
-    + fill('", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
-    + """ ".
-
+    ``NaN``: "{na_values_str}".
 keep_default_na : bool, default True
     Whether or not to include the default ``NaN`` values when parsing the data.
     Depending on whether ``na_values`` is passed in, the behavior is as follows:
@@ -313,7 +324,7 @@ parse_dates : bool, None, list of Hashable, default None
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_format : str or dict of column -> format, optional
-    Format to use for parsing dates when used in conjunction with ``parse_dates``.
+    Format to use for parsing dates and/or times when used in conjunction with ``parse_dates``.
     The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
     `strftime documentation
     <https://docs.python.org/3/library/datetime.html
@@ -357,8 +368,7 @@ lineterminator : str (length 1), optional
 quotechar : str (length 1), optional
     Character used to denote the start and end of a quoted item. Quoted
     items can include the ``delimiter`` and it will be ignored.
-quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, \
-3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
     ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that only fields containing special
     characters are quoted (e.g., characters defined in ``quotechar``, ``delimiter``,
@@ -443,14 +453,14 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
 
 {storage_options}
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
-    (still experimental). Behaviour is as follows:
+    (still experimental). If not specified, the default behavior
+    is to not use nullable data types. If specified, the behavior
+    is as follows:
 
     * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-      (default).
-    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-      DataFrame.
+    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype` :class:`DataFrame`
 
     .. versionadded:: 2.0
 
@@ -544,8 +554,7 @@ col 1             int64
 col 2    datetime64[ns]
 col 3    datetime64[ns]
 dtype: object
-"""
-)
+"""  # noqa: E501
 
 
 class _C_Parser_Defaults(TypedDict):
@@ -756,12 +765,16 @@ def read_csv(
         summary="Read a comma-separated values (csv) file into DataFrame.",
         see_also_func_name="read_table",
         see_also_func_summary="Read general delimited file into DataFrame.",
+        na_values_str=fill(
+            '", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    "
+        ),
         _default_sep="','",
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
         % "filepath_or_buffer",
     )
 )
+@set_module("pandas")
 def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -888,12 +901,16 @@ def read_table(
         see_also_func_summary=(
             "Read a comma-separated values (csv) file into DataFrame."
         ),
+        na_values_str=fill(
+            '", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    "
+        ),
         _default_sep=r"'\\t' (tab-stop)",
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
         % "filepath_or_buffer",
     )
 )
+@set_module("pandas")
 def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -1011,6 +1028,7 @@ def read_fwf(
 ) -> DataFrame: ...
 
 
+@set_module("pandas")
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -1201,8 +1219,7 @@ class TextFileReader(abc.Iterator):
                 and value != getattr(value, "value", default)
             ):
                 raise ValueError(
-                    f"The {argname!r} option is not supported with the "
-                    f"'pyarrow' engine"
+                    f"The {argname!r} option is not supported with the 'pyarrow' engine"
                 )
             options[argname] = value
 
@@ -1378,8 +1395,7 @@ class TextFileReader(abc.Iterator):
             if not is_integer(skiprows) and skiprows is not None:
                 # pyarrow expects skiprows to be passed as an integer
                 raise ValueError(
-                    "skiprows argument must be an integer when using "
-                    "engine='pyarrow'"
+                    "skiprows argument must be an integer when using engine='pyarrow'"
                 )
         else:
             if is_integer(skiprows):
@@ -1636,7 +1652,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
             if keep_default_na:
                 v = set(v) | STR_NA_VALUES
 
-            na_values[k] = v
+            na_values[k] = _stringify_na_values(v, floatify)
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):

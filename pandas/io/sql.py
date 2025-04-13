@@ -31,7 +31,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -45,11 +45,10 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_list_like,
+    is_object_dtype,
+    is_string_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    DatetimeTZDtype,
-)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas import get_option
@@ -58,11 +57,14 @@ from pandas.core.api import (
     Series,
 )
 from pandas.core.arrays import ArrowExtensionArray
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
+
+from pandas.io._util import arrow_table_to_pandas
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -74,6 +76,7 @@ if TYPE_CHECKING:
 
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
+        Delete,
         Select,
         TextClause,
     )
@@ -233,13 +236,13 @@ def _wrap_result_adbc(
 
 
 @overload
-def read_sql_table(
+def read_sql_table(  # pyright: ignore[reportOverlappingOverload]
     table_name: str,
     con,
     schema=...,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    parse_dates: list[str] | dict[str, str] | None = ...,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = ...,
     columns: list[str] | None = ...,
     chunksize: None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
@@ -253,7 +256,7 @@ def read_sql_table(
     schema=...,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    parse_dates: list[str] | dict[str, str] | None = ...,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = ...,
     columns: list[str] | None = ...,
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
@@ -266,7 +269,7 @@ def read_sql_table(
     schema: str | None = None,
     index_col: str | list[str] | None = None,
     coerce_float: bool = True,
-    parse_dates: list[str] | dict[str, str] | None = None,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -306,14 +309,15 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -363,13 +367,13 @@ def read_sql_table(
 
 
 @overload
-def read_sql_query(
+def read_sql_query(  # pyright: ignore[reportOverlappingOverload]
     sql,
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
     params: list[Any] | Mapping[str, Any] | None = ...,
-    parse_dates: list[str] | dict[str, str] | None = ...,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
@@ -383,7 +387,7 @@ def read_sql_query(
     index_col: str | list[str] | None = ...,
     coerce_float=...,
     params: list[Any] | Mapping[str, Any] | None = ...,
-    parse_dates: list[str] | dict[str, str] | None = ...,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = ...,
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
@@ -396,7 +400,7 @@ def read_sql_query(
     index_col: str | list[str] | None = None,
     coerce_float: bool = True,
     params: list[Any] | Mapping[str, Any] | None = None,
-    parse_dates: list[str] | dict[str, str] | None = None,
+    parse_dates: list[str] | dict[str, str] | dict[str, dict[str, Any]] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -443,14 +447,15 @@ def read_sql_query(
         {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
 
         .. versionadded:: 1.3.0
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -498,7 +503,7 @@ def read_sql_query(
 
 
 @overload
-def read_sql(
+def read_sql(  # pyright: ignore[reportOverlappingOverload]
     sql,
     con,
     index_col: str | list[str] | None = ...,
@@ -586,14 +591,15 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -733,7 +739,7 @@ def to_sql(
     name: str,
     con,
     schema: str | None = None,
-    if_exists: Literal["fail", "replace", "append"] = "fail",
+    if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
     index: bool = True,
     index_label: IndexLabel | None = None,
     chunksize: int | None = None,
@@ -744,6 +750,12 @@ def to_sql(
 ) -> int | None:
     """
     Write records stored in a DataFrame to a SQL database.
+
+    .. warning::
+        The pandas library does not attempt to sanitize inputs provided via a to_sql call.
+        Please refer to the documentation for the underlying database driver to see if it
+        will properly prevent injection, or alternatively be advised of a security risk when
+        executing arbitrary commands in a to_sql call.
 
     Parameters
     ----------
@@ -759,10 +771,11 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+    if_exists : {'fail', 'replace', 'append', 'delete_rows'}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
+        - delete_rows: If a table exists, delete all records and insert data.
     index : bool, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -813,7 +826,7 @@ def to_sql(
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
     """  # noqa: E501
-    if if_exists not in ("fail", "replace", "append"):
+    if if_exists not in ("fail", "replace", "append", "delete_rows"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
     if isinstance(frame, Series):
@@ -921,7 +934,7 @@ class SQLTable(PandasObject):
         pandas_sql_engine,
         frame=None,
         index: bool | str | list[str] | None = True,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
         prefix: str = "pandas",
         index_label=None,
         schema=None,
@@ -969,11 +982,13 @@ class SQLTable(PandasObject):
         if self.exists():
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
-            if self.if_exists == "replace":
+            elif self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
             elif self.if_exists == "append":
                 pass
+            elif self.if_exists == "delete_rows":
+                self.pd_sql.delete_rows(self.name, self.schema)
             else:
                 raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
         else:
@@ -992,7 +1007,7 @@ class SQLTable(PandasObject):
            Each item contains a list of values to be inserted
         """
         data = [dict(zip(keys, row)) for row in data_iter]
-        result = conn.execute(self.table.insert(), data)
+        result = self.pd_sql.execute(self.table.insert(), data)
         return result.rowcount
 
     def _execute_insert_multi(self, conn, keys: list[str], data_iter) -> int:
@@ -1009,7 +1024,7 @@ class SQLTable(PandasObject):
 
         data = [dict(zip(keys, row)) for row in data_iter]
         stmt = insert(self.table).values(data)
-        result = conn.execute(stmt)
+        result = self.pd_sql.execute(stmt)
         return result.rowcount
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
@@ -1116,7 +1131,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set."""
         has_read_data = False
         with exit_stack:
@@ -1313,7 +1328,12 @@ class SQLTable(PandasObject):
                 elif dtype_backend == "numpy" and col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type)
-
+                elif (
+                    using_string_dtype()
+                    and is_string_dtype(col_type)
+                    and is_object_dtype(self.frame[col_name])
+                ):
+                    self.frame[col_name] = df_col.astype(col_type)
                 elif dtype_backend == "numpy" and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
@@ -1400,6 +1420,7 @@ class SQLTable(PandasObject):
             DateTime,
             Float,
             Integer,
+            String,
         )
 
         if isinstance(sqltype, Float):
@@ -1419,6 +1440,10 @@ class SQLTable(PandasObject):
             return date
         elif isinstance(sqltype, Boolean):
             return bool
+        elif isinstance(sqltype, String):
+            if using_string_dtype():
+                return StringDtype(na_value=np.nan)
+
         return object
 
 
@@ -1465,7 +1490,7 @@ class PandasSQL(PandasObject, ABC):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
@@ -1634,12 +1659,20 @@ class SQLDatabase(PandasSQL):
         else:
             yield self.con
 
-    def execute(self, sql: str | Select | TextClause, params=None):
+    def execute(self, sql: str | Select | TextClause | Delete, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
+        from sqlalchemy.exc import SQLAlchemyError
+
         args = [] if params is None else [params]
         if isinstance(sql, str):
-            return self.con.exec_driver_sql(sql, *args)
-        return self.con.execute(sql, *args)
+            execute_function = self.con.exec_driver_sql
+        else:
+            execute_function = self.con.execute
+
+        try:
+            return execute_function(sql, *args)
+        except SQLAlchemyError as exc:
+            raise DatabaseError(f"Execution failed on sql '{sql}': {exc}") from exc
 
     def read_table(
         self,
@@ -1683,14 +1716,15 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
-        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        dtype_backend : {'numpy_nullable', 'pyarrow'}
             Back-end data type applied to the resultant :class:`DataFrame`
-            (still experimental). Behaviour is as follows:
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              (default).
-            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame.
+            * ``"pyarrow"``: returns pyarrow-backed nullable
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
 
@@ -1728,7 +1762,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set"""
         has_read_data = False
         with exit_stack:
@@ -1850,7 +1884,7 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
         index: bool | str | list[str] | None = True,
         index_label=None,
         schema=None,
@@ -1867,7 +1901,7 @@ class SQLDatabase(PandasSQL):
                 # Type[str], Type[float], Type[int], Type[complex], Type[bool],
                 # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
                 # dtype[Any], Type[object]]"
-                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
+                dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
                 dtype = cast(dict, dtype)
 
@@ -1927,7 +1961,7 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
         index: bool = True,
         index_label=None,
         schema: str | None = None,
@@ -1945,10 +1979,11 @@ class SQLDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        if_exists : {'fail', 'replace', 'append', 'delete_rows'}, default 'fail'
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
+            - delete_rows: If a table exists, delete all records and insert data.
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
@@ -2045,6 +2080,16 @@ class SQLDatabase(PandasSQL):
                 self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
 
+    def delete_rows(self, table_name: str, schema: str | None = None) -> None:
+        schema = schema or self.meta.schema
+        if self.has_table(table_name, schema):
+            self.meta.reflect(
+                bind=self.con, only=[table_name], schema=schema, views=True
+            )
+            table = self.get_table(table_name, schema)
+            self.execute(table.delete()).close()
+            self.meta.clear()
+
     def _create_sql_schema(
         self,
         frame: DataFrame,
@@ -2092,6 +2137,8 @@ class ADBCDatabase(PandasSQL):
             self.con.commit()
 
     def execute(self, sql: str | Select | TextClause, params=None):
+        from adbc_driver_manager import Error
+
         if not isinstance(sql, str):
             raise TypeError("Query must be a string unless using sqlalchemy.")
         args = [] if params is None else [params]
@@ -2099,10 +2146,10 @@ class ADBCDatabase(PandasSQL):
         try:
             cur.execute(sql, *args)
             return cur
-        except Exception as exc:
+        except Error as exc:
             try:
                 self.con.rollback()
-            except Exception as inner_exc:  # pragma: no cover
+            except Error as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
                     f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
@@ -2148,14 +2195,15 @@ class ADBCDatabase(PandasSQL):
             schema of the SQL database object.
         chunksize : int, default None
             Raises NotImplementedError
-        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        dtype_backend : {'numpy_nullable', 'pyarrow'}
             Back-end data type applied to the resultant :class:`DataFrame`
-            (still experimental). Behaviour is as follows:
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              (default).
-            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame.
+            * ``"pyarrow"``: returns pyarrow-backed nullable
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
 
@@ -2190,23 +2238,9 @@ class ADBCDatabase(PandasSQL):
         else:
             stmt = f"SELECT {select_list} FROM {table_name}"
 
-        mapping: type[ArrowDtype] | None | Callable
-        if dtype_backend == "pyarrow":
-            mapping = ArrowDtype
-        elif dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping().get
-        elif using_pyarrow_string_dtype():
-            from pandas.io._util import arrow_string_types_mapper
-
-            arrow_string_types_mapper()
-        else:
-            mapping = None
-
-        with self.con.cursor() as cur:
-            cur.execute(stmt)
-            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+        with self.execute(stmt) as cur:
+            pa_table = cur.fetch_arrow_table()
+            df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
         return _wrap_result_adbc(
             df,
@@ -2274,19 +2308,9 @@ class ADBCDatabase(PandasSQL):
         if chunksize:
             raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
 
-        mapping: type[ArrowDtype] | None | Callable
-        if dtype_backend == "pyarrow":
-            mapping = ArrowDtype
-        elif dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping().get
-        else:
-            mapping = None
-
-        with self.con.cursor() as cur:
-            cur.execute(sql)
-            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+        with self.execute(sql) as cur:
+            pa_table = cur.fetch_arrow_table()
+            df = arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
         return _wrap_result_adbc(
             df,
@@ -2301,7 +2325,7 @@ class ADBCDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
         index: bool = True,
         index_label=None,
         schema: str | None = None,
@@ -2323,6 +2347,7 @@ class ADBCDatabase(PandasSQL):
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
+            - delete_rows: If a table exists, delete all records and insert data.
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
@@ -2340,6 +2365,9 @@ class ADBCDatabase(PandasSQL):
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
+        pa = import_optional_dependency("pyarrow")
+        from adbc_driver_manager import Error
+
         if index_label:
             raise NotImplementedError(
                 "'index_label' is not implemented for ADBC drivers"
@@ -2369,12 +2397,13 @@ class ADBCDatabase(PandasSQL):
             if if_exists == "fail":
                 raise ValueError(f"Table '{table_name}' already exists.")
             elif if_exists == "replace":
-                with self.con.cursor() as cur:
-                    cur.execute(f"DROP TABLE {table_name}")
+                sql_statement = f"DROP TABLE {table_name}"
+                self.execute(sql_statement).close()
             elif if_exists == "append":
                 mode = "append"
-
-        import pyarrow as pa
+            elif if_exists == "delete_rows":
+                mode = "append"
+                self.delete_rows(name, schema)
 
         try:
             tbl = pa.Table.from_pandas(frame, preserve_index=index)
@@ -2382,9 +2411,14 @@ class ADBCDatabase(PandasSQL):
             raise ValueError("datatypes not supported") from exc
 
         with self.con.cursor() as cur:
-            total_inserted = cur.adbc_ingest(
-                table_name=name, data=tbl, mode=mode, db_schema_name=schema
-            )
+            try:
+                total_inserted = cur.adbc_ingest(
+                    table_name=name, data=tbl, mode=mode, db_schema_name=schema
+                )
+            except Error as exc:
+                raise DatabaseError(
+                    f"Failed to insert records on table={name} with {mode=}"
+                ) from exc
 
         self.con.commit()
         return total_inserted
@@ -2406,6 +2440,11 @@ class ADBCDatabase(PandasSQL):
                         return True
 
         return False
+
+    def delete_rows(self, name: str, schema: str | None = None) -> None:
+        table_name = f"{schema}.{name}" if schema else name
+        if self.has_table(name, schema):
+            self.execute(f"DELETE FROM {table_name}").close()
 
     def _create_sql_schema(
         self,
@@ -2501,9 +2540,9 @@ class SQLiteTable(SQLTable):
         return str(";\n".join(self.table))
 
     def _execute_create(self) -> None:
-        with self.pd_sql.run_transaction() as conn:
+        with self.pd_sql.run_transaction() as cur:
             for stmt in self.table:
-                conn.execute(stmt)
+                cur.execute(stmt)
 
     def insert_statement(self, *, num_rows: int) -> str:
         names = list(map(str, self.frame.columns))
@@ -2525,8 +2564,13 @@ class SQLiteTable(SQLTable):
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter) -> int:
+        from sqlite3 import Error
+
         data_list = list(data_iter)
-        conn.executemany(self.insert_statement(num_rows=1), data_list)
+        try:
+            conn.executemany(self.insert_statement(num_rows=1), data_list)
+        except Error as exc:
+            raise DatabaseError("Execution failed") from exc
         return conn.rowcount
 
     def _execute_insert_multi(self, conn, keys, data_iter) -> int:
@@ -2571,7 +2615,7 @@ class SQLiteTable(SQLTable):
         ]
 
         ix_cols = [cname for cname, _, is_index in column_names_and_types if is_index]
-        if len(ix_cols):
+        if ix_cols:
             cnames = "_".join(ix_cols)
             cnames_br = ",".join([escape(c) for c in ix_cols])
             create_stmts.append(
@@ -2648,6 +2692,8 @@ class SQLiteDatabase(PandasSQL):
             cur.close()
 
     def execute(self, sql: str | Select | TextClause, params=None):
+        from sqlite3 import Error
+
         if not isinstance(sql, str):
             raise TypeError("Query must be a string unless using sqlalchemy.")
         args = [] if params is None else [params]
@@ -2655,10 +2701,10 @@ class SQLiteDatabase(PandasSQL):
         try:
             cur.execute(sql, *args)
             return cur
-        except Exception as exc:
+        except Error as exc:
             try:
                 self.con.rollback()
-            except Exception as inner_exc:  # pragma: no cover
+            except Error as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
                     f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
                 )
@@ -2677,7 +2723,7 @@ class SQLiteDatabase(PandasSQL):
         parse_dates=None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> Generator[DataFrame, None, None]:
+    ) -> Generator[DataFrame]:
         """Return generator through chunked result set"""
         has_read_data = False
         while True:
@@ -2774,10 +2820,11 @@ class SQLiteDatabase(PandasSQL):
         frame: DataFrame
         name: string
             Name of SQL table.
-        if_exists: {'fail', 'replace', 'append'}, default 'fail'
+        if_exists: {'fail', 'replace', 'append', 'delete_rows'}, default 'fail'
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
+            delete_rows: If a table exists, delete all records and insert data.
         index : bool, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
@@ -2812,7 +2859,7 @@ class SQLiteDatabase(PandasSQL):
                 # Type[str], Type[float], Type[int], Type[complex], Type[bool],
                 # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
                 # dtype[Any], Type[object]]"
-                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
+                dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
                 dtype = cast(dict, dtype)
 
@@ -2851,7 +2898,12 @@ class SQLiteDatabase(PandasSQL):
 
     def drop_table(self, name: str, schema: str | None = None) -> None:
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
-        self.execute(drop_sql)
+        self.execute(drop_sql).close()
+
+    def delete_rows(self, name: str, schema: str | None = None) -> None:
+        delete_sql = f"DELETE FROM {_get_valid_sqlite_name(name)}"
+        if self.has_table(name, schema):
+            self.execute(delete_sql).close()
 
     def _create_sql_schema(
         self,

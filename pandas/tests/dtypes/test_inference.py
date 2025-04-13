@@ -1582,6 +1582,31 @@ class TestTypeInference:
         )
         assert not lib.is_string_array(np.array([1, 2]))
 
+    @pytest.mark.parametrize(
+        "func",
+        [
+            "is_bool_array",
+            "is_date_array",
+            "is_datetime_array",
+            "is_datetime64_array",
+            "is_float_array",
+            "is_integer_array",
+            "is_interval_array",
+            "is_string_array",
+            "is_time_array",
+            "is_timedelta_or_timedelta64_array",
+        ],
+    )
+    def test_is_dtype_array_empty_obj(self, func):
+        # https://github.com/pandas-dev/pandas/pull/60796
+        func = getattr(lib, func)
+
+        arr = np.empty((2, 0), dtype=object)
+        assert not func(arr)
+
+        arr = np.empty((0, 2), dtype=object)
+        assert not func(arr)
+
     def test_to_object_array_tuples(self):
         r = (5, 6)
         values = [r]
@@ -1925,7 +1950,7 @@ class TestIsScalar:
         assert not is_scalar(pd.array([1, 2, 3]))
 
     def test_is_scalar_number(self):
-        # Number() is not recognied by PyNumber_Check, so by extension
+        # Number() is not recognized by PyNumber_Check, so by extension
         #  is not recognized by is_scalar, but instances of non-abstract
         #  subclasses are.
 

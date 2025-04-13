@@ -376,7 +376,7 @@ _op_descriptions: dict[str, dict[str, str | None]] = {
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
-        "reverse": None,
+        "reverse": "eq",
         "series_examples": _ne_example_SERIES,
         "series_returns": _returns_series,
     },
@@ -397,14 +397,14 @@ _op_descriptions: dict[str, dict[str, str | None]] = {
     "gt": {
         "op": ">",
         "desc": "Greater than",
-        "reverse": None,
+        "reverse": "lt",
         "series_examples": _gt_example_SERIES,
         "series_returns": _returns_series,
     },
     "ge": {
         "op": ">=",
         "desc": "Greater than or equal to",
-        "reverse": None,
+        "reverse": "le",
         "series_examples": _ge_example_SERIES,
         "series_returns": _returns_series,
     },

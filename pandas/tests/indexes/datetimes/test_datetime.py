@@ -133,29 +133,12 @@ class TestDatetimeIndex:
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_CBH_deprecated(self):
-        msg = "'CBH' is deprecated and will be removed in a future version."
+    @pytest.mark.parametrize("freq", ["2H", "2BH", "2S"])
+    def test_CBH_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = date_range(
-                dt.datetime(2022, 12, 11), dt.datetime(2022, 12, 13), freq="CBH"
-            )
-        result = DatetimeIndex(
-            [
-                "2022-12-12 09:00:00",
-                "2022-12-12 10:00:00",
-                "2022-12-12 11:00:00",
-                "2022-12-12 12:00:00",
-                "2022-12-12 13:00:00",
-                "2022-12-12 14:00:00",
-                "2022-12-12 15:00:00",
-                "2022-12-12 16:00:00",
-            ],
-            dtype="datetime64[ns]",
-            freq="cbh",
-        )
-
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            date_range(dt.datetime(2022, 12, 11), dt.datetime(2022, 12, 13), freq=freq)
 
     @pytest.mark.parametrize("freq", ["2BM", "1bm", "2BQ", "1BQ-MAR", "2BY-JUN", "1by"])
     def test_BM_BQ_BY_raises(self, freq):
