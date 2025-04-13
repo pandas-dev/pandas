@@ -215,7 +215,7 @@ def _reconstruct_data(
         values = cls._from_sequence(values, dtype=dtype)  # type: ignore[assignment]
 
     else:
-        values = values.astype(dtype, copy=False)
+        values = values.astype(dtype, copy=False)  # type: ignore[assignment]
 
     return values
 

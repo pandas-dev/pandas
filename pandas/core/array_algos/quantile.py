@@ -102,7 +102,7 @@ def quantile_with_mask(
             interpolation=interpolation,
         )
 
-        result = np.asarray(result)
+        result = np.asarray(result)  # type: ignore[assignment]
         result = result.T
 
     return result
@@ -196,7 +196,7 @@ def _nanquantile(
         # Caller is responsible for ensuring mask shape match
         assert mask.shape == values.shape
         result = [
-            _nanquantile_1d(val, m, qs, na_value, interpolation=interpolation)
+            _nanquantile_1d(val, m, qs, na_value, interpolation=interpolation)  # type: ignore[arg-type]
             for (val, m) in zip(list(values), list(mask))
         ]
         if values.dtype.kind == "f":

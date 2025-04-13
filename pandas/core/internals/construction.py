@@ -634,7 +634,7 @@ def reorder_arrays(
                     arr = np.empty(length, dtype=object)
                     arr.fill(np.nan)
                 else:
-                    arr = arrays[k]
+                    arr = arrays[k]  # type: ignore[assignment]
                 new_arrays.append(arr)
 
             arrays = new_arrays
@@ -864,7 +864,7 @@ def _finalize_columns_and_data(
         # GH#26429 do not raise user-facing AssertionError
         raise ValueError(err) from err
 
-    if len(contents) and contents[0].dtype == np.object_:
+    if contents and contents[0].dtype == np.object_:
         contents = convert_object_array(contents, dtype=dtype)
 
     return contents, columns

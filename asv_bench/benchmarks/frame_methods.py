@@ -517,7 +517,7 @@ class Apply:
         self.df = DataFrame(np.random.randn(1000, 100))
 
         self.s = Series(np.arange(1028.0))
-        self.df2 = DataFrame({i: self.s for i in range(1028)})
+        self.df2 = DataFrame(dict.fromkeys(range(1028), self.s))
         self.df3 = DataFrame(np.random.randn(1000, 3), columns=list("ABC"))
 
     def time_apply_user_func(self):

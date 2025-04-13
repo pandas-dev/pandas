@@ -566,7 +566,7 @@ class DataFrameFormatter:
             result = {}
         elif isinstance(col_space, (int, str)):
             result = {"": col_space}
-            result.update({column: col_space for column in self.frame.columns})
+            result.update(dict.fromkeys(self.frame.columns, col_space))
         elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
@@ -1495,7 +1495,7 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         fmt_values = values._format_native_types(
             na_rep=self.nat_rep, date_format=self.date_format
         )
-        return fmt_values.tolist()
+        return fmt_values.tolist()  # type: ignore[return-value]
 
 
 class _ExtensionArrayFormatter(_GenericArrayFormatter):

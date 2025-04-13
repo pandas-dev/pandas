@@ -72,9 +72,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.Timestamp.max PR02" \
-        -i "pandas.Timestamp.min PR02" \
-        -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.quantile PR01,PR07" \

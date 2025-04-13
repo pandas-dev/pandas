@@ -1853,7 +1853,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             count = np.bincount(obs, minlength=ncat or 0)
         else:
             count = np.bincount(np.where(mask, code, ncat))
-            ix = np.append(ix, -1)
+            ix = np.append(ix, -1)  # type: ignore[assignment]
 
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix_categorical = self._from_backing_data(ix)
