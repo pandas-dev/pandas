@@ -431,11 +431,52 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
-        def f(self):
-            return self.plot(*args, **kwargs)
+        # Special case for scatter plots to enable automatic colors in groupby context
+        if kwargs.get("kind") == "scatter":
+            # Get the groupby data and iterator
+            obj = self._groupby._selected_obj
 
-        f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+            # Handle subplots
+            if kwargs.pop("subplots", False):
+                return self._subplots(obj, *args, **kwargs)
+
+            # Plot each group with color from index position
+            results = {}
+            for i, (name, group) in enumerate(self._groupby):
+                if self._groupby._selection is not None:
+                    group = group[self._groupby._selection]
+
+                # Create a copy of kwargs with explicit color for each group
+                plot_kwargs = kwargs.copy()
+
+                # Get colors from matplotlib's color cycle
+                import matplotlib as mpl
+
+                colors = mpl.rcParams["axes.prop_cycle"].by_key()["color"]
+                # Set explicit color for this group
+                plot_kwargs["color"] = colors[i % len(colors)]
+
+                # Create the plot for this group
+                # Remove 'kind' to avoid duplicate keyword argument error
+                scatter_kwargs = plot_kwargs.copy()
+                if "kind" in scatter_kwargs:
+                    del scatter_kwargs["kind"]
+
+                if hasattr(group.plot, "scatter"):
+                    result = group.plot.scatter(*args, **scatter_kwargs)
+                else:
+                    result = group.plot(*args, kind="scatter", **scatter_kwargs)
+
+                results[name] = result
+
+            return results
+        else:
+            # Original implementation for non-scatter plots
+            def f(self):
+                return self.plot(*args, **kwargs)
+
+            f.__name__ = "plot"
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
