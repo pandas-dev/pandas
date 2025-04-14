@@ -608,7 +608,7 @@ def test_map_kwargs():
 
 def test_map_arrow_timestamp_dict():
     # GH 61231
-    pytest.importorskip("pyarrow", minversion="10.0.1")
+    pytest.importorskip("pyarrow")
 
     ser = Series(date_range("2023-01-01", periods=3)).astype("timestamp[ns][pyarrow]")
     mapper = {ts: i for i, ts in enumerate(ser)}
