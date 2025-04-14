@@ -3835,35 +3835,38 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
-        axis: Axis = 0,
+        axis: int = 0,
     ) -> ExponentialMovingWindowGroupby:
         """
-        Return an exponential weighted moving average grouper, providing ewm functionality per group.
+        Return an exponential weighted moving average grouper,
+        providing ewm functionality per group.
 
         Parameters
         ----------
         com : float, optional
             Specify decay in terms of center of mass:
             :math:`\\alpha = 1 / (1 + com)` for :math:`com \\geq 0`.
-            
-            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
+            be provided.
 
         span : float, optional
             Specify decay in terms of span:
             :math:`\\alpha = 2 / (span + 1)` for :math:`span \\geq 1`.
-            
-            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
+            be provided.
 
         halflife : float, optional
             Specify decay in terms of half-life:
             :math:`\\alpha = 1 - \\exp(-\\ln(2) / halflife)` for :math:`halflife > 0`.
-            
-            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
+            be provided.
 
         alpha : float, optional
-            Specify the smoothing factor :math:`\\alpha` directly, where :math:`0 < \\alpha \\leq 1`.
-            
-            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+            Specify the smoothing factor
+            :math:`\\alpha` directly, where :math:`0 < \\alpha \\leq 1`.
+
+            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
+            be provided.
 
         min_periods : int, default 0
             Minimum number of observations in window required to have a value;
@@ -3872,26 +3875,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         adjust : bool, default True
             Divide by decaying adjustment factor in beginning periods to account
             for imbalance in relative weightings (viewing EWMA as a moving average).
-            
+
             If ``False``, the exponentially weighted function is:
-            
+
             .. math::
                 y_t = (1 - \\alpha) y_{t-1} + \\alpha x_t
-                
+
             If ``True``, the exponentially weighted function is:
-            
+
             .. math::
                 y_t = \\frac{\\sum_{i=0}^t w_i x_{t-i}}{\\sum_{i=0}^t w_i}
-            
+
             where :math:`w_i = (1 - \\alpha)^i`.
 
         ignore_na : bool, default False
             If ``True``, missing values are ignored in the calculation.
-            
+
             If ``False``, missing values are treated as missing.
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. The value 0 identifies the rows, and 1 identifies the columns.
+            The axis to use. The value 0 identifies the rows, and 1 identifies the
+            columns.
 
         Returns
         -------
@@ -3917,7 +3921,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         where :math:`\\alpha` is the smoothing factor derived from one of the input
         decay parameters (``com``, ``span``, ``halflife``, or ``alpha``).
-        
+
         Only one of ``com``, ``span``, ``halflife``, or ``alpha`` can be specified.
 
         Examples
@@ -3939,7 +3943,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         >>> df.groupby("Class").ewm(span=2).mean()
                      Value
-        Class             
+        Class
         A     0  10.000000
               1  17.500000
               2  26.153846
@@ -3949,7 +3953,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         >>> df.groupby("Class").ewm(alpha=0.5, adjust=False).mean()
                  Value
-        Class         
+        Class
         A     0   10.0
               1   15.0
               2   22.5
@@ -3959,7 +3963,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         >>> df.groupby("Class").ewm(com=1.0, min_periods=1).std()
                     Value
-        Class            
+        Class
         A     0       NaN
               1  7.071068
               2  9.636241
@@ -3972,9 +3976,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return ExponentialMovingWindowGroupby(
             self._selected_obj,
-            *args,
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            adjust=adjust,
+            ignore_na=ignore_na,
+            axis=axis,
             _grouper=self._grouper,
-            **kwargs,
         )
 
     @final
