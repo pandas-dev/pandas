@@ -4340,13 +4340,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
         engine : decorator, optional
-            Choose the execution engine to use. If not provided the function
-            will be executed by the regular Python interpreter.
+            Choose the execution engine to use to run the function. Only used for
+            functions. If ``map`` is called with a mapping or ``Series``, and
+            exception will be raised. If ``engine`` is not provided the function will
+            be executed by the regular Python interpreter.
 
-            Other options include JIT compilers such as Numba and Bodo, which in some
-            cases can speed up the execution. To use an executor you can provide
-            the decorators ``numba.jit``, ``numba.njit`` or ``bodo.jit``. You can
-            also provide the decorator with parameters, like ``numba.jit(nogit=True)``.
+            Options include JIT compilers such as Numba, Bodo or Blosc2, which in some
+            cases can speed up the execution. To use an executor you can provide the
+            decorators ``numba.jit``, ``numba.njit``, ``bodo.jit`` or ``blosc2.jit``.
+            You can also provide the decorator with parameters, like
+            ``numba.jit(nogit=True)``.
 
             Not all functions can be executed with all execution engines. In general,
             JIT compilers will require type stability in the function (no variable
@@ -4423,8 +4426,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: object
         """
         if engine is not None:
+            if not callable(arg):
+                raise ValueError(
+                    "The engine argument can only be specified when func is a function"
+                )
             if not hasattr(engine, "__pandas_udf__"):
-                raise ValueError(f"Not a valid engine: {engine}")
+                raise ValueError(f"Not a valid engine: {engine!r}")
             result = engine.__pandas_udf__.map(
                 data=self,
                 func=arg,
