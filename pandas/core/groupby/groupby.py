@@ -3837,7 +3837,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             com : float, optional
                 Specify decay in terms of center of mass.
-                ``span``, ``halflife``, and ``alpha`` are alternative ways to specify decay.
+                ``span``, ``halflife``, and ``alpha`` are alternative ways to specify
+                decay.
             span : float, optional
                 Specify decay in terms of span.
             halflife : float, optional
@@ -3848,7 +3849,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 Minimum number of observations in the window required to have a value;
                 otherwise, result is ``np.nan``.
             adjust : bool, default True
-                Divide by decaying adjustment factor to account for imbalance in relative weights.
+                Divide by decaying adjustment factor to account for imbalance in
+                relative weights.
             ignore_na : bool, default False
                 Ignore missing values when calculating weights.
             times : str or array-like of datetime64, optional
@@ -3858,8 +3860,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        pandas.core.window.ExponentialMovingWindowGroupby
-            An object that supports exponentially weighted moving transformations over each group.
+        pandas.api.typing.ExponentialMovingWindowGroupby
+            An object that supports exponentially weighted moving transformations over
+            each group.
 
         See Also
         --------
@@ -3885,7 +3888,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         4     B     50
         5     B     60
 
-        >>> df.groupby("Class").ewm(com=0.5).mean().reset_index(drop=True)
+        >>> df.groupby("Class").ewm(com=0.5).mean()
                Value
         0  10.000000
         1  17.500000
