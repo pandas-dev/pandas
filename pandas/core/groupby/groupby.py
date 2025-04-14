@@ -3836,7 +3836,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Keyword arguments passed to the EWM window constructor, such as:
 
             com : float, optional
-                Specify decay in terms of center of mass. 
+                Specify decay in terms of center of mass.
                 ``span``, ``halflife``, and ``alpha`` are alternative ways to specify decay.
             span : float, optional
                 Specify decay in terms of span.
