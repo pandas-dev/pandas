@@ -80,6 +80,7 @@ Function application
    DataFrameGroupBy.describe
    DataFrameGroupBy.diff
    DataFrameGroupBy.ewm
+   DataFrameGroupBy.expanding
    DataFrameGroupBy.ffill
    DataFrameGroupBy.first
    DataFrameGroupBy.head
@@ -132,6 +133,7 @@ Function application
    SeriesGroupBy.describe
    SeriesGroupBy.diff
    SeriesGroupBy.ewm
+   SeriesGroupBy.expanding
    SeriesGroupBy.ffill
    SeriesGroupBy.first
    SeriesGroupBy.head
