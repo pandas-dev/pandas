@@ -3824,15 +3824,75 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
-        Return an ewm grouper, providing ewm functionality per group.
+        Return an exponentially weighted moving (EWM) grouper, providing EWM functionality per group.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments passed to the EWM window constructor.
+        **kwargs : dict
+            Keyword arguments passed to the EWM window constructor, such as:
+
+            com : float, optional
+                Specify decay in terms of center of mass. 
+                ``span``, ``halflife``, and ``alpha`` are alternative ways to specify decay.
+            span : float, optional
+                Specify decay in terms of span.
+            halflife : float, optional
+                Specify decay in terms of half-life.
+            alpha : float, optional
+                Specify smoothing factor directly.
+            min_periods : int, default 0
+                Minimum number of observations in the window required to have a value;
+                otherwise, result is ``np.nan``.
+            adjust : bool, default True
+                Divide by decaying adjustment factor to account for imbalance in relative weights.
+            ignore_na : bool, default False
+                Ignore missing values when calculating weights.
+            times : str or array-like of datetime64, optional
+                Times corresponding to the observations.
+            axis : {0 or 'index', 1 or 'columns'}, default 0
+                Axis along which the EWM function is applied.
 
         Returns
         -------
-        pandas.api.typing.ExponentialMovingWindowGroupby
+        pandas.core.window.ExponentialMovingWindowGroupby
+            An object that supports exponentially weighted moving transformations over each group.
+
+        See Also
+        --------
+        Series.ewm : EWM transformations for Series.
+        DataFrame.ewm : EWM transformations for DataFrames.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Class": ["A", "A", "A", "B", "B", "B"],
+        ...         "Value": [10, 20, 30, 40, 50, 60],
+        ...     }
+        ... )
+        >>> df
+        Class  Value
+        0     A     10
+        1     A     20
+        2     A     30
+        3     B     40
+        4     B     50
+        5     B     60
+
+        >>> df.groupby("Class").ewm(com=0.5).mean().reset_index(drop=True)
+               Value
+        0  10.000000
+        1  17.500000
+        2  26.153846
+        3  40.000000
+        4  47.500000
+        5  56.153846
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
