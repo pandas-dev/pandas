@@ -24,7 +24,7 @@ running in the same hardware with different levels of stress have a big impact i
 the result. Even running the benchmarks with identical hardware and almost identical
 conditions can produce significant differences when running the same exact code.
 
-## Automated benchmarks runners
+## Automated benchmark runners
 
 We currently have two setups running the benchmarks of pandas for every
 (or almost every) commit to the `main` branch. One is run on GitHub actions
