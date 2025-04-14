@@ -16,8 +16,7 @@ I want to start using pandas
 
     import pandas as pd
 
-To load the pandas package and start working with it, import the
-package. The community agreed alias for pandas is ``pd``, so loading
+To begin using pandas, you first need to import the package.The community agreed alias for pandas is ``pd``, so loading
 pandas as ``pd`` is assumed standard practice for all of the pandas
 documentation.
 
@@ -54,7 +53,9 @@ I want to store passenger data of the Titanic. For a number of passengers, I kno
     )
     df
 
-To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and
+To manually store data in a table-like format, create a DataFrame, which is the primary data structure used in pandas.
+
+ When using a Python dictionary of lists, the dictionary keys will be used as column headers and
 the values in each list as columns of the ``DataFrame``.
 
 .. raw:: html
@@ -165,8 +166,8 @@ I’m interested in some basic statistics of the numerical data of my data table
 
     df.describe()
 
-The :func:`~DataFrame.describe` method provides a quick overview of the numerical data in
-a ``DataFrame``. As the ``Name`` and ``Sex`` columns are textual data,
+The describe() method gives a quick summary of the numeric columns in a DataFrame, such as count, mean, min, and max values.
+As the ``Name`` and ``Sex`` columns are textual data,
 these are by default not taken into account by the :func:`~DataFrame.describe` method.
 
 .. raw:: html
