@@ -3929,7 +3929,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...     }
         ... )
         >>> df
-        Class  Value
+          Class  Value
         0     A     10
         1     A     20
         2     A     30
@@ -3938,8 +3938,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5     B     60
 
         >>> df.groupby("Class").ewm(span=2).mean()
-                    Value
-        Class              
+                     Value
+        Class             
         A     0  10.000000
               1  17.500000
               2  26.153846
@@ -3948,24 +3948,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               5  56.153846
 
         >>> df.groupby("Class").ewm(alpha=0.5, adjust=False).mean()
-                    Value
-        Class              
-        A     0  10.000000
-              1  15.000000
-              2  22.500000
-        B     3  40.000000
-              4  45.000000
-              5  52.500000
+                 Value
+        Class         
+        A     0   10.0
+              1   15.0
+              2   22.5
+        B     3   40.0
+              4   45.0
+              5   52.5
 
         >>> df.groupby("Class").ewm(com=1.0, min_periods=1).std()
                     Value
-        Class               
-        A     0    0.000000
-              1    7.500000
-              2   10.606602
-        B     3    0.000000
-              4    7.500000
-              5   10.606602
+        Class            
+        A     0       NaN
+              1  7.071068
+              2  9.636241
+        B     3       NaN
+              4  7.071068
+              5  9.636241
         """
 
         from pandas.core.window import ExponentialMovingWindowGroupby
