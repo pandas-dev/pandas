@@ -3826,14 +3826,148 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
+    def ewm(
+        self,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | None = None,
+        alpha: float | None = None,
+        min_periods: int = 0,
+        adjust: bool = True,
+        ignore_na: bool = False,
+        axis: Axis = 0,
+    ) -> ExponentialMovingWindowGroupby:
         """
-        Return an ewm grouper, providing ewm functionality per group.
+        Return an exponential weighted moving average grouper, providing ewm functionality per group.
+
+        Parameters
+        ----------
+        com : float, optional
+            Specify decay in terms of center of mass:
+            :math:`\\alpha = 1 / (1 + com)` for :math:`com \\geq 0`.
+            
+            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+
+        span : float, optional
+            Specify decay in terms of span:
+            :math:`\\alpha = 2 / (span + 1)` for :math:`span \\geq 1`.
+            
+            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+
+        halflife : float, optional
+            Specify decay in terms of half-life:
+            :math:`\\alpha = 1 - \\exp(-\\ln(2) / halflife)` for :math:`halflife > 0`.
+            
+            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+
+        alpha : float, optional
+            Specify the smoothing factor :math:`\\alpha` directly, where :math:`0 < \\alpha \\leq 1`.
+            
+            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+
+        min_periods : int, default 0
+            Minimum number of observations in window required to have a value;
+            otherwise, result is ``np.nan``.
+
+        adjust : bool, default True
+            Divide by decaying adjustment factor in beginning periods to account
+            for imbalance in relative weightings (viewing EWMA as a moving average).
+            
+            If ``False``, the exponentially weighted function is:
+            
+            .. math::
+                y_t = (1 - \\alpha) y_{t-1} + \\alpha x_t
+                
+            If ``True``, the exponentially weighted function is:
+            
+            .. math::
+                y_t = \\frac{\\sum_{i=0}^t w_i x_{t-i}}{\\sum_{i=0}^t w_i}
+            
+            where :math:`w_i = (1 - \\alpha)^i`.
+
+        ignore_na : bool, default False
+            If ``True``, missing values are ignored in the calculation.
+            
+            If ``False``, missing values are treated as missing.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to use. The value 0 identifies the rows, and 1 identifies the columns.
 
         Returns
         -------
         pandas.api.typing.ExponentialMovingWindowGroupby
+            Return a new grouper with exponential moving window capabilities.
+
+        See Also
+        --------
+        Series.ewm : Exponential weighted moving window functions for Series.
+        DataFrame.ewm : Exponential weighted moving window functions for DataFrames.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby to a DataFrame.
+
+        Notes
+        -----
+        Each group is treated independently, and the exponential weighted calculations
+        are applied separately to each group.
+
+        The exponential weighted calculation is based on the formula:
+
+        .. math::
+            y_t = (1 - \\alpha) y_{t-1} + \\alpha x_t
+
+        where :math:`\\alpha` is the smoothing factor derived from one of the input
+        decay parameters (``com``, ``span``, ``halflife``, or ``alpha``).
+        
+        Only one of ``com``, ``span``, ``halflife``, or ``alpha`` can be specified.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Class": ["A", "A", "A", "B", "B", "B"],
+        ...         "Value": [10, 20, 30, 40, 50, 60],
+        ...     }
+        ... )
+        >>> df
+        Class  Value
+        0     A     10
+        1     A     20
+        2     A     30
+        3     B     40
+        4     B     50
+        5     B     60
+
+        >>> df.groupby("Class").ewm(span=2).mean()
+                    Value
+        Class              
+        A     0  10.000000
+              1  17.500000
+              2  26.153846
+        B     3  40.000000
+              4  47.500000
+              5  56.153846
+
+        >>> df.groupby("Class").ewm(alpha=0.5, adjust=False).mean()
+                    Value
+        Class              
+        A     0  10.000000
+              1  15.000000
+              2  22.500000
+        B     3  40.000000
+              4  45.000000
+              5  52.500000
+
+        >>> df.groupby("Class").ewm(com=1.0, min_periods=1).std()
+                    Value
+        Class               
+        A     0    0.000000
+              1    7.500000
+              2   10.606602
+        B     3    0.000000
+              4    7.500000
+              5   10.606602
         """
+
         from pandas.core.window import ExponentialMovingWindowGroupby
 
         return ExponentialMovingWindowGroupby(
