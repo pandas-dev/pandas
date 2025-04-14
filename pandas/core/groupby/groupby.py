@@ -3826,17 +3826,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def ewm(
-        self,
-        com: float | None = None,
-        span: float | None = None,
-        halflife: float | None = None,
-        alpha: float | None = None,
-        min_periods: int = 0,
-        adjust: bool = True,
-        ignore_na: bool = False,
-        axis: int = 0,
-    ) -> ExponentialMovingWindowGroupby:
+    def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Return an exponential weighted moving average grouper,
         providing ewm functionality per group.
@@ -3976,15 +3966,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return ExponentialMovingWindowGroupby(
             self._selected_obj,
-            com=com,
-            span=span,
-            halflife=halflife,
-            alpha=alpha,
-            min_periods=min_periods,
-            adjust=adjust,
-            ignore_na=ignore_na,
-            axis=axis,
+            *args,
             _grouper=self._grouper,
+            **kwargs,
         )
 
     @final
