@@ -1481,10 +1481,10 @@ class ArrowExtensionArray(
         return result
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        if is_numeric_dtype(self.dtype) or self.dtype == "timestamp[ns][pyarrow]":
+        if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
-        # elif self.dtype == "timestamp[ns][pyarrow]":
-        #     return map_array(self.to_numpy(), mapper, na_action=na_action)
+        elif self.dtype == "timestamp[ns][pyarrow]":
+            return map_array(self.to_numpy(dtype=object), mapper, na_action=na_action)
         else:
             return super().map(mapper, na_action)
 
