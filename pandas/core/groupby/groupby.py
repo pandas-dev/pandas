@@ -3815,7 +3815,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         *args : tuple
             Positional arguments passed to the expanding window constructor.
         **kwargs : dict
-            Keyword arguments passed to the expanding window constructor,
+            Keyword arguments passed to the expanding window constructor.
 
         Returns
         -------
