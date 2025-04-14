@@ -15,6 +15,7 @@ from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     Categorical,
     DataFrame,
     Grouper,
@@ -2851,3 +2852,31 @@ class TestPivot:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
+    def test_pivot_with_pyarrow_categorical(self):
+        # GH#53051
+        pa = pytest.importorskip("pyarrow")
+
+        df = DataFrame(
+            {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
+        ).astype(
+            {
+                "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+                "number_column": "float[pyarrow]",
+            }
+        )
+
+        df = df.pivot(columns=["string_column"], values=["number_column"])
+
+        multi_index = MultiIndex.from_arrays(
+            [["number_column", "number_column", "number_column"], ["A", "B", "C"]],
+            names=(None, "string_column"),
+        )
+        df_expected = DataFrame(
+            [[1.0, np.nan, np.nan], [np.nan, 2.0, np.nan], [np.nan, np.nan, 3.0]],
+            columns=multi_index,
+        )
+        tm.assert_frame_equal(
+            df, df_expected, check_dtype=False, check_column_type=False
+        )
