@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -781,3 +783,15 @@ def test_fillna_with_none_object(test_frame, dtype):
     if test_frame:
         expected = expected.to_frame()
     tm.assert_equal(result, expected)
+
+
+def test_fillna_out_of_bounds_datetime():
+    # GH#61208
+    df = DataFrame(
+        {"datetime": date_range("1/1/2011", periods=3, freq="h"), "value": [1, 2, 3]}
+    )
+    df.iloc[0, 0] = None
+
+    msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        df.fillna(Timestamp("0001-01-01"))
