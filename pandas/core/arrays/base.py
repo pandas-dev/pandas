@@ -596,7 +596,7 @@ class ExtensionArray:
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:
-            result[self.isna()] = na_value
+            result[self.isna()] = na_value  # type: ignore[index]
         return result
 
     # ------------------------------------------------------------------------
