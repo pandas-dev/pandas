@@ -3807,21 +3807,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return an expanding grouper, providing expanding functionality per group.
 
+        Arguments are the same as `:meth:DataFrame.rolling` except that ``step`` cannot
+        be specified.
+
         Parameters
         ----------
         *args : tuple
             Positional arguments passed to the expanding window constructor.
         **kwargs : dict
             Keyword arguments passed to the expanding window constructor,
-            such as:
-
-            min_periods : int, default 1
-                Minimum number of observations in the window required to have a value;
-                otherwise, the result is ``np.nan``.
 
         Returns
         -------
-        pandas.core.window.ExpandingGroupby
+        pandas.api.typing.ExpandingGroupby
             An object that supports expanding transformations over each group.
 
         See Also
@@ -3848,7 +3846,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         4     B     50
         5     B     60
 
-        >>> df.groupby("Class").expanding().mean().reset_index(drop=True)
+        >>> df.groupby("Class").expanding().mean()
            Value
         0   10.0
         1   15.0
