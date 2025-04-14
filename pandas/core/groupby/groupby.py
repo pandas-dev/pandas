@@ -3889,13 +3889,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5     B     60
 
         >>> df.groupby("Class").ewm(com=0.5).mean()
-               Value
-        0  10.000000
-        1  17.500000
-        2  26.153846
-        3  40.000000
-        4  47.500000
-        5  56.153846
+                     Value
+        Class
+        A     0  10.000000
+              1  17.500000
+              2  26.153846
+        B     3  40.000000
+              4  47.500000
+              5  56.153846
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
