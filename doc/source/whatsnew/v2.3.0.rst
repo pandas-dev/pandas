@@ -150,6 +150,7 @@ MultiIndex
 I/O
 ^^^
 - :meth:`DataFrame.to_excel` was storing decimals as strings instead of numbers (:issue:`49598`)
+- :meth:`DataFrame.to_stata` no longer throws a ``TypeError('encoding without a string argument')`` when exporting a column containing both long strings (Stata strL) and :class:`pd.NA` values (:issue:`23633`)
 -
 
 Period
