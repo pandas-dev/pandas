@@ -3846,7 +3846,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         4     B     50
         5     B     60
 
-        >>> df.groupby("Class").expanding().mean()\
+        >>> df.groupby("Class").expanding().mean()
                  Value
         Class
         A     0   10.0
