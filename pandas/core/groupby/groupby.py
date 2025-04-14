@@ -3848,7 +3848,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
             be provided.
         alpha : float, optional
-            Specify the smoothing factor :math:`\\alpha` directly, 
+            Specify the smoothing factor :math:`\\alpha` directly,
             where :math:`0 < \\alpha \\leq 1`.
             One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
             be provided.
@@ -3876,8 +3876,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -----
         Each group is treated independently, and the exponential weighted calculations
         are applied separately to each group.
-        When ``adjust=True``, weighted averages are calculated using weights 
-        :math:`w_i = (1-\\alpha)^i` where :math:`i` is the number of periods from the 
+        When ``adjust=True``, weighted averages are calculated using weights
+        :math:`w_i = (1-\\alpha)^i` where :math:`i` is the number of periods from the
         observations being weighted to the current period.
         When ``adjust=False``, the calculation follows the recursive formula:
         :math:`y_t = (1 - \\alpha) y_{t-1} + \\alpha x_t`.
