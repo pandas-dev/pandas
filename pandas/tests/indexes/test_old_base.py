@@ -357,6 +357,8 @@ class TestBase:
     def test_argsort(self, index):
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
+        if any(isinstance(x, str) for x in index) and any(isinstance(x, int) for x in index):
+            pytest.skip("Mixed types (int & str) not order-able")
 
         result = index.argsort()
         expected = np.array(index).argsort()
