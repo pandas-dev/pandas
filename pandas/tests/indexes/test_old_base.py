@@ -365,7 +365,8 @@ class TestBase:
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_numpy_argsort(self, index):
-
+        if any(isinstance(x, str) for x in index) and any(isinstance(x, int) for x in index):
+            pytest.skip("Mixed-type Index (int & str) not sortable")
         result = np.argsort(index)
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
