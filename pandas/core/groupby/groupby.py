@@ -3828,8 +3828,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Appender(_common_see_also)
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
-        Return an exponential weighted moving average grouper,
-        providing ewm functionality per group.
+        Provide exponential weighted functions for the groupby.
 
         Parameters
         ----------
@@ -3838,54 +3837,34 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             :math:`\\alpha = 1 / (1 + com)` for :math:`com \\geq 0`.
             One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
             be provided.
-
         span : float, optional
             Specify decay in terms of span:
             :math:`\\alpha = 2 / (span + 1)` for :math:`span \\geq 1`.
             One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
             be provided.
-
         halflife : float, optional
             Specify decay in terms of half-life:
             :math:`\\alpha = 1 - \\exp(-\\ln(2) / halflife)` for :math:`halflife > 0`.
             One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
             be provided.
-
         alpha : float, optional
-            Specify the smoothing factor
-            :math:`\\alpha` directly, where :math:`0 < \\alpha \\leq 1`.
-
+            Specify the smoothing factor :math:`\\alpha` directly, where :math:`0 < \\alpha \\leq 1`.
             One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
             be provided.
-
         min_periods : int, default 0
             Minimum number of observations in window required to have a value;
             otherwise, result is ``np.nan``.
-
         adjust : bool, default True
             Divide by decaying adjustment factor in beginning periods to account
             for imbalance in relative weightings (viewing EWMA as a moving average).
-
-            If ``False``, the exponentially weighted function is:
-
-            .. math::
-                y_t = (1 - \\alpha) y_{t-1} + \\alpha x_t
-
-            If ``True``, the exponentially weighted function is:
-
-            .. math::
-                y_t = \\frac{\\sum_{i=0}^t w_i x_{t-i}}{\\sum_{i=0}^t w_i}
-
-            where :math:`w_i = (1 - \\alpha)^i`.
-
         ignore_na : bool, default False
             If ``True``, missing values are ignored in the calculation.
-
             If ``False``, missing values are treated as missing.
-
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to use. The value 0 identifies the rows, and 1 identifies the
             columns.
+        *args, **kwargs
+            Additional arguments and keyword arguments passed to the function.
 
         Returns
         -------
@@ -3897,15 +3876,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Each group is treated independently, and the exponential weighted calculations
         are applied separately to each group.
 
-        The exponential weighted calculation is based on the formula:
+        When ``adjust=True``, weighted averages are calculated using weights 
+        :math:`w_i = (1-\\alpha)^i` where :math:`i` is the number of periods from the 
+        observations being weighted to the current period.
 
-        .. math::
-            y_t = (1 - \\alpha) y_{t-1} + \\alpha x_t
-
-        where :math:`\\alpha` is the smoothing factor derived from one of the input
-        decay parameters (``com``, ``span``, ``halflife``, or ``alpha``).
-
-        Only one of ``com``, ``span``, ``halflife``, or ``alpha`` can be specified.
+        When ``adjust=False``, the calculation follows the recursive formula:
+        :math:`y_t = (1 - \\alpha) y_{t-1} + \\alpha x_t`.
 
         Examples
         --------
@@ -3916,7 +3892,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...     }
         ... )
         >>> df
-          Class  Value
+        Class  Value
         0     A     10
         1     A     20
         2     A     30
@@ -3925,7 +3901,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5     B     60
 
         >>> df.groupby("Class").ewm(span=2).mean()
-                     Value
+                    Value
         Class
         A     0  10.000000
               1  17.500000
@@ -3935,7 +3911,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               5  56.153846
 
         >>> df.groupby("Class").ewm(alpha=0.5, adjust=False).mean()
-                 Value
+                Value
         Class
         A     0   10.0
               1   15.0
