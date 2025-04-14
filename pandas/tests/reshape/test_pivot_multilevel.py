@@ -250,3 +250,49 @@ def test_pivot_df_multiindex_index_none():
         columns=Index(["label1", "label2"], name="label"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_pivot_table_values_in_columns():
+    data = [
+        ["A", 1, 50, -1],
+        ["B", 1, 100, -2],
+        ["A", 2, 100, -2],
+        ["B", 2, 200, -4],
+    ]
+    df = pd.DataFrame(data=data, columns=["index", "col", "value", "extra"])
+    result = df.pivot_table(values="value", index="index", columns=["col", "value"])
+    nan = np.nan
+    e_data = [
+        [50.0, nan, 100.0, nan],
+        [nan, 100.0, nan, 200.0],
+    ]
+    e_index = Index(data=["A", "B"], name="index")
+    e_cols = MultiIndex.from_arrays(
+        arrays=[[1, 1, 2, 2], [50, 100, 100, 200]], names=["col", "value"]
+    )
+    expected = pd.DataFrame(data=e_data, index=e_index, columns=e_cols)
+    tm.assert_frame_equal(left=result, right=expected)
+
+
+def test_pivot_table_values_in_index():
+    data = [
+        ["A", 1, 50, -1],
+        ["B", 1, 100, -2],
+        ["A", 2, 100, -2],
+        ["B", 2, 200, -4],
+    ]
+    df = pd.DataFrame(data=data, columns=["index", "col", "value", "extra"])
+    result = df.pivot_table(values="value", index=["index", "value"], columns="col")
+    nan = np.nan
+    e_data = [
+        [50.0, nan],
+        [nan, 100.0],
+        [100.0, nan],
+        [nan, 200.0],
+    ]
+    e_index = MultiIndex.from_arrays(
+        arrays=[["A", "A", "B", "B"], [50, 100, 100, 200]], names=["index", "value"]
+    )
+    e_cols = Index(data=[1, 2], name="col")
+    expected = pd.DataFrame(data=e_data, index=e_index, columns=e_cols)
+    tm.assert_frame_equal(left=result, right=expected)
