@@ -3826,7 +3826,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
-        Return an exponentially weighted moving (EWM) grouper, providing EWM functionality per group.
+        Return an ewm grouper, providing ewm functionality per group.
 
         Parameters
         ----------
