@@ -990,6 +990,7 @@ class TestSeriesPlots:
         line_xticks = [
             label for label in ax.get_xticklabels() if label.get_text() in years
         ]
+        assert len(bar_xticks) == len(index)
         assert bar_xticks == line_xticks
         x_limits = ax.get_xlim()
         assert x_limits[0] <= bar_xticks[0].get_position()[0]
