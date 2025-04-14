@@ -152,7 +152,6 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
     from pandas.core.window import (
-        ExpandingGroupby,
         ExponentialMovingWindowGroupby,
         RollingGroupby,
     )
@@ -3805,80 +3804,47 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def expanding(self, *args, **kwargs) -> ExpandingGroupby:
-        """
-        Return an expanding grouper, providing expanding
-        functionality per group.
-
-        Returns
-        -------
-        pandas.api.typing.ExpandingGroupby
-        """
-        from pandas.core.window import ExpandingGroupby
-
-        return ExpandingGroupby(
-            self._selected_obj,
-            *args,
-            _grouper=self._grouper,
-            **kwargs,
-        )
-
-    @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Provide exponential weighted functions for the groupby.
 
         Parameters
         ----------
-        com : float, optional
-            Specify decay in terms of center of mass:
-            :math:`\\alpha = 1 / (1 + com)` for :math:`com \\geq 0`.
-            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
-            be provided.
-        span : float, optional
-            Specify decay in terms of span:
-            :math:`\\alpha = 2 / (span + 1)` for :math:`span \\geq 1`.
-            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
-            be provided.
-        halflife : float, optional
-            Specify decay in terms of half-life:
-            :math:`\\alpha = 1 - \\exp(-\\ln(2) / halflife)` for :math:`halflife > 0`.
-            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
-            be provided.
-        alpha : float, optional
-            Specify the smoothing factor :math:`\\alpha` directly,
-            where :math:`0 < \\alpha \\leq 1`.
-            One and only one of ``com``, ``span``, ``halflife``, or ``alpha`` must
-            be provided.
-        min_periods : int, default 0
-            Minimum number of observations in window required to have a value;
-            otherwise, result is ``np.nan``.
-        adjust : bool, default True
-            Divide by decaying adjustment factor in beginning periods to account
-            for imbalance in relative weightings (viewing EWMA as a moving average).
-        ignore_na : bool, default False
-            If ``True``, missing values are ignored in the calculation.
-            If ``False``, missing values are treated as missing.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. The value 0 identifies the rows, and 1 identifies the
-            columns.
-        *args, **kwargs
-            Additional arguments and keyword arguments passed to the function.
+        *args
+            Arguments to be passed to
+            :meth:`~pandas.core.window.ExponentialMovingWindow`.
+        **kwargs
+            Keyword arguments to be passed to
+            :meth:`~pandas.core.window.ExponentialMovingWindow`.
+            These can include:
+            - com : float, optional
+            - span : float, optional
+            - halflife : float, optional
+            - alpha : float, optional
+            - min_periods : int, default 0
+            - adjust : bool, default True
+            - ignore_na : bool, default False
+            - axis : {0 or 'index', 1 or 'columns'}, default 0
 
         Returns
         -------
         pandas.api.typing.ExponentialMovingWindowGroupby
             Return a new grouper with exponential moving window capabilities.
 
+        See Also
+        --------
+        pandas.DataFrame.ewm : Exponential weighted function for DataFrame.
+        pandas.Series.ewm : Exponential weighted function for Series.
+
         Notes
         -----
         Each group is treated independently, and the exponential weighted calculations
         are applied separately to each group.
+
         When ``adjust=True``, weighted averages are calculated using weights
         :math:`w_i = (1-\\alpha)^i` where :math:`i` is the number of periods from the
         observations being weighted to the current period.
+
         When ``adjust=False``, the calculation follows the recursive formula:
         :math:`y_t = (1 - \\alpha) y_{t-1} + \\alpha x_t`.
 
