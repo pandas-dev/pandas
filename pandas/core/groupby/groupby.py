@@ -3831,11 +3831,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         pandas.api.typing.ExponentialMovingWindowGroupby
             Return a new grouper with exponential moving window capabilities.
 
-        See Also
-        --------
-        pandas.DataFrame.ewm : Exponential weighted function for DataFrame.
-        pandas.Series.ewm : Exponential weighted function for Series.
-
         Notes
         -----
         Each group is treated independently, and the exponential weighted calculations
