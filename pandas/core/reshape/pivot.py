@@ -336,7 +336,11 @@ def __internal_pivot_table(
         values = list(values)
 
     grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
-    agged = grouped.agg(aggfunc, **kwargs)
+    if values_passed:
+        # Explicitly aggregate ``values``.
+        agged = grouped[values].agg(aggfunc, **kwargs)
+    else:
+        agged = grouped.agg(aggfunc, **kwargs)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
