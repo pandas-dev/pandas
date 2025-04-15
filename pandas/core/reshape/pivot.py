@@ -337,6 +337,7 @@ def __internal_pivot_table(
 
     grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
     if values_passed:
+        # GH#57876 and GH#61292
         # Explicitly aggregate ``values``.
         grouped = grouped[values]
 
