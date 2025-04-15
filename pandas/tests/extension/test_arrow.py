@@ -281,7 +281,7 @@ class TestArrowArray(base.ExtensionTests):
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         if data_missing.dtype.kind in "mM":
-            result = data_missing.map(lambda x: x, na_action=na_action)
+            result = pd.Series(data_missing.map(lambda x: x, na_action=na_action))
             expected = pd.Series(data_missing.to_numpy()).map(lambda x: x, na_action=na_action)
             tm.assert_series_equal(result, expected, check_dtype=False)
         else:
