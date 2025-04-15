@@ -16,19 +16,19 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst & setup.cfg when updating versions!
+# Update install.rst, actions-310-minimum_versions.yaml,
+# deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
-    "adbc-driver-postgresql": "0.8.0",
+    "adbc-driver-postgresql": "0.10.0",
     "adbc-driver-sqlite": "0.8.0",
     "bs4": "4.11.2",
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",
-    "dataframe-api-compat": "0.1.7",
-    "fastparquet": "2023.04.0",
+    "fastparquet": "2023.10.0",
     "fsspec": "2022.11.0",
     "html5lib": "1.1",
-    "hypothesis": "6.46.1",
+    "hypothesis": "6.84.0",
     "gcsfs": "2022.11.0",
     "jinja2": "3.1.2",
     "lxml.etree": "4.9.2",
@@ -43,6 +43,7 @@ VERSIONS = {
     "pyreadstat": "1.2.0",
     "pytest": "7.3.2",
     "python-calamine": "0.1.7",
+    "pytz": "2023.4",
     "pyxlsb": "1.0.10",
     "s3fs": "2022.11.0",
     "scipy": "1.10.0",
@@ -91,8 +92,7 @@ def import_optional_dependency(
     min_version: str | None = ...,
     *,
     errors: Literal["raise"] = ...,
-) -> types.ModuleType:
-    ...
+) -> types.ModuleType: ...
 
 
 @overload
@@ -102,8 +102,7 @@ def import_optional_dependency(
     min_version: str | None = ...,
     *,
     errors: Literal["warn", "ignore"],
-) -> types.ModuleType | None:
-    ...
+) -> types.ModuleType | None: ...
 
 
 def import_optional_dependency(

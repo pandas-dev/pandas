@@ -4,6 +4,7 @@ Methods that can be shared by many array-like classes or subclasses:
     Index
     ExtensionArray
 """
+
 from __future__ import annotations
 
 import operator
@@ -328,8 +329,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes))
 
     if self.ndim == 1:
-        names = [getattr(x, "name") for x in inputs if hasattr(x, "name")]
-        name = names[0] if len(set(names)) == 1 else None
+        names = {x.name for x in inputs if hasattr(x, "name")}
+        name = names.pop() if len(names) == 1 else None
         reconstruct_kwargs = {"name": name}
     else:
         reconstruct_kwargs = {}
@@ -402,12 +403,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             # for np.<ufunc>(..) calls
             # kwargs cannot necessarily be handled block-by-block, so only
             # take this path if there are no kwargs
-            mgr = inputs[0]._mgr
+            mgr = inputs[0]._mgr  # pyright: ignore[reportGeneralTypeIssues]
             result = mgr.apply(getattr(ufunc, method))
         else:
             # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
             # Those can have an axis keyword and thus can't be called block-by-block
-            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)
+            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
             # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
@@ -521,7 +522,7 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
             #  so calls DataFrame.min (without ever getting here) with the np.min
             #  default of axis=None, which DataFrame.min catches and changes to axis=0.
             # np.minimum.reduce(df) gets here bc axis is not in kwargs,
-            #  so we set axis=0 to match the behaviorof np.minimum.reduce(df.values)
+            #  so we set axis=0 to match the behavior of np.minimum.reduce(df.values)
             kwargs["axis"] = 0
 
     # By default, numpy's reductions do not skip NaNs, so we have to

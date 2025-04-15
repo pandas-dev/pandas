@@ -11,8 +11,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
-from pytz import timezone
 
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.offsets import (
@@ -97,6 +95,7 @@ class TestTimestampEquivDateRange:
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_explicit_pytz(self):
+        pytz = pytest.importorskip("pytz")
         rng = date_range("20090415", "20090519", tz=pytz.timezone("US/Eastern"))
         stamp = rng[0]
 
@@ -135,35 +134,21 @@ class TestDateRanges:
         assert idx.name == "TEST"
 
     def test_date_range_invalid_periods(self):
-        msg = "periods must be a number, got foo"
+        msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
     def test_date_range_fractional_period(self):
-        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rng = date_range("1/1/2000", periods=10.5)
-        exp = date_range("1/1/2000", periods=10)
-        tm.assert_index_equal(rng, exp)
+        msg = "periods must be an integer"
+        with pytest.raises(TypeError, match=msg):
+            date_range("1/1/2000", periods=10.5)
 
-    @pytest.mark.parametrize(
-        "freq,freq_depr",
-        [
-            ("2ME", "2M"),
-            ("2SME", "2SM"),
-            ("2BQE", "2BQ"),
-            ("2BYE", "2BY"),
-        ],
-    )
-    def test_date_range_frequency_M_SM_BQ_BY_deprecated(self, freq, freq_depr):
-        # GH#52064
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        f"in a future version, please use '{freq[1:]}' instead."
+    @pytest.mark.parametrize("freq", ["2M", "1m", "2SM", "2BQ", "1bq", "2BY"])
+    def test_date_range_frequency_M_SM_BQ_BY_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
 
-        expected = date_range("1/1/2000", periods=4, freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = date_range("1/1/2000", periods=4, freq=freq_depr)
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=4, freq=freq)
 
     def test_date_range_tuple_freq_raises(self):
         # GH#34703
@@ -504,7 +489,8 @@ class TestDateRanges:
 
     def test_range_tz_pytz(self):
         # see gh-2906
-        tz = timezone("US/Eastern")
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
         start = tz.localize(datetime(2011, 1, 1))
         end = tz.localize(datetime(2011, 1, 3))
 
@@ -531,14 +517,16 @@ class TestDateRanges:
         ],
     )
     def test_range_tz_dst_straddle_pytz(self, start, end):
-        start = Timestamp(start, tz="US/Eastern")
-        end = Timestamp(end, tz="US/Eastern")
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
+        start = Timestamp(start, tz=tz)
+        end = Timestamp(end, tz=tz)
         dr = date_range(start, end, freq="D")
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
 
-        dr = date_range(start, end, freq="D", tz="US/Eastern")
+        dr = date_range(start, end, freq="D", tz=tz)
         assert dr[0] == start
         assert dr[-1] == end
         assert np.all(dr.hour == 0)
@@ -547,7 +535,7 @@ class TestDateRanges:
             start.replace(tzinfo=None),
             end.replace(tzinfo=None),
             freq="D",
-            tz="US/Eastern",
+            tz=tz,
         )
         assert dr[0] == start
         assert dr[-1] == end
@@ -772,62 +760,20 @@ class TestDateRanges:
         )
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "freq,freq_depr",
-        [
-            ("h", "H"),
-            ("2min", "2T"),
-            ("1s", "1S"),
-            ("2ms", "2L"),
-            ("1us", "1U"),
-            ("2ns", "2N"),
-        ],
-    )
-    def test_frequencies_H_T_S_L_U_N_deprecated(self, freq, freq_depr):
-        # GH#52536
-        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
-        freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = (
-            f"'{freq_depr_msg}' is deprecated and will be removed in a future version, "
-        )
-        f"please use '{freq_msg}' instead"
-
-        expected = date_range("1/1/2000", periods=2, freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = date_range("1/1/2000", periods=2, freq=freq_depr)
-        tm.assert_index_equal(result, expected)
+    @pytest.mark.parametrize("freq", ["2T", "2L", "1l", "1U", "2N", "2n"])
+    def test_frequency_H_T_S_L_U_N_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=2, freq=freq)
 
     @pytest.mark.parametrize(
-        "freq,freq_depr",
-        [
-            ("200YE", "200A"),
-            ("YE", "Y"),
-            ("2YE-MAY", "2A-MAY"),
-            ("YE-MAY", "Y-MAY"),
-        ],
+        "freq_depr", ["m", "bm", "CBM", "SM", "BQ", "q-feb", "y-may", "Y-MAY"]
     )
-    def test_frequencies_A_deprecated_Y_renamed(self, freq, freq_depr):
-        # GH#9586, GH#54275
-        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
-        freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = f"'{freq_depr_msg}' is deprecated and will be removed "
-        f"in a future version, please use '{freq_msg}' instead."
+    def test_frequency_raises(self, freq_depr):
+        msg = f"Invalid frequency: {freq_depr}"
 
-        expected = date_range("1/1/2000", periods=2, freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = date_range("1/1/2000", periods=2, freq=freq_depr)
-        tm.assert_index_equal(result, expected)
-
-    def test_to_offset_with_lowercase_deprecated_freq(self) -> None:
-        # https://github.com/pandas-dev/pandas/issues/56847
-        msg = (
-            "'m' is deprecated and will be removed in a future version, please use "
-            "'ME' instead."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = date_range("2010-01-01", periods=2, freq="m")
-        expected = DatetimeIndex(["2010-01-31", "2010-02-28"], freq="ME")
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=2, freq=freq_depr)
 
     def test_date_range_bday(self):
         sdate = datetime(1999, 12, 25)
@@ -835,6 +781,35 @@ class TestDateRanges:
         assert len(idx) == 20
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == "B"
+
+    @pytest.mark.parametrize("freq", ["200A", "2A-MAY"])
+    def test_frequency_A_raises(self, freq):
+        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
+        msg = f"Invalid frequency: {freq_msg}"
+
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=2, freq=freq)
+
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("2W", "2w"),
+            ("2W-WED", "2w-wed"),
+            ("2B", "2b"),
+            ("2D", "2d"),
+            ("2C", "2c"),
+        ],
+    )
+    def test_date_range_depr_lowercase_frequency(self, freq, freq_depr):
+        # GH#58998
+        depr_msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+        )
+
+        expected = date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = date_range("1/1/2000", periods=4, freq=freq_depr)
+        tm.assert_index_equal(result, expected)
 
 
 class TestDateRangeTZ:
@@ -906,7 +881,7 @@ class TestDateRangeTZ:
         # construction with an ambiguous end-point
         # GH#11626
 
-        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
+        with pytest.raises(ValueError, match="Cannot infer dst time"):
             date_range(
                 "2013-10-26 23:00", "2013-10-27 01:00", tz="Europe/London", freq="h"
             )
@@ -930,7 +905,7 @@ class TestDateRangeTZ:
     def test_date_range_nonexistent_endpoint(self, tz, option, expected):
         # construction with an nonexistent end-point
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2019-03-10 02:00:00"):
+        with pytest.raises(ValueError, match="2019-03-10 02:00:00"):
             date_range(
                 "2019-03-10 00:00", "2019-03-10 02:00", tz="US/Pacific", freq="h"
             )
@@ -1055,7 +1030,7 @@ class TestBusinessDateRange:
         bdate_range(START, periods=20, freq=BDay())
         bdate_range(end=START, periods=20, freq=BDay())
 
-        msg = "periods must be a number, got B"
+        msg = "periods must be an integer, got B"
         with pytest.raises(TypeError, match=msg):
             date_range("2011-1-1", "2012-1-1", "B")
 
@@ -1133,7 +1108,7 @@ class TestCustomDateRange:
         bdate_range(START, periods=20, freq=CDay())
         bdate_range(end=START, periods=20, freq=CDay())
 
-        msg = "periods must be a number, got C"
+        msg = "periods must be an integer, got C"
         with pytest.raises(TypeError, match=msg):
             date_range("2011-1-1", "2012-1-1", "C")
 
@@ -1282,6 +1257,24 @@ class TestCustomDateRange:
         # GH49441
         result = date_range(start=start, periods=period, freq="C")
         expected = DatetimeIndex(expected).as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_data_range_custombusinessday_partial_time(self, unit):
+        # GH#57456
+        offset = offsets.CustomBusinessDay(weekmask="Sun Mon Tue")
+        start = datetime(2024, 2, 6, 23)
+        # end datetime is partial and not in the offset
+        end = datetime(2024, 2, 14, 14)
+        result = date_range(start, end, freq=offset, unit=unit)
+        expected = DatetimeIndex(
+            [
+                "2024-02-06 23:00:00",
+                "2024-02-11 23:00:00",
+                "2024-02-12 23:00:00",
+                "2024-02-13 23:00:00",
+            ],
+            dtype=f"M8[{unit}]",
+        )
         tm.assert_index_equal(result, expected)
 
 
@@ -1727,5 +1720,20 @@ class TestDateRangeNonTickFreq:
             ["2021-12-31 00:00:01", "2022-12-31 00:00:01"],
             dtype=f"M8[{unit}]",
             freq="YE",
+        )
+        tm.assert_index_equal(rng, exp)
+
+    def test_date_range_negative_freq_year_end_inbounds(self, unit):
+        # GH#56147
+        rng = date_range(
+            start="2023-10-31 00:00:00",
+            end="2021-10-31 00:00:00",
+            freq="-1YE",
+            unit=unit,
+        )
+        exp = DatetimeIndex(
+            ["2022-12-31 00:00:00", "2021-12-31 00:00:00"],
+            dtype=f"M8[{unit}]",
+            freq="-1YE",
         )
         tm.assert_index_equal(rng, exp)

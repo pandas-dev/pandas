@@ -6,7 +6,7 @@
   [#51417](https://github.com/pandas-dev/pandas/pull/51417)
 - Author: [Marc Garcia](https://github.com/datapythonista),
   [Noa Tamir](https://github.com/noatamir)
-- Revision: 2
+- Revision: 3
 
 ## PDEP definition, purpose and scope
 
@@ -56,31 +56,102 @@ advisor on the PDEP when it is submitted to the PDEP repository.
 
 ### Workflow
 
+#### Rationale
+
+Our workflow was created to support and enable a consensus seeking process, and to provide clarity,
+for current and future authors, as well as voting members. It is not a strict policy, and we
+discourage any interpretation which seeks to take advantage of it in a way that could "force" or
+"sneak" decisions in one way or another. We expect and encourage transparency, active discussion,
+feedback, and compromise from all our community members.
+
+#### PDEP States
+
 The possible states of a PDEP are:
 
+- Draft
 - Under discussion
 - Accepted
 - Implemented
 - Rejected
+- Withdrawn
 
 Next is described the workflow that PDEPs can follow.
 
 #### Submitting a PDEP
 
-Proposing a PDEP is done by creating a PR adding a new file to `web/pdeps/`.
-The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
+Proposing a PDEP is done by creating a PR adding a new file to `web/pandas/pdeps/`.
+The file is a markdown file, you can use `web/pandas/pdeps/0001-purpose-and-guidelines.md` as a reference
 for the expected format.
 
-The initial status of a PDEP will be `Status: Under discussion`. This will be changed to
-`Status: Accepted` when the PDEP is ready and has the approval of the core team.
+The initial status of a PDEP will be `Status: Draft`. This will be changed to
+`Status: Under discussion` by the author(s), when they are ready to proceed with the decision
+making process.
+
+#### PDEP Discussion Timeline
+
+A PDEP discussion will remain open for up to 60 days. This period aims to enable participation
+from volunteers, who might not always be available to respond quickly, as well as provide ample
+time to make changes based on suggestions and considerations offered by the participants.
+Similarly, the following voting period will remain open for 15 days.
+
+To enable and encourage discussions on PDEPs, we follow a notification schedule. At each of the
+following steps, the pandas team, and the pandas-dev mailing list are notified via GitHub and
+E-mail:
+
+- Once a PDEP is ready for discussion.
+- After 30 days, with a note that there is at most 30 days remaining for discussion,
+  and that a vote will be called for if no discussion occurs in the next 15 days.
+- After 45 days, with a note that there is at most 15 days remaining for discussion,
+  and that a vote will be called for in 15 days.
+- Once the voting period starts, after 60 days or in case of an earlier vote, with 15 days
+  remaining for voting.
+- After 10 voting days, with 5 days remaining for voting.
+
+After 30 discussion days, in case 15 days passed without any new unaddressed comments,
+the authors may close the discussion period preemptively, by sending an early reminder
+of 15 days remaining until the voting period starts.
+
+#### Casting Votes
+
+As the voting period starts, a VOTE issue is created which links to the PDEP discussion pull request.
+Each voting member, including author(s) with voting rights, may cast a vote by adding one of the following comments:
+
+- +1: approve.
+- 0: abstain.
+  - Reason: A one sentence reason is required.
+- -1: disapprove
+  - Reason: A one sentence reason is required.
+
+A disapprove vote requires prior participation in the PDEP discussion issue.
+
+Comments made on the public VOTE issue by non-voting members will be deleted.
+
+Once the voting period ends, any voter may tally the votes in a comment, using the format: w-x-y-z,
+where w stands for the total of approving, x of abstaining, y of disapproving votes cast, and z
+of number of voting members who did not respond to the VOTE issue. The tally of the votes will state
+if a quorum has been reached or not.
+
+#### Quorum and Majority
+
+For a PDEP vote to result in accepting the proposal, a quorum is required. All votes (including
+abstentions) are counted towards the quorum. The quorum is computed as the lower of these two
+values:
+
+- 11 voting members.
+- 50% of voting members.
+
+Given a quorum, a majority of 70% of the non-abstaining votes is required as well, i.e. 70% of
+the approving and disapproving votes must be in favor.
+
+Thus, abstaining votes count towards a quorum, but not towards a majority. A voting member might
+choose to abstain when they have participated in the discussion, have some objections to the
+proposal, but do not wish to stop the proposal from moving forward, nor indicate their full
+support.
+
+If a quorum was not reached by the end of the voting period, the PDEP is not accepted. Its status
+will change to rejected.
 
 #### Accepted PDEP
-
-A PDEP can only be accepted by the core development team, if the proposal is considered
-worth implementing. Decisions will be made based on the process detailed in the
-[pandas governance document](https://github.com/pandas-dev/pandas-governance/blob/master/governance.md).
-In general, more than one approval will be needed before the PR is merged. And
-there should not be any `Request changes` review at the time of merging.
 
 Once a PDEP is accepted, any contributions can be made toward the implementation of the PDEP,
 with an open-ended completion timeline. Development of pandas is difficult to understand and
@@ -108,6 +179,17 @@ there is visibility on what was discussed and what was the outcome of the
 discussion. A PDEP can be rejected for different reasons, for example good ideas
 that are not backward-compatible, and the breaking changes are not considered worth
 implementing.
+
+The PDEP author(s) can also decide to withdraw the PDEP before a final decision
+is made (`Status: Withdrawn`), when the PDEP authors themselves have decided
+that the PDEP is actually a bad idea, or have accepted that it is not broadly
+supported or a competing proposal is a better alternative.
+
+The author(s) may choose to resubmit a rejected or withdrawn PDEP. We expect
+authors to use their judgement in that case, as to whether they believe more
+discussion, or an amended proposal has the potential to lead to a different
+result. A new PDEP is then created, which includes a link to the previously
+rejected PDEP.
 
 #### Invalid PDEP
 
@@ -184,6 +266,7 @@ hope can help clarify our meaning here:
 
 - 3 August 2022: Initial version ([GH-47938][47938])
 - 15 February 2023: Version 2 ([GH-51417][51417]) clarifies the scope of PDEPs and adds examples
+- 09 June 2023: Version 3 ([GH-53576][53576]) defines a structured decision making process for PDEPs
 
 [7217]: https://github.com/pandas-dev/pandas/pull/7217
 [8074]: https://github.com/pandas-dev/pandas/issues/8074
@@ -202,3 +285,4 @@ hope can help clarify our meaning here:
 [51417]: https://github.com/pandas-dev/pandas/pull/51417
 [28900]: https://github.com/pandas-dev/pandas/issues/28900
 [35407]: https://github.com/pandas-dev/pandas/issues/35407
+[53576]: https://github.com/pandas-dev/pandas/pull/53576

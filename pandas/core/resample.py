@@ -4,7 +4,6 @@ import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
     final,
@@ -25,7 +24,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -33,37 +31,31 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_warning,
-)
+from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.dtypes import ArrowDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.apply import (
-    ResamplerWindowApply,
-    warn_alias_replacement,
-)
+from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
 )
-import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
 )
-from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
-    _apply_groupings_depr,
     _pipe_template,
     get_groupby,
 )
@@ -83,6 +75,7 @@ from pandas.core.indexes.timedeltas import (
     TimedeltaIndex,
     timedelta_range,
 )
+from pandas.core.reshape.concat import concat
 
 from pandas.tseries.frequencies import (
     is_subperiod,
@@ -94,7 +87,10 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Callable,
+        Hashable,
+    )
 
     from pandas._typing import (
         Any,
@@ -133,8 +129,6 @@ class Resampler(BaseGroupBy, PandasObject):
     ----------
     obj : Series or DataFrame
     groupby : TimeGrouper
-    kind : str or None
-        'period', 'timestamp' to override default index treatment
 
     Returns
     -------
@@ -157,7 +151,6 @@ class Resampler(BaseGroupBy, PandasObject):
         "closed",
         "label",
         "convention",
-        "kind",
         "origin",
         "offset",
     ]
@@ -166,20 +159,19 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: NDFrame,
         timegrouper: TimeGrouper,
-        kind=None,
         *,
         gpr_index: Index,
         group_keys: bool = False,
         selection=None,
-        include_groups: bool = True,
+        include_groups: bool = False,
     ) -> None:
+        if include_groups:
+            raise ValueError("include_groups=True is no longer allowed.")
         self._timegrouper = timegrouper
         self.keys = None
         self.sort = True
-        self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
-        self.include_groups = include_groups
 
         self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
             self._convert_obj(obj), sort=True, gpr_index=gpr_index
@@ -260,8 +252,7 @@ class Resampler(BaseGroupBy, PandasObject):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -269,8 +260,7 @@ class Resampler(BaseGroupBy, PandasObject):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @final
     @Substitution(
@@ -388,10 +378,20 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         arg : function
             To apply to each group. Should return a Series with the same index.
+        *args, **kwargs
+            Additional arguments and keywords.
 
         Returns
         -------
         Series
+            A Series with the transformed values, maintaining the same index as
+            the original object.
+
+        See Also
+        --------
+        core.resample.Resampler.apply : Apply a function along each group.
+        core.resample.Resampler.aggregate : Aggregate using one or more operations
+            over the specified axis.
 
         Examples
         --------
@@ -411,7 +411,7 @@ class Resampler(BaseGroupBy, PandasObject):
             arg, *args, **kwargs
         )
 
-    def _downsample(self, f, **kwargs):
+    def _downsample(self, how, **kwargs):
         raise AbstractMethodError(self)
 
     def _upsample(self, f, limit: int | None = None, fill_value=None):
@@ -472,9 +472,7 @@ class Resampler(BaseGroupBy, PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = _apply(
-                grouped, how, *args, include_groups=self.include_groups, **kwargs
-            )
+            result = grouped.apply(how, *args, **kwargs)
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -486,48 +484,41 @@ class Resampler(BaseGroupBy, PandasObject):
 
             # we have a non-reducing function
             # try to evaluate
-            result = _apply(
-                grouped, how, *args, include_groups=self.include_groups, **kwargs
-            )
+            result = grouped.apply(how, *args, **kwargs)
 
         return self._wrap_result(result)
 
     @final
     def _get_resampler_for_grouping(
-        self, groupby: GroupBy, key, include_groups: bool = True
+        self,
+        groupby: GroupBy,
+        key,
     ):
         """
         Return the correct class for resampling with groupby.
         """
         return self._resampler_for_grouping(
-            groupby=groupby, key=key, parent=self, include_groups=include_groups
+            groupby=groupby,
+            key=key,
+            parent=self,
         )
 
     def _wrap_result(self, result):
         """
         Potentially wrap any results.
         """
-        # GH 47705
-        obj = self.obj
-        if (
-            isinstance(result, ABCDataFrame)
-            and len(result) == 0
-            and not isinstance(result.index, PeriodIndex)
-        ):
-            result = result.set_index(
-                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
-            )
-
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
             # When index is all NaT, result is empty but index is not
+            obj = self.obj
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
+            result.index.name = self.obj.index.name
 
         return result
 
@@ -536,6 +527,11 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Forward fill the values.
 
+        This method fills missing values by propagating the last valid
+        observation forward, up to the next valid observation. It is commonly
+        used in time series analysis when resampling data to a higher frequency
+        (upsampling) and filling gaps in the resampled output.
+
         Parameters
         ----------
         limit : int, optional
@@ -543,7 +539,8 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Returns
         -------
-        An upsampled Series.
+        Series
+            The resampled data with missing values filled forward.
 
         See Also
         --------
@@ -695,7 +692,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
+        .. [1] https://en.wikipedia.org/wiki/Imputation_%28statistics%29
 
         Examples
         --------
@@ -822,20 +819,6 @@ class Resampler(BaseGroupBy, PandasObject):
         limit_direction : {{'forward', 'backward', 'both'}}, Optional
             Consecutive NaNs will be filled in this direction.
 
-            If limit is specified:
-                * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
-                * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
-                  'backwards'.
-
-            If 'limit' is not specified:
-                * If 'method' is 'backfill' or 'bfill', the default is 'backward'
-                * else the default is 'forward'
-
-                raises ValueError if `limit_direction` is 'forward' or 'both' and
-                    method is 'backfill' or 'bfill'.
-                raises ValueError if `limit_direction` is 'backward' or 'both' and
-                    method is 'pad' or 'ffill'.
-
         limit_area : {{`None`, 'inside', 'outside'}}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -863,6 +846,8 @@ class Resampler(BaseGroupBy, PandasObject):
         core.resample.Resampler.asfreq: Return the values at the new freq,
             essentially a reindex.
         DataFrame.interpolate: Fill NaN values using an interpolation method.
+        DataFrame.bfill : Backward fill NaN values in the resampled data.
+        DataFrame.ffill : Forward fill NaN values.
 
         Notes
         -----
@@ -907,30 +892,59 @@ class Resampler(BaseGroupBy, PandasObject):
         Freq: 500ms, dtype: float64
 
         Internal reindexing with ``asfreq()`` prior to interpolation leads to
-        an interpolated timeseries on the basis the reindexed timestamps (anchors).
-        Since not all datapoints from original series become anchors,
-        it can lead to misleading interpolation results as in the following example:
+        an interpolated timeseries on the basis of the reindexed timestamps
+        (anchors). It is assured that all available datapoints from original
+        series become anchors, so it also works for resampling-cases that lead
+        to non-aligned timestamps, as in the following example:
 
         >>> series.resample("400ms").interpolate("linear")
-        2023-03-01 07:00:00.000    1.0
-        2023-03-01 07:00:00.400    1.2
-        2023-03-01 07:00:00.800    1.4
-        2023-03-01 07:00:01.200    1.6
-        2023-03-01 07:00:01.600    1.8
-        2023-03-01 07:00:02.000    2.0
-        2023-03-01 07:00:02.400    2.2
-        2023-03-01 07:00:02.800    2.4
-        2023-03-01 07:00:03.200    2.6
-        2023-03-01 07:00:03.600    2.8
-        2023-03-01 07:00:04.000    3.0
+        2023-03-01 07:00:00.000    1.000000
+        2023-03-01 07:00:00.400    0.333333
+        2023-03-01 07:00:00.800   -0.333333
+        2023-03-01 07:00:01.200    0.000000
+        2023-03-01 07:00:01.600    1.000000
+        2023-03-01 07:00:02.000    2.000000
+        2023-03-01 07:00:02.400    1.666667
+        2023-03-01 07:00:02.800    1.333333
+        2023-03-01 07:00:03.200    1.666667
+        2023-03-01 07:00:03.600    2.333333
+        2023-03-01 07:00:04.000    3.000000
         Freq: 400ms, dtype: float64
 
-        Note that the series erroneously increases between two anchors
+        Note that the series correctly decreases between two anchors
         ``07:00:00`` and ``07:00:02``.
         """
         assert downcast is lib.no_default  # just checking coverage
         result = self._upsample("asfreq")
-        return result.interpolate(
+
+        # If the original data has timestamps which are not aligned with the
+        # target timestamps, we need to add those points back to the data frame
+        # that is supposed to be interpolated. This does not work with
+        # PeriodIndex, so we skip this case. GH#21351
+        obj = self._selected_obj
+        is_period_index = isinstance(obj.index, PeriodIndex)
+
+        # Skip this step for PeriodIndex
+        if not is_period_index:
+            final_index = result.index
+            if isinstance(final_index, MultiIndex):
+                raise NotImplementedError(
+                    "Direct interpolation of MultiIndex data frames is not "
+                    "supported. If you tried to resample and interpolate on a "
+                    "grouped data frame, please use:\n"
+                    "`df.groupby(...).apply(lambda x: x.resample(...)."
+                    "interpolate(...))`"
+                    "\ninstead, as resampling and interpolation has to be "
+                    "performed for each group independently."
+                )
+
+            missing_data_points_index = obj.index.difference(final_index)
+            if len(missing_data_points_index) > 0:
+                result = concat(
+                    [result, obj.loc[missing_data_points_index]]
+                ).sort_index()
+
+        result_interpolated = result.interpolate(
             method=method,
             axis=axis,
             limit=limit,
@@ -940,6 +954,18 @@ class Resampler(BaseGroupBy, PandasObject):
             downcast=downcast,
             **kwargs,
         )
+
+        # No further steps if the original data has a PeriodIndex
+        if is_period_index:
+            return result_interpolated
+
+        # Make sure that original data points which do not align with the
+        # resampled index are removed
+        result_interpolated = result_interpolated.loc[final_index]
+
+        # Make sure frequency indexes are preserved
+        result_interpolated.index = final_index
+        return result_interpolated
 
     @final
     def asfreq(self, fill_value=None):
@@ -993,6 +1019,10 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute sum of group values.
 
+        This method provides a simple way to compute the sum of values within each
+        resampled group, particularly useful for aggregating time-based data into
+        daily, monthly, or yearly sums.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1010,6 +1040,14 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         Series or DataFrame
             Computed sum of values within each group.
+
+        See Also
+        --------
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
+        core.resample.Resampler.count : Compute count of group, excluding missing
+            values.
+        DataFrame.resample : Resample time-series data.
+        Series.sum : Return the sum of the values over the requested axis.
 
         Examples
         --------
@@ -1059,6 +1097,13 @@ class Resampler(BaseGroupBy, PandasObject):
         Series or DataFrame
             Computed prod of values within each group.
 
+        See Also
+        --------
+        core.resample.Resampler.sum : Compute sum of groups, excluding missing values.
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
+        core.resample.Resampler.median : Compute median of groups, excluding missing
+            values.
+
         Examples
         --------
         >>> ser = pd.Series(
@@ -1089,9 +1134,30 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute min value of group.
 
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None``.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
         Returns
         -------
         Series or DataFrame
+            Compute the minimum value in the given Series or DataFrame.
+
+        See Also
+        --------
+        core.resample.Resampler.max : Compute max value of group.
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
+        core.resample.Resampler.median : Compute median of groups, excluding missing
+            values.
 
         Examples
         --------
@@ -1123,9 +1189,30 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute max value of group.
 
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None``.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
         Returns
         -------
         Series or DataFrame
+            Computes the maximum value in the given Series or Dataframe.
+
+        See Also
+        --------
+        core.resample.Resampler.min : Compute min value of group.
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
+        core.resample.Resampler.median : Compute median of groups, excluding missing
+            values.
 
         Examples
         --------
@@ -1173,8 +1260,53 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
     @final
-    @doc(GroupBy.median)
     def median(self, numeric_only: bool = False):
+        """
+        Compute median of groups, excluding missing values.
+
+        For multiple groupings, the result index will be a MultiIndex
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None`` and defaults to False.
+
+        Returns
+        -------
+        Series or DataFrame
+            Median of values within each group.
+
+        See Also
+        --------
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 3, 4, 5],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").median()
+        2023-01-01    2.0
+        2023-02-01    4.0
+        Freq: MS, dtype: float64
+        """
         return self._downsample("median", numeric_only=numeric_only)
 
     @final
@@ -1198,6 +1330,16 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         DataFrame or Series
             Mean of values within each group.
+
+        See Also
+        --------
+        core.resample.Resampler.median : Compute median of groups, excluding missing
+            values.
+        core.resample.Resampler.sum : Compute sum of groups, excluding missing values.
+        core.resample.Resampler.std : Compute standard deviation of groups, excluding
+            missing values.
+        core.resample.Resampler.var : Compute variance of groups, excluding missing
+            values.
 
         Examples
         --------
@@ -1247,6 +1389,14 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         DataFrame or Series
             Standard deviation of values within each group.
+
+        See Also
+        --------
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
+        core.resample.Resampler.median : Compute median of groups, excluding missing
+            values.
+        core.resample.Resampler.var : Compute variance of groups, excluding missing
+            values.
 
         Examples
         --------
@@ -1299,6 +1449,14 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame or Series
             Variance of values within each group.
 
+        See Also
+        --------
+        core.resample.Resampler.std : Compute standard deviation of groups, excluding
+            missing values.
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
+        core.resample.Resampler.median : Compute median of groups, excluding missing
+            values.
+
         Examples
         --------
 
@@ -1328,12 +1486,61 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @final
-    @doc(GroupBy.sem)
     def sem(
         self,
         ddof: int = 1,
         numeric_only: bool = False,
     ):
+        """
+        Compute standard error of the mean of groups, excluding missing values.
+
+        For multiple groupings, the result index will be a MultiIndex.
+
+        Parameters
+        ----------
+        ddof : int, default 1
+            Degrees of freedom.
+
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
+
+        Returns
+        -------
+        Series or DataFrame
+            Standard error of the mean of values within each group.
+
+        See Also
+        --------
+        DataFrame.sem : Return unbiased standard error of the mean over requested axis.
+        Series.sem : Return unbiased standard error of the mean over requested axis.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 8],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").sem()
+        2023-01-01    0.577350
+        2023-02-01    1.527525
+        Freq: MS, dtype: float64
+        """
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
     @final
@@ -1358,8 +1565,38 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("ohlc")
 
     @final
-    @doc(SeriesGroupBy.nunique)
     def nunique(self):
+        """
+        Return number of unique elements in the group.
+
+        Returns
+        -------
+        Series
+            Number of unique values within each group.
+
+        See Also
+        --------
+        core.groupby.SeriesGroupBy.nunique : Method nunique for SeriesGroupBy.
+
+        Examples
+        --------
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 3],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    3
+        dtype: int64
+        >>> ser.resample("MS").nunique()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
+        """
         return self._downsample("nunique")
 
     @final
@@ -1471,7 +1708,6 @@ class _GroupByMixin(PandasObject, SelectionMixin):
         groupby: GroupBy,
         key=None,
         selection: IndexLabel | None = None,
-        include_groups: bool = False,
     ) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
@@ -1494,7 +1730,6 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         self.ax = parent.ax
         self.obj = parent.obj
-        self.include_groups = include_groups
 
     @no_type_check
     def _apply(self, f, *args, **kwargs):
@@ -1511,7 +1746,18 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
             return x.apply(f, *args, **kwargs)
 
-        result = _apply(self._groupby, func, include_groups=self.include_groups)
+        result = self._groupby.apply(func)
+
+        # GH 47705
+        if (
+            isinstance(result, ABCDataFrame)
+            and len(result) == 0
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(self.obj.index[:0], freq=self.freq), append=True
+            )
+
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -1567,7 +1813,7 @@ class DatetimeIndexResampler(Resampler):
 
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
-        if self.kind == "period":
+        if isinstance(self.ax, PeriodIndex):
             return self._timegrouper._get_time_period_bins(self.ax)
         return self._timegrouper._get_time_bins(self.ax)
 
@@ -1580,10 +1826,6 @@ class DatetimeIndexResampler(Resampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
-        orig_how = how
-        how = com.get_cython_func(how) or how
-        if orig_how != how:
-            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         # Excludes `on` column when provided
@@ -1669,12 +1911,13 @@ class DatetimeIndexResampler(Resampler):
 
         # we may have a different kind that we were asked originally
         # convert if needed
-        if self.kind == "period" and not isinstance(result.index, PeriodIndex):
+        if isinstance(self.ax, PeriodIndex) and not isinstance(
+            result.index, PeriodIndex
+        ):
             if isinstance(result.index, MultiIndex):
                 # GH 24103 - e.g. groupby resample
-                new_level = result.index.levels[-1]
-                if not isinstance(new_level, PeriodIndex):
-                    new_level = new_level.to_period(self.freq)  # type: ignore[attr-defined]
+                if not isinstance(result.index.levels[-1], PeriodIndex):
+                    new_level = result.index.levels[-1].to_period(self.freq)
                     result.index = result.index.set_levels(new_level, level=-1)
             else:
                 result.index = result.index.to_period(self.freq)
@@ -1711,7 +1954,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return PeriodIndexResamplerGroupby
 
     def _get_binner_for_time(self):
-        if self.kind == "timestamp":
+        if isinstance(self.ax, DatetimeIndex):
             return super()._get_binner_for_time()
         return self._timegrouper._get_period_bins(self.ax)
 
@@ -1728,7 +1971,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             raise NotImplementedError(msg)
 
         # convert to timestamp
-        if self.kind == "timestamp":
+        if isinstance(obj, DatetimeIndex):
             obj = obj.to_timestamp(how=self.convention)
 
         return obj
@@ -1743,13 +1986,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         **kwargs : kw args passed to how function
         """
         # we may need to actually resample as if we are timestamps
-        if self.kind == "timestamp":
+        if isinstance(self.ax, DatetimeIndex):
             return super()._downsample(how, **kwargs)
 
-        orig_how = how
-        how = com.get_cython_func(how) or how
-        if orig_how != how:
-            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -1784,7 +2023,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             Value to use for missing values.
         """
         # we may need to actually resample as if we are timestamps
-        if self.kind == "timestamp":
+        if isinstance(self.ax, DatetimeIndex):
             return super()._upsample(method, limit=limit, fill_value=fill_value)
 
         ax = self.ax
@@ -1856,12 +2095,12 @@ class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
         return TimedeltaIndexResampler
 
 
-def get_resampler(obj: Series | DataFrame, kind=None, **kwds) -> Resampler:
+def get_resampler(obj: Series | DataFrame, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
     """
     tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]
-    return tg._get_resampler(obj, kind=kind)
+    return tg._get_resampler(obj)
 
 
 get_resampler.__doc__ = Resampler.__doc__
@@ -1873,9 +2112,7 @@ def get_resampler_for_grouping(
     how=None,
     fill_method=None,
     limit: int | None = None,
-    kind=None,
     on=None,
-    include_groups: bool = True,
     **kwargs,
 ) -> Resampler:
     """
@@ -1883,10 +2120,8 @@ def get_resampler_for_grouping(
     """
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
-    resampler = tg._get_resampler(groupby.obj, kind=kind)
-    return resampler._get_resampler_for_grouping(
-        groupby=groupby, include_groups=include_groups, key=tg.key
-    )
+    resampler = tg._get_resampler(groupby.obj)
+    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
 
 
 class TimeGrouper(Grouper):
@@ -1906,7 +2141,6 @@ class TimeGrouper(Grouper):
         "closed",
         "label",
         "how",
-        "kind",
         "convention",
         "origin",
         "offset",
@@ -1924,7 +2158,6 @@ class TimeGrouper(Grouper):
         how: str = "mean",
         fill_method=None,
         limit: int | None = None,
-        kind: str | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
         origin: Literal["epoch", "start", "start_day", "end", "end_day"]
         | TimestampConvertibleTypes = "start_day",
@@ -1942,9 +2175,7 @@ class TimeGrouper(Grouper):
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
         if (
-            key is None
-            and obj is not None
-            and isinstance(obj.index, PeriodIndex)  # type: ignore[attr-defined]
+            (key is None and obj is not None and isinstance(obj.index, PeriodIndex))  # type: ignore[attr-defined]
             or (
                 key is not None
                 and obj is not None
@@ -1982,7 +2213,6 @@ class TimeGrouper(Grouper):
 
         self.closed = closed
         self.label = label
-        self.kind = kind
         self.convention = convention if convention is not None else "e"
         self.how = how
         self.fill_method = fill_method
@@ -2020,15 +2250,13 @@ class TimeGrouper(Grouper):
 
         super().__init__(freq=freq, key=key, **kwargs)
 
-    def _get_resampler(self, obj: NDFrame, kind=None) -> Resampler:
+    def _get_resampler(self, obj: NDFrame) -> Resampler:
         """
         Return my resampler or raise if we have an invalid axis.
 
         Parameters
         ----------
         obj : Series or DataFrame
-        kind : string, optional
-            'period','timestamp','timedelta' are valid
 
         Returns
         -------
@@ -2044,11 +2272,10 @@ class TimeGrouper(Grouper):
             return DatetimeIndexResampler(
                 obj,
                 timegrouper=self,
-                kind=kind,
                 group_keys=self.group_keys,
                 gpr_index=ax,
             )
-        elif isinstance(ax, PeriodIndex) or kind == "period":
+        elif isinstance(ax, PeriodIndex):
             if isinstance(ax, PeriodIndex):
                 # GH#53481
                 warnings.warn(
@@ -2057,17 +2284,9 @@ class TimeGrouper(Grouper):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-            else:
-                warnings.warn(
-                    "Resampling with kind='period' is deprecated.  "
-                    "Use datetime paths instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
             return PeriodIndexResampler(
                 obj,
                 timegrouper=self,
-                kind=kind,
                 group_keys=self.group_keys,
                 gpr_index=ax,
             )
@@ -2348,15 +2567,13 @@ class TimeGrouper(Grouper):
 @overload
 def _take_new_index(
     obj: DataFrame, indexer: npt.NDArray[np.intp], new_index: Index
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
 def _take_new_index(
     obj: Series, indexer: npt.NDArray[np.intp], new_index: Index
-) -> Series:
-    ...
+) -> Series: ...
 
 
 def _take_new_index(
@@ -2438,7 +2655,7 @@ def _get_timestamp_range_edges(
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
-            last = last.tz_localize(index_tz)
+            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()
@@ -2633,7 +2850,7 @@ def asfreq(
 
         if isinstance(freq, BaseOffset):
             if hasattr(freq, "_period_dtype_code"):
-                freq = freq_to_period_freqstr(freq.n, freq.name)
+                freq = PeriodDtype(freq)._freqstr
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)
@@ -2683,18 +2900,3 @@ def _asfreq_compat(index: FreqIndexT, freq) -> FreqIndexT:
     else:  # pragma: no cover
         raise TypeError(type(index))
     return new_index
-
-
-def _apply(
-    grouped: GroupBy, how: Callable, *args, include_groups: bool, **kwargs
-) -> DataFrame:
-    # GH#7155 - rewrite warning to appear as if it came from `.resample`
-    target_message = "DataFrameGroupBy.apply operated on the grouping columns"
-    new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
-    with rewrite_warning(
-        target_message=target_message,
-        target_category=DeprecationWarning,
-        new_message=new_message,
-    ):
-        result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)
-    return result

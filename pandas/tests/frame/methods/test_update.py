@@ -152,17 +152,8 @@ class TestDataFrameUpdate:
         # GH#3217
         df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
         df["c"] = np.nan
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.update({"c": Series(["foo"], index=[0])})
-
-        expected = DataFrame(
-            {
-                "a": [1, 3],
-                "b": [np.nan, 2],
-                "c": Series(["foo", np.nan], dtype="object"),
-            }
-        )
-        tm.assert_frame_equal(df, expected)
 
     def test_update_modify_view(self, using_infer_string):
         # GH#47188
@@ -183,4 +174,56 @@ class TestDataFrameUpdate:
         expected = DataFrame(
             {"A": [1.0, 3.0], "B": [pd.NaT, pd.to_datetime("2016-01-01")]}
         )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "value_df, value_other, dtype",
+        [
+            (True, False, bool),
+            (1, 2, int),
+            (1.0, 2.0, float),
+            (1.0 + 1j, 2.0 + 2j, complex),
+            (np.uint64(1), np.uint(2), np.dtype("ubyte")),
+            (np.uint64(1), np.uint(2), np.dtype("intc")),
+            ("a", "b", pd.StringDtype()),
+            (
+                pd.to_timedelta("1 ms"),
+                pd.to_timedelta("2 ms"),
+                np.dtype("timedelta64[ns]"),
+            ),
+            (
+                np.datetime64("2000-01-01T00:00:00"),
+                np.datetime64("2000-01-02T00:00:00"),
+                np.dtype("datetime64[ns]"),
+            ),
+        ],
+    )
+    def test_update_preserve_dtype(self, value_df, value_other, dtype):
+        # GH#55509
+        df = DataFrame({"a": [value_df] * 2}, index=[1, 2], dtype=dtype)
+        other = DataFrame({"a": [value_other]}, index=[1], dtype=dtype)
+        expected = DataFrame({"a": [value_other, value_df]}, index=[1, 2], dtype=dtype)
+        df.update(other)
+        tm.assert_frame_equal(df, expected)
+
+    def test_update_raises_on_duplicate_argument_index(self):
+        # GH#55509
+        df = DataFrame({"a": [1, 1]}, index=[1, 2])
+        other = DataFrame({"a": [2, 3]}, index=[1, 1])
+        with pytest.raises(ValueError, match="duplicate index"):
+            df.update(other)
+
+    def test_update_raises_without_intersection(self):
+        # GH#55509
+        df = DataFrame({"a": [1]}, index=[1])
+        other = DataFrame({"a": [2]}, index=[2])
+        with pytest.raises(ValueError, match="no intersection"):
+            df.update(other)
+
+    def test_update_on_duplicate_frame_unique_argument_index(self):
+        # GH#55509
+        df = DataFrame({"a": [1, 1, 1]}, index=[1, 1, 2], dtype=np.dtype("intc"))
+        other = DataFrame({"a": [2, 3]}, index=[1, 2], dtype=np.dtype("intc"))
+        expected = DataFrame({"a": [2, 2, 3]}, index=[1, 1, 2], dtype=np.dtype("intc"))
+        df.update(other)
         tm.assert_frame_equal(df, expected)

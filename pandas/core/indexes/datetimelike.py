@@ -1,6 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+
 from __future__ import annotations
 
 from abc import (
@@ -28,7 +29,6 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -45,7 +45,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    PeriodDtype,
+)
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -94,6 +97,32 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     def freq(self) -> BaseOffset | None:
+        """
+        Return the frequency object if it is set, otherwise None.
+
+        To learn more about the frequency strings, please see
+        :ref:`this link<timeseries.offset_aliases>`.
+
+        See Also
+        --------
+        DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
+        PeriodIndex.freq : Return the frequency object if it is set, otherwise None.
+
+        Examples
+        --------
+        >>> datetimeindex = pd.date_range(
+        ...     "2022-02-22 02:22:22", periods=10, tz="America/Chicago", freq="h"
+        ... )
+        >>> datetimeindex
+        DatetimeIndex(['2022-02-22 02:22:22-06:00', '2022-02-22 03:22:22-06:00',
+                       '2022-02-22 04:22:22-06:00', '2022-02-22 05:22:22-06:00',
+                       '2022-02-22 06:22:22-06:00', '2022-02-22 07:22:22-06:00',
+                       '2022-02-22 08:22:22-06:00', '2022-02-22 09:22:22-06:00',
+                       '2022-02-22 10:22:22-06:00', '2022-02-22 11:22:22-06:00'],
+                      dtype='datetime64[ns, America/Chicago]', freq='h')
+        >>> datetimeindex.freq
+        <Hour>
+        """
         return self._data.freq
 
     @freq.setter
@@ -113,15 +142,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if self._data.freqstr is not None and isinstance(
             self._data, (PeriodArray, PeriodIndex)
         ):
-            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
+            freq = PeriodDtype(self._data.freq)._freqstr
             return freq
         else:
             return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
-    def _resolution_obj(self) -> Resolution:
-        ...
+    def _resolution_obj(self) -> Resolution: ...
 
     @cache_readonly
     @doc(DatetimeLikeArrayMixin.resolution)
@@ -413,6 +441,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         """
         Convert to a dtype with the given unit resolution.
 
+        This method is for converting the dtype of a ``DatetimeIndex`` or
+        ``TimedeltaIndex`` to a new dtype with the given unit
+        resolution/precision.
+
         Parameters
         ----------
         unit : {'s', 'ms', 'us', 'ns'}
@@ -420,6 +452,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         Returns
         -------
         same type as self
+            Converted to the specified unit.
+
+        See Also
+        --------
+        Timestamp.as_unit : Convert to the given unit.
+        Timedelta.as_unit : Convert to the given unit.
+        DatetimeIndex.as_unit : Convert to the given unit.
+        TimedeltaIndex.as_unit : Convert to the given unit.
 
         Examples
         --------
@@ -495,7 +535,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
         freq = cast(Tick, self.freq)
-        tick = Timedelta(freq).as_unit("ns")._value
+        tick = Timedelta(freq).as_unit(self.unit)._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
@@ -508,7 +548,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # RangeIndex defaults to step=1, which we don't want.
             new_freq = self.freq
         elif isinstance(res_i8, RangeIndex):
-            new_freq = to_offset(Timedelta(res_i8.step))
+            new_freq = to_offset(
+                Timedelta(res_i8.step, unit=self.unit).as_unit(self.unit)
+            )
 
         # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)

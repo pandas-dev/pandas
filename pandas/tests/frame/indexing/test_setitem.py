@@ -41,7 +41,7 @@ class TestDataFrameSetItem:
     def test_setitem_str_subclass(self):
         # GH#37366
         class mystring(str):
-            pass
+            __slots__ = ()
 
         data = ["2020-10-22 01:21:00+00:00"]
         index = DatetimeIndex(data)
@@ -144,13 +144,31 @@ class TestDataFrameSetItem:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_empty_columns(self):
-        # GH 13522
+    def test_setitem_overwrite_index(self):
+        # GH 13522 - assign the index as a column and then overwrite the values
+        # -> should not affect the index
         df = DataFrame(index=["A", "B", "C"])
         df["X"] = df.index
         df["X"] = ["x", "y", "z"]
-        exp = DataFrame(data={"X": ["x", "y", "z"]}, index=["A", "B", "C"])
+        exp = DataFrame(
+            data={"X": ["x", "y", "z"]}, index=["A", "B", "C"], columns=["X"]
+        )
         tm.assert_frame_equal(df, exp)
+
+    def test_setitem_empty_columns(self):
+        # Starting from an empty DataFrame and setting a column should result
+        # in a default string dtype for the columns' Index
+        # https://github.com/pandas-dev/pandas/issues/60338
+
+        df = DataFrame()
+        df["foo"] = [1, 2, 3]
+        expected = DataFrame({"foo": [1, 2, 3]})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame(columns=Index([]))
+        df["foo"] = [1, 2, 3]
+        expected = DataFrame({"foo": [1, 2, 3]})
+        tm.assert_frame_equal(df, expected)
 
     def test_setitem_dt64_index_empty_columns(self):
         rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
@@ -162,10 +180,10 @@ class TestDataFrameSetItem:
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
-        df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
+        df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
-            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
+            [[Timestamp("20130101", tz="UTC")]] * 3, index=range(3), columns=["now"]
         )
         tm.assert_frame_equal(df, expected)
 
@@ -204,7 +222,7 @@ class TestDataFrameSetItem:
         result = DataFrame([])
         result["a"] = data
 
-        expected = DataFrame({"a": data})
+        expected = DataFrame({"a": data}, columns=["a"])
 
         tm.assert_frame_equal(result, expected)
 
@@ -340,8 +358,8 @@ class TestDataFrameSetItem:
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
         # Note: This does not hold with Copy on Write (because of lazy copying)
-        v1 = df._mgr.arrays[1]
-        v2 = df._mgr.arrays[2]
+        v1 = df._mgr.blocks[1].values
+        v2 = df._mgr.blocks[2].values
         tm.assert_extension_array_equal(v1, v2)
         v1base = v1._ndarray.base
         v2base = v2._ndarray.base
@@ -670,7 +688,7 @@ class TestDataFrameSetItem:
     def test_setitem_dtypes_bytes_type_to_object(self):
         # GH 20734
         index = Series(name="id", dtype="S24")
-        df = DataFrame(index=index)
+        df = DataFrame(index=index, columns=Index([], dtype="str"))
         df["a"] = Series(name="a", index=index, dtype=np.uint32)
         df["b"] = Series(name="b", index=index, dtype="S64")
         df["c"] = Series(name="c", index=index, dtype="S64")
@@ -707,11 +725,14 @@ class TestDataFrameSetItem:
         )
 
         a = np.ones((10, 1))
-        df = DataFrame(index=np.arange(10))
+        df = DataFrame(index=np.arange(10), columns=Index([], dtype="str"))
         df["np-array"] = a
 
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
-        with tm.assert_produces_warning(PendingDeprecationWarning):
+        with tm.assert_produces_warning(
+            PendingDeprecationWarning,
+            match="matrix subclass is not the recommended way to represent matrices",
+        ):
             df["np-matrix"] = np.matrix(a)
 
         tm.assert_frame_equal(df, expected)
@@ -779,20 +800,18 @@ class TestDataFrameSetItem:
         df.iloc[:, 0] = Series([11], dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_object_inferring(self):
+    def test_setitem_index_object_dtype_not_inferring(self):
         # GH#56102
         idx = Index([Timestamp("2019-12-31")], dtype=object)
         df = DataFrame({"a": [1]})
-        with tm.assert_produces_warning(FutureWarning, match="infer"):
-            df.loc[:, "b"] = idx
-        with tm.assert_produces_warning(FutureWarning, match="infer"):
-            df["c"] = idx
+        df.loc[:, "b"] = idx
+        df["c"] = idx
 
         expected = DataFrame(
             {
                 "a": [1],
-                "b": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
-                "c": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
+                "b": idx,
+                "c": idx,
             }
         )
         tm.assert_frame_equal(df, expected)
@@ -837,6 +856,7 @@ class TestSetitemTZAwareValues:
         # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
         result = df["B"]
+        expected = expected.dt.as_unit("us")
         tm.assert_series_equal(result, expected)
 
 
@@ -1354,18 +1374,12 @@ class TestDataFrameSetitemCopyViewSemantics:
 def test_full_setter_loc_incompatible_dtype():
     # https://github.com/pandas-dev/pandas/issues/55791
     df = DataFrame({"a": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.loc[:, "a"] = True
-    expected = DataFrame({"a": [True, True]})
-    tm.assert_frame_equal(df, expected)
 
-    df = DataFrame({"a": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.loc[:, "a"] = {0: 3.5, 1: 4.5}
-    expected = DataFrame({"a": [3.5, 4.5]})
-    tm.assert_frame_equal(df, expected)
 
-    df = DataFrame({"a": [1, 2]})
     df.loc[:, "a"] = {0: 3, 1: 4}
     expected = DataFrame({"a": [3, 4]})
     tm.assert_frame_equal(df, expected)

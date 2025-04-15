@@ -1,6 +1,7 @@
 """
 :mod:`pandas.io.formats.xml` is a module for formatting data in XML.
 """
+
 from __future__ import annotations
 
 import codecs
@@ -10,7 +11,6 @@ from typing import (
     Any,
     final,
 )
-import warnings
 
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -207,13 +207,7 @@ class _BaseXMLFormatter:
             df = df.reset_index()
 
         if self.na_rep is not None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Downcasting object dtype arrays",
-                    category=FutureWarning,
-                )
-                df = df.fillna(self.na_rep)
+            df = df.fillna(self.na_rep)
 
         return df.to_dict(orient="index")
 
@@ -266,7 +260,7 @@ class _BaseXMLFormatter:
         nmsp_dict: dict[str, str] = {}
         if self.namespaces:
             nmsp_dict = {
-                f"xmlns{p if p=='' else f':{p}'}": n
+                f"xmlns{p if p == '' else f':{p}'}": n
                 for p, n in self.namespaces.items()
                 if n != self.prefix_uri[1:-1]
             }
@@ -410,7 +404,7 @@ class EtreeXMLFormatter(_BaseXMLFormatter):
                         f"{self.prefix} is not included in namespaces"
                     ) from err
             elif "" in self.namespaces:
-                uri = f'{{{self.namespaces[""]}}}'
+                uri = f"{{{self.namespaces['']}}}"
             else:
                 uri = ""
 
@@ -508,7 +502,7 @@ class LxmlXMLFormatter(_BaseXMLFormatter):
                         f"{self.prefix} is not included in namespaces"
                     ) from err
             elif "" in self.namespaces:
-                uri = f'{{{self.namespaces[""]}}}'
+                uri = f"{{{self.namespaces['']}}}"
             else:
                 uri = ""
 

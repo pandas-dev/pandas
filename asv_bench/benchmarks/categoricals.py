@@ -24,7 +24,7 @@ class Constructor:
         self.codes = np.tile(range(len(self.categories)), N)
 
         self.datetimes = pd.Series(
-            pd.date_range("1995-01-01 00:00:00", periods=N / 10, freq="s")
+            pd.date_range("1995-01-01 00:00:00", periods=N // 10, freq="s")
         )
         self.datetimes_with_nat = self.datetimes.copy()
         self.datetimes_with_nat.iloc[-1] = pd.NaT
@@ -88,7 +88,7 @@ class AsType:
         )
 
         for col in ("int", "float", "timestamp"):
-            self.df[col + "_as_str"] = self.df[col].astype(str)
+            self.df[f"{col}_as_str"] = self.df[col].astype(str)
 
         for col in self.df.columns:
             self.df[col] = self.df[col].astype("category")

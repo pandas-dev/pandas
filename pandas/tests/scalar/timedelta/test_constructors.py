@@ -35,15 +35,16 @@ class TestTimedeltaConstructorUnitKeyword:
     @pytest.mark.parametrize(
         "unit,unit_depr",
         [
-            ("h", "H"),
-            ("min", "T"),
+            ("W", "w"),
+            ("D", "d"),
+            ("min", "MIN"),
             ("s", "S"),
-            ("ms", "L"),
-            ("ns", "N"),
-            ("us", "U"),
+            ("h", "H"),
+            ("ms", "MS"),
+            ("us", "US"),
         ],
     )
-    def test_units_H_T_S_L_N_U_deprecated(self, unit, unit_depr):
+    def test_unit_deprecated(self, unit, unit_depr):
         # GH#52536
         msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
@@ -54,8 +55,8 @@ class TestTimedeltaConstructorUnitKeyword:
 
     @pytest.mark.parametrize(
         "unit, np_unit",
-        [(value, "W") for value in ["W", "w"]]
-        + [(value, "D") for value in ["D", "d", "days", "day", "Days", "Day"]]
+        [("W", "W")]
+        + [(value, "D") for value in ["D", "days", "day", "Days", "Day"]]
         + [
             (value, "m")
             for value in [
@@ -88,7 +89,6 @@ class TestTimedeltaConstructorUnitKeyword:
                 "millisecond",
                 "milli",
                 "millis",
-                "MS",
                 "Milliseconds",
                 "Millisecond",
                 "Milli",
@@ -103,13 +103,10 @@ class TestTimedeltaConstructorUnitKeyword:
                 "microsecond",
                 "micro",
                 "micros",
-                "u",
-                "US",
                 "Microseconds",
                 "Microsecond",
                 "Micro",
                 "Micros",
-                "U",
             ]
         ]
         + [
@@ -120,13 +117,10 @@ class TestTimedeltaConstructorUnitKeyword:
                 "nanosecond",
                 "nano",
                 "nanos",
-                "n",
-                "NS",
                 "Nanoseconds",
                 "Nanosecond",
                 "Nano",
                 "Nanos",
-                "N",
             ]
         ],
     )
@@ -139,36 +133,39 @@ class TestTimedeltaConstructorUnitKeyword:
             dtype="m8[ns]",
         )
         # TODO(2.0): the desired output dtype may have non-nano resolution
-        msg = f"'{unit}' is deprecated and will be removed in a future version."
 
-        if (unit, np_unit) in (("u", "us"), ("U", "us"), ("n", "ns"), ("N", "ns")):
-            warn = FutureWarning
-        else:
-            warn = FutureWarning
-            msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = to_timedelta(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
-            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
+        result = to_timedelta(wrapper(range(5)), unit=unit)
+        tm.assert_index_equal(result, expected)
 
-            str_repr = [f"{x}{unit}" for x in np.arange(5)]
-            result = to_timedelta(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
-            result = to_timedelta(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
+        str_repr = [f"{x}{unit}" for x in np.arange(5)]
+        result = to_timedelta(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
+        result = to_timedelta(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
 
-            # scalar
-            expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
-            result = to_timedelta(2, unit=unit)
-            assert result == expected
-            result = Timedelta(2, unit=unit)
-            assert result == expected
+        # scalar
+        expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+        result = to_timedelta(2, unit=unit)
+        assert result == expected
+        result = Timedelta(2, unit=unit)
+        assert result == expected
 
-            result = to_timedelta(f"2{unit}")
-            assert result == expected
-            result = Timedelta(f"2{unit}")
-            assert result == expected
+        result = to_timedelta(f"2{unit}")
+        assert result == expected
+        result = Timedelta(f"2{unit}")
+        assert result == expected
+
+    @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
+    def test_unit_T_L_N_U_raises(self, unit):
+        msg = f"invalid unit abbreviation: {unit}"
+        with pytest.raises(ValueError, match=msg):
+            Timedelta(1, unit=unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(10, unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta([1, 2], unit)
 
 
 def test_construct_from_kwargs_overflow():
@@ -261,8 +258,8 @@ def test_from_tick_reso():
 
 def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
-    assert Timedelta(10, unit="d")._value == expected
-    assert Timedelta(10.0, unit="d")._value == expected
+    assert Timedelta(10, unit="D")._value == expected
+    assert Timedelta(10.0, unit="D")._value == expected
     assert Timedelta("10 days")._value == expected
     assert Timedelta(days=10)._value == expected
     assert Timedelta(days=10.0)._value == expected
@@ -356,8 +353,7 @@ def test_construction():
         Timedelta("foo")
 
     msg = (
-        "cannot construct a Timedelta from "
-        "the passed arguments, allowed keywords are "
+        "cannot construct a Timedelta from the passed arguments, allowed keywords are "
     )
     with pytest.raises(ValueError, match=msg):
         Timedelta(day=10)

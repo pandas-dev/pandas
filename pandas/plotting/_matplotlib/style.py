@@ -35,8 +35,7 @@ def get_standard_colors(
     color_type: str = ...,
     *,
     color: dict[str, Color],
-) -> dict[str, Color]:
-    ...
+) -> dict[str, Color]: ...
 
 
 @overload
@@ -46,8 +45,7 @@ def get_standard_colors(
     color_type: str = ...,
     *,
     color: Color | Sequence[Color] | None = ...,
-) -> list[Color]:
-    ...
+) -> list[Color]: ...
 
 
 @overload
@@ -57,8 +55,7 @@ def get_standard_colors(
     color_type: str = ...,
     *,
     color: dict[str, Color] | Color | Sequence[Color] | None = ...,
-) -> dict[str, Color] | list[Color]:
-    ...
+) -> dict[str, Color] | list[Color]: ...
 
 
 def get_standard_colors(
@@ -263,9 +260,7 @@ def _get_colors_from_color_type(color_type: str, num_colors: int) -> list[Color]
 
 def _get_default_colors(num_colors: int) -> list[Color]:
     """Get `num_colors` of default colors from matplotlib rc params."""
-    import matplotlib.pyplot as plt
-
-    colors = [c["color"] for c in plt.rcParams["axes.prop_cycle"]]
+    colors = [c["color"] for c in mpl.rcParams["axes.prop_cycle"]]
     return colors[0:num_colors]
 
 
@@ -278,7 +273,7 @@ def _random_color(column: int) -> list[float]:
     """Get a random color represented as a list of length 3"""
     # GH17525 use common._random_state to avoid resetting the seed
     rs = com.random_state(column)
-    return rs.rand(3).tolist()
+    return rs.rand(3).tolist()  # type: ignore[return-value]
 
 
 def _is_single_string_color(color: Color) -> bool:

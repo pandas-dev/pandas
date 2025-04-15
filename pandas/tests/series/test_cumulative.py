@@ -6,6 +6,8 @@ See also
 tests.frame.test_cumulative
 """
 
+import re
+
 import numpy as np
 import pytest
 
@@ -91,6 +93,25 @@ class TestSeriesCumulativeOps:
         result = getattr(ser, method)(skipna=skipna)
         tm.assert_series_equal(expected, result)
 
+    def test_cumsum_datetimelike(self):
+        # GH#57956
+        df = pd.DataFrame(
+            [
+                [pd.Timedelta(0), pd.Timedelta(days=1)],
+                [pd.Timedelta(days=2), pd.NaT],
+                [pd.Timedelta(hours=-6), pd.Timedelta(hours=12)],
+            ]
+        )
+        result = df.cumsum()
+        expected = pd.DataFrame(
+            [
+                [pd.Timedelta(0), pd.Timedelta(days=1)],
+                [pd.Timedelta(days=2), pd.NaT],
+                [pd.Timedelta(days=1, hours=18), pd.Timedelta(days=1, hours=12)],
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "func, exp",
         [
@@ -151,8 +172,113 @@ class TestSeriesCumulativeOps:
         result = getattr(ser, method)()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "method, order",
+        [
+            ["cummax", "abc"],
+            ["cummin", "cba"],
+        ],
+    )
+    def test_cummax_cummin_on_ordered_categorical(self, method, order):
+        # GH#52335
+        cat = pd.CategoricalDtype(list(order), ordered=True)
+        ser = pd.Series(
+            list("ababcab"),
+            dtype=cat,
+        )
+        result = getattr(ser, method)()
+        expected = pd.Series(
+            list("abbbccc"),
+            dtype=cat,
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "skip, exp",
+        [
+            [True, ["a", np.nan, "b", "b", "c"]],
+            [False, ["a", np.nan, np.nan, np.nan, np.nan]],
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method, order",
+        [
+            ["cummax", "abc"],
+            ["cummin", "cba"],
+        ],
+    )
+    def test_cummax_cummin_ordered_categorical_nan(self, skip, exp, method, order):
+        # GH#52335
+        cat = pd.CategoricalDtype(list(order), ordered=True)
+        ser = pd.Series(
+            ["a", np.nan, "b", "a", "c"],
+            dtype=cat,
+        )
+        result = getattr(ser, method)(skipna=skip)
+        expected = pd.Series(
+            exp,
+            dtype=cat,
+        )
+        tm.assert_series_equal(
+            result,
+            expected,
+        )
+
     def test_cumprod_timedelta(self):
         # GH#48111
         ser = pd.Series([pd.Timedelta(days=1), pd.Timedelta(days=3)])
         with pytest.raises(TypeError, match="cumprod not supported for Timedelta"):
             ser.cumprod()
+
+    @pytest.mark.parametrize(
+        "data, op, skipna, expected_data",
+        [
+            ([], "cumsum", True, []),
+            ([], "cumsum", False, []),
+            (["x", "z", "y"], "cumsum", True, ["x", "xz", "xzy"]),
+            (["x", "z", "y"], "cumsum", False, ["x", "xz", "xzy"]),
+            (["x", pd.NA, "y"], "cumsum", True, ["x", pd.NA, "xy"]),
+            (["x", pd.NA, "y"], "cumsum", False, ["x", pd.NA, pd.NA]),
+            ([pd.NA, "x", "y"], "cumsum", True, [pd.NA, "x", "xy"]),
+            ([pd.NA, "x", "y"], "cumsum", False, [pd.NA, pd.NA, pd.NA]),
+            ([pd.NA, pd.NA, pd.NA], "cumsum", True, [pd.NA, pd.NA, pd.NA]),
+            ([pd.NA, pd.NA, pd.NA], "cumsum", False, [pd.NA, pd.NA, pd.NA]),
+            ([], "cummin", True, []),
+            ([], "cummin", False, []),
+            (["y", "z", "x"], "cummin", True, ["y", "y", "x"]),
+            (["y", "z", "x"], "cummin", False, ["y", "y", "x"]),
+            (["y", pd.NA, "x"], "cummin", True, ["y", pd.NA, "x"]),
+            (["y", pd.NA, "x"], "cummin", False, ["y", pd.NA, pd.NA]),
+            ([pd.NA, "y", "x"], "cummin", True, [pd.NA, "y", "x"]),
+            ([pd.NA, "y", "x"], "cummin", False, [pd.NA, pd.NA, pd.NA]),
+            ([pd.NA, pd.NA, pd.NA], "cummin", True, [pd.NA, pd.NA, pd.NA]),
+            ([pd.NA, pd.NA, pd.NA], "cummin", False, [pd.NA, pd.NA, pd.NA]),
+            ([], "cummax", True, []),
+            ([], "cummax", False, []),
+            (["x", "z", "y"], "cummax", True, ["x", "z", "z"]),
+            (["x", "z", "y"], "cummax", False, ["x", "z", "z"]),
+            (["x", pd.NA, "y"], "cummax", True, ["x", pd.NA, "y"]),
+            (["x", pd.NA, "y"], "cummax", False, ["x", pd.NA, pd.NA]),
+            ([pd.NA, "x", "y"], "cummax", True, [pd.NA, "x", "y"]),
+            ([pd.NA, "x", "y"], "cummax", False, [pd.NA, pd.NA, pd.NA]),
+            ([pd.NA, pd.NA, pd.NA], "cummax", True, [pd.NA, pd.NA, pd.NA]),
+            ([pd.NA, pd.NA, pd.NA], "cummax", False, [pd.NA, pd.NA, pd.NA]),
+        ],
+    )
+    def test_cum_methods_ea_strings(
+        self, string_dtype_no_object, data, op, skipna, expected_data
+    ):
+        # https://github.com/pandas-dev/pandas/pull/60633 - pyarrow
+        # https://github.com/pandas-dev/pandas/pull/60938 - Python
+        ser = pd.Series(data, dtype=string_dtype_no_object)
+        method = getattr(ser, op)
+        expected = pd.Series(expected_data, dtype=string_dtype_no_object)
+        result = method(skipna=skipna)
+        tm.assert_series_equal(result, expected)
+
+    def test_cumprod_pyarrow_strings(self, pyarrow_string_dtype, skipna):
+        # https://github.com/pandas-dev/pandas/pull/60633
+        ser = pd.Series(list("xyz"), dtype=pyarrow_string_dtype)
+        msg = re.escape(f"operation 'cumprod' not supported for dtype '{ser.dtype}'")
+        with pytest.raises(TypeError, match=msg):
+            ser.cumprod(skipna=skipna)

@@ -27,7 +27,9 @@ class BaseMissingTests:
         expected = result.copy()
         mask = getattr(result, na_func)()
         if isinstance(mask.dtype, pd.SparseDtype):
+            # TODO: GH 57739
             mask = np.array(mask)
+            mask.flags.writeable = True
 
         mask[:] = True
         tm.assert_series_equal(result, expected)
@@ -68,9 +70,12 @@ class BaseMissingTests:
         expected = data_missing.fillna(valid)
         tm.assert_extension_array_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
-    )
+    def test_fillna_with_none(self, data_missing):
+        # GH#57723
+        result = data_missing.fillna(None)
+        expected = data_missing
+        tm.assert_extension_array_equal(result, expected)
+
     def test_fillna_limit_pad(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
         result = pd.Series(arr).ffill(limit=2)
@@ -99,12 +104,9 @@ class BaseMissingTests:
         expected = pd.Series(data_missing.take(expected_ilocs))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
-    )
     def test_fillna_limit_backfill(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
-        result = pd.Series(arr).fillna(method="backfill", limit=2)
+        result = pd.Series(arr).bfill(limit=2)
         expected = pd.Series(data_missing.take([1, 0, 1, 1, 1]))
         tm.assert_series_equal(result, expected)
 
@@ -177,12 +179,3 @@ class BaseMissingTests:
         expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
 
         tm.assert_frame_equal(result, expected)
-
-    def test_use_inf_as_na_no_effect(self, data_missing):
-        ser = pd.Series(data_missing)
-        expected = ser.isna()
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with pd.option_context("mode.use_inf_as_na", True):
-                result = ser.isna()
-        tm.assert_series_equal(result, expected)

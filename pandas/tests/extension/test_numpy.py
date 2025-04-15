@@ -15,6 +15,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 Note: we do not bother with base.BaseIndexTests because NumpyExtensionArray
 will never be held in an Index.
 """
+
 import numpy as np
 import pytest
 
@@ -203,6 +204,18 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_shift_fill_value(self, data):
         # np.array shape inference. Shift implementation fails.
         super().test_shift_fill_value(data)
+
+    @skip_nested
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        # The "scalar" for this array isn't a scalar.
+        super().test_fillna_limit_frame(data_missing)
+
+    @skip_nested
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        # The "scalar" for this array isn't a scalar.
+        super().test_fillna_limit_series(data_missing)
 
     @skip_nested
     def test_fillna_copy_frame(self, data_missing):

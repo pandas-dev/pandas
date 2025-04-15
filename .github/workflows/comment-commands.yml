@@ -24,7 +24,7 @@ jobs:
     concurrency:
       group: ${{ github.actor }}-preview-docs
     steps:
-      - uses: pandas-dev/github-doc-previewer@v0.3.1
+      - uses: pandas-dev/github-doc-previewer@v0.3.2
         with:
           previewer-server: "https://pandas.pydata.org/preview"
           artifact-job: "Doc Build and Upload"

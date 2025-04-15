@@ -3,10 +3,9 @@ import pickle
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.pyarrow import pa_version_under12p0
-import pandas.util._test_decorators as td
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -79,8 +78,7 @@ def test_astype_different_target_dtype(dtype):
 
 def test_astype_numpy_to_ea():
     ser = Series([1, 2, 3])
-    with pd.option_context("mode.copy_on_write", True):
-        result = ser.astype("Int64")
+    result = ser.astype("Int64")
     assert np.shares_memory(get_array(ser), get_array(result))
 
 
@@ -110,7 +108,8 @@ def test_astype_string_and_object_update_original(dtype, new_dtype):
     tm.assert_frame_equal(df2, df_orig)
 
 
-def test_astype_string_copy_on_pickle_roundrip():
+def test_astype_str_copy_on_pickle_roundrip():
+    # TODO(infer_string) this test can be removed after 3.0 (once str is the default)
     # https://github.com/pandas-dev/pandas/issues/54654
     # ensure_string_array may alter array inplace
     base = Series(np.array([(1, 2), None, 1], dtype="object"))
@@ -119,14 +118,22 @@ def test_astype_string_copy_on_pickle_roundrip():
     tm.assert_series_equal(base, base_copy)
 
 
-@td.skip_if_no("pyarrow")
-def test_astype_string_read_only_on_pickle_roundrip():
+def test_astype_string_copy_on_pickle_roundrip(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/issues/54654
+    # ensure_string_array may alter array inplace
+    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base_copy = pickle.loads(pickle.dumps(base))
+    base_copy.astype(any_string_dtype)
+    tm.assert_series_equal(base, base_copy)
+
+
+def test_astype_string_read_only_on_pickle_roundrip(any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/54654
     # ensure_string_array may alter read-only array inplace
     base = Series(np.array([(1, 2), None, 1], dtype="object"))
     base_copy = pickle.loads(pickle.dumps(base))
     base_copy._values.flags.writeable = False
-    base_copy.astype("string[pyarrow]", copy=False)
+    base_copy.astype(any_string_dtype)
     tm.assert_series_equal(base, base_copy)
 
 
@@ -207,19 +214,25 @@ def test_convert_dtypes_infer_objects():
         convert_string=False,
     )
 
-    assert np.shares_memory(get_array(ser), get_array(result))
+    assert tm.shares_memory(get_array(ser), get_array(result))
     result.iloc[0] = "x"
     tm.assert_series_equal(ser, ser_orig)
 
 
-def test_convert_dtypes():
+def test_convert_dtypes(using_infer_string):
     df = DataFrame({"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]})
     df_orig = df.copy()
     df2 = df.convert_dtypes()
 
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    assert np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
-    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-    assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    if using_infer_string and HAS_PYARROW:
+        # TODO the default nullable string dtype still uses python storage
+        # this should be changed to pyarrow if installed
+        assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert tm.shares_memory(get_array(df2, "d"), get_array(df, "d"))
+    assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    assert tm.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     df2.iloc[0, 0] = "x"
+    df2.iloc[0, 1] = 10
     tm.assert_frame_equal(df, df_orig)

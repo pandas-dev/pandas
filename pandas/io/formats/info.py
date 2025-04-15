@@ -72,7 +72,7 @@ frame_examples_sub = dedent(
     Prints information of all columns:
 
     >>> df.info(verbose=True)
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 5 entries, 0 to 4
     Data columns (total 3 columns):
      #   Column     Non-Null Count  Dtype
@@ -87,7 +87,7 @@ frame_examples_sub = dedent(
     information:
 
     >>> df.info(verbose=False)
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 5 entries, 0 to 4
     Columns: 3 entries, int_col to float_col
     dtypes: float64(1), int64(1), object(1)
@@ -115,7 +115,7 @@ frame_examples_sub = dedent(
     ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
     ... })
     >>> df.info()
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 1000000 entries, 0 to 999999
     Data columns (total 3 columns):
      #   Column    Non-Null Count    Dtype
@@ -127,7 +127,7 @@ frame_examples_sub = dedent(
     memory usage: 22.9+ MB
 
     >>> df.info(memory_usage='deep')
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 1000000 entries, 0 to 999999
     Data columns (total 3 columns):
      #   Column    Non-Null Count    Dtype
@@ -165,7 +165,7 @@ series_examples_sub = dedent(
     >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
     >>> s = pd.Series(text_values, index=int_values)
     >>> s.info()
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     Index: 5 entries, 1 to 5
     Series name: None
     Non-Null Count  Dtype
@@ -177,7 +177,7 @@ series_examples_sub = dedent(
     Prints a summary excluding information about its values:
 
     >>> s.info(verbose=False)
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     Index: 5 entries, 1 to 5
     dtypes: object(1)
     memory usage: 80.0+ bytes
@@ -200,7 +200,7 @@ series_examples_sub = dedent(
     >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
     >>> s = pd.Series(np.random.choice(['a', 'b', 'c'], 10 ** 6))
     >>> s.info()
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     RangeIndex: 1000000 entries, 0 to 999999
     Series name: None
     Non-Null Count    Dtype
@@ -210,7 +210,7 @@ series_examples_sub = dedent(
     memory usage: 7.6+ MB
 
     >>> s.info(memory_usage='deep')
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     RangeIndex: 1000000 entries, 0 to 999999
     Series name: None
     Non-Null Count    Dtype
@@ -226,12 +226,17 @@ series_see_also_sub = dedent(
     Series.describe: Generate descriptive statistics of Series.
     Series.memory_usage: Memory usage of Series."""
 )
+series_max_cols_sub = dedent(
+    """\
+    max_cols : int, optional
+        Unused, exists only for compatibility with DataFrame.info."""
+)
 
 
 series_sub_kwargs = {
     "klass": "Series",
     "type_sub": "",
-    "max_cols_sub": "",
+    "max_cols_sub": series_max_cols_sub,
     "show_counts_sub": show_counts_sub,
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub,
@@ -244,7 +249,7 @@ INFO_DOCSTRING = dedent(
     Print a concise summary of a {klass}.
 
     This method prints information about a {klass} including
-    the index dtype{type_sub}, non-null values and memory usage.
+    the index dtype{type_sub}, non-NA values and memory usage.
     {version_added_sub}\
 
     Parameters
@@ -422,7 +427,7 @@ class _BaseInfo(ABC):
                 # categories)
                 if (
                     "object" in self.dtype_counts
-                    or self.data.index._is_memory_usage_qualified()
+                    or self.data.index._is_memory_usage_qualified
                 ):
                     size_qualifier = "+"
         return size_qualifier
@@ -622,7 +627,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
     @property
     def max_rows(self) -> int:
         """Maximum info rows to be displayed."""
-        return get_option("display.max_info_rows", len(self.data) + 1)
+        return get_option("display.max_info_rows")
 
     @property
     def exceeds_info_cols(self) -> bool:
@@ -641,7 +646,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
 
     def _initialize_max_cols(self, max_cols: int | None) -> int:
         if max_cols is None:
-            return get_option("display.max_info_columns", self.col_count + 1)
+            return get_option("display.max_info_columns")
         return max_cols
 
     def _initialize_show_counts(self, show_counts: bool | None) -> bool:

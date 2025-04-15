@@ -1,13 +1,11 @@
 """
 Boilerplate functions used in defining binary operations.
 """
+
 from __future__ import annotations
 
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
@@ -18,6 +16,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import F
 
 

@@ -8,10 +8,8 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    OutOfBoundsDatetime,
-    PerformanceWarning,
-)
+from pandas.compat import WASM
+from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
 from pandas import (
@@ -577,7 +575,9 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = tdi - tdi
         tm.assert_index_equal(result, expected)
 
-    def test_tda_add_dt64_object_array(self, box_with_array, tz_naive_fixture):
+    def test_tda_add_dt64_object_array(
+        self, performance_warning, box_with_array, tz_naive_fixture
+    ):
         # Result should be cast back to DatetimeArray
         box = box_with_array
 
@@ -588,7 +588,7 @@ class TestTimedelta64ArithmeticUnsorted:
         obj = tm.box_expected(tdi, box)
         other = tm.box_expected(dti, box)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             result = obj + other.astype(object)
         tm.assert_equal(result, other.astype(object))
 
@@ -1282,7 +1282,9 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets
 
-    def test_td64arr_add_sub_offset_index(self, names, box_with_array):
+    def test_td64arr_add_sub_offset_index(
+        self, performance_warning, names, box_with_array
+    ):
         # GH#18849, GH#19744
         box = box_with_array
         exname = get_expected_name(box, names)
@@ -1299,22 +1301,22 @@ class TestTimedeltaArraylikeAddSubOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box).astype(object, copy=False)
-        expected_sub = tm.box_expected(expected_sub, box).astype(object, copy=False)
+        expected = tm.box_expected(expected, box).astype(object)
+        expected_sub = tm.box_expected(expected_sub, box).astype(object)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res_sub = tdi - other
         tm.assert_equal(res_sub, expected_sub)
 
-    def test_td64arr_add_sub_offset_array(self, box_with_array):
+    def test_td64arr_add_sub_offset_array(self, performance_warning, box_with_array):
         # GH#18849, GH#18824
         box = box_with_array
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"])
@@ -1330,20 +1332,22 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box).astype(object)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
         expected_sub = tm.box_expected(expected_sub, box_with_array).astype(object)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res_sub = tdi - other
         tm.assert_equal(res_sub, expected_sub)
 
-    def test_td64arr_with_offset_series(self, names, box_with_array):
+    def test_td64arr_with_offset_series(
+        self, performance_warning, names, box_with_array
+    ):
         # GH#18849
         box = box_with_array
         box2 = Series if box in [Index, tm.to_array, pd.array] else box
@@ -1358,11 +1362,11 @@ class TestTimedeltaArraylikeAddSubOps:
         obj = tm.box_expected(tdi, box)
         expected_add = tm.box_expected(expected_add, box2).astype(object)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res = obj + other
         tm.assert_equal(res, expected_add)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res2 = other + obj
         tm.assert_equal(res2, expected_add)
 
@@ -1371,12 +1375,14 @@ class TestTimedeltaArraylikeAddSubOps:
         )
         expected_sub = tm.box_expected(expected_sub, box2).astype(object)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             res3 = obj - other
         tm.assert_equal(res3, expected_sub)
 
     @pytest.mark.parametrize("obox", [np.array, Index, Series])
-    def test_td64arr_addsub_anchored_offset_arraylike(self, obox, box_with_array):
+    def test_td64arr_addsub_anchored_offset_arraylike(
+        self, performance_warning, obox, box_with_array
+    ):
         # GH#18824
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"])
         tdi = tm.box_expected(tdi, box_with_array)
@@ -1387,22 +1393,22 @@ class TestTimedeltaArraylikeAddSubOps:
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = "has incorrect type|cannot add the type MonthEnd"
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(performance_warning):
                 tdi + anchored
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(performance_warning):
                 anchored + tdi
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(performance_warning):
                 tdi - anchored
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(performance_warning):
                 anchored - tdi
 
     # ------------------------------------------------------------------
     # Unsorted
 
-    def test_td64arr_add_sub_object_array(self, box_with_array):
+    def test_td64arr_add_sub_object_array(self, performance_warning, box_with_array):
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
@@ -1411,7 +1417,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         other = np.array([Timedelta(days=1), offsets.Day(2), Timestamp("2000-01-04")])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             result = tdarr + other
 
         expected = Index(
@@ -1422,10 +1428,10 @@ class TestTimedeltaArraylikeAddSubOps:
 
         msg = "unsupported operand type|cannot subtract a datelike"
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
+            with tm.assert_produces_warning(performance_warning):
                 tdarr - other
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             result = other - tdarr
 
         expected = Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
@@ -1454,7 +1460,13 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")
         rng = tm.box_expected(rng, box_with_array)
-        msg = "argument must be an integer|cannot use operands with types dtype"
+        msg = "|".join(
+            [
+                "argument must be an integer",
+                "cannot use operands with types dtype",
+                "Cannot multiply with",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             rng * two_hours
 
@@ -1736,6 +1748,7 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
+    @pytest.mark.skipif(WASM, reason="no fp exception support in wasm")
     def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
         # GH#35529
         box = box_with_array
@@ -1806,7 +1819,9 @@ class TestTimedeltaArraylikeMulDivOps:
     # TODO: operations with timedelta-like arrays, numeric arrays,
     #  reversed ops
 
-    def test_td64arr_mod_tdscalar(self, box_with_array, three_days):
+    def test_td64arr_mod_tdscalar(
+        self, performance_warning, box_with_array, three_days
+    ):
         tdi = timedelta_range("1 Day", "9 days")
         tdarr = tm.box_expected(tdi, box_with_array)
 
@@ -1816,15 +1831,15 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
-        warn = None
         if box_with_array is DataFrame and isinstance(three_days, pd.DateOffset):
-            warn = PerformanceWarning
             # TODO: making expected be object here a result of DataFrame.__divmod__
             #  being defined in a naive way that does not dispatch to the underlying
             #  array's __divmod__
             expected = expected.astype(object)
+        else:
+            performance_warning = False
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(performance_warning):
             result = divmod(tdarr, three_days)
 
         tm.assert_equal(result[1], expected)

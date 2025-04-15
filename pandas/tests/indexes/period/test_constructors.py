@@ -33,7 +33,7 @@ class TestPeriodIndexDisallowedFreqs:
     )
     def test_period_index_offsets_frequency_error_message(self, freq, freq_depr):
         # GH#52064
-        msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
+        msg = f"Invalid frequency: {freq_depr}"
 
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq_depr)
@@ -41,24 +41,61 @@ class TestPeriodIndexDisallowedFreqs:
         with pytest.raises(ValueError, match=msg):
             period_range(start="2020-01-01", end="2020-01-02", freq=freq_depr)
 
-    @pytest.mark.parametrize("freq_depr", ["2SME", "2sme", "2CBME", "2BYE", "2Bye"])
-    def test_period_index_frequency_invalid_freq(self, freq_depr):
+    @pytest.mark.parametrize(
+        "freq",
+        ["2SME", "2sme", "2BYE", "2Bye", "2CBME"],
+    )
+    def test_period_index_frequency_invalid_freq(self, freq):
         # GH#9586
-        msg = f"Invalid frequency: {freq_depr[1:]}"
+        msg = f"Invalid frequency: {freq}"
+
+        with pytest.raises(ValueError, match=msg):
+            period_range("2020-01", "2020-05", freq=freq)
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex(["2020-01", "2020-05"], freq=freq)
+
+    @pytest.mark.parametrize("freq", ["2BQE-SEP", "2BYE-MAR", "2BME"])
+    def test_period_index_from_datetime_index_invalid_freq(self, freq):
+        # GH#56899
+        msg = f"Invalid frequency: {freq}"
+
+        rng = date_range("01-Jan-2012", periods=8, freq=freq)
+        with pytest.raises(ValueError, match=msg):
+            rng.to_period()
+
+    @pytest.mark.parametrize("freq_depr", ["2T", "1l", "2U", "n"])
+    def test_period_index_T_L_U_N_raises(self, freq_depr):
+        # GH#9586
+        msg = f"Invalid frequency: {freq_depr}"
 
         with pytest.raises(ValueError, match=msg):
             period_range("2020-01", "2020-05", freq=freq_depr)
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01", "2020-05"], freq=freq_depr)
 
-    @pytest.mark.parametrize("freq", ["2BQE-SEP", "2BYE-MAR", "2BME"])
-    def test_period_index_from_datetime_index_invalid_freq(self, freq):
-        # GH#56899
-        msg = f"Invalid frequency: {freq[1:]}"
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [("2W", "2w"), ("2W-FRI", "2w-fri"), ("2D", "2d"), ("2B", "2b")],
+    )
+    def test_period_index_depr_lowercase_frequency(self, freq, freq_depr):
+        # GH#58998
+        msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+        )
 
-        rng = date_range("01-Jan-2012", periods=8, freq=freq)
-        with pytest.raises(ValueError, match=msg):
-            rng.to_period()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq_depr)
+
+        expected = PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq)
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = period_range(start="2020-01-01", end="2020-01-02", freq=freq_depr)
+
+        expected = period_range(start="2020-01-01", end="2020-01-02", freq=freq)
+        tm.assert_index_equal(result, expected)
 
 
 class TestPeriodIndex:
@@ -186,11 +223,9 @@ class TestPeriodIndex:
             )
 
     def test_period_range_fractional_period(self):
-        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = period_range("2007-01", periods=10.5, freq="M")
-        exp = period_range("2007-01", periods=10, freq="M")
-        tm.assert_index_equal(result, exp)
+        msg = "periods must be an integer, got 10.5"
+        with pytest.raises(TypeError, match=msg):
+            period_range("2007-01", periods=10.5, freq="M")
 
     def test_constructor_with_without_freq(self):
         # GH53687
@@ -534,9 +569,7 @@ class TestPeriodIndex:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             end_intv = Period("2005-05-01", "B")
 
-        msg = "'w' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            vals = [end_intv, Period("2006-12-31", "w")]
+        vals = [end_intv, Period("2006-12-31", "W")]
         msg = r"Input has different freq=W-SUN from PeriodIndex\(freq=B\)"
         depr_msg = r"PeriodDtype\[B\] is deprecated"
         with pytest.raises(IncompatibleFrequency, match=msg):

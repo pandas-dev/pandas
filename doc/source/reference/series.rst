@@ -25,6 +25,7 @@ Attributes
    Series.array
    Series.values
    Series.dtype
+   Series.info
    Series.shape
    Series.nbytes
    Series.ndim
@@ -335,7 +336,6 @@ Datetime properties
    Series.dt.tz
    Series.dt.freq
    Series.dt.unit
-   Series.dt.normalize
 
 Datetime methods
 ^^^^^^^^^^^^^^^^

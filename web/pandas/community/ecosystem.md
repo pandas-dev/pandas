@@ -8,7 +8,7 @@ developers to build powerful and more focused data tools. The creation
 of libraries that complement pandas' functionality also allows pandas
 development to remain focused around its original requirements.
 
-This is an community-maintained list of projects that build on pandas in order
+This is a community-maintained list of projects that build on pandas in order
 to provide tools in the PyData space. The pandas core development team does not necessarily endorse any particular project on this list or have any knowledge of the maintenance status of any particular library.
 
 For a more complete list of projects that depend on pandas, see the [libraries.io usage page for
@@ -21,10 +21,6 @@ please let us know.
 
 ## Statistics and machine learning
 
-### [pandas-tfrecords](https://pypi.org/project/pandas-tfrecords/)
-
-Easy saving pandas dataframe to tensorflow tfrecords format and reading tfrecords to pandas.
-
 ### [Statsmodels](https://www.statsmodels.org/)
 
 Statsmodels is the prominent Python "statistics and econometrics
@@ -34,10 +30,11 @@ modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
 
-### [sklearn-pandas](https://github.com/scikit-learn-contrib/sklearn-pandas)
+### [skrub](https://skrub-data.org)
 
-Use pandas DataFrames in your [scikit-learn](https://scikit-learn.org/)
-ML pipeline.
+Skrub facilitates machine learning on dataframes. It bridges pandas
+to scikit-learn and related. In particular it facilitates building
+features from dataframes.
 
 ### [Featuretools](https://github.com/alteryx/featuretools/)
 
@@ -91,6 +88,20 @@ pd.set_option("plotting.backend", "pandas_bokeh")
 It is very similar to the matplotlib plotting backend, but provides
 interactive web-based charts and maps.
 
+### [pygwalker](https://github.com/Kanaries/pygwalker)
+
+PyGWalker is an interactive data visualization and
+exploratory data analysis tool built upon Graphic Walker
+with support for visualization, cleaning, and annotation workflows.
+
+pygwalker can save interactively created charts
+to Graphic-Walker and Vega-Lite JSON.
+
+```
+import pygwalker as pyg
+pyg.walk(df)
+```
+
 ### [seaborn](https://seaborn.pydata.org)
 
 Seaborn is a Python visualization library based on
@@ -102,6 +113,11 @@ of complex visualizations. Seaborn also goes beyond matplotlib and
 pandas with the option to perform statistical estimation while plotting,
 aggregating across observations and visualizing the fit of statistical
 models to emphasize patterns in a dataset.
+
+```
+import seaborn as sns
+sns.set_theme()
+```
 
 ### [plotnine](https://github.com/has2k1/plotnine/)
 
@@ -130,11 +146,8 @@ Seaborn](https://plot.ly/python/matplotlib-to-plotly-tutorial/) can
 convert figures into interactive web-based plots. Plots can be drawn in
 [IPython Notebooks](https://plot.ly/ipython-notebooks/) , edited with R
 or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly
-is free for unlimited sharing, and has
-[cloud](https://plot.ly/product/plans/),
-[offline](https://plot.ly/python/offline/), or
-[on-premise](https://plot.ly/product/enterprise/) accounts for private
-use.
+is free for unlimited sharing, and has cloud, offline, or on-premise
+accounts for private use.
 
 ### [Lux](https://github.com/lux-org/lux)
 
@@ -148,14 +161,7 @@ df = pd.read_csv("data.csv")
 df  # discover interesting insights!
 ```
 
-By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
-
-### [QtPandas](https://github.com/draperjames/qtpandas)
-
-Spun off from the main pandas library, the
-[qtpandas](https://github.com/draperjames/qtpandas) library enables
-DataFrame visualization and manipulation in PyQt4 and PySide
-applications.
+By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
 
 ### [D-Tale](https://github.com/man-group/dtale)
 
@@ -202,19 +208,13 @@ standard output formats (HTML, HTML presentation slides, LaTeX, PDF,
 ReStructuredText, Markdown, Python) through 'Download As' in the web
 interface and `jupyter convert` in a shell.
 
-Pandas DataFrames implement `_repr_html_`and `_repr_latex` methods which
+Pandas DataFrames implement `_repr_html_` and `_repr_latex` methods which
 are utilized by Jupyter Notebook for displaying (abbreviated) HTML or
 LaTeX tables. LaTeX output is properly escaped. (Note: HTML tables may
 or may not be compatible with non-HTML Jupyter output formats.)
 
 See [Options and Settings](https://pandas.pydata.org/docs/user_guide/options.html)
 for pandas `display.` settings.
-
-### [modin-project/modin-spreadsheet](https://github.com/modin-project/modin-spreadsheet)
-
-modin-spreadsheet is an interactive grid for sorting and filtering DataFrames in IPython Notebook.
-It is a fork of qgrid and is actively maintained by the modin project.
-modin-spreadsheet provides similar functionality to qgrid and allows for easy data exploration and manipulation in a tabular format.
 
 ### [Spyder](https://www.spyder-ide.org/)
 
@@ -241,6 +241,17 @@ Console](https://docs.spyder-ide.org/current/panes/ipythonconsole.html), and Spy
 [Help pane](https://docs.spyder-ide.org/current/panes/help.html) can retrieve and
 render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
+
+### [marimo](https://marimo.io)
+
+marimo is a reactive notebook for Python and SQL that enhances productivity when working with dataframes. It provides several features to make data manipulation and visualization more interactive and fun:
+
+1. Rich, interactive displays: marimo can display pandas dataframes in interactive tables or charts with filtering and sorting capabilities.
+2. Data selection: Users can select data in tables or pandas-backed plots, and the selections are automatically sent to Python as pandas dataframes.
+3. No-code transformations: Users can interactively transform pandas dataframes using a GUI, without writing code. The generated code can be copied and pasted into the notebook.
+4. Custom filters: marimo allows the creation of pandas-backed filters using UI elements like sliders and dropdowns.
+5. Dataset explorer: marimo automatically discovers and displays all dataframes in the notebook, allowing users to explore and visualize data interactively.
+6. SQL integration: marimo allows users to write SQL queries against any pandas dataframes existing in memory.
 
 ## API
 
@@ -271,18 +282,6 @@ The following data feeds are available:
 - Stooq Index Data
 - MOEX Data
 
-### [quandl/Python](https://github.com/quandl/Python)
-
-Quandl API for Python wraps the Quandl REST API to return Pandas
-DataFrames with timeseries indexes.
-
-### [pydatastream](https://github.com/vfilimonov/pydatastream)
-
-PyDatastream is a Python interface to the [Thomson Dataworks Enterprise
-(DWE/Datastream)](http://dataworks.thomson.com/Dataworks/Enterprise/1.0/)
-SOAP API to return indexed Pandas DataFrames with financial data. This
-package requires valid credentials for this API (non free).
-
 ### [pandaSDMX](https://pandasdmx.readthedocs.io)
 
 pandaSDMX is a library to retrieve and acquire statistical data and
@@ -304,13 +303,6 @@ and also provides several convenient methods for parsing and analyzing
 point-in-time data from ALFRED. fredapi makes use of pandas and returns
 data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
-
-### [dataframe_sql](https://github.com/zbrookle/dataframe_sql)
-
-``dataframe_sql`` is a Python package that translates SQL syntax directly into
-operations on pandas DataFrames. This is useful when migrating from a database to
-using pandas or for users more comfortable with SQL looking for a way to interface
-with pandas.
 
 ## Domain specific
 
@@ -353,7 +345,7 @@ It supports the following data types:
 
 - pandas data types
 - data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
-- data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
+- data types defined in [Table Schema specification](https://datapackage.org/standard/table-schema/)
 
 The interface is always reversible (conversion round trip) with two formats (JSON-NTV and JSON-TableSchema).
 
@@ -382,13 +374,154 @@ Deltalake python package lets you access tables stored in
 JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
 any Delta table into Pandas dataframe.
 
+### [pandas-gbq](https://github.com/googleapis/python-bigquery-pandas)
+
+pandas-gbq provides high performance reads and writes to and from
+[Google BigQuery](https://cloud.google.com/bigquery/). Previously (before version 2.2.0),
+these methods were exposed as `pandas.read_gbq` and `DataFrame.to_gbq`.
+Use `pandas_gbq.read_gbq` and `pandas_gbq.to_gbq`, instead.
+
+
+### [ArcticDB](https://github.com/man-group/ArcticDB)
+
+ArcticDB is a serverless DataFrame database engine designed for the Python Data Science ecosystem. ArcticDB enables you to store, retrieve, and process pandas DataFrames at scale. It is a storage engine designed for object storage and also supports local-disk storage using LMDB. ArcticDB requires zero additional infrastructure beyond a running Python environment and access to object storage and can be installed in seconds. Please find full documentation [here](https://docs.arcticdb.io/latest/).
+
+#### ArcticDB Terminology
+
+ArcticDB is structured to provide a scalable and efficient way to manage and retrieve DataFrames, organized into several key components:
+
+- `Object Store` Collections of libraries. Used to separate logical environments from each other. Analogous to a database server.
+- `Library` Contains multiple symbols which are grouped in a certain way (different users, markets, etc). Analogous to a database.
+- `Symbol` Atomic unit of data storage. Identified by a string name. Data stored under a symbol strongly resembles a pandas DataFrame. Analogous to tables.
+- `Version` Every modifying action (write, append, update) performed on a symbol creates a new version of that object.
+
+#### Installation
+
+To install, simply run:
+
+```console
+pip install arcticdb
+```
+
+To get started, we can import ArcticDB and instantiate it:
+
+```python
+import arcticdb as adb
+import numpy as np
+import pandas as pd
+# this will set up the storage using the local file system
+arctic = adb.Arctic("lmdb://arcticdb_test")
+```
+
+> **Note:** ArcticDB supports any S3 API compatible storage, including AWS. ArcticDB also supports Azure Blob storage.  
+> ArcticDB also supports LMDB for local/file based storage - to use LMDB, pass an LMDB path as the URI: `adb.Arctic('lmdb://path/to/desired/database')`.
+
+#### Library Setup
+
+ArcticDB is geared towards storing many (potentially millions) of tables. Individual tables (DataFrames) are called symbols and are stored in collections called libraries. A single library can store many symbols. Libraries must first be initialized prior to use:
+
+```python
+lib = arctic.get_library('sample', create_if_missing=True)
+```
+
+#### Writing Data to ArcticDB
+
+Now we have a library set up, we can get to reading and writing data. ArcticDB has a set of simple functions for DataFrame storage. Let's write a DataFrame to storage.
+
+```python
+df = pd.DataFrame(
+    {
+        "a": list("abc"),
+        "b": list(range(1, 4)),
+        "c": np.arange(3, 6).astype("u1"),
+        "d": np.arange(4.0, 7.0, dtype="float64"),
+        "e": [True, False, True],
+        "f": pd.date_range("20130101", periods=3)
+    }
+)
+
+df
+df.dtypes
+```
+
+Write to ArcticDB.
+
+```python
+write_record = lib.write("test", df)
+```
+
+> **Note:** When writing pandas DataFrames, ArcticDB supports the following index types:
+>
+> - `pandas.Index` containing int64 (or the corresponding dedicated types Int64Index, UInt64Index)
+> - `RangeIndex`
+> - `DatetimeIndex`
+> - `MultiIndex` composed of above supported types
+>
+> The "row" concept in `head`/`tail` refers to the row number ('iloc'), not the value in the `pandas.Index` ('loc').
+
+#### Reading Data from ArcticDB
+
+Read the data back from storage:
+
+```python
+read_record = lib.read("test")
+read_record.data
+df.dtypes
+```
+
+ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/processing/#arcticdb.QueryBuilder).
+
+### [Hugging Face](https://huggingface.co/datasets)
+
+The Hugging Face Dataset Hub provides a large collection of ready-to-use datasets for machine learning shared by the community. The platform offers a user-friendly interface to explore, discover and visualize datasets, and provides tools to easily load and work with these datasets in Python thanks to the [huggingface_hub](https://github.com/huggingface/huggingface_hub) library.
+
+You can access datasets on Hugging Face using `hf://` paths in pandas, in the form `hf://datasets/username/dataset_name/...`.
+
+For example, here is how to load the [stanfordnlp/imdb dataset](https://huggingface.co/datasets/stanfordnlp/imdb):
+
+```python
+import pandas as pd
+
+# Load the IMDB dataset
+df = pd.read_parquet("hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet")
+```
+
+Tip: on a dataset page, click on "Use this dataset" to get the code to load it in pandas.
+
+To save a dataset on Hugging Face you need to [create a public or private dataset](https://huggingface.co/new-dataset) and [login](https://huggingface.co/docs/huggingface_hub/quick-start#login-command), and then you can use `df.to_csv/to_json/to_parquet`:
+
+```python
+# Save the dataset to my Hugging Face account
+df.to_parquet("hf://datasets/username/dataset_name/train.parquet")
+```
+
+You can find more information about the Hugging Face Dataset Hub in the [documentation](https://huggingface.co/docs/hub/en/datasets).
+
 ## Out-of-core
 
-### [Blaze](https://blaze.pydata.org/)
+### [Bodo](https://github.com/bodo-ai/Bodo)
 
-Blaze provides a standard API for doing computations with various
-in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB,
-PyTables, PySpark.
+
+Bodo is a high-performance compute engine for Python data processing.
+Using an auto-parallelizing just-in-time (JIT) compiler, Bodo simplifies scaling Pandas
+workloads from laptops to clusters without major code changes.
+Under the hood, Bodo relies on MPI-based high-performance computing (HPC) technology—making it
+both easier to use and often much faster than alternatives.
+Bodo also provides a SQL engine that can query distributed pandas dataframes efficiently.
+
+```python
+import pandas as pd
+import bodo
+
+@bodo.jit
+def process_data():
+    df = pd.read_parquet("my_data.pq")
+    df2 = pd.DataFrame({"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)})
+    df2.to_parquet("out.pq")
+
+process_data()
+```
+
 
 ### [Cylon](https://cylondata.org/)
 
@@ -457,18 +590,10 @@ import modin.pandas as pd
 df = pd.read_csv("big.csv")  # use all your cores!
 ```
 
-### [Odo](http://odo.pydata.org)
-
-Odo provides a uniform API for moving data between different formats. It
-uses pandas own `read_csv` for CSV IO and leverages many existing
-packages such as PyTables, h5py, and pymongo to move data between non
-pandas formats. Its graph based approach is also extensible by end users
-for custom formats that may be too specific for the core of odo.
-
 ### [Pandarallel](https://github.com/nalepae/pandarallel)
 
 Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
-If also displays progress bars.
+It also displays progress bars.
 
 ```python
 from pandarallel import pandarallel
@@ -477,23 +602,6 @@ pandarallel.initialize(progress_bar=True)
 
 # df.apply(func)
 df.parallel_apply(func)
-```
-
-### [Ray](https://docs.ray.io/en/latest/data/modin/index.html)
-
-Pandas on Ray is an early stage DataFrame library that wraps Pandas and
-transparently distributes the data and computation. The user does not
-need to know how many cores their system has, nor do they need to
-specify how to distribute the data. In fact, users can continue using
-their previous Pandas notebooks while experiencing a considerable
-speedup from Pandas on Ray, even on a single machine. Only a
-modification of the import statement is needed, as we demonstrate below.
-Once you've changed your import statement, you're ready to use Pandas on
-Ray just like you would Pandas.
-
-```
-# import pandas as pd
-import ray.dataframe as pd
 ```
 
 ### [Vaex](https://vaex.io/docs/)
@@ -540,11 +648,6 @@ to make data processing pipelines more readable and robust.
 Dataframes contain information that pandera explicitly validates at runtime. This is useful in
 production-critical data pipelines or reproducible research settings.
 
-### [Engarde](https://engarde.readthedocs.io/en/latest/)
-
-Engarde is a lightweight library used to explicitly state your
-assumptions about your datasets and check that they're *actually* true.
-
 ## Extension data types
 
 Pandas provides an interface for defining
@@ -552,18 +655,19 @@ Pandas provides an interface for defining
 The following libraries implement that interface to provide types not found in NumPy or pandas,
 which work well with pandas' data containers.
 
-### [awkward-pandas](https://awkward-pandas.readthedocs.io/)
+### [awkward-pandas](https://github.com/scikit-hep/awkward)
 
 Awkward-pandas provides an extension type for storing [Awkward
 Arrays](https://awkward-array.org/) inside pandas' Series and
 DataFrame. It also provides an accessor for using awkward functions
 on Series that are of awkward type.
 
-### [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)
+### [db-dtypes](https://github.com/googleapis/python-db-dtypes-pandas)
 
-Cyberpandas provides an extension type for storing arrays of IP
-Addresses. These arrays can be stored inside pandas' Series and
-DataFrame.
+db-dtypes provides an extension types for working with types like
+DATE, TIME, and JSON from database systems. This package is used
+by pandas-gbq to provide natural dtypes for BigQuery data types without
+a natural numpy type.
 
 ### [Pandas-Genomics](https://pandas-genomics.readthedocs.io/en/latest/)
 
@@ -587,7 +691,7 @@ units aware.
 
 ### [Text Extensions](https://ibm.biz/text-extensions-for-pandas)
 
-Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into Pandas DataFrames.
+Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into pandas DataFrames.
 
 ## Accessors
 
@@ -599,14 +703,10 @@ authors to coordinate on the namespace.
   | Library                                                              | Accessor   | Classes               |
   | -------------------------------------------------------------------- | ---------- | --------------------- |
   | [awkward-pandas](https://awkward-pandas.readthedocs.io/en/latest/)   | `ak`       | `Series`              |
-  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
-  | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
   | [physipandas](https://github.com/mocquin/physipandas)                | `physipy`  | `Series`, `DataFrame` |
-  | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
-  | [datatest](https://datatest.readthedocs.io/en/stable/)               | `validate` | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
@@ -629,7 +729,7 @@ See installation and usage instructions on the [GitHub page](https://github.com/
 Hamilton is a declarative dataflow framework that came out of Stitch Fix. It was designed to help one manage a
 Pandas code base, specifically with respect to feature engineering for machine learning models.
 
-It prescibes an opinionated paradigm, that ensures all code is:
+It prescribes an opinionated paradigm, that ensures all code is:
 
 * unit testable
 * integration testing friendly

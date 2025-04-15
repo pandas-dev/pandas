@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 def create_data_for_split(
     df: DataFrame, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
-) -> Generator[list, None, None]:
+) -> Generator[list]:
     """
     Simple helper method to create data for to ``to_dict(orient="split")``
     to create the main output data
@@ -59,8 +59,7 @@ def to_dict(
     *,
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
-) -> MutableMappingT:
-    ...
+) -> MutableMappingT: ...
 
 
 @overload
@@ -70,8 +69,7 @@ def to_dict(
     *,
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
-) -> list[MutableMappingT]:
-    ...
+) -> list[MutableMappingT]: ...
 
 
 @overload
@@ -81,8 +79,7 @@ def to_dict(
     *,
     into: type[dict] = ...,
     index: bool = ...,
-) -> dict:
-    ...
+) -> dict: ...
 
 
 @overload
@@ -92,8 +89,7 @@ def to_dict(
     *,
     into: type[dict] = ...,
     index: bool = ...,
-) -> list[dict]:
-    ...
+) -> list[dict]: ...
 
 
 # error: Incompatible default for argument "into" (default has type "type[dict
@@ -152,14 +148,15 @@ def to_dict(
         Return a collections.abc.MutableMapping object representing the
         DataFrame. The resulting transformation depends on the `orient` parameter.
     """
-    if not df.columns.is_unique:
+    if orient != "tight" and not df.columns.is_unique:
         warnings.warn(
             "DataFrame columns are not unique, some columns will be omitted.",
             UserWarning,
             stacklevel=find_stack_level(),
         )
     # GH16122
-    into_c = com.standardize_mapping(into)
+    # error: Call to untyped function "standardize_mapping" in typed context
+    into_c = com.standardize_mapping(into)  # type: ignore[no-untyped-call]
 
     #  error: Incompatible types in assignment (expression has type "str",
     # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',

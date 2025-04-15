@@ -1,4 +1,4 @@
-""" test the scalar Timestamp """
+"""test the scalar Timestamp"""
 
 import calendar
 from datetime import (
@@ -9,6 +9,7 @@ from datetime import (
 import locale
 import time
 import unicodedata
+import zoneinfo
 
 from dateutil.tz import (
     tzlocal,
@@ -20,8 +21,6 @@ from hypothesis import (
 )
 import numpy as np
 import pytest
-import pytz
-from pytz import utc
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
@@ -259,7 +258,7 @@ class TestTimestampProperties:
 
 
 class TestTimestamp:
-    @pytest.mark.parametrize("tz", [None, pytz.timezone("US/Pacific")])
+    @pytest.mark.parametrize("tz", [None, zoneinfo.ZoneInfo("US/Pacific")])
     def test_disallow_setting_tz(self, tz):
         # GH#3746
         ts = Timestamp("2010")
@@ -311,7 +310,7 @@ class TestTimestamp:
             assert int((Timestamp(x)._value - Timestamp(y)._value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
+        compare(Timestamp.now("UTC"), datetime.now(timezone.utc))
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -329,12 +328,12 @@ class TestTimestamp:
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
             Timestamp.fromtimestamp(current_time, "UTC"),
-            datetime.fromtimestamp(current_time, utc),
+            datetime.fromtimestamp(current_time, timezone.utc),
         )
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
             Timestamp.fromtimestamp(current_time, tz="UTC"),
-            datetime.fromtimestamp(current_time, utc),
+            datetime.fromtimestamp(current_time, timezone.utc),
         )
 
         date_component = datetime.now(timezone.utc)
@@ -501,8 +500,7 @@ class TestTimestampConversion:
         # GH#21333 make sure a warning is issued when timezone
         # info is lost
         ts = Timestamp("2009-04-15 16:17:18", tz="US/Eastern")
-        with tm.assert_produces_warning(UserWarning):
-            # warning that timezone info will be lost
+        with tm.assert_produces_warning(UserWarning, match="drop timezone information"):
             ts.to_period("D")
 
     def test_to_numpy_alias(self):
@@ -586,9 +584,9 @@ class TestNonNano:
         assert ts.month_name() == alt.month_name()
 
     def test_tz_convert(self, ts):
-        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, utc)
+        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, timezone.utc)
 
-        tz = pytz.timezone("US/Pacific")
+        tz = zoneinfo.ZoneInfo("US/Pacific")
         result = ts.tz_convert(tz)
 
         assert isinstance(result, Timestamp)

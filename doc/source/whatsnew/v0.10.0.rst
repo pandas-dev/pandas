@@ -242,18 +242,42 @@ labeled the aggregated group with the end of the interval: the next day).
 - Calling ``fillna`` on Series or DataFrame with no arguments is no longer
   valid code. You must either specify a fill value or an interpolation method:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
-   s
-   s.fillna(0)
-   s.fillna(method="pad")
+    In [6]: s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
+
+    In [7]: s
+    Out[7]:
+    0      NaN
+    1      1.0
+    2      2.0
+    3      NaN
+    4      4.0
+    dtype: float64
+
+    In [8]: s.fillna(0)
+    Out[8]:
+    0      0.0
+    1      1.0
+    2      2.0
+    3      0.0
+    4      4.0
+    dtype: float64
+
+    In [9]: s.fillna(method="pad")
+    Out[9]:
+    0      NaN
+    1      1.0
+    2      2.0
+    3      2.0
+    4      4.0
+    dtype: float64
 
 Convenience methods ``ffill`` and  ``bfill`` have been added:
 
 .. ipython:: python
 
+   s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
    s.ffill()
 
 

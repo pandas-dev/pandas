@@ -159,7 +159,8 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
-    with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
+    msg = "dtype '(object|str)' does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
         df.groupby("key").quantile()
 
 
@@ -247,9 +248,8 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
         expected = df.groupby("a")[["b"]].quantile(q)
         tm.assert_frame_equal(result, expected)
     else:
-        with pytest.raises(
-            TypeError, match="'quantile' cannot be performed against 'object' dtypes!"
-        ):
+        msg = "dtype '.*' does not support operation 'quantile'"
+        with pytest.raises(TypeError, match=msg):
             df.groupby("a").quantile(q, numeric_only=numeric_only)
 
 
@@ -454,8 +454,5 @@ def test_groupby_quantile_nonmulti_levels_order():
     tm.assert_series_equal(result, expected)
 
     # We need to check that index levels are not sorted
-    tm.assert_index_equal(
-        result.index.levels[0], Index(["B", "A"], dtype=object, name="cat1")
-    )
-    tm.assert_index_equal(result.index.levels[1], Index([0.2, 0.8]))
-    assert isinstance(result.index.levels, tuple)
+    expected_levels = pd.core.indexes.frozen.FrozenList([["B", "A"], [0.2, 0.8]])
+    tm.assert_equal(result.index.levels, expected_levels)

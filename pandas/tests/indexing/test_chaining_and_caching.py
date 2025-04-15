@@ -17,15 +17,6 @@ import pandas._testing as tm
 msg = "A value is trying to be set on a copy of a slice from a DataFrame"
 
 
-def random_text(nobs=100):
-    # Construct a DataFrame where each row is a random slice from 'letters'
-    idxs = np.random.default_rng(2).integers(len(ascii_letters), size=(nobs, 2))
-    idxs.sort(axis=1)
-    strings = [ascii_letters[x[0] : x[1]] for x in idxs]
-
-    return DataFrame(strings, columns=["letters"])
-
-
 class TestCaching:
     def test_slice_consolidate_invalidate_item_cache(self):
         # this is chained assignment, but will 'work'
@@ -221,19 +212,23 @@ class TestChaining:
         tm.assert_frame_equal(df, df_original)
 
     @pytest.mark.arm_slow
-    def test_detect_chained_assignment_is_copy_pickle(self):
+    def test_detect_chained_assignment_is_copy_pickle(self, temp_file):
         # gh-5475: Make sure that is_copy is picked up reconstruction
         df = DataFrame({"A": [1, 2]})
 
-        with tm.ensure_clean("__tmp__pickle") as path:
-            df.to_pickle(path)
-            df2 = pd.read_pickle(path)
-            df2["B"] = df2["A"]
-            df2["B"] = df2["A"]
+        path = str(temp_file)
+        df.to_pickle(path)
+        df2 = pd.read_pickle(path)
+        df2["B"] = df2["A"]
+        df2["B"] = df2["A"]
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_str(self):
-        df = random_text(100000)
+        idxs = np.random.default_rng(2).integers(len(ascii_letters), size=(100, 2))
+        idxs.sort(axis=1)
+        strings = [ascii_letters[x[0] : x[1]] for x in idxs]
+
+        df = DataFrame(strings, columns=["letters"])
         indexer = df.letters.apply(lambda x: len(x) > 10)
         df.loc[indexer, "letters"] = df.loc[indexer, "letters"].apply(str.lower)
 
@@ -289,9 +284,10 @@ class TestChaining:
         with tm.raises_chained_assignment_error():
             df.loc[2]["C"] = "foo"
         tm.assert_frame_equal(df, df_original)
-        with tm.raises_chained_assignment_error(extra_warnings=(FutureWarning,)):
-            df["C"][2] = "foo"
-        tm.assert_frame_equal(df, df_original)
+        # TODO: Use tm.raises_chained_assignment_error() when PDEP-6 is enforced
+        with pytest.raises(TypeError, match="Invalid value"):
+            with tm.raises_chained_assignment_error():
+                df["C"][2] = "foo"
 
     def test_setting_with_copy_bug(self):
         # operating on a copy

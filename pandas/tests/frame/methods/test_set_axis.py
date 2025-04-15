@@ -29,10 +29,7 @@ class SharedSetAxisTests:
         expected = obj.copy()
         expected.index = new_index
 
-        result = obj.set_axis(new_index, axis=0, copy=True)
-        tm.assert_equal(expected, result)
-        assert result is not obj
-        result = obj.set_axis(new_index, axis=0, copy=False)
+        result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
         assert result is not obj
         # check we did NOT make a copy
@@ -44,7 +41,6 @@ class SharedSetAxisTests:
                 for i in range(obj.shape[1])
             )
 
-        # copy defaults to True
         result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
         assert result is not obj
@@ -57,7 +53,7 @@ class SharedSetAxisTests:
                 for i in range(obj.shape[1])
             )
 
-        res = obj.set_axis(new_index, copy=False)
+        res = obj.set_axis(new_index)
         tm.assert_equal(expected, res)
         # check we did NOT make a copy
         if res.ndim == 1:
@@ -97,7 +93,7 @@ class SharedSetAxisTests:
         # wrong length
         msg = (
             f"Length mismatch: Expected axis has {len(obj)} elements, "
-            f"new values have {len(obj)-1} elements"
+            f"new values have {len(obj) - 1} elements"
         )
         with pytest.raises(ValueError, match=msg):
             obj.index = np.arange(len(obj) - 1)

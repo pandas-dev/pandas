@@ -2,6 +2,7 @@
 Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -16,6 +17,8 @@ from pandas._libs.tslibs import (
     Timestamp,
     iNaT,
 )
+
+from pandas.core.construction import range_to_ndarray
 
 if TYPE_CHECKING:
     from pandas._typing import npt
@@ -81,17 +84,7 @@ def generate_regular_range(
             "at least 'start' or 'end' should be specified if a 'period' is given."
         )
 
-    with np.errstate(over="raise"):
-        # If the range is sufficiently large, np.arange may overflow
-        #  and incorrectly return an empty array if not caught.
-        try:
-            values = np.arange(b, e, stride, dtype=np.int64)
-        except FloatingPointError:
-            xdr = [b]
-            while xdr[-1] != e:
-                xdr.append(xdr[-1] + stride)
-            values = np.array(xdr[:-1], dtype=np.int64)
-    return values
+    return range_to_ndarray(range(b, e, stride))
 
 
 def _generate_range_overflow_safe(

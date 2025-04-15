@@ -198,7 +198,7 @@ In some cases you may be tempted to use ``cast`` from the typing module when you
            obj = cast(str, obj)  # Mypy complains without this!
            return obj.upper()
 
-The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_. While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
+The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_). While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
 
 .. code-block:: python
 
@@ -244,7 +244,7 @@ in your python environment.
 
 .. warning::
 
-    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.mamba>` or select a `recently succeeded workflow <https://github.com/pandas-dev/pandas/actions/workflows/code-checks.yml?query=branch%3Amain+is%3Asuccess>`_, select the "Docstring validation, typing, and other manual pre-commit hooks" job, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
+    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.conda>` or select a `recently succeeded workflow <https://github.com/pandas-dev/pandas/actions/workflows/code-checks.yml?query=branch%3Amain+is%3Asuccess>`_, select the "Docstring validation, typing, and other manual pre-commit hooks" job, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
 
 .. _contributing.ci:
 
@@ -298,6 +298,12 @@ So, before actually writing any code, you should write your tests.  Often the te
 taken from the original GitHub issue.  However, it is always worth considering additional
 use cases and writing corresponding tests.
 
+We use `code coverage <https://en.wikipedia.org/wiki/Code_coverage>`_ to help understand
+the amount of code which is covered by a test. We recommend striving to ensure code
+you add or change within Pandas is covered by a test. Please see our
+`code coverage dashboard through Codecov <https://app.codecov.io/github/pandas-dev/pandas>`_
+for more information.
+
 Adding tests is one of the most common requests after code is pushed to pandas.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
@@ -338,7 +344,7 @@ be located.
    - tests.scalar
    - tests.tseries.offsets
 
-2. Does your test depend only on code in pd._libs?
+2. Does your test depend only on code in ``pd._libs``?
    This test likely belongs in one of:
 
    - tests.libs
@@ -531,7 +537,7 @@ Preferred ``pytest`` idioms
     test and does not check if the test will fail. If this is the behavior you desire, use ``pytest.skip`` instead.
 
 If a test is known to fail but the manner in which it fails
-is not meant to be captured, use ``pytest.mark.xfail`` It is common to use this method for a test that
+is not meant to be captured, use ``pytest.mark.xfail``. It is common to use this method for a test that
 exhibits buggy behavior or a non-implemented feature. If
 the failing test has flaky behavior, use the argument ``strict=False``. This
 will make it so pytest does not fail if the test happens to pass. Using ``strict=False`` is highly undesirable, please use it only as a last resort.
@@ -557,11 +563,12 @@ is being raised, using ``pytest.raises`` instead.
 Testing a warning
 ^^^^^^^^^^^^^^^^^
 
-Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning.
+Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning
+and specify the warning message using the ``match`` argument.
 
 .. code-block:: python
 
-    with tm.assert_produces_warning(DeprecationWarning):
+    with tm.assert_produces_warning(DeprecationWarning, match="the warning message"):
         pd.deprecated_function()
 
 If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.
@@ -596,14 +603,15 @@ with the specific exception subclass (i.e. never use :py:class:`Exception`) and 
 Testing involving files
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``tm.ensure_clean`` context manager creates a temporary file for testing,
-with a generated filename (or your filename if provided), that is automatically
-deleted when the context block is exited.
+The ``temp_file`` pytest fixture creates a temporary file :py:class:`Pathlib` object for testing:
 
 .. code-block:: python
 
-    with tm.ensure_clean('my_file_path') as path:
-        # do something with the path
+    def test_something(temp_file):
+        pd.DataFrame([1]).to_csv(str(temp_file))
+
+Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#the-default-base-temporary-directory>`_
+for the file retention policy.
 
 Testing involving network connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -760,8 +768,7 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite (tip: you can use the `pandas-coverage app <https://pandas-coverage-12d2130077bc.herokuapp.com/>`_)
-to find out which tests hit the lines of code you've modified, and then run only those).
+entire suite.
 
 The easiest way to do this is with::
 

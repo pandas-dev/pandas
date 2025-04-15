@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-import warnings
-
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-_hard_dependencies = ("numpy", "pytz", "dateutil")
-_missing_dependencies = []
+_hard_dependencies = ("numpy", "dateutil")
 
 for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
     except ImportError as _e:  # pragma: no cover
-        _missing_dependencies.append(f"{_dependency}: {_e}")
+        raise ImportError(
+            f"Unable to import required dependency {_dependency}. "
+            "Please see the traceback for details."
+        ) from _e
 
-if _missing_dependencies:  # pragma: no cover
-    raise ImportError(
-        "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
-    )
-del _hard_dependencies, _dependency, _missing_dependencies
+del _hard_dependencies, _dependency
 
 try:
     # numpy compat
@@ -30,7 +26,8 @@ except ImportError as _err:  # pragma: no cover
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext' to build the C extensions first."
+        "'python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true' "
+        "to build the C extensions first."
     ) from _err
 
 from pandas._config import (
@@ -190,36 +187,6 @@ except ImportError:
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
 
-# DeprecationWarning for missing pyarrow
-from pandas.compat.pyarrow import pa_version_under10p1, pa_not_found
-
-if pa_version_under10p1:
-    # pyarrow is either too old or nonexistent, warn
-    from pandas.compat._optional import VERSIONS
-
-    if pa_not_found:
-        pa_msg = "was not found to be installed on your system."
-    else:
-        pa_msg = (
-            f"was too old on your system - pyarrow {VERSIONS['pyarrow']} "
-            "is the current minimum supported version as of this release."
-        )
-
-    warnings.warn(
-        f"""
-Pyarrow will become a required dependency of pandas in the next major release of pandas (pandas 3.0),
-(to allow more performant data types, such as the Arrow string type, and better interoperability with other libraries)
-but {pa_msg}
-If this would cause problems for you,
-please provide us feedback at https://github.com/pandas-dev/pandas/issues/54466
-        """,  # noqa: E501
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    del VERSIONS, pa_msg
-
-# Delete all unnecessary imported modules
-del pa_version_under10p1, pa_not_found, warnings
 
 # module level doc-string
 __doc__ = """
@@ -266,6 +233,7 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "NA",
     "ArrowDtype",
     "BooleanDtype",
     "Categorical",
@@ -284,15 +252,14 @@ __all__ = [
     "HDFStore",
     "Index",
     "IndexSlice",
+    "Int8Dtype",
     "Int16Dtype",
     "Int32Dtype",
     "Int64Dtype",
-    "Int8Dtype",
     "Interval",
     "IntervalDtype",
     "IntervalIndex",
     "MultiIndex",
-    "NA",
     "NaT",
     "NamedAgg",
     "Period",
@@ -305,10 +272,10 @@ __all__ = [
     "Timedelta",
     "TimedeltaIndex",
     "Timestamp",
+    "UInt8Dtype",
     "UInt16Dtype",
     "UInt32Dtype",
     "UInt64Dtype",
-    "UInt8Dtype",
     "api",
     "array",
     "arrays",
@@ -321,8 +288,8 @@ __all__ = [
     "errors",
     "eval",
     "factorize",
-    "get_dummies",
     "from_dummies",
+    "get_dummies",
     "get_option",
     "infer_freq",
     "interval_range",

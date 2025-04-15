@@ -2,6 +2,7 @@
 Tests that NA values are properly handled during
 parsing for all of the parsers defined in parsers.py
 """
+
 from io import StringIO
 
 import numpy as np
@@ -295,7 +296,9 @@ a,b,c,d
         ),
     ],
 )
-def test_na_values_keep_default(all_parsers, kwargs, expected, request):
+def test_na_values_keep_default(
+    all_parsers, kwargs, expected, request, using_infer_string
+):
     data = """\
 A,B,C
 a,1,one
@@ -313,8 +316,9 @@ g,7,seven
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(StringIO(data), **kwargs)
             return
-        mark = pytest.mark.xfail()
-        request.applymarker(mark)
+        if not using_infer_string or "na_values" in kwargs:
+            mark = pytest.mark.xfail()
+            request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), **kwargs)
     expected = DataFrame(expected)
@@ -425,7 +429,6 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # mismatched dtypes in both cases, FutureWarning in the True case
 @pytest.mark.parametrize(
     "na_filter,row_data",
     [
@@ -433,14 +436,21 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
         (False, [["1", "A"], ["nan", "B"], ["3", "C"]]),
     ],
 )
-def test_na_values_na_filter_override(all_parsers, na_filter, row_data):
+def test_na_values_na_filter_override(
+    request, all_parsers, na_filter, row_data, using_infer_string
+):
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        # mismatched dtypes in both cases, FutureWarning in the True case
+        if not (using_infer_string and na_filter):
+            mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
+            request.applymarker(mark)
     data = """\
 A,B
 1,A
 nan,B
 3,C
 """
-    parser = all_parsers
     result = parser.read_csv(StringIO(data), na_values=["B"], na_filter=na_filter)
 
     expected = DataFrame(row_data, columns=["A", "B"])
@@ -529,6 +539,46 @@ def test_na_values_dict_aliasing(all_parsers):
 
     tm.assert_frame_equal(result, expected)
     tm.assert_dict_equal(na_values, na_values_copy)
+
+
+def test_na_values_dict_null_column_name(all_parsers):
+    # see gh-57547
+    parser = all_parsers
+    data = ",x,y\n\nMA,1,2\nNA,2,1\nOA,,3"
+    names = [None, "x", "y"]
+    na_values = dict.fromkeys(names, STR_NA_VALUES)
+    dtype = {None: "object", "x": "float64", "y": "float64"}
+
+    if parser.engine == "pyarrow":
+        msg = "The pyarrow engine doesn't support passing a dict for na_values"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                index_col=0,
+                header=0,
+                dtype=dtype,
+                names=names,
+                na_values=na_values,
+                keep_default_na=False,
+            )
+        return
+
+    expected = DataFrame(
+        {"x": [1.0, 2.0, np.nan], "y": [2.0, 1.0, 3.0]},
+        index=Index(["MA", "NA", "OA"], dtype=object),
+    )
+
+    result = parser.read_csv(
+        StringIO(data),
+        index_col=0,
+        header=0,
+        dtype=dtype,
+        names=names,
+        na_values=na_values,
+        keep_default_na=False,
+    )
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_na_values_dict_col_index(all_parsers):
@@ -762,4 +812,22 @@ False
 """
     result = parser.read_csv(StringIO(data), dtype="float")
     expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+@pytest.mark.parametrize(
+    "na_values",
+    [[-99.0, -99], [-99, -99.0]],
+)
+def test_na_values_dict_without_dtype(all_parsers, na_values):
+    parser = all_parsers
+    data = """A
+-99
+-99
+-99.0
+-99.0"""
+
+    result = parser.read_csv(StringIO(data), na_values=na_values)
+    expected = DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]})
     tm.assert_frame_equal(result, expected)

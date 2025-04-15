@@ -1,6 +1,7 @@
 """
 Also test support for datetime64[ns] in Series / DataFrame
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -13,7 +14,6 @@ from dateutil.tz import (
 )
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import index as libindex
 
@@ -35,9 +35,6 @@ def test_fancy_getitem():
 
     s = Series(np.arange(len(dti)), index=dti)
 
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert s[48] == 48
     assert s["1/2/2009"] == 48
     assert s["2009-1-2"] == 48
     assert s[datetime(2009, 1, 2)] == 48
@@ -56,10 +53,6 @@ def test_fancy_setitem():
 
     s = Series(np.arange(len(dti)), index=dti)
 
-    msg = "Series.__setitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        s[48] = -1
-    assert s.iloc[48] == -1
     s["1/2/2009"] = -2
     assert s.iloc[48] == -2
     s["1/2/2009":"2009-06-05"] = -3
@@ -69,6 +62,7 @@ def test_fancy_setitem():
 @pytest.mark.parametrize("tz_source", ["pytz", "dateutil"])
 def test_getitem_setitem_datetime_tz(tz_source):
     if tz_source == "pytz":
+        pytz = pytest.importorskip(tz_source)
         tzget = pytz.timezone
     else:
         # handle special case for utc in dateutil
@@ -495,5 +489,25 @@ def test_compare_datetime_with_all_none():
     ser = Series(["2020-01-01", "2020-01-02"], dtype="datetime64[ns]")
     ser2 = Series([None, None])
     result = ser > ser2
+    expected = Series([False, False])
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_date_dtype_all_nat_is_object():
+    # Ensure .dt.date on all-NaT Series returns object dtype and not datetime64
+    # GH#61188
+    s = Series([pd.NaT, pd.NaT], dtype="datetime64[s]")
+    result = s.dt.date
+
+    expected = Series([pd.NaT, pd.NaT], dtype=object)
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_date_all_nat_le_date():
+    # All-NaT Series should not raise error when compared to a datetime.date
+    # GH#61188
+    s = Series([pd.NaT, pd.NaT], dtype="datetime64[s]")
+    result = s.dt.date <= datetime.now().date()
     expected = Series([False, False])
     tm.assert_series_equal(result, expected)

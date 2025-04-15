@@ -30,23 +30,20 @@ class TestDataFrameShift:
         expected2 = DataFrame([12345] * 5, dtype="Float64")
         tm.assert_frame_equal(res2, expected2)
 
-    def test_shift_deprecate_freq_and_fill_value(self, frame_or_series):
+    def test_shift_disallow_freq_and_fill_value(self, frame_or_series):
         # Can't pass both!
         obj = frame_or_series(
             np.random.default_rng(2).standard_normal(5),
             index=date_range("1/1/2000", periods=5, freq="h"),
         )
 
-        msg = (
-            "Passing a 'freq' together with a 'fill_value' silently ignores the "
-            "fill_value"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Passing a 'freq' together with a 'fill_value'"
+        with pytest.raises(ValueError, match=msg):
             obj.shift(1, fill_value=1, freq="h")
 
         if frame_or_series is DataFrame:
             obj.columns = date_range("1/1/2000", periods=1, freq="h")
-            with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pytest.raises(ValueError, match=msg):
                 obj.shift(1, axis=1, fill_value=1, freq="h")
 
     @pytest.mark.parametrize(
@@ -323,7 +320,7 @@ class TestDataFrameShift:
         def get_cat_values(ndframe):
             # For Series we could just do ._values; for DataFrame
             #  we may be able to do this if we ever have 2D Categoricals
-            return ndframe._mgr.arrays[0]
+            return ndframe._mgr.blocks[0].values
 
         cat = get_cat_values(obj)
 
@@ -563,7 +560,7 @@ class TestDataFrameShift:
         # same thing but not consolidated; pre-2.0 we got different behavior
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
-        assert len(df3._mgr.arrays) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(1, axis=1, fill_value=0)
         tm.assert_frame_equal(result, expected)
 
@@ -624,7 +621,7 @@ class TestDataFrameShift:
         # same thing but not consolidated
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
-        assert len(df3._mgr.arrays) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(-1, axis=1, fill_value="foo")
         tm.assert_frame_equal(result, expected)
 
@@ -717,13 +714,6 @@ class TestDataFrameShift:
             df.shift(1, freq="h"),
         )
 
-        msg = (
-            "Passing a 'freq' together with a 'fill_value' silently ignores the "
-            "fill_value"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.shift([1, 2], fill_value=1, freq="h")
-
     def test_shift_with_iterable_check_other_arguments(self):
         # GH#44424
         data = {"a": [1, 2], "b": [4, 5]}
@@ -757,3 +747,22 @@ class TestDataFrameShift:
         df = DataFrame()
         result = df.shift(1, axis=1)
         tm.assert_frame_equal(result, df)
+
+    def test_shift_with_offsets_freq_empty(self):
+        # GH#60102
+        dates = date_range("2020-01-01", periods=3, freq="D")
+        offset = offsets.Day()
+        shifted_dates = dates + offset
+        df = DataFrame(index=dates)
+        df_shifted = DataFrame(index=shifted_dates)
+        result = df.shift(freq=offset)
+        tm.assert_frame_equal(result, df_shifted)
+
+    def test_series_shift_interval_preserves_closed(self):
+        # GH#60389
+        ser = Series(
+            [pd.Interval(1, 2, closed="right"), pd.Interval(2, 3, closed="right")]
+        )
+        result = ser.shift(1)
+        expected = Series([np.nan, pd.Interval(1, 2, closed="right")])
+        tm.assert_series_equal(result, expected)

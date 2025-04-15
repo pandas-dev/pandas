@@ -4,6 +4,7 @@ stated as a Python-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the C parser can accept further
 arguments when parsing.
 """
+
 from __future__ import annotations
 
 import csv
@@ -520,6 +521,8 @@ a;b;c
             "c": [0, 4000, 131],
         }
     )
+    if dtype["a"] == object:
+        expected["a"] = expected["a"].astype(object)
     tm.assert_frame_equal(result, expected)
 
 

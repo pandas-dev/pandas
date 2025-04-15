@@ -4,6 +4,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    WASM,
+)
+
 from pandas.core.dtypes.common import is_number
 
 from pandas import (
@@ -19,27 +23,18 @@ from pandas.tests.apply.common import (
 
 @pytest.mark.parametrize("func", ["sum", "mean", "min", "max", "std"])
 @pytest.mark.parametrize(
-    "args,kwds",
+    "kwds",
     [
-        pytest.param([], {}, id="no_args_or_kwds"),
-        pytest.param([1], {}, id="axis_from_args"),
-        pytest.param([], {"axis": 1}, id="axis_from_kwds"),
-        pytest.param([], {"numeric_only": True}, id="optional_kwds"),
-        pytest.param([1, True], {"numeric_only": True}, id="args_and_kwds"),
+        pytest.param({}, id="no_kwds"),
+        pytest.param({"axis": 1}, id="on_axis"),
+        pytest.param({"numeric_only": True}, id="func_kwds"),
+        pytest.param({"axis": 1, "numeric_only": True}, id="axis_and_func_kwds"),
     ],
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
-    if len(args) > 1 and how == "agg":
-        request.applymarker(
-            pytest.mark.xfail(
-                raises=TypeError,
-                reason="agg/apply signature mismatch - agg passes 2nd "
-                "argument to func",
-            )
-        )
-    result = getattr(float_frame, how)(func, *args, **kwds)
-    expected = getattr(float_frame, func)(*args, **kwds)
+def test_apply_with_string_funcs(float_frame, func, kwds, how):
+    result = getattr(float_frame, how)(func, **kwds)
+    expected = getattr(float_frame, func)(**kwds)
     tm.assert_series_equal(result, expected)
 
 
@@ -63,6 +58,7 @@ def test_apply_np_reducer(op, how):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="No fp exception support in wasm")
 @pytest.mark.parametrize(
     "op", ["abs", "ceil", "cos", "cumsum", "exp", "log", "sqrt", "square"]
 )
@@ -293,7 +289,7 @@ def test_transform_groupby_kernel_frame(request, float_frame, op):
     # same thing, but ensuring we have multiple blocks
     assert "E" not in float_frame.columns
     float_frame["E"] = float_frame["A"].copy()
-    assert len(float_frame._mgr.arrays) > 1
+    assert len(float_frame._mgr.blocks) > 1
 
     ones = np.ones(float_frame.shape[0])
     gb2 = float_frame.groupby(ones)

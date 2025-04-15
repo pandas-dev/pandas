@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from datetime import datetime
 from io import StringIO
 import os
@@ -86,7 +87,9 @@ def test_pass_names_with_index(all_parsers, data, kwargs, expected):
 
 
 @pytest.mark.parametrize("index_col", [[0, 1], [1, 0]])
-def test_multi_index_no_level_names(all_parsers, index_col):
+def test_multi_index_no_level_names(
+    request, all_parsers, index_col, using_infer_string
+):
     data = """index1,index2,A,B,C,D
 foo,one,2,3,4,5
 foo,two,7,8,9,10
@@ -259,7 +262,8 @@ def test_read_csv_no_index_name(all_parsers, csv_dir_path):
                 datetime(2000, 1, 5),
                 datetime(2000, 1, 6),
                 datetime(2000, 1, 7),
-            ]
+            ],
+            dtype="M8[s]",
         ),
     )
     tm.assert_frame_equal(result, expected)

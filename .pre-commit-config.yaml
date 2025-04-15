@@ -1,10 +1,10 @@
-minimum_pre_commit_version: 2.15.0
+minimum_pre_commit_version: 4.0.0
 exclude: ^LICENSES/|\.(html|csv|svg)$
 # reserve "manual" for relatively slow hooks which we still want to run in CI
 default_stages: [
-    commit,
-    merge-commit,
-    push,
+    pre-commit,
+    pre-merge-commit,
+    pre-push,
     prepare-commit-msg,
     commit-msg,
     post-checkout,
@@ -16,50 +16,49 @@ ci:
     autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
-    skip: [pylint, pyright, mypy]
+    skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.13
+    rev: v0.11.4
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
+        exclude: ^pandas/tests/frame/test_query_eval.py
     -   id: ruff
-        # TODO: remove autofixe-only rules when they are checked by ruff
+        # TODO: remove autofix only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
         files: ^pandas
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
-        exclude: ^scripts
+        exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.10'
+    rev: v2.14
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.4.1
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.16.0
+    rev: v0.16.6
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
-    -   id: check-ast
     -   id: check-case-conflict
     -   id: check-toml
     -   id: check-xml
     -   id: check-yaml
         exclude: ^ci/meta.yaml$
-    -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
     -   id: mixed-line-ending
@@ -69,34 +68,16 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
--   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.1
-    hooks:
-    -   id: pylint
-        stages: [manual]
-        args: [--load-plugins=pylint.extensions.redefined_loop_name]
-    -   id: pylint
-        alias: redefined-outer-name
-        name: Redefining name from outer scope
-        files: ^pandas/
-        exclude: |
-            (?x)
-            ^pandas/tests  # keep excluded
-            |/_testing/  # keep excluded
-            |^pandas/util/_test_decorators\.py  # keep excluded
-            |^pandas/_version\.py  # keep excluded
-            |^pandas/conftest\.py  # keep excluded
-        args: [--disable=all, --enable=redefined-outer-name]
-        stages: [manual]
+        args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 6.0.1
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.19.1
     hooks:
     -   id: pyupgrade
-        args: [--py39-plus]
+        args: [--py310-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -105,19 +86,31 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
       - id: rst-inline-touching-normal
+        exclude: ^pandas/tests/frame/test_query_eval.py
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.9.1
+    rev: v1.0.0
     hooks:
     - id: sphinx-lint
+      args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v17.0.6
+    rev: v20.1.0
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
+-   repo: https://github.com/trim21/pre-commit-mirror-meson
+    rev: v1.7.2
+    hooks:
+    - id: meson-fmt
+      args: ['--inplace']
+-   repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+    -   id: shellcheck
+        args: ["--severity=warning"]
 -   repo: local
     hooks:
     -   id: pyright
@@ -129,7 +122,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.347
+        - pyright@1.1.383
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -273,13 +266,6 @@ repos:
         name: Check that `pandas._libs.lib.NoDefault` is used only for typing
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
-        types: [python]
-    -   id: use-pd_array-in-core
-        name: Import pandas.array as pd_array in core
-        language: python
-        entry: python scripts/use_pd_array_in_core.py
-        files: ^pandas/core/
-        exclude: ^pandas/core/api\.py$
         types: [python]
     -   id: no-return-exception
         name: Use raise instead of return for exceptions

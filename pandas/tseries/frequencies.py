@@ -19,10 +19,7 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
-from pandas._libs.tslibs.dtypes import (
-    OFFSET_TO_PERIOD_FREQSTR,
-    freq_to_period_freqstr,
-)
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas._libs.tslibs.fields import (
     build_field_sarray,
     month_position_check,
@@ -92,6 +89,11 @@ def infer_freq(
     """
     Infer the most likely frequency given the input index.
 
+    This method attempts to deduce the most probable frequency (e.g., 'D' for daily,
+    'H' for hourly) from a sequence of datetime-like objects. It is particularly useful
+    when the frequency of a time series is not explicitly set or known but can be
+    inferred from its values.
+
     Parameters
     ----------
     index : DatetimeIndex, TimedeltaIndex, Series or array-like
@@ -108,6 +110,13 @@ def infer_freq(
         If the index is not datetime-like.
     ValueError
         If there are fewer than three values.
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    timedelta_range : Return a fixed frequency TimedeltaIndex with day as the default.
+    period_range : Return a fixed frequency PeriodIndex.
+    DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
 
     Examples
     --------
@@ -136,8 +145,7 @@ def infer_freq(
         pass
     elif isinstance(index.dtype, PeriodDtype):
         raise TypeError(
-            "PeriodIndex given. Check the `freq` attribute "
-            "instead of using infer_freq."
+            "PeriodIndex given. Check the `freq` attribute instead of using infer_freq."
         )
     elif lib.is_np_dtype(index.dtype, "m"):
         # Allow TimedeltaIndex and TimedeltaArray
@@ -559,7 +567,7 @@ def _maybe_coerce_freq(code) -> str:
     """
     assert code is not None
     if isinstance(code, DateOffset):
-        code = freq_to_period_freqstr(1, code.name)
+        code = PeriodDtype(to_offset(code.name))._freqstr
     if code in {"h", "min", "s", "ms", "us", "ns"}:
         return code
     else:

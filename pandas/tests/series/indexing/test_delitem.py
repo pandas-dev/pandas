@@ -31,16 +31,15 @@ class TestSeriesDelItem:
         del s[0]
         tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
 
-    def test_delitem_object_index(self, using_infer_string):
+    def test_delitem_object_index(self):
         # Index(dtype=object)
-        dtype = "string[pyarrow_numpy]" if using_infer_string else object
-        s = Series(1, index=Index(["a"], dtype=dtype))
+        s = Series(1, index=Index(["a"], dtype="str"))
         del s["a"]
-        tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype=dtype)))
+        tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="str")))
         s["a"] = 1
-        tm.assert_series_equal(s, Series(1, index=Index(["a"], dtype=dtype)))
+        tm.assert_series_equal(s, Series(1, index=Index(["a"], dtype="str")))
         del s["a"]
-        tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype=dtype)))
+        tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="str")))
 
     def test_delitem_missing_key(self):
         # empty

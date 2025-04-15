@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
   pull_request:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
     types: [ labeled, opened, synchronize, reopened ]
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        extra: ["test", "performance", "computation", "fss", "aws", "gcp", "excel", "parquet", "feather", "hdf5", "spss", "postgresql", "mysql", "sql-other", "html", "xml", "plot", "output-formatting", "clipboard", "compression", "consortium-standard", "all"]
+        extra: ["test", "pyarrow", "performance", "computation", "fss", "aws", "gcp", "excel", "parquet", "feather", "hdf5", "spss", "postgresql", "mysql", "sql-other", "html", "xml", "plot", "output-formatting", "clipboard", "compression", "all"]
       fail-fast: false
     name: Install Extras - ${{ matrix.extra }}
     concurrency:
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.10', '3.11']
       fail-fast: false
     name: Test Conda Forge Recipe - Python ${{ matrix.python-version }}
     concurrency:
@@ -67,7 +67,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: recipe-test
           create-args: >-

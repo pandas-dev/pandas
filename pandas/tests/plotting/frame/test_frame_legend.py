@@ -26,9 +26,6 @@ class TestFrameLegend:
     )
     def test_mixed_yerr(self):
         # https://github.com/pandas-dev/pandas/issues/39522
-        from matplotlib.collections import LineCollection
-        from matplotlib.lines import Line2D
-
         df = DataFrame([{"x": 1, "a": 1, "b": 1}, {"x": 2, "a": 2, "b": 3}])
 
         ax = df.plot("x", "a", c="orange", yerr=0.1, label="orange")
@@ -40,8 +37,8 @@ class TestFrameLegend:
         else:
             result_handles = legend.legend_handles
 
-        assert isinstance(result_handles[0], LineCollection)
-        assert isinstance(result_handles[1], Line2D)
+        assert isinstance(result_handles[0], mpl.collections.LineCollection)
+        assert isinstance(result_handles[1], mpl.lines.Line2D)
 
     def test_legend_false(self):
         # https://github.com/pandas-dev/pandas/issues/40044

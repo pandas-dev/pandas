@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -11,13 +13,9 @@ class TestConvertDtypes:
     @pytest.mark.parametrize(
         "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
     )
-    def test_convert_dtypes(
-        self, convert_integer, expected, string_storage, using_infer_string
-    ):
+    def test_convert_dtypes(self, convert_integer, expected, string_storage):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
-        if using_infer_string:
-            string_storage = "pyarrow_numpy"
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
@@ -38,6 +36,19 @@ class TestConvertDtypes:
         # Empty DataFrame can pass convert_dtypes, see GH#40393
         empty_df = pd.DataFrame()
         tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
+
+    @td.skip_if_no("pyarrow")
+    def test_convert_empty_categorical_to_pyarrow(self):
+        # GH#59934
+        df = pd.DataFrame(
+            {
+                "A": pd.Categorical([None] * 5),
+                "B": pd.Categorical([None] * 5, categories=["B1", "B2"]),
+            }
+        )
+        converted = df.convert_dtypes(dtype_backend="pyarrow")
+        expected = df
+        tm.assert_frame_equal(converted, expected)
 
     def test_convert_dtypes_retain_column_names(self):
         # GH#41435
@@ -199,4 +210,19 @@ class TestConvertDtypes:
         df = pd.DataFrame([["a", datetime.time(18, 12)]], columns=["a", "b"])
         result = df.convert_dtypes()
         expected = df.astype({"a": "string[python]"})
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtype_pyarrow_timezone_preserve(self):
+        # GH 60237
+        pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "timestamps": pd.Series(
+                    pd.to_datetime(range(5), utc=True, unit="h"),
+                    dtype="timestamp[ns, tz=UTC][pyarrow]",
+                )
+            }
+        )
+        result = df.convert_dtypes(dtype_backend="pyarrow")
+        expected = df.copy()
         tm.assert_frame_equal(result, expected)

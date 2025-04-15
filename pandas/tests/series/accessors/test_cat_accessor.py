@@ -40,7 +40,7 @@ class TestCatAccessor:
     def test_cat_accessor(self):
         ser = Series(Categorical(["a", "b", np.nan, "a"]))
         tm.assert_index_equal(ser.cat.categories, Index(["a", "b"]))
-        assert not ser.cat.ordered, False
+        assert not ser.cat.ordered
 
         exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
 
@@ -200,8 +200,8 @@ class TestCatAccessor:
             if func == "to_period" and getattr(idx, "tz", None) is not None:
                 # dropping TZ
                 warn_cls.append(UserWarning)
-            if func == "to_pydatetime":
-                # deprecated to return Index[object]
+            elif func == "to_pytimedelta":
+                # GH 57463
                 warn_cls.append(FutureWarning)
             if warn_cls:
                 warn_cls = tuple(warn_cls)

@@ -85,7 +85,7 @@ class BaseDtypeTests:
 
     def test_eq(self, dtype):
         assert dtype == dtype.name
-        assert dtype != "anonther_type"
+        assert dtype != "another_type"
 
     def test_construct_from_string_own_name(self, dtype):
         result = dtype.construct_from_string(dtype.name)

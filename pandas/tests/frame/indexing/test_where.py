@@ -63,7 +63,10 @@ class TestDataFrameIndexingWhere:
         # check getting
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -96,7 +99,6 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -128,7 +130,10 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -171,13 +176,12 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.mask(0)
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
-            econd = cond.reindex_like(df).fillna(True).infer_objects(copy=False)
+            econd = cond.reindex_like(df).fillna(True).infer_objects()
             expected = dfi.mask(~econd)
 
             return_value = dfi.where(cond, np.nan, inplace=True)
@@ -193,7 +197,10 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -515,26 +522,15 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            return_value = result.where(mask, ser, axis="index", inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="Invalid value"):
+            result.where(mask, ser, axis="index", inplace=True)
 
         expected = DataFrame([[0, np.nan], [0, np.nan]])
         result = df.where(mask, ser, axis="columns")
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame(
-            {
-                0: np.array([0, 0], dtype="int64"),
-                1: np.array([np.nan, np.nan], dtype="float64"),
-            }
-        )
-        result = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            return_value = result.where(mask, ser, axis="columns", inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="Invalid value"):
+            df.where(mask, ser, axis="columns", inplace=True)
 
     def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
@@ -586,15 +582,10 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, d1, axis="index")
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            return_value = result.where(mask, d1, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
-        result = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
+            result.where(mask, d1, inplace=True)
+        with pytest.raises(TypeError, match="Invalid value"):
             return_value = result.where(mask, d1, inplace=True, axis="index")
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
 
         d2 = df.copy().drop(1, axis=1)
         expected = df.copy()
@@ -741,11 +732,8 @@ class TestDataFrameIndexingWhere:
         res = obj.where(~obj.notna(), other)
         tm.assert_equal(res, other)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             obj.mask(obj.notna(), other, inplace=True)
-        tm.assert_equal(obj, other.astype(object))
 
     @pytest.mark.parametrize(
         "dtype",
@@ -775,14 +763,10 @@ class TestDataFrameIndexingWhere:
 
         res4 = df.mask(mask2, "foo")
         tm.assert_frame_equal(res4, df)
-        expected = DataFrame(4, index=df.index, columns=df.columns)
 
         # unlike where, Block.putmask does not downcast
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.mask(~mask2, 4, inplace=True)
-        tm.assert_frame_equal(df, expected.astype(object))
 
 
 def test_where_int_downcasting_deprecated():
@@ -936,11 +920,8 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
         result = obj.mask(mask, tdnat)
         tm.assert_equal(result, expected)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             obj.mask(mask, tdnat, inplace=True)
-        tm.assert_equal(obj, expected)
 
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
@@ -950,7 +931,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
     mask = np.array([True, True, False], ndmin=obj.ndim).T
 
-    msg = r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}"
+    msg = r"Invalid value '.*' for dtype '(U?Int|Float)\d{1,2}'"
 
     for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype
@@ -1022,9 +1003,7 @@ def test_where_dt64_2d():
             "B": dta[:, 1],
         }
     )
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
+    with pytest.raises(TypeError, match="Invalid value"):
         _check_where_equivalences(df, mask, other, expected)
 
     # setting nothing in either column
@@ -1046,13 +1025,9 @@ def test_where_producing_ea_cond_for_np_dtype():
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
-def test_where_int_overflow(replacement, using_infer_string, request):
+def test_where_int_overflow(replacement):
     # GH 31687
     df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
-    if using_infer_string and replacement not in (None, "snake"):
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Can't set non-string into string column")
-        )
     result = df.where(pd.notnull(df), replacement)
     expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 

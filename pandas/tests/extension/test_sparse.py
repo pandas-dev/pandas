@@ -17,8 +17,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import SparseDtype
 import pandas._testing as tm
@@ -236,16 +234,7 @@ class TestSparseArray(base.ExtensionTests):
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
         tm.assert_equal(sarr.isna(), expected)
 
-    def test_fillna_limit_backfill(self, data_missing):
-        warns = (PerformanceWarning, FutureWarning)
-        with tm.assert_produces_warning(warns, check_stacklevel=False):
-            super().test_fillna_limit_backfill(data_missing)
-
     def test_fillna_no_op_returns_copy(self, data, request):
-        if np.isnan(data.fill_value):
-            request.applymarker(
-                pytest.mark.xfail(reason="returns array with different fill value")
-            )
         super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
@@ -274,6 +263,16 @@ class TestSparseArray(base.ExtensionTests):
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
 
     _combine_le_expected_dtype = "Sparse[bool]"
 
@@ -324,8 +323,8 @@ class TestSparseArray(base.ExtensionTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         tm.assert_series_equal(result, expected)
 
-    def test_searchsorted(self, data_for_sorting, as_series):
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+    def test_searchsorted(self, performance_warning, data_for_sorting, as_series):
+        with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_shift_0_periods(self, data):
@@ -341,10 +340,15 @@ class TestSparseArray(base.ExtensionTests):
         self._check_unsupported(data)
         super().test_argmin_argmax_all_na(method, data, na_value)
 
+    @pytest.mark.fails_arm_wheels
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
+
+    @pytest.mark.fails_arm_wheels
+    def test_equals_same_data_different_object(self, data):
+        super().test_equals_same_data_different_object(data)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",
@@ -402,6 +406,8 @@ class TestSparseArray(base.ExtensionTests):
             "rmul",
             "floordiv",
             "rfloordiv",
+            "truediv",
+            "rtruediv",
             "pow",
             "mod",
             "rmod",

@@ -1,6 +1,7 @@
 """
 Methods used by Block.replace and related methods.
 """
+
 from __future__ import annotations
 
 import operator
@@ -88,21 +89,23 @@ def compare_or_regex_search(
         op = np.vectorize(
             lambda x: bool(re.search(b, x))
             if isinstance(x, str) and isinstance(b, (str, Pattern))
-            else False
+            else False,
+            otypes=[bool],
         )
 
     # GH#32621 use mask to avoid comparing to NAs
-    if isinstance(a, np.ndarray):
+    if isinstance(a, np.ndarray) and mask is not None:
         a = a[mask]
+        result = op(a)
 
-    result = op(a)
-
-    if isinstance(result, np.ndarray) and mask is not None:
-        # The shape of the mask can differ to that of the result
-        # since we may compare only a subset of a's or b's elements
-        tmp = np.zeros(mask.shape, dtype=np.bool_)
-        np.place(tmp, mask, result)
-        result = tmp
+        if isinstance(result, np.ndarray):
+            # The shape of the mask can differ to that of the result
+            # since we may compare only a subset of a's or b's elements
+            tmp = np.zeros(mask.shape, dtype=np.bool_)
+            np.place(tmp, mask, result)
+            result = tmp
+    else:
+        result = op(a)
 
     _check_comparison_types(result, a, b)
     return result
@@ -149,4 +152,6 @@ def replace_regex(
     if mask is None:
         values[:] = f(values)
     else:
+        if values.ndim != mask.ndim:
+            mask = np.broadcast_to(mask, values.shape)
         values[mask] = f(values[mask])

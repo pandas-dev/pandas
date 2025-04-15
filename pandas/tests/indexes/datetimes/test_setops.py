@@ -1,11 +1,11 @@
 from datetime import (
     datetime,
+    timedelta,
     timezone,
 )
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -560,6 +560,7 @@ class TestBusinessDatetimeIndex:
         tm.assert_index_equal(res, idx)
 
     def test_month_range_union_tz_pytz(self, sort):
+        pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
 
         early_start = datetime(2011, 1, 1)
@@ -648,7 +649,7 @@ class TestCustomDatetimeIndex:
         assert result.freq == b.freq
 
     @pytest.mark.parametrize(
-        "tz", [None, "UTC", "Europe/Berlin", pytz.FixedOffset(-60)]
+        "tz", [None, "UTC", "Europe/Berlin", timezone(timedelta(hours=-1))]
     )
     def test_intersection_dst_transition(self, tz):
         # GH 46702: Europe/Berlin has DST transition
@@ -664,3 +665,32 @@ class TestCustomDatetimeIndex:
         result = index1.union(index2)
         expected = date_range("2021-10-28", periods=6, freq="D", tz="Europe/London")
         tm.assert_index_equal(result, expected)
+
+
+def test_union_non_nano_rangelike():
+    # GH 59036
+    l1 = DatetimeIndex(
+        ["2024-05-11", "2024-05-12"], dtype="datetime64[us]", name="Date", freq="D"
+    )
+    l2 = DatetimeIndex(["2024-05-13"], dtype="datetime64[us]", name="Date", freq="D")
+    result = l1.union(l2)
+    expected = DatetimeIndex(
+        ["2024-05-11", "2024-05-12", "2024-05-13"],
+        dtype="datetime64[us]",
+        name="Date",
+        freq="D",
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_non_nano_rangelike():
+    # GH 59271
+    l1 = date_range("2024-01-01", "2024-01-03", unit="s")
+    l2 = date_range("2024-01-02", "2024-01-04", unit="s")
+    result = l1.intersection(l2)
+    expected = DatetimeIndex(
+        ["2024-01-02", "2024-01-03"],
+        dtype="datetime64[s]",
+        freq="D",
+    )
+    tm.assert_index_equal(result, expected)

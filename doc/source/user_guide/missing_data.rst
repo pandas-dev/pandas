@@ -32,7 +32,7 @@ use :class:`api.typing.NaTType`.
 :class:`NA` for :class:`StringDtype`, :class:`Int64Dtype` (and other bit widths),
 :class:`Float64Dtype` (and other bit widths), :class:`BooleanDtype` and :class:`ArrowDtype`.
 These types will maintain the original data type of the data.
-For typing applications, use :class:`api.types.NAType`.
+For typing applications, use :class:`api.typing.NAType`.
 
 .. ipython:: python
 
@@ -60,7 +60,7 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 
 .. warning::
 
-   Equality compaisons between ``np.nan``, :class:`NaT`, and :class:`NA`
+   Equality comparisons between ``np.nan``, :class:`NaT`, and :class:`NA`
    do not act like ``None``
 
    .. ipython:: python
@@ -88,7 +88,7 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 
 .. warning::
 
-   Experimental: the behaviour of :class:`NA`` can still change without warning.
+   Experimental: the behaviour of :class:`NA` can still change without warning.
 
 Starting from pandas 1.0, an experimental :class:`NA` value (singleton) is
 available to represent scalar missing values. The goal of :class:`NA` is provide a
@@ -105,7 +105,7 @@ dtype, it will use :class:`NA`:
     s[2]
     s[2] is pd.NA
 
-Currently, pandas does not yet use those data types using :class:`NA` by default
+Currently, pandas does not use those data types using :class:`NA` by default in
 a :class:`DataFrame` or :class:`Series`, so you need to specify
 the dtype explicitly. An easy way to convert to those dtypes is explained in the
 :ref:`conversion section <missing_data.NA.conversion>`.
@@ -253,8 +253,8 @@ Conversion
 ^^^^^^^^^^
 
 If you have a :class:`DataFrame` or :class:`Series` using ``np.nan``,
-:meth:`Series.convert_dtypes` and :meth:`DataFrame.convert_dtypes`
-in :class:`DataFrame` that can convert data to use the data types that use :class:`NA`
+:meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes`, respectively,
+will convert your data to use the nullable data types supporting :class:`NA`,
 such as :class:`Int64Dtype` or :class:`ArrowDtype`. This is especially helpful after reading
 in data sets from IO methods where data types were inferred.
 
@@ -319,7 +319,7 @@ Missing values propagate through arithmetic operations between pandas objects.
 
 The descriptive statistics and computational methods discussed in the
 :ref:`data structure overview <basics.stats>` (and listed :ref:`here
-<api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all
+<api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
 When summing data, NA values or empty data will be treated as zero.
@@ -337,10 +337,8 @@ When taking the product, NA values or empty data will be treated as 1.
    pd.Series([], dtype="float64").prod()
 
 Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
-ignore NA values by default preserve them in the result. This behavior can be changed
-with ``skipna``
-
-* Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod` ignore NA values by default, but preserve them in the resulting arrays. To override this behaviour and include NA values, use ``skipna=False``.
+ignore NA values by default, but preserve them in the resulting array. To override
+this behaviour and include NA values in the calculation, use ``skipna=False``.
 
 
 .. ipython:: python
@@ -355,7 +353,7 @@ with ``skipna``
 Dropping missing data
 ~~~~~~~~~~~~~~~~~~~~~
 
-:meth:`~DataFrame.dropna` dropa rows or columns with missing data.
+:meth:`~DataFrame.dropna` drops rows or columns with missing data.
 
 .. ipython:: python
 
@@ -385,6 +383,27 @@ Replace NA with a scalar value
    df = pd.DataFrame(data)
    df
    df.fillna(0)
+
+When the data has object dtype, you can control what type of NA values are present.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": [pd.NA, np.nan, None]}, dtype=object)
+   df
+   df.fillna(None)
+   df.fillna(np.nan)
+   df.fillna(pd.NA)
+
+However when the dtype is not object, these will all be replaced with the proper NA value for the dtype.
+
+.. ipython:: python
+
+   data = {"np": [1.0, np.nan, np.nan, 2], "arrow": pd.array([1.0, pd.NA, pd.NA, 2], dtype="float64[pyarrow]")}
+   df = pd.DataFrame(data)
+   df
+   df.fillna(None)
+   df.fillna(np.nan)
+   df.fillna(pd.NA)
 
 Fill gaps forward or backward
 

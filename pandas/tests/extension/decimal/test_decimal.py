@@ -68,10 +68,12 @@ def data_for_grouping():
 class TestDecimalArray(base.ExtensionTests):
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if op_name in ["kurt", "sem"]:
+            return False
         return True
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
@@ -137,95 +139,6 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_frame(data_missing)
 
-    def test_fillna_limit_pad(self, data_missing):
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
-        with tm.assert_produces_warning(
-            DeprecationWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_pad(data_missing)
-
-        msg = "The 'method' keyword in DecimalArray.fillna is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_pad(data_missing)
-
-    @pytest.mark.parametrize(
-        "limit_area, input_ilocs, expected_ilocs",
-        [
-            ("outside", [1, 0, 0, 0, 1], [1, 0, 0, 0, 1]),
-            ("outside", [1, 0, 1, 0, 1], [1, 0, 1, 0, 1]),
-            ("outside", [0, 1, 1, 1, 0], [0, 1, 1, 1, 1]),
-            ("outside", [0, 1, 0, 1, 0], [0, 1, 0, 1, 1]),
-            ("inside", [1, 0, 0, 0, 1], [1, 1, 1, 1, 1]),
-            ("inside", [1, 0, 1, 0, 1], [1, 1, 1, 1, 1]),
-            ("inside", [0, 1, 1, 1, 0], [0, 1, 1, 1, 0]),
-            ("inside", [0, 1, 0, 1, 0], [0, 1, 1, 1, 0]),
-        ],
-    )
-    def test_ffill_limit_area(
-        self, data_missing, limit_area, input_ilocs, expected_ilocs
-    ):
-        # GH#56616
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
-        with tm.assert_produces_warning(
-            DeprecationWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            msg = "DecimalArray does not implement limit_area"
-            with pytest.raises(NotImplementedError, match=msg):
-                super().test_ffill_limit_area(
-                    data_missing, limit_area, input_ilocs, expected_ilocs
-                )
-
-    def test_fillna_limit_backfill(self, data_missing):
-        msg = "Series.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_backfill(data_missing)
-
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
-        with tm.assert_produces_warning(
-            DeprecationWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_backfill(data_missing)
-
-        msg = "The 'method' keyword in DecimalArray.fillna is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-            check_stacklevel=False,
-            raise_on_extra_warnings=False,
-        ):
-            super().test_fillna_limit_backfill(data_missing)
-
-    def test_fillna_no_op_returns_copy(self, data):
-        msg = "|".join(
-            [
-                "ExtensionArray.fillna 'method' keyword is deprecated",
-                "The 'method' keyword in DecimalArray.fillna is deprecated",
-            ]
-        )
-        with tm.assert_produces_warning(
-            (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
-        ):
-            super().test_fillna_no_op_returns_copy(data)
-
     def test_fillna_series(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
@@ -233,17 +146,29 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_series(data_missing)
 
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        msg = "|".join(
-            [
-                "ExtensionArray.fillna 'method' keyword is deprecated",
-                "The 'method' keyword in DecimalArray.fillna is deprecated",
-            ]
-        )
+    def test_fillna_with_none(self, data_missing):
+        # GH#57723
+        # EAs that don't have special logic for None will raise, unlike pandas'
+        # which interpret None as the NA value for the dtype.
+        msg = "conversion from NoneType to Decimal is not supported"
+        with pytest.raises(TypeError, match=msg):
+            super().test_fillna_with_none(data_missing)
+
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
-            (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
+            DeprecationWarning, match=msg, check_stacklevel=False
         ):
-            super().test_fillna_series_method(data_missing, fillna_method)
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_limit_series(data_missing)
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):

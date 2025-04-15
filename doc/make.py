@@ -11,6 +11,7 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+
 import argparse
 import csv
 import importlib
@@ -259,8 +260,7 @@ class DocBuilder:
                 for i in range(3):
                     self._run_os("pdflatex", "-interaction=nonstopmode", "pandas.tex")
                 raise SystemExit(
-                    "You should check the file "
-                    '"build/latex/pandas.pdf" for problems.'
+                    'You should check the file "build/latex/pandas.pdf" for problems.'
                 )
             self._run_os("make")
             return ret_code
@@ -342,8 +342,7 @@ def main():
         dest="verbosity",
         default=0,
         help=(
-            "increase verbosity (can be repeated), "
-            "passed to the sphinx build command"
+            "increase verbosity (can be repeated), passed to the sphinx build command"
         ),
     )
     argparser.add_argument(

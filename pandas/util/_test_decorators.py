@@ -23,21 +23,21 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+
 from __future__ import annotations
 
 import locale
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pandas._typing import F
 
 from pandas.compat import (
     IS64,
+    WASM,
     is_platform_windows,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -113,6 +113,10 @@ skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on W
 skip_if_not_us_locale = pytest.mark.skipif(
     locale.getlocale()[0] != "en_US",
     reason=f"Set local {locale.getlocale()[0]} is not en_US",
+)
+skip_if_wasm = pytest.mark.skipif(
+    WASM,
+    reason="does not support wasm",
 )
 
 

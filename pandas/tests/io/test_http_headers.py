@@ -1,11 +1,14 @@
 """
 Tests for the pandas custom headers in http(s) requests
 """
+
 from functools import partial
 import gzip
 from io import BytesIO
 
 import pytest
+
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -103,6 +106,7 @@ def stata_responder(df):
             marks=[
                 td.skip_if_no("fastparquet"),
                 td.skip_if_no("fsspec"),
+                pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string"),
             ],
         ),
         (pickle_respnder, pd.read_pickle),

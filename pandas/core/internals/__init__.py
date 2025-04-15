@@ -6,13 +6,12 @@ from pandas.core.internals.managers import (
 )
 
 __all__ = [
-    "Block",  # pylint: disable=undefined-all-variable
-    "DatetimeTZBlock",  # pylint: disable=undefined-all-variable
-    "ExtensionBlock",  # pylint: disable=undefined-all-variable
-    "make_block",
+    "Block",
     "BlockManager",
+    "ExtensionBlock",
     "SingleBlockManager",
     "concatenate_managers",
+    "make_block",
 ]
 
 
@@ -25,7 +24,7 @@ def __getattr__(name: str):
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            DeprecationWarning,
+            FutureWarning,
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,
@@ -35,39 +34,24 @@ def __getattr__(name: str):
         return create_block_manager_from_blocks
 
     if name in [
-        "NumericBlock",
-        "ObjectBlock",
         "Block",
         "ExtensionBlock",
-        "DatetimeTZBlock",
     ]:
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            DeprecationWarning,
+            FutureWarning,
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,
         )
-        if name == "NumericBlock":
-            from pandas.core.internals.blocks import NumericBlock
-
-            return NumericBlock
-        elif name == "DatetimeTZBlock":
-            from pandas.core.internals.blocks import DatetimeTZBlock
-
-            return DatetimeTZBlock
-        elif name == "ExtensionBlock":
+        if name == "ExtensionBlock":
             from pandas.core.internals.blocks import ExtensionBlock
 
             return ExtensionBlock
-        elif name == "Block":
+        else:
             from pandas.core.internals.blocks import Block
 
             return Block
-        else:
-            from pandas.core.internals.blocks import ObjectBlock
-
-            return ObjectBlock
 
     raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")

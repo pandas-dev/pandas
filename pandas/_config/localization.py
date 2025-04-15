@@ -3,6 +3,7 @@ Helpers for configuring locale settings.
 
 Name `localization` is chosen to avoid overlap with builtin `locale` module.
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
 @contextmanager
 def set_locale(
     new_locale: str | tuple[str, str], lc_var: int = locale.LC_ALL
-) -> Generator[str | tuple[str, str], None, None]:
+) -> Generator[str | tuple[str, str]]:
     """
     Context manager for temporarily setting a locale.
 

@@ -63,7 +63,7 @@ def test_align_nocopy(datetime_series):
 
     # do not copy
     a = datetime_series.copy()
-    ra, _ = a.align(b, join="left", copy=False)
+    ra, _ = a.align(b, join="left")
     ra[:5] = 5
     assert not (a[:5] == 5).any()
 
@@ -77,17 +77,17 @@ def test_align_nocopy(datetime_series):
     # do not copy
     a = datetime_series.copy()
     b = datetime_series[:5].copy()
-    _, rb = a.align(b, join="right", copy=False)
+    _, rb = a.align(b, join="right")
     rb[:2] = 5
     assert not (b[:2] == 5).any()
 
 
 def test_align_same_index(datetime_series):
-    a, b = datetime_series.align(datetime_series, copy=False)
+    a, b = datetime_series.align(datetime_series)
     assert a.index.is_(datetime_series.index)
     assert b.index.is_(datetime_series.index)
 
-    a, b = datetime_series.align(datetime_series, copy=True)
+    a, b = datetime_series.align(datetime_series)
     assert a.index is not datetime_series.index
     assert b.index is not datetime_series.index
     assert a.index.is_(datetime_series.index)
@@ -146,6 +146,19 @@ def test_align_periodindex(join_type):
 
     # TODO: assert something?
     ts.align(ts[::2], join=join_type)
+
+
+def test_align_stringindex(any_string_dtype):
+    left = Series(range(3), index=pd.Index(["a", "b", "d"], dtype=any_string_dtype))
+    right = Series(range(3), index=pd.Index(["a", "b", "c"], dtype=any_string_dtype))
+    result_left, result_right = left.align(right)
+
+    expected_idx = pd.Index(["a", "b", "c", "d"], dtype=any_string_dtype)
+    expected_left = Series([0, 1, np.nan, 2], index=expected_idx)
+    expected_right = Series([0, 1, 2, np.nan], index=expected_idx)
+
+    tm.assert_series_equal(result_left, expected_left)
+    tm.assert_series_equal(result_right, expected_right)
 
 
 def test_align_left_fewer_levels():

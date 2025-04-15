@@ -125,7 +125,6 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
-        #
         if not all(
             isinstance(t, self._HANDLED_TYPES + (DecimalArray,)) for t in inputs
         ):
@@ -287,17 +286,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return value_counts(self.to_numpy(), dropna=dropna)
 
     # We override fillna here to simulate a 3rd party EA that has done so. This
-    #  lets us test the deprecation telling authors to implement _pad_or_backfill
-    # Simulate a 3rd-party EA that has not yet updated to include a "copy"
+    #  lets us test a 3rd-party EA that has not yet updated to include a "copy"
     #  keyword in its fillna method.
-    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
-    def fillna(  # type: ignore[override]
-        self,
-        value=None,
-        method=None,
-        limit: int | None = None,
-    ):
-        return super().fillna(value=value, method=method, limit=limit, copy=True)
+    def fillna(self, value=None, limit=None):
+        return super().fillna(value=value, limit=limit, copy=True)
 
 
 def to_decimal(values, context=None):

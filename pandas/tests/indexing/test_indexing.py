@@ -1,4 +1,4 @@
-""" test fancy indexing & misc """
+"""test fancy indexing & misc"""
 
 import array
 from datetime import datetime
@@ -7,8 +7,6 @@ import weakref
 
 import numpy as np
 import pytest
-
-from pandas._config import using_pyarrow_string_dtype
 
 from pandas.errors import IndexingError
 
@@ -180,14 +178,8 @@ class TestFancy:
         df["c"] = np.nan
         assert df["c"].dtype == np.float64
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[0, "c"] = "foo"
-        expected = DataFrame(
-            {"a": [1, 3], "b": [np.nan, 2], "c": Series(["foo", np.nan], dtype=object)}
-        )
-        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("val", [3.14, "wxyz"])
     def test_setitem_dtype_upcast2(self, val):
@@ -199,19 +191,8 @@ class TestFancy:
         )
 
         left = df.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             left.loc["a", "bar"] = val
-        right = DataFrame(
-            [[0, val, 2], [3, 4, 5]],
-            index=list("ab"),
-            columns=["foo", "bar", "baz"],
-        )
-
-        tm.assert_frame_equal(left, right)
-        assert is_integer_dtype(left["foo"])
-        assert is_integer_dtype(left["baz"])
 
     def test_setitem_dtype_upcast3(self):
         left = DataFrame(
@@ -219,20 +200,8 @@ class TestFancy:
             index=list("ab"),
             columns=["foo", "bar", "baz"],
         )
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             left.loc["a", "bar"] = "wxyz"
-
-        right = DataFrame(
-            [[0, "wxyz", 0.2], [0.3, 0.4, 0.5]],
-            index=list("ab"),
-            columns=["foo", "bar", "baz"],
-        )
-
-        tm.assert_frame_equal(left, right)
-        assert is_float_dtype(left["foo"])
-        assert is_float_dtype(left["baz"])
 
     def test_dups_fancy_indexing(self):
         # GH 3455
@@ -288,7 +257,7 @@ class TestFancy:
             with pytest.raises(
                 KeyError,
                 match=re.escape(
-                    "\"None of [Index(['E'], dtype='string')] are in the [index]\""
+                    "\"None of [Index(['E'], dtype='str')] are in the [index]\""
                 ),
             ):
                 dfnu.loc[["E"]]
@@ -455,9 +424,6 @@ class TestFancy:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't multiply arrow strings"
-    )
     def test_multi_assign(self):
         # GH 3626, an assignment of a sub-df to a df
         # set float64 to avoid upcast when setting nan
@@ -565,6 +531,7 @@ class TestFancy:
         df_orig = DataFrame(
             [["1", "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        df_orig[list("ABCDG")] = df_orig[list("ABCDG")].astype(object)
 
         df = df_orig.copy()
 
@@ -574,9 +541,9 @@ class TestFancy:
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["A"] = expected["A"].astype(object)
-            expected["B"] = expected["B"].astype(object)
+        expected[list("CDG")] = expected[list("CDG")].astype(object)
+        expected["A"] = expected["A"].astype(object)
+        expected["B"] = expected["B"].astype(object)
         tm.assert_frame_equal(df, expected)
 
         # GH5702 (loc)
@@ -585,18 +552,16 @@ class TestFancy:
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["A"] = expected["A"].astype(object)
+        expected[list("ABCDG")] = expected[list("ABCDG")].astype(object)
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
+
         df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["B"] = expected["B"].astype(object)
-            expected["C"] = expected["C"].astype(object)
+        expected[list("ABCDG")] = expected[list("ABCDG")].astype(object)
         tm.assert_frame_equal(df, expected)
 
     def test_astype_assignment_full_replacements(self):
@@ -683,7 +648,6 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set int into string")
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
@@ -708,7 +672,7 @@ class TestMisc:
         cols = ["jim", "joe", "jolie", "joline"]
         df = DataFrame(xs, columns=cols, index=list("abcde"), dtype="int64")
 
-        # right hand side; permute the indices and multiplpy by -2
+        # right hand side; permute the indices and multiply by -2
         rhs = -2 * df.iloc[3:0:-1, 2:0:-1]
 
         # expected `right` result; just multiply by -2
@@ -728,7 +692,7 @@ class TestMisc:
             frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             run_tests(df, rhs, right_loc, right_iloc)
 
     @pytest.mark.parametrize(
@@ -780,10 +744,10 @@ class TestMisc:
         # GH 11652
         s = Series(index=range(size), dtype=np.float64)
         s.loc[range(1)] = 42
-        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
+        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=range(1)))
 
         s.loc[range(2)] = 43
-        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
+        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=range(2)))
 
     def test_partial_boolean_frame_indexing(self):
         # GH 17170
@@ -796,6 +760,27 @@ class TestMisc:
             np.array([[0.0, 1.0, np.nan], [3.0, 4.0, np.nan], [np.nan] * 3]),
             index=list("abc"),
             columns=list("ABC"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_period_column_slicing(self):
+        # GH#60273 The transpose operation creates a single 5x1 block of PeriodDtype
+        # Make sure it is reindexed correctly
+        df = DataFrame(
+            pd.period_range("2021-01-01", periods=5, freq="D"),
+            columns=["A"],
+        ).T
+        result = df[[0, 1, 2]]
+        expected = DataFrame(
+            [
+                [
+                    pd.Period("2021-01-01", freq="D"),
+                    pd.Period("2021-01-02", freq="D"),
+                    pd.Period("2021-01-03", freq="D"),
+                ]
+            ],
+            index=["A"],
+            columns=[0, 1, 2],
         )
         tm.assert_frame_equal(result, expected)
 

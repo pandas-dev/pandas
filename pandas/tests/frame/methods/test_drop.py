@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -167,7 +165,7 @@ class TestDataFrameDrop:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
-    def test_drop_multiindex_not_lexsorted(self):
+    def test_drop_multiindex_not_lexsorted(self, performance_warning):
         # GH#11640
 
         # define the lexsorted version
@@ -188,7 +186,7 @@ class TestDataFrameDrop:
         assert not not_lexsorted_df.columns._is_lexsorted()
 
         expected = lexsorted_df.drop("a", axis=1).astype(float)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             result = not_lexsorted_df.drop("a", axis=1)
 
         tm.assert_frame_equal(result, expected)

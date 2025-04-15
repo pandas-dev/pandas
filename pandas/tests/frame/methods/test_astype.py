@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -122,11 +124,11 @@ class TestAstype:
     def test_astype_with_view_float(self, float_frame):
         # this is the only real reason to do it this way
         tf = np.round(float_frame).astype(np.int32)
-        tf.astype(np.float32, copy=False)
+        tf.astype(np.float32)
 
         # TODO(wesm): verification?
         tf = float_frame.astype(np.float64)
-        tf.astype(np.int64, copy=False)
+        tf.astype(np.int64)
 
     def test_astype_with_view_mixed_float(self, mixed_float_frame):
         tf = mixed_float_frame.reindex(columns=["A", "B", "C"])
@@ -149,7 +151,7 @@ class TestAstype:
         # see GH#9757
         a = Series(date_range("2010-01-04", periods=5))
         b = Series(date_range("3/6/2012 00:00", periods=5, tz="US/Eastern"))
-        c = Series([Timedelta(x, unit="d") for x in range(5)])
+        c = Series([Timedelta(x, unit="D") for x in range(5)])
         d = Series(range(5))
         e = Series([0.0, 0.2, 0.4, 0.6, 0.8])
 
@@ -166,21 +168,21 @@ class TestAstype:
                 "d": list(map(str, d._values)),
                 "e": list(map(str, e._values)),
             },
-            dtype="object",
+            dtype="str",
         )
 
         tm.assert_frame_equal(result, expected)
 
-    def test_astype_str_float(self):
+    def test_astype_str_float(self, using_infer_string):
         # see GH#11302
         result = DataFrame([np.nan]).astype(str)
-        expected = DataFrame(["nan"], dtype="object")
+        expected = DataFrame([np.nan if using_infer_string else "nan"], dtype="str")
 
         tm.assert_frame_equal(result, expected)
         result = DataFrame([1.12345678901234567890]).astype(str)
 
         val = "1.1234567890123457"
-        expected = DataFrame([val], dtype="object")
+        expected = DataFrame([val], dtype="str")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
@@ -199,7 +201,7 @@ class TestAstype:
         expected = DataFrame(
             {
                 "a": a,
-                "b": Series(["0", "1", "2", "3", "4"], dtype="object"),
+                "b": Series(["0", "1", "2", "3", "4"], dtype="str"),
                 "c": c,
                 "d": Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype="float32"),
             }
@@ -260,9 +262,9 @@ class TestAstype:
         a2 = Series([0, 1, 2, 3, 4], name="a")
         df = concat([a1, b, a2], axis=1)
 
-        result = df.astype(str)
+        result = df.astype("str")
         a1_str = Series(["1", "2", "3", "4", "5"], dtype="str", name="a")
-        b_str = Series(["0.1", "0.2", "0.4", "0.6", "0.8"], dtype=str, name="b")
+        b_str = Series(["0.1", "0.2", "0.4", "0.6", "0.8"], dtype="str", name="b")
         a2_str = Series(["0", "1", "2", "3", "4"], dtype="str", name="a")
         expected = concat([a1_str, b_str, a2_str], axis=1)
         tm.assert_frame_equal(result, expected)
@@ -282,7 +284,7 @@ class TestAstype:
         result = df.astype(dtypes)
         expected = DataFrame(
             {
-                0: Series(vals[:, 0].astype(str), dtype=object),
+                0: Series(vals[:, 0].astype(str), dtype="str"),
                 1: vals[:, 1],
                 2: pd.array(vals[:, 2], dtype="Float64"),
                 3: vals[:, 3],
@@ -645,9 +647,10 @@ class TestAstype:
             # dt64tz->dt64 deprecated
             timezone_frame.astype("datetime64[ns]")
 
-    def test_astype_dt64tz_to_str(self, timezone_frame):
+    def test_astype_dt64tz_to_str(self, timezone_frame, using_infer_string):
         # str formatting
         result = timezone_frame.astype(str)
+        na_value = np.nan if using_infer_string else "NaT"
         expected = DataFrame(
             [
                 [
@@ -655,7 +658,7 @@ class TestAstype:
                     "2013-01-01 00:00:00-05:00",
                     "2013-01-01 00:00:00+01:00",
                 ],
-                ["2013-01-02", "NaT", "NaT"],
+                ["2013-01-02", na_value, na_value],
                 [
                     "2013-01-03",
                     "2013-01-03 00:00:00-05:00",
@@ -663,7 +666,7 @@ class TestAstype:
                 ],
             ],
             columns=timezone_frame.columns,
-            dtype="object",
+            dtype="str",
         )
         tm.assert_frame_equal(result, expected)
 
@@ -715,8 +718,12 @@ class TestAstype:
                 df.astype(float, errors=errors)
 
     def test_astype_tz_conversion(self):
-        # GH 35973
-        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        # GH 35973, GH#58998
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            val = {
+                "tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")
+            }
         df = DataFrame(val)
         result = df.astype({"tz": "datetime64[ns, Europe/Berlin]"})
 
@@ -727,7 +734,7 @@ class TestAstype:
     @pytest.mark.parametrize("tz", ["UTC", "Europe/Berlin"])
     def test_astype_tz_object_conversion(self, tz):
         # GH 35973
-        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        val = {"tz": date_range("2020-08-30", freq="D", periods=2, tz="Europe/London")}
         expected = DataFrame(val)
 
         # convert expected to object dtype from other tz str (independently tested)
@@ -738,6 +745,7 @@ class TestAstype:
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) GH#60639")
     def test_astype_dt64_to_string(
         self, frame_or_series, tz_naive_fixture, using_infer_string
     ):
@@ -865,7 +873,7 @@ class Int16DtypeNoCopy(pd.Int16Dtype):
 def test_frame_astype_no_copy():
     # GH 42501
     df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
-    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
+    result = df.astype({"a": Int16DtypeNoCopy()})
 
     assert result.a.dtype == pd.Int16Dtype()
     assert np.shares_memory(df.b.values, result.b.values)
@@ -876,7 +884,7 @@ def test_astype_copies(dtype):
     # GH#50984
     pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
-    result = df.astype("int64[pyarrow]", copy=True)
+    result = df.astype("int64[pyarrow]")
     df.iloc[0, 0] = 100
     expected = DataFrame({"a": [1, 2, 3]}, dtype="int64[pyarrow]")
     tm.assert_frame_equal(result, expected)
@@ -888,5 +896,14 @@ def test_astype_to_string_not_modifying_input(string_storage, val):
     df = DataFrame({"a": ["a", "b", val]})
     expected = df.copy()
     with option_context("mode.string_storage", string_storage):
-        df.astype("string", copy=False)
+        df.astype("string")
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("val", [None, 1, 1.5, np.nan, NaT])
+def test_astype_to_string_dtype_not_modifying_input(any_string_dtype, val):
+    # GH#51073 - variant of the above test with explicit dtype instances
+    df = DataFrame({"a": ["a", "b", val]})
+    expected = df.copy()
+    df.astype(any_string_dtype)
     tm.assert_frame_equal(df, expected)

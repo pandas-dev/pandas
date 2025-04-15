@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
   pull_request:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
 
 env:
   ENV_FILE: environment.yml
@@ -51,6 +51,11 @@ jobs:
     # TODO: The doctests have to be run first right now, since the Cython doctests only work
     # with pandas installed in non-editable mode
     # This can be removed once pytest-cython doesn't require C extensions to be installed inplace
+
+    - name: Extra installs
+      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+
     - name: Run doctests
       run: cd ci && ./code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
@@ -85,7 +90,7 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Typing + pylint
+    - name: Typing
       uses: pre-commit/action@v3.0.1
       with:
         extra_args: --verbose --hook-stage manual --all-files

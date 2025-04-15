@@ -2,6 +2,7 @@
 Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
+
 from io import (
     BytesIO,
     StringIO,
@@ -46,6 +47,13 @@ class TestTextReader:
         src = BytesIO(text)
         reader = TextReader(src, header=None)
         reader.read()
+
+    def test_encoding_mismatch_warning(self, csv_path):
+        # GH-57954
+        with open(csv_path, encoding="UTF-8") as f:
+            msg = "latin1 is different from the encoding"
+            with pytest.raises(ValueError, match=msg):
+                read_csv(f, encoding="latin1")
 
     def test_string_factorize(self):
         # should this be optional?

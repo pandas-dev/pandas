@@ -171,6 +171,7 @@ can be improved by passing an ``np.ndarray``.
    In [4]: %%cython
       ...: cimport numpy as np
       ...: import numpy as np
+      ...: np.import_array()
       ...: cdef double f_typed(double x) except? -2:
       ...:     return x * (x - 1)
       ...: cpdef double integrate_f_typed(double a, double b, int N):
@@ -225,6 +226,7 @@ and ``wraparound`` checks can yield more performance.
       ...: cimport cython
       ...: cimport numpy as np
       ...: import numpy as np
+      ...: np.import_array()
       ...: cdef np.float64_t f_typed(np.float64_t x) except? -2:
       ...:     return x * (x - 1)
       ...: cpdef np.float64_t integrate_f_typed(np.float64_t a, np.float64_t b, np.int64_t N):
@@ -427,7 +429,7 @@ prefer that Numba throw an error if it cannot compile a function in a way that
 speeds up your code, pass Numba the argument
 ``nopython=True`` (e.g.  ``@jit(nopython=True)``). For more on
 troubleshooting Numba modes, see the `Numba troubleshooting page
-<https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
+<https://numba.readthedocs.io/en/stable/user/troubleshoot.html>`__.
 
 Using ``parallel=True`` (e.g. ``@jit(parallel=True)``) may result in a ``SIGABRT`` if the threading layer leads to unsafe
 behavior. You can first `specify a safe threading layer <https://numba.readthedocs.io/en/stable/user/threading-layer.html#selecting-a-threading-layer-for-safe-parallel-execution>`__
@@ -453,7 +455,7 @@ by evaluate arithmetic and boolean expression all at once for large :class:`~pan
    :func:`~pandas.eval` is many orders of magnitude slower for
    smaller expressions or objects than plain Python. A good rule of thumb is
    to only use :func:`~pandas.eval` when you have a
-   :class:`.DataFrame` with more than 10,000 rows.
+   :class:`~pandas.core.frame.DataFrame` with more than 10,000 rows.
 
 Supported syntax
 ~~~~~~~~~~~~~~~~

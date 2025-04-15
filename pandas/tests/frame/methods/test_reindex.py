@@ -159,37 +159,6 @@ class TestDataFrameSelectReindex:
         expected[1] = expected[1].astype(res.dtypes[1])
         tm.assert_frame_equal(res, expected)
 
-    def test_reindex_copies(self):
-        # based on asv time_reindex_axis1
-        N = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal((N * 10, N)))
-        cols = np.arange(N)
-        np.random.default_rng(2).shuffle(cols)
-
-        result = df.reindex(columns=cols, copy=True)
-        assert not np.shares_memory(result[0]._values, df[0]._values)
-
-        # pass both columns and index
-        result2 = df.reindex(columns=cols, index=df.index, copy=True)
-        assert not np.shares_memory(result2[0]._values, df[0]._values)
-
-    def test_reindex_copies_ea(self):
-        # https://github.com/pandas-dev/pandas/pull/51197
-        # also ensure to honor copy keyword for ExtensionDtypes
-        N = 10
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((N * 10, N)), dtype="Float64"
-        )
-        cols = np.arange(N)
-        np.random.default_rng(2).shuffle(cols)
-
-        result = df.reindex(columns=cols, copy=True)
-        assert np.shares_memory(result[0].array._data, df[0].array._data)
-
-        # pass both columns and index
-        result2 = df.reindex(columns=cols, index=df.index, copy=True)
-        assert np.shares_memory(result2[0].array._data, df[0].array._data)
-
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
@@ -635,9 +604,7 @@ class TestDataFrameSelectReindex:
             tm.assert_index_equal(series.index, nonContigFrame.index)
 
         # corner cases
-
-        # Same index, copies values but not index if copy=False
-        newFrame = float_frame.reindex(float_frame.index, copy=False)
+        newFrame = float_frame.reindex(float_frame.index)
         assert newFrame.index.is_(float_frame.index)
 
         # length zero
@@ -787,7 +754,10 @@ class TestDataFrameSelectReindex:
             index=[datetime(2012, 1, 1), datetime(2012, 1, 2), datetime(2012, 1, 3)],
             columns=["a", "b", "c"],
         )
-        time_freq = date_range("2012-01-01", "2012-01-03", freq="d")
+
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            time_freq = date_range("2012-01-01", "2012-01-03", freq="d")
         some_cols = ["a", "b"]
 
         index_freq = df.reindex(index=time_freq).index.freq

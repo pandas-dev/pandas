@@ -6,7 +6,6 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-import time
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -344,10 +343,9 @@ cdef class TextReader:
         object true_values, false_values
         object handle
         object orig_header
-        bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
+        bint na_filter, keep_default_na, has_usecols, has_mi_columns
         bint allow_leading_cols
         uint64_t parser_start  # this is modified after __init__
-        list clocks
         const char *encoding_errors
         kh_str_starts_t *false_set
         kh_str_starts_t *true_set
@@ -400,7 +398,6 @@ cdef class TextReader:
                   bint allow_leading_cols=True,
                   skiprows=None,
                   skipfooter=0,         # int64_t
-                  bint verbose=False,
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
@@ -416,9 +413,6 @@ cdef class TextReader:
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
-
-        # For timekeeping
-        self.clocks = []
 
         self.parser.usecols = (usecols is not None)
 
@@ -506,8 +500,6 @@ cdef class TextReader:
         self.keep_default_na = keep_default_na
         self.converters = converters
         self.na_filter = na_filter
-
-        self.verbose = verbose
 
         if float_precision == "round_trip":
             # see gh-15140
@@ -896,8 +888,6 @@ cdef class TextReader:
             int64_t buffered_lines
             int64_t irows
 
-        self._start_clock()
-
         if rows is not None:
             irows = rows
             buffered_lines = self.parser.lines - self.parser_start
@@ -915,12 +905,8 @@ cdef class TextReader:
 
         if self.parser_start >= self.parser.lines:
             raise StopIteration
-        self._end_clock("Tokenization")
 
-        self._start_clock()
         columns = self._convert_column_data(rows)
-        self._end_clock("Type conversion")
-        self._start_clock()
         if len(columns) > 0:
             rows_read = len(list(columns.values())[0])
             # trim
@@ -929,17 +915,7 @@ cdef class TextReader:
                 parser_trim_buffers(self.parser)
             self.parser_start -= rows_read
 
-        self._end_clock("Parser memory cleanup")
-
         return columns
-
-    cdef _start_clock(self):
-        self.clocks.append(time.time())
-
-    cdef _end_clock(self, str what):
-        if self.verbose:
-            elapsed = time.time() - self.clocks.pop(-1)
-            print(f"{what} took: {elapsed * 1000:.2f} ms")
 
     def set_noconvert(self, i: int) -> None:
         self.noconvert.add(i)
@@ -1603,7 +1579,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
 # -> ndarray[f'|S{width}']
 cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
-                   int64_t line_end, int64_t width) noexcept:
+                   int64_t line_end, int64_t width):
     cdef:
         char *data
         ndarray result

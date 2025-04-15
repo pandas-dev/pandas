@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterator,
     Mapping,
@@ -18,7 +19,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     Optional,
     Protocol,
@@ -90,25 +90,21 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
-    from typing import SupportsIndex
-
-    if sys.version_info >= (3, 10):
-        from typing import Concatenate  # pyright: ignore[reportUnusedImport]
-        from typing import ParamSpec
-        from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
-    else:
-        from typing_extensions import (  # pyright: ignore[reportUnusedImport]
-            Concatenate,
-            ParamSpec,
-            TypeGuard,
-        )
+    from typing import (
+        ParamSpec,
+        SupportsIndex,
+    )
+    from typing import Concatenate  # pyright: ignore[reportUnusedImport]
+    from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
 
     P = ParamSpec("P")
 
     if sys.version_info >= (3, 11):
         from typing import Self  # pyright: ignore[reportUnusedImport]
+        from typing import Unpack  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import Unpack  # pyright: ignore[reportUnusedImport]
 
 else:
     npt: Any = None
@@ -116,6 +112,7 @@ else:
     Self: Any = None
     TypeGuard: Any = None
     Concatenate: Any = None
+    Unpack: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 HashableT2 = TypeVar("HashableT2", bound=Hashable)
@@ -137,30 +134,22 @@ _T_co = TypeVar("_T_co", covariant=True)
 
 class SequenceNotStr(Protocol[_T_co]):
     @overload
-    def __getitem__(self, index: SupportsIndex, /) -> _T_co:
-        ...
+    def __getitem__(self, index: SupportsIndex, /) -> _T_co: ...
 
     @overload
-    def __getitem__(self, index: slice, /) -> Sequence[_T_co]:
-        ...
+    def __getitem__(self, index: slice, /) -> Sequence[_T_co]: ...
 
-    def __contains__(self, value: object, /) -> bool:
-        ...
+    def __contains__(self, value: object, /) -> bool: ...
 
-    def __len__(self) -> int:
-        ...
+    def __len__(self) -> int: ...
 
-    def __iter__(self) -> Iterator[_T_co]:
-        ...
+    def __iter__(self) -> Iterator[_T_co]: ...
 
-    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int:
-        ...
+    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int: ...
 
-    def count(self, value: Any, /) -> int:
-        ...
+    def count(self, value: Any, /) -> int: ...
 
-    def __reversed__(self) -> Iterator[_T_co]:
-        ...
+    def __reversed__(self) -> Iterator[_T_co]: ...
 
 
 ListLike = Union[AnyArrayLike, SequenceNotStr, range]
@@ -204,7 +193,7 @@ Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = tuple[int, ...]
-Suffixes = tuple[Optional[str], Optional[str]]
+Suffixes = Sequence[Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, list, dict]]
 Frequency = Union[str, "BaseOffset"]
@@ -223,7 +212,7 @@ NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, dict[Hashable, Dtype]]
+DtypeArg = Union[Dtype, Mapping[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # converters
@@ -244,6 +233,7 @@ T = TypeVar("T")
 # see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
 FuncType = Callable[..., Any]
 F = TypeVar("F", bound=FuncType)
+TypeT = TypeVar("TypeT", bound=type)
 
 # types of vectorized key functions for DataFrame::sort_values and
 # DataFrame::sort_index, among others
@@ -283,7 +273,7 @@ class BaseBuffer(Protocol):
         # for _get_filepath_or_buffer
         ...
 
-    def seek(self, __offset: int, __whence: int = ...) -> int:
+    def seek(self, offset: int, whence: int = ..., /) -> int:
         # with one argument: gzip.GzipFile, bz2.BZ2File
         # with two arguments: zip.ZipFile, read_sas
         ...
@@ -298,13 +288,13 @@ class BaseBuffer(Protocol):
 
 
 class ReadBuffer(BaseBuffer, Protocol[AnyStr_co]):
-    def read(self, __n: int = ...) -> AnyStr_co:
+    def read(self, n: int = ..., /) -> AnyStr_co:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
 
 class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
-    def write(self, __b: AnyStr_contra) -> Any:
+    def write(self, b: AnyStr_contra, /) -> Any:
         # for gzip.GzipFile, bz2.BZ2File
         ...
 
@@ -314,13 +304,11 @@ class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
 
 
 class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
-    def readline(self) -> bytes:
-        ...
+    def readline(self) -> bytes: ...
 
 
 class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
-    def truncate(self, size: int | None = ...) -> int:
-        ...
+    def truncate(self, size: int | None = ..., /) -> int: ...
 
 
 class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
@@ -441,7 +429,7 @@ DateTimeErrorChoices = Literal["raise", "coerce"]
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
 
-# Arguments for nsmalles and n_largest
+# Arguments for nsmallest and nlargest
 NsmallestNlargestKeep = Literal["first", "last", "all"]
 
 # quantile interpolation
@@ -454,7 +442,9 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 AnyAll = Literal["any", "all"]
 
 # merge
-MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+MergeHow = Literal[
+    "left", "right", "inner", "outer", "cross", "left_anti", "right_anti"
+]
 MergeValidate = Literal[
     "one_to_one",
     "1:1",
@@ -522,6 +512,7 @@ ToStataByteorder = Literal[">", "<", "little", "big"]
 
 # ExcelWriter
 ExcelWriterIfSheetExists = Literal["error", "new", "replace", "overlay"]
+ExcelWriterMergeCells = Union[bool, Literal["columns"]]
 
 # Offsets
 OffsetCalendar = Union[np.busdaycalendar, "AbstractHolidayCalendar"]
@@ -535,5 +526,7 @@ UsecolsArgType = Union[
     None,
 ]
 
-# maintaine the sub-type of any hashable sequence
+# maintain the sub-type of any hashable sequence
 SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
+
+SliceType = Optional[Hashable]
