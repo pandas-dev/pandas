@@ -2560,6 +2560,7 @@ class TestPivotTable:
         ids=["values-and-columns", "values-and-index"],
     )
     def test_pivot_table_values_as_two_params(self, index, columns, request):
+        # GH#57876
         data = {"Category": ["A", "B", "A", "B"], "Value": [10, 20, 40, 50]}
         df = DataFrame(data)
         result = df.pivot_table(
