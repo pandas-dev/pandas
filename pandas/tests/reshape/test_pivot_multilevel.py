@@ -258,6 +258,7 @@ def test_pivot_df_multiindex_index_none():
     ids=["values-and-columns", "values-and-index"],
 )
 def test_pivot_table_multiindex_values_as_two_params(index, columns, request):
+    # GH#61292
     data = [
         ["A", 1, 50, -1],
         ["B", 1, 100, -2],
