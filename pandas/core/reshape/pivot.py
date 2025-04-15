@@ -339,7 +339,12 @@ def __internal_pivot_table(
     if values_passed:
         # GH#57876 and GH#61292
         # Explicitly aggregate ``values``.
-        grouped = grouped[values]
+        grouped = grouped[values]  # type: ignore[assignment]
+        # TODO: ``grouped`` will have type ``DataFrameGroupBy`` because
+        #  ``values`` is guaranteed to be a ``list[Any]`` per above
+        #  logic. The type hints for ``DataFrameGroupBy`` require an
+        #  overload for mypy to determine this. See stubs in pandas-stubs.
+        #  https://github.com/pandas-dev/pandas-stubs/blob/8434bde95460b996323cc8c0fea7b0a8bb00ea26/pandas-stubs/core/groupby/generic.pyi#L222
 
     agged = grouped.agg(aggfunc, **kwargs)
 
