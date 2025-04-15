@@ -131,8 +131,7 @@ def test_catch_too_many_names(all_parsers):
     msg = (
         "Too many columns specified: expected 4 and found 3"
         if parser.engine == "c"
-        else "Number of passed names did not match "
-        "number of header fields in the file"
+        else "Number of passed names did not match number of header fields in the file"
     )
 
     with pytest.raises(ValueError, match=msg):
@@ -196,7 +195,6 @@ def test_warn_bad_lines(all_parsers):
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 1 columns, but found 3: 1,2,3"
-        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False
@@ -251,19 +249,17 @@ def test_null_byte_char(request, all_parsers):
 
 
 @pytest.mark.filterwarnings("always::ResourceWarning")
-def test_open_file(request, all_parsers):
+def test_open_file(all_parsers):
     # GH 39024
     parser = all_parsers
 
     msg = "Could not determine delimiter"
     err = csv.Error
     if parser.engine == "c":
-        msg = "the 'c' engine does not support sep=None with delim_whitespace=False"
-        err = ValueError
+        msg = "object of type 'NoneType' has no len"
+        err = TypeError
     elif parser.engine == "pyarrow":
-        msg = (
-            "the 'pyarrow' engine does not support sep=None with delim_whitespace=False"
-        )
+        msg = "'utf-8' codec can't decode byte 0xe4"
         err = ValueError
 
     with tm.ensure_clean() as path:
@@ -315,7 +311,6 @@ a,b
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 2 columns, but found 3: a,b,c"
-        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False

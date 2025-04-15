@@ -45,6 +45,11 @@ class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
 
+    This enables support for third-party and custom dtypes within the
+    pandas ecosystem. By implementing this interface and pairing it with a custom
+    `ExtensionArray`, users can create rich data types that integrate cleanly
+    with pandas operations, such as grouping, joining, or aggregation.
+
     See Also
     --------
     extensions.register_extension_dtype: Register an ExtensionType
@@ -485,6 +490,14 @@ def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDt
     -------
     callable
         A class decorator.
+
+    See Also
+    --------
+    api.extensions.ExtensionDtype : The base class for creating custom pandas
+        data types.
+    Series : One-dimensional array with axis labels.
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous
+        tabular data.
 
     Examples
     --------

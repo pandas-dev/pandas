@@ -104,7 +104,9 @@ class TestSorting:
         gr = df.groupby(list("abcde"))
 
         # verify this is testing what it is supposed to test!
-        assert is_int64_overflow_possible(gr._grouper.shape)
+        assert is_int64_overflow_possible(
+            tuple(ping.ngroups for ping in gr._grouper.groupings)
+        )
 
         mi = MultiIndex.from_arrays(
             [ar.ravel() for ar in np.array_split(np.unique(arr, axis=0), 5, axis=1)],
@@ -221,7 +223,6 @@ class TestMerge:
 
         out = merge(left, right, how="outer")
         out.sort_values(out.columns.tolist(), inplace=True)
-        out.index = np.arange(len(out))
         tm.assert_frame_equal(out, merge(left, right, how=join_type, sort=True))
 
     @pytest.mark.slow
@@ -405,6 +406,13 @@ class TestSafeSort:
         result, result_codes = safe_sort(values, codes, use_na_sentinel=True)
         expected_codes = np.array([3, -1, -1, 2, 0, 3, -1, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result_codes, expected_codes)
+
+    @pytest.mark.parametrize("codes", [[-1, -1], [2, -1], [2, 2]])
+    def test_codes_empty_array_out_of_bound(self, codes):
+        empty_values = np.array([])
+        expected_codes = -np.ones_like(codes, dtype=np.intp)
+        _, result_codes = safe_sort(empty_values, codes)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
     def test_mixed_integer(self):

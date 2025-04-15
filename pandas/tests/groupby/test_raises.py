@@ -106,7 +106,7 @@ def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_string(
-    how, by, groupby_series, groupby_func, df_with_string_col
+    how, by, groupby_series, groupby_func, df_with_string_col, using_infer_string
 ):
     df = df_with_string_col
     args = get_groupby_method_args(groupby_func, df)
@@ -144,7 +144,6 @@ def test_groupby_raises_string(
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
-        "fillna": (None, ""),
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -166,12 +165,13 @@ def test_groupby_raises_string(
             TypeError,
             re.escape("agg function failed [how->prod,dtype->object]"),
         ),
-        "quantile": (TypeError, "cannot be performed against 'object' dtypes!"),
+        "quantile": (TypeError, "dtype 'object' does not support operation 'quantile'"),
         "rank": (None, ""),
         "sem": (ValueError, "could not convert string to float"),
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (ValueError, "could not convert string to float"),
+        "kurt": (ValueError, "could not convert string to float"),
         "std": (ValueError, "could not convert string to float"),
         "sum": (None, ""),
         "var": (
@@ -180,9 +180,40 @@ def test_groupby_raises_string(
         ),
     }[groupby_func]
 
-    if groupby_func == "fillna":
-        kind = "Series" if groupby_series else "DataFrame"
-        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    if using_infer_string:
+        if groupby_func in [
+            "prod",
+            "mean",
+            "median",
+            "cumsum",
+            "cumprod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "kurt",
+            "quantile",
+        ]:
+            msg = f"dtype 'str' does not support operation '{groupby_func}'"
+            if groupby_func in ["sem", "std", "skew", "kurt"]:
+                # The object-dtype raises ValueError when trying to convert to numeric.
+                klass = TypeError
+        elif groupby_func == "pct_change" and df["d"].dtype.storage == "pyarrow":
+            # This doesn't go through EA._groupby_op so the message isn't controlled
+            #  there.
+            msg = "operation 'truediv' not supported for dtype 'str' with dtype 'str'"
+        elif groupby_func == "diff" and df["d"].dtype.storage == "pyarrow":
+            # This doesn't go through EA._groupby_op so the message isn't controlled
+            #  there.
+            msg = "operation 'sub' not supported for dtype 'str' with dtype 'str'"
+
+        elif groupby_func in ["cummin", "cummax"]:
+            msg = msg.replace("object", "str")
+        elif groupby_func == "corrwith":
+            msg = "Cannot perform reduction 'mean' with string dtype"
+
+    if groupby_func == "corrwith":
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
@@ -206,7 +237,12 @@ def test_groupby_raises_string_udf(how, by, groupby_series, df_with_string_col):
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
 def test_groupby_raises_string_np(
-    how, by, groupby_series, groupby_func_np, df_with_string_col
+    how,
+    by,
+    groupby_series,
+    groupby_func_np,
+    df_with_string_col,
+    using_infer_string,
 ):
     # GH#50749
     df = df_with_string_col
@@ -219,9 +255,16 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            "Could not convert string .* to numeric",
+            "Could not convert string .* to numeric|"
+            "Cannot perform reduction 'mean' with string dtype",
         ),
     }[groupby_func_np]
+
+    if using_infer_string:
+        if groupby_func_np is np.mean:
+            klass = TypeError
+        msg = f"Cannot perform reduction '{groupby_func_np.__name__}' with string dtype"
+
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
@@ -253,7 +296,6 @@ def test_groupby_raises_datetime(
         "cumsum": (TypeError, "datetime64 type does not support operation 'cumsum'"),
         "diff": (None, ""),
         "ffill": (None, ""),
-        "fillna": (None, ""),
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -280,14 +322,22 @@ def test_groupby_raises_datetime(
                 ]
             ),
         ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    r"dtype datetime64\[ns\] does not support operation",
+                    "datetime64 type does not support operation 'kurt'",
+                ]
+            ),
+        ),
         "std": (None, ""),
         "sum": (TypeError, "datetime64 type does not support operation 'sum"),
         "var": (TypeError, "datetime64 type does not support operation 'var'"),
     }[groupby_func]
 
-    if groupby_func == "fillna":
-        kind = "Series" if groupby_series else "DataFrame"
-        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    if groupby_func == "corrwith":
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
@@ -330,7 +380,7 @@ def test_groupby_raises_datetime_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
-@pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
+@pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "kurt", "var"])
 def test_groupby_raises_timedelta(func):
     df = DataFrame(
         {
@@ -407,7 +457,6 @@ def test_groupby_raises_category(
             r"unsupported operand type\(s\) for -: 'Categorical' and 'Categorical'",
         ),
         "ffill": (None, ""),
-        "fillna": (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (None, ""),
         "idxmin": (None, ""),
@@ -461,6 +510,15 @@ def test_groupby_raises_category(
                 ]
             ),
         ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    "dtype category does not support operation 'kurt'",
+                    "category type does not support kurt operations",
+                ]
+            ),
+        ),
         "std": (
             TypeError,
             "|".join(
@@ -482,9 +540,8 @@ def test_groupby_raises_category(
         ),
     }[groupby_func]
 
-    if groupby_func == "fillna":
-        kind = "Series" if groupby_series else "DataFrame"
-        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    if groupby_func == "corrwith":
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
@@ -528,6 +585,9 @@ def test_groupby_raises_category_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
+@pytest.mark.filterwarnings(
+    "ignore:`groups` by one element list returns scalar is deprecated"
+)
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
     how,
@@ -595,7 +655,6 @@ def test_groupby_raises_category_on_category(
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
-        "fillna": (None, ""),  # no-op with CoW
         "first": (None, ""),
         "idxmax": (ValueError, "empty group due to unobserved categories")
         if empty_groups
@@ -634,6 +693,15 @@ def test_groupby_raises_category_on_category(
                 ]
             ),
         ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    "category type does not support kurt operations",
+                    "dtype category does not support operation 'kurt'",
+                ]
+            ),
+        ),
         "std": (
             TypeError,
             "|".join(
@@ -655,9 +723,8 @@ def test_groupby_raises_category_on_category(
         ),
     }[groupby_func]
 
-    if groupby_func == "fillna":
-        kind = "Series" if groupby_series else "DataFrame"
-        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    if groupby_func == "corrwith":
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from pandas._libs import missing as libmissing
 from pandas._libs.sparse import IntIndex
 
 from pandas.core.dtypes.common import (
@@ -67,7 +68,8 @@ def get_dummies(
         If appending prefix, separator/delimiter to use. Or pass a
         list or dictionary as with `prefix`.
     dummy_na : bool, default False
-        Add a column to indicate NaNs, if False NaNs are ignored.
+        If True, a NaN indicator column will be added even if no NaN values are present.
+        If False, NA values are encoded as all zero.
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
@@ -256,7 +258,7 @@ def _get_dummies_1d(
             dtype = ArrowDtype(pa.bool_())  # type: ignore[assignment]
         elif (
             isinstance(input_dtype, StringDtype)
-            and input_dtype.storage != "pyarrow_numpy"
+            and input_dtype.na_value is libmissing.NA
         ):
             dtype = pandas_dtype("boolean")  # type: ignore[assignment]
         else:
@@ -355,7 +357,7 @@ def _get_dummies_1d(
 
         if drop_first:
             # remove first GH12042
-            dummy_mat = dummy_mat[:, 1:]
+            dummy_mat = dummy_mat[:, 1:]  # type: ignore[assignment]
             dummy_cols = dummy_cols[1:]
         return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
 
@@ -493,8 +495,7 @@ def from_dummies(
 
     if col_isna_mask.any():
         raise ValueError(
-            "Dummy DataFrame contains NA value in column: "
-            f"'{col_isna_mask.idxmax()}'"
+            f"Dummy DataFrame contains NA value in column: '{col_isna_mask.idxmax()}'"
         )
 
     # index data with a list of all columns that are dummies

@@ -244,6 +244,7 @@ def hash_array(
     Parameters
     ----------
     vals : ndarray or ExtensionArray
+        The input array to hash.
     encoding : str, default 'utf8'
         Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
@@ -256,6 +257,11 @@ def hash_array(
     -------
     ndarray[np.uint64, ndim=1]
         Hashed values, same length as the vals.
+
+    See Also
+    --------
+    util.hash_pandas_object : Return a data hash of the Index/Series/DataFrame.
+    util.hash_tuples : Hash an MultiIndex / listlike-of-tuples efficiently.
 
     Examples
     --------

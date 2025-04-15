@@ -99,7 +99,7 @@ Column metadata
 * Boolean: ``'bool'``
 * Integers: ``'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'``
 * Floats: ``'float16', 'float32', 'float64'``
-* Date and Time Types: ``'datetime', 'datetimetz'``, ``'timedelta'``
+* Date and Time Types: ``'datetime', 'datetimetz', 'timedelta'``
 * String: ``'unicode', 'bytes'``
 * Categorical: ``'categorical'``
 * Other Python objects: ``'object'``

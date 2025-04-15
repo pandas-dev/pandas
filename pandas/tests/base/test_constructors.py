@@ -146,10 +146,12 @@ class TestConstruction:
         # No dtype specified (dtype inference)
         # datetime64[non-ns] raise error, other cases result in object dtype
         # and preserve original data
-        if a.dtype.kind == "M":
+        result = constructor(a)
+        if a.dtype.kind == "M" or isinstance(a[0], np.datetime64):
             # Can't fit in nanosecond bounds -> get the nearest supported unit
-            result = constructor(a)
             assert result.dtype == "M8[s]"
+        elif isinstance(a[0], datetime):
+            assert result.dtype == "M8[us]", result.dtype
         else:
             result = constructor(a)
             if using_infer_string and "object-string" in request.node.callspec.id:
@@ -176,4 +178,15 @@ class TestConstruction:
         # https://github.com/pandas-dev/pandas/issues/34843
         arr.flags.writeable = False
         result = constructor(arr)
+        tm.assert_equal(result, expected)
+
+    def test_constructor_from_dict_keys(self, constructor, using_infer_string):
+        # https://github.com/pandas-dev/pandas/issues/60343
+        d = {"a": 1, "b": 2}
+        result = constructor(d.keys(), dtype="str")
+        if using_infer_string:
+            assert result.dtype == "str"
+        else:
+            assert result.dtype == "object"
+        expected = constructor(list(d.keys()), dtype="str")
         tm.assert_equal(result, expected)

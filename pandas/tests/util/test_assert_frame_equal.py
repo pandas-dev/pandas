@@ -79,7 +79,7 @@ def test_frame_equal_shape_mismatch(df1, df2, frame_or_series):
             DataFrame.from_records(
                 {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
             ),
-            "MultiIndex level \\[0\\] are different",
+            "DataFrame\\.index level \\[0\\] are different",
         ),
     ],
 )
@@ -112,7 +112,7 @@ def test_empty_dtypes(check_dtype):
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_index_mismatch(check_like, frame_or_series, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""{frame_or_series.__name__}\\.index are different
@@ -134,7 +134,7 @@ At positional index 2, first diff: c != d"""
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_columns_mismatch(check_like, frame_or_series, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""{frame_or_series.__name__}\\.columns are different

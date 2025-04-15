@@ -222,9 +222,10 @@ class TestReductions:
         res = arr_na.max(skipna=False)
         assert np.isnan(res)
 
-        res = arr_na.min(skipna=True)
-        assert res == MIN
-        assert type(res) == type(MIN)
-        res = arr_na.max(skipna=True)
-        assert res == MAX
-        assert type(res) == type(MAX)
+        for kws in [{"skipna": True}, {}]:
+            res = arr_na.min(**kws)
+            assert res == MIN
+            assert type(res) == type(MIN)
+            res = arr_na.max(**kws)
+            assert res == MAX
+            assert type(res) == type(MAX)

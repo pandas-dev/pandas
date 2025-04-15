@@ -13,6 +13,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
     ],
     TimedeltaArray,
 )
+@set_module("pandas")
 class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
     Immutable Index of timedelta64 data.
@@ -235,6 +237,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         return "timedelta64"
 
 
+@set_module("pandas")
 def timedelta_range(
     start=None,
     end=None,
@@ -272,6 +275,11 @@ def timedelta_range(
     -------
     TimedeltaIndex
         Fixed frequency, with day as the default.
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    period_range : Return a fixed frequency PeriodIndex.
 
     Notes
     -----

@@ -13,7 +13,6 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 from __future__ import annotations
 
-from array import array
 import bz2
 import datetime
 import functools
@@ -32,12 +31,8 @@ import zipfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    get_lzma_file,
-    is_platform_little_endian,
-)
+from pandas.compat import is_platform_little_endian
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.compressors import flatten_buffer
 
 import pandas as pd
 from pandas import (
@@ -81,36 +76,8 @@ def compare_element(result, expected, typ):
 # ---------------------
 
 
-@pytest.mark.parametrize(
-    "data",
-    [
-        b"123",
-        b"123456",
-        bytearray(b"123"),
-        memoryview(b"123"),
-        pickle.PickleBuffer(b"123"),
-        array("I", [1, 2, 3]),
-        memoryview(b"123456").cast("B", (3, 2)),
-        memoryview(b"123456").cast("B", (3, 2))[::2],
-        np.arange(12).reshape((3, 4), order="C"),
-        np.arange(12).reshape((3, 4), order="F"),
-        np.arange(12).reshape((3, 4), order="C")[:, ::2],
-    ],
-)
-def test_flatten_buffer(data):
-    result = flatten_buffer(data)
-    expected = memoryview(data).tobytes("A")
-    assert result == expected
-    if isinstance(data, (bytes, bytearray)):
-        assert result is data
-    elif isinstance(result, memoryview):
-        assert result.ndim == 1
-        assert result.format == "B"
-        assert result.contiguous
-        assert result.shape == (result.nbytes,)
-
-
 def test_pickles(datapath):
+    pytest.importorskip("pytz")
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
@@ -261,7 +228,9 @@ class TestCompression:
                     tarinfo = tar.gettarinfo(src_path, os.path.basename(src_path))
                     tar.addfile(tarinfo, fh)
         elif compression == "xz":
-            f = get_lzma_file()(dest_path, "w")
+            import lzma
+
+            f = lzma.LZMAFile(dest_path, "w")
         elif compression == "zstd":
             f = import_optional_dependency("zstandard").open(dest_path, "wb")
         else:
@@ -411,55 +380,6 @@ def test_pickle_buffer_roundtrip():
             df.to_pickle(fh)
         with open(path, "rb") as fh:
             result = pd.read_pickle(fh)
-        tm.assert_frame_equal(df, result)
-
-
-# ---------------------
-# tests for URL I/O
-# ---------------------
-
-
-@pytest.mark.parametrize(
-    "mockurl", ["http://url.com", "ftp://test.com", "http://gzip.com"]
-)
-def test_pickle_generalurl_read(monkeypatch, mockurl):
-    def python_pickler(obj, path):
-        with open(path, "wb") as fh:
-            pickle.dump(obj, fh, protocol=-1)
-
-    class MockReadResponse:
-        def __init__(self, path) -> None:
-            self.file = open(path, "rb")
-            if "gzip" in path:
-                self.headers = {"Content-Encoding": "gzip"}
-            else:
-                self.headers = {"Content-Encoding": ""}
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            self.close()
-
-        def read(self):
-            return self.file.read()
-
-        def close(self):
-            return self.file.close()
-
-    with tm.ensure_clean() as path:
-
-        def mock_urlopen_read(*args, **kwargs):
-            return MockReadResponse(path)
-
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
-        python_pickler(df, path)
-        monkeypatch.setattr("urllib.request.urlopen", mock_urlopen_read)
-        result = pd.read_pickle(mockurl)
         tm.assert_frame_equal(df, result)
 
 

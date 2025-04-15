@@ -1,6 +1,5 @@
 
 from cpython.object cimport PyTypeObject
-from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 
 
 cdef extern from "Python.h":
@@ -153,36 +152,6 @@ cdef inline bint is_nan(object val):
         fval = val
         return fval != fval
     return is_complex_object(val) and val != val
-
-
-cdef inline const char* get_c_string_buf_and_size(str py_string,
-                                                  Py_ssize_t *length) except NULL:
-    """
-    Extract internal char* buffer of unicode or bytes object `py_string` with
-    getting length of this internal buffer saved in `length`.
-
-    Notes
-    -----
-    Python object owns memory, thus returned char* must not be freed.
-    `length` can be NULL if getting buffer length is not needed.
-
-    Parameters
-    ----------
-    py_string : str
-    length : Py_ssize_t*
-
-    Returns
-    -------
-    buf : const char*
-    """
-    # Note PyUnicode_AsUTF8AndSize() can
-    #  potentially allocate memory inside in unlikely case of when underlying
-    #  unicode object was stored as non-utf8 and utf8 wasn't requested before.
-    return PyUnicode_AsUTF8AndSize(py_string, length)
-
-
-cdef inline const char* get_c_string(str py_string) except NULL:
-    return get_c_string_buf_and_size(py_string, NULL)
 
 
 cdef inline bytes string_encode_locale(str py_string):

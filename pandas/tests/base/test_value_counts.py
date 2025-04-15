@@ -47,11 +47,6 @@ def test_value_counts(index_or_series_obj):
             # i.e IntegerDtype
             expected = expected.astype("Int64")
 
-    # TODO(GH#32514): Order of entries with the same count is inconsistent
-    #  on CI (gh-32449)
-    if obj.duplicated().any():
-        result = result.sort_index()
-        expected = expected.sort_index()
     tm.assert_series_equal(result, expected)
 
 
@@ -89,11 +84,6 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     expected.index.name = obj.name
 
     result = obj.value_counts()
-    if obj.duplicated().any():
-        # TODO(GH#32514):
-        #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
 
     if not isinstance(result.dtype, np.dtype):
         if getattr(obj.dtype, "storage", "") == "pyarrow":
@@ -106,11 +96,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     expected[null_obj] = 3
 
     result = obj.value_counts(dropna=False)
-    if obj.duplicated().any():
-        # TODO(GH#32514):
-        #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
+    expected = expected.sort_index()
+    result = result.sort_index()
     tm.assert_series_equal(result, expected)
 
 
@@ -127,7 +114,7 @@ def test_value_counts_inferred(index_or_series, using_infer_string):
     else:
         exp = np.unique(np.array(s_values, dtype=np.object_))
         if using_infer_string:
-            exp = array(exp)
+            exp = array(exp, dtype="str")
         tm.assert_equal(s.unique(), exp)
 
     assert s.nunique() == 4
@@ -205,7 +192,7 @@ def test_value_counts_bins(index_or_series, using_infer_string):
     else:
         exp = np.array(["a", "b", np.nan, "d"], dtype=object)
         if using_infer_string:
-            exp = array(exp)
+            exp = array(exp, dtype="str")
         tm.assert_equal(s.unique(), exp)
     assert s.nunique() == 3
 

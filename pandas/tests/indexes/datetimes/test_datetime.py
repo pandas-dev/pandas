@@ -133,53 +133,19 @@ class TestDatetimeIndex:
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_CBH_deprecated(self):
-        msg = "'CBH' is deprecated and will be removed in a future version."
+    @pytest.mark.parametrize("freq", ["2H", "2BH", "2S"])
+    def test_CBH_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = date_range(
-                dt.datetime(2022, 12, 11), dt.datetime(2022, 12, 13), freq="CBH"
-            )
-        result = DatetimeIndex(
-            [
-                "2022-12-12 09:00:00",
-                "2022-12-12 10:00:00",
-                "2022-12-12 11:00:00",
-                "2022-12-12 12:00:00",
-                "2022-12-12 13:00:00",
-                "2022-12-12 14:00:00",
-                "2022-12-12 15:00:00",
-                "2022-12-12 16:00:00",
-            ],
-            dtype="datetime64[ns]",
-            freq="cbh",
-        )
+        with pytest.raises(ValueError, match=msg):
+            date_range(dt.datetime(2022, 12, 11), dt.datetime(2022, 12, 13), freq=freq)
 
-        tm.assert_index_equal(result, expected)
+    @pytest.mark.parametrize("freq", ["2BM", "1bm", "2BQ", "1BQ-MAR", "2BY-JUN", "1by"])
+    def test_BM_BQ_BY_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
 
-    @pytest.mark.parametrize(
-        "freq, expected_values, freq_depr",
-        [
-            ("2BYE-JUN", ["2016-06-30"], "2BY-JUN"),
-            ("2BME", ["2016-02-29", "2016-04-29", "2016-06-30"], "2BM"),
-            ("2BQE", ["2016-03-31"], "2BQ"),
-            ("1BQE-MAR", ["2016-03-31", "2016-06-30"], "1BQ-MAR"),
-        ],
-    )
-    def test_BM_BQ_BY_deprecated(self, freq, expected_values, freq_depr):
-        # GH#52064
-        msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        f"in a future version, please use '{freq[1:]}' instead."
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = date_range(start="2016-02-21", end="2016-08-21", freq=freq_depr)
-        result = DatetimeIndex(
-            data=expected_values,
-            dtype="datetime64[ns]",
-            freq=freq,
-        )
-
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            date_range(start="2016-02-21", end="2016-08-21", freq=freq)
 
     @pytest.mark.parametrize("freq", ["2BA-MAR", "1BAS-MAY", "2AS-AUG"])
     def test_BA_BAS_raises(self, freq):

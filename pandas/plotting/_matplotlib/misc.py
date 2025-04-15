@@ -3,8 +3,7 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
-from matplotlib import patches
-import matplotlib.lines as mlines
+import matplotlib as mpl
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
@@ -129,7 +128,7 @@ def scatter_matrix(
 
 
 def _get_marker_compat(marker):
-    if marker not in mlines.lineMarkers:
+    if marker not in mpl.lines.lineMarkers:
         return "o"
     return marker
 
@@ -190,10 +189,10 @@ def radviz(
         )
     ax.legend()
 
-    ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor="none"))
+    ax.add_patch(mpl.patches.Circle((0.0, 0.0), radius=1.0, facecolor="none"))
 
     for xy, name in zip(s, df.columns):
-        ax.add_patch(patches.Circle(xy, radius=0.025, facecolor="gray"))
+        ax.add_patch(mpl.patches.Circle(xy, radius=0.025, facecolor="gray"))
 
         if xy[0] < 0.0 and xy[1] < 0.0:
             ax.text(

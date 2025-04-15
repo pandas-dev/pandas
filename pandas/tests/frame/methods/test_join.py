@@ -1,4 +1,6 @@
 from datetime import datetime
+import re
+import zoneinfo
 
 import numpy as np
 import pytest
@@ -275,7 +277,21 @@ def test_join_index(float_frame):
     tm.assert_index_equal(joined.index, float_frame.index.sort_values())
     tm.assert_index_equal(joined.columns, expected_columns)
 
-    with pytest.raises(ValueError, match="join method"):
+    # left anti
+    joined = f.join(f2, how="left_anti")
+    tm.assert_index_equal(joined.index, float_frame.index[:5])
+    tm.assert_index_equal(joined.columns, expected_columns)
+
+    # right anti
+    joined = f.join(f2, how="right_anti")
+    tm.assert_index_equal(joined.index, float_frame.index[10:][::-1])
+    tm.assert_index_equal(joined.columns, expected_columns)
+
+    join_msg = (
+        "'foo' is not a valid Merge type: left, right, inner, outer, "
+        "left_anti, right_anti, cross, asof"
+    )
+    with pytest.raises(ValueError, match=re.escape(join_msg)):
         f.join(f2, how="foo")
 
     # corner case - overlapping columns
@@ -543,17 +559,14 @@ class TestDataFrameJoin:
             df1.join(df2, on="a")
 
     def test_frame_join_tzaware(self):
+        tz = zoneinfo.ZoneInfo("US/Central")
         test1 = DataFrame(
             np.zeros((6, 3)),
-            index=date_range(
-                "2012-11-15 00:00:00", periods=6, freq="100ms", tz="US/Central"
-            ),
+            index=date_range("2012-11-15 00:00:00", periods=6, freq="100ms", tz=tz),
         )
         test2 = DataFrame(
             np.zeros((3, 3)),
-            index=date_range(
-                "2012-11-15 00:00:00", periods=3, freq="250ms", tz="US/Central"
-            ),
+            index=date_range("2012-11-15 00:00:00", periods=3, freq="250ms", tz=tz),
             columns=range(3, 6),
         )
 
@@ -561,4 +574,4 @@ class TestDataFrameJoin:
         expected = test1.index.union(test2.index)
 
         tm.assert_index_equal(result.index, expected)
-        assert result.index.tz.zone == "US/Central"
+        assert result.index.tz.key == "US/Central"

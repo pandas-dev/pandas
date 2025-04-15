@@ -7,7 +7,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat._constants import (
+    IS64,
+    WASM,
+)
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -27,9 +30,9 @@ def data_test_ix(request, dirpath):
     fname = os.path.join(dirpath, f"test_sas7bdat_{i}.csv")
     df = pd.read_csv(fname)
     epoch = datetime(1960, 1, 1)
-    t1 = pd.to_timedelta(df["Column4"], unit="d")
+    t1 = pd.to_timedelta(df["Column4"], unit="D")
     df["Column4"] = (epoch + t1).astype("M8[s]")
-    t2 = pd.to_timedelta(df["Column12"], unit="d")
+    t2 = pd.to_timedelta(df["Column12"], unit="D")
     df["Column12"] = (epoch + t2).astype("M8[s]")
     for k in range(df.shape[1]):
         col = df.iloc[:, k]
@@ -168,6 +171,7 @@ def test_airline(datapath):
     tm.assert_frame_equal(df, df0)
 
 
+@pytest.mark.skipif(WASM, reason="Pyodide/WASM has 32-bitness")
 def test_date_time(datapath):
     # Support of different SAS date/datetime formats (PR #15871)
     fname = datapath("io", "sas", "data", "datetime.sas7bdat")
@@ -236,11 +240,13 @@ def test_zero_variables(datapath):
         pd.read_sas(fname)
 
 
-def test_zero_rows(datapath):
+@pytest.mark.parametrize("encoding", [None, "utf8"])
+def test_zero_rows(datapath, encoding):
     # GH 18198
     fname = datapath("io", "sas", "data", "zero_rows.sas7bdat")
-    result = pd.read_sas(fname)
-    expected = pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
+    result = pd.read_sas(fname, encoding=encoding)
+    str_value = b"a" if encoding is None else "a"
+    expected = pd.DataFrame([{"char_field": str_value, "num_field": 1.0}]).iloc[:0]
     tm.assert_frame_equal(result, expected)
 
 
@@ -253,6 +259,7 @@ def test_corrupt_read(datapath):
         pd.read_sas(fname)
 
 
+@pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date(datapath):
     # GH 20927
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
@@ -292,6 +299,7 @@ def test_max_sas_date(datapath):
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date_iterator(datapath):
     # GH 20927
     # when called as an iterator, only those chunks with a date > pd.Timestamp.max
@@ -337,6 +345,7 @@ def test_max_sas_date_iterator(datapath):
     tm.assert_frame_equal(results[1], expected[1])
 
 
+@pytest.mark.skipif(WASM, reason="Pyodide/WASM has 32-bitness")
 def test_null_date(datapath):
     fname = datapath("io", "sas", "data", "dates_null.sas7bdat")
     df = pd.read_sas(fname, encoding="utf-8")
@@ -396,7 +405,7 @@ def test_0x40_control_byte(datapath):
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
     df = pd.read_sas(fname, encoding="ascii")
     fname = datapath("io", "sas", "data", "0x40controlbyte.csv")
-    df0 = pd.read_csv(fname, dtype="object")
+    df0 = pd.read_csv(fname, dtype="str")
     tm.assert_frame_equal(df, df0)
 
 

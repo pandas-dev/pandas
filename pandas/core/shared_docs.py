@@ -49,6 +49,8 @@ behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
 for more details.
 
 A passed user-defined-function will be passed a Series for evaluation.
+
+If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
 {examples}"""
 
 _shared_docs["compare"] = """
@@ -63,9 +65,9 @@ align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
-        with rows drawn alternately from self and other.
+      with rows drawn alternately from self and other.
     * 1, or 'columns' : Resulting differences are aligned horizontally
-        with columns drawn alternately from self and other.
+      with columns drawn alternately from self and other.
 
 keep_shape : bool, default False
     If true, all rows and columns are kept.
@@ -646,134 +648,4 @@ _shared_docs["replace"] = """
     2  2  e  e
     3  3  d  e
     4  4  e  e
-"""
-
-_shared_docs["idxmin"] = """
-    Return index of first occurrence of minimum over requested axis.
-
-    NA/null values are excluded.
-
-    Parameters
-    ----------
-    axis : {{0 or 'index', 1 or 'columns'}}, default 0
-        The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-    skipna : bool, default True
-        Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
-        and there is an NA value, this method will raise a ``ValueError``.
-    numeric_only : bool, default {numeric_only_default}
-        Include only `float`, `int` or `boolean` data.
-
-        .. versionadded:: 1.5.0
-
-    Returns
-    -------
-    Series
-        Indexes of minima along the specified axis.
-
-    Raises
-    ------
-    ValueError
-        * If the row/column is empty
-
-    See Also
-    --------
-    Series.idxmin : Return index of the minimum element.
-
-    Notes
-    -----
-    This method is the DataFrame version of ``ndarray.argmin``.
-
-    Examples
-    --------
-    Consider a dataset containing food consumption in Argentina.
-
-    >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                   index=['Pork', 'Wheat Products', 'Beef'])
-
-    >>> df
-                    consumption  co2_emissions
-    Pork                  10.51         37.20
-    Wheat Products       103.11         19.66
-    Beef                  55.48       1712.00
-
-    By default, it returns the index for the minimum value in each column.
-
-    >>> df.idxmin()
-    consumption                Pork
-    co2_emissions    Wheat Products
-    dtype: object
-
-    To return the index for the minimum value in each row, use ``axis="columns"``.
-
-    >>> df.idxmin(axis="columns")
-    Pork                consumption
-    Wheat Products    co2_emissions
-    Beef                consumption
-    dtype: object
-"""
-
-_shared_docs["idxmax"] = """
-    Return index of first occurrence of maximum over requested axis.
-
-    NA/null values are excluded.
-
-    Parameters
-    ----------
-    axis : {{0 or 'index', 1 or 'columns'}}, default 0
-        The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-    skipna : bool, default True
-        Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
-        and there is an NA value, this method will raise a ``ValueError``.
-    numeric_only : bool, default {numeric_only_default}
-        Include only `float`, `int` or `boolean` data.
-
-        .. versionadded:: 1.5.0
-
-    Returns
-    -------
-    Series
-        Indexes of maxima along the specified axis.
-
-    Raises
-    ------
-    ValueError
-        * If the row/column is empty
-
-    See Also
-    --------
-    Series.idxmax : Return index of the maximum element.
-
-    Notes
-    -----
-    This method is the DataFrame version of ``ndarray.argmax``.
-
-    Examples
-    --------
-    Consider a dataset containing food consumption in Argentina.
-
-    >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                   index=['Pork', 'Wheat Products', 'Beef'])
-
-    >>> df
-                    consumption  co2_emissions
-    Pork                  10.51         37.20
-    Wheat Products       103.11         19.66
-    Beef                  55.48       1712.00
-
-    By default, it returns the index for the maximum value in each column.
-
-    >>> df.idxmax()
-    consumption     Wheat Products
-    co2_emissions             Beef
-    dtype: object
-
-    To return the index for the maximum value in each row, use ``axis="columns"``.
-
-    >>> df.idxmax(axis="columns")
-    Pork              co2_emissions
-    Wheat Products     consumption
-    Beef              co2_emissions
-    dtype: object
 """

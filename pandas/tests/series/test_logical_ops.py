@@ -5,9 +5,11 @@ import numpy as np
 import pytest
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     Series,
+    StringDtype,
     bdate_range,
 )
 import pandas._testing as tm
@@ -86,7 +88,7 @@ class TestSeriesLogicalOps:
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
-        warn_msg = (
+        err_msg = (
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
@@ -97,9 +99,8 @@ class TestSeriesLogicalOps:
         with pytest.raises(TypeError, match=msg):
             s_0123 & 3.14
         msg = "unsupported operand type.+for &:"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                s_0123 & [0.1, 4, 3.14, 2]
+        with pytest.raises(TypeError, match=err_msg):
+            s_0123 & [0.1, 4, 3.14, 2]
         with pytest.raises(TypeError, match=msg):
             s_0123 & np.array([0.1, 4, 3.14, 2])
         with pytest.raises(TypeError, match=msg):
@@ -108,7 +109,7 @@ class TestSeriesLogicalOps:
     def test_logical_operators_int_dtype_with_str(self):
         s_1111 = Series([1] * 4, dtype="int8")
 
-        warn_msg = (
+        err_msg = (
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
@@ -116,9 +117,8 @@ class TestSeriesLogicalOps:
         msg = "Cannot perform 'and_' with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
             s_1111 & "a"
-        with pytest.raises(TypeError, match="unsupported operand.+for &"):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                s_1111 & ["a", "b", "c", "d"]
+        with pytest.raises(TypeError, match=err_msg):
+            s_1111 & ["a", "b", "c", "d"]
 
     def test_logical_operators_int_dtype_with_bool(self):
         # GH#9016: support bitwise op for integer types
@@ -129,23 +129,21 @@ class TestSeriesLogicalOps:
         result = s_0123 & False
         tm.assert_series_equal(result, expected)
 
-        warn_msg = (
+        msg = (
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            result = s_0123 & [False]
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            s_0123 & [False]
 
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            result = s_0123 & (False,)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            s_0123 & (False,)
 
         result = s_0123 ^ False
         expected = Series([False, True, True, True])
         tm.assert_series_equal(result, expected)
 
-    def test_logical_operators_int_dtype_with_object(self, using_infer_string):
+    def test_logical_operators_int_dtype_with_object(self):
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
@@ -154,14 +152,10 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.nan, "d"])
-        if using_infer_string:
-            import pyarrow as pa
-
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
-                s_0123 & s_abNd
-        else:
-            with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
-                s_0123 & s_abNd
+        with pytest.raises(
+            TypeError, match="unsupported.* 'int' and 'str'|'rand_' not supported"
+        ):
+            s_0123 & s_abNd
 
     def test_logical_operators_bool_dtype_with_int(self):
         index = list("bca")
@@ -188,9 +182,8 @@ class TestSeriesLogicalOps:
         )
 
         expected = Series([True, False, False, False, False])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = left & right
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            left & right
         result = left & np.array(right)
         tm.assert_series_equal(result, expected)
         result = left & Index(right)
@@ -199,9 +192,8 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         expected = Series([True, True, True, True, True])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = left | right
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            left | right
         result = left | np.array(right)
         tm.assert_series_equal(result, expected)
         result = left | Index(right)
@@ -210,9 +202,8 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         expected = Series([False, True, True, True, True])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = left ^ right
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            left ^ right
         result = left ^ np.array(right)
         tm.assert_series_equal(result, expected)
         result = left ^ Index(right)
@@ -233,26 +224,22 @@ class TestSeriesLogicalOps:
 
         # s_0123 will be all false now because of reindexing like s_tft
         expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        with tm.assert_produces_warning(FutureWarning):
-            result = s_tft & s_0123
+        result = s_tft & s_0123
         tm.assert_series_equal(result, expected)
 
-        # GH 52538: Deprecate casting to object type when reindex is needed;
+        # GH#52538: no longer to object type when reindex is needed;
         # matches DataFrame behavior
-        expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        with tm.assert_produces_warning(FutureWarning):
-            result = s_0123 & s_tft
-        tm.assert_series_equal(result, expected)
+        msg = r"unsupported operand type\(s\) for &: 'float' and 'bool'"
+        with pytest.raises(TypeError, match=msg):
+            s_0123 & s_tft
 
         s_a0b1c0 = Series([1], list("b"))
 
-        with tm.assert_produces_warning(FutureWarning):
-            res = s_tft & s_a0b1c0
+        res = s_tft & s_a0b1c0
         expected = s_tff.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            res = s_tft | s_a0b1c0
+        res = s_tft | s_a0b1c0
         expected = s_tft.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
@@ -273,9 +260,8 @@ class TestSeriesLogicalOps:
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s & list(s)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            s & list(s)
 
     def test_scalar_na_logical_ops_corners_aligns(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
@@ -405,38 +391,33 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
-        with tm.assert_produces_warning(FutureWarning):
-            result = a & Series([1], ["z"])
+        result = a & Series([1], ["z"])
         expected = Series([False, False, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = a | Series([1], ["z"])
+        result = a | Series([1], ["z"])
         expected = Series([True, True, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
-        with tm.assert_produces_warning(FutureWarning):
-            for e in [
-                empty.copy(),
-                Series([1], ["z"]),
-                Series(np.nan, b.index),
-                Series(np.nan, a.index),
-            ]:
-                result = a[a | e]
-                tm.assert_series_equal(result, a[a])
+        for e in [
+            empty.copy(),
+            Series([1], ["z"]),
+            Series(np.nan, b.index),
+            Series(np.nan, a.index),
+        ]:
+            result = a[a | e]
+            tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
-            warn = FutureWarning if using_infer_string else None
             if using_infer_string:
-                import pyarrow as pa
-
-                with tm.assert_produces_warning(warn, match="Operation between non"):
-                    with pytest.raises(
-                        pa.lib.ArrowNotImplementedError, match="has no kernel"
-                    ):
-                        result = a[a | e]
+                # TODO(infer_string) should this behave differently?
+                # -> https://github.com/pandas-dev/pandas/issues/60234
+                with pytest.raises(
+                    TypeError, match="not supported for dtype|unsupported operand type"
+                ):
+                    result = a[a | e]
             else:
                 result = a[a | e]
             tm.assert_series_equal(result, a[a])
@@ -519,7 +500,6 @@ class TestSeriesLogicalOps:
         tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
         tm.assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
 
-    @pytest.mark.xfail(reason="Will pass once #52839 deprecation is enforced")
     def test_int_dtype_different_index_not_bool(self):
         # GH 52500
         ser1 = Series([1, 2, 3], index=[10, 11, 23], name="a")
@@ -531,18 +511,38 @@ class TestSeriesLogicalOps:
         result = ser1 ^ ser2
         tm.assert_series_equal(result, expected)
 
+    # TODO: this belongs in comparison tests
     def test_pyarrow_numpy_string_invalid(self):
         # GH#56008
-        pytest.importorskip("pyarrow")
+        pa = pytest.importorskip("pyarrow")
         ser = Series([False, True])
-        ser2 = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        ser2 = Series(["a", "b"], dtype=StringDtype(na_value=np.nan))
         result = ser == ser2
-        expected = Series(False, index=ser.index)
-        tm.assert_series_equal(result, expected)
+        expected_eq = Series(False, index=ser.index)
+        tm.assert_series_equal(result, expected_eq)
 
         result = ser != ser2
-        expected = Series(True, index=ser.index)
-        tm.assert_series_equal(result, expected)
+        expected_ne = Series(True, index=ser.index)
+        tm.assert_series_equal(result, expected_ne)
 
         with pytest.raises(TypeError, match="Invalid comparison"):
             ser > ser2
+
+        # GH#59505
+        ser3 = ser2.astype("string[pyarrow]")
+        result3_eq = ser3 == ser
+        tm.assert_series_equal(result3_eq, expected_eq.astype("bool[pyarrow]"))
+        result3_ne = ser3 != ser
+        tm.assert_series_equal(result3_ne, expected_ne.astype("bool[pyarrow]"))
+
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser > ser3
+
+        ser4 = ser2.astype(ArrowDtype(pa.string()))
+        result4_eq = ser4 == ser
+        tm.assert_series_equal(result4_eq, expected_eq.astype("bool[pyarrow]"))
+        result4_ne = ser4 != ser
+        tm.assert_series_equal(result4_ne, expected_ne.astype("bool[pyarrow]"))
+
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser > ser4

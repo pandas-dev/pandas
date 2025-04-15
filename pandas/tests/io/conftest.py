@@ -67,14 +67,13 @@ def s3_base(worker_id, monkeypatch):
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "foobar_secret")
     if is_ci_environment():
         if is_platform_arm() or is_platform_mac() or is_platform_windows():
-            # NOT RUN on Windows/macOS/ARM, only Ubuntu
+            # NOT RUN on Windows/macOS, only Ubuntu
             # - subprocess in CI can cause timeouts
             # - GitHub Actions do not support
             #   container services for the above OSs
-            # - CircleCI will probably hit the Docker rate pull limit
             pytest.skip(
-                "S3 tests do not have a corresponding service in "
-                "Windows, macOS or ARM platforms"
+                "S3 tests do not have a corresponding service on "
+                "Windows or macOS platforms"
             )
         else:
             # set in .github/workflows/unit-tests.yml
@@ -224,19 +223,3 @@ def compression_format(request):
 @pytest.fixture(params=_compression_formats_params)
 def compression_ext(request):
     return request.param[0]
-
-
-@pytest.fixture(
-    params=[
-        "python",
-        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
-    ]
-)
-def string_storage(request):
-    """
-    Parametrized fixture for pd.options.mode.string_storage.
-
-    * 'python'
-    * 'pyarrow'
-    """
-    return request.param

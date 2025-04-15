@@ -155,7 +155,7 @@ class TestJoin:
 
         # overlap
         msg = (
-            "You are trying to merge on float64 and object|string columns for key "
+            "You are trying to merge on float64 and object|str columns for key "
             "'A'. If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
@@ -620,7 +620,7 @@ class TestJoin:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_mixed_type_join_with_suffix(self):
+    def test_mixed_type_join_with_suffix(self, using_infer_string):
         # GH #916
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 6)),
@@ -631,6 +631,8 @@ class TestJoin:
 
         grouped = df.groupby("id")
         msg = re.escape("agg function failed [how->mean,dtype->")
+        if using_infer_string:
+            msg = "dtype 'str' does not support operation 'mean'"
         with pytest.raises(TypeError, match=msg):
             grouped.mean()
         mn = grouped.mean(numeric_only=True)
@@ -1098,3 +1100,29 @@ def test_join_multiindex_categorical_output_index_dtype(how, values):
 
     result = df1.join(df2, how=how)
     tm.assert_frame_equal(result, expected)
+
+
+def test_join_multiindex_with_none_as_label():
+    # GH 58721
+    df1 = DataFrame(
+        {"A": [1]},
+        index=MultiIndex.from_tuples([(3, 3)], names=["X", None]),
+    )
+    df2 = DataFrame(
+        {"B": [2]},
+        index=MultiIndex.from_tuples([(3, 3)], names=[None, "X"]),
+    )
+
+    result12 = df1.join(df2)
+    expected12 = DataFrame(
+        {"A": [1], "B": [2]},
+        index=MultiIndex.from_tuples([(3, 3)], names=["X", None]),
+    )
+    tm.assert_frame_equal(result12, expected12)
+
+    result21 = df2.join(df1)
+    expected21 = DataFrame(
+        {"B": [2], "A": [1]},
+        index=MultiIndex.from_tuples([(3, 3)], names=[None, "X"]),
+    )
+    tm.assert_frame_equal(result21, expected21)

@@ -25,9 +25,28 @@ def test_list_getitem(list_dtype):
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(list_dtype),
+        name="a",
     )
     actual = ser.list[1]
-    expected = Series([2, None, None], dtype="int64[pyarrow]")
+    expected = Series([2, None, None], dtype="int64[pyarrow]", name="a")
+    tm.assert_series_equal(actual, expected)
+
+
+def test_list_getitem_index():
+    # GH 58425
+    ser = Series(
+        [[1, 2, 3], [4, None, 5], None],
+        dtype=ArrowDtype(pa.list_(pa.int64())),
+        index=[1, 3, 7],
+        name="a",
+    )
+    actual = ser.list[1]
+    expected = Series(
+        [2, None, None],
+        dtype="int64[pyarrow]",
+        index=[1, 3, 7],
+        name="a",
+    )
     tm.assert_series_equal(actual, expected)
 
 
@@ -35,6 +54,8 @@ def test_list_getitem_slice():
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(pa.list_(pa.int64())),
+        index=[1, 3, 7],
+        name="a",
     )
     if pa_version_under11p0:
         with pytest.raises(
@@ -44,7 +65,10 @@ def test_list_getitem_slice():
     else:
         actual = ser.list[1:None:None]
         expected = Series(
-            [[2, 3], [None, 5], None], dtype=ArrowDtype(pa.list_(pa.int64()))
+            [[2, 3], [None, 5], None],
+            dtype=ArrowDtype(pa.list_(pa.int64())),
+            index=[1, 3, 7],
+            name="a",
         )
         tm.assert_series_equal(actual, expected)
 
@@ -53,19 +77,26 @@ def test_list_len():
     ser = Series(
         [[1, 2, 3], [4, None], None],
         dtype=ArrowDtype(pa.list_(pa.int64())),
+        name="a",
     )
     actual = ser.list.len()
-    expected = Series([3, 2, None], dtype=ArrowDtype(pa.int32()))
+    expected = Series([3, 2, None], dtype=ArrowDtype(pa.int32()), name="a")
     tm.assert_series_equal(actual, expected)
 
 
 def test_list_flatten():
     ser = Series(
-        [[1, 2, 3], [4, None], None],
+        [[1, 2, 3], None, [4, None], [], [7, 8]],
         dtype=ArrowDtype(pa.list_(pa.int64())),
+        name="a",
     )
     actual = ser.list.flatten()
-    expected = Series([1, 2, 3, 4, None], dtype=ArrowDtype(pa.int64()))
+    expected = Series(
+        [1, 2, 3, 4, None, 7, 8],
+        dtype=ArrowDtype(pa.int64()),
+        index=[0, 0, 0, 2, 2, 4, 4],
+        name="a",
+    )
     tm.assert_series_equal(actual, expected)
 
 

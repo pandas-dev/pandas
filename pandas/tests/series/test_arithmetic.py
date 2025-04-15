@@ -212,9 +212,9 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting|mod not"
+        msg = "not all arguments converted during string formatting|'mod' not supported"
 
-        with pytest.raises((TypeError, NotImplementedError), match=msg):
+        with pytest.raises(TypeError, match=msg):
             s2 % s1
 
     def test_add_with_duplicate_index(self):
@@ -359,12 +359,13 @@ class TestSeriesArithmetic:
             else None
         )
         ser = Series([True, None, False], dtype="boolean")
-        with tm.assert_produces_warning(warning):
+        msg = "operator is not supported by numexpr for the bool dtype"
+        with tm.assert_produces_warning(warning, match=msg):
             result = ser + [True, None, True]
         expected = Series([True, None, True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, match=msg):
             result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
@@ -499,27 +500,14 @@ class TestSeriesComparison:
             result = op(ser, cidx)
             assert result.name == names[2]
 
-    def test_comparisons(self, using_infer_string):
+    def test_comparisons(self):
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
         # it works!
         exp = Series([False, False, False])
-        if using_infer_string:
-            import pyarrow as pa
-
-            msg = "has no kernel"
-            # TODO(3.0) GH56008
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                s == s2
-            with tm.assert_produces_warning(
-                DeprecationWarning, match="comparison", check_stacklevel=False
-            ):
-                with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                    s2 == s
-        else:
-            tm.assert_series_equal(s == s2, exp)
-            tm.assert_series_equal(s2 == s, exp)
+        tm.assert_series_equal(s == s2, exp)
+        tm.assert_series_equal(s2 == s, exp)
 
     # -----------------------------------------------------------------
     # Categorical Dtype Comparisons
@@ -807,9 +795,6 @@ class TestNamePreservation:
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
-        warn = None
-        if box in [list, tuple] and is_logical:
-            warn = FutureWarning
 
         right = box(right)
         if flex:
@@ -818,9 +803,12 @@ class TestNamePreservation:
                 return
             result = getattr(left, name)(right)
         else:
-            # GH#37374 logical ops behaving as set ops deprecated
-            with tm.assert_produces_warning(warn, match=msg):
-                result = op(left, right)
+            if is_logical and box in [list, tuple]:
+                with pytest.raises(TypeError, match=msg):
+                    # GH#52264 logical ops with dtype-less sequences deprecated
+                    op(left, right)
+                return
+            result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

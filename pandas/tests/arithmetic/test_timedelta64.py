@@ -8,6 +8,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
@@ -1459,7 +1460,13 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")
         rng = tm.box_expected(rng, box_with_array)
-        msg = "argument must be an integer|cannot use operands with types dtype"
+        msg = "|".join(
+            [
+                "argument must be an integer",
+                "cannot use operands with types dtype",
+                "Cannot multiply with",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             rng * two_hours
 
@@ -1741,6 +1748,7 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
+    @pytest.mark.skipif(WASM, reason="no fp exception support in wasm")
     def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
         # GH#35529
         box = box_with_array

@@ -427,53 +427,6 @@ def test_binops(request, args, annotate, all_binary_operators):
     if annotate == "right" and isinstance(right, int):
         pytest.skip("right is an int and doesn't support .attrs")
 
-    if not (isinstance(left, int) or isinstance(right, int)) and annotate != "both":
-        if not all_binary_operators.__name__.startswith("r"):
-            if annotate == "right" and isinstance(left, type(right)):
-                request.applymarker(
-                    pytest.mark.xfail(
-                        reason=f"{all_binary_operators} doesn't work when right has "
-                        f"attrs and both are {type(left)}"
-                    )
-                )
-            if not isinstance(left, type(right)):
-                if annotate == "left" and isinstance(left, pd.Series):
-                    request.applymarker(
-                        pytest.mark.xfail(
-                            reason=f"{all_binary_operators} doesn't work when the "
-                            "objects are different Series has attrs"
-                        )
-                    )
-                elif annotate == "right" and isinstance(right, pd.Series):
-                    request.applymarker(
-                        pytest.mark.xfail(
-                            reason=f"{all_binary_operators} doesn't work when the "
-                            "objects are different Series has attrs"
-                        )
-                    )
-        else:
-            if annotate == "left" and isinstance(left, type(right)):
-                request.applymarker(
-                    pytest.mark.xfail(
-                        reason=f"{all_binary_operators} doesn't work when left has "
-                        f"attrs and both are {type(left)}"
-                    )
-                )
-            if not isinstance(left, type(right)):
-                if annotate == "right" and isinstance(right, pd.Series):
-                    request.applymarker(
-                        pytest.mark.xfail(
-                            reason=f"{all_binary_operators} doesn't work when the "
-                            "objects are different Series has attrs"
-                        )
-                    )
-                elif annotate == "left" and isinstance(left, pd.Series):
-                    request.applymarker(
-                        pytest.mark.xfail(
-                            reason=f"{all_binary_operators} doesn't work when the "
-                            "objects are different Series has attrs"
-                        )
-                    )
     if annotate in {"left", "both"} and not isinstance(left, int):
         left.attrs = {"a": 1}
     if annotate in {"right", "both"} and not isinstance(right, int):
@@ -495,6 +448,18 @@ def test_binops(request, args, annotate, all_binary_operators):
 
     result = all_binary_operators(left, right)
     assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize("left", [pd.Series, pd.DataFrame])
+@pytest.mark.parametrize("right", [pd.Series, pd.DataFrame])
+def test_attrs_binary_operations(all_binary_operators, left, right):
+    # GH 51607
+    attrs = {"a": 1}
+    left = left([1])
+    left.attrs = attrs
+    right = right([2])
+    assert all_binary_operators(left, right).attrs == attrs
+    assert all_binary_operators(right, left).attrs == attrs
 
 
 # ----------------------------------------------------------------------------
@@ -644,7 +609,7 @@ def test_timedelta_methods(method):
         operator.methodcaller("add_categories", ["c"]),
         operator.methodcaller("as_ordered"),
         operator.methodcaller("as_unordered"),
-        lambda x: getattr(x, "codes"),
+        lambda x: x.codes,
         operator.methodcaller("remove_categories", "a"),
         operator.methodcaller("remove_unused_categories"),
         operator.methodcaller("rename_categories", {"a": "A", "b": "B"}),

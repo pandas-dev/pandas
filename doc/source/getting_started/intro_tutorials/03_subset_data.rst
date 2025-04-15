@@ -300,7 +300,7 @@ want to select.
         </li>
     </ul>
 
-When using the column names, row labels or a condition expression, use
+When using column names, row labels or a condition expression, use
 the ``loc`` operator in front of the selection brackets ``[]``. For both
 the part before and after the comma, you can use a single label, a list
 of labels, a slice of labels, a conditional expression or a colon. Using
@@ -335,14 +335,14 @@ the name ``anonymous`` to the first 3 elements of the fourth column:
 .. ipython:: python
 
     titanic.iloc[0:3, 3] = "anonymous"
-    titanic.head()
+    titanic.iloc[:5, 3]
 
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-See the user guide section on :ref:`different choices for indexing <indexing.choice>` to get more insight in the usage of ``loc`` and ``iloc``.
+See the user guide section on :ref:`different choices for indexing <indexing.choice>` to get more insight into the usage of ``loc`` and ``iloc``.
 
 .. raw:: html
 
@@ -357,10 +357,8 @@ See the user guide section on :ref:`different choices for indexing <indexing.cho
 -  Inside these square brackets, you can use a single column/row label, a list
    of column/row labels, a slice of labels, a conditional expression or
    a colon.
--  Select specific rows and/or columns using ``loc`` when using the row
-   and column names.
--  Select specific rows and/or columns using ``iloc`` when using the
-   positions in the table.
+-  Use ``loc`` for label-based selection (using row/column names).
+-  Use ``iloc`` for position-based selection (using table positions).
 -  You can assign new values to a selection based on ``loc``/``iloc``.
 
 .. raw:: html

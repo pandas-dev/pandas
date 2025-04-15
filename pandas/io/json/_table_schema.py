@@ -114,7 +114,7 @@ def set_default_names(data):
             )
         return data
 
-    data = data.copy()
+    data = data.copy(deep=False)
     if data.index.nlevels > 1:
         data.index.names = com.fill_missing_names(data.index.names)
     else:
@@ -144,11 +144,11 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
         field["freq"] = dtype.freq.freqstr
     elif isinstance(dtype, DatetimeTZDtype):
         if timezones.is_utc(dtype.tz):
-            # timezone.utc has no "zone" attr
             field["tz"] = "UTC"
         else:
-            # error: "tzinfo" has no attribute "zone"
-            field["tz"] = dtype.tz.zone  # type: ignore[attr-defined]
+            zone = timezones.get_timezone(dtype.tz)
+            if isinstance(zone, str):
+                field["tz"] = zone
     elif isinstance(dtype, ExtensionDtype):
         field["extDtype"] = dtype.name
     return field
@@ -239,9 +239,16 @@ def build_table_schema(
     """
     Create a Table schema from ``data``.
 
+    This method is a utility to generate a JSON-serializable schema
+    representation of a pandas Series or DataFrame, compatible with the
+    Table Schema specification. It enables structured data to be shared
+    and validated in various applications, ensuring consistency and
+    interoperability.
+
     Parameters
     ----------
-    data : Series, DataFrame
+    data : Series or DataFrame
+        The input data for which the table schema is to be created.
     index : bool, default True
         Whether to include ``data.index`` in the schema.
     primary_key : bool or None, default True
@@ -256,6 +263,12 @@ def build_table_schema(
     Returns
     -------
     dict
+        A dictionary representing the Table schema.
+
+    See Also
+    --------
+    DataFrame.to_json : Convert the object to a JSON string.
+    read_json : Convert a JSON string to pandas object.
 
     Notes
     -----
@@ -275,7 +288,7 @@ def build_table_schema(
     >>> df = pd.DataFrame(
     ...     {'A': [1, 2, 3],
     ...      'B': ['a', 'b', 'c'],
-    ...      'C': pd.date_range('2016-01-01', freq='d', periods=3),
+    ...      'C': pd.date_range('2016-01-01', freq='D', periods=3),
     ...      }, index=pd.Index(range(3), name='idx'))
     >>> build_table_schema(df)
     {'fields': \

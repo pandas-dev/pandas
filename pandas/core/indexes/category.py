@@ -13,6 +13,7 @@ from pandas._libs import index as libindex
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_scalar
@@ -76,6 +77,7 @@ if TYPE_CHECKING:
     Categorical,
     wrap=True,
 )
+@set_module("pandas")
 class CategoricalIndex(NDArrayBackedExtensionIndex):
     """
     Index based on an underlying :class:`Categorical`.
@@ -377,8 +379,13 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         # if key is a NaN, check if any NaN is in self.
         if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.hasnans
-
-        return contains(self, key, container=self._engine)
+        if self.categories._typ == "rangeindex":
+            container: Index | libindex.IndexEngine | libindex.ExtensionEngine = (
+                self.categories
+            )
+        else:
+            container = self._engine
+        return contains(self, key, container=container)
 
     def reindex(
         self, target, method=None, level=None, limit: int | None = None, tolerance=None

@@ -5,7 +5,7 @@ Scaling to large datasets
 *************************
 
 pandas provides data structures for in-memory analytics, which makes using pandas
-to analyze datasets that are larger than memory datasets somewhat tricky. Even datasets
+to analyze datasets that are larger than memory somewhat tricky. Even datasets
 that are a sizable fraction of memory become unwieldy, as some pandas operations need
 to make intermediate copies.
 

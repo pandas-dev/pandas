@@ -5,7 +5,7 @@ import pandas as pd
 import pandas._testing as tm
 
 
-def test_astype():
+def test_astype(using_infer_string):
     # with missing values
     arr = pd.array([True, False, None], dtype="boolean")
 
@@ -20,8 +20,14 @@ def test_astype():
     tm.assert_numpy_array_equal(result, expected)
 
     result = arr.astype("str")
-    expected = np.array(["True", "False", "<NA>"], dtype=f"{tm.ENDIAN}U5")
-    tm.assert_numpy_array_equal(result, expected)
+    if using_infer_string:
+        expected = pd.array(
+            ["True", "False", None], dtype=pd.StringDtype(na_value=np.nan)
+        )
+        tm.assert_extension_array_equal(result, expected)
+    else:
+        expected = np.array(["True", "False", "<NA>"], dtype=f"{tm.ENDIAN}U5")
+        tm.assert_numpy_array_equal(result, expected)
 
     # no missing values
     arr = pd.array([True, False, True], dtype="boolean")

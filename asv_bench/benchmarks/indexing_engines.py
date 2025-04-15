@@ -67,6 +67,14 @@ class NumericEngineIndexing:
     def setup(self, engine_and_dtype, index_type, unique, N):
         engine, dtype = engine_and_dtype
 
+        if (
+            index_type == "non_monotonic"
+            and dtype in [np.int16, np.int8, np.uint8]
+            and unique
+        ):
+            # Values overflow
+            raise NotImplementedError
+
         if index_type == "monotonic_incr":
             if unique:
                 arr = np.arange(N * 3, dtype=dtype)
@@ -87,7 +95,7 @@ class NumericEngineIndexing:
                 arr = np.array([1, 2, 3], dtype=dtype).repeat(N)
 
         self.data = engine(arr)
-        # code belows avoids populating the mapping etc. while timing.
+        # code below avoids populating the mapping etc. while timing.
         self.data.get_loc(2)
 
         self.key_middle = arr[len(arr) // 2]
@@ -115,6 +123,14 @@ class MaskedNumericEngineIndexing:
         engine, dtype = engine_and_dtype
         dtype = dtype.lower()
 
+        if (
+            index_type == "non_monotonic"
+            and dtype in ["int16", "int8", "uint8"]
+            and unique
+        ):
+            # Values overflow
+            raise NotImplementedError
+
         if index_type == "monotonic_incr":
             if unique:
                 arr = np.arange(N * 3, dtype=dtype)
@@ -140,7 +156,7 @@ class MaskedNumericEngineIndexing:
             mask[-1] = True
 
         self.data = engine(BaseMaskedArray(arr, mask))
-        # code belows avoids populating the mapping etc. while timing.
+        # code below avoids populating the mapping etc. while timing.
         self.data.get_loc(2)
 
         self.key_middle = arr[len(arr) // 2]
@@ -169,7 +185,7 @@ class ObjectEngineIndexing:
         }[index_type]
 
         self.data = libindex.ObjectEngine(arr)
-        # code belows avoids populating the mapping etc. while timing.
+        # code below avoids populating the mapping etc. while timing.
         self.data.get_loc("b")
 
     def time_get_loc(self, index_type):

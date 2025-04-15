@@ -24,7 +24,7 @@ from pandas.tests.io.pytables.common import (
 )
 from pandas.util import _test_decorators as td
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
 
 
 def test_conv_read_write():
@@ -44,8 +44,8 @@ def test_conv_read_write():
 
         o = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         tm.assert_frame_equal(o, roundtrip("frame", o))
 
@@ -145,8 +145,8 @@ def test_api_invalid(tmp_path, setup_path):
     # Invalid.
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     msg = "Can only append to Tables"
@@ -196,7 +196,7 @@ def test_put_integer(setup_path):
     _check_roundtrip(df, tm.assert_frame_equal, setup_path)
 
 
-def test_table_values_dtypes_roundtrip(setup_path):
+def test_table_values_dtypes_roundtrip(setup_path, using_infer_string):
     with ensure_clean_store(setup_path) as store:
         df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
         store.append("df_f8", df1)
@@ -208,12 +208,9 @@ def test_table_values_dtypes_roundtrip(setup_path):
 
         # incompatible dtype
         msg = re.escape(
-            "invalid combination of [values_axes] on appending data "
-            "[name->values_block_0,cname->values_block_0,"
-            "dtype->float64,kind->float,shape->(1, 3)] vs "
-            "current table [name->values_block_0,"
-            "cname->values_block_0,dtype->int64,kind->integer,"
-            "shape->None]"
+            "Cannot serialize the column [a] "
+            "because its data contents are not [float] "
+            "but [integer] object dtype"
         )
         with pytest.raises(ValueError, match=msg):
             store.append("df_i8", df1)
@@ -236,12 +233,15 @@ def test_table_values_dtypes_roundtrip(setup_path):
         df1["float322"] = 1.0
         df1["float322"] = df1["float322"].astype("float32")
         df1["bool"] = df1["float32"] > 0
-        df1["time1"] = Timestamp("20130101")
-        df1["time2"] = Timestamp("20130102")
+        df1["time_s_1"] = Timestamp("20130101")
+        df1["time_s_2"] = Timestamp("20130101 00:00:00")
+        df1["time_ms"] = Timestamp("20130101 00:00:00.000")
+        df1["time_ns"] = Timestamp("20130102 00:00:00.000000000")
 
         store.append("df_mixed_dtypes1", df1)
         result = store.select("df_mixed_dtypes1").dtypes.value_counts()
         result.index = [str(i) for i in result.index]
+        str_dtype = "str" if using_infer_string else "object"
         expected = Series(
             {
                 "float32": 2,
@@ -251,8 +251,10 @@ def test_table_values_dtypes_roundtrip(setup_path):
                 "int16": 1,
                 "int8": 1,
                 "int64": 1,
-                "object": 1,
-                "datetime64[ns]": 2,
+                str_dtype: 1,
+                "datetime64[s]": 2,
+                "datetime64[ms]": 1,
+                "datetime64[ns]": 1,
             },
             name="count",
         )
@@ -271,10 +273,10 @@ def test_series(setup_path):
     )
     _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
 
-    ts2 = Series(ts.index, Index(ts.index, dtype=object))
+    ts2 = Series(ts.index, Index(ts.index))
     _check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
 
-    ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object))
+    ts3 = Series(ts.values, Index(np.asarray(ts.index)))
     _check_roundtrip(
         ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
     )
@@ -364,8 +366,8 @@ def test_timeseries_preepoch(setup_path, request):
 def test_frame(compression, setup_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     # put in some random NAs
@@ -381,7 +383,7 @@ def test_frame(compression, setup_path):
 
     tdf = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     _check_roundtrip(
@@ -396,7 +398,10 @@ def test_frame(compression, setup_path):
         assert recons._mgr.is_consolidated()
 
     # empty
-    _check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
+    df2 = df[:0]
+    # Prevent df2 from having index with inferred_type as string
+    df2.index = Index([])
+    _check_roundtrip(df2[:0], tm.assert_frame_equal, path=setup_path)
 
 
 def test_empty_series_frame(setup_path):
@@ -428,9 +433,17 @@ def test_can_serialize_dates(setup_path):
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
 
 
-def test_store_hierarchical(setup_path, multiindex_dataframe_random_data):
+def test_store_hierarchical(
+    setup_path, using_infer_string, multiindex_dataframe_random_data
+):
     frame = multiindex_dataframe_random_data
 
+    if using_infer_string:
+        # TODO(infer_string) make this work for string dtype
+        msg = "Saving a MultiIndex with an extension dtype is not supported."
+        with pytest.raises(NotImplementedError, match=msg):
+            _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
+        return
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
     _check_roundtrip(frame.T, tm.assert_frame_equal, path=setup_path)
     _check_roundtrip(frame["A"], tm.assert_series_equal, path=setup_path)
@@ -449,8 +462,8 @@ def test_store_mixed(compression, setup_path):
     def _make_one():
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         df["obj1"] = "foo"
         df["obj2"] = "bar"

@@ -142,18 +142,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
 
             dt64_values = arr.view(dtype)
             return DatetimeArray._simple_new(dt64_values, dtype=dtype)
-
         elif lib.is_np_dtype(dtype, "m") and is_supported_dtype(dtype):
             from pandas.core.arrays import TimedeltaArray
 
             td64_values = arr.view(dtype)
             return TimedeltaArray._simple_new(td64_values, dtype=dtype)
-
-        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
-        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
-        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return arr.view(dtype=dtype)  # type: ignore[arg-type]
+        return arr.view(dtype=dtype)
 
     def take(
         self,
@@ -328,8 +322,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, limit: int | None = None, copy: bool = True) -> Self:
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self.isna()
+        if limit is not None and limit < len(self):
+            # mypy doesn't like that mask can be an EA which need not have `cumsum`
+            modify = mask.cumsum() > limit  # type: ignore[union-attr]
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
@@ -347,8 +348,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
             new_values[mask] = value
         else:
             # We validate the fill_value even if there is nothing to fill
-            if value is not None:
-                self._validate_setitem_value(value)
+            self._validate_setitem_value(value)
 
             if not copy:
                 new_values = self[:]
@@ -490,17 +490,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         fill_value = self._internal_fill_value
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-
-        res_values = self._cast_quantile_result(res_values)
-        return self._from_backing_data(res_values)
-
-    # TODO: see if we can share this with other dispatch-wrapping methods
-    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
-        """
-        Cast the result of quantile_with_mask to an appropriate dtype
-        to pass to _from_backing_data in _quantile.
-        """
-        return res_values
+        if res_values.dtype == self._ndarray.dtype:
+            return self._from_backing_data(res_values)
+        else:
+            # e.g. test_quantile_empty we are empty integer dtype and res_values
+            #  has floating dtype
+            # TODO: technically __init__ isn't defined here.
+            #  Should we raise NotImplementedError and handle this on NumpyEA?
+            return type(self)(res_values)  # type: ignore[call-arg]
 
     # ------------------------------------------------------------------------
     # numpy-like methods

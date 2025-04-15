@@ -12,7 +12,7 @@ from functools import (
 from keyword import iskeyword
 import tokenize
 from typing import (
-    Callable,
+    TYPE_CHECKING,
     ClassVar,
     TypeVar,
 )
@@ -20,6 +20,8 @@ from typing import (
 import numpy as np
 
 from pandas.errors import UndefinedVariableError
+
+from pandas.core.dtypes.common import is_string_dtype
 
 import pandas.core.common as com
 from pandas.core.computation.ops import (
@@ -32,7 +34,6 @@ from pandas.core.computation.ops import (
     UNARY_OPS_SYMS,
     BinOp,
     Constant,
-    Div,
     FuncNode,
     Op,
     Term,
@@ -46,6 +47,9 @@ from pandas.core.computation.parsing import (
 from pandas.core.computation.scope import Scope
 
 from pandas.io.formats import printing
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:
@@ -164,7 +168,7 @@ def _preparse(
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), "f must be callable"
-    return tokenize.untokenize(f(x) for x in tokenize_string(source))
+    return tokenize.untokenize(f(x) for x in tokenize_string(source))  # pyright: ignore[reportArgumentType]
 
 
 def _is_type(t):
@@ -371,7 +375,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         "Add",
         "Sub",
         "Mult",
-        None,
+        "Div",
         "Pow",
         "FloorDiv",
         "Mod",
@@ -508,8 +512,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             )
 
         if self.engine != "pytables" and (
-            res.op in CMP_OPS_SYMS
-            and getattr(lhs, "is_datetime", False)
+            (res.op in CMP_OPS_SYMS and getattr(lhs, "is_datetime", False))
             or getattr(rhs, "is_datetime", False)
         ):
             # all date ops must be done in python bc numexpr doesn't work
@@ -522,10 +525,12 @@ class BaseExprVisitor(ast.NodeVisitor):
         elif self.engine != "pytables":
             if (
                 getattr(lhs, "return_type", None) == object
+                or is_string_dtype(getattr(lhs, "return_type", None))
                 or getattr(rhs, "return_type", None) == object
+                or is_string_dtype(getattr(rhs, "return_type", None))
             ):
                 # evaluate "==" and "!=" in python if either of our operands
-                # has an object return type
+                # has an object or string return type
                 return self._maybe_eval(res, eval_in_python + maybe_eval_in_python)
         return res
 
@@ -533,9 +538,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         op, op_class, left, right = self._maybe_transform_eq_ne(node)
         left, right = self._maybe_downcast_constants(left, right)
         return self._maybe_evaluate_binop(op, op_class, left, right)
-
-    def visit_Div(self, node, **kwargs):
-        return lambda lhs, rhs: Div(lhs, rhs)
 
     def visit_UnaryOp(self, node, **kwargs):
         op = self.visit(node.op)
@@ -642,7 +644,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         ctx = node.ctx
         if isinstance(ctx, ast.Load):
             # resolve the value
-            resolved = self.visit(value).value
+            visited_value = self.visit(value)
+            if hasattr(visited_value, "value"):
+                resolved = visited_value.value
+            else:
+                resolved = visited_value(self.env)
             try:
                 v = getattr(resolved, attr)
                 name = self.env.add_tmp(v)
@@ -696,7 +702,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if not isinstance(key, ast.keyword):
                     # error: "expr" has no attribute "id"
                     raise ValueError(
-                        "keyword error in function call " f"'{node.func.id}'"  # type: ignore[attr-defined]
+                        f"keyword error in function call '{node.func.id}'"  # type: ignore[attr-defined]
                     )
 
                 if key.arg:

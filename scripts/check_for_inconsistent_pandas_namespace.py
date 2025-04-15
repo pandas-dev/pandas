@@ -27,10 +27,7 @@ from collections.abc import (
     Sequence,
 )
 import sys
-from typing import (
-    NamedTuple,
-    Optional,
-)
+from typing import NamedTuple
 
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "
@@ -89,7 +86,7 @@ def replace_inconsistent_pandas_namespace(visitor: Visitor, content: str) -> str
 
 def check_for_inconsistent_pandas_namespace(
     content: str, path: str, *, replace: bool
-) -> Optional[str]:
+) -> str | None:
     tree = ast.parse(content)
 
     visitor = Visitor()
@@ -121,7 +118,7 @@ def check_for_inconsistent_pandas_namespace(
     return replace_inconsistent_pandas_namespace(visitor, content)
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     parser.add_argument("--replace", action="store_true")

@@ -10,8 +10,8 @@ from pandas.core.indexers.objects import (
 )
 
 __all__ = [
-    "check_array_indexer",
     "BaseIndexer",
     "FixedForwardWindowIndexer",
     "VariableOffsetWindowIndexer",
+    "check_array_indexer",
 ]

@@ -4,7 +4,6 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 import numpy as np
@@ -28,7 +27,10 @@ from pandas.core.arrays.masked import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import (
+        Callable,
+        Mapping,
+    )
 
     import pyarrow
 
@@ -172,6 +174,8 @@ def _coerce_to_data_and_mask(
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
     elif values.dtype.kind == "b" and checker(dtype):
+        # fastpath
+        mask = np.zeros(len(values), dtype=np.bool_)
         if not copy:
             values = np.asarray(values, dtype=default_dtype)
         else:
@@ -188,6 +192,10 @@ def _coerce_to_data_and_mask(
         if values.dtype.kind in "iu":
             # fastpath
             mask = np.zeros(len(values), dtype=np.bool_)
+        elif values.dtype.kind == "f":
+            # np.isnan is faster than is_numeric_na() for floats
+            # github issue: #60066
+            mask = np.isnan(values)
         else:
             mask = libmissing.is_numeric_na(values)
     else:
@@ -221,7 +229,7 @@ def _coerce_to_data_and_mask(
     # we copy as need to coerce here
     if mask.any():
         values = values.copy()
-        values[mask] = cls._internal_fill_value
+        values[mask] = dtype_cls._internal_fill_value
     if inferred_type in ("string", "unicode"):
         # casts from str are always safe since they raise
         # a ValueError if the str cannot be parsed into a float

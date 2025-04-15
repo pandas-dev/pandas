@@ -119,7 +119,7 @@ class TestCommon:
         # should return None
         assert res is None
         assert index.name == new_name
-        assert index.names == (new_name,)
+        assert index.names == [new_name]
         with pytest.raises(ValueError, match="Level must be None"):
             index.set_names("a", level=0)
 
@@ -127,7 +127,7 @@ class TestCommon:
         name = ("A", "B")
         index.rename(name, inplace=True)
         assert index.name == name
-        assert index.names == (name,)
+        assert index.names == [name]
 
     @pytest.mark.xfail
     def test_set_names_single_label_no_level(self, index_flat):
@@ -223,7 +223,9 @@ class TestCommon:
             pass
 
         result = idx.unique()
-        tm.assert_index_equal(result, idx_unique)
+        tm.assert_index_equal(
+            result, idx_unique, exact=not isinstance(index, RangeIndex)
+        )
 
         # nans:
         if not index._can_hold_na:
@@ -270,9 +272,7 @@ class TestCommon:
             # all values are the same, expected_right should be length
             expected_right = len(index)
 
-        # test _searchsorted_monotonic in all cases
-        # test searchsorted only for increasing
-        if index.is_monotonic_increasing:
+        if index.is_monotonic_increasing or index.is_monotonic_decreasing:
             ssm_left = index._searchsorted_monotonic(value, side="left")
             assert expected_left == ssm_left
 
@@ -284,13 +284,6 @@ class TestCommon:
 
             ss_right = index.searchsorted(value, side="right")
             assert expected_right == ss_right
-
-        elif index.is_monotonic_decreasing:
-            ssm_left = index._searchsorted_monotonic(value, side="left")
-            assert expected_left == ssm_left
-
-            ssm_right = index._searchsorted_monotonic(value, side="right")
-            assert expected_right == ssm_right
         else:
             # non-monotonic should raise.
             msg = "index must be monotonic increasing or decreasing"

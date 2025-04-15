@@ -101,7 +101,7 @@ truncated for brevity.
 Viewing data
 ------------
 
-See the :ref:`Essentially basics functionality section <basics>`.
+See the :ref:`Essential basic functionality section <basics>`.
 
 Use :meth:`DataFrame.head` and :meth:`DataFrame.tail` to view the top and bottom rows of the frame
 respectively:
@@ -177,7 +177,7 @@ See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and
 Getitem (``[]``)
 ~~~~~~~~~~~~~~~~
 
-For a :class:`DataFrame`, passing a single label selects a columns and
+For a :class:`DataFrame`, passing a single label selects a column and
 yields a :class:`Series` equivalent to ``df.A``:
 
 .. ipython:: python

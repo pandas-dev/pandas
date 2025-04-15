@@ -47,9 +47,7 @@ class TestIndexConstructor:
 
     def test_index_string_inference(self):
         # GH#54430
-        pytest.importorskip("pyarrow")
-        dtype = "string[pyarrow_numpy]"
-        expected = Index(["a", "b"], dtype=dtype)
+        expected = Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan))
         with pd.option_context("future.infer_string", True):
             ser = Index(["a", "b"])
         tm.assert_index_equal(ser, expected)
@@ -59,22 +57,15 @@ class TestIndexConstructor:
             ser = Index(["a", 1])
         tm.assert_index_equal(ser, expected)
 
-    def test_inference_on_pandas_objects(self):
+    @pytest.mark.parametrize("klass", [Series, Index])
+    def test_inference_on_pandas_objects(self, klass):
         # GH#56012
-        idx = Index([pd.Timestamp("2019-12-31")], dtype=object)
-        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-            result = Index(idx)
-        assert result.dtype != np.object_
-
-        ser = Series([pd.Timestamp("2019-12-31")], dtype=object)
-
-        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-            result = Index(ser)
-        assert result.dtype != np.object_
+        obj = klass([pd.Timestamp("2019-12-31")], dtype=object)
+        result = Index(obj)
+        assert result.dtype == np.object_
 
     def test_constructor_not_read_only(self):
         # GH#57130
         ser = Series([1, 2], dtype=object)
-        with pd.option_context("mode.copy_on_write", True):
-            idx = Index(ser)
-            assert idx._values.flags.writeable
+        idx = Index(ser)
+        assert idx._values.flags.writeable

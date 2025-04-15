@@ -2,7 +2,8 @@ import pytest
 
 from pandas import Series
 
-pytest.importorskip("matplotlib")
+mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 from pandas.plotting._matplotlib.style import get_standard_colors
 
 
@@ -18,11 +19,8 @@ class TestGetStandardColors:
         ],
     )
     def test_default_colors_named_from_prop_cycle(self, num_colors, expected):
-        import matplotlib as mpl
-        from matplotlib.pyplot import cycler
-
         mpl_params = {
-            "axes.prop_cycle": cycler(color=["red", "green", "blue"]),
+            "axes.prop_cycle": plt.cycler(color=["red", "green", "blue"]),
         }
         with mpl.rc_context(rc=mpl_params):
             result = get_standard_colors(num_colors=num_colors)
@@ -39,11 +37,8 @@ class TestGetStandardColors:
         ],
     )
     def test_default_colors_named_from_prop_cycle_string(self, num_colors, expected):
-        import matplotlib as mpl
-        from matplotlib.pyplot import cycler
-
         mpl_params = {
-            "axes.prop_cycle": cycler(color="bgry"),
+            "axes.prop_cycle": plt.cycler(color="bgry"),
         }
         with mpl.rc_context(rc=mpl_params):
             result = get_standard_colors(num_colors=num_colors)
@@ -74,11 +69,8 @@ class TestGetStandardColors:
         ],
     )
     def test_default_colors_named_undefined_prop_cycle(self, num_colors, expected_name):
-        import matplotlib as mpl
-        import matplotlib.colors as mcolors
-
         with mpl.rc_context(rc={}):
-            expected = [mcolors.to_hex(x) for x in expected_name]
+            expected = [mpl.colors.to_hex(x) for x in expected_name]
             result = get_standard_colors(num_colors=num_colors)
             assert result == expected
 

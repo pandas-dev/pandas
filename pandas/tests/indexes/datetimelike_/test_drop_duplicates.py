@@ -70,20 +70,32 @@ class DropDuplicates:
 class TestDropDuplicatesPeriodIndex(DropDuplicates):
     @pytest.fixture(params=["D", "3D", "h", "2h", "min", "2min", "s", "3s"])
     def freq(self, request):
+        """
+        Fixture to test for different frequencies for PeriodIndex.
+        """
         return request.param
 
     @pytest.fixture
     def idx(self, freq):
+        """
+        Fixture to get PeriodIndex for 10 periods for different frequencies.
+        """
         return period_range("2011-01-01", periods=10, freq=freq, name="idx")
 
 
 class TestDropDuplicatesDatetimeIndex(DropDuplicates):
     @pytest.fixture
     def idx(self, freq_sample):
+        """
+        Fixture to get DatetimeIndex for 10 periods for different frequencies.
+        """
         return date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
 
 
 class TestDropDuplicatesTimedeltaIndex(DropDuplicates):
     @pytest.fixture
     def idx(self, freq_sample):
+        """
+        Fixture to get TimedeltaIndex for 10 periods for different frequencies.
+        """
         return timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")

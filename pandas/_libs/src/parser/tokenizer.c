@@ -148,7 +148,7 @@ int parser_init(parser_t *self) {
   self->warn_msg = NULL;
 
   // token stream
-  self->stream = malloc(STREAM_INIT_SIZE * sizeof(char));
+  self->stream = malloc(STREAM_INIT_SIZE);
   if (self->stream == NULL) {
     parser_cleanup(self);
     return PARSER_OUT_OF_MEMORY;
@@ -221,9 +221,8 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
   char *orig_ptr = (void *)self->stream;
   TRACE(("\n\nmake_stream_space: nbytes = %zu.  grow_buffer(self->stream...)\n",
          nbytes))
-  self->stream =
-      (char *)grow_buffer((void *)self->stream, self->stream_len,
-                          &self->stream_cap, nbytes * 2, sizeof(char), &status);
+  self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
+                                     &self->stream_cap, nbytes * 2, 1, &status);
   TRACE(("make_stream_space: self->stream=%p, self->stream_len = %zu, "
          "self->stream_cap=%zu, status=%zu\n",
          self->stream, self->stream_len, self->stream_cap, status))

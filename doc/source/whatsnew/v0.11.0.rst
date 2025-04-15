@@ -74,10 +74,10 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float32')
+   df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float64')
    df1
    df1.dtypes
-   df2 = pd.DataFrame({'A': pd.Series(np.random.randn(8), dtype='float16'),
+   df2 = pd.DataFrame({'A': pd.Series(np.random.randn(8), dtype='float32'),
                        'B': pd.Series(np.random.randn(8)),
                        'C': pd.Series(range(8), dtype='uint8')})
    df2

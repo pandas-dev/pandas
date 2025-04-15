@@ -15,7 +15,6 @@ from cython cimport Py_ssize_t
 import_datetime()
 
 import numpy as np
-import pytz
 
 cimport numpy as cnp
 from numpy cimport (
@@ -196,8 +195,8 @@ def tz_localize_to_utc(
     NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_ns,
 ):
     """
-    Localize tzinfo-naive i8 to given time zone (using pytz). If
-    there are ambiguities in the values, raise AmbiguousTimeError.
+    Localize tzinfo-naive i8 to given time zone. If
+    there are ambiguities in the values, raise ValueError.
 
     Parameters
     ----------
@@ -368,7 +367,7 @@ timedelta-like}
                     result[i] = NPY_NAT
                 else:
                     stamp = _render_tstamp(val, creso=creso)
-                    raise pytz.AmbiguousTimeError(
+                    raise ValueError(
                         f"Cannot infer dst time from {stamp}, try using the "
                         "'ambiguous' argument"
                     )
@@ -428,7 +427,10 @@ timedelta-like}
                 result[i] = NPY_NAT
             else:
                 stamp = _render_tstamp(val, creso=creso)
-                raise pytz.NonExistentTimeError(stamp)
+                raise ValueError(
+                    f"{stamp} is a nonexistent time due to daylight savings time. "
+                    "Try using the 'nonexistent' argument."
+                )
 
     return result.base  # .base to get underlying ndarray
 
@@ -631,7 +633,7 @@ cdef ndarray[int64_t] _get_dst_hours(
     if trans_idx.size == 1:
         # see test_tz_localize_to_utc_ambiguous_infer
         stamp = _render_tstamp(vals[trans_idx[0]], creso=creso)
-        raise pytz.AmbiguousTimeError(
+        raise ValueError(
             f"Cannot infer dst time from {stamp} as there "
             "are no repeated times"
         )
@@ -653,14 +655,16 @@ cdef ndarray[int64_t] _get_dst_hours(
             if grp.size == 1 or np.all(delta > 0):
                 # see test_tz_localize_to_utc_ambiguous_infer
                 stamp = _render_tstamp(vals[grp[0]], creso=creso)
-                raise pytz.AmbiguousTimeError(stamp)
+                raise ValueError(
+                    f"{stamp} is an ambiguous time and cannot be inferred."
+                )
 
             # Find the index for the switch and pull from a for dst and b
             # for standard
             switch_idxs = (delta <= 0).nonzero()[0]
             if switch_idxs.size > 1:
                 # see test_tz_localize_to_utc_ambiguous_infer
-                raise pytz.AmbiguousTimeError(
+                raise ValueError(
                     f"There are {switch_idxs.size} dst switches when "
                     "there should only be 1."
                 )

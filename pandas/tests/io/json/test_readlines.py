@@ -165,11 +165,11 @@ def test_readjson_chunks_series(request, engine):
     s = pd.Series({"A": 1, "B": 2})
 
     strio = StringIO(s.to_json(lines=True, orient="records"))
-    unchunked = read_json(strio, lines=True, typ="Series", engine=engine)
+    unchunked = read_json(strio, lines=True, typ="series", engine=engine)
 
     strio = StringIO(s.to_json(lines=True, orient="records"))
     with read_json(
-        strio, lines=True, typ="Series", chunksize=1, engine=engine
+        strio, lines=True, typ="series", chunksize=1, engine=engine
     ) as reader:
         chunked = pd.concat(reader)
 
@@ -236,9 +236,9 @@ def test_readjson_chunks_closes(chunksize):
         )
         with reader:
             reader.read()
-        assert (
-            reader.handles.handle.closed
-        ), f"didn't close stream with chunksize = {chunksize}"
+        assert reader.handles.handle.closed, (
+            f"didn't close stream with chunksize = {chunksize}"
+        )
 
 
 @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
@@ -435,8 +435,7 @@ def test_to_json_append_mode(mode_):
     # Test ValueError when mode is not supported option
     df = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
     msg = (
-        f"mode={mode_} is not a valid option."
-        "Only 'w' and 'a' are currently supported."
+        f"mode={mode_} is not a valid option.Only 'w' and 'a' are currently supported."
     )
     with pytest.raises(ValueError, match=msg):
         df.to_json(mode=mode_, lines=False, orient="records")

@@ -63,8 +63,7 @@ class TestPeriodIndexRendering:
         exp3 = "PeriodIndex(['2011-01-01', '2011-01-02'], dtype='period[D]')"
 
         exp4 = (
-            "PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], "
-            "dtype='period[D]')"
+            "PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], dtype='period[D]')"
         )
 
         exp5 = "PeriodIndex(['2011', '2012', '2013'], dtype='period[Y-DEC]')"

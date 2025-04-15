@@ -793,7 +793,7 @@ Assigning a ``Categorical`` to parts of a column of other types will use the val
     :okwarning:
 
     df = pd.DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
-    df.loc[1:2, "a"] = pd.Categorical(["b", "b"], categories=["a", "b"])
+    df.loc[1:2, "a"] = pd.Categorical([2, 2], categories=[2, 3])
     df.loc[2:3, "b"] = pd.Categorical(["b", "b"], categories=["a", "b"])
     df
     df.dtypes

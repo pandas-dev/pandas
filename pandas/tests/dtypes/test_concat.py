@@ -47,7 +47,7 @@ def test_concat_periodarray_2d():
         _concat.concat_compat([arr[:2], arr[2:]], axis=1)
 
 
-def test_concat_series_between_empty_and_tzaware_series():
+def test_concat_series_between_empty_and_tzaware_series(using_infer_string):
     tzaware_time = pd.Timestamp("2020-01-01T00:00:00+00:00")
     ser1 = Series(index=[tzaware_time], data=0, dtype=float)
     ser2 = Series(dtype=float)
@@ -57,7 +57,9 @@ def test_concat_series_between_empty_and_tzaware_series():
         data=[
             (0.0, None),
         ],
-        index=pd.Index([tzaware_time], dtype=object),
+        index=[tzaware_time]
+        if using_infer_string
+        else pd.Index([tzaware_time], dtype=object),
         columns=[0, 1],
         dtype=float,
     )

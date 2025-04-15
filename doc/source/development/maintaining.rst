@@ -84,7 +84,7 @@ Here's a typical workflow for triaging a newly opened issue.
    example. See https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
    for a good explanation. If the example is not reproducible, or if it's
    *clearly* not minimal, feel free to ask the reporter if they can provide
-   and example or simplify the provided one. Do acknowledge that writing
+   an example or simplify the provided one. Do acknowledge that writing
    minimal reproducible examples is hard work. If the reporter is struggling,
    you can try to write one yourself and we'll edit the original post to include it.
 
@@ -92,6 +92,9 @@ Here's a typical workflow for triaging a newly opened issue.
 
    If a reproducible example is provided, but you see a simplification,
    edit the original post with your simpler reproducible example.
+
+   If this is a regression report, post the result of a ``git bisect`` run.
+   More info on this can be found in the :ref:`maintaining.regressions` section.
 
    Ensure the issue exists on the main branch and that it has the "Needs Triage" tag
    until all steps have been completed. Add a comment to the issue once you have
@@ -125,7 +128,10 @@ Here's a typical workflow for triaging a newly opened issue.
    If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
 
-   Once you have completed the above, make sure to remove the "needs triage" label.
+   If the issue is a regression report, add the "Regression" label and the next patch
+   release milestone.
+
+   Once you have completed the above, make sure to remove the "Needs Triage" label.
 
 .. _maintaining.regressions:
 
@@ -151,7 +157,7 @@ and then run::
     git bisect start
     git bisect good v1.4.0
     git bisect bad v1.5.0
-    git bisect run bash -c "python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true; python t.py"
+    git bisect run bash -c "python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true; python t.py"
 
 This finds the first commit that changed the behavior. The C extensions have to be
 rebuilt at every step, so the search can take a while.
@@ -159,7 +165,7 @@ rebuilt at every step, so the search can take a while.
 Exit bisect and rebuild the current version::
 
     git bisect reset
-    python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+    python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 
 Report your findings under the corresponding issue and ping the commit author to get
 their input.
@@ -338,7 +344,7 @@ in the next places:
 - Git repo with a `new tag <https://github.com/pandas-dev/pandas/tags>`_
 - Source distribution in a `GitHub release <https://github.com/pandas-dev/pandas/releases>`_
 - Pip packages in the `PyPI <https://pypi.org/project/pandas/>`_
-- Conda/Mamba packages in `conda-forge <https://anaconda.org/conda-forge/pandas>`_
+- Conda packages in `conda-forge <https://anaconda.org/conda-forge/pandas>`_
 
 The process for releasing a new version of pandas is detailed next section.
 
@@ -462,9 +468,9 @@ Post-Release
    the appropriate ones for the version you are releasing):
 
     - Log in to the server and use the correct user.
-    - `cd /var/www/html/pandas-docs/`
-    - `ln -sfn version/2.1 stable` (for a major or minor release)
-    - `ln -sfn version/2.0.3 version/2.0` (for a patch release)
+    - ``cd /var/www/html/pandas-docs/``
+    - ``ln -sfn version/2.1 stable`` (for a major or minor release)
+    - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation
@@ -482,7 +488,7 @@ Post-Release
    for reference):
 
     - The pandas-dev and pydata mailing lists
-    - Twitter, Mastodon, Telegram and LinkedIn
+    - X, Mastodon, Telegram and LinkedIn
 
 7. Update this release instructions to fix anything incorrect and to update about any
    change since the last release.

@@ -13,7 +13,7 @@ Text data types
 
 There are two ways to store text data in pandas:
 
-1. ``object`` -dtype NumPy array.
+1. ``object`` dtype NumPy array.
 2. :class:`StringDtype` extension type.
 
 We recommend using :class:`StringDtype` to store text data.
@@ -40,20 +40,20 @@ to significantly increase the performance and lower the memory overhead of
    and parts of the API may change without warning.
 
 For backwards-compatibility, ``object`` dtype remains the default type we
-infer a list of strings to
+infer a list of strings to:
 
 .. ipython:: python
 
    pd.Series(["a", "b", "c"])
 
-To explicitly request ``string`` dtype, specify the ``dtype``
+To explicitly request ``string`` dtype, specify the ``dtype``:
 
 .. ipython:: python
 
    pd.Series(["a", "b", "c"], dtype="string")
    pd.Series(["a", "b", "c"], dtype=pd.StringDtype())
 
-Or ``astype`` after the ``Series`` or ``DataFrame`` is created
+Or ``astype`` after the ``Series`` or ``DataFrame`` is created:
 
 .. ipython:: python
 
@@ -88,9 +88,9 @@ Behavior differences
 ^^^^^^^^^^^^^^^^^^^^
 
 These are places where the behavior of ``StringDtype`` objects differ from
-``object`` dtype
+``object`` dtype:
 
-l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
+1. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
    rather than either int or float dtype, depending on the presence of NA values.
    Methods returning **boolean** output will return a nullable boolean dtype.
@@ -102,7 +102,7 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
       s.str.count("a")
       s.dropna().str.count("a")
 
-   Both outputs are ``Int64`` dtype. Compare that with object-dtype
+   Both outputs are ``Int64`` dtype. Compare that with object-dtype:
 
    .. ipython:: python
 
@@ -204,7 +204,7 @@ and replacing any remaining whitespaces with underscores:
 
 .. warning::
 
-    The type of the Series is inferred and the allowed types (i.e. strings).
+    The type of the Series is inferred and is one among the allowed types (i.e. strings).
 
     Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
     exceptions, other uses are not supported, and may be disabled at a later point.
@@ -332,8 +332,8 @@ regular expression object will raise a ``ValueError``.
     ---------------------------------------------------------------------------
     ValueError: case and flags cannot be set when pat is a compiled regex
 
-``removeprefix`` and ``removesuffix`` have the same effect as ``str.removeprefix`` and ``str.removesuffix`` added in Python 3.9
-<https://docs.python.org/3/library/stdtypes.html#str.removeprefix>`__:
+``removeprefix`` and ``removesuffix`` have the same effect as ``str.removeprefix`` and ``str.removesuffix`` added in
+`Python 3.9 <https://docs.python.org/3/library/stdtypes.html#str.removeprefix>`__:
 
 .. versionadded:: 1.4.0
 
@@ -726,57 +726,56 @@ Method summary
 .. csv-table::
     :header: "Method", "Description"
     :widths: 20, 80
-    :delim: ;
 
-    :meth:`~Series.str.cat`;Concatenate strings
-    :meth:`~Series.str.split`;Split strings on delimiter
-    :meth:`~Series.str.rsplit`;Split strings on delimiter working from the end of the string
-    :meth:`~Series.str.get`;Index into each element (retrieve i-th element)
-    :meth:`~Series.str.join`;Join strings in each element of the Series with passed separator
-    :meth:`~Series.str.get_dummies`;Split strings on the delimiter returning DataFrame of dummy variables
-    :meth:`~Series.str.contains`;Return boolean array if each string contains pattern/regex
-    :meth:`~Series.str.replace`;Replace occurrences of pattern/regex/string with some other string or the return value of a callable given the occurrence
-    :meth:`~Series.str.removeprefix`;Remove prefix from string, i.e. only remove if string starts with prefix.
-    :meth:`~Series.str.removesuffix`;Remove suffix from string, i.e. only remove if string ends with suffix.
-    :meth:`~Series.str.repeat`;Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
-    :meth:`~Series.str.pad`;"Add whitespace to left, right, or both sides of strings"
-    :meth:`~Series.str.center`;Equivalent to ``str.center``
-    :meth:`~Series.str.ljust`;Equivalent to ``str.ljust``
-    :meth:`~Series.str.rjust`;Equivalent to ``str.rjust``
-    :meth:`~Series.str.zfill`;Equivalent to ``str.zfill``
-    :meth:`~Series.str.wrap`;Split long strings into lines with length less than a given width
-    :meth:`~Series.str.slice`;Slice each string in the Series
-    :meth:`~Series.str.slice_replace`;Replace slice in each string with passed value
-    :meth:`~Series.str.count`;Count occurrences of pattern
-    :meth:`~Series.str.startswith`;Equivalent to ``str.startswith(pat)`` for each element
-    :meth:`~Series.str.endswith`;Equivalent to ``str.endswith(pat)`` for each element
-    :meth:`~Series.str.findall`;Compute list of all occurrences of pattern/regex for each string
-    :meth:`~Series.str.match`;"Call ``re.match`` on each element, returning matched groups as list"
-    :meth:`~Series.str.extract`;"Call ``re.search`` on each element, returning DataFrame with one row for each element and one column for each regex capture group"
-    :meth:`~Series.str.extractall`;"Call ``re.findall`` on each element, returning DataFrame with one row for each match and one column for each regex capture group"
-    :meth:`~Series.str.len`;Compute string lengths
-    :meth:`~Series.str.strip`;Equivalent to ``str.strip``
-    :meth:`~Series.str.rstrip`;Equivalent to ``str.rstrip``
-    :meth:`~Series.str.lstrip`;Equivalent to ``str.lstrip``
-    :meth:`~Series.str.partition`;Equivalent to ``str.partition``
-    :meth:`~Series.str.rpartition`;Equivalent to ``str.rpartition``
-    :meth:`~Series.str.lower`;Equivalent to ``str.lower``
-    :meth:`~Series.str.casefold`;Equivalent to ``str.casefold``
-    :meth:`~Series.str.upper`;Equivalent to ``str.upper``
-    :meth:`~Series.str.find`;Equivalent to ``str.find``
-    :meth:`~Series.str.rfind`;Equivalent to ``str.rfind``
-    :meth:`~Series.str.index`;Equivalent to ``str.index``
-    :meth:`~Series.str.rindex`;Equivalent to ``str.rindex``
-    :meth:`~Series.str.capitalize`;Equivalent to ``str.capitalize``
-    :meth:`~Series.str.swapcase`;Equivalent to ``str.swapcase``
-    :meth:`~Series.str.normalize`;Return Unicode normal form. Equivalent to ``unicodedata.normalize``
-    :meth:`~Series.str.translate`;Equivalent to ``str.translate``
-    :meth:`~Series.str.isalnum`;Equivalent to ``str.isalnum``
-    :meth:`~Series.str.isalpha`;Equivalent to ``str.isalpha``
-    :meth:`~Series.str.isdigit`;Equivalent to ``str.isdigit``
-    :meth:`~Series.str.isspace`;Equivalent to ``str.isspace``
-    :meth:`~Series.str.islower`;Equivalent to ``str.islower``
-    :meth:`~Series.str.isupper`;Equivalent to ``str.isupper``
-    :meth:`~Series.str.istitle`;Equivalent to ``str.istitle``
-    :meth:`~Series.str.isnumeric`;Equivalent to ``str.isnumeric``
-    :meth:`~Series.str.isdecimal`;Equivalent to ``str.isdecimal``
+    :meth:`~Series.str.cat`,Concatenate strings
+    :meth:`~Series.str.split`,Split strings on delimiter
+    :meth:`~Series.str.rsplit`,Split strings on delimiter working from the end of the string
+    :meth:`~Series.str.get`,Index into each element (retrieve i-th element)
+    :meth:`~Series.str.join`,Join strings in each element of the Series with passed separator
+    :meth:`~Series.str.get_dummies`,Split strings on the delimiter returning DataFrame of dummy variables
+    :meth:`~Series.str.contains`,Return boolean array if each string contains pattern/regex
+    :meth:`~Series.str.replace`,Replace occurrences of pattern/regex/string with some other string or the return value of a callable given the occurrence
+    :meth:`~Series.str.removeprefix`,Remove prefix from string i.e. only remove if string starts with prefix.
+    :meth:`~Series.str.removesuffix`,Remove suffix from string i.e. only remove if string ends with suffix.
+    :meth:`~Series.str.repeat`,Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
+    :meth:`~Series.str.pad`,Add whitespace to the sides of strings
+    :meth:`~Series.str.center`,Equivalent to ``str.center``
+    :meth:`~Series.str.ljust`,Equivalent to ``str.ljust``
+    :meth:`~Series.str.rjust`,Equivalent to ``str.rjust``
+    :meth:`~Series.str.zfill`,Equivalent to ``str.zfill``
+    :meth:`~Series.str.wrap`,Split long strings into lines with length less than a given width
+    :meth:`~Series.str.slice`,Slice each string in the Series
+    :meth:`~Series.str.slice_replace`,Replace slice in each string with passed value
+    :meth:`~Series.str.count`,Count occurrences of pattern
+    :meth:`~Series.str.startswith`,Equivalent to ``str.startswith(pat)`` for each element
+    :meth:`~Series.str.endswith`,Equivalent to ``str.endswith(pat)`` for each element
+    :meth:`~Series.str.findall`,Compute list of all occurrences of pattern/regex for each string
+    :meth:`~Series.str.match`,Call ``re.match`` on each element returning matched groups as list
+    :meth:`~Series.str.extract`,Call ``re.search`` on each element returning DataFrame with one row for each element and one column for each regex capture group
+    :meth:`~Series.str.extractall`,Call ``re.findall`` on each element returning DataFrame with one row for each match and one column for each regex capture group
+    :meth:`~Series.str.len`,Compute string lengths
+    :meth:`~Series.str.strip`,Equivalent to ``str.strip``
+    :meth:`~Series.str.rstrip`,Equivalent to ``str.rstrip``
+    :meth:`~Series.str.lstrip`,Equivalent to ``str.lstrip``
+    :meth:`~Series.str.partition`,Equivalent to ``str.partition``
+    :meth:`~Series.str.rpartition`,Equivalent to ``str.rpartition``
+    :meth:`~Series.str.lower`,Equivalent to ``str.lower``
+    :meth:`~Series.str.casefold`,Equivalent to ``str.casefold``
+    :meth:`~Series.str.upper`,Equivalent to ``str.upper``
+    :meth:`~Series.str.find`,Equivalent to ``str.find``
+    :meth:`~Series.str.rfind`,Equivalent to ``str.rfind``
+    :meth:`~Series.str.index`,Equivalent to ``str.index``
+    :meth:`~Series.str.rindex`,Equivalent to ``str.rindex``
+    :meth:`~Series.str.capitalize`,Equivalent to ``str.capitalize``
+    :meth:`~Series.str.swapcase`,Equivalent to ``str.swapcase``
+    :meth:`~Series.str.normalize`,Return Unicode normal form. Equivalent to ``unicodedata.normalize``
+    :meth:`~Series.str.translate`,Equivalent to ``str.translate``
+    :meth:`~Series.str.isalnum`,Equivalent to ``str.isalnum``
+    :meth:`~Series.str.isalpha`,Equivalent to ``str.isalpha``
+    :meth:`~Series.str.isdigit`,Equivalent to ``str.isdigit``
+    :meth:`~Series.str.isspace`,Equivalent to ``str.isspace``
+    :meth:`~Series.str.islower`,Equivalent to ``str.islower``
+    :meth:`~Series.str.isupper`,Equivalent to ``str.isupper``
+    :meth:`~Series.str.istitle`,Equivalent to ``str.istitle``
+    :meth:`~Series.str.isnumeric`,Equivalent to ``str.isnumeric``
+    :meth:`~Series.str.isdecimal`,Equivalent to ``str.isdecimal``

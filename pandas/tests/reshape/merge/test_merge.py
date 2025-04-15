@@ -709,16 +709,14 @@ class TestMerge:
             {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
         )
         df = DataFrame(columns=list("dt"))
-        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-        warn = FutureWarning
-        with tm.assert_produces_warning(warn, match=msg):
-            df = concat([df, d], ignore_index=True)
-            result = concat([df, d], ignore_index=True)
+        df = concat([df, d], ignore_index=True)
+        result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
-            }
+            },
+            dtype=object,
         )
         tm.assert_frame_equal(result, expected)
 
@@ -814,7 +812,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|string'\)"
+        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|str'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
@@ -1369,8 +1367,8 @@ class TestMerge:
                 ),
             ),
             (
-                TimedeltaIndex(["1d", "2d", "3d"]),
-                TimedeltaIndex(["1d", "2d", "3d", pd.NaT, pd.NaT, pd.NaT]),
+                TimedeltaIndex(["1D", "2D", "3D"]),
+                TimedeltaIndex(["1D", "2D", "3D", pd.NaT, pd.NaT, pd.NaT]),
             ),
         ],
     )
@@ -1453,10 +1451,25 @@ class TestMerge:
         )
 
         # make each underlying block array / column array read-only
-        for arr in data1._mgr.arrays:
-            arr.flags.writeable = False
+        for block in data1._mgr.blocks:
+            block.values.flags.writeable = False
 
         data1.merge(data2)  # no error
+
+    def test_merge_how_validation(self):
+        # https://github.com/pandas-dev/pandas/issues/59422
+        data1 = DataFrame(
+            np.arange(20).reshape((4, 5)) + 1, columns=["a", "b", "c", "d", "e"]
+        )
+        data2 = DataFrame(
+            np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
+        )
+        msg = (
+            "'full' is not a valid Merge type: left, right, inner, outer, "
+            "left_anti, right_anti, cross, asof"
+        )
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            data1.merge(data2, how="full")
 
 
 def _check_merge(x, y):
@@ -1567,11 +1580,12 @@ class TestMergeDtypes:
         B = DataFrame({"Y": [1.1, 2.5, 3.0]})
         expected = DataFrame({"X": [3], "Y": [3.0]})
 
-        with tm.assert_produces_warning(UserWarning):
+        msg = "the float values are not equal to their int representation"
+        with tm.assert_produces_warning(UserWarning, match=msg):
             result = A.merge(B, left_on="X", right_on="Y")
             tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=msg):
             result = B.merge(A, left_on="Y", right_on="X")
             tm.assert_frame_equal(result, expected[["Y", "X"]])
 
@@ -1832,6 +1846,41 @@ class TestMergeDtypes:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_with_uintc_columns(self):
+        df1 = DataFrame({"a": ["foo", "bar"], "b": np.array([1, 2], dtype=np.uintc)})
+        df2 = DataFrame({"a": ["foo", "baz"], "b": np.array([3, 4], dtype=np.uintc)})
+        result = df1.merge(df2, how="outer")
+        expected = DataFrame(
+            {
+                "a": ["bar", "baz", "foo", "foo"],
+                "b": np.array([2, 4, 1, 3], dtype=np.uintc),
+            }
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_merge_with_intc_columns(self):
+        df1 = DataFrame({"a": ["foo", "bar"], "b": np.array([1, 2], dtype=np.intc)})
+        df2 = DataFrame({"a": ["foo", "baz"], "b": np.array([3, 4], dtype=np.intc)})
+        result = df1.merge(df2, how="outer")
+        expected = DataFrame(
+            {
+                "a": ["bar", "baz", "foo", "foo"],
+                "b": np.array([2, 4, 1, 3], dtype=np.intc),
+            }
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_merge_intc_non_monotonic(self):
+        df = DataFrame({"join_key": Series([0, 2, 1], dtype=np.intc)})
+        df_details = DataFrame(
+            {"join_key": Series([0, 1, 2], dtype=np.intc), "value": ["a", "b", "c"]}
+        )
+        merged = df.merge(df_details, on="join_key", how="left")
+        expected = DataFrame(
+            {"join_key": np.array([0, 2, 1], dtype=np.intc), "value": ["a", "c", "b"]}
+        )
+        tm.assert_frame_equal(merged.reset_index(drop=True), expected)
+
 
 @pytest.fixture
 def left():
@@ -1860,7 +1909,7 @@ class TestMergeCategorical:
         # merging on the same, should preserve dtypes
         merged = merge(left, left, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [CategoricalDtype(categories=["foo", "bar"]), dtype, dtype],
             index=["X", "Y_x", "Y_y"],
@@ -1872,7 +1921,7 @@ class TestMergeCategorical:
         # so should preserve the merged column
         merged = merge(left, right, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [
                 CategoricalDtype(categories=["foo", "bar"]),
@@ -1986,7 +2035,7 @@ class TestMergeCategorical:
 
         merged = merge(left, right, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [
                 CategoricalDtype(categories=["foo", "bar"]),
@@ -2023,7 +2072,7 @@ class TestMergeCategorical:
         merged = merge(left, right, on="X", how=join_type)
 
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series([dtype, dtype, np.dtype("int64")], index=["X", "Y", "Z"])
         tm.assert_series_equal(result, expected)
 
@@ -2971,7 +3020,7 @@ def test_merge_empty_frames_column_order(left_empty, right_empty):
         df2 = df2.iloc[:0]
 
     result = merge(df1, df2, on=["A"], how="outer")
-    expected = DataFrame(1, index=[0], columns=["A", "B", "C", "D"])
+    expected = DataFrame(1, index=range(1), columns=["A", "B", "C", "D"])
     if left_empty and right_empty:
         expected = expected.iloc[:0]
     elif left_empty:
@@ -2999,3 +3048,15 @@ def test_merge_datetime_and_timedelta(how):
     )
     with pytest.raises(ValueError, match=re.escape(msg)):
         right.merge(left, on="key", how=how)
+
+
+def test_merge_on_all_nan_column():
+    # GH#59421
+    left = DataFrame({"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "z": [4, 5, 6]})
+    right = DataFrame({"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "zz": [4, 5, 6]})
+    result = left.merge(right, on=["x", "y"], how="outer")
+    # Should not trigger array bounds eerror with bounds checking or asan enabled.
+    expected = DataFrame(
+        {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "z": [4, 5, 6], "zz": [4, 5, 6]}
+    )
+    tm.assert_frame_equal(result, expected)

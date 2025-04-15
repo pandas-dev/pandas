@@ -15,7 +15,7 @@ def assert_check_nselect_boundary(vals, dtype, method):
     # helper function for 'test_boundary_{dtype}' tests
     ser = Series(vals, dtype=dtype)
     result = getattr(ser, method)(3)
-    expected_idxr = [0, 1, 2] if method == "nsmallest" else [3, 2, 1]
+    expected_idxr = range(3) if method == "nsmallest" else range(3, 0, -1)
     expected = ser.loc[expected_idxr]
     tm.assert_series_equal(result, expected)
 
@@ -46,7 +46,7 @@ class TestSeriesNLargestNSmallest:
         [
             pd.to_datetime(["2003", "2002", "2001", "2002", "2005"]),
             pd.to_datetime(["2003", "2002", "2001", "2002", "2005"], utc=True),
-            pd.to_timedelta(["3d", "2d", "1d", "2d", "5d"]),
+            pd.to_timedelta(["3D", "2D", "1D", "2D", "5D"]),
             np.array([3, 2, 1, 2, 5], dtype="int8"),
             np.array([3, 2, 1, 2, 5], dtype="int16"),
             np.array([3, 2, 1, 2, 5], dtype="int32"),
