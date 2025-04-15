@@ -153,11 +153,11 @@ class TestNLargestNSmallest:
             index=[0, 0, 1, 1, 1],
         )
         result = df.nsmallest(n, order)
-        expected = df.sort_values(order).head(n)
+        expected = df.sort_values(order, kind="stable").head(n)
         tm.assert_frame_equal(result, expected)
 
         result = df.nlargest(n, order)
-        expected = df.sort_values(order, ascending=False).head(n)
+        expected = df.sort_values(order, ascending=False, kind="stable").head(n)
         if Version(np.__version__) >= Version("1.25") and (
             (order == ["a"] and n in (1, 2, 3, 4)) or ((order == ["a", "b"]) and n == 5)
         ):
