@@ -4944,7 +4944,7 @@ class DataFrame(NDFrame, OpsMixin):
         value, refs = self._sanitize_column(value)
         self._mgr.insert(loc, column, value, refs=refs)
 
-    def assign(self, **kwargs) -> DataFrame:
+    def assign(self, __kwargs_dict__=None, **kwargs) -> DataFrame:
         r"""
         Assign new columns to a DataFrame.
 
@@ -5006,7 +5006,8 @@ class DataFrame(NDFrame, OpsMixin):
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
         """
-        data = self.copy(deep=None)
+        if __kwargs_dict__ is not None:
+            kwargs = __kwargs_dict__
 
         for key in kwargs:
             if not isinstance(key, str):
@@ -5015,10 +5016,10 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Use df[{key!r}] = ... to assign non-string column names like tuples."
                 )
 
+        data = self.copy(deep=None)
         for k, v in kwargs.items():
             data[k] = com.apply_if_callable(v, data)
         return data
-
     def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are

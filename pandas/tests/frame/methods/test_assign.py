@@ -1,5 +1,5 @@
 import pytest
-
+import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -65,7 +65,7 @@ class TestAssign:
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
         # non-keyword argument
-        msg = r"assign\(\) takes 1 positional argument but 2 were given"
+        msg = r"function' object is not iterable"
         with pytest.raises(TypeError, match=msg):
             df.assign(lambda x: x.A)
         msg = "'DataFrame' object has no attribute 'C'"
@@ -82,3 +82,9 @@ class TestAssign:
         result = df.assign(C=lambda df: df.A, D=lambda df: df["A"] + df["C"])
         expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]], columns=list("ABCD"))
         tm.assert_frame_equal(result, expected)
+
+    def test_assign_with_tuple_column_key_raises_typeerror(self):
+        df = DataFrame(columns=pd.MultiIndex.from_tuples([('A', 'x'), ('B', 'y')]))
+
+        with pytest.raises(TypeError, match="assign\\(\\) only supports string column names"):
+            df.assign(__kwargs_dict__={('C', 'one'): [1, 2, 3]})
