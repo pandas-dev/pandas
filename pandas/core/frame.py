@@ -5008,6 +5008,13 @@ class DataFrame(NDFrame, OpsMixin):
         """
         data = self.copy(deep=None)
 
+        for key in kwargs:
+            if not isinstance(key, str):
+                raise TypeError(
+                    f"assign() only supports string column names. "
+                    f"Use df[{key!r}] = ... to assign non-string column names like tuples."
+                )
+
         for k, v in kwargs.items():
             data[k] = com.apply_if_callable(v, data)
         return data
