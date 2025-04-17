@@ -727,9 +727,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
-        Filter elements from groups that don't satisfy a criterion.
+        Filter groups that don't satisfy a criterion.
 
-        Elements from groups are filtered if they do not satisfy the
+        Groups are filtered if they do not satisfy the
         boolean criterion specified by func.
 
         Parameters
@@ -752,7 +752,7 @@ class SeriesGroupBy(GroupBy[Series]):
         See Also
         --------
         Series.filter: Filter elements of ungrouped Series.
-        DataFrameGroupBy.filter : Filter elements from groups base on criterion.
+        DataFrameGroupBy.filter : Filter groups base on criterion.
 
         Notes
         -----
@@ -2335,9 +2335,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def filter(self, func, dropna: bool = True, *args, **kwargs) -> DataFrame:
         """
-        Filter elements from groups that don't satisfy a criterion.
+        Filter groups that don't satisfy a criterion.
 
-        Elements from groups are filtered if they do not satisfy the
+        Groups are filtered if they do not satisfy the
         boolean criterion specified by func.
 
         Parameters
@@ -2360,7 +2360,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         DataFrame.filter: Filter elements of ungrouped DataFrame.
-        SeriesGroupBy.filter : Filter elements from groups base on criterion.
+        SeriesGroupBy.filter : Filter groups based on criterion.
 
         Notes
         -----
