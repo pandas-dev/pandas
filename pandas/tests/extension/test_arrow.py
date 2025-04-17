@@ -281,42 +281,33 @@ class TestArrowArray(base.ExtensionTests):
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
-        if data_missing.dtype.kind in "mM":
-            mapped = data_missing.map(lambda x: x, na_action=na_action)
-            result = pd.Series(mapped)
+        result = data_missing.map(lambda x: x, na_action=na_action)
+
+        if data_missing.dtype == "float32[pyarrow]":
+            expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
+            tm.assert_numpy_array_equal(result, expected)
+
+        elif data_missing.dtype.kind in "mM":
             expected = pd.Series(data_missing.to_numpy())
 
             orig_dtype = expected.dtype
-
-            if result.dtype == "float64" and (
-                is_datetime64_any_dtype(orig_dtype)
-                or is_timedelta64_dtype(orig_dtype)
-                or isinstance(orig_dtype, pd.DatetimeTZDtype)
-            ):
-                result = result.astype(orig_dtype)
-
             if isinstance(orig_dtype, pd.DatetimeTZDtype):
                 pass
             elif is_datetime64_any_dtype(orig_dtype):
                 result = result.astype("datetime64[ns]").astype("int64")
                 expected = expected.astype("datetime64[ns]").astype("int64")
-                result = pd.Series(result)
-                expected = pd.Series(expected)
             elif is_timedelta64_dtype(orig_dtype):
                 result = result.astype("timedelta64[ns]")
                 expected = expected.astype("timedelta64[ns]")
 
+            result = pd.Series(result)
+            expected = pd.Series(expected)
             tm.assert_series_equal(
                 result, expected, check_dtype=False, check_exact=False
             )
 
         else:
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            if data_missing.dtype == "float32[pyarrow]":
-                # map roundtrips through objects, which converts to float64
-                expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
-            else:
-                expected = data_missing.to_numpy()
+            expected = data_missing.to_numpy()
             tm.assert_numpy_array_equal(result, expected)
 
     def test_astype_str(self, data, request, using_infer_string):
