@@ -241,7 +241,8 @@ def find_valid_index(how: str, is_valid: npt.NDArray[np.bool_]) -> int | None:
         return None
 
     if is_valid.ndim == 2:
-        is_valid = is_valid.any(axis=1)  # reduce axis 1
+        # reduce axis 1
+        is_valid = is_valid.any(axis=1)  # type: ignore[assignment]
 
     if how == "first":
         idxpos = is_valid[::].argmax()
@@ -312,18 +313,9 @@ def get_interp_index(method, index: Index) -> Index:
     # create/use the index
     if method == "linear":
         # prior default
-        from pandas import Index
+        from pandas import RangeIndex
 
-        if isinstance(index.dtype, DatetimeTZDtype) or lib.is_np_dtype(
-            index.dtype, "mM"
-        ):
-            # Convert datetime-like indexes to int64
-            index = Index(index.view("i8"))
-
-        elif not is_numeric_dtype(index.dtype):
-            # We keep behavior consistent with prior versions of pandas for
-            # non-numeric, non-datetime indexes
-            index = Index(range(len(index)))
+        index = RangeIndex(len(index))
     else:
         methods = {"index", "values", "nearest", "time"}
         is_numeric_or_datetime = (
@@ -413,10 +405,7 @@ def interpolate_2d_inplace(
             **kwargs,
         )
 
-    # error: No overload variant of "apply_along_axis" matches
-    # argument types "Callable[[ndarray[Any, Any]], None]",
-    # "int", "ndarray[Any, Any]"
-    np.apply_along_axis(func, axis, data)  # type: ignore[call-overload]
+    np.apply_along_axis(func, axis, data)
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:

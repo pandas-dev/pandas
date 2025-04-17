@@ -1,0 +1,8 @@
+{
+  "LiteBuildConfig": {
+    "apps": ["repl"],
+    "no_unused_shared_packages": true,
+    "output_dir": "../build/lite",
+    "no_sourcemaps": true
+  }
+}

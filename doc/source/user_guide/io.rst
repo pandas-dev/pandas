@@ -18,10 +18,10 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :widths: 30, 100, 60, 60
 
     text,`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__, :ref:`read_csv<io.read_csv_table>`, :ref:`to_csv<io.store_in_csv>`
-    text,Fixed-Width Text File, :ref:`read_fwf<io.fwf_reader>` , NA
+    text,Fixed-Width Text File, :ref:`read_fwf<io.fwf_reader>`, NA
     text,`JSON <https://www.json.org/>`__, :ref:`read_json<io.json_reader>`, :ref:`to_json<io.json_writer>`
     text,`HTML <https://en.wikipedia.org/wiki/HTML>`__, :ref:`read_html<io.read_html>`, :ref:`to_html<io.html>`
-    text,`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__, :ref:`Styler.to_latex<io.latex>` , NA
+    text,`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__, NA, :ref:`Styler.to_latex<io.latex>`
     text,`XML <https://www.w3.org/standards/xml/core>`__, :ref:`read_xml<io.read_xml>`, :ref:`to_xml<io.xml>`
     text, Local clipboard, :ref:`read_clipboard<io.clipboard>`, :ref:`to_clipboard<io.clipboard>`
     binary,`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__ , :ref:`read_excel<io.excel_reader>`, :ref:`to_excel<io.excel_writer>`

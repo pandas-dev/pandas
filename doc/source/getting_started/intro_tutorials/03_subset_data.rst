@@ -335,7 +335,7 @@ the name ``anonymous`` to the first 3 elements of the fourth column:
 .. ipython:: python
 
     titanic.iloc[0:3, 3] = "anonymous"
-    titanic.head()
+    titanic.iloc[:5, 3]
 
 .. raw:: html
 

@@ -42,6 +42,7 @@ Rolling window functions
    Rolling.quantile
    Rolling.sem
    Rolling.rank
+   Rolling.nunique
 
 .. _api.functions_window:
 
@@ -86,6 +87,7 @@ Expanding window functions
    Expanding.quantile
    Expanding.sem
    Expanding.rank
+   Expanding.nunique
 
 .. _api.functions_ewm:
 

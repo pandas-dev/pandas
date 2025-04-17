@@ -7,8 +7,6 @@ import time
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import PY312
 
 import pandas as pd
@@ -25,7 +23,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.conftest import has_pyarrow
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
@@ -385,20 +382,24 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
     tm.assert_series_equal(read_hdf(path, "ss4"), concat([df["B"], df2["B"]]))
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and has_pyarrow,
-    reason="TODO(infer_string): can't encode '\ud800': surrogates not allowed",
-)
 @pytest.mark.parametrize("format", ["fixed", "table"])
-def test_to_hdf_errors(tmp_path, format, setup_path):
+def test_to_hdf_errors(tmp_path, format, setup_path, using_infer_string):
     data = ["\ud800foo"]
-    ser = Series(data, index=Index(data))
+    ser = Series(data, index=Index(data, dtype="object"), dtype="object")
     path = tmp_path / setup_path
     # GH 20835
     ser.to_hdf(path, key="table", format=format, errors="surrogatepass")
 
     result = read_hdf(path, "table", errors="surrogatepass")
-    tm.assert_series_equal(result, ser)
+
+    if using_infer_string:
+        # https://github.com/pandas-dev/pandas/pull/60993
+        # Surrogates fallback to python storage.
+        dtype = pd.StringDtype(storage="python", na_value=np.nan)
+    else:
+        dtype = "object"
+    expected = Series(data, index=Index(data, dtype=dtype), dtype=dtype)
+    tm.assert_series_equal(result, expected)
 
 
 def test_create_table_index(setup_path):

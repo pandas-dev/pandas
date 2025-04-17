@@ -123,20 +123,20 @@ def test_resample_interpolate_regular_sampling_off_grid(
     ser = Series(np.arange(5.0), index)
 
     method = all_1d_no_arg_interpolation_methods
-    # Resample to 1 hour sampling and interpolate with the given method
-    ser_resampled = ser.resample("1h").interpolate(method)
+    result = ser.resample("1h").interpolate(method)
 
-    # Check that none of the resampled values are NaN, except the first one
-    # which lies 1 minute before the first actual data point
-    assert np.isnan(ser_resampled.iloc[0])
-    assert not ser_resampled.iloc[1:].isna().any()
-
-    if method not in ["nearest", "zero"]:
-        # Check that the resampled values are close to the expected values
-        # except for methods with known inaccuracies
-        assert np.all(
-            np.isclose(ser_resampled.values[1:], np.arange(0.5, 4.5, 0.5), rtol=1.0e-1)
-        )
+    if method == "linear":
+        values = np.repeat(np.arange(0.0, 4.0), 2) + np.tile([1 / 3, 2 / 3], 4)
+    elif method == "nearest":
+        values = np.repeat(np.arange(0.0, 5.0), 2)[1:-1]
+    elif method == "zero":
+        values = np.repeat(np.arange(0.0, 4.0), 2)
+    else:
+        values = 0.491667 + np.arange(0.0, 4.0, 0.5)
+    values = np.insert(values, 0, np.nan)
+    index = date_range("2000-01-01 00:00:00", periods=9, freq="1h")
+    expected = Series(values, index=index)
+    tm.assert_series_equal(result, expected)
 
 
 def test_resample_interpolate_irregular_sampling(all_1d_no_arg_interpolation_methods):
@@ -221,6 +221,31 @@ def test_resample_empty_series(freq, index, resample_method):
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
+
+
+@pytest.mark.parametrize("min_count", [0, 1])
+def test_resample_empty_sum_string(string_dtype_no_object, min_count):
+    # https://github.com/pandas-dev/pandas/issues/60229
+    dtype = string_dtype_no_object
+    ser = Series(
+        pd.NA,
+        index=DatetimeIndex(
+            [
+                "2000-01-01 00:00:00",
+                "2000-01-01 00:00:10",
+                "2000-01-01 00:00:20",
+                "2000-01-01 00:00:30",
+            ]
+        ),
+        dtype=dtype,
+    )
+    rs = ser.resample("20s")
+    result = rs.sum(min_count=min_count)
+
+    value = "" if min_count == 0 else pd.NA
+    index = date_range(start="2000-01-01", freq="20s", periods=2, unit="s")
+    expected = Series(value, index=index, dtype=dtype)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -411,6 +436,24 @@ def test_resample_size_empty_dataframe(freq, index):
     expected = Series([], dtype="int64", index=index)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("index", [DatetimeIndex([]), TimedeltaIndex([])])
+@pytest.mark.parametrize("freq", ["D", "h"])
+@pytest.mark.parametrize(
+    "method", ["ffill", "bfill", "nearest", "asfreq", "interpolate", "mean"]
+)
+def test_resample_apply_empty_dataframe(index, freq, method):
+    # GH#55572
+    empty_frame_dti = DataFrame(index=index)
+
+    rs = empty_frame_dti.resample(freq)
+    result = rs.apply(getattr(rs, method))
+
+    expected_index = _asfreq_compat(empty_frame_dti.index, freq)
+    expected = DataFrame([], index=expected_index)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

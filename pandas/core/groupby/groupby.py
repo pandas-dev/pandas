@@ -546,7 +546,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-15    4
         dtype: int64
         >>> ser.resample("MS").groups
-        {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
+        {Timestamp('2023-01-01 00:00:00'): np.int64(2),
+         Timestamp('2023-02-01 00:00:00'): np.int64(4)}
         """
         if isinstance(self.keys, list) and len(self.keys) == 1:
             warnings.warn(
@@ -613,7 +614,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         toucan  1  5  6
         eagle   7  8  9
         >>> df.groupby(by=["a"]).indices
-        {1: array([0, 1]), 7: array([2])}
+        {np.int64(1): array([0, 1]), np.int64(7): array([2])}
 
         For Resampler:
 
@@ -1877,7 +1878,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             mask.fill(False)
             mask[indices.astype(int)] = True
             # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T  # type: ignore[assignment]
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
 
@@ -3802,16 +3803,58 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def expanding(self, *args, **kwargs) -> ExpandingGroupby:
         """
-        Return an expanding grouper, providing expanding
-        functionality per group.
+        Return an expanding grouper, providing expanding functionality per group.
+
+        Arguments are the same as `:meth:DataFrame.rolling` except that ``step`` cannot
+        be specified.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments passed to the expanding window constructor.
+        **kwargs : dict
+            Keyword arguments passed to the expanding window constructor.
 
         Returns
         -------
         pandas.api.typing.ExpandingGroupby
+            An object that supports expanding transformations over each group.
+
+        See Also
+        --------
+        Series.expanding : Expanding transformations for Series.
+        DataFrame.expanding : Expanding transformations for DataFrames.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Class": ["A", "A", "A", "B", "B", "B"],
+        ...         "Value": [10, 20, 30, 40, 50, 60],
+        ...     }
+        ... )
+        >>> df
+          Class  Value
+        0     A     10
+        1     A     20
+        2     A     30
+        3     B     40
+        4     B     50
+        5     B     60
+
+        >>> df.groupby("Class").expanding().mean()
+                 Value
+        Class
+        A     0   10.0
+              1   15.0
+              2   20.0
+        B     3   40.0
+              4   45.0
+              5   50.0
         """
         from pandas.core.window import ExpandingGroupby
 
@@ -3823,15 +3866,79 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
 
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments passed to the EWM window constructor.
+        **kwargs : dict
+            Keyword arguments passed to the EWM window constructor, such as:
+
+            com : float, optional
+                Specify decay in terms of center of mass.
+                ``span``, ``halflife``, and ``alpha`` are alternative ways to specify
+                decay.
+            span : float, optional
+                Specify decay in terms of span.
+            halflife : float, optional
+                Specify decay in terms of half-life.
+            alpha : float, optional
+                Specify smoothing factor directly.
+            min_periods : int, default 0
+                Minimum number of observations in the window required to have a value;
+                otherwise, result is ``np.nan``.
+            adjust : bool, default True
+                Divide by decaying adjustment factor to account for imbalance in
+                relative weights.
+            ignore_na : bool, default False
+                Ignore missing values when calculating weights.
+            times : str or array-like of datetime64, optional
+                Times corresponding to the observations.
+            axis : {0 or 'index', 1 or 'columns'}, default 0
+                Axis along which the EWM function is applied.
+
         Returns
         -------
         pandas.api.typing.ExponentialMovingWindowGroupby
+            An object that supports exponentially weighted moving transformations over
+            each group.
+
+        See Also
+        --------
+        Series.ewm : EWM transformations for Series.
+        DataFrame.ewm : EWM transformations for DataFrames.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Class": ["A", "A", "A", "B", "B", "B"],
+        ...         "Value": [10, 20, 30, 40, 50, 60],
+        ...     }
+        ... )
+        >>> df
+        Class  Value
+        0     A     10
+        1     A     20
+        2     A     30
+        3     B     40
+        4     B     50
+        5     B     60
+
+        >>> df.groupby("Class").ewm(com=0.5).mean()
+                     Value
+        Class
+        A     0  10.000000
+              1  17.500000
+              2  26.153846
+        B     3  40.000000
+              4  47.500000
+              5  56.153846
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
@@ -4440,11 +4547,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     )
 
             if vals.ndim == 1:
-                out = out.ravel("K")
+                out = out.ravel("K")  # type: ignore[assignment]
                 if result_mask is not None:
-                    result_mask = result_mask.ravel("K")
+                    result_mask = result_mask.ravel("K")  # type: ignore[assignment]
             else:
-                out = out.reshape(ncols, ngroups * nqs)
+                out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
             return post_processor(out, inference, result_mask, orig_vals)
 
@@ -5174,8 +5281,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 shifted = shifted.astype("float32")
         else:
             to_coerce = [c for c, dtype in obj.dtypes.items() if dtype in dtypes_to_f32]
-            if len(to_coerce):
-                shifted = shifted.astype({c: "float32" for c in to_coerce})
+            if to_coerce:
+                shifted = shifted.astype(dict.fromkeys(to_coerce, "float32"))
 
         return obj - shifted
 

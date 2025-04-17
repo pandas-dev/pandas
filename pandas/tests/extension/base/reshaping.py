@@ -3,6 +3,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import NumpyEADtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
@@ -266,7 +268,13 @@ class BaseReshapingTests:
         expected = expected.astype(object)
 
         if isinstance(expected, pd.Series):
-            assert result.dtype == df.iloc[:, 0].dtype
+            if future_stack and isinstance(data.dtype, NumpyEADtype):
+                # GH#58817 future_stack=True constructs the result specifying the dtype
+                # using the dtype of the input; we thus get the underlying
+                # NumPy dtype as the result instead of the NumpyExtensionArray
+                assert result.dtype == df.iloc[:, 0].to_numpy().dtype
+            else:
+                assert result.dtype == df.iloc[:, 0].dtype
         else:
             assert all(result.dtypes == df.iloc[:, 0].dtype)
 

@@ -246,7 +246,8 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         with warnings.catch_warnings():
             # Can remove warning filter once NumPy 1.24 is min version
             if not np_version_gte1p24:
-                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+                # np.VisibleDeprecationWarning only in np.exceptions in 2.0
+                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)  # type: ignore[attr-defined]
             result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like

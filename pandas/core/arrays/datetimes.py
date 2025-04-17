@@ -331,7 +331,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         else:
             # DatetimeTZDtype. If we have e.g. DatetimeTZDtype[us, UTC],
             #  then values.dtype should be M8[us].
-            assert dtype._creso == get_unit_from_dtype(values.dtype)
+            assert dtype._creso == get_unit_from_dtype(values.dtype)  # type: ignore[union-attr]
 
         result = super()._simple_new(values, dtype)
         result._freq = freq
@@ -542,7 +542,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.datetime64(value._value, self.unit)
+            return np.datetime64(value._value, self.unit)  # type: ignore[call-overload]
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
@@ -813,10 +813,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
-                # error: Argument 1 to "view" of "ndarray" has incompatible type
-                # "dtype[datetime64] | DatetimeTZDtype"; expected
-                # "dtype[Any] | type[Any] | _SupportsDType[dtype[Any]]"
-                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
+                res_values = res_values.view(values.dtype)
         except NotImplementedError:
             if get_option("performance_warnings"):
                 warnings.warn(

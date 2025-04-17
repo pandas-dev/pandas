@@ -32,6 +32,8 @@ cnp.import_array()
 
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
 
+from typing import ClassVar
+
 from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
@@ -2524,8 +2526,7 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     _attributes = tuple(["n", "normalize", "month"])
 
-    # FIXME(cython#4446): python annotation here gives compile-time errors
-    # _default_month: int
+    _default_month: ClassVar[int]
 
     cdef readonly:
         int month
@@ -2788,9 +2789,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    # FIXME(cython#4446): python annotation here gives compile-time errors
-    # _default_starting_month: int
-    # _from_name_starting_month: int
+    _default_starting_month: ClassVar[int]
+    _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
         int startingMonth
@@ -3008,6 +3008,227 @@ cdef class QuarterBegin(QuarterOffset):
     _default_starting_month = 3
     _from_name_starting_month = 1
     _prefix = "QS"
+    _day_opt = "start"
+
+
+# ----------------------------------------------------------------------
+# HalfYear-Based Offset Classes
+
+cdef class HalfYearOffset(SingleConstructorOffset):
+    _attributes = tuple(["n", "normalize", "startingMonth"])
+    # TODO: Consider combining HalfYearOffset, QuarterOffset and YearOffset
+
+    _default_starting_month: ClassVar[int]
+    _from_name_starting_month: ClassVar[int]
+
+    cdef readonly:
+        int startingMonth
+
+    def __init__(self, n=1, normalize=False, startingMonth=None):
+        BaseOffset.__init__(self, n, normalize)
+
+        if startingMonth is None:
+            startingMonth = self._default_starting_month
+        self.startingMonth = startingMonth
+
+    cpdef __setstate__(self, state):
+        self.startingMonth = state.pop("startingMonth")
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+        else:
+            if cls._from_name_starting_month is not None:
+                kwargs["startingMonth"] = cls._from_name_starting_month
+        return cls(**kwargs)
+
+    @property
+    def rule_code(self) -> str:
+        month = MONTH_ALIASES[self.startingMonth]
+        return f"{self._prefix}-{month}"
+
+    def is_on_offset(self, dt: datetime) -> bool:
+        if self.normalize and not _is_normalized(dt):
+            return False
+        mod_month = (dt.month - self.startingMonth) % 6
+        return mod_month == 0 and dt.day == self._get_offset_day(dt)
+
+    @apply_wraps
+    def _apply(self, other: datetime) -> datetime:
+        # months_since: find the calendar half containing other.month,
+        # e.g. if other.month == 8, the calendar half is [Jul, Aug, Sep, ..., Dec].
+        # Then find the month in that half containing an is_on_offset date for
+        # self.  `months_since` is the number of months to shift other.month
+        # to get to this on-offset month.
+        months_since = other.month % 6 - self.startingMonth % 6
+        hlvs = roll_qtrday(
+            other, self.n, self.startingMonth, day_opt=self._day_opt, modby=6
+        )
+        months = hlvs * 6 - months_since
+        return shift_month(other, months, self._day_opt)
+
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        reso = get_unit_from_dtype(dtarr.dtype)
+        shifted = shift_quarters(
+            dtarr.view("i8"),
+            self.n,
+            self.startingMonth,
+            self._day_opt,
+            modby=6,
+            reso=reso,
+        )
+        return shifted
+
+
+cdef class BHalfYearEnd(HalfYearOffset):
+    """
+    DateOffset increments between the last business day of each half-year.
+
+    startingMonth = 1 corresponds to dates like 1/31/2007, 7/31/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 8/31/2007, ...
+    startingMonth = 6 corresponds to dates like 6/30/2007, 12/31/2007, ...
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of half-years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 6
+        A specific integer for the month of the year from which we start half-years.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import BHalfYearEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BHalfYearEnd()
+    Timestamp('2020-06-30 05:01:15')
+    >>> ts + BHalfYearEnd(2)
+    Timestamp('2020-12-31 05:01:15')
+    >>> ts + BHalfYearEnd(1, startingMonth=2)
+    Timestamp('2020-08-31 05:01:15')
+    >>> ts + BHalfYearEnd(startingMonth=2)
+    Timestamp('2020-08-31 05:01:15')
+    """
+    _output_name = "BusinessHalfYearEnd"
+    _default_starting_month = 6
+    _from_name_starting_month = 12
+    _prefix = "BHYE"
+    _day_opt = "business_end"
+
+
+cdef class BHalfYearBegin(HalfYearOffset):
+    """
+    DateOffset increments between the first business day of each half-year.
+
+    startingMonth = 1 corresponds to dates like 1/01/2007, 7/01/2007, ...
+    startingMonth = 2 corresponds to dates like 2/01/2007, 8/01/2007, ...
+    startingMonth = 3 corresponds to dates like 3/01/2007, 9/01/2007, ...
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of half-years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 1
+        A specific integer for the month of the year from which we start half-years.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import BHalfYearBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BHalfYearBegin()
+    Timestamp('2020-07-01 05:01:15')
+    >>> ts + BHalfYearBegin(2)
+    Timestamp('2021-01-01 05:01:15')
+    >>> ts + BHalfYearBegin(startingMonth=2)
+    Timestamp('2020-08-03 05:01:15')
+    >>> ts + BHalfYearBegin(-1)
+    Timestamp('2020-01-01 05:01:15')
+    """
+    _output_name = "BusinessHalfYearBegin"
+    _default_starting_month = 1
+    _from_name_starting_month = 1
+    _prefix = "BHYS"
+    _day_opt = "business_start"
+
+
+cdef class HalfYearEnd(HalfYearOffset):
+    """
+    DateOffset increments between half-year end dates.
+
+    startingMonth = 1 corresponds to dates like 1/31/2007, 7/31/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 8/31/2007, ...
+    startingMonth = 6 corresponds to dates like 6/30/2007, 12/31/2007, ...
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of half-years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 6
+        A specific integer for the month of the year from which we start half-years.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.HalfYearEnd()
+    Timestamp('2022-06-30 00:00:00')
+    """
+    _default_starting_month = 6
+    _from_name_starting_month = 12
+    _prefix = "HYE"
+    _day_opt = "end"
+
+
+cdef class HalfYearBegin(HalfYearOffset):
+    """
+    DateOffset increments between half-year start dates.
+
+    startingMonth = 1 corresponds to dates like 1/01/2007, 7/01/2007, ...
+    startingMonth = 2 corresponds to dates like 2/01/2007, 8/01/2007, ...
+    startingMonth = 3 corresponds to dates like 3/01/2007, 9/01/2007, ...
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of half-years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 1
+        A specific integer for the month of the year from which we start half-years.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    >>> ts = pd.Timestamp(2022, 2, 1)
+    >>> ts + pd.offsets.HalfYearBegin()
+    Timestamp('2022-07-01 00:00:00')
+    """
+    _default_starting_month = 1
+    _from_name_starting_month = 1
+    _prefix = "HYS"
     _day_opt = "start"
 
 
@@ -4823,6 +5044,8 @@ prefix_mapping = {
         BusinessMonthEnd,  # 'BME'
         BQuarterEnd,  # 'BQE'
         BQuarterBegin,  # 'BQS'
+        BHalfYearEnd,  # 'BHYE'
+        BHalfYearBegin,  # 'BHYS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
         CustomBusinessMonthEnd,  # 'CBME'
@@ -4839,6 +5062,8 @@ prefix_mapping = {
         Micro,  # 'us'
         QuarterEnd,  # 'QE'
         QuarterBegin,  # 'QS'
+        HalfYearEnd,  # 'HYE'
+        HalfYearBegin,  # 'HYS'
         Milli,  # 'ms'
         Hour,  # 'h'
         Day,  # 'D'
@@ -4883,7 +5108,7 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\'"
             f" instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
@@ -4897,7 +5122,7 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
-                f"\'{_name}\' "
+                f"\'{_name}\'"
                 f" instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),

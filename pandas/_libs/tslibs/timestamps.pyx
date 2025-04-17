@@ -200,8 +200,9 @@ class MinMaxReso:
 
     See also: timedeltas.MinMaxReso
     """
-    def __init__(self, name):
+    def __init__(self, name, docstring):
         self._name = name
+        self.__doc__ = docstring
 
     def __get__(self, obj, type=None):
         cls = Timestamp
@@ -216,11 +217,15 @@ class MinMaxReso:
 
         if obj is None:
             # i.e. this is on the class, default to nanos
-            return cls(val)
+            result = cls(val)
         elif self._name == "resolution":
-            return Timedelta._from_value_and_reso(val, obj._creso)
+            result = Timedelta._from_value_and_reso(val, obj._creso)
         else:
-            return Timestamp._from_value_and_reso(val, obj._creso, tz=None)
+            result = Timestamp._from_value_and_reso(val, obj._creso, tz=None)
+
+        result.__doc__ = self.__doc__
+
+        return result
 
     def __set__(self, obj, value):
         raise AttributeError(f"{self._name} is not settable.")
@@ -235,9 +240,74 @@ cdef class _Timestamp(ABCTimestamp):
     dayofweek = _Timestamp.day_of_week
     dayofyear = _Timestamp.day_of_year
 
-    min = MinMaxReso("min")
-    max = MinMaxReso("max")
-    resolution = MinMaxReso("resolution")  # GH#21336, GH#21365
+    _docstring_min = """
+    Returns the minimum bound possible for Timestamp.
+
+    This property provides access to the smallest possible value that
+    can be represented by a Timestamp object.
+
+    Returns
+    -------
+    Timestamp
+
+    See Also
+    --------
+    Timestamp.max: Returns the maximum bound possible for Timestamp.
+    Timestamp.resolution: Returns the smallest possible difference between
+        non-equal Timestamp objects.
+
+    Examples
+    --------
+    >>> pd.Timestamp.min
+    Timestamp('1677-09-21 00:12:43.145224193')
+    """
+
+    _docstring_max = """
+    Returns the maximum bound possible for Timestamp.
+
+    This property provides access to the largest possible value that
+    can be represented by a Timestamp object.
+
+    Returns
+    -------
+    Timestamp
+
+    See Also
+    --------
+    Timestamp.min: Returns the minimum bound possible for Timestamp.
+    Timestamp.resolution: Returns the smallest possible difference between
+        non-equal Timestamp objects.
+
+    Examples
+    --------
+    >>> pd.Timestamp.max
+    Timestamp('2262-04-11 23:47:16.854775807')
+    """
+
+    _docstring_reso = """
+    Returns the smallest possible difference between non-equal Timestamp objects.
+
+    The resolution value is determined by the underlying representation of time
+    units and is equivalent to Timedelta(nanoseconds=1).
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timestamp.max: Returns the maximum bound possible for Timestamp.
+    Timestamp.min: Returns the minimum bound possible for Timestamp.
+
+    Examples
+    --------
+    >>> pd.Timestamp.resolution
+    Timedelta('0 days 00:00:00.000000001')
+    """
+
+    min = MinMaxReso("min", _docstring_min)
+    max = MinMaxReso("max", _docstring_max)
+    resolution = MinMaxReso("resolution", _docstring_reso)  # GH#21336, GH#21365
 
     @property
     def value(self) -> int:
@@ -1309,7 +1379,7 @@ cdef class _Timestamp(ABCTimestamp):
         By default, the fractional part is omitted if self.microsecond == 0
         and self._nanosecond == 0.
 
-        If self.tzinfo is not None, the UTC offset is also attached, giving
+        If self.tzinfo is not None, the UTC offset is also attached,
         giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
 
         Parameters
@@ -2207,6 +2277,34 @@ class Timestamp(_Timestamp):
         'CET'
         """
         return super().tzname()
+
+    @property
+    def tzinfo(self):
+        """
+        Returns the timezone info of the Timestamp.
+
+        This property returns a `datetime.tzinfo` object if the Timestamp
+        is timezone-aware. If the Timestamp has no timezone, it returns `None`.
+        If the Timestamp is in UTC or a fixed-offset timezone,
+        it returns `datetime.timezone`. If the Timestamp uses an
+        IANA timezone (e.g., "America/New_York"), it returns `zoneinfo.ZoneInfo`.
+
+        See Also
+        --------
+        Timestamp.tz : Alias for `tzinfo`, may return a `zoneinfo.ZoneInfo` object.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a specific timezone.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2023-01-01 12:00:00", tz="UTC")
+        >>> ts.tzinfo
+        datetime.timezone.utc
+
+        >>> ts_naive = pd.Timestamp("2023-01-01 12:00:00")
+        >>> ts_naive.tzinfo
+        """
+        return super().tzinfo
 
     def utcoffset(self):
         """

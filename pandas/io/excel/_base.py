@@ -89,7 +89,7 @@ if TYPE_CHECKING:
     )
 _read_excel_doc = (
     """
-Read an Excel file into a ``pandas`` ``DataFrame``.
+Read an Excel file into a ``DataFrame``.
 
 Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
@@ -197,7 +197,7 @@ skiprows : list-like, int, or callable, optional
     False otherwise. An example of a valid callable argument would be ``lambda
     x: x in [0, 2]``.
 nrows : int, default None
-    Number of rows to parse.
+    Number of rows to parse. Does not include header rows.
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted

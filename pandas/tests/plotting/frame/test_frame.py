@@ -840,14 +840,26 @@ class TestDataFramePlots:
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
-    def test_raise_error_on_datetime_time_data(self):
-        # GH 8113, datetime.time type is not supported by matplotlib in scatter
+    def test_scatter_on_datetime_time_data(self):
+        # datetime.time type is now supported in scatter, since a converter
+        # is implemented in ScatterPlot
         df = DataFrame(np.random.default_rng(2).standard_normal(10), columns=["a"])
         df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
-        msg = "must be a string or a (real )?number, not 'datetime.time'"
+        df.plot(kind="scatter", x="dtime", y="a")
 
-        with pytest.raises(TypeError, match=msg):
-            df.plot(kind="scatter", x="dtime", y="a")
+    def test_scatter_line_xticks(self):
+        # GH#61005
+        df = DataFrame(
+            [(datetime(year=2025, month=1, day=1, hour=n), n) for n in range(3)],
+            columns=["datetime", "y"],
+        )
+        fig, ax = plt.subplots(2, sharex=True)
+        df.plot.scatter(x="datetime", y="y", ax=ax[0])
+        scatter_xticks = ax[0].get_xticks()
+        df.plot(x="datetime", y="y", ax=ax[1])
+        line_xticks = ax[1].get_xticks()
+        assert scatter_xticks[0] == line_xticks[0]
+        assert scatter_xticks[-1] == line_xticks[-1]
 
     @pytest.mark.parametrize("x, y", [("dates", "vals"), (0, 1)])
     def test_scatterplot_datetime_data(self, x, y):

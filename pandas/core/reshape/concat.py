@@ -477,18 +477,23 @@ def _sanitize_mixed_ndim(
 
         else:
             name = getattr(obj, "name", None)
+            rename_columns = False
             if ignore_index or name is None:
                 if axis == 1:
                     # doing a row-wise concatenation so need everything
                     # to line up
-                    name = 0
+                    if name is None:
+                        name = 0
+                        rename_columns = True
                 else:
                     # doing a column-wise concatenation so need series
                     # to have unique names
-                    name = current_column
-                    current_column += 1
+                    if name is None:
+                        rename_columns = True
+                        name = current_column
+                        current_column += 1
                 obj = sample._constructor(obj, copy=False)
-                if isinstance(obj, ABCDataFrame):
+                if isinstance(obj, ABCDataFrame) and rename_columns:
                     obj.columns = range(name, name + 1, 1)
             else:
                 obj = sample._constructor({name: obj}, copy=False)

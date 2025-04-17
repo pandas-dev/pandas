@@ -507,27 +507,18 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
-        # GH 47705
-        obj = self.obj
-        if (
-            isinstance(result, ABCDataFrame)
-            and len(result) == 0
-            and not isinstance(result.index, PeriodIndex)
-        ):
-            result = result.set_index(
-                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
-            )
-
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
             # When index is all NaT, result is empty but index is not
+            obj = self.obj
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
+            result.index.name = self.obj.index.name
 
         return result
 
@@ -907,17 +898,17 @@ class Resampler(BaseGroupBy, PandasObject):
         to non-aligned timestamps, as in the following example:
 
         >>> series.resample("400ms").interpolate("linear")
-        2023-03-01 07:00:00.000    1.0
-        2023-03-01 07:00:00.400    0.2
-        2023-03-01 07:00:00.800   -0.6
-        2023-03-01 07:00:01.200   -0.4
-        2023-03-01 07:00:01.600    0.8
-        2023-03-01 07:00:02.000    2.0
-        2023-03-01 07:00:02.400    1.6
-        2023-03-01 07:00:02.800    1.2
-        2023-03-01 07:00:03.200    1.4
-        2023-03-01 07:00:03.600    2.2
-        2023-03-01 07:00:04.000    3.0
+        2023-03-01 07:00:00.000    1.000000
+        2023-03-01 07:00:00.400    0.333333
+        2023-03-01 07:00:00.800   -0.333333
+        2023-03-01 07:00:01.200    0.000000
+        2023-03-01 07:00:01.600    1.000000
+        2023-03-01 07:00:02.000    2.000000
+        2023-03-01 07:00:02.400    1.666667
+        2023-03-01 07:00:02.800    1.333333
+        2023-03-01 07:00:03.200    1.666667
+        2023-03-01 07:00:03.600    2.333333
+        2023-03-01 07:00:04.000    3.000000
         Freq: 400ms, dtype: float64
 
         Note that the series correctly decreases between two anchors
@@ -1756,6 +1747,17 @@ class _GroupByMixin(PandasObject, SelectionMixin):
             return x.apply(f, *args, **kwargs)
 
         result = self._groupby.apply(func)
+
+        # GH 47705
+        if (
+            isinstance(result, ABCDataFrame)
+            and len(result) == 0
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(self.obj.index[:0], freq=self.freq), append=True
+            )
+
         return self._wrap_result(result)
 
     _upsample = _apply

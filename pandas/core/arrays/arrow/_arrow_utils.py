@@ -44,7 +44,7 @@ def pyarrow_array_to_numpy_and_mask(
         mask = pyarrow.BooleanArray.from_buffers(
             pyarrow.bool_(), len(arr), [None, bitmask], offset=arr.offset
         )
-        mask = np.asarray(mask)
+        mask = np.asarray(mask)  # type: ignore[assignment]
     else:
         mask = np.ones(len(arr), dtype=bool)
     return data, mask

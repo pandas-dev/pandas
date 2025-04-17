@@ -546,7 +546,7 @@ def test_na_values_dict_null_column_name(all_parsers):
     parser = all_parsers
     data = ",x,y\n\nMA,1,2\nNA,2,1\nOA,,3"
     names = [None, "x", "y"]
-    na_values = {name: STR_NA_VALUES for name in names}
+    na_values = dict.fromkeys(names, STR_NA_VALUES)
     dtype = {None: "object", "x": "float64", "y": "float64"}
 
     if parser.engine == "pyarrow":
