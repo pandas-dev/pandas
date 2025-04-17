@@ -6,6 +6,7 @@ from libc.math cimport (
     sqrt,
 )
 from libcpp.deque cimport deque
+from libcpp.stack cimport stack
 from libcpp.unordered_map cimport unordered_map
 
 from pandas._libs.algos cimport TiebreakEnumType
@@ -991,36 +992,24 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 # Moving maximum / minimum code taken from Bottleneck
 # Licence at LICENSES/BOTTLENECK_LICENCE
 
+cdef int64_t bisect_left(
+    deque[int64_t]& a,
+    int64_t x,
+    int64_t lo=0,
+    int64_t hi=-1
+) nogil:
+    cdef int64_t mid
+    if hi == -1:
+        hi = a.size()
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if a.at(mid) < x:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
 
-cdef float64_t init_mm(float64_t ai, Py_ssize_t *nobs, bint is_max) noexcept nogil:
-
-    if ai == ai:
-        nobs[0] = nobs[0] + 1
-    elif is_max:
-        ai = MINfloat64
-    else:
-        ai = MAXfloat64
-
-    return ai
-
-
-cdef void remove_mm(float64_t aold, Py_ssize_t *nobs) noexcept nogil:
-    """ remove a value from the mm calc """
-    if aold == aold:
-        nobs[0] = nobs[0] - 1
-
-
-cdef float64_t calc_mm(int64_t minp, Py_ssize_t nobs,
-                       float64_t value) noexcept nogil:
-    cdef:
-        float64_t result
-
-    if nobs >= minp:
-        result = value
-    else:
-        result = NaN
-
-    return result
+from libc.math cimport isnan
 
 
 def roll_max(ndarray[float64_t] values, ndarray[int64_t] start,
@@ -1068,69 +1057,124 @@ def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
     return _roll_min_max(values, start, end, minp, is_max=0)
 
 
-cdef _roll_min_max(ndarray[float64_t] values,
-                   ndarray[int64_t] starti,
-                   ndarray[int64_t] endi,
-                   int64_t minp,
-                   bint is_max):
+def _roll_min_max(
+    ndarray[float64_t] values,
+    ndarray[int64_t] start,
+    ndarray[int64_t] end,
+    int64_t minp,
+    bint is_max
+):
     cdef:
-        float64_t ai
-        int64_t curr_win_size, start
-        Py_ssize_t i, k, nobs = 0, N = len(starti)
-        deque Q[int64_t]  # min/max always the front
-        deque W[int64_t]  # track the whole window for nobs compute
+        Py_ssize_t i, i_next, k, valid_start, last_end, last_start, N = len(start)
+        deque Q[int64_t]
+        stack Dominators[int64_t]
         ndarray[float64_t, ndim=1] output
+
+        # ideally want these in the i-loop scope
+        Py_ssize_t this_start, this_end, stash_start
+        int64_t q_idx
 
     output = np.empty(N, dtype=np.float64)
     Q = deque[int64_t]()
-    W = deque[int64_t]()
+    Dominators = stack[int64_t]()
+
+    # This function was "ported" / translated from sliding_min_max()
+    # in /pandas/core/_numba/kernels/min_max_.py. (See there for detailed
+    # comments and credits.)
+    # Code translation assumptions/rules:
+    # - min_periods --> minp
+    # - deque[0] --> front()
+    # - deque[-1] --> back()
+    # - stack[-1] --> top()
+    # - bool(stack/deque) --> !empty()
+    # - deque.append()    --> push_back()
+    # - stack.append()    --> push()
+    # - deque.popleft     --> pop_front()
+    # - deque.pop()       --> pop_back()
 
     with nogil:
+        if minp < 1:
+            minp = 1
 
-        # This is using a modified version of the C++ code in this
-        # SO post: https://stackoverflow.com/a/12239580
-        # The original impl didn't deal with variable window sizes
-        # So the code was optimized for that
+        if N>2:
+            i_next = N - 1
+            for i in range(N - 2, -1, -1):
+                if start[i_next] < start[i] \
+                    and (
+                           Dominators.empty()
+                        or start[Dominators.top()] > start[i_next]
+                ):
+                    Dominators.push(i_next)
+                i_next = i
 
-        # first window's size
-        curr_win_size = endi[0] - starti[0]
-        # GH 32865
-        # Anchor output index to values index to provide custom
-        # BaseIndexer support
+        valid_start = -minp
+
+        last_end =0
+        last_start=-1
+
         for i in range(N):
+            this_start = start[i]
+            this_end = end[i]
 
-            curr_win_size = endi[i] - starti[i]
-            if i == 0:
-                start = starti[i]
+            if (not Dominators.empty() and Dominators.top() == i):
+                Dominators.pop()
+
+            if not (this_end > last_end
+                    or (this_end == last_end and this_start >= last_start)):
+                raise ValueError(
+                    "Start/End ordering requirement is violated at index {}".format(i))
+
+            if Dominators.empty():
+                stash_start = this_start
             else:
-                start = endi[i - 1]
+                stash_start = min(this_start, start[Dominators.top()])
 
-            for k in range(start, endi[i]):
-                ai = init_mm(values[k], &nobs, is_max)
-                # Discard previous entries if we find new min or max
-                if is_max:
-                    while not Q.empty() and ((ai >= values[Q.back()]) or
-                                             values[Q.back()] != values[Q.back()]):
-                        Q.pop_back()
-                else:
-                    while not Q.empty() and ((ai <= values[Q.back()]) or
-                                             values[Q.back()] != values[Q.back()]):
-                        Q.pop_back()
-                Q.push_back(k)
-                W.push_back(k)
-
-            # Discard entries outside and left of current window
-            while not Q.empty() and Q.front() <= starti[i] - 1:
+            while not Q.empty() and Q.front() < stash_start:
                 Q.pop_front()
-            while not W.empty() and W.front() <= starti[i] - 1:
-                remove_mm(values[W.front()], &nobs)
-                W.pop_front()
 
-            # Save output based on index in input value array
-            if not Q.empty() and curr_win_size > 0:
-                output[i] = calc_mm(minp, nobs, values[Q.front()])
-            else:
+            for k in range(last_end, this_end):
+                if not isnan(values[k]):
+                    valid_start += 1
+                    while valid_start>=0 and isnan(values[valid_start]):
+                        valid_start += 1
+
+                    # Sadly, this runs more than 15% faster than trying to use
+                    # generic comparison functions.
+                    # That is, I tried:
+                    #
+                    # | cdef inline bint le(float64_t a, float64_t b) nogil:
+                    # |     return a <= b
+                    # | cdef inline bint ge(float64_t a, float64_t b) nogil:
+                    # |     return a >= b
+                    # | ctypedef bint (*cmp_func_t) (float64_t a, float64_t b) nogil
+                    # | ...
+                    # | cmp_func_t cmp
+                    # |
+                    # | if is_max:
+                    # |     cmp = ge
+                    # | else:
+                    # |     cmp = le
+                    # and, finally
+                    # | while not Q.empty() and cmp(values[k], values[Q.back()]):
+                    # |     Q.pop_back()
+
+                    if is_max:
+                        while not Q.empty() and values[k] >= values[Q.back()]:
+                            Q.pop_back()
+                    else:
+                        while not Q.empty() and values[k] <= values[Q.back()]:
+                            Q.pop_back()
+                    Q.push_back(k)
+
+            if Q.empty() or this_start > valid_start:
                 output[i] = NaN
+            elif Q.front() >= this_start:
+                output[i] = values[Q.front()]
+            else:
+                q_idx = bisect_left(Q, this_start, lo=1)
+                output[i] = values[Q[q_idx]]
+            last_end = this_end
+            last_start = this_start
 
     return output
 

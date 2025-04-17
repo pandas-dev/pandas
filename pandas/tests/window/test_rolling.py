@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from typing import Any
 
 import numpy as np
 import pytest
@@ -1946,3 +1947,172 @@ def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     df.index = df.index.as_unit("ns")
 
     tm.assert_frame_equal(ref_df, df)
+
+
+class StandardWindowIndexer(BaseIndexer):
+    def __init__(self, n, win_len):
+        self.n = n
+        self.win_len = win_len
+        super().__init__()
+
+    def get_window_bounds(
+        self, num_values=None, min_periods=None, center=None, closed=None, step=None
+    ):
+        if num_values is None:
+            num_values = self.n
+        end = np.arange(num_values, dtype="int64") + 1
+        start = np.clip(end - self.win_len, 0, num_values)
+        return start, end
+
+
+class CustomLengthWindowIndexer(BaseIndexer):
+    def __init__(self, rnd: np.random.Generator, n, win_len):
+        self.window = rnd.integers(win_len, size=n)
+        super().__init__()
+
+    def get_window_bounds(
+        self, num_values=None, min_periods=None, center=None, closed=None, step=None
+    ):
+        if num_values is None:
+            num_values = len(self.window)
+        end = np.arange(num_values, dtype="int64") + 1
+        start = np.clip(end - self.window, 0, num_values)
+        return start, end
+
+
+class ArbitraryWindowIndexer(BaseIndexer):
+    def __init__(self, rnd: np.random.Generator, n, win_len):
+        start = rnd.integers(n, size=n)
+        win_len = rnd.integers(win_len, size=n)
+        end = np.where(start - win_len >= 0, start - win_len, start + win_len)
+
+        (start, end) = (
+            np.where(end >= start, start, end),
+            np.where(end >= start, end, start),
+        )
+
+        # It is extremely unlikely that a random array would come sorted,
+        # so we proceed with sort without checking if it is sorted.
+        prm = sorted(range(len(start)), key=lambda i: (end[i], start[i]))
+
+        self._start = np.array(start)[prm]
+        self._end = np.array(end)[prm]
+        super().__init__()
+
+    def get_window_bounds(
+        self, num_values=None, min_periods=None, center=None, closed=None, step=None
+    ):
+        if num_values is None:
+            num_values = len(self._start)
+        start = np.clip(self._start, 0, num_values)
+        end = np.clip(self._end, 0, num_values)
+        return start, end
+
+
+class TestMinMax:
+    # Pytest cache will not be a good choice here, because it appears
+    # pytest persists data on disk, and we are not really interested
+    # in flooding your hard drive with random numbers.
+    # Thus we just cache control data in memory to avoid repetititve calculations.
+    class Cache:
+        def __init__(self) -> None:
+            self.ctrl: dict[Any, Any] = {}
+
+    @pytest.fixture(scope="class")
+    def cache(self) -> Cache:
+        return self.Cache()
+
+    @pytest.mark.parametrize("is_max", [True, False])
+    # @pytest.mark.parametrize("engine", ["python", "cython", "numba"])
+    @pytest.mark.parametrize("engine", ["cython"])
+    @pytest.mark.parametrize(
+        "seed, n, win_len, min_obs, frac_nan, indexer_t",
+        [
+            (42, 1000, 80, 15, 0.3, CustomLengthWindowIndexer),
+            (52, 1000, 80, 15, 0.3, ArbitraryWindowIndexer),
+            (1984, 1000, 40, 25, 0.3, None),
+        ],
+    )
+    def test_minmax(
+        self, is_max, engine, seed, n, win_len, min_obs, frac_nan, indexer_t, cache
+    ):
+        if seed is not None and isinstance(seed, np.random._generator.Generator):
+            rng = np.random.default_rng(seed)
+            rng.bit_generator.state = seed.bit_generator.state
+        else:
+            rng = np.random.default_rng(seed)
+
+        if seed is None or isinstance(seed, np.random._generator.Generator):
+            rng_state_for_key = (
+                rng.bit_generator.state["bit_generator"],
+                rng.bit_generator.state["state"]["state"],
+                rng.bit_generator.state["state"]["inc"],
+                rng.bit_generator.state["has_uint32"],
+                rng.bit_generator.state["uinteger"],
+            )
+        else:
+            rng_state_for_key = seed
+        self.last_rng_state = rng.bit_generator.state
+        vals = DataFrame({"Data": rng.random(n)})
+        if frac_nan > 0:
+            is_nan = rng.random(len(vals)) < frac_nan
+            vals.Data = np.where(is_nan, np.nan, vals.Data)
+
+        ind_obj = (
+            indexer_t(rng, len(vals), win_len)
+            if indexer_t
+            else StandardWindowIndexer(len(vals), win_len)
+        )
+        ind_param = ind_obj if indexer_t else win_len
+
+        (start, end) = ind_obj.get_window_bounds()
+        ctrl_key = (is_max, rng_state_for_key, n, win_len, min_obs, frac_nan, indexer_t)
+        if ctrl_key in cache.ctrl:
+            ctrl = cache.ctrl[ctrl_key]
+        else:
+            # This is brute force calculation, and may get expensive when n is
+            # large, so we cache it.
+            ctrl = calc_minmax_control(vals.Data, start, end, min_obs, is_max)
+            cache.ctrl[ctrl_key] = ctrl
+
+        r = vals.rolling(ind_param, min_periods=min_obs)
+        f = r.max if is_max else r.min
+        test = f(engine=engine)
+        tm.assert_series_equal(test.Data, ctrl.Data)
+
+    # @pytest.mark.parametrize("engine", ["python", "cython", "numba"])
+    @pytest.mark.parametrize("engine", ["cython"])
+    @pytest.mark.parametrize(
+        "seed, n, win_len, indexer_t",
+        [
+            (42, 15, 7, ArbitraryWindowIndexer),
+        ],
+    )
+    def test_wrong_order(self, engine, seed, n, win_len, indexer_t):
+        rng = np.random.default_rng(seed)
+        vals = DataFrame({"Data": rng.random(n)})
+
+        ind_obj = indexer_t(rng, len(vals), win_len)
+        ind_obj._end[[14, 7]] = ind_obj._end[[7, 14]]
+
+        f = vals.rolling(ind_obj).max
+        with pytest.raises(
+            ValueError, match="Start/End ordering requirement is violated at index 8"
+        ):
+            f(engine=engine)
+
+
+def calc_minmax_control(vals, start, end, min_periods, ismax):
+    func = np.nanmax if ismax else np.nanmin
+    outp = np.full(vals.shape, np.nan)
+    for i in range(len(start)):
+        if start[i] >= end[i]:
+            outp[i] = np.nan
+        else:
+            rng = vals[start[i] : end[i]]
+            non_nan_cnt = np.count_nonzero(~np.isnan(rng))
+            if non_nan_cnt >= min_periods:
+                outp[i] = func(rng)
+            else:
+                outp[i] = np.nan
+    return DataFrame({"Data": outp})
