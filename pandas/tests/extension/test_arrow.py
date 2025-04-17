@@ -46,6 +46,7 @@ from pandas.compat import (
     pa_version_under20p0,
 )
 
+from pandas.core.dtypes.common import is_timedelta64_dtype
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtypeType,
@@ -64,7 +65,6 @@ from pandas.api.types import (
     is_string_dtype,
     is_unsigned_integer_dtype,
 )
-from pandas.core.dtypes.common import is_timedelta64_dtype
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
@@ -306,8 +306,9 @@ class TestArrowArray(base.ExtensionTests):
                 result = result.astype("timedelta64[ns]")
                 expected = expected.astype("timedelta64[ns]")
 
-
-            tm.assert_series_equal(result, expected, check_dtype=False, check_exact=False)
+            tm.assert_series_equal(
+                result, expected, check_dtype=False, check_exact=False
+            )
 
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
