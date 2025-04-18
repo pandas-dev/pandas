@@ -1489,7 +1489,7 @@ class ArrowExtensionArray(
             datelike = self._maybe_convert_datelike_array()
             temp = Series(datelike, dtype=datelike.dtype)
             mapped = temp.map(mapper, na_action=na_action)
-            return mapped._values
+            return mapped.to_numpy()
 
         if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
