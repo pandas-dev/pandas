@@ -59,7 +59,10 @@ from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
-from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
+from pandas.plotting._matplotlib.converter import (
+    PeriodConverter,
+    register_pandas_matplotlib_converters,
+)
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
@@ -1858,7 +1861,6 @@ class BarPlot(MPLPlot):
         self.bar_width = width
         self._align = align
         self._position = position
-        self.tick_pos = np.arange(len(data))
 
         if is_list_like(bottom):
             bottom = np.array(bottom)
@@ -1870,6 +1872,16 @@ class BarPlot(MPLPlot):
         self.log = log
 
         MPLPlot.__init__(self, data, **kwargs)
+
+        if self._is_ts_plot():
+            self.tick_pos = np.array(
+                PeriodConverter.convert_from_freq(
+                    self._get_xticks(),
+                    data.index.freq,
+                )
+            )
+        else:
+            self.tick_pos = np.arange(len(data))
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
@@ -1900,6 +1912,7 @@ class BarPlot(MPLPlot):
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
+    @register_pandas_matplotlib_converters
     def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
