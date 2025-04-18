@@ -1135,7 +1135,7 @@ def _roll_min_max(
             for k in range(last_end, this_end):
                 if not isnan(values[k]):
                     valid_start += 1
-                    while valid_start>=0 and isnan(values[valid_start]):
+                    while valid_start >= 0 and isnan(values[valid_start]):
                         valid_start += 1
 
                     # Sadly, this runs more than 15% faster than trying to use
