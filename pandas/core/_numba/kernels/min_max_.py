@@ -34,32 +34,6 @@ def bisect_left(a: list[Any], x: Any, lo: int = 0, hi: int = -1) -> int:
     return lo
 
 
-# *** Notations ***
-# N: size of the values[] array.
-# NN: last accessed element (1-based) in the values[] array, that is max_<i>(end[<i>]).
-#    In most cases NN==N (unless you are using a custom window indexer).
-# M: number of min/max "jobs", that is, size of start[] and end[] arrays.
-#    In pandas' common usage, M==N==NN, but it does not have to!
-# k: maximum window size, that is max<i>(end[<i>] - start[<i>])
-#
-# *** Complexity ***
-# - O(max(NN,M)) for constant window sizes.
-# - O(max(NN,M)*log(k)) for arbitrary window sizes.
-#
-# *** Assumptions ***
-# The min/max "jobs" have to be ordered in the lexiographical (end[i], start[i]) order.
-# In the regular pandas' case with constant window size these array ARE properly
-# sorted by construction.
-# In other words, for each i = 0..N-2, this condition must hold:
-# - (end[i+1] > end[i]) OR
-# - (end[i+1] == end[i] AND start[i+1] >= start[i])
-#
-# To debug this with your favorite Python debugger:
-# - Comment out the "numba.jit" line right below this comment above the function def.
-# - Find and comment out a similar line in column_looper() defined in
-#   generate_apply_looper() in executor.py.
-# - Place a breakpoint in this function. Your Python debugger will stop there!
-# - (Debugging was tested with VSCode on WSL.)
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def sliding_min_max(
     values: np.ndarray,
