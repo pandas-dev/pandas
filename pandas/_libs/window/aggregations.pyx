@@ -1070,7 +1070,6 @@ def _roll_min_max(
         stack Dominators[int64_t]
         ndarray[float64_t, ndim=1] output
 
-        # ideally want these in the i-loop scope
         Py_ssize_t this_start, this_end, stash_start
         int64_t q_idx
 
@@ -1079,8 +1078,8 @@ def _roll_min_max(
     Dominators = stack[int64_t]()
 
     # This function was "ported" / translated from sliding_min_max()
-    # in /pandas/core/_numba/kernels/min_max_.py. (See there for detailed
-    # comments and credits.)
+    # in /pandas/core/_numba/kernels/min_max_.py.
+    # (See there for credits and some comments.)
     # Code translation assumptions/rules:
     # - min_periods --> minp
     # - deque[0] --> front()
@@ -1137,26 +1136,6 @@ def _roll_min_max(
                     valid_start += 1
                     while valid_start >= 0 and isnan(values[valid_start]):
                         valid_start += 1
-
-                    # Sadly, this runs more than 15% faster than trying to use
-                    # generic comparison functions.
-                    # That is, I tried:
-                    #
-                    # | cdef inline bint le(float64_t a, float64_t b) nogil:
-                    # |     return a <= b
-                    # | cdef inline bint ge(float64_t a, float64_t b) nogil:
-                    # |     return a >= b
-                    # | ctypedef bint (*cmp_func_t) (float64_t a, float64_t b) nogil
-                    # | ...
-                    # | cmp_func_t cmp
-                    # |
-                    # | if is_max:
-                    # |     cmp = ge
-                    # | else:
-                    # |     cmp = le
-                    # and, finally
-                    # | while not Q.empty() and cmp(values[k], values[Q.back()]):
-                    # |     Q.pop_back()
 
                     if is_max:
                         while not Q.empty() and values[k] >= values[Q.back()]:
