@@ -103,3 +103,23 @@ blockquote {
     color: #787878;
     font-size: 18px;
  }
+
+.toc {
+    background: #f0f0f0;
+    padding: 10px;
+    display: inline-block;
+}
+a.headerlink {
+    opacity: 0;
+}
+h2:hover a.headerlink {
+    opacity: 1;
+    transition: opacity 0.5s;
+}
+h3:hover a.headerlink {
+    opacity: 1;
+    transition: opacity 0.5s;
+}
+.container {
+    max-width: 120ch;
+}
