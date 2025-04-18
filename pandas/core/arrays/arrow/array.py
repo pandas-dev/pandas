@@ -1481,10 +1481,20 @@ class ArrowExtensionArray(
         return result
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        if is_numeric_dtype(self.dtype) or self.dtype.kind in "mM":
+        from pandas import Series
+
+        pa_type = self._pa_array.type
+
+        if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+            datelike = self._maybe_convert_datelike_array()
+            temp = Series(datelike, dtype=datelike.dtype)
+            mapped = temp.map(mapper, na_action=na_action)
+            return mapped._values
+
+        if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
-        else:
-            return super().map(mapper, na_action)
+
+        return super().map(mapper, na_action=na_action)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
