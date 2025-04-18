@@ -1109,8 +1109,8 @@ def _roll_min_max(
 
         valid_start = -minp
 
-        last_end =0
-        last_start=-1
+        last_end = 0
+        last_start = -1
 
         for i in range(N):
             this_start = start[i]
