@@ -1356,3 +1356,10 @@ def test_from_pandas_array(dtype):
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
+
+
+def test_to_numpy_with_NaT_tz_aware():
+    # GH#59772
+    result = pd.Series(NaT).dt.tz_localize("UTC").to_numpy("datetime64")
+    expected = pd.Series(NaT).to_numpy("datetime64")
+    tm.assert_equal(result, expected)
