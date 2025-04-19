@@ -216,20 +216,7 @@ cdef _get_calendar(weekmask, holidays, calendar):
             pass
         return calendar, holidays
 
-    if holidays is None:
-        holidays = []
-    try:
-        holidays = holidays + calendar.holidays().tolist()
-    except AttributeError:
-        pass
-    holidays = tuple(sorted(_to_dt64D(dt) for dt in holidays))
-
-    kwargs = {"weekmask": weekmask}
-    if holidays:
-        kwargs["holidays"] = holidays
-
-    busdaycalendar = np.busdaycalendar(**kwargs)
-    return busdaycalendar, holidays
+    raise ApplyTypeError(f"Unhandled type: {type(calendar).__name__}")
 
 
 cdef _to_dt64D(dt):
