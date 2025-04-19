@@ -277,7 +277,6 @@ def test_pivot_table_multiindex_values_as_two_params(index, columns, request):
         e_cols = MultiIndex.from_arrays(
             arrays=[[1, 1, 2, 2], [50, 100, 100, 200]], names=["col", "value"]
         )
-        expected = pd.DataFrame(data=e_data, index=e_index, columns=e_cols)
 
     else:
         e_data = [
@@ -290,6 +289,6 @@ def test_pivot_table_multiindex_values_as_two_params(index, columns, request):
             arrays=[["A", "A", "B", "B"], [50, 100, 100, 200]], names=["index", "value"]
         )
         e_cols = Index(data=[1, 2], name="col")
-        expected = pd.DataFrame(data=e_data, index=e_index, columns=e_cols)
 
+    expected = pd.DataFrame(data=e_data, index=e_index, columns=e_cols)
     tm.assert_frame_equal(left=result, right=expected)
