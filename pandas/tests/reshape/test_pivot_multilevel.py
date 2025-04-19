@@ -253,8 +253,8 @@ def test_pivot_df_multiindex_index_none():
 
 
 @pytest.mark.parametrize(
-    argnames=["index", "columns"],
-    argvalues=[("index", ["col", "value"]), (["index", "value"], "col")],
+    "index, columns",
+    [("index", ["col", "value"]), (["index", "value"], "col")],
     ids=["values-and-columns", "values-and-index"],
 )
 def test_pivot_table_multiindex_values_as_two_params(index, columns, request):
