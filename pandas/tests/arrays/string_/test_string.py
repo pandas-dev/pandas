@@ -103,6 +103,18 @@ def test_repr(dtype):
     assert repr(df.A.array) == expected
 
 
+def test_dtype_repr(dtype):
+    if dtype.storage == "pyarrow":
+        if dtype.na_value is pd.NA:
+            assert repr(dtype) == "<StringDtype(na_value=<NA>)>"
+        else:
+            assert repr(dtype) == "<StringDtype(na_value=nan)>"
+    elif dtype.na_value is pd.NA:
+        assert repr(dtype) == "<StringDtype(storage='python', na_value=<NA>)>"
+    else:
+        assert repr(dtype) == "<StringDtype(storage='python', na_value=nan)>"
+
+
 def test_none_to_nan(cls, dtype):
     a = cls._from_sequence(["a", None, "b"], dtype=dtype)
     assert a[1] is not None
