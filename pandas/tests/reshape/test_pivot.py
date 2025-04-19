@@ -2585,7 +2585,7 @@ class TestPivotTable:
             ]
             expected = DataFrame(data=e_data, index=val_index, columns=cat_index)
 
-        tm.assert_frame_equal(left=result, right=expected)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestPivot:
