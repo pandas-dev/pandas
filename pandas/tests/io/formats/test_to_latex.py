@@ -824,6 +824,27 @@ class TestToLatexEscape:
         )
         assert result == expected
 
+    def test_to_latex_escape_special_chars_in_index_names(self):
+        # https://github.com/pandas-dev/pandas/issues/61309
+        # https://github.com/pandas-dev/pandas/issues/57362
+        index = "&%$#_{}}~^\\"
+        df = DataFrame({index: [1, 2, 3]}).set_index(index)
+        result = df.to_latex(escape=True)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{l}
+            \toprule
+            \&\%\$\#\_\{\}\}\textasciitilde \textasciicircum \textbackslash  \\
+            \midrule
+            1 \\
+            2 \\
+            3 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
     def test_to_latex_specified_header_special_chars_without_escape(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
