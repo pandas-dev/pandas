@@ -223,3 +223,14 @@ def compression_format(request):
 @pytest.fixture(params=_compression_formats_params)
 def compression_ext(request):
     return request.param[0]
+
+
+@pytest.fixture
+def directory_with_dummy_csv(tmp_path):
+    """
+    Fixture to create a directory with dummy CSV files for testing.
+    """
+    for i in range(3):
+        file_path = tmp_path / f"file_{i}.csv"
+        file_path.touch()
+    return tmp_path
