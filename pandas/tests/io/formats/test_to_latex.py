@@ -825,6 +825,9 @@ class TestToLatexEscape:
         assert result == expected
 
     def test_to_latex_escape_special_chars_in_index_names(self):
+        # https://github.com/pandas-dev/pandas/issues/61309
+        # https://github.com/pandas-dev/pandas/issues/57362
+
         index = "&%$#_{}}~^\\"
         df = DataFrame({index: [1, 2, 3]}).set_index(index)
         result = df.to_latex(escape=True)
