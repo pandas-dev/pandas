@@ -24,36 +24,13 @@ running in the same hardware with different levels of stress have a big impact i
 the result. Even running the benchmarks with identical hardware and almost identical
 conditions can produce significant differences when running the same exact code.
 
-## Automated benchmark runners
+## Automated benchmark runner
 
-We currently have two setups running the benchmarks of pandas for every
-(or almost every) commit to the `main` branch. One is run on GitHub actions
-in the [asv-runner](https://github.com/pandas-dev/asv-runner/) repository.
-The other is a physical server in a datacenter
-kindly sponsored by [OVHCloud](https://www.ovhcloud.com/). More information about
-pandas sponsors, and how your company can support the development of pandas is
-available at the [pandas sponsors]({{ base_url }}about/sponsors.html) page.
+The [asv-runner](https://github.com/pandas-dev/asv-runner/) repository automatically runs the pandas asv benchmark suite
+for every (or almost every) commit to the `main` branch. It is run on GitHub actions.
+See the linked repository for more details. The results are available at:
 
-Results of the benchmarks are available at:
-
-- asv-runner results: [asv](https://pandas-dev.github.io/asv-runner/)
-- OVH server results: [asv](https://pandas.pydata.org/benchmarks/asv/)
-
-### OVH server configuration
-
-The server used to run the benchmarks has been configured to reduce system
-noise and maximize the stability of the benchmarks times.
-
-The details on how the server is configured can be found in the
-[pandas-benchmarks repository](https://github.com/pandas-dev/pandas-benchmarks).
-There is a quick summary here:
-
-- CPU isolation: Avoid user space tasks to execute in the same CPU as benchmarks, possibly interrupting them during the execution (include all virtual CPUs using a physical core)
-- NoHZ: Stop the kernel tick that enables context switching in the isolated CPU
-- IRQ affinity: Ban benchmarks CPU to avoid many (but not all) kernel interruption in the isolated CPU
-- TurboBoost: Disable CPU scaling based on high CPU demand
-- P-States: Use "performance" governor to disable P-States and CPU frequency changes based on them
-- C-States: Set C-State to 0 and disable changes to avoid slower CPU after system inactivity
+https://pandas-dev.github.io/asv-runner/
 
 ## Community benchmarks
 
