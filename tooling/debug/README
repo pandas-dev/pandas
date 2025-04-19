@@ -1,0 +1,19 @@
+The Docker image here helps to set up an isolated environment containing a debug version of Python and a gdb installation which the Cython debugger can work with.
+
+If you have internet access, you can pull a pre-built image via
+
+```sh
+docker pull pandas/pandas-debug
+```
+
+To build the image locally, you can do
+
+```sh
+docker build . -t pandas/pandas-debug -f Dockerfile.pandas-debug
+```
+
+For pandas developers, you can push a new copy of the image to dockerhub via
+
+```sh
+docker push pandas/pandas-debug
+```

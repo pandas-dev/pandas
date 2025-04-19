@@ -1,0 +1,10 @@
+{% set redirect = redirects[pagename.split("/")[-1]] %}
+<html>
+    <head>
+        <meta http-equiv="Refresh" content="0; url={{ redirect }}.html" />
+        <title>This API page has moved</title>
+    </head>
+    <body>
+        <p>This API page has moved <a href="{{ redirect }}.html">here</a>.</p>
+    </body>
+</html>

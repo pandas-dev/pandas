@@ -1,0 +1,22 @@
+name: Set up Conda environment
+inputs:
+  environment-file:
+    description: Conda environment file to use.
+    default: environment.yml
+runs:
+  using: composite
+  steps:
+    - name: Install ${{ inputs.environment-file }}
+      uses: mamba-org/setup-micromamba@v2
+      with:
+        environment-file: ${{ inputs.environment-file }}
+        environment-name: test
+        condarc-file: ci/.condarc
+        cache-environment: true
+        cache-downloads: true
+
+    - name: Uninstall pyarrow
+      if: ${{ env.REMOVE_PYARROW == '1' }}
+      run: |
+        micromamba remove -y pyarrow
+      shell: bash -el {0}

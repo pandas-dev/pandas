@@ -1,0 +1,130 @@
+# Local development dependencies including docs building, website upload, ASV benchmark
+name: pandas-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+
+  # build dependencies
+  - versioneer
+  - cython~=3.0.5
+  - meson=1.2.1
+  - meson-python=0.13.1
+
+  # test dependencies
+  - pytest>=7.3.2
+  - pytest-cov
+  - pytest-xdist>=3.4.0
+  - pytest-qt>=4.4.0
+  - pytest-localserver
+  - pyqt>=5.15.9
+  - coverage
+
+  # required dependencies
+  - python-dateutil
+  - numpy<3
+
+  # optional dependencies
+  - beautifulsoup4>=4.11.2
+  - blosc
+  - bottleneck>=1.3.6
+  - fastparquet>=2023.10.0
+  - fsspec>=2022.11.0
+  - html5lib>=1.1
+  - hypothesis>=6.84.0
+  - gcsfs>=2022.11.0
+  - ipython
+  - pickleshare  # Needed for IPython Sphinx directive in the docs GH#60429
+  - jinja2>=3.1.2
+  - lxml>=4.9.2
+  - matplotlib>=3.6.3
+  - numba>=0.56.4
+  - numexpr>=2.8.4
+  - openpyxl>=3.1.0
+  - odfpy>=1.4.1
+  - py
+  - psycopg2>=2.9.6
+  - pyarrow>=10.0.1
+  - pymysql>=1.0.2
+  - pyreadstat>=1.2.0
+  - pytables>=3.8.0
+  - python-calamine>=0.1.7
+  - pytz>=2023.4
+  - pyxlsb>=1.0.10
+  - s3fs>=2022.11.0
+  - scipy>=1.10.0
+  - sqlalchemy>=2.0.0
+  - tabulate>=0.9.0
+  - xarray>=2022.12.0, <=2024.9.0
+  - xlrd>=2.0.1
+  - xlsxwriter>=3.0.5
+  - zstandard>=0.19.0
+
+  # downstream packages
+  - dask-core
+  - seaborn-base
+
+  # local testing dependencies
+  - moto
+  - flask
+
+  # benchmarks
+  - asv>=0.6.1
+
+  ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
+  - c-compiler
+  - cxx-compiler
+
+  # code checks
+  - flake8=7.1.0  # run in subprocess over docstring examples
+  - mypy=1.13.0  # pre-commit uses locally installed mypy
+  - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
+  - pre-commit>=4.2.0
+
+  # documentation
+  - gitpython  # obtain contributors from git for whatsnew
+  - gitdb
+  - google-auth
+  - natsort  # DataFrame.sort_values doctest
+  - numpydoc
+  - pydata-sphinx-theme=0.16
+  - pytest-cython  # doctest
+  - sphinx
+  - sphinx-design
+  - sphinx-copybutton
+  - types-python-dateutil
+  - types-PyMySQL
+  - types-pytz
+  - types-PyYAML
+  - types-setuptools
+
+  # documentation (jupyter notebooks)
+  - nbconvert>=7.11.0
+  - nbsphinx
+  - pandoc
+  - ipywidgets
+  - nbformat
+  - notebook>=7.0.6
+  - ipykernel
+
+  # web
+  # - jinja2  # already listed in optional dependencies, but documented here for reference
+  - markdown
+  - feedparser
+  - pyyaml
+  - requests
+  - pygments # Code highlighting
+
+  # web interactive REPL
+  # see the following links for more context:
+  # 1. https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/#compatibility
+  # 2. https://pyodide.org/en/stable/usage/packages-in-pyodide.html
+  - jupyterlite-core
+  - jupyterlite-pyodide-kernel
+
+  - pip:
+      - adbc-driver-postgresql>=0.10.0
+      - adbc-driver-sqlite>=0.8.0
+      - typing_extensions; python_version<"3.11"
+      - tzdata>=2022.7

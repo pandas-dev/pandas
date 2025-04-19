@@ -1,0 +1,315 @@
+minimum_pre_commit_version: 4.0.0
+exclude: ^LICENSES/|\.(html|csv|svg)$
+# reserve "manual" for relatively slow hooks which we still want to run in CI
+default_stages: [
+    pre-commit,
+    pre-merge-commit,
+    pre-push,
+    prepare-commit-msg,
+    commit-msg,
+    post-checkout,
+    post-commit,
+    post-merge,
+    post-rewrite
+]
+ci:
+    autofix_prs: false
+    autoupdate_schedule: monthly
+    # manual stage hooks
+    skip: [pyright, mypy]
+repos:
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.4
+    hooks:
+    -   id: ruff
+        args: [--exit-non-zero-on-fix]
+        exclude: ^pandas/tests/frame/test_query_eval.py
+    -   id: ruff
+        # TODO: remove autofix only rules when they are checked by ruff
+        name: ruff-selected-autofixes
+        alias: ruff-selected-autofixes
+        files: ^pandas
+        exclude: ^pandas/tests
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
+    -   id: ruff-format
+        exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
+-   repo: https://github.com/jendrikseipp/vulture
+    rev: v2.14
+    hooks:
+      - id: vulture
+        entry: python scripts/run_vulture.py
+        pass_filenames: true
+        require_serial: false
+-   repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+    -   id: codespell
+        types_or: [python, rst, markdown, cython, c]
+        additional_dependencies: [tomli]
+-   repo: https://github.com/MarcoGorelli/cython-lint
+    rev: v0.16.6
+    hooks:
+    -   id: cython-lint
+    -   id: double-quote-cython-strings
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: check-case-conflict
+    -   id: check-toml
+    -   id: check-xml
+    -   id: check-yaml
+        exclude: ^ci/meta.yaml$
+    -   id: end-of-file-fixer
+        exclude: \.txt$
+    -   id: mixed-line-ending
+        args: [--fix=auto]
+        exclude: ^pandas/tests/io/parser/data/utf16_ex.txt$
+    -   id: fix-byte-order-marker
+    -   id: fix-encoding-pragma
+        args: [--remove]
+    -   id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+-   repo: https://github.com/PyCQA/isort
+    rev: 6.0.1
+    hooks:
+    -   id: isort
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v3.19.1
+    hooks:
+    -   id: pyupgrade
+        args: [--py310-plus]
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: rst-backticks
+      - id: rst-directive-colons
+        types: [text]  # overwrite types: [rst]
+        types_or: [python, rst]
+      - id: rst-inline-touching-normal
+        exclude: ^pandas/tests/frame/test_query_eval.py
+        types: [text]  # overwrite types: [rst]
+        types_or: [python, rst]
+-   repo: https://github.com/sphinx-contrib/sphinx-lint
+    rev: v1.0.0
+    hooks:
+    - id: sphinx-lint
+      args: ["--enable", "all", "--disable", "line-too-long"]
+-   repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v20.1.0
+    hooks:
+    - id: clang-format
+      files: ^pandas/_libs/src|^pandas/_libs/include
+      args: [-i]
+      types_or: [c, c++]
+-   repo: https://github.com/trim21/pre-commit-mirror-meson
+    rev: v1.7.2
+    hooks:
+    - id: meson-fmt
+      args: ['--inplace']
+-   repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+    -   id: shellcheck
+        args: ["--severity=warning"]
+-   repo: local
+    hooks:
+    -   id: pyright
+        # note: assumes python env is setup and activated
+        name: pyright
+        entry: pyright
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        additional_dependencies: &pyright_dependencies
+        - pyright@1.1.383
+    -   id: pyright
+        # note: assumes python env is setup and activated
+        name: pyright reportGeneralTypeIssues
+        entry: pyright -p pyright_reportGeneralTypeIssues.json --level warning
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        additional_dependencies: *pyright_dependencies
+    -   id: mypy
+        # note: assumes python env is setup and activated
+        name: mypy
+        entry: mypy
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+    -   id: mypy
+        # note: assumes python env is setup and activated
+        # note: requires pandas dev to be installed
+        name: mypy (stubtest)
+        entry: python
+        language: system
+        pass_filenames: false
+        types: [pyi]
+        args: [scripts/run_stubtest.py]
+        stages: [manual]
+    -   id: inconsistent-namespace-usage
+        name: 'Check for inconsistent use of pandas namespace'
+        entry: python scripts/check_for_inconsistent_pandas_namespace.py
+        exclude: ^pandas/core/interchange/
+        language: python
+        types: [python]
+    -   id: unwanted-patterns
+        name: Unwanted patterns
+        language: pygrep
+        entry: |
+            (?x)
+            # outdated annotation syntax
+            \#\ type:\ (?!ignore)
+
+            # foo._class__ instead of type(foo)
+            |\.__class__
+
+            # Numpy
+            |from\ numpy\ import\ random
+            |from\ numpy\.random\ import
+
+            # Incorrect code-block / IPython directives
+            |\.\.\ code-block\ ::
+            |\.\.\ ipython\ ::
+            # directive should not have a space before ::
+            |\.\.\ \w+\ ::
+
+            # Check for deprecated messages without sphinx directive
+            |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
+
+            # builtin filter function
+            |(?<!def)[\(\s]filter\(
+        types_or: [python, cython, rst]
+        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
+    -   id: incorrect-backticks
+        name: Check for backticks incorrectly rendering because of missing spaces
+        language: pygrep
+        entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
+        types: [rst]
+        files: ^doc/source/
+    -   id: seed-check-asv
+        name: Check for unnecessary random seeds in asv benchmarks
+        language: pygrep
+        entry: 'np\.random\.seed'
+        files: ^asv_bench/benchmarks
+        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
+    -   id: unwanted-patterns-in-tests
+        name: Unwanted patterns in tests
+        language: pygrep
+        entry: |
+            (?x)
+            # imports from pandas._testing instead of `import pandas._testing as tm`
+            from\ pandas\._testing\ import
+            |from\ pandas\ import\ _testing\ as\ tm
+
+            # pandas.testing instead of tm
+            |pd\.testing\.
+
+            # pd.api.types instead of from pandas.api.types import ...
+            |(pd|pandas)\.api\.types\.
+
+            # np.array_equal
+            |(numpy|np)\.array_equal
+
+            # pytest raises without context
+            |\s\ pytest.raises
+
+            # Unseeded numpy default_rng
+            |default_rng\(\)
+        files: ^pandas/tests/
+        types_or: [python, cython, rst]
+    -   id: unwanted-patterns-in-cython
+        name: Unwanted patterns in Cython code
+        language: pygrep
+        entry: |
+            (?x)
+            # `<type>obj` as opposed to `<type> obj`
+            [a-zA-Z0-9*]>[ ]
+        types: [cython]
+    -   id: pip-to-conda
+        name: Generate pip dependency from conda
+        language: python
+        entry: python scripts/generate_pip_deps_from_conda.py
+        files: ^(environment.yml|requirements-dev.txt)$
+        pass_filenames: false
+        additional_dependencies: [tomli, pyyaml]
+    -   id: title-capitalization
+        name: Validate correct capitalization among titles in documentation
+        entry: python scripts/validate_rst_title_capitalization.py
+        language: python
+        types: [rst]
+        files: ^doc/source/(development|reference)/
+    -   id: unwanted-patterns-private-function-across-module
+        name: Check for use of private functions across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
+        types: [python]
+        exclude: ^(asv_bench|pandas/tests|doc)/
+    -   id: unwanted-patterns-private-import-across-module
+        name: Check for import of private attributes across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
+        types: [python]
+        exclude: |
+            (?x)
+            ^(asv_bench|pandas/tests|doc)/
+            |scripts/validate_min_versions_in_sync\.py$
+    -   id: unwanted-patterns-strings-with-misplaced-whitespace
+        name: Check for strings with misplaced spaces
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
+        types_or: [python, cython]
+    -   id: unwanted-patterns-nodefault-used-not-only-for-typing
+        name: Check that `pandas._libs.lib.NoDefault` is used only for typing
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
+        types: [python]
+    -   id: no-return-exception
+        name: Use raise instead of return for exceptions
+        language: pygrep
+        entry: 'return [A-Za-z]+(Error|Exit|Interrupt|Exception|Iteration)'
+        files: ^pandas/
+        types: [python]
+        exclude: ^pandas/tests/
+    -   id: pandas-errors-documented
+        name: Ensure pandas errors are documented in doc/source/reference/testing.rst
+        entry: python scripts/pandas_errors_documented.py
+        language: python
+        files: ^pandas/errors/__init__.py$
+    -   id: pg8000-not-installed-CI
+        name: Check for pg8000 not installed on CI for test_pg8000_sqlalchemy_passthrough_error
+        language: pygrep
+        entry: 'pg8000'
+        files: ^ci/deps
+        types: [yaml]
+    -   id: validate-min-versions-in-sync
+        name: Check minimum version of dependencies are aligned
+        entry: python -m scripts.validate_min_versions_in_sync
+        language: python
+        files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        additional_dependencies: [tomli, pyyaml]
+        pass_filenames: false
+    -   id: validate-errors-locations
+        name: Validate errors locations
+        description: Validate errors are in appropriate locations.
+        entry: python scripts/validate_exception_location.py
+        language: python
+        files: ^pandas/
+        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
+        types: [python]
+    -   id: check-test-naming
+        name: check that test names start with 'test'
+        entry: python -m scripts.check_test_naming
+        types: [python]
+        files: ^pandas/tests
+        language: python
+    -   id: sort-whatsnew-items
+        name: sort whatsnew entries alphabetically
+        entry: python -m scripts.sort_whatsnew_note
+        types: [rst]
+        language: python
+        files: ^doc/source/whatsnew/v
+        exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)

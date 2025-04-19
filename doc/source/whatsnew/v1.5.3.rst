@@ -1,0 +1,58 @@
+.. _whatsnew_153:
+
+What's new in 1.5.3 (January 18, 2023)
+--------------------------------------
+
+These are the changes in pandas 1.5.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed performance regression in :meth:`Series.isin` when ``values`` is empty (:issue:`49839`)
+- Fixed regression in :meth:`DataFrame.memory_usage` showing unnecessary ``FutureWarning`` when :class:`DataFrame` is empty (:issue:`50066`)
+- Fixed regression in :meth:`.DataFrameGroupBy.transform` when used with ``as_index=False`` (:issue:`49834`)
+- Enforced reversion of ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
+- Fixed regression in :meth:`.SeriesGroupBy.apply` setting a ``name`` attribute on the result if the result was a :class:`DataFrame` (:issue:`49907`)
+- Fixed performance regression in setting with the :meth:`~DataFrame.at` indexer (:issue:`49771`)
+- Fixed regression in :func:`to_datetime` raising ``ValueError`` when parsing array of ``float`` containing ``np.nan`` (:issue:`50237`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in the Copy-on-Write implementation losing track of views when indexing a :class:`DataFrame` with another :class:`DataFrame` (:issue:`50630`)
+- Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
+- Bug in :meth:`Series.quantile` emitting warning from NumPy when :class:`Series` has only ``NA`` values (:issue:`50681`)
+- Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
+- Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
+- Bug in :func:`pivot_table` with NumPy 1.24 or greater when the :class:`DataFrame` columns has nested elements (:issue:`50342`)
+- Bug in :func:`pandas.testing.assert_series_equal` (and equivalent ``assert_`` functions) when having nested data and using numpy >= 1.25 (:issue:`50360`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.other:
+
+Other
+~~~~~
+
+.. note::
+
+    If you are using :meth:`DataFrame.to_sql`, :func:`read_sql`, :func:`read_sql_table`, or :func:`read_sql_query` with SQLAlchemy 1.4.46 or greater,
+    you may see a ``sqlalchemy.exc.RemovedIn20Warning``. These warnings can be safely ignored for the SQLAlchemy 1.4.x releases
+    as pandas works toward compatibility with SQLAlchemy 2.0.
+
+- Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
+- A ``FutureWarning`` raised when attempting to set values inplace with :meth:`DataFrame.loc` or :meth:`DataFrame.iloc` has been changed to a ``DeprecationWarning`` (:issue:`48673`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.5.2..v1.5.3
