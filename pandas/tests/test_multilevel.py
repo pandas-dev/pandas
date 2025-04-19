@@ -314,7 +314,9 @@ class TestMultiLevel:
                 names=[None, "Date"],
             ),
         )
-        df = df.reset_index()
+        msg = "Passing an empty string to Timestamp"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = df.reset_index()
         result = df[df.columns[0]]
         expected = Series(["a", "b", "c", "d"], name=("sub", np.nan))
         tm.assert_series_equal(result, expected)
