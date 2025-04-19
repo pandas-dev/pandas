@@ -2555,8 +2555,8 @@ class TestPivotTable:
         tm.assert_frame_equal(left=result, right=expected)
 
     @pytest.mark.parametrize(
-        argnames=["index", "columns"],
-        argvalues=[("Category", "Value"), ("Value", "Category")],
+        "index, columns",
+        [("Category", "Value"), ("Value", "Category")],
         ids=["values-and-columns", "values-and-index"],
     )
     def test_pivot_table_values_as_two_params(self, index, columns, request):
