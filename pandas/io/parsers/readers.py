@@ -11,6 +11,7 @@ from collections import (
     defaultdict,
 )
 import csv
+import json
 import sys
 from textwrap import fill
 from typing import (
@@ -47,6 +48,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
+import pandas as pd
 from pandas import Series
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
@@ -453,6 +455,11 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
 
 {storage_options}
 
+preserve_complex : bool, default False
+    If True, arrays (e.g. NumPy arrays) or complex data are serialized and
+    reconstructed in a custom manner. If False (default), standard CSV
+    behavior is used.
+
 dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
     (still experimental). If not specified, the default behavior
@@ -831,6 +838,7 @@ def read_csv(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
+    preserve_complex: bool = False,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
@@ -850,7 +858,35 @@ def read_csv(
     )
     kwds.update(kwds_defaults)
 
-    return _read(filepath_or_buffer, kwds)
+    df_or_reader = _read(filepath_or_buffer, kwds)
+    # If DataFrame, parse columns containing JSON arrays if preserve_complex=True
+    if preserve_complex and isinstance(df_or_reader, DataFrame):
+        _restore_complex_arrays(df_or_reader)
+
+    return df_or_reader
+
+
+def _restore_complex_arrays(df: DataFrame) -> None:
+    """
+    Converted bracketed JSON strings in df back to NumPy arrays.
+    eg. "[0.1, 0.2, 0.3]" --> parse into NumPy array.
+    """
+
+    def looks_like_json_array(x: str) -> bool:
+        return x.startswith("[") and x.endswith("]")
+
+    for col in df.columns:
+        if df[col].dtype == "object":
+            nonnull = df[col].dropna()
+            if (
+                len(nonnull) > 0
+                and nonnull.apply(
+                    lambda x: isinstance(x, str) and looks_like_json_array(x)
+                ).all()
+            ):
+                df[col] = df[col].apply(
+                    lambda x: np.array(json.loads(x)) if pd.notnull(x) else x
+                )
 
 
 @overload
@@ -967,6 +1003,7 @@ def read_table(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
+    preserve_complex: bool = False,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
