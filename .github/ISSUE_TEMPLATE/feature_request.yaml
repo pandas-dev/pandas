@@ -31,7 +31,7 @@ body:
     attributes:
       label: Feature Description
       description: >
-        Please describe how the new feature would be implemented, using psudocode if relevant.
+        Please describe how the new feature would be implemented, using pseudocode if relevant.
       placeholder: >
         Add a new parameter to DataFrame, to_series, to return a Series if possible.
 
