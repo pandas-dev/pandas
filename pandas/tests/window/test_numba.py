@@ -581,3 +581,18 @@ def test_npfunc_no_warnings():
     df = DataFrame({"col1": [1, 2, 3, 4, 5]})
     with tm.assert_produces_warning(False):
         df.col1.rolling(2).apply(np.prod, raw=True, engine="numba")
+
+
+from .test_rolling import TestMinMax
+
+
+@td.skip_if_no("numba")
+class TestMinMaxNumba:
+    parent = TestMinMax()
+
+    @pytest.mark.parametrize("is_max, has_nan, exp_list", TestMinMax.TestData)
+    def test_minmax(self, is_max, has_nan, exp_list):
+        TestMinMaxNumba.parent.test_minmax(is_max, has_nan, exp_list, "numba")
+
+    def test_wrong_order(self):
+        TestMinMaxNumba.parent.test_wrong_order("numba")

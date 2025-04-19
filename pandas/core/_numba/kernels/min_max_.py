@@ -9,13 +9,29 @@ Mirrors pandas/_libs/window/aggregation.pyx
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numba
 import numpy as np
 
 if TYPE_CHECKING:
     from pandas._typing import npt
+
+
+@numba.njit(nogil=True, parallel=False)
+def bisect_left(a: list[Any], x: Any, lo: int = 0, hi: int = -1) -> int:
+    if hi == -1:
+        hi = len(a)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if a[mid] < x:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
 
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
@@ -27,55 +43,82 @@ def sliding_min_max(
     min_periods: int,
     is_max: bool,
 ) -> tuple[np.ndarray, list[int]]:
+    # Basic idea of the algorithm: https://stackoverflow.com/a/12239580
+    # It was generalized to work with an arbitrary list of any window size and position
+    # by adding the Dominators stack.
+
     N = len(start)
-    nobs = 0
-    output = np.empty(N, dtype=result_dtype)
     na_pos = []
-    # Use deque once numba supports it
-    # https://github.com/numba/numba/issues/7417
-    Q: list = []
-    W: list = []
+    output = np.empty(N, dtype=result_dtype)
+
+    def cmp(a: Any, b: Any, is_max: bool) -> bool:
+        if is_max:
+            return a >= b
+        else:
+            return a <= b
+
+    Q: list = []  # this is a queue
+    Dominators: list = []  # this is a stack
+
+    if min_periods < 1:
+        min_periods = 1
+
+    if N > 2:
+        i_next = N - 1  # equivalent to i_next = i+1 inside the loop
+        for i in range(N - 2, -1, -1):
+            next_dominates = start[i_next] < start[i]
+            if next_dominates and (
+                not Dominators or start[Dominators[-1]] > start[i_next]
+            ):
+                Dominators.append(i_next)
+            i_next = i
+
+    valid_start = -min_periods
+
+    last_end = 0
+    last_start = -1
+
     for i in range(N):
-        curr_win_size = end[i] - start[i]
-        if i == 0:
-            st = start[i]
-        else:
-            st = end[i - 1]
+        this_start = start[i].item()
+        this_end = end[i].item()
 
-        for k in range(st, end[i]):
-            ai = values[k]
-            if not np.isnan(ai):
-                nobs += 1
-            elif is_max:
-                ai = -np.inf
-            else:
-                ai = np.inf
-            # Discard previous entries if we find new min or max
-            if is_max:
-                while Q and ((ai >= values[Q[-1]]) or values[Q[-1]] != values[Q[-1]]):
-                    Q.pop()
-            else:
-                while Q and ((ai <= values[Q[-1]]) or values[Q[-1]] != values[Q[-1]]):
-                    Q.pop()
-            Q.append(k)
-            W.append(k)
+        if Dominators and Dominators[-1] == i:
+            Dominators.pop()
 
-        # Discard entries outside and left of current window
-        while Q and Q[0] <= start[i] - 1:
+        if not (
+            this_end > last_end or (this_end == last_end and this_start >= last_start)
+        ):
+            raise ValueError(
+                "Start/End ordering requirement is violated at index " + str(i)
+            )
+
+        stash_start = (
+            this_start if not Dominators else min(this_start, start[Dominators[-1]])
+        )
+        while Q and Q[0] < stash_start:
             Q.pop(0)
-        while W and W[0] <= start[i] - 1:
-            if not np.isnan(values[W[0]]):
-                nobs -= 1
-            W.pop(0)
 
-        # Save output based on index in input value array
-        if Q and curr_win_size > 0 and nobs >= min_periods:
-            output[i] = values[Q[0]]
-        else:
+        for k in range(last_end, this_end):
+            if not np.isnan(values[k]):
+                valid_start += 1
+                while valid_start >= 0 and np.isnan(values[valid_start]):
+                    valid_start += 1
+                while Q and cmp(values[k], values[Q[-1]], is_max):
+                    Q.pop()  # Q.pop_back()
+                Q.append(k)  # Q.push_back(k)
+
+        if not Q or (this_start > valid_start):
             if values.dtype.kind != "i":
                 output[i] = np.nan
             else:
                 na_pos.append(i)
+        elif Q[0] >= this_start:
+            output[i] = values[Q[0]]
+        else:
+            q_idx = bisect_left(Q, this_start, lo=1)
+            output[i] = values[Q[q_idx]]
+        last_end = this_end
+        last_start = this_start
 
     return output, na_pos
 
