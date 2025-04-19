@@ -825,26 +825,18 @@ class TestToLatexEscape:
         assert result == expected
 
     def test_to_latex_escape_special_chars_in_index_names(self):
-        special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
-        df = DataFrame([special_characters, special_characters]).T.set_index(0)
+        index = "&%$#_{}}~^\\"
+        df = DataFrame({index: [1, 2, 3]}).set_index(index)
         result = df.to_latex(escape=True)
         expected = _dedent(
             r"""
-            \begin{tabular}{ll}
+            \begin{tabular}{l}
             \toprule
-             & 1 \\
-            0 &  \\
+            \&\%\$\#\_\{\}\}\textasciitilde \textasciicircum \textbackslash  \\
             \midrule
-            \& & \& \\
-            \% & \% \\
-            \$ & \$ \\
-            \# & \# \\
-            \_ & \_ \\
-            \{ & \{ \\
-            \} & \} \\
-            \textasciitilde  & \textasciitilde  \\
-            \textasciicircum  & \textasciicircum  \\
-            \textbackslash  & \textbackslash  \\
+            1 \\
+            2 \\
+            3 \\
             \bottomrule
             \end{tabular}
             """
