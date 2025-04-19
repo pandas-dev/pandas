@@ -583,58 +583,16 @@ def test_npfunc_no_warnings():
         df.col1.rolling(2).apply(np.prod, raw=True, engine="numba")
 
 
-from .test_rolling import (
-    ArbitraryWindowIndexer,
-    CustomLengthWindowIndexer,
-)
+from .test_rolling import TestMinMax
 
 
 @td.skip_if_no("numba")
-class TestMinMax:
-    @pytest.mark.parametrize("is_max", [True, False])
-    @pytest.mark.parametrize(
-        "seed, n, win_len, min_obs, frac_nan, indexer_t",
-        [
-            (42, 1000, 80, 15, 0.3, CustomLengthWindowIndexer),
-            (52, 1000, 80, 15, 0.3, ArbitraryWindowIndexer),
-            (1984, 1000, 40, 25, 0.3, None),
-        ],
-    )
-    def test_minmax(self, is_max, seed, n, win_len, min_obs, frac_nan, indexer_t):
-        if seed is not None and isinstance(seed, np.random._generator.Generator):
-            rng = np.random.default_rng(seed)
-            rng.bit_generator.state = seed.bit_generator.state
-        else:
-            rng = np.random.default_rng(seed)
+class TestMinMaxNumba:
+    parent = TestMinMax()
 
-        vals = DataFrame({"Data": rng.random(n)})
-        if frac_nan > 0:
-            is_nan = rng.random(len(vals)) < frac_nan
-            vals.Data = np.where(is_nan, np.nan, vals.Data)
+    @pytest.mark.parametrize("is_max, has_nan, exp_list", TestMinMax.TestData)
+    def test_minmax(self, is_max, has_nan, exp_list):
+        TestMinMaxNumba.parent.test_minmax(is_max, has_nan, exp_list, "numba")
 
-        ind_param = indexer_t(rng, len(vals), win_len) if indexer_t else win_len
-
-        r = vals.rolling(ind_param, min_periods=min_obs)
-        f = r.max if is_max else r.min
-        test_cython = f(engine="cython")
-        test_numba = f(engine="numba")
-        tm.assert_series_equal(test_numba.Data, test_cython.Data)
-
-    @pytest.mark.parametrize(
-        "seed, n, win_len, indexer_t",
-        [
-            (42, 15, 7, ArbitraryWindowIndexer),
-        ],
-    )
-    def test_wrong_order(self, seed, n, win_len, indexer_t):
-        rng = np.random.default_rng(seed)
-        vals = DataFrame({"Data": rng.random(n)})
-
-        ind_obj = indexer_t(rng, len(vals), win_len)
-        ind_obj._end[[14, 7]] = ind_obj._end[[7, 14]]
-
-        f = vals.rolling(ind_obj).max
-        with pytest.raises(
-            ValueError, match="Start/End ordering requirement is violated at index 8"
-        ):
-            f(engine="numba")
+    def test_wrong_order(self):
+        TestMinMaxNumba.parent.test_wrong_order("numba")
