@@ -824,6 +824,33 @@ class TestToLatexEscape:
         )
         assert result == expected
 
+    def test_to_latex_escape_special_chars_in_index_names(self):
+        special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
+        df = DataFrame([special_characters, special_characters]).T.set_index(0)
+        result = df.to_latex(escape=True)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{ll}
+            \toprule
+             & 1 \\
+            0 &  \\
+            \midrule
+            \& & \& \\
+            \% & \% \\
+            \$ & \$ \\
+            \# & \# \\
+            \_ & \_ \\
+            \{ & \{ \\
+            \} & \} \\
+            \textasciitilde  & \textasciitilde  \\
+            \textasciicircum  & \textasciicircum  \\
+            \textbackslash  & \textbackslash  \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
     def test_to_latex_specified_header_special_chars_without_escape(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
