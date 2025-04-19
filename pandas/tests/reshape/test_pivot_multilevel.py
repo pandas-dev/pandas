@@ -291,4 +291,4 @@ def test_pivot_table_multiindex_values_as_two_params(index, columns, request):
         e_cols = Index(data=[1, 2], name="col")
 
     expected = pd.DataFrame(data=e_data, index=e_index, columns=e_cols)
-    tm.assert_frame_equal(left=result, right=expected)
+    tm.assert_frame_equal(result, expected)
