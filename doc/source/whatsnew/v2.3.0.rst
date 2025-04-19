@@ -38,6 +38,7 @@ Other enhancements
 - :meth:`Series.str.decode` result now has ``StringDtype`` when ``future.infer_string`` is True (:issue:`60709`)
 - :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
 - Improved ``repr`` of :class:`.NumpyExtensionArray` to account for NEP51 (:issue:`61085`)
+- Reverted the minimum version for the ``sqlalchemy`` optional dependency back to ``1.4.36`` (:issue:`57049`)
 - The :meth:`Series.str.decode` has gained the argument ``dtype`` to control the dtype of the result (:issue:`60940`)
 - The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns (:issue:`60633`)
 - The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
