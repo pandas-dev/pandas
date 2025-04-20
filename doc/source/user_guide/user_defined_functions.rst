@@ -87,17 +87,23 @@ Methods that support User-Defined Functions
 
 User-Defined Functions can be applied across various pandas methods:
 
-+-------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| Method            | Function Input         | Function Output          | Description                                                               |
-+===================+========================+==========================+===========================================================================+
-| map               | Scalar                 | Scalar                   | Maps each element to the element returned by the function element-wise    |
-| apply (axis=0)    | Column (Series)        | Column (Series)          | Apply a function to each column                                           |
-| apply (axis=1)    | Row (Series)           | Row (Series)             | Apply a function to each row                                              |
-| agg               | Series/DataFrame       | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer              |
-| transform         | Series/DataFrame       | Same shape as input      | Transform values while preserving shape                                   |
-| filter            | Series/DataFrame       | Series/DataFrame         | Filter data using a boolean array                                         |
-| pipe              | Series/DataFrame       | Series/DataFrame         | Chain UDFs together to apply to Series or Dataframe                       |
-+-------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
++----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
+| Method                     | Function Input         | Function Output          | Description                                                               |
++============================+========================+==========================+===========================================================================+
+| :meth:`map`                | Scalar                 | Scalar                   | Maps each element to the element returned by the function element-wise    |
++----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
+| :meth:`apply` (axis=0)     | Column (Series)        | Column (Series)          | Apply a function to each column                                           |
++----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
+| :meth:`apply` (axis=1)     | Row (Series)           | Row (Series)             | Apply a function to each row                                              |
++----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
+| :meth:`agg`                | Series/DataFrame       | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer              |
++----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
+| :meth:`transform`          | Series/DataFrame       | Same shape as input      | Transform values while preserving shape                                   |
++----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
+| :meth:`filter`             | Series/DataFrame       | Series/DataFrame         | Filter data using a boolean array                                         |
++----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
+| :meth:`pipe`               | Series/DataFrame       | Series/DataFrame         | Chain UDFs together to apply to Series or Dataframe                       |
++----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
 
 .. note::
     Some of these methods are can also be applied to groupby, resample, and various window objects.
