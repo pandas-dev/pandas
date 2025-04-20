@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_dict_like,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -56,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_signed_integer_dtype,
     needs_i8_conversion,
-    is_dtype_equal,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
