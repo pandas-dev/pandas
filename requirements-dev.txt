@@ -14,7 +14,7 @@ pytest-localserver
 PyQt5>=5.15.9
 coverage
 python-dateutil
-numpy<2
+numpy<3
 beautifulsoup4>=4.11.2
 blosc
 bottleneck>=1.3.6
@@ -57,7 +57,7 @@ asv>=0.6.1
 flake8==7.1.0
 mypy==1.13.0
 tokenize-rt
-pre-commit>=4.0.1
+pre-commit>=4.2.0
 gitpython
 gitdb
 google-auth
