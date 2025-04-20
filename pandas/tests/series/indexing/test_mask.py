@@ -78,17 +78,17 @@ def test_mask_inplace():
         pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ],
 )
-def test_mask_na(dtype):
+@pytest.mark.parametrize("cond_type", [["series", "list", "numpy"]])
+def test_mask_na(dtype, cond_type):
     # We should not be filling pd.NA. See GH#60729
     series = Series([None, 1, 2, None, 3, 4, None], dtype=dtype)
     cond = series <= 2
     expected = Series([None, -99, -99, None, 3, 4, None], dtype=dtype)
 
+    if cond_type == "list":
+        cond = cond.to_list()
+    elif cond_type == "numpy":
+        cond = cond.to_numpy()
+
     result = series.mask(cond, -99)
-    tm.assert_series_equal(result, expected)
-
-    result = series.mask(cond.to_list(), -99)
-    tm.assert_series_equal(result, expected)
-
-    result = series.mask(cond.to_numpy(), -99)
     tm.assert_series_equal(result, expected)
