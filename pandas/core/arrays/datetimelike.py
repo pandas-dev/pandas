@@ -275,7 +275,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         --------
         >>> arr = pd.array(np.array(["1970-01-01"], "datetime64[ns]"))
         >>> arr._unbox_scalar(arr[0])
-        numpy.datetime64('1970-01-01T00:00:00.000000000')
+        np.datetime64('1970-01-01T00:00:00.000000000')
         """
         raise AbstractMethodError(self)
 
@@ -2394,7 +2394,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         )
 
         indices = np.asarray(indices, dtype=np.intp)
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))  # type: ignore[arg-type]
 
         if isinstance(maybe_slice, slice):
             freq = self._get_getitem_freq(maybe_slice)
