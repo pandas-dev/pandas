@@ -90,7 +90,7 @@ User-Defined Functions can be applied across various pandas methods:
 +----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
 | Method                     | Function Input         | Function Output          | Description                                                               |
 +============================+========================+==========================+===========================================================================+
-| :meth:`map`                | Scalar                 | Scalar                   | Maps each element to the element returned by the function element-wise    |
+| :meth:`map`                | Scalar                 | Scalar                   | Apply a function to each element                                          |
 +----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
 | :meth:`apply` (axis=0)     | Column (Series)        | Column (Series)          | Apply a function to each column                                           |
 +----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
@@ -98,11 +98,11 @@ User-Defined Functions can be applied across various pandas methods:
 +----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
 | :meth:`agg`                | Series/DataFrame       | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer              |
 +----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`transform`          | Series/DataFrame       | Same shape as input      | Transform values while preserving shape                                   |
+| :meth:`transform`          | Series/DataFrame       | Same shape as input      | Apply a function while preserving shape; raises error if shape changes    |
 +----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`filter`             | Series/DataFrame       | Series/DataFrame         | Filter data using a boolean array                                         |
+| :meth:`filter`             | -                      | -                        | Return rows that satisfy a boolean condition                              |
 +----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`pipe`               | Series/DataFrame       | Series/DataFrame         | Chain UDFs together to apply to Series or Dataframe                       |
+| :meth:`pipe`               | Series/DataFrame       | Series/DataFrame         | Chain functions together to apply to Series or Dataframe                  |
 +----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
 
 .. note::
@@ -249,7 +249,7 @@ Documentation can be found at :meth:`~DataFrame.pipe`.
 Performance
 -----------
 
-While UDFs provide flexibility, their use is currently discouraged as they can introduce
+While UDFs provide flexibility, their use is generally discouraged as they can introduce
 performance issues, especially when written in pure Python. To improve efficiency,
 consider using built-in ``NumPy`` or ``pandas`` functions instead of UDFs
 for common operations.
@@ -302,3 +302,35 @@ especially for computationally heavy tasks.
 .. note::
     You may also refer to the user guide on `Enhancing performance <https://pandas.pydata.org/pandas-docs/dev/user_guide/enhancingperf.html#numba-jit-compilation>`_
     for a more detailed guide to using **Numba**.
+
+Using :meth:`DataFrame.pipe` for Composable Logic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Another useful pattern for improving readability and composability—especially when mixing
+vectorized logic with UDFs—is to use the :meth:`DataFrame.pipe` method.
+
+The ``.pipe`` method doesn't improve performance directly, but it enables cleaner
+method chaining by passing the entire object into a function. This is especially helpful
+when chaining custom transformations:
+
+.. code-block:: python
+
+    def add_ratio_column(df):
+        df["ratio"] = 100 * (df["one"] / df["two"])
+        return df
+
+    df = (
+        df
+        .query("one > 0")
+        .pipe(add_ratio_column)
+        .dropna()
+    )
+
+This is functionally equivalent to calling ``add_ratio_column(df)``, but keeps your code
+clean and composable. The function you pass to ``.pipe`` can use vectorized operations,
+row-wise UDFs, or any other logic—``.pipe`` is agnostic.
+
+.. note::
+    While :meth:`DataFrame.pipe` does not improve performance on its own,
+    it promotes clean, modular design and allows both vectorized and UDF-based logic
+    to be composed in method chains.
