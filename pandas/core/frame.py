@@ -7740,7 +7740,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame or None
+        DataFrame
             DataFrame containing only the columns whose names match the
             specified substring(s). Returns None if no columns match.
 
@@ -7781,23 +7781,22 @@ class DataFrame(NDFrame, OpsMixin):
         1   30
         """
         substr = [substr] if isinstance(substr, str) else substr
-        selected_cols = self.columns
+        substr = [s.strip() for s in substr if isinstance(s, str)]
+        substr = [s for s in substr if s]
 
-        if ignore_case:
-            selected_cols = [
-                col for col in self.columns
-                if any(sub.casefold() in col.casefold()
-                       for sub in substr)
-            ]
-        else:
-            selected_cols = [
-                col for col in self.columns
-                if any(sub in col
-                       for sub in substr)
-            ]
+        if not substr:
+            return self[[]]
 
-        selected_cols = list(set(selected_cols))
-        return self[selected_cols]
+        selected_cols = []
+        for col in self.columns:
+            for sub in substr:
+                col_to_check = col.casefold() if ignore_case else col
+                sub_to_check = sub.casefold() if ignore_case else sub
+                if sub_to_check in col_to_check:
+                    selected_cols.append(col)
+                    break
+
+        return self[selected_cols] if selected_cols else self[[]]
 
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
         """
