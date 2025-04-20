@@ -31,8 +31,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    List,
     cast,
     overload,
+    Union
 )
 import warnings
 
@@ -7716,6 +7718,86 @@ class DataFrame(NDFrame, OpsMixin):
         Nauru         337000  182      NR
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
+    
+    def select_by_substr(
+            self,
+            substr: Union[str, List[str]],
+            ignore_case: bool = True,
+        ) -> DataFrame | None:
+        """
+    Return columns whose names contain the specified substring(s).
+
+        Select and return all columns from the DataFrame whose names contain
+        the given substring or any of a list of substrings. By default, the
+        search is case-insensitive.
+
+        Parameters
+        ----------
+        substr : str or list of str
+            Substring or list of substrings to search for in column names.
+        ignore_case : bool, default True
+            Whether to ignore case when searching for substrings.
+
+        Returns
+        -------
+        DataFrame or None
+            DataFrame containing only the columns whose names match the
+            specified substring(s). Returns None if no columns match.
+
+        See Also
+        --------
+        DataFrame.filter : Subset the columns or rows of a DataFrame according to labels or a boolean array.
+        DataFrame.loc : Access a group of rows and columns by label(s) or a boolean array.
+
+        Notes
+        -----
+        All columns containing at least one of the provided substrings will be
+        returned. If no columns match, None is returned.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...     "first_name": ["Alice", "Bob"],
+        ...     "last_name": ["Smith", "Jones"],
+        ...     "age": [25, 30],
+        ...     "city": ["NY", "LA"]
+        ... })
+        >>> df.select_by_substr("name")
+        first_name last_name
+        0       Alice     Smith
+        1         Bob     Jones
+
+        >>> df.select_by_substr(["name", "city"])
+        first_name last_name  city
+        0       Alice     Smith   NY
+        1         Bob     Jones   LA
+
+        >>> df.select_by_substr("AGE", ignore_case=False)  # No match due to case
+        None
+
+        >>> df.select_by_substr("AGE", ignore_case=True)
+        age
+        0   25
+        1   30
+        """
+        substr = [substr] if isinstance(substr, str) else substr
+        selected_cols = self.columns
+
+        if ignore_case:
+            selected_cols = [
+                col for col in self.columns
+                if any(sub.casefold() in col.casefold()
+                       for sub in substr)
+            ]
+        else:
+            selected_cols = [
+                col for col in self.columns
+                if any(sub in col
+                       for sub in substr)
+            ]
+
+        selected_cols = list(set(selected_cols))
+        return self[selected_cols]
 
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
         """
