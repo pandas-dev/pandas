@@ -87,20 +87,17 @@ Methods that support User-Defined Functions
 
 User-Defined Functions can be applied across various pandas methods:
 
-* :meth:`~DataFrame.apply` - A flexible method that allows applying a function to Series and
-  DataFrames.
-* :meth:`~DataFrame.agg` (Aggregate) - Used for summarizing data, supporting custom
-  aggregation functions.
-* :meth:`~DataFrame.transform` - Applies a function to Series and Dataframes while preserving the shape of
-  the original data.
-* :meth:`~DataFrame.filter` - Filters Series and Dataframes based on a list of Boolean conditions.
-* :meth:`~DataFrame.map` - Applies an element-wise function to a Series or Dataframe, useful for
-  transforming individual values.
-* :meth:`~DataFrame.pipe` - Allows chaining custom functions to process Series or
-  Dataframes in a clean, readable manner.
-
-All of these pandas methods can be used with both Series and DataFrame objects, providing versatile
-ways to apply UDFs across different pandas data structures.
++-------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
+| Method            | Function Input         | Function Output          | Description                                                               |
++===================+========================+==========================+===========================================================================+
+| map               | Scalar                 | Scalar                   | Maps each element to the element returned by the function element-wise    |
+| apply (axis=0)    | Column (Series)        | Column (Series)          | Apply a function to each column                                           |
+| apply (axis=1)    | Row (Series)           | Row (Series)             | Apply a function to each row                                              |
+| agg               | Series/DataFrame       | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer              |
+| transform         | Series/DataFrame       | Same shape as input      | Transform values while preserving shape                                   |
+| filter            | Series/DataFrame       | Series/DataFrame         | Filter data using a boolean array                                         |
+| pipe              | Series/DataFrame       | Series/DataFrame         | Chain UDFs together to apply to Series or Dataframe                       |
++-------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
 
 .. note::
     Some of these methods are can also be applied to groupby, resample, and various window objects.
@@ -243,8 +240,8 @@ When to use: Use pipe when you need to create a pipeline of operations and want 
 Documentation can be found at :meth:`~DataFrame.pipe`.
 
 
-Best Practices
---------------
+Performance
+-----------
 
 While UDFs provide flexibility, their use is currently discouraged as they can introduce
 performance issues, especially when written in pure Python. To improve efficiency,
