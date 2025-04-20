@@ -802,8 +802,9 @@ class TestDateRanges:
     )
     def test_date_range_depr_lowercase_frequency(self, freq, freq_depr):
         # GH#58998
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        "in a future version."
+        depr_msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+        )
 
         expected = date_range("1/1/2000", periods=4, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):

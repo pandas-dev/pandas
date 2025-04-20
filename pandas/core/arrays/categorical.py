@@ -452,7 +452,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if isinstance(values, Index):
                     arr = values._data._pa_array.combine_chunks()
                 else:
-                    arr = values._pa_array.combine_chunks()
+                    arr = extract_array(values)._pa_array.combine_chunks()
                 categories = arr.dictionary.to_pandas(types_mapper=ArrowDtype)
                 codes = arr.indices.to_numpy()
                 dtype = CategoricalDtype(categories, values.dtype.pyarrow_dtype.ordered)
@@ -1853,7 +1853,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             count = np.bincount(obs, minlength=ncat or 0)
         else:
             count = np.bincount(np.where(mask, code, ncat))
-            ix = np.append(ix, -1)
+            ix = np.append(ix, -1)  # type: ignore[assignment]
 
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix_categorical = self._from_backing_data(ix)
