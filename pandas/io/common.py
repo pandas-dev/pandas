@@ -11,6 +11,7 @@ from collections import defaultdict
 from collections.abc import (
     Generator,
     Hashable,
+    Iterable,
     Mapping,
     Sequence,
 )
@@ -1324,7 +1325,7 @@ def _match_file(
 
 def iterdir(
     path: FilePath,
-    extensions: str | list[str] | None = None,
+    extensions: str | Iterable[str] | None = None,
     glob: str | None = None,
 ) -> Generator[Path | PurePosixPath]:
     """Yield file paths in a directory (no nesting allowed).
