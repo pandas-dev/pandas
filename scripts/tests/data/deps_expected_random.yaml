@@ -39,7 +39,7 @@ dependencies:
   - odfpy>=1.4.1
   - psycopg2>=2.8.6
   - pyarrow<11, >=7.0.0
-  - pymysql>=1.0.2
+  - pymysql>=1.1.0
   - pyreadstat>=1.1.2
   - pytables>=3.6.1
   - python-calamine>=0.1.7
