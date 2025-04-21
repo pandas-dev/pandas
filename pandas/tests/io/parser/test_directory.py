@@ -29,10 +29,9 @@ def directory_data_to_file(tmp_path, directory_data):
 
 
 def test_directory_data(directory_data_to_file):
-    print(type(directory_data_to_file.iterdir()))
     assert len(list(directory_data_to_file.iterdir())) == 3
     for file in directory_data_to_file.iterdir():
-        with file.open() as f:
+        with file.open(encoding="utf-8") as f:
             reader = csv_reader(f)
             header = next(reader)
             assert header == ["a", "b", "c"]
