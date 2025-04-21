@@ -107,7 +107,7 @@ Joining logic of the resulting axis
 The ``join`` keyword specifies how to handle axis values that don't exist in the first
 :class:`DataFrame`.
 
-``join='outer'`` takes the union of all axis values
+``join='outer'`` takes the union of all axis values.
 
 .. ipython:: python
 
@@ -130,7 +130,7 @@ The ``join`` keyword specifies how to handle axis values that don't exist in the
    p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
    plt.close("all");
 
-``join='inner'`` takes the intersection of the axis values
+``join='inner'`` takes the intersection of the axis values.
 
 .. ipython:: python
 
@@ -296,7 +296,7 @@ the index of the :class:`DataFrame` pieces:
 
    result.index.levels
 
-``levels`` argument allows specifying resulting levels associated with the ``keys``
+``levels`` argument allows specifying resulting levels associated with the ``keys``.
 
 .. ipython:: python
 
@@ -322,7 +322,7 @@ Appending rows to a :class:`DataFrame`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you have a :class:`Series` that you want to append as a single row to a :class:`DataFrame`, you can convert the row into a
-:class:`DataFrame` and use :func:`concat`
+:class:`DataFrame` and use :func:`concat`.
 
 .. ipython:: python
 
@@ -355,7 +355,7 @@ Merge types
   their indexes which must contain unique values.
 * **many-to-one**: joining a unique index to one or
   more columns in a different :class:`DataFrame`.
-* **many-to-many** : joining columns on columns.
+* **many-to-many**: joining columns on columns.
 
 .. note::
 
@@ -485,8 +485,9 @@ either the left or right tables, the values in the joined table will be
    plt.close("all");
 
 You can merge :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
-the :class:`MultiIndex` correspond to the columns from the :class:`DataFrame`. Transform
-the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index` before merging
+the :class:`MultiIndex` correspond to the columns from the :class:`DataFrame`. You can also
+transform the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index`
+before merging:
 
 .. ipython:: python
 
@@ -504,7 +505,7 @@ the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index` bef
    pd.merge(df, ser.reset_index(), on=["Let", "Num"])
 
 
-Performing an outer join with duplicate join keys in :class:`DataFrame`
+Performing an outer join with duplicate join keys in :class:`DataFrame`:
 
 .. ipython:: python
 
@@ -1082,7 +1083,7 @@ Stack the differences on rows.
 
    df.compare(df2, align_axis=0)
 
-Keep all original rows and columns with ``keep_shape=True``
+Keep all original rows and columns with ``keep_shape=True``.
 
 .. ipython:: python
 
