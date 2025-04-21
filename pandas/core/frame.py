@@ -7746,8 +7746,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        DataFrame.filter : Subset the columns or rows of a DataFrame according to labels or a boolean array.
-        DataFrame.loc : Access a group of rows and columns by label(s) or a boolean array.
+        DataFrame.filter : Subset the columns or rows of a DataFrame according to
+        labels or a boolean array.
+        DataFrame.loc : Access a group of rows and columns by label(s) or a
+        boolean array.
 
         Notes
         -----
