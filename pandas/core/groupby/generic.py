@@ -2142,7 +2142,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if stacked_values.dtype == object:
             # We'll have the DataFrame constructor do inference
-            stacked_values = stacked_values.tolist()  # type: ignore[assignment]
+            stacked_values = stacked_values.tolist()
         result = self.obj._constructor(stacked_values, index=index, columns=columns)
 
         if not self.as_index:
