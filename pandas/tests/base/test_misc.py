@@ -160,8 +160,8 @@ def test_searchsorted(request, index_or_series_obj):
         mark = pytest.mark.xfail(reason="complex objects are not comparable")
         request.applymarker(mark)
 
-    elif obj.dtype == "mixed-int-string" and isinstance(obj, Index):
-        mark = pytest.mark.xfail(reason="np.searchsorted doesn't work on mixed types String and Int: mixed-int-string")
+    elif set(type(x) for x in obj) > 1 and isinstance(obj, Index):
+        mark = pytest.mark.xfail(reason="np.searchsorted doesn't work on mixed types")
         request.applymarker(mark)
 
     max_obj = max(obj, default=0)
