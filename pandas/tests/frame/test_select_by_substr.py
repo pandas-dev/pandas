@@ -1,6 +1,8 @@
 import pytest
+
 from pandas import DataFrame
 import pandas._testing as tm
+
 
 class TestSelectBySubstr:
     @pytest.fixture

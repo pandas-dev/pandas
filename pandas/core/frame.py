@@ -30,11 +30,11 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
     List,
+    Literal,
+    Union,
     cast,
     overload,
-    Union
 )
 import warnings
 
@@ -7718,7 +7718,7 @@ class DataFrame(NDFrame, OpsMixin):
         Nauru         337000  182      NR
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
-    
+
     def select_by_substr(
             self,
             substr: Union[str, List[str]],
