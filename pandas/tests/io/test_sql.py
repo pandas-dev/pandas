@@ -2246,25 +2246,26 @@ def test_delete_rows_is_atomic(conn_name, request):
     replacing_df = DataFrame({"a": [5, 6, 7], "b": [8, 8, 8]}, dtype="int32")
 
     conn = request.getfixturevalue(conn_name)
-    pandasSQL = pandasSQL_builder(conn)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(table_stmt)
 
-    with pandasSQL.run_transaction() as cur:
-        cur.execute(table_stmt)
-
-    with pandasSQL.run_transaction():
-        pandasSQL.to_sql(original_df, table_name, if_exists="append", index=False)
-
-    # inserting duplicated values in a UNIQUE constraint column
-    with pytest.raises(pd.errors.DatabaseError):
         with pandasSQL.run_transaction():
-            pandasSQL.to_sql(
-                replacing_df, table_name, if_exists="delete_rows", index=False
-            )
+            pandasSQL.to_sql(original_df, table_name, if_exists="append", index=False)
 
-    # failed "delete_rows" is rolled back preserving original data
-    with pandasSQL.run_transaction():
-        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name}", dtype="int32")
-        tm.assert_frame_equal(result_df, original_df)
+        # inserting duplicated values in a UNIQUE constraint column
+        with pytest.raises(pd.errors.DatabaseError):
+            with pandasSQL.run_transaction():
+                pandasSQL.to_sql(
+                    replacing_df, table_name, if_exists="delete_rows", index=False
+                )
+
+        # failed "delete_rows" is rolled back preserving original data
+        with pandasSQL.run_transaction():
+            result_df = pandasSQL.read_query(
+                f"SELECT * FROM {table_name}", dtype="int32"
+            )
+            tm.assert_frame_equal(result_df, original_df)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
