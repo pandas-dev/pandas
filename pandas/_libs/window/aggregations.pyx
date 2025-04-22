@@ -989,15 +989,14 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
 # ----------------------------------------------------------------------
 
-# Moving maximum / minimum code taken from Bottleneck
-# Licence at LICENSES/BOTTLENECK_LICENCE
-
 cdef int64_t bisect_left(
     deque[int64_t]& a,
     int64_t x,
     int64_t lo=0,
     int64_t hi=-1
 ) nogil:
+    """Same as https://docs.python.org/3/library/bisect.html."""
+
     cdef int64_t mid
     if hi == -1:
         hi = a.size()
@@ -1010,6 +1009,9 @@ cdef int64_t bisect_left(
     return lo
 
 from libc.math cimport isnan
+
+# Prior version of moving maximum / minimum code taken from Bottleneck
+# Licence at LICENSES/BOTTLENECK_LICENCE
 
 
 def roll_max(ndarray[float64_t] values, ndarray[int64_t] start,
@@ -1066,16 +1068,19 @@ def _roll_min_max(
 ):
     cdef:
         Py_ssize_t i, i_next, k, valid_start, last_end, last_start, N = len(start)
-        deque Q[int64_t]
-        stack Dominators[int64_t]
+        # Indices of bounded extrema in `values`. `candidates[i]` is always increasing.
+        # `values[candidates[i]]` is decreasing for max and increasing for min.
+        deque candidates[int64_t]
+        # Indices of largest windows that "cover" preceding windows.
+        stack dominators[int64_t]
         ndarray[float64_t, ndim=1] output
 
         Py_ssize_t this_start, this_end, stash_start
         int64_t q_idx
 
     output = np.empty(N, dtype=np.float64)
-    Q = deque[int64_t]()
-    Dominators = stack[int64_t]()
+    candidates = deque[int64_t]()
+    dominators = stack[int64_t]()
 
     # This function was "ported" / translated from sliding_min_max()
     # in /pandas/core/_numba/kernels/min_max_.py.
@@ -1100,12 +1105,13 @@ def _roll_min_max(
             for i in range(N - 2, -1, -1):
                 if start[i_next] < start[i] \
                     and (
-                           Dominators.empty()
-                        or start[Dominators.top()] > start[i_next]
+                           dominators.empty()
+                        or start[dominators.top()] > start[i_next]
                 ):
-                    Dominators.push(i_next)
+                    dominators.push(i_next)
                 i_next = i
 
+        # NaN tracking to guarantee minp
         valid_start = -minp
 
         last_end = 0
@@ -1115,21 +1121,21 @@ def _roll_min_max(
             this_start = start[i]
             this_end = end[i]
 
-            if (not Dominators.empty() and Dominators.top() == i):
-                Dominators.pop()
+            if (not dominators.empty() and dominators.top() == i):
+                dominators.pop()
 
             if not (this_end > last_end
                     or (this_end == last_end and this_start >= last_start)):
                 raise ValueError(
                     "Start/End ordering requirement is violated at index {}".format(i))
 
-            if Dominators.empty():
+            if dominators.empty():
                 stash_start = this_start
             else:
-                stash_start = min(this_start, start[Dominators.top()])
+                stash_start = min(this_start, start[dominators.top()])
 
-            while not Q.empty() and Q.front() < stash_start:
-                Q.pop_front()
+            while not candidates.empty() and candidates.front() < stash_start:
+                candidates.pop_front()
 
             for k in range(last_end, this_end):
                 if not isnan(values[k]):
@@ -1138,20 +1144,23 @@ def _roll_min_max(
                         valid_start += 1
 
                     if is_max:
-                        while not Q.empty() and values[k] >= values[Q.back()]:
-                            Q.pop_back()
+                        while (not candidates.empty()
+                                and values[k] >= values[candidates.back()]):
+                            candidates.pop_back()
                     else:
-                        while not Q.empty() and values[k] <= values[Q.back()]:
-                            Q.pop_back()
-                    Q.push_back(k)
+                        while (not candidates.empty()
+                                and values[k] <= values[candidates.back()]):
+                            candidates.pop_back()
+                    candidates.push_back(k)
 
-            if Q.empty() or this_start > valid_start:
+            if candidates.empty() or this_start > valid_start:
                 output[i] = NaN
-            elif Q.front() >= this_start:
-                output[i] = values[Q.front()]
+            elif candidates.front() >= this_start:
+                # ^^ This is here to avoid costly bisection for fixed window sizes.
+                output[i] = values[candidates.front()]
             else:
-                q_idx = bisect_left(Q, this_start, lo=1)
-                output[i] = values[Q[q_idx]]
+                q_idx = bisect_left(candidates, this_start, lo=1)
+                output[i] = values[candidates[q_idx]]
             last_end = this_end
             last_start = this_start
 

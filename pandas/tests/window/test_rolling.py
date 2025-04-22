@@ -1965,15 +1965,16 @@ class PrescribedWindowIndexer(BaseIndexer):
 
 
 class TestMinMax:
-    TestData = [
-        (True, False, [3.0, 5.0, 2.0, 5.0, 1.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
-        (True, True, [3.0, 4.0, 2.0, 4.0, 1.0, 4.0, 6.0, 7.0, 7.0, 9.0]),
-        (False, False, [3.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 7.0, 0.0]),
-        (False, True, [3.0, 2.0, 2.0, 1.0, 1.0, 1.0, 6.0, 6.0, 7.0, 1.0]),
-    ]
-
-    @pytest.mark.parametrize("is_max, has_nan, exp_list", TestData)
-    def test_minmax(self, is_max, has_nan, exp_list, engine=None):
+    @pytest.mark.parametrize(
+        "is_max, has_nan, exp_list",
+        [
+            (True, False, [3.0, 5.0, 2.0, 5.0, 1.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
+            (True, True, [3.0, 4.0, 2.0, 4.0, 1.0, 4.0, 6.0, 7.0, 7.0, 9.0]),
+            (False, False, [3.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 7.0, 0.0]),
+            (False, True, [3.0, 2.0, 2.0, 1.0, 1.0, 1.0, 6.0, 6.0, 7.0, 1.0]),
+        ],
+    )
+    def test_minmax(self, is_max, has_nan, exp_list):
         nan_idx = [0, 5, 8]
         df = DataFrame(
             {
@@ -1989,13 +1990,13 @@ class TestMinMax:
             PrescribedWindowIndexer(df.start.to_numpy(), df.end.to_numpy())
         )
         if is_max:
-            result = r.max(engine=engine)
+            result = r.max()
         else:
-            result = r.min(engine=engine)
+            result = r.min()
 
         tm.assert_series_equal(result, expected)
 
-    def test_wrong_order(self, engine=None):
+    def test_wrong_order(self):
         start = np.array(range(5), dtype=np.int64)
         end = start + 1
         end[3] = end[2]
@@ -2007,4 +2008,4 @@ class TestMinMax:
         with pytest.raises(
             ValueError, match="Start/End ordering requirement is violated at index 3"
         ):
-            r.max(engine=engine)
+            r.max()

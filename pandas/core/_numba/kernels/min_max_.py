@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 @numba.njit(nogil=True, parallel=False)
 def bisect_left(a: list[Any], x: Any, lo: int = 0, hi: int = -1) -> int:
+    """Same as https://docs.python.org/3/library/bisect.html; not in numba yet!"""
     if hi == -1:
         hi = len(a)
     while lo < hi:
@@ -57,8 +58,11 @@ def sliding_min_max(
         else:
             return a <= b
 
-    Q: list = []  # this is a queue
-    Dominators: list = []  # this is a stack
+    # Indices of bounded extrema in `values`. `candidates[i]` is always increasing.
+    # `values[candidates[i]]` is decreasing for max and increasing for min.
+    candidates: list[int] = []  # this is a queue
+    # Indices of largest windows that "cover" preceding windows.
+    dominators: list[int] = []  # this is a stack
 
     if min_periods < 1:
         min_periods = 1
@@ -68,11 +72,12 @@ def sliding_min_max(
         for i in range(N - 2, -1, -1):
             next_dominates = start[i_next] < start[i]
             if next_dominates and (
-                not Dominators or start[Dominators[-1]] > start[i_next]
+                not dominators or start[dominators[-1]] > start[i_next]
             ):
-                Dominators.append(i_next)
+                dominators.append(i_next)
             i_next = i
 
+    # NaN tracking to guarantee min_periods
     valid_start = -min_periods
 
     last_end = 0
@@ -82,8 +87,8 @@ def sliding_min_max(
         this_start = start[i].item()
         this_end = end[i].item()
 
-        if Dominators and Dominators[-1] == i:
-            Dominators.pop()
+        if dominators and dominators[-1] == i:
+            dominators.pop()
 
         if not (
             this_end > last_end or (this_end == last_end and this_start >= last_start)
@@ -93,30 +98,31 @@ def sliding_min_max(
             )
 
         stash_start = (
-            this_start if not Dominators else min(this_start, start[Dominators[-1]])
+            this_start if not dominators else min(this_start, start[dominators[-1]])
         )
-        while Q and Q[0] < stash_start:
-            Q.pop(0)
+        while candidates and candidates[0] < stash_start:
+            candidates.pop(0)
 
         for k in range(last_end, this_end):
             if not np.isnan(values[k]):
                 valid_start += 1
                 while valid_start >= 0 and np.isnan(values[valid_start]):
                     valid_start += 1
-                while Q and cmp(values[k], values[Q[-1]], is_max):
-                    Q.pop()  # Q.pop_back()
-                Q.append(k)  # Q.push_back(k)
+                while candidates and cmp(values[k], values[candidates[-1]], is_max):
+                    candidates.pop()  # Q.pop_back()
+                candidates.append(k)  # Q.push_back(k)
 
-        if not Q or (this_start > valid_start):
+        if not candidates or (this_start > valid_start):
             if values.dtype.kind != "i":
                 output[i] = np.nan
             else:
                 na_pos.append(i)
-        elif Q[0] >= this_start:
-            output[i] = values[Q[0]]
+        elif candidates[0] >= this_start:
+            # ^^ This is here to avoid costly bisection for fixed window sizes.
+            output[i] = values[candidates[0]]
         else:
-            q_idx = bisect_left(Q, this_start, lo=1)
-            output[i] = values[Q[q_idx]]
+            q_idx = bisect_left(candidates, this_start, lo=1)
+            output[i] = values[candidates[q_idx]]
         last_end = this_end
         last_start = this_start
 
