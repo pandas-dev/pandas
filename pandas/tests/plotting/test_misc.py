@@ -726,8 +726,11 @@ def _BSS_subplot_checker(BSS_data, BSS_df, subplot_data_df, subplot_columns):
 
 class TestBarSubplotStacked:
     #GH Issue 61018
-    def test_bar_1_subplot_1_double_stacked(self, BSS_data, BSS_df):
-        columns_used = ["A", "B"]
+    @pytest.mark.parametrize("columns_used",[["A", "B"],
+                                             ["C", "D"],
+                                             ["D", "A"]
+    ])
+    def test_bar_1_subplot_1_double_stacked(self, BSS_data, BSS_df, columns_used):
         BSS_df_trimmed = BSS_df[columns_used]
         subplot_division = [columns_used]
         ax = BSS_df_trimmed.plot(subplots = subplot_division, kind="bar", stacked=True)
@@ -735,25 +738,36 @@ class TestBarSubplotStacked:
         for i in range(len(subplot_data_df_list)):
             _BSS_subplot_checker(BSS_data, BSS_df_trimmed, subplot_data_df_list[i], subplot_division[i])
 
-    
-    def test_bar_2_subplot_1_double_stacked(self, BSS_data, BSS_df):
-        columns_used = ["A", "B", "C"]
-        BSS_df_trimmed = BSS_df[columns_used]
+    @pytest.mark.parametrize("columns_used",[["A", "B", "C"],
+                                             ["A", "C", "B"],
+                                             ["D", "A", "C"]
+                                              
+    ])
+    def test_bar_2_subplot_1_double_stacked(self, BSS_data, BSS_df, columns_used):
+        BSS_df_trimmed = BSS_df[columns_used] 
         subplot_division = [(columns_used[0], columns_used[1]), (columns_used[2],)]
         ax = BSS_df_trimmed.plot(subplots = subplot_division, kind="bar", stacked=True)
         subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
         for i in range(len(subplot_data_df_list)):
             _BSS_subplot_checker(BSS_data, BSS_df_trimmed, subplot_data_df_list[i], subplot_division[i])
 
-    def test_bar_2_subplot_2_double_stacked(self, BSS_data, BSS_df):
-        subplot_division = [('A', 'D'), ('C', 'B')]
+    @pytest.mark.parametrize("subplot_division", [[("A", "B"), ("C", "D")],
+                                                  [("A", "D"), ("C", "B")],
+                                                  [("B", "C"), ("D", "A")],
+                                                  [("B", "D"), ("C", "A")]
+    ])
+    def test_bar_2_subplot_2_double_stacked(self, BSS_data, BSS_df, subplot_division):
         ax = BSS_df.plot(subplots = subplot_division, kind="bar", stacked=True)
         subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
         for i in range(len(subplot_data_df_list)):
             _BSS_subplot_checker(BSS_data, BSS_df, subplot_data_df_list[i], subplot_division[i])
-
-    def test_bar_2_subplots_1_triple_stacked(self, BSS_data, BSS_df):
-        subplot_division = [('A', 'D', 'C')]
+    
+    @pytest.mark.parametrize("subplot_division", [[("A", "B", "C")],
+                                                  [("A", "D", "B")],
+                                                  [("C", "A", "D")],
+                                                  [("D", "C", "A")]
+    ])
+    def test_bar_2_subplots_1_triple_stacked(self, BSS_data, BSS_df, subplot_division):
         ax = BSS_df.plot(subplots = subplot_division, kind="bar", stacked=True)
         subplot_data_df_list = _BSS_xyheight_from_ax_helper(BSS_data, ax, subplot_division)
         for i in range(len(subplot_data_df_list)):
