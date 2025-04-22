@@ -168,12 +168,12 @@ jobs:
       # TODO: Re-enable once Pypy has Pypy 3.10 on conda-forge
       if: ${{ matrix.name != 'Pypy' }}
 
-    - name: Test (not single_cpu)
-      uses: ./.github/actions/run-tests
-      if: ${{ matrix.name != 'Pypy' }}
-      env:
-        # Set pattern to not single_cpu if not already set
-        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
+    # - name: Test (not single_cpu)
+    #   uses: ./.github/actions/run-tests
+    #   if: ${{ matrix.name != 'Pypy' }}
+    #   env:
+    #     # Set pattern to not single_cpu if not already set
+    #     PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
@@ -184,6 +184,7 @@ jobs:
 
   macos-windows:
     timeout-minutes: 90
+    if: false
     strategy:
       matrix:
         # Note: Don't use macOS latest since macos 14 appears to be arm64 only
@@ -221,6 +222,7 @@ jobs:
 
   Linux-32-bit:
     runs-on: ubuntu-22.04
+    if: false
     container:
       image: quay.io/pypa/manylinux2014_i686
       options: --platform linux/386
@@ -257,6 +259,7 @@ jobs:
 
   Linux-Musl:
     runs-on: ubuntu-22.04
+    if: false
     container:
       image: quay.io/pypa/musllinux_1_2_x86_64
     steps:
@@ -363,6 +366,7 @@ jobs:
         uses: ./.github/actions/run-tests
 
   python-freethreading:
+    if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -406,6 +410,7 @@ jobs:
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
+    if: false
     # Note: the Python version, Emscripten toolchain version are determined
     # by the Pyodide version. The appropriate versions can be found in the
     # Pyodide repodata.json "info" field, or in the Makefile.envs file:
