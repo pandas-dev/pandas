@@ -764,80 +764,71 @@ def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
 
 @pytest.fixture
 def sqlite_str():
-    pytest.skip("Skipping MySQL tests")
-    # pytest.importorskip("sqlalchemy")
-    # with tm.ensure_clean() as name:
-    #     yield f"sqlite:///{name}"
+    pytest.importorskip("sqlalchemy")
+    with tm.ensure_clean() as name:
+        yield f"sqlite:///{name}"
 
 
 @pytest.fixture
 def sqlite_engine(sqlite_str):
-    pytest.skip("Skipping MySQL tests")
-    # sqlalchemy = pytest.importorskip("sqlalchemy")
-    # engine = sqlalchemy.create_engine(sqlite_str, poolclass=sqlalchemy.pool.NullPool)
-    # yield engine
-    # for view in get_all_views(engine):
-    #     drop_view(view, engine)
-    # for tbl in get_all_tables(engine):
-    #     drop_table(tbl, engine)
-    # engine.dispose()
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine(sqlite_str, poolclass=sqlalchemy.pool.NullPool)
+    yield engine
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
+    engine.dispose()
 
 
 @pytest.fixture
 def sqlite_conn(sqlite_engine):
-    pytest.skip("Skipping MySQL tests")
-    # with sqlite_engine.connect() as conn:
-    #     yield conn
+    with sqlite_engine.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
 def sqlite_str_iris(sqlite_str, iris_path):
-    pytest.skip("Skipping MySQL tests")
-    # sqlalchemy = pytest.importorskip("sqlalchemy")
-    # engine = sqlalchemy.create_engine(sqlite_str)
-    # create_and_load_iris(engine, iris_path)
-    # create_and_load_iris_view(engine)
-    # engine.dispose()
-    # return sqlite_str
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine(sqlite_str)
+    create_and_load_iris(engine, iris_path)
+    create_and_load_iris_view(engine)
+    engine.dispose()
+    return sqlite_str
 
 
 @pytest.fixture
 def sqlite_engine_iris(sqlite_engine, iris_path):
-    pytest.skip("Skipping MySQL tests")
-    # create_and_load_iris(sqlite_engine, iris_path)
-    # create_and_load_iris_view(sqlite_engine)
-    # return sqlite_engine
+    create_and_load_iris(sqlite_engine, iris_path)
+    create_and_load_iris_view(sqlite_engine)
+    return sqlite_engine
 
 
 @pytest.fixture
 def sqlite_conn_iris(sqlite_engine_iris):
-    pytest.skip("Skipping MySQL tests")
-    # with sqlite_engine_iris.connect() as conn:
-    #     yield conn
+    with sqlite_engine_iris.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
 def sqlite_str_types(sqlite_str, types_data):
-    pytest.skip("Skipping MySQL tests")
-    # sqlalchemy = pytest.importorskip("sqlalchemy")
-    # engine = sqlalchemy.create_engine(sqlite_str)
-    # create_and_load_types(engine, types_data, "sqlite")
-    # engine.dispose()
-    # return sqlite_str
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine(sqlite_str)
+    create_and_load_types(engine, types_data, "sqlite")
+    engine.dispose()
+    return sqlite_str
 
 
 @pytest.fixture
 def sqlite_engine_types(sqlite_engine, types_data):
-    pytest.skip("Skipping MySQL tests")
-    # create_and_load_types(sqlite_engine, types_data, "sqlite")
-    # return sqlite_engine
+    create_and_load_types(sqlite_engine, types_data, "sqlite")
+    return sqlite_engine
 
 
 @pytest.fixture
 def sqlite_conn_types(sqlite_engine_types):
-    pytest.skip("Skipping MySQL tests")
-    # with sqlite_engine_types.connect() as conn:
-    #     yield conn
+    with sqlite_engine_types.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
