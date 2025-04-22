@@ -3912,9 +3912,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Times corresponding to the observations.
 
         method : {'single', 'table'}, default 'single'
-            Execute the operation per group independently (``'single'``) or over the entire
-            object before regrouping (``'table'``). Only applicable to ``mean()``, and only
-            when using ``engine='numba'``.
+            Execute the operation per group independently (``'single'``) or over the
+            entire object before regrouping (``'table'``). Only applicable to
+            ``mean()``, and only when using ``engine='numba'``.
 
         Returns
         -------
