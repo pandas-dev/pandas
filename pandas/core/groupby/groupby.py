@@ -3912,10 +3912,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Times corresponding to the observations.
 
         method : {'single', 'table'}, default 'single'
-            Method for computing the exponentially weighted statistics.
-            * ``'single'``: Calculate the statistic for each group independently.
-            * ``'table'``: Calculate the statistic using the entire table and then
-                regroup. Useful for performance but may give different results.
+            Execute the operation per group independently (``'single'``) or over the entire
+            object before regrouping (``'table'``). Only applicable to ``mean()``, and only
+            when using ``engine='numba'``.
 
         Returns
         -------
