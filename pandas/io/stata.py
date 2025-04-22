@@ -3197,7 +3197,7 @@ class StataStrLWriter:
             for j, (col, v) in enumerate(col_index):
                 val = row[col]
                 # Allow columns with mixed str and None or pd.NA (GH 23633)
-                val = "" if (val is None) or isna(val) else val
+                val = "" if isna(val) else val
                 key = gso_table.get(val, None)
                 if key is None:
                     # Stata prefers human numbers
