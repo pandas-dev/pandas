@@ -1455,7 +1455,8 @@ class PandasSQL(PandasObject, ABC):
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *args) -> None:
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         pass
 
     def read_table(
@@ -1647,7 +1648,7 @@ class SQLDatabase(PandasSQL):
         self.meta = MetaData(schema=schema)
         self.returns_generator = False
 
-    def __exit__(self, *args) -> None:
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         if not self.returns_generator:
             self.exit_stack.close()
 
@@ -2125,6 +2126,9 @@ class ADBCDatabase(PandasSQL):
 
     def __init__(self, con) -> None:
         self.con = con
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.con.close()
 
     @contextmanager
     def run_transaction(self):
@@ -2678,6 +2682,9 @@ class SQLiteDatabase(PandasSQL):
 
     def __init__(self, con) -> None:
         self.con = con
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.con.close()
 
     @contextmanager
     def run_transaction(self):
