@@ -6,21 +6,17 @@ import csv
 from datetime import (
     date,
     datetime,
-    time,
     timedelta,
 )
-from io import StringIO
 from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING
-import uuid
 
 import numpy as np
 import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas._libs import lib
 from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
@@ -28,13 +24,10 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
-    Index,
     MultiIndex,
     Series,
     Timestamp,
     concat,
-    date_range,
-    isna,
     to_datetime,
     to_timedelta,
 )
@@ -43,10 +36,6 @@ from pandas.util.version import Version
 
 from pandas.io import sql
 from pandas.io.sql import (
-    SQLAlchemyEngine,
-    SQLDatabase,
-    SQLiteDatabase,
-    get_engine,
     pandasSQL_builder,
     read_sql_query,
     read_sql_table,
@@ -601,168 +590,6 @@ def drop_view(
 
 
 @pytest.fixture
-def mysql_pymysql_engine():
-    pytest.skip("Skipping MySQL tests")
-    # sqlalchemy = pytest.importorskip("sqlalchemy")
-    # pymysql = pytest.importorskip("pymysql")
-    # engine = sqlalchemy.create_engine(
-    #     "mysql+pymysql://root@localhost:3306/pandas",
-    #     connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
-    #     poolclass=sqlalchemy.pool.NullPool,
-    # )
-    # yield engine
-    # for view in get_all_views(engine):
-    #     drop_view(view, engine)
-    # for tbl in get_all_tables(engine):
-    #     drop_table(tbl, engine)
-    # engine.dispose()
-
-
-@pytest.fixture
-def mysql_pymysql_engine_iris(mysql_pymysql_engine, iris_path):
-    pytest.skip("Skipping MySQL tests")
-    # create_and_load_iris(mysql_pymysql_engine, iris_path)
-    # create_and_load_iris_view(mysql_pymysql_engine)
-    # return mysql_pymysql_engine
-
-
-@pytest.fixture
-def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
-    pytest.skip("Skipping MySQL tests")
-    # create_and_load_types(mysql_pymysql_engine, types_data, "mysql")
-    # return mysql_pymysql_engine
-
-
-@pytest.fixture
-def mysql_pymysql_conn(mysql_pymysql_engine):
-    pytest.skip("Skipping MySQL tests")
-    # with mysql_pymysql_engine.connect() as conn:
-    #     yield conn
-
-
-@pytest.fixture
-def mysql_pymysql_conn_iris(mysql_pymysql_engine_iris):
-    pytest.skip("Skipping MySQL tests")
-    # with mysql_pymysql_engine_iris.connect() as conn:
-    #     yield conn
-
-
-@pytest.fixture
-def mysql_pymysql_conn_types(mysql_pymysql_engine_types):
-    pytest.skip("Skipping MySQL tests")
-    # with mysql_pymysql_engine_types.connect() as conn:
-    #     yield conn
-
-
-@pytest.fixture
-def postgresql_psycopg2_engine():
-    pytest.skip("Skipping MySQL tests")
-    # sqlalchemy = pytest.importorskip("sqlalchemy")
-    # pytest.importorskip("psycopg2")
-    # engine = sqlalchemy.create_engine(
-    #     "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
-    #     poolclass=sqlalchemy.pool.NullPool,
-    # )
-    # yield engine
-    # for view in get_all_views(engine):
-    #     drop_view(view, engine)
-    # for tbl in get_all_tables(engine):
-    #     drop_table(tbl, engine)
-    # engine.dispose()
-
-
-@pytest.fixture
-def postgresql_psycopg2_engine_iris(postgresql_psycopg2_engine, iris_path):
-    pytest.skip("Skipping MySQL tests")
-    # create_and_load_iris(postgresql_psycopg2_engine, iris_path)
-    # create_and_load_iris_view(postgresql_psycopg2_engine)
-    # return postgresql_psycopg2_engine
-
-
-@pytest.fixture
-def postgresql_psycopg2_engine_types(postgresql_psycopg2_engine, types_data):
-    pytest.skip("Skipping MySQL tests")
-    # create_and_load_types(postgresql_psycopg2_engine, types_data, "postgres")
-    # return postgresql_psycopg2_engine
-
-
-@pytest.fixture
-def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
-    pytest.skip("Skipping MySQL tests")
-    # with postgresql_psycopg2_engine.connect() as conn:
-    #     yield conn
-
-
-@pytest.fixture
-def postgresql_adbc_conn():
-    pytest.skip("Skipping MySQL tests")
-    # pytest.importorskip("pyarrow")
-    # pytest.importorskip("adbc_driver_postgresql")
-    # from adbc_driver_postgresql import dbapi
-
-    # uri = "postgresql://postgres:postgres@localhost:5432/pandas"
-    # with dbapi.connect(uri) as conn:
-    #     yield conn
-    #     for view in get_all_views(conn):
-    #         drop_view(view, conn)
-    #     for tbl in get_all_tables(conn):
-    #         drop_table(tbl, conn)
-    #     conn.commit()
-
-
-@pytest.fixture
-def postgresql_adbc_iris(postgresql_adbc_conn, iris_path):
-    pytest.skip("Skipping MySQL tests")
-    # import adbc_driver_manager as mgr
-
-    # conn = postgresql_adbc_conn
-
-    # try:
-    #     conn.adbc_get_table_schema("iris")
-    # except mgr.ProgrammingError:
-    #     conn.rollback()
-    #     create_and_load_iris_postgresql(conn, iris_path)
-    # try:
-    #     conn.adbc_get_table_schema("iris_view")
-    # except mgr.ProgrammingError:  # note arrow-adbc issue 1022
-    #     conn.rollback()
-    #     create_and_load_iris_view(conn)
-    # return conn
-
-
-@pytest.fixture
-def postgresql_adbc_types(postgresql_adbc_conn, types_data):
-    pytest.skip("Skipping MySQL tests")
-    # import adbc_driver_manager as mgr
-
-    # conn = postgresql_adbc_conn
-
-    # try:
-    #     conn.adbc_get_table_schema("types")
-    # except mgr.ProgrammingError:
-    #     conn.rollback()
-    #     new_data = [tuple(entry.values()) for entry in types_data]
-
-    #     create_and_load_types_postgresql(conn, new_data)
-
-    # return conn
-
-
-@pytest.fixture
-def postgresql_psycopg2_conn_iris(postgresql_psycopg2_engine_iris):
-    pytest.skip("Skipping MySQL tests")
-    # with postgresql_psycopg2_engine_iris.connect() as conn:
-    #     yield conn
-
-
-@pytest.fixture
-def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
-    pytest.skip("Skipping MySQL tests")
-    # with postgresql_psycopg2_engine_types.connect() as conn:
-    #     yield conn
-
-
-@pytest.fixture
 def sqlite_str():
     pytest.importorskip("sqlalchemy")
     with tm.ensure_clean() as name:
@@ -832,66 +659,6 @@ def sqlite_conn_types(sqlite_engine_types):
 
 
 @pytest.fixture
-def sqlite_adbc_conn():
-    pytest.skip("Skipping MySQL tests")
-    # pytest.importorskip("pyarrow")
-    # pytest.importorskip("adbc_driver_sqlite")
-    # from adbc_driver_sqlite import dbapi
-
-    # with tm.ensure_clean() as name:
-    #     uri = f"file:{name}"
-    #     with dbapi.connect(uri) as conn:
-    #         yield conn
-    #         for view in get_all_views(conn):
-    #             drop_view(view, conn)
-    #         for tbl in get_all_tables(conn):
-    #             drop_table(tbl, conn)
-    #         conn.commit()
-
-
-@pytest.fixture
-def sqlite_adbc_iris(sqlite_adbc_conn, iris_path):
-    pytest.skip("Skipping MySQL tests")
-    # import adbc_driver_manager as mgr
-
-    # conn = sqlite_adbc_conn
-    # try:
-    #     conn.adbc_get_table_schema("iris")
-    # except mgr.ProgrammingError:
-    #     conn.rollback()
-    #     create_and_load_iris_sqlite3(conn, iris_path)
-    # try:
-    #     conn.adbc_get_table_schema("iris_view")
-    # except mgr.ProgrammingError:
-    #     conn.rollback()
-    #     create_and_load_iris_view(conn)
-    # return conn
-
-
-@pytest.fixture
-def sqlite_adbc_types(sqlite_adbc_conn, types_data):
-    pytest.skip("Skipping MySQL tests")
-    # import adbc_driver_manager as mgr
-
-    # conn = sqlite_adbc_conn
-    # try:
-    #     conn.adbc_get_table_schema("types")
-    # except mgr.ProgrammingError:
-    #     conn.rollback()
-    #     new_data = []
-    #     for entry in types_data:
-    #         entry["BoolCol"] = int(entry["BoolCol"])
-    #         if entry["BoolColWithNull"] is not None:
-    #             entry["BoolColWithNull"] = int(entry["BoolColWithNull"])
-    #         new_data.append(tuple(entry.values()))
-
-    #     create_and_load_types_sqlite3(conn, new_data)
-    #     conn.commit()
-
-    # return conn
-
-
-@pytest.fixture
 def sqlite_buildin():
     with contextlib.closing(sqlite3.connect(":memory:")) as closing_conn:
         with closing_conn as conn:
@@ -912,36 +679,6 @@ def sqlite_buildin_types(sqlite_buildin, types_data):
     return sqlite_buildin
 
 
-mysql_connectable = [
-    pytest.param("mysql_pymysql_engine", marks=pytest.mark.db),
-    pytest.param("mysql_pymysql_conn", marks=pytest.mark.db),
-]
-
-mysql_connectable_iris = [
-    pytest.param("mysql_pymysql_engine_iris", marks=pytest.mark.db),
-    pytest.param("mysql_pymysql_conn_iris", marks=pytest.mark.db),
-]
-
-mysql_connectable_types = [
-    pytest.param("mysql_pymysql_engine_types", marks=pytest.mark.db),
-    pytest.param("mysql_pymysql_conn_types", marks=pytest.mark.db),
-]
-
-postgresql_connectable = [
-    pytest.param("postgresql_psycopg2_engine", marks=pytest.mark.db),
-    pytest.param("postgresql_psycopg2_conn", marks=pytest.mark.db),
-]
-
-postgresql_connectable_iris = [
-    pytest.param("postgresql_psycopg2_engine_iris", marks=pytest.mark.db),
-    pytest.param("postgresql_psycopg2_conn_iris", marks=pytest.mark.db),
-]
-
-postgresql_connectable_types = [
-    pytest.param("postgresql_psycopg2_engine_types", marks=pytest.mark.db),
-    pytest.param("postgresql_psycopg2_conn_types", marks=pytest.mark.db),
-]
-
 sqlite_connectable = [
     "sqlite_engine",
     "sqlite_conn",
@@ -960,41 +697,17 @@ sqlite_connectable_types = [
     "sqlite_str_types",
 ]
 
-sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
+sqlalchemy_connectable = sqlite_connectable
 
-sqlalchemy_connectable_iris = (
-    mysql_connectable_iris + postgresql_connectable_iris + sqlite_connectable_iris
-)
+sqlalchemy_connectable_iris = sqlite_connectable_iris
 
-sqlalchemy_connectable_types = (
-    mysql_connectable_types + postgresql_connectable_types + sqlite_connectable_types
-)
+sqlalchemy_connectable_types = sqlite_connectable_types
 
-adbc_connectable = [
-    "sqlite_adbc_conn",
-    pytest.param("postgresql_adbc_conn", marks=pytest.mark.db),
-]
+all_connectable = sqlalchemy_connectable + ["sqlite_buildin"]
 
-adbc_connectable_iris = [
-    pytest.param("postgresql_adbc_iris", marks=pytest.mark.db),
-    "sqlite_adbc_iris",
-]
+all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 
-adbc_connectable_types = [
-    pytest.param("postgresql_adbc_types", marks=pytest.mark.db),
-    "sqlite_adbc_types",
-]
-
-
-all_connectable = sqlalchemy_connectable + ["sqlite_buildin"] + adbc_connectable
-
-all_connectable_iris = (
-    sqlalchemy_connectable_iris + ["sqlite_buildin_iris"] + adbc_connectable_iris
-)
-
-all_connectable_types = (
-    sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
-)
+all_connectable_types = sqlalchemy_connectable_types + ["sqlite_buildin_types"]
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1262,140 +975,6 @@ def test_default_type_conversion(conn, request):
         assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
 
-@pytest.mark.parametrize("conn", mysql_connectable)
-def test_read_procedure(conn, request):
-    conn = request.getfixturevalue(conn)
-
-    # GH 7324
-    # Although it is more an api test, it is added to the
-    # mysql tests as sqlite does not have stored procedures
-    from sqlalchemy import text
-    from sqlalchemy.engine import Engine
-
-    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-    df.to_sql(name="test_frame", con=conn, index=False)
-
-    proc = """DROP PROCEDURE IF EXISTS get_testdb;
-
-    CREATE PROCEDURE get_testdb ()
-
-    BEGIN
-        SELECT * FROM test_frame;
-    END"""
-    proc = text(proc)
-    if isinstance(conn, Engine):
-        with conn.connect() as engine_conn:
-            with engine_conn.begin():
-                engine_conn.execute(proc)
-    else:
-        with conn.begin():
-            conn.execute(proc)
-
-    res1 = sql.read_sql_query("CALL get_testdb();", conn)
-    tm.assert_frame_equal(df, res1)
-
-    # test delegation to read_sql_query
-    res2 = sql.read_sql("CALL get_testdb();", conn)
-    tm.assert_frame_equal(df, res2)
-
-
-@pytest.mark.parametrize("conn", postgresql_connectable)
-@pytest.mark.parametrize("expected_count", [2, "Success!"])
-def test_copy_from_callable_insertion_method(conn, expected_count, request):
-    # GH 8953
-    # Example in io.rst found under _io.sql.method
-    # not available in sqlite, mysql
-    def psql_insert_copy(table, conn, keys, data_iter):
-        # gets a DBAPI connection that can provide a cursor
-        dbapi_conn = conn.connection
-        with dbapi_conn.cursor() as cur:
-            s_buf = StringIO()
-            writer = csv.writer(s_buf)
-            writer.writerows(data_iter)
-            s_buf.seek(0)
-
-            columns = ", ".join([f'"{k}"' for k in keys])
-            if table.schema:
-                table_name = f"{table.schema}.{table.name}"
-            else:
-                table_name = table.name
-
-            sql_query = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
-            cur.copy_expert(sql=sql_query, file=s_buf)
-        return expected_count
-
-    conn = request.getfixturevalue(conn)
-    expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
-    result_count = expected.to_sql(
-        name="test_frame", con=conn, index=False, method=psql_insert_copy
-    )
-    # GH 46891
-    if expected_count is None:
-        assert result_count is None
-    else:
-        assert result_count == expected_count
-    result = sql.read_sql_table("test_frame", conn)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("conn", postgresql_connectable)
-def test_insertion_method_on_conflict_do_nothing(conn, request):
-    # GH 15988: Example in to_sql docstring
-    conn = request.getfixturevalue(conn)
-
-    from sqlalchemy.dialects.postgresql import insert
-    from sqlalchemy.engine import Engine
-    from sqlalchemy.sql import text
-
-    def insert_on_conflict(table, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
-        stmt = (
-            insert(table.table)
-            .values(data)
-            .on_conflict_do_nothing(index_elements=["a"])
-        )
-        result = conn.execute(stmt)
-        return result.rowcount
-
-    create_sql = text(
-        """
-    CREATE TABLE test_insert_conflict (
-        a  integer PRIMARY KEY,
-        b  numeric,
-        c  text
-    );
-    """
-    )
-    if isinstance(conn, Engine):
-        with conn.connect() as con:
-            with con.begin():
-                con.execute(create_sql)
-    else:
-        with conn.begin():
-            conn.execute(create_sql)
-
-    expected = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
-    expected.to_sql(
-        name="test_insert_conflict", con=conn, if_exists="append", index=False
-    )
-
-    df_insert = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
-    inserted = df_insert.to_sql(
-        name="test_insert_conflict",
-        con=conn,
-        index=False,
-        if_exists="append",
-        method=insert_on_conflict,
-    )
-    result = sql.read_sql_table("test_insert_conflict", conn)
-    tm.assert_frame_equal(result, expected)
-    assert inserted == 0
-
-    # Cleanup
-    with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.drop_table("test_insert_conflict")
-
-
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_on_public_schema(conn, request):
     if "sqlite" in conn or "mysql" in conn:
@@ -1418,95 +997,6 @@ def test_to_sql_on_public_schema(conn, request):
 
     df_out = sql.read_sql_table("test_public_schema", conn, schema="public")
     tm.assert_frame_equal(test_data, df_out)
-
-
-@pytest.mark.parametrize("conn", mysql_connectable)
-def test_insertion_method_on_conflict_update(conn, request):
-    # GH 14553: Example in to_sql docstring
-    conn = request.getfixturevalue(conn)
-
-    from sqlalchemy.dialects.mysql import insert
-    from sqlalchemy.engine import Engine
-    from sqlalchemy.sql import text
-
-    def insert_on_conflict(table, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
-        stmt = insert(table.table).values(data)
-        stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
-        result = conn.execute(stmt)
-        return result.rowcount
-
-    create_sql = text(
-        """
-    CREATE TABLE test_insert_conflict (
-        a INT PRIMARY KEY,
-        b FLOAT,
-        c VARCHAR(10)
-    );
-    """
-    )
-    if isinstance(conn, Engine):
-        with conn.connect() as con:
-            with con.begin():
-                con.execute(create_sql)
-    else:
-        with conn.begin():
-            conn.execute(create_sql)
-
-    df = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
-    df.to_sql(name="test_insert_conflict", con=conn, if_exists="append", index=False)
-
-    expected = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
-    inserted = expected.to_sql(
-        name="test_insert_conflict",
-        con=conn,
-        index=False,
-        if_exists="append",
-        method=insert_on_conflict,
-    )
-    result = sql.read_sql_table("test_insert_conflict", conn)
-    tm.assert_frame_equal(result, expected)
-    assert inserted == 2
-
-    # Cleanup
-    with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.drop_table("test_insert_conflict")
-
-
-@pytest.mark.parametrize("conn", postgresql_connectable)
-def test_read_view_postgres(conn, request):
-    # GH 52969
-    conn = request.getfixturevalue(conn)
-
-    from sqlalchemy.engine import Engine
-    from sqlalchemy.sql import text
-
-    table_name = f"group_{uuid.uuid4().hex}"
-    view_name = f"group_view_{uuid.uuid4().hex}"
-
-    sql_stmt = text(
-        f"""
-    CREATE TABLE {table_name} (
-        group_id INTEGER,
-        name TEXT
-    );
-    INSERT INTO {table_name} VALUES
-        (1, 'name');
-    CREATE VIEW {view_name}
-    AS
-    SELECT * FROM {table_name};
-    """
-    )
-    if isinstance(conn, Engine):
-        with conn.connect() as con:
-            with con.begin():
-                con.execute(sql_stmt)
-    else:
-        with conn.begin():
-            conn.execute(sql_stmt)
-    result = read_sql_table(view_name, conn)
-    expected = DataFrame({"group_id": [1], "name": "name"})
-    tm.assert_frame_equal(result, expected)
 
 
 def test_read_view_sqlite(sqlite_buildin):
