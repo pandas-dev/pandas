@@ -150,6 +150,7 @@ from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
     PeriodIndex,
+    RangeIndex,
     default_index,
     ensure_index,
     ensure_index_from_sequences,
@@ -6366,6 +6367,90 @@ class DataFrame(NDFrame, OpsMixin):
             return new_obj
 
         return None
+
+    def unset_index(
+        self,
+        *,
+        inplace: bool = False,
+    ) -> DataFrame | None:
+        """
+        Remove the index and restore the default RangeIndex.
+
+        This method resets the index of the DataFrame to the default integer index
+        (RangeIndex), always dropping the old index and never inserting it as a column.
+        If the DataFrame already has the default index, this is a no-op.
+
+        Parameters
+        ----------
+        inplace : bool, default False
+            Whether to modify the DataFrame in place or return a new DataFrame.
+
+        Returns
+        -------
+        DataFrame or None
+            DataFrame with the default integer index or None if ``inplace=True``.
+
+        See Also
+        --------
+        DataFrame.reset_index : Reset the index, with options to insert as columns.
+        DataFrame.set_index : Set the DataFrame index using existing columns.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [("bird", 389.0), ("bird", 24.0), ("mammal", 80.5), ("mammal", np.nan)],
+        ...     index=["falcon", "parrot", "lion", "monkey"],
+        ...     columns=("class", "max_speed"),
+        ... )
+        >>> df
+                class  max_speed
+        falcon    bird      389.0
+        parrot    bird       24.0
+        lion    mammal       80.5
+        monkey  mammal        NaN
+
+        Remove the index and use the default integer index:
+
+        >>> df.unset_index()
+        class  max_speed
+        0  bird      389.0
+        1  bird       24.0
+        2  mammal     80.5
+        3  mammal      NaN
+
+        If the DataFrame already has the default index, nothing changes:
+
+        >>> df2 = df.unset_index()
+        >>> df2.unset_index()
+        class  max_speed
+        0  bird      389.0
+        1  bird       24.0
+        2  mammal     80.5
+        3  mammal      NaN
+
+        Modify the DataFrame in place:
+
+        >>> df.unset_index(inplace=True)
+        >>> df
+        class  max_speed
+        0  bird      389.0
+        1  bird       24.0
+        2  mammal     80.5
+        3  mammal      NaN
+        """
+
+        if (
+            isinstance(self.index, RangeIndex)
+            and self.index.start == 0
+            and self.index.step == 1
+        ):
+            # Already default index, no change needed
+            if inplace:
+                return None
+            else:
+                return self.copy()
+        else:
+            return self.reset_index(drop=True, inplace=inplace)
 
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
