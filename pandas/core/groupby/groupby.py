@@ -3911,6 +3911,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         times : str or array-like of datetime64, optional
             Times corresponding to the observations.
 
+        method : {'single', 'table'}, default 'single'
+            Method for computing the exponentially weighted statistics.
+            * ``'single'``: Calculate the statistic for each group independently.
+            * ``'table'``: Calculate the statistic using the entire table and then
+                regroup. Useful for performance but may give different results.
+
         Returns
         -------
         pandas.api.typing.ExponentialMovingWindowGroupby
