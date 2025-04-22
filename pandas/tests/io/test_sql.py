@@ -8,6 +8,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import gc
 from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING
@@ -51,6 +52,12 @@ pytestmark = [
     ),
     pytest.mark.single_cpu,
 ]
+
+
+@pytest.fixture(autouse=True)
+def gc_collect():
+    yield
+    gc.collect()
 
 
 @pytest.fixture
