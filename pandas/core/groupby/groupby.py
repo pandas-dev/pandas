@@ -3903,7 +3903,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         adjust : bool, default True
             Divide by decaying adjustment factor to account for imbalance in
-                relative weights.
+            relative weights.
 
         ignore_na : bool, default False
             Ignore missing values when calculating weights.
