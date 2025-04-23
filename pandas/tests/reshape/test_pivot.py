@@ -2554,6 +2554,46 @@ class TestPivotTable:
 
         tm.assert_frame_equal(left=result, right=expected)
 
+    @pytest.mark.parametrize(
+        "index, columns, e_data, e_index, e_cols",
+        [
+            (
+                "Category",
+                "Value",
+                [
+                    [1.0, np.nan, 1.0, np.nan],
+                    [np.nan, 1.0, np.nan, 1.0],
+                ],
+                Index(data=["A", "B"], name="Category"),
+                Index(data=[10, 20, 40, 50], name="Value"),
+            ),
+            (
+                "Value",
+                "Category",
+                [
+                    [1.0, np.nan],
+                    [np.nan, 1.0],
+                    [1.0, np.nan],
+                    [np.nan, 1.0],
+                ],
+                Index(data=[10, 20, 40, 50], name="Value"),
+                Index(data=["A", "B"], name="Category"),
+            ),
+        ],
+        ids=["values-and-columns", "values-and-index"],
+    )
+    def test_pivot_table_values_as_two_params(
+        self, index, columns, e_data, e_index, e_cols
+    ):
+        # GH#57876
+        data = {"Category": ["A", "B", "A", "B"], "Value": [10, 20, 40, 50]}
+        df = DataFrame(data)
+        result = df.pivot_table(
+            index=index, columns=columns, values="Value", aggfunc="count"
+        )
+        expected = DataFrame(data=e_data, index=e_index, columns=e_cols)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPivot:
     def test_pivot(self):
