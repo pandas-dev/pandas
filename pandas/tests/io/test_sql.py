@@ -2518,10 +2518,8 @@ def test_database_uri_string(request, test_frame1):
 
 
 @td.skip_if_installed("pg8000")
-@pytest.mark.parametrize("conn", all_connectable)
-def test_pg8000_sqlalchemy_passthrough_error(conn, request):
+def test_pg8000_sqlalchemy_passthrough_error(request):
     pytest.importorskip("sqlalchemy")
-    conn = request.getfixturevalue(conn)
     # using driver that will not be installed on CI to trigger error
     # in sqlalchemy.create_engine -> test passing of this error to user
     db_uri = "postgresql+pg8000://user:pass@host/dbname"
