@@ -1929,18 +1929,17 @@ class BarPlot(MPLPlot):
 
         data = self.data.fillna(0)
 
-        _stacked_subplots_ind_dict = {}
+        _stacked_subplots_ind = {}
         _stacked_subplots_offsets = []
 
         if self.subplots != False & self.stacked:
-            temp_ss_dict = {
-                x: self.subplots[x]
-                for x in range(len(self.subplots))
-                if len(self.subplots[x]) > 1
+            sub_range = range(len(self.subplots))
+            ss_temp = {
+                x: self.subplots[x] for x in sub_range if len(self.subplots[x]) > 1
             }
-            for k, v in temp_ss_dict.items():
+            for k, v in ss_temp.items():
                 for x in v:
-                    _stacked_subplots_ind_dict.setdefault(int(x), k)
+                    _stacked_subplots_ind.setdefault(int(x), k)
 
                 _stacked_subplots_offsets.append([0, 0])
 
@@ -1970,8 +1969,8 @@ class BarPlot(MPLPlot):
 
             kwds["align"] = self._align
 
-            if i in _stacked_subplots_ind_dict:
-                offset_index = _stacked_subplots_ind_dict[i]
+            if i in _stacked_subplots_ind:
+                offset_index = _stacked_subplots_ind[i]
                 pos_prior, neg_prior = _stacked_subplots_offsets[offset_index]
                 mask = y >= 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base

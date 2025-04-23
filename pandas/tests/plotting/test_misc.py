@@ -684,7 +684,7 @@ class TestDataFramePlots:
 
 
 @pytest.fixture(scope="class")
-def BSS_data() -> np.array:
+def BSS_data():
     return np.random.default_rng(3).integers(0, 100, 5)
 
 
