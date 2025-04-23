@@ -3231,63 +3231,80 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def first(
         self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
     ) -> NDFrameT:
-        """
-        Compute the first entry of each column within each group.
+       """
+Compute the first non-null entry of each column within each group.
 
-        Defaults to skipping NA elements.
+This method operates column-wise, returning the first non-null value
+in each column for every group. Unlike `nth(0)`, which returns the
+first row (even if it contains nulls), `first()` skips over NA/null
+values in each column independently.
 
-        Parameters
-        ----------
-        numeric_only : bool, default False
-            Include only float, int, boolean columns.
-        min_count : int, default -1
-            The required number of valid values to perform the operation. If fewer
-            than ``min_count`` valid values are present the result will be NA.
-        skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+Parameters
+----------
+numeric_only : bool, default False
+    Include only float, int, boolean columns.
+min_count : int, default -1
+    The required number of valid values to perform the operation. If fewer
+    than ``min_count`` valid values are present the result will be NA.
+skipna : bool, default True
+    Exclude NA/null values. If an entire group is NA, the result will be NA.
 
-            .. versionadded:: 2.2.1
+    .. versionadded:: 2.2.1
 
-        Returns
-        -------
-        Series or DataFrame
-            First values within each group.
+Returns
+-------
+Series or DataFrame
+    First non-null values within each group, selected independently per column.
 
-        See Also
-        --------
-        DataFrame.groupby : Apply a function groupby to each row or column of a
-            DataFrame.
-        core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
-            of each column.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+See Also
+--------
+DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+Series.groupby : Group Series using a mapper or by a Series of values.
+GroupBy.nth : Take the nth row from each group.
+GroupBy.head : Return the first `n` rows from each group.
+GroupBy.last : Compute the last non-null entry of each column.
 
-        Examples
-        --------
-        >>> df = pd.DataFrame(
-        ...     dict(
-        ...         A=[1, 1, 3],
-        ...         B=[None, 5, 6],
-        ...         C=[1, 2, 3],
-        ...         D=["3/11/2000", "3/12/2000", "3/13/2000"],
-        ...     )
-        ... )
-        >>> df["D"] = pd.to_datetime(df["D"])
-        >>> df.groupby("A").first()
-             B  C          D
-        A
-        1  5.0  1 2000-03-11
-        3  6.0  3 2000-03-13
-        >>> df.groupby("A").first(min_count=2)
-            B    C          D
-        A
-        1 NaN  1.0 2000-03-11
-        3 NaN  NaN        NaT
-        >>> df.groupby("A").first(numeric_only=True)
-             B  C
-        A
-        1  5.0  1
-        3  6.0  3
-        """
+Examples
+--------
+>>> df = pd.DataFrame(
+...     dict(
+...         A=[1, 1, 3],
+...         B=[None, 5, 6],
+...         C=[1, 2, 3],
+...         D=["3/11/2000", "3/12/2000", "3/13/2000"],
+...     )
+... )
+>>> df["D"] = pd.to_datetime(df["D"])
+
+>>> df.groupby("A").first()
+     B  C          D
+A
+1  5.0  1 2000-03-11
+3  6.0  3 2000-03-13
+
+>>> df.groupby("A").nth(0)
+     B  C          D
+A
+1  NaN  1 2000-03-11
+3  6.0  3 2000-03-13
+
+>>> df.groupby("A").head(1)
+   A    B  C          D
+0  1  NaN  1 2000-03-11
+2  3  6.0  3 2000-03-13
+
+>>> df.groupby("A").first(min_count=2)
+     B    C          D
+A
+1  NaN  1.0 2000-03-11
+3  NaN  NaN        NaT
+
+>>> df.groupby("A").first(numeric_only=True)
+     B  C
+A
+1  5.0  1
+3  6.0  3
+"""
 
         def first_compat(obj: NDFrameT):
             def first(x: Series):
