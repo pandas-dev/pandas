@@ -1932,7 +1932,12 @@ class BarPlot(MPLPlot):
         _stacked_subplots_ind = {}
         _stacked_subplots_offsets = []
 
-        if self.subplots != False & self.stacked:
+        if self.subplots:
+            subplots_status = 1
+        else:
+            subplots_status = 0
+
+        if subplots_status & self.stacked:
             sub_range = range(len(self.subplots))
             ss_temp = {
                 x: self.subplots[x] for x in sub_range if len(self.subplots[x]) > 1
