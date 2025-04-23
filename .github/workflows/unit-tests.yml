@@ -27,65 +27,65 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-22.04, ubuntu-24.04-arm]
-        env_file: [actions-313.yaml]
+        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml, actions-313.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["0"]
-        # include:
-        #   - name: "Downstream Compat"
-        #     env_file: actions-311-downstream_compat.yaml
-        #     pattern: "not slow and not network and not single_cpu"
-        #     pytest_target: "pandas/tests/test_downstream.py"
-        #     platform: ubuntu-22.04
-        #   - name: "Minimum Versions"
-        #     env_file: actions-310-minimum_versions.yaml
-        #     pattern: "not slow and not network and not single_cpu"
-        #     platform: ubuntu-22.04
-        #   - name: "Locale: it_IT"
-        #     env_file: actions-311.yaml
-        #     pattern: "not slow and not network and not single_cpu"
-        #     extra_apt: "language-pack-it"
-        #     # Use the utf8 version as the default, it has no bad side-effect.
-        #     lang: "it_IT.utf8"
-        #     lc_all: "it_IT.utf8"
-        #     # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
-        #     # It will be temporarily activated during tests with locale.setlocale
-        #     extra_loc: "it_IT"
-        #     platform: ubuntu-22.04
-        #   - name: "Locale: zh_CN"
-        #     env_file: actions-311.yaml
-        #     pattern: "not slow and not network and not single_cpu"
-        #     extra_apt: "language-pack-zh-hans"
-        #     # Use the utf8 version as the default, it has no bad side-effect.
-        #     lang: "zh_CN.utf8"
-        #     lc_all: "zh_CN.utf8"
-        #     # Also install zh_CN (its encoding is gb2312) but do not activate it.
-        #     # It will be temporarily activated during tests with locale.setlocale
-        #     extra_loc: "zh_CN"
-        #     platform: ubuntu-22.04
-        #   - name: "Future infer strings"
-        #     env_file: actions-312.yaml
-        #     pandas_future_infer_string: "1"
-        #     platform: ubuntu-22.04
-        #   - name: "Future infer strings (without pyarrow)"
-        #     env_file: actions-311.yaml
-        #     pandas_future_infer_string: "1"
-        #     platform: ubuntu-22.04
-        #   - name: "Pypy"
-        #     env_file: actions-pypy-39.yaml
-        #     pattern: "not slow and not network and not single_cpu"
-        #     test_args: "--max-worker-restart 0"
-        #     platform: ubuntu-22.04
-        #   - name: "Numpy Dev"
-        #     env_file: actions-311-numpydev.yaml
-        #     pattern: "not slow and not network and not single_cpu"
-        #     test_args: "-W error::DeprecationWarning -W error::FutureWarning"
-        #     platform: ubuntu-22.04
-        #   - name: "Pyarrow Nightly"
-        #     env_file: actions-311-pyarrownightly.yaml
-        #     pattern: "not slow and not network and not single_cpu"
-        #     pandas_future_infer_string: "1"
-        #     platform: ubuntu-22.04
+        include:
+          - name: "Downstream Compat"
+            env_file: actions-311-downstream_compat.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pytest_target: "pandas/tests/test_downstream.py"
+            platform: ubuntu-22.04
+          - name: "Minimum Versions"
+            env_file: actions-310-minimum_versions.yaml
+            pattern: "not slow and not network and not single_cpu"
+            platform: ubuntu-22.04
+          - name: "Locale: it_IT"
+            env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            extra_apt: "language-pack-it"
+            # Use the utf8 version as the default, it has no bad side-effect.
+            lang: "it_IT.utf8"
+            lc_all: "it_IT.utf8"
+            # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "it_IT"
+            platform: ubuntu-22.04
+          - name: "Locale: zh_CN"
+            env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            extra_apt: "language-pack-zh-hans"
+            # Use the utf8 version as the default, it has no bad side-effect.
+            lang: "zh_CN.utf8"
+            lc_all: "zh_CN.utf8"
+            # Also install zh_CN (its encoding is gb2312) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "zh_CN"
+            platform: ubuntu-22.04
+          - name: "Future infer strings"
+            env_file: actions-312.yaml
+            pandas_future_infer_string: "1"
+            platform: ubuntu-22.04
+          - name: "Future infer strings (without pyarrow)"
+            env_file: actions-311.yaml
+            pandas_future_infer_string: "1"
+            platform: ubuntu-22.04
+          - name: "Pypy"
+            env_file: actions-pypy-39.yaml
+            pattern: "not slow and not network and not single_cpu"
+            test_args: "--max-worker-restart 0"
+            platform: ubuntu-22.04
+          - name: "Numpy Dev"
+            env_file: actions-311-numpydev.yaml
+            pattern: "not slow and not network and not single_cpu"
+            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            platform: ubuntu-22.04
+          - name: "Pyarrow Nightly"
+            env_file: actions-311-pyarrownightly.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_future_infer_string: "1"
+            platform: ubuntu-22.04
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.env_file) }}
     env:
@@ -168,12 +168,12 @@ jobs:
       # TODO: Re-enable once Pypy has Pypy 3.10 on conda-forge
       if: ${{ matrix.name != 'Pypy' }}
 
-    # - name: Test (not single_cpu)
-    #   uses: ./.github/actions/run-tests
-    #   if: ${{ matrix.name != 'Pypy' }}
-    #   env:
-    #     # Set pattern to not single_cpu if not already set
-    #     PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
+    - name: Test (not single_cpu)
+      uses: ./.github/actions/run-tests
+      if: ${{ matrix.name != 'Pypy' }}
+      env:
+        # Set pattern to not single_cpu if not already set
+        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
@@ -184,7 +184,6 @@ jobs:
 
   macos-windows:
     timeout-minutes: 90
-    if: false
     strategy:
       matrix:
         # Note: Don't use macOS latest since macos 14 appears to be arm64 only
@@ -222,7 +221,6 @@ jobs:
 
   Linux-32-bit:
     runs-on: ubuntu-22.04
-    if: false
     container:
       image: quay.io/pypa/manylinux2014_i686
       options: --platform linux/386
@@ -259,7 +257,6 @@ jobs:
 
   Linux-Musl:
     runs-on: ubuntu-22.04
-    if: false
     container:
       image: quay.io/pypa/musllinux_1_2_x86_64
     steps:
@@ -366,7 +363,6 @@ jobs:
         uses: ./.github/actions/run-tests
 
   python-freethreading:
-    if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -410,7 +406,6 @@ jobs:
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
-    if: false
     # Note: the Python version, Emscripten toolchain version are determined
     # by the Pyodide version. The appropriate versions can be found in the
     # Pyodide repodata.json "info" field, or in the Makefile.envs file:
