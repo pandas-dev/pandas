@@ -1,5 +1,5 @@
 import pytest
-import numpy as np
+
 from pandas import DataFrame
 from pandas.tests.plotting.common import (
     _check_plot_works,
@@ -58,7 +58,3 @@ class TestCommon:
 
         fig.colorbar(cs0, ax=[axes["A"], axes["B"]], location="right")
         DataFrame(x).plot(ax=axes["C"])
-
-
-
-

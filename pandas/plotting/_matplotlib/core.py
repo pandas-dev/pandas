@@ -1922,17 +1922,20 @@ class BarPlot(MPLPlot):
 
         data = self.data.fillna(0)
 
-        _stacked_subplots_ind_dict  = {}
-        _stacked_subplots_offsets   = []
+        _stacked_subplots_ind_dict = {}
+        _stacked_subplots_offsets = []
 
         if self.subplots != False & self.stacked:
-            # _stacked_subplots_list = [sorted(x) for x in self.subplots if len(x) > 1]
-            temp_ss_dict = {x: self.subplots[x] for x in range(len(self.subplots)) if len(self.subplots[x]) > 1}
+            temp_ss_dict = {
+                x: self.subplots[x]
+                for x in range(len(self.subplots))
+                if len(self.subplots[x]) > 1
+            }
             for k, v in temp_ss_dict.items():
                 for x in v:
                     _stacked_subplots_ind_dict.setdefault(int(x), k)
-                    
-                _stacked_subplots_offsets.append([0,0])
+
+                _stacked_subplots_offsets.append([0, 0])
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
@@ -1959,16 +1962,11 @@ class BarPlot(MPLPlot):
             start = start + self._start_base
 
             kwds["align"] = self._align
-            
-            try:
-                offset_index = _stacked_subplots_ind_dict[i]
-                _stacked_subplots_flag = 1
-            except:
-                _stacked_subplots_flag = 0
 
-            if _stacked_subplots_flag:
-                mask = y >= 0
+            if i in _stacked_subplots_ind_dict:
+                offset_index = _stacked_subplots_ind_dict[i]
                 pos_prior, neg_prior = _stacked_subplots_offsets[offset_index]
+                mask = y >= 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base
                 w = self.bar_width / 2
                 rect = self._plot(
@@ -1984,7 +1982,7 @@ class BarPlot(MPLPlot):
                 pos_new = pos_prior + np.where(mask, y, 0)
                 neg_new = neg_prior + np.where(mask, 0, y)
                 _stacked_subplots_offsets[offset_index] = [pos_new, neg_new]
-                
+
             elif self.subplots:
                 w = self.bar_width / 2
                 rect = self._plot(
