@@ -2555,36 +2555,43 @@ class TestPivotTable:
         tm.assert_frame_equal(left=result, right=expected)
 
     @pytest.mark.parametrize(
-        "index, columns",
-        [("Category", "Value"), ("Value", "Category")],
+        "index, columns, e_data, e_index, e_cols",
+        [
+            (
+                "Category",
+                "Value",
+                [
+                    [1.0, (nan := np.nan), 1.0, nan],
+                    [nan, 1.0, nan, 1.0],
+                ],
+                (cat_index := Index(data=["A", "B"], name="Category")),
+                (val_index := Index(data=[10, 20, 40, 50], name="Value")),
+            ),
+            (
+                "Value",
+                "Category",
+                [
+                    [1.0, nan],
+                    [nan, 1.0],
+                    [1.0, nan],
+                    [nan, 1.0],
+                ],
+                val_index,
+                cat_index,
+            ),
+        ],
         ids=["values-and-columns", "values-and-index"],
     )
-    def test_pivot_table_values_as_two_params(self, index, columns, request):
+    def test_pivot_table_values_as_two_params(
+        self, index, columns, e_data, e_index, e_cols
+    ):
         # GH#57876
         data = {"Category": ["A", "B", "A", "B"], "Value": [10, 20, 40, 50]}
         df = DataFrame(data)
         result = df.pivot_table(
             index=index, columns=columns, values="Value", aggfunc="count"
         )
-        nan = np.nan
-        cat_index = Index(data=["A", "B"], name="Category")
-        val_index = Index(data=[10, 20, 40, 50], name="Value")
-        if request.node.callspec.id == "values-and-columns":
-            e_data = [
-                [1.0, nan, 1.0, nan],
-                [nan, 1.0, nan, 1.0],
-            ]
-            expected = DataFrame(data=e_data, index=cat_index, columns=val_index)
-
-        else:
-            e_data = [
-                [1.0, nan],
-                [nan, 1.0],
-                [1.0, nan],
-                [nan, 1.0],
-            ]
-            expected = DataFrame(data=e_data, index=val_index, columns=cat_index)
-
+        expected = DataFrame(data=e_data, index=e_index, columns=e_cols)
         tm.assert_frame_equal(result, expected)
 
 
