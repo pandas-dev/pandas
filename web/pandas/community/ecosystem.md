@@ -124,7 +124,7 @@ sns.set_theme()
 Hadley Wickham's [ggplot2](https://ggplot2.tidyverse.org/) is a
 foundational exploratory visualization package for the R language. Based
 on ["The Grammar of
-Graphics"](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html)
+Graphics"](https://doi.org/10.1007/0-387-28695-0)
 it provides a powerful, declarative and extremely general way to
 generate bespoke plots of any kind of data.
 Various implementations to other languages are available.
