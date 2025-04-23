@@ -152,3 +152,52 @@ class TestDataFrameGroupByPlots:
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             g.hist(legend=True, label="d")
+
+    def test_groupby_scatter_colors_differ(self):
+        # GH 59846 - Test that scatter plots use different colors for different groups
+        # similar to how line plots do
+        from matplotlib.collections import PathCollection
+        import matplotlib.pyplot as plt
+
+        # Create test data with distinct groups
+        df = DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                "y": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                "group": ["A", "A", "A", "B", "B", "B", "C", "C", "C"],
+            }
+        )
+
+        # Set up a figure with both line and scatter plots
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+
+        # Plot line chart (known to use different colors for different groups)
+        df.groupby("group").plot(x="x", y="y", ax=ax1, kind="line")
+
+        # Plot scatter chart (should also use different colors for different groups)
+        df.groupby("group").plot(x="x", y="y", ax=ax2, kind="scatter")
+
+        # Get the colors used in the line plot and scatter plot
+        line_colors = [line.get_color() for line in ax1.get_lines()]
+
+        # Get scatter colors
+        scatter_colors = []
+        for collection in ax2.collections:
+            if isinstance(collection, PathCollection):  # This is a scatter plot
+                # Get the face colors (might be array of RGBA values)
+                face_colors = collection.get_facecolor()
+                # If multiple points with same color, we get the first one
+                if face_colors.ndim > 1:
+                    scatter_colors.append(tuple(face_colors[0]))
+                else:
+                    scatter_colors.append(tuple(face_colors))
+
+        # Assert that we have the right number of colors (one per group)
+        assert len(line_colors) == 3
+        assert len(scatter_colors) == 3
+
+        # Assert that the colors are all different
+        assert len(set(scatter_colors)) == 3
+        assert len(line_colors) == 3
+
+        plt.close(fig)
