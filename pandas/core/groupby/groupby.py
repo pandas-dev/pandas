@@ -142,6 +142,7 @@ from pandas.core.util.numba_ import (
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
+    from pandas._libs.tslibs.timedeltas import Timedelta
     from pandas._typing import (
         Any,
         Concatenate,
@@ -3872,39 +3873,54 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
+    def ewm(
+        self,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | str | Timedelta | None = None,
+        alpha: float | None = None,
+        min_periods: int | None = 0,
+        adjust: bool = True,
+        ignore_na: bool = False,
+        times: np.ndarray | Series | None = None,
+        method: str = "single",
+    ) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
 
         Parameters
         ----------
-        *args : tuple
-            Positional arguments passed to the EWM window constructor.
-        **kwargs : dict
-            Keyword arguments passed to the EWM window constructor, such as:
+        com : float, optional
+            Specify decay in terms of center of mass.
+            Alternative to ``span``, ``halflife``, and ``alpha``.
 
-            com : float, optional
-                Specify decay in terms of center of mass.
-                ``span``, ``halflife``, and ``alpha`` are alternative ways to specify
-                decay.
-            span : float, optional
-                Specify decay in terms of span.
-            halflife : float, optional
-                Specify decay in terms of half-life.
-            alpha : float, optional
-                Specify smoothing factor directly.
-            min_periods : int, default 0
-                Minimum number of observations in the window required to have a value;
-                otherwise, result is ``np.nan``.
-            adjust : bool, default True
-                Divide by decaying adjustment factor to account for imbalance in
-                relative weights.
-            ignore_na : bool, default False
-                Ignore missing values when calculating weights.
-            times : str or array-like of datetime64, optional
-                Times corresponding to the observations.
-            axis : {0 or 'index', 1 or 'columns'}, default 0
-                Axis along which the EWM function is applied.
+        span : float, optional
+            Specify decay in terms of span.
+
+        halflife : float, str, or Timedelta, optional
+            Specify decay in terms of half-life.
+
+        alpha : float, optional
+            Specify smoothing factor directly.
+
+        min_periods : int, default 0
+            Minimum number of observations in the window required to have a value;
+            otherwise, result is ``np.nan``.
+
+        adjust : bool, default True
+            Divide by decaying adjustment factor to account for imbalance in
+            relative weights.
+
+        ignore_na : bool, default False
+            Ignore missing values when calculating weights.
+
+        times : str or array-like of datetime64, optional
+            Times corresponding to the observations.
+
+        method : {'single', 'table'}, default 'single'
+            Execute the operation per group independently (``'single'``) or over the
+            entire object before regrouping (``'table'``). Only applicable to
+            ``mean()``, and only when using ``engine='numba'``.
 
         Returns
         -------
@@ -3950,9 +3966,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return ExponentialMovingWindowGroupby(
             self._selected_obj,
-            *args,
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            adjust=adjust,
+            ignore_na=ignore_na,
+            times=times,
+            method=method,
             _grouper=self._grouper,
-            **kwargs,
         )
 
     @final
