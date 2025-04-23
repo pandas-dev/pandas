@@ -1932,13 +1932,16 @@ class BarPlot(MPLPlot):
         _stacked_subplots_ind: dict[int, int] = {}
         _stacked_subplots_offsets = []
 
-        if self.subplots != False & self.stacked:
-            sub_range = range(len(self.subplots))  # type:ignore[arg-type]
+        self.subplots: list[Any]
+        if self.subplots:
+            subplots_flag = 1
+        else:
+            subplots_flag = 0
+
+        if subplots_flag & self.stacked:
+            sub_range = range(len(self.subplots))
             ss_temp = {
-                # mypy thinks self.subplots is a bool :(
-                x: self.subplots[x]  # type:ignore[index]
-                for x in sub_range
-                if len(self.subplots[x]) > 1  # type:ignore[index]
+                x: self.subplots[x] for x in sub_range if len(self.subplots[x]) > 1
             }
             for k, v in ss_temp.items():
                 for x in v:
