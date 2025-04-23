@@ -259,8 +259,8 @@ def test_pivot_df_multiindex_index_none():
             "index",
             ["col", "value"],
             [
-                [50.0, (nan := np.nan), 100.0, nan],
-                [nan, 100.0, nan, 200.0],
+                [50.0, np.nan, 100.0, np.nan],
+                [np.nan, 100.0, np.nan, 200.0],
             ],
             Index(data=["A", "B"], name="index"),
             MultiIndex.from_arrays(
@@ -271,10 +271,10 @@ def test_pivot_df_multiindex_index_none():
             ["index", "value"],
             "col",
             [
-                [50.0, nan],
-                [nan, 100.0],
-                [100.0, nan],
-                [nan, 200.0],
+                [50.0, np.nan],
+                [np.nan, 100.0],
+                [100.0, np.nan],
+                [np.nan, 200.0],
             ],
             MultiIndex.from_arrays(
                 arrays=[["A", "A", "B", "B"], [50, 100, 100, 200]],
