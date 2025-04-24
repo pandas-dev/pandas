@@ -389,13 +389,22 @@ def test_groupby_nan_included():
     [
         pytest.param("group", id="column"),
         pytest.param(pd.Series(["g1", np.nan, "g1", "g2", np.nan]), id="Series"),
+        pytest.param(
+            pd.Series(["g1", np.nan, "g1", "g2", np.nan]).astype("category"),
+            id="Categorical",
+        ),
         pytest.param("_index", id="index"),
+        pytest.param(["group", "group2"], id="multikey"),
     ],
 )
 @pytest.mark.parametrize("dropna", [True, False, None])
 def test_groupby_nan_included_warns(by, dropna):
     # GH 61339
-    data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
+    data = {
+        "group": ["g1", np.nan, "g1", "g2", np.nan],
+        "group2": ["g1", "g2", np.nan, "g2", np.nan],
+        "B": [0, 1, 2, 3, 4],
+    }
     df = pd.DataFrame(data)
     if isinstance(by, str) and by == "_index":
         df = df.set_index("group")
