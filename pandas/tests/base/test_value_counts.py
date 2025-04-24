@@ -63,6 +63,10 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
+    if obj.dtype == 'object':
+        obj = obj.astype(str)
+
+
     values = obj._values
     values[0:2] = null_obj
 

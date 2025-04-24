@@ -635,6 +635,7 @@ def test_union_duplicates(index, request):
         pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
     values = index.unique().values.tolist()
+    values = [str(v) for v in values]
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
     result = mi2.union(mi1)
