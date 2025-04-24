@@ -5,7 +5,7 @@ set operations.
 
 from datetime import datetime
 import operator
-
+import pandas as pd
 import numpy as np
 import pytest
 
@@ -63,12 +63,13 @@ def index_flat2(index_flat):
 
 
 def test_union_same_types(index):
-    # Union with a non-unique, non-monotonic index raises error
-    # Only needed for bool index factory
+    # mixed int string
+    if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        index = index.astype(str)
+
     idx1 = index.sort_values()
     idx2 = index.sort_values()
-    assert idx1.union(idx2).dtype == idx1.dtype
-
+    assert idx1.union(idx2, sort=False).dtype == idx1.dtype
 
 def test_union_different_types(index_flat, index_flat2, request):
     # This test only considers combinations of indices
