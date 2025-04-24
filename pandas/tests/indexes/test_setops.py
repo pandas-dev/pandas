@@ -306,8 +306,8 @@ class TestSetOps:
             # index fixture has e.g. an index of bools that does not satisfy this,
             #  another with [0, 0, 1, 1, 2, 2]
             pytest.skip("Index values no not satisfy test condition.")
-
-
+        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+            index = index.astype(str)
         first = index[1:]
         second = index[:-1]
         answer = index[[0, -1]]
