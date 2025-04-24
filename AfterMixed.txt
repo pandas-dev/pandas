@@ -1,0 +1,1008 @@
++ meson compile
+Activating VS 17.13.6
+INFO: automatically activated MSVC compiler environment
+INFO: autodetecting backend as ninja
+INFO: calculating backend command to run: C:\Users\xaris\panda\pandas\env\Scripts\ninja.EXE
+[1/1] Generating write_version_file with a custom command
+============================= test session starts =============================
+platform win32 -- Python 3.13.2, pytest-8.3.5, pluggy-1.5.0
+PyQt5 5.15.11 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2
+rootdir: C:\Users\xaris\panda\pandas
+configfile: pyproject.toml
+plugins: anyio-4.9.0, hypothesis-6.130.12, cov-6.1.1, cython-0.3.1, localserver-0.9.0.post0, qt-4.4.0, xdist-3.6.1
+collected 16743 items
+
+pandas\tests\indexes\base_class\test_constructors.py ...........
+pandas\tests\indexes\base_class\test_formats.py .............
+pandas\tests\indexes\base_class\test_indexing.py .............
+pandas\tests\indexes\base_class\test_pickle.py .
+pandas\tests\indexes\base_class\test_reshape.py ......................
+pandas\tests\indexes\base_class\test_setops.py ............................................................
+pandas\tests\indexes\base_class\test_where.py .
+pandas\tests\indexes\categorical\test_append.py .......
+pandas\tests\indexes\categorical\test_astype.py ...........
+pandas\tests\indexes\categorical\test_category.py ..........................................
+pandas\tests\indexes\categorical\test_constructors.py .....
+pandas\tests\indexes\categorical\test_equals.py .........
+pandas\tests\indexes\categorical\test_fillna.py ...
+pandas\tests\indexes\categorical\test_formats.py .
+pandas\tests\indexes\categorical\test_indexing.py .................................
+pandas\tests\indexes\categorical\test_map.py .....................
+pandas\tests\indexes\categorical\test_reindex.py .......
+pandas\tests\indexes\categorical\test_setops.py ..
+pandas\tests\indexes\datetimelike_\test_drop_duplicates.py ................................................................................................................
+pandas\tests\indexes\datetimelike_\test_equals.py .....................
+pandas\tests\indexes\datetimelike_\test_indexing.py ................
+pandas\tests\indexes\datetimelike_\test_is_monotonic.py .
+pandas\tests\indexes\datetimelike_\test_nat.py ....
+pandas\tests\indexes\datetimelike_\test_sort_values.py ...............................................................
+pandas\tests\indexes\datetimelike_\test_value_counts.py ............................................
+pandas\tests\indexes\datetimes\methods\test_asof.py ..
+pandas\tests\indexes\datetimes\methods\test_astype.py .................................
+pandas\tests\indexes\datetimes\methods\test_delete.py .......................
+pandas\tests\indexes\datetimes\methods\test_factorize.py ....................................................................................
+pandas\tests\indexes\datetimes\methods\test_fillna.py ..
+pandas\tests\indexes\datetimes\methods\test_insert.py .........................................................................................................................................................................................................................
+pandas\tests\indexes\datetimes\methods\test_isocalendar.py ..
+pandas\tests\indexes\datetimes\methods\test_map.py .....
+pandas\tests\indexes\datetimes\methods\test_normalize.py ...ssssss
+pandas\tests\indexes\datetimes\methods\test_repeat.py ....................................................................................................................................................................................................................................................................................................................................................
+pandas\tests\indexes\datetimes\methods\test_resolution.py ....................................................................................................................................................................................
+pandas\tests\indexes\datetimes\methods\test_round.py ......................................................................................................................................................................................................................
+pandas\tests\indexes\datetimes\methods\test_shift.py ............................................................................................................................................
+pandas\tests\indexes\datetimes\methods\test_snap.py ........................
+pandas\tests\indexes\datetimes\methods\test_to_frame.py ..
+pandas\tests\indexes\datetimes\methods\test_to_julian_date.py .....
+pandas\tests\indexes\datetimes\methods\test_to_period.py ............................................
+pandas\tests\indexes\datetimes\methods\test_to_pydatetime.py ..
+pandas\tests\indexes\datetimes\methods\test_to_series.py .
+pandas\tests\indexes\datetimes\methods\test_tz_convert.py ....................................
+pandas\tests\indexes\datetimes\methods\test_tz_localize.py .................................................................................................................................................
+pandas\tests\indexes\datetimes\methods\test_unique.py ........................
+pandas\tests\indexes\datetimes\test_arithmetic.py .....................x
+pandas\tests\indexes\datetimes\test_constructors.py ................................................................................................................................................................................................................x...x...X................................
+pandas\tests\indexes\datetimes\test_date_range.py ...s........................................................................................................................................................................................................................................................................................................................................................................
+pandas\tests\indexes\datetimes\test_datetime.py ......................
+pandas\tests\indexes\datetimes\test_formats.py .................................
+pandas\tests\indexes\datetimes\test_freq_attr.py ..........................
+pandas\tests\indexes\datetimes\test_indexing.py ..........................................................................................................................................................................................................................................................................................................................................................................................
+pandas\tests\indexes\datetimes\test_iter.py ............
+pandas\tests\indexes\datetimes\test_join.py ......................
+pandas\tests\indexes\datetimes\test_npfuncs.py .
+pandas\tests\indexes\datetimes\test_ops.py ................
+pandas\tests\indexes\datetimes\test_partial_slicing.py ..................................
+pandas\tests\indexes\datetimes\test_pickle.py ......
+pandas\tests\indexes\datetimes\test_reindex.py ..
+pandas\tests\indexes\datetimes\test_scalar_compat.py ............................................................................
+pandas\tests\indexes\datetimes\test_setops.py .....................................................................................................................ss...........
+pandas\tests\indexes\datetimes\test_timezones.py ........................................
+pandas\tests\indexes\interval\test_astype.py ....................................x...........................................................................................................................
+pandas\tests\indexes\interval\test_constructors.py .......................................................................................................................................................................................................................................................s.......s.......s.......s.......s.......s.......s.......s...........s.................s.....s.....s.....s...............s.......s.......s.......s.......s.......s.......s.......s...........s.................s.....s.....s.....s..................................
+pandas\tests\indexes\interval\test_equals.py ....
+pandas\tests\indexes\interval\test_formats.py ...........
+pandas\tests\indexes\interval\test_indexing.py ............................................................................................................................................................................................................................................................................................
+pandas\tests\indexes\interval\test_interval.py .......x....x....x....x..................................................................................................................................................................................................................................
+pandas\tests\indexes\interval\test_interval_range.py .............................................................................................................................................................
+pandas\tests\indexes\interval\test_interval_tree.py ....................................................................................................................................................................................................................
+pandas\tests\indexes\interval\test_join.py ...
+pandas\tests\indexes\interval\test_pickle.py ....
+pandas\tests\indexes\interval\test_setops.py .................................................................................
+pandas\tests\indexes\multi\test_analytics.py ......................................
+pandas\tests\indexes\multi\test_astype.py ...
+pandas\tests\indexes\multi\test_compat.py ......
+pandas\tests\indexes\multi\test_constructors.py .....................................................................................................
+pandas\tests\indexes\multi\test_conversion.py ........
+pandas\tests\indexes\multi\test_copy.py ..........
+pandas\tests\indexes\multi\test_drop.py ..............
+pandas\tests\indexes\multi\test_duplicates.py ...................................................
+pandas\tests\indexes\multi\test_equivalence.py ..............
+pandas\tests\indexes\multi\test_formats.py ..........
+pandas\tests\indexes\multi\test_get_level_values.py ........
+pandas\tests\indexes\multi\test_get_set.py ...................
+pandas\tests\indexes\multi\test_indexing.py .............................................................................................................................................
+pandas\tests\indexes\multi\test_integrity.py .................
+pandas\tests\indexes\multi\test_isin.py ..............
+pandas\tests\indexes\multi\test_join.py .......................................................
+pandas\tests\indexes\multi\test_lexsort.py ..
+pandas\tests\indexes\multi\test_missing.py ...x..
+pandas\tests\indexes\multi\test_monotonic.py ...........
+pandas\tests\indexes\multi\test_names.py ...............................
+pandas\tests\indexes\multi\test_partial_indexing.py .....
+pandas\tests\indexes\multi\test_pickle.py .
+pandas\tests\indexes\multi\test_reindex.py ............
+pandas\tests\indexes\multi\test_reshape.py ...........
+pandas\tests\indexes\multi\test_setops.py .........................................................................................F...................F.......................................................................F.......................sss.........................................F......................F....
+pandas\tests\indexes\multi\test_sorting.py ...........................
+pandas\tests\indexes\multi\test_take.py ...
+pandas\tests\indexes\multi\test_util.py ...............
+pandas\tests\indexes\numeric\test_astype.py ...................
+pandas\tests\indexes\numeric\test_indexing.py ........................................................................................................FF....................................................F............................FF...................................................................
+pandas\tests\indexes\numeric\test_join.py ...........
+pandas\tests\indexes\numeric\test_numeric.py ....................................................................................................................
+pandas\tests\indexes\numeric\test_setops.py ....................
+pandas\tests\indexes\object\test_astype.py .
+pandas\tests\indexes\object\test_indexing.py .......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+pandas\tests\indexes\period\methods\test_asfreq.py ...............
+pandas\tests\indexes\period\methods\test_astype.py .............
+pandas\tests\indexes\period\methods\test_factorize.py ..
+pandas\tests\indexes\period\methods\test_fillna.py .
+pandas\tests\indexes\period\methods\test_insert.py ...
+pandas\tests\indexes\period\methods\test_is_full.py .
+pandas\tests\indexes\period\methods\test_repeat.py ......
+pandas\tests\indexes\period\methods\test_shift.py ......
+pandas\tests\indexes\period\methods\test_to_timestamp.py .........
+pandas\tests\indexes\period\test_constructors.py .........................................................................................................
+pandas\tests\indexes\period\test_formats.py .....
+pandas\tests\indexes\period\test_freq_attr.py .
+pandas\tests\indexes\period\test_indexing.py .........................................................................
+pandas\tests\indexes\period\test_join.py ...........
+pandas\tests\indexes\period\test_monotonic.py ..
+pandas\tests\indexes\period\test_partial_slicing.py ..............
+pandas\tests\indexes\period\test_period.py ....................................................................................................................................
+pandas\tests\indexes\period\test_period_range.py ...........................
+pandas\tests\indexes\period\test_pickle.py ....
+pandas\tests\indexes\period\test_resolution.py .........
+pandas\tests\indexes\period\test_scalar_compat.py ...
+pandas\tests\indexes\period\test_searchsorted.py ........
+pandas\tests\indexes\period\test_setops.py ..............
+pandas\tests\indexes\period\test_tools.py ............
+pandas\tests\indexes\ranges\test_constructors.py .............................
+pandas\tests\indexes\ranges\test_indexing.py ...............
+pandas\tests\indexes\ranges\test_join.py ..........................................
+pandas\tests\indexes\ranges\test_range.py ................................................................................................................................................................................................................
+pandas\tests\indexes\ranges\test_setops.py ...................................................................
+pandas\tests\indexes\string\test_astype.py .
+pandas\tests\indexes\string\test_indexing.py .................................................................................................................................................................................................................................
+pandas\tests\indexes\test_any_index.py .............................................................................................s..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+pandas\tests\indexes\test_base.py ............................................................................................................................................................................x...............................................................................ssss....ss..........ss......ss............................................................................................................................ssss..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+pandas\tests\indexes\test_common.py ................................................................................................................................................................................................................................xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx......................................................................................................................................sssssssss...s....ss.............................xs..........................sss................................................sss.................................................................................................s................s........................................................................................................................................................................................................................................................................................xx................FF..XX....FF....xx.........................................
+pandas\tests\indexes\test_datetimelike.py ........................................
+pandas\tests\indexes\test_engines.py .........................................
+pandas\tests\indexes\test_frozen.py ..........
+pandas\tests\indexes\test_index_new.py ............................................xxxxssss................................................................................................................
+pandas\tests\indexes\test_indexing.py ..........................................................ss..................................s.............................................................................................................................................................................................................................................................................................................................................................................................s..........................
+pandas\tests\indexes\test_mixed_int_string.py .
+pandas\tests\indexes\test_numpy_compat.py ...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................ss..................xx.....
+pandas\tests\indexes\test_old_base.py s...s...................sss.............................ssssssssss.s..........ss.................s.............s......s..............s..sss...................................................................................................s............................................................................ssssssss..s..sssssssss..s..sssssssss..s..sssssssss..s..sssssssss..s..s.......................s....................................................s................s.................................s................................sssssssss...s....s...sss........................................................................................................................ss......................ssssss.........................................................................................................................................................................s......................................................................s...s...........s...s...................................................................................s...s...
+pandas\tests\indexes\test_setops.py ....................................................................................................................................................................................................................................................................................................................................................................................................................s.......................................................................................................................................ss..s.s...s...s........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................ssss....ss..........ss......ss.............................................................................................................................................................................................................................................................................................ssss....ss..........ss......ss.............................................................................................................................................................................................................................................................................................s................................................................................................................................................................................................................
+pandas\tests\indexes\test_subclass.py .
+pandas\tests\indexes\timedeltas\methods\test_astype.py ...............
+pandas\tests\indexes\timedeltas\methods\test_factorize.py ..
+pandas\tests\indexes\timedeltas\methods\test_fillna.py .
+pandas\tests\indexes\timedeltas\methods\test_insert.py ...............
+pandas\tests\indexes\timedeltas\methods\test_repeat.py .
+pandas\tests\indexes\timedeltas\methods\test_shift.py ......
+pandas\tests\indexes\timedeltas\test_arithmetic.py ...
+pandas\tests\indexes\timedeltas\test_constructors.py ........................
+pandas\tests\indexes\timedeltas\test_delete.py ...
+pandas\tests\indexes\timedeltas\test_formats.py .....
+pandas\tests\indexes\timedeltas\test_freq_attr.py ...........
+pandas\tests\indexes\timedeltas\test_indexing.py ....................................
+pandas\tests\indexes\timedeltas\test_join.py .......
+pandas\tests\indexes\timedeltas\test_ops.py ..........
+pandas\tests\indexes\timedeltas\test_pickle.py .
+pandas\tests\indexes\timedeltas\test_scalar_compat.py ........
+pandas\tests\indexes\timedeltas\test_searchsorted.py ........
+pandas\tests\indexes\timedeltas\test_setops.py ................................
+pandas\tests\indexes\timedeltas\test_timedelta.py ...
+pandas\tests\indexes\timedeltas\test_timedelta_range.py .............................
+
+================================== FAILURES ===================================
+________________ test_difference_keep_ea_dtypes[Float32-val0] _________________
+
+any_numeric_ea_dtype = 'Float32', val = <NA>
+
+    @pytest.mark.parametrize("val", [pd.NA, 100])
+    def test_difference_keep_ea_dtypes(any_numeric_ea_dtype, val):
+        # GH#48606
+        midx = MultiIndex.from_arrays(
+            [Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
+        )
+        midx2 = MultiIndex.from_arrays(
+>           [Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
+        )
+
+pandas\tests\indexes\multi\test_setops.py:454: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\series.py:507: in __init__
+    data = sanitize_array(data, index, dtype, copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, 2, nan], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+__________ test_symmetric_difference_keeping_ea_dtype[Float32-val0] ___________
+
+any_numeric_ea_dtype = 'Float32', val = <NA>
+
+    @pytest.mark.parametrize("val", [pd.NA, 5])
+    def test_symmetric_difference_keeping_ea_dtype(any_numeric_ea_dtype, val):
+        # GH#48607
+        midx = MultiIndex.from_arrays(
+            [Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
+        )
+        midx2 = MultiIndex.from_arrays(
+>           [Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
+        )
+
+pandas\tests\indexes\multi\test_setops.py:475: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\series.py:507: in __init__
+    data = sanitize_array(data, index, dtype, copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, 2, nan], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+_________ test_union_with_duplicates_keep_ea_dtype[Float32-dupe_val1] _________
+
+dupe_val = <NA>, any_numeric_ea_dtype = 'Float32'
+
+    @pytest.mark.parametrize("dupe_val", [3, pd.NA])
+    def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
+        # GH48900
+        mi1 = MultiIndex.from_arrays(
+            [
+>               Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
+                Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
+            ]
+        )
+
+pandas\tests\indexes\multi\test_setops.py:607: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\series.py:507: in __init__
+    data = sanitize_array(data, index, dtype, copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, nan, 2], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+__________________ test_union_keep_ea_dtype_with_na[Float32] __________________
+
+any_numeric_ea_dtype = 'Float32'
+
+    def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
+        # GH#48498
+>       arr1 = Series([4, pd.NA], dtype=any_numeric_ea_dtype)
+
+pandas\tests\indexes\multi\test_setops.py:684: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\series.py:507: in __init__
+    data = sanitize_array(data, index, dtype, copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([4, nan], dtype=object), dtype = dtype('float32'), copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+_______________ test_intersection_keep_ea_dtypes[Float32-val0] ________________
+
+val = <NA>, any_numeric_ea_dtype = 'Float32'
+
+    @pytest.mark.parametrize("val", [pd.NA, 100])
+    def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
+        # GH#48604
+        midx = MultiIndex.from_arrays(
+            [Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
+        )
+        midx2 = MultiIndex.from_arrays(
+>           [Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
+        )
+
+pandas\tests\indexes\multi\test_setops.py:753: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\series.py:507: in __init__
+    data = sanitize_array(data, index, dtype, copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, 2, nan], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+_____________ TestGetIndexer.test_get_loc_masked[Float32-4-val22] _____________
+
+self = <pandas.tests.indexes.numeric.test_indexing.TestGetIndexer object at 0x000001C0A71FAA30>
+val = 4, val2 = <NA>, any_numeric_ea_and_arrow_dtype = 'Float32'
+
+    @pytest.mark.parametrize("val, val2", [(4, 5), (4, 4), (4, NA), (NA, NA)])
+    def test_get_loc_masked(self, val, val2, any_numeric_ea_and_arrow_dtype):
+        # GH#39133
+>       idx = Index([1, 2, 3, val, val2], dtype=any_numeric_ea_and_arrow_dtype)
+
+pandas\tests\indexes\numeric\test_indexing.py:321: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, 2, 3, 4, nan], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+___________ TestGetIndexer.test_get_loc_masked[Float32-val3-val23] ____________
+
+self = <pandas.tests.indexes.numeric.test_indexing.TestGetIndexer object at 0x000001C0A71FAAD0>
+val = <NA>, val2 = <NA>, any_numeric_ea_and_arrow_dtype = 'Float32'
+
+    @pytest.mark.parametrize("val, val2", [(4, 5), (4, 4), (4, NA), (NA, NA)])
+    def test_get_loc_masked(self, val, val2, any_numeric_ea_and_arrow_dtype):
+        # GH#39133
+>       idx = Index([1, 2, 3, val, val2], dtype=any_numeric_ea_and_arrow_dtype)
+
+pandas\tests\indexes\numeric\test_indexing.py:321: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, 2, 3, nan, nan], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+_______________ TestGetIndexer.test_get_loc_masked_na[Float32] ________________
+
+self = <pandas.tests.indexes.numeric.test_indexing.TestGetIndexer object at 0x000001C0A7230640>
+any_numeric_ea_and_arrow_dtype = 'Float32'
+
+    def test_get_loc_masked_na(self, any_numeric_ea_and_arrow_dtype):
+        # GH#39133
+>       idx = Index([1, 2, NA], dtype=any_numeric_ea_and_arrow_dtype)
+
+pandas\tests\indexes\numeric\test_indexing.py:330: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, 2, nan], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+____________ TestGetIndexer.test_get_indexer_masked_na[Float32-4] _____________
+
+self = <pandas.tests.indexes.numeric.test_indexing.TestGetIndexer object at 0x000001C0A7231860>
+any_numeric_ea_and_arrow_dtype = 'Float32', val = 4
+
+    @pytest.mark.parametrize("val", [4, 2])
+    def test_get_indexer_masked_na(self, any_numeric_ea_and_arrow_dtype, val):
+        # GH#39133
+>       idx = Index([1, 2, NA, 3, val], dtype=any_numeric_ea_and_arrow_dtype)
+
+pandas\tests\indexes\numeric\test_indexing.py:375: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, 2, nan, 3, 4], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+____________ TestGetIndexer.test_get_indexer_masked_na[Float32-2] _____________
+
+self = <pandas.tests.indexes.numeric.test_indexing.TestGetIndexer object at 0x000001C0A7231900>
+any_numeric_ea_and_arrow_dtype = 'Float32', val = 2
+
+    @pytest.mark.parametrize("val", [4, 2])
+    def test_get_indexer_masked_na(self, any_numeric_ea_and_arrow_dtype, val):
+        # GH#39133
+>       idx = Index([1, 2, NA, 3, val], dtype=any_numeric_ea_and_arrow_dtype)
+
+pandas\tests\indexes\numeric\test_indexing.py:375: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1, 2, nan, 3, 2], dtype=object), dtype = dtype('float32')
+copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+_______________ test_sort_values_with_missing[complex64-first] ________________
+
+index_with_missing = Index([(nan+nanj),     (1+1j),     (2+2j),     (3+3j),     (4+4j),     (5+5j),
+           (6+6j),     (7+7j),     (8+8j), (nan+nanj)],
+      dtype='complex64')
+na_position = 'first'
+request = <FixtureRequest for <Function test_sort_values_with_missing[complex64-first]>>
+
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_values_with_missing(index_with_missing, na_position, request):
+        # GH 35584. Test that sort_values works with missing values,
+        # sort non-missing and place missing according to na_position
+    
+        non_na_values = [x for x in index_with_missing if pd.notna(x)]
+        if len({type(x) for x in non_na_values}) > 1:
+            pytest.xfail("Sorting fails due to heterogeneous types in index (int vs str)")
+    
+        if isinstance(index_with_missing, CategoricalIndex):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="missing value sorting order not well-defined", strict=False
+                )
+            )
+    
+        missing_count = np.sum(index_with_missing.isna())
+        not_na_vals = index_with_missing[index_with_missing.notna()].values
+        sorted_values = np.sort(not_na_vals)
+        if na_position == "first":
+            sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+        else:
+            sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    
+        # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+>       expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
+
+pandas\tests\indexes\test_common.py:477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:630: in sanitize_array
+    subarr = _try_cast(data, dtype, copy)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+arr = array([None, None, (1+1j), (2+2j), (3+3j), (4+4j), (5+5j), (6+6j), (7+7j),
+       (8+8j)], dtype=object)
+dtype = dtype('complex64'), copy = False
+
+    def _try_cast(
+        arr: list | np.ndarray,
+        dtype: np.dtype,
+        copy: bool,
+    ) -> ArrayLike:
+        """
+        Convert input to numpy ndarray and optionally cast to a given dtype.
+    
+        Parameters
+        ----------
+        arr : ndarray or list
+            Excludes: ExtensionArray, Series, Index.
+        dtype : np.dtype
+        copy : bool
+            If False, don't copy the data if not needed.
+    
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        is_ndarray = isinstance(arr, np.ndarray)
+    
+        if dtype == object:
+            if not is_ndarray:
+                subarr = construct_1d_object_array_from_listlike(arr)
+                return subarr
+            return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
+    
+        elif dtype.kind == "U":
+            # TODO: test cases with arr.dtype.kind in "mM"
+            if is_ndarray:
+                arr = cast(np.ndarray, arr)
+                shape = arr.shape
+                if arr.ndim > 1:
+                    arr = arr.ravel()
+            else:
+                shape = (len(arr),)
+            return lib.ensure_string_array(arr, convert_na_value=False, copy=copy).reshape(
+                shape
+            )
+    
+        elif dtype.kind in "mM":
+            if is_ndarray:
+                arr = cast(np.ndarray, arr)
+                if arr.ndim == 2 and arr.shape[1] == 1:
+                    # GH#60081: DataFrame Constructor converts 1D data to array of
+                    # shape (N, 1), but maybe_cast_to_datetime assumes 1D input
+                    return maybe_cast_to_datetime(arr[:, 0], dtype).reshape(arr.shape)
+            return maybe_cast_to_datetime(arr, dtype)
+    
+        # GH#15832: Check if we are requesting a numeric dtype and
+        # that we can convert the data to the requested dtype.
+        elif dtype.kind in "iu":
+            # this will raise if we have e.g. floats
+    
+            subarr = maybe_cast_to_integer_array(arr, dtype)
+        elif not copy:
+>           subarr = np.asarray(arr, dtype=dtype)
+E           RuntimeWarning: invalid value encountered in cast
+
+pandas\core\construction.py:831: RuntimeWarning
+________________ test_sort_values_with_missing[complex64-last] ________________
+
+index_with_missing = Index([(nan+nanj),     (1+1j),     (2+2j),     (3+3j),     (4+4j),     (5+5j),
+           (6+6j),     (7+7j),     (8+8j), (nan+nanj)],
+      dtype='complex64')
+na_position = 'last'
+request = <FixtureRequest for <Function test_sort_values_with_missing[complex64-last]>>
+
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_values_with_missing(index_with_missing, na_position, request):
+        # GH 35584. Test that sort_values works with missing values,
+        # sort non-missing and place missing according to na_position
+    
+        non_na_values = [x for x in index_with_missing if pd.notna(x)]
+        if len({type(x) for x in non_na_values}) > 1:
+            pytest.xfail("Sorting fails due to heterogeneous types in index (int vs str)")
+    
+        if isinstance(index_with_missing, CategoricalIndex):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="missing value sorting order not well-defined", strict=False
+                )
+            )
+    
+        missing_count = np.sum(index_with_missing.isna())
+        not_na_vals = index_with_missing[index_with_missing.notna()].values
+        sorted_values = np.sort(not_na_vals)
+        if na_position == "first":
+            sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+        else:
+            sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    
+        # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+>       expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
+
+pandas\tests\indexes\test_common.py:477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:630: in sanitize_array
+    subarr = _try_cast(data, dtype, copy)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+arr = array([(1+1j), (2+2j), (3+3j), (4+4j), (5+5j), (6+6j), (7+7j), (8+8j),
+       None, None], dtype=object)
+dtype = dtype('complex64'), copy = False
+
+    def _try_cast(
+        arr: list | np.ndarray,
+        dtype: np.dtype,
+        copy: bool,
+    ) -> ArrayLike:
+        """
+        Convert input to numpy ndarray and optionally cast to a given dtype.
+    
+        Parameters
+        ----------
+        arr : ndarray or list
+            Excludes: ExtensionArray, Series, Index.
+        dtype : np.dtype
+        copy : bool
+            If False, don't copy the data if not needed.
+    
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        is_ndarray = isinstance(arr, np.ndarray)
+    
+        if dtype == object:
+            if not is_ndarray:
+                subarr = construct_1d_object_array_from_listlike(arr)
+                return subarr
+            return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
+    
+        elif dtype.kind == "U":
+            # TODO: test cases with arr.dtype.kind in "mM"
+            if is_ndarray:
+                arr = cast(np.ndarray, arr)
+                shape = arr.shape
+                if arr.ndim > 1:
+                    arr = arr.ravel()
+            else:
+                shape = (len(arr),)
+            return lib.ensure_string_array(arr, convert_na_value=False, copy=copy).reshape(
+                shape
+            )
+    
+        elif dtype.kind in "mM":
+            if is_ndarray:
+                arr = cast(np.ndarray, arr)
+                if arr.ndim == 2 and arr.shape[1] == 1:
+                    # GH#60081: DataFrame Constructor converts 1D data to array of
+                    # shape (N, 1), but maybe_cast_to_datetime assumes 1D input
+                    return maybe_cast_to_datetime(arr[:, 0], dtype).reshape(arr.shape)
+            return maybe_cast_to_datetime(arr, dtype)
+    
+        # GH#15832: Check if we are requesting a numeric dtype and
+        # that we can convert the data to the requested dtype.
+        elif dtype.kind in "iu":
+            # this will raise if we have e.g. floats
+    
+            subarr = maybe_cast_to_integer_array(arr, dtype)
+        elif not copy:
+>           subarr = np.asarray(arr, dtype=dtype)
+E           RuntimeWarning: invalid value encountered in cast
+
+pandas\core\construction.py:831: RuntimeWarning
+_____________ test_sort_values_with_missing[nullable_float-first] _____________
+
+index_with_missing = Index([<NA>, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, <NA>], dtype='Float32')
+na_position = 'first'
+request = <FixtureRequest for <Function test_sort_values_with_missing[nullable_float-first]>>
+
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_values_with_missing(index_with_missing, na_position, request):
+        # GH 35584. Test that sort_values works with missing values,
+        # sort non-missing and place missing according to na_position
+    
+        non_na_values = [x for x in index_with_missing if pd.notna(x)]
+        if len({type(x) for x in non_na_values}) > 1:
+            pytest.xfail("Sorting fails due to heterogeneous types in index (int vs str)")
+    
+        if isinstance(index_with_missing, CategoricalIndex):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="missing value sorting order not well-defined", strict=False
+                )
+            )
+    
+        missing_count = np.sum(index_with_missing.isna())
+        not_na_vals = index_with_missing[index_with_missing.notna()].values
+        sorted_values = np.sort(not_na_vals)
+        if na_position == "first":
+            sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+        else:
+            sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    
+        # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+>       expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
+
+pandas\tests\indexes\test_common.py:477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([nan, nan, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], dtype=object)
+dtype = dtype('float32'), copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+_____________ test_sort_values_with_missing[nullable_float-last] ______________
+
+index_with_missing = Index([<NA>, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, <NA>], dtype='Float32')
+na_position = 'last'
+request = <FixtureRequest for <Function test_sort_values_with_missing[nullable_float-last]>>
+
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_values_with_missing(index_with_missing, na_position, request):
+        # GH 35584. Test that sort_values works with missing values,
+        # sort non-missing and place missing according to na_position
+    
+        non_na_values = [x for x in index_with_missing if pd.notna(x)]
+        if len({type(x) for x in non_na_values}) > 1:
+            pytest.xfail("Sorting fails due to heterogeneous types in index (int vs str)")
+    
+        if isinstance(index_with_missing, CategoricalIndex):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="missing value sorting order not well-defined", strict=False
+                )
+            )
+    
+        missing_count = np.sum(index_with_missing.isna())
+        not_na_vals = index_with_missing[index_with_missing.notna()].values
+        sorted_values = np.sort(not_na_vals)
+        if na_position == "first":
+            sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+        else:
+            sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    
+        # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+>       expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
+
+pandas\tests\indexes\test_common.py:477: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pandas\core\indexes\base.py:571: in __new__
+    arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+pandas\core\construction.py:605: in sanitize_array
+    subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+pandas\core\arrays\masked.py:145: in _from_sequence
+    values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+pandas\core\arrays\numeric.py:281: in _coerce_to_array
+    values, mask, _, _ = _coerce_to_data_and_mask(
+pandas\core\arrays\numeric.py:238: in _coerce_to_data_and_mask
+    values = dtype_cls._safe_cast(values, dtype, copy=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pandas.core.arrays.floating.FloatingDtype'>
+values = array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, nan, nan], dtype=object)
+dtype = dtype('float32'), copy = False
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+    
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+>       return values.astype(dtype, copy=copy)
+E       RuntimeWarning: invalid value encountered in cast
+
+pandas\core\arrays\floating.py:55: RuntimeWarning
+-------- generated xml file: C:\Users\xaris\panda\pandas\test-data.xml --------
+============================ slowest 30 durations =============================
+0.57s call     pandas/tests/indexes/datetimes/methods/test_tz_localize.py::TestTZLocalize::test_dti_tz_localize[]
+0.40s setup    pandas/tests/indexes/test_base.py::TestIndex::test_tab_complete_warning
+0.29s setup    pandas/tests/indexes/test_setops.py::TestSetOps::test_set_ops_error_cases[string-python-intersection-0.5]
+0.27s call     pandas/tests/indexes/period/test_indexing.py::TestGetItem::test_getitem_seconds
+0.24s call     pandas/tests/indexes/datetimes/methods/test_tz_localize.py::TestTZLocalize::test_dti_tz_localize_roundtrip[tzlocal()]
+0.15s call     pandas/tests/indexes/interval/test_indexing.py::TestGetLoc::test_get_loc_scalar[both-3.5]
+0.14s call     pandas/tests/indexes/ranges/test_setops.py::test_range_difference
+0.13s call     pandas/tests/indexes/datetimes/test_date_range.py::TestDateRangeNonTickFreq::test_date_range_custom_business_month_begin[ns]
+0.13s call     pandas/tests/indexes/datetimes/test_date_range.py::TestDateRangeNonTickFreq::test_date_range_custom_business_month_begin[ms]
+0.13s call     pandas/tests/indexes/datetimes/test_date_range.py::TestDateRangeNonTickFreq::test_date_range_custom_business_month_begin[s]
+0.12s call     pandas/tests/indexes/datetimes/test_date_range.py::TestDateRangeNonTickFreq::test_date_range_custom_business_month_end[s]
+0.11s call     pandas/tests/indexes/datetimes/test_date_range.py::TestDateRangeNonTickFreq::test_date_range_custom_business_month_begin[us]
+0.11s call     pandas/tests/indexes/datetimes/test_date_range.py::TestDateRangeNonTickFreq::test_date_range_custom_business_month_end[us]
+0.11s call     pandas/tests/indexes/datetimes/test_date_range.py::TestDateRangeNonTickFreq::test_date_range_custom_business_month_end[ms]
+0.11s call     pandas/tests/indexes/datetimes/test_date_range.py::TestDateRangeNonTickFreq::test_date_range_custom_business_month_end[ns]
+0.09s call     pandas/tests/indexes/datetimes/test_scalar_compat.py::test_against_scalar_parametric
+0.09s teardown pandas/tests/indexes/timedeltas/test_timedelta_range.py::TestTimedeltas::test_timedelta_range_removed_freq[3.5S-05:03:01-05:03:10]
+0.08s call     pandas/tests/indexes/test_base.py::TestIndex::test_tab_complete_warning
+0.06s call     pandas/tests/indexes/datetimes/methods/test_tz_convert.py::TestTZConvert::test_dti_tz_convert_dst
+0.06s call     pandas/tests/indexes/period/test_partial_slicing.py::TestPeriodIndex::test_range_slice_seconds[period_range]
+0.05s call     pandas/tests/indexes/datetimes/test_constructors.py::TestDatetimeIndex::test_constructor_datetime64_tzformat[W-SUN]
+0.05s call     pandas/tests/indexes/interval/test_interval_tree.py::TestIntervalTree::test_get_indexer_closed[neither-1]
+0.05s call     pandas/tests/indexes/interval/test_interval_tree.py::TestIntervalTree::test_get_indexer_closed[right-1]
+0.05s call     pandas/tests/indexes/interval/test_interval_tree.py::TestIntervalTree::test_get_indexer_closed[left-1]
+0.05s call     pandas/tests/indexes/interval/test_interval_tree.py::TestIntervalTree::test_get_indexer_closed[both-1]
+0.05s call     pandas/tests/indexes/multi/test_indexing.py::test_pyint_engine[10-object]
+0.04s call     pandas/tests/indexes/multi/test_sorting.py::test_remove_unused_levels_large[datetime64[D]-str]
+0.04s call     pandas/tests/indexes/datetimes/test_timezones.py::TestDatetimeIndexTimezones::test_with_tz[tz0]
+0.04s call     pandas/tests/indexes/datetimes/test_timezones.py::TestDatetimeIndexTimezones::test_with_tz[tz1]
+0.04s call     pandas/tests/indexes/multi/test_indexing.py::test_pyint_engine[8-uint64]
+=========================== short test summary info ===========================
+FAILED pandas/tests/indexes/multi/test_setops.py::test_difference_keep_ea_dtypes[Float32-val0]
+FAILED pandas/tests/indexes/multi/test_setops.py::test_symmetric_difference_keeping_ea_dtype[Float32-val0]
+FAILED pandas/tests/indexes/multi/test_setops.py::test_union_with_duplicates_keep_ea_dtype[Float32-dupe_val1]
+FAILED pandas/tests/indexes/multi/test_setops.py::test_union_keep_ea_dtype_with_na[Float32]
+FAILED pandas/tests/indexes/multi/test_setops.py::test_intersection_keep_ea_dtypes[Float32-val0]
+FAILED pandas/tests/indexes/numeric/test_indexing.py::TestGetIndexer::test_get_loc_masked[Float32-4-val22]
+FAILED pandas/tests/indexes/numeric/test_indexing.py::TestGetIndexer::test_get_loc_masked[Float32-val3-val23]
+FAILED pandas/tests/indexes/numeric/test_indexing.py::TestGetIndexer::test_get_loc_masked_na[Float32]
+FAILED pandas/tests/indexes/numeric/test_indexing.py::TestGetIndexer::test_get_indexer_masked_na[Float32-4]
+FAILED pandas/tests/indexes/numeric/test_indexing.py::TestGetIndexer::test_get_indexer_masked_na[Float32-2]
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_with_missing[complex64-first]
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_with_missing[complex64-last]
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_with_missing[nullable_float-first]
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_with_missing[nullable_float-last]
+==== 14 failed, 16452 passed, 221 skipped, 53 xfailed, 3 xpassed in 33.67s ====
