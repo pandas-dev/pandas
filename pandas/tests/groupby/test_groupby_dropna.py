@@ -421,6 +421,34 @@ def test_groupby_nan_included_warns(by, dropna):
         result = grouped.indices  # noqa:F841
 
 
+@pytest.mark.parametrize(
+    "by_type",
+    [
+        "level",
+        "argument",
+    ],
+)
+@pytest.mark.parametrize("dropna", [True, False, None])
+def test_groupby_series_nan_included_warns(by_type, dropna):
+    # GH 61339
+    index = ["a", "a", "b", np.nan]
+    ser = pd.Series([1, 2, 3, 3])
+
+    if by_type == "level":
+        ser = ser.set_axis(index, axis=0)
+        kwargs = {"level": 0}
+    elif by_type == "argument":
+        kwargs = {"by": index}
+
+    warning_type = pd.errors.NullKeyWarning
+    if dropna is not None:
+        kwargs["dropna"] = dropna
+        warning_type = None
+
+    with tm.assert_produces_warning(warning_type):
+        ser.groupby(**kwargs).sum()
+
+
 def test_groupby_drop_nan_with_multi_index():
     # GH 39895
     df = pd.DataFrame([[np.nan, 0, 1]], columns=["a", "b", "c"])
