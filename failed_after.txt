@@ -1,6 +1,5 @@
-FAILED pandas/tests/indexes/multi/test_setops.py::test_union_duplicates[mixed-int-string]
-FAILED pandas/tests/indexes/test_common.py::test_sort_values_invalid_na_position[mixed-int-string-None]
-FAILED pandas/tests/indexes/test_common.py::test_sort_values_invalid_na_position[mixed-int-string-middle]
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_invalid_na_position[mixed-int-string-None] xfail
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_invalid_na_position[mixed-int-string-middle] xfail
 FAILED pandas/tests/indexes/test_common.py::test_sort_values_with_missing[mixed-int-string-first]
 FAILED pandas/tests/indexes/test_common.py::test_sort_values_with_missing[mixed-int-string-last]
 FAILED pandas/tests/indexes/test_numpy_compat.py::test_numpy_ufuncs_reductions[mixed-int-string-maximum]
