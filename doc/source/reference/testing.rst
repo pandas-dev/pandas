@@ -46,6 +46,7 @@ Exceptions and warnings
    errors.MergeError
    errors.NoBufferPresent
    errors.NullFrequencyError
+   errors.NullKeyWarning
    errors.NumbaUtilError
    errors.NumExprClobberingError
    errors.OptionError
