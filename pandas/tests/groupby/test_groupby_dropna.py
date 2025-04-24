@@ -384,6 +384,33 @@ def test_groupby_nan_included():
     assert list(result.keys())[0:2] == ["g1", "g2"]
 
 
+@pytest.mark.parametrize(
+    "by",
+    [
+        pytest.param("group", id="column"),
+        pytest.param(pd.Series(["g1", np.nan, "g1", "g2", np.nan]), id="Series"),
+        pytest.param("_index", id="index"),
+    ],
+)
+@pytest.mark.parametrize("dropna", [True, False, None])
+def test_groupby_nan_included_warns(by, dropna):
+    # GH 61339
+    data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
+    df = pd.DataFrame(data)
+    if by == "_index":
+        df = df.set_index("group")
+
+    kwargs = {}
+    warning_type = pd.errors.NullKeyWarning
+    if dropna is not None:
+        kwargs = {"dropna": dropna}
+        warning_type = None
+
+    with tm.assert_produces_warning(warning_type):
+        grouped = df.groupby(by, **kwargs)
+        result = grouped.indices  # noqa:F841
+
+
 def test_groupby_drop_nan_with_multi_index():
     # GH 39895
     df = pd.DataFrame([[np.nan, 0, 1]], columns=["a", "b", "c"])
