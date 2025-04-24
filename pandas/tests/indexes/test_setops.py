@@ -229,11 +229,17 @@ class TestSetOps:
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
         index = index.unique()
+
+        # Mixed int string
+        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+            index = index.astype(str)
+
         first = index[3:]
         second = index[:5]
         everything = index
 
-        union = first.union(second)
+        # Default sort=None
+        union = first.union(second, sort=None)
         tm.assert_index_equal(union.sort_values(), everything.sort_values())
 
         if isinstance(index.dtype, DatetimeTZDtype):
@@ -244,7 +250,7 @@ class TestSetOps:
         # GH#10149
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
-            result = first.union(case)
+            result = first.union(case, sort=None)
             assert equal_contents(result, everything)
 
         if isinstance(index, MultiIndex):
