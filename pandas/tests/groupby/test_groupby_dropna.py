@@ -397,8 +397,9 @@ def test_groupby_nan_included_warns(by, dropna):
     # GH 61339
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
     df = pd.DataFrame(data)
-    if by == "_index":
+    if isinstance(by, str) and by == "_index":
         df = df.set_index("group")
+        by = "group"
 
     kwargs = {}
     warning_type = pd.errors.NullKeyWarning
