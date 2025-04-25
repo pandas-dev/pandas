@@ -3585,7 +3585,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif isinstance(header, (list, tuple)):
             relabel_index_.append({"labels": header, "axis": "columns"})
             format_index_ = [index_format_]  # column_format is overwritten
-            format_index_names_ = [index_format_]  # column_format is overwritten
 
         if index is False:
             hide_.append({"axis": "index"})
