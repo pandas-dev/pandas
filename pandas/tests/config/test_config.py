@@ -395,6 +395,34 @@ class TestConfig:
 
         f()
 
+    def test_set_ContextManager_dict(self):
+        def eq(val):
+            assert cf.get_option("a") == val
+            assert cf.get_option("b.c") == val
+
+        cf.register_option("a", 0)
+        cf.register_option("b.c", 0)
+
+        eq(0)
+        with cf.option_context({"a": 15, "b.c": 15}):
+            eq(15)
+            with cf.option_context({"a": 25, "b.c": 25}):
+                eq(25)
+            eq(15)
+        eq(0)
+
+        cf.set_option("a", 17)
+        cf.set_option("b.c", 17)
+        eq(17)
+
+        # Test that option_context can be used as a decorator too
+        @cf.option_context({"a": 123, "b.c": 123})
+        def f():
+            eq(123)
+
+        f()
+
+
     def test_attribute_access(self):
         holder = []
 

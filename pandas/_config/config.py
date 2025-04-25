@@ -264,18 +264,7 @@ def set_option(*args) -> None:
     """
     # Handle dictionary input
     if len(args) == 1 and isinstance(args[0], dict):
-        options_dict = args[0]
-        for k, v in options_dict.items():
-            key = _get_single_key(k)
-            opt = _get_registered_option(key)
-            if opt and opt.validator:
-                opt.validator(v)
-            # walk the nested dict
-            root, k_root = _get_root(key)
-            root[k_root] = v
-            if opt.cb:
-                opt.cb(key)
-        return
+        args = tuple(kv for item in args[0].items() for kv in item)
 
     # Handle single option-value pair
     if len(args) == 2:
@@ -485,9 +474,10 @@ def option_context(*args) -> Generator[None]:
 
     Parameters
     ----------
-    *args : str | object
+    *args : str | object | dict
         An even amount of arguments provided in pairs which will be
-        interpreted as (pattern, value) pairs.
+        interpreted as (pattern, value) pairs. Alternatively, a single
+        dictionary of {pattern: value} may be provided.
 
     Returns
     -------
@@ -516,7 +506,12 @@ def option_context(*args) -> Generator[None]:
     >>> from pandas import option_context
     >>> with option_context("display.max_rows", 10, "display.max_columns", 5):
     ...     pass
+    >>> with option_context({"display.max_rows": 10, "display.max_columns": 5}):
+    ...     pass
     """
+    if len(args) == 1 and isinstance(args[0], dict):
+        args = tuple(kv for item in args[0].items() for kv in item)
+
     if len(args) % 2 != 0 or len(args) < 2:
         raise ValueError(
             "Provide an even amount of arguments as "
