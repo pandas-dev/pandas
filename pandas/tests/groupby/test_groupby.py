@@ -140,9 +140,9 @@ def test_len():
 def test_len_nan_group():
     # issue 11016
     df = DataFrame({"a": [np.nan] * 3, "b": [1, 2, 3]})
-    assert len(df.groupby("a")) == 0
+    assert len(df.groupby("a", dropna=True)) == 0
     assert len(df.groupby("b")) == 3
-    assert len(df.groupby(["a", "b"])) == 0
+    assert len(df.groupby(["a", "b"], dropna=True)) == 0
 
 
 def test_groupby_timedelta_median():
@@ -922,6 +922,7 @@ def test_groupby_complex_numbers():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::pandas.errors.NullKeyWarning")
 def test_groupby_series_indexed_differently():
     s1 = Series(
         [5.0, -9.0, 4.0, 100.0, -5.0, 55.0, 6.7],
@@ -1215,7 +1216,7 @@ def test_groupby_nat_exclude():
             "str": [np.nan, "a", np.nan, "a", np.nan, "a", np.nan, "b"],
         }
     )
-    grouped = df.groupby("dt")
+    grouped = df.groupby("dt", dropna=True)
 
     expected = [
         RangeIndex(start=1, stop=13, step=6),
@@ -1253,7 +1254,7 @@ def test_groupby_nat_exclude():
     assert nan_df["nat"].dtype == "datetime64[s]"
 
     for key in ["nan", "nat"]:
-        grouped = nan_df.groupby(key)
+        grouped = nan_df.groupby(key, dropna=True)
         assert grouped.groups == {}
         assert grouped.ngroups == 0
         assert grouped.indices == {}
@@ -1266,7 +1267,7 @@ def test_groupby_nat_exclude():
 def test_groupby_two_group_keys_all_nan():
     # GH #36842: Grouping over two group keys shouldn't raise an error
     df = DataFrame({"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [1, 2]})
-    result = df.groupby(["a", "b"]).indices
+    result = df.groupby(["a", "b"], dropna=True).indices
     assert result == {}
 
 
@@ -2050,7 +2051,7 @@ def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
     df = DataFrame({"g": [None], "x": 1})
-    actual = df.groupby("g")["x"].transform("sum")
+    actual = df.groupby("g", dropna=True)["x"].transform("sum")
     expected = Series([np.nan], name="x")
 
     tm.assert_series_equal(actual, expected)
@@ -2295,7 +2296,7 @@ def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
 def test_groupby_all_nan_groups_drop():
     # GH 15036
     s = Series([1, 2, 3], [np.nan, np.nan, np.nan])
-    result = s.groupby(s.index).sum()
+    result = s.groupby(s.index, dropna=True).sum()
     expected = Series([], index=Index([], dtype=np.float64), dtype=np.int64)
     tm.assert_series_equal(result, expected)
 
@@ -2459,7 +2460,7 @@ def test_groupby_none_in_first_mi_level():
     # GH#47348
     arr = [[None, 1, 0, 1], [2, 3, 2, 3]]
     ser = Series(1, index=MultiIndex.from_arrays(arr, names=["a", "b"]))
-    result = ser.groupby(level=[0, 1]).sum()
+    result = ser.groupby(level=[0, 1], dropna=True).sum()
     expected = Series(
         [1, 2], MultiIndex.from_tuples([(0.0, 2), (1.0, 3)], names=["a", "b"])
     )
@@ -2632,9 +2633,9 @@ def test_groupby_method_drop_na(method):
     df = DataFrame({"A": ["a", np.nan, "b", np.nan, "c"], "B": range(5)})
 
     if method == "nth":
-        result = getattr(df.groupby("A"), method)(n=0)
+        result = getattr(df.groupby("A", dropna=True), method)(n=0)
     else:
-        result = getattr(df.groupby("A"), method)()
+        result = getattr(df.groupby("A", dropna=True), method)()
 
     if method in ["first", "last"]:
         expected = DataFrame({"B": [0, 2, 4]}).set_index(

@@ -294,6 +294,7 @@ def test_groupby_duplicated_columns(func):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::pandas.errors.NullKeyWarning")
 def test_groupby_get_nonexisting_groups():
     # GH#32492
     df = pd.DataFrame(
