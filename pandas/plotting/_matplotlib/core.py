@@ -1933,12 +1933,8 @@ class BarPlot(MPLPlot):
         _stacked_subplots_offsets = []
 
         self.subplots: list[Any]
-        if self.subplots:
-            subplots_flag = 1
-        else:
-            subplots_flag = 0
 
-        if subplots_flag & self.stacked:
+        if bool(self.subplots) & self.stacked:
             for i, sub_plot in enumerate(self.subplots):
                 if len(sub_plot) <= 1:
                     continue
