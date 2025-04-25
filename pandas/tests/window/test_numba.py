@@ -12,6 +12,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.api.indexers import BaseIndexer
 from pandas.util.version import Version
 
 pytestmark = [pytest.mark.single_cpu]
@@ -581,3 +582,67 @@ def test_npfunc_no_warnings():
     df = DataFrame({"col1": [1, 2, 3, 4, 5]})
     with tm.assert_produces_warning(False):
         df.col1.rolling(2).apply(np.prod, raw=True, engine="numba")
+
+
+class PrescribedWindowIndexer(BaseIndexer):
+    def __init__(self, start, end):
+        self._start = start
+        self._end = end
+        super().__init__()
+
+    def get_window_bounds(
+        self, num_values=None, min_periods=None, center=None, closed=None, step=None
+    ):
+        if num_values is None:
+            num_values = len(self._start)
+        start = np.clip(self._start, 0, num_values)
+        end = np.clip(self._end, 0, num_values)
+        return start, end
+
+
+@td.skip_if_no("numba")
+class TestMinMaxNumba:
+    @pytest.mark.parametrize(
+        "is_max, has_nan, exp_list",
+        [
+            (True, False, [3.0, 5.0, 2.0, 5.0, 1.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
+            (True, True, [3.0, 4.0, 2.0, 4.0, 1.0, 4.0, 6.0, 7.0, 7.0, 9.0]),
+            (False, False, [3.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 7.0, 0.0]),
+            (False, True, [3.0, 2.0, 2.0, 1.0, 1.0, 1.0, 6.0, 6.0, 7.0, 1.0]),
+        ],
+    )
+    def test_minmax(self, is_max, has_nan, exp_list):
+        nan_idx = [0, 5, 8]
+        df = DataFrame(
+            {
+                "data": [5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 6.0, 7.0, 8.0, 9.0],
+                "start": [2, 0, 3, 0, 4, 0, 5, 5, 7, 3],
+                "end": [3, 4, 4, 5, 5, 6, 7, 8, 9, 10],
+            }
+        )
+        if has_nan:
+            df.loc[nan_idx, "data"] = np.nan
+        expected = Series(exp_list, name="data")
+        r = df.data.rolling(
+            PrescribedWindowIndexer(df.start.to_numpy(), df.end.to_numpy())
+        )
+        if is_max:
+            result = r.max(engine="numba")
+        else:
+            result = r.min(engine="numba")
+
+        tm.assert_series_equal(result, expected)
+
+    def test_wrong_order(self):
+        start = np.array(range(5), dtype=np.int64)
+        end = start + 1
+        end[3] = end[2]
+        start[3] = start[2] - 1
+
+        df = DataFrame({"data": start * 1.0, "start": start, "end": end})
+
+        r = df.data.rolling(PrescribedWindowIndexer(start, end))
+        with pytest.raises(
+            ValueError, match="Start/End ordering requirement is violated at index 3"
+        ):
+            r.max(engine="numba")
