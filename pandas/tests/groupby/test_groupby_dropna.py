@@ -10,6 +10,12 @@ import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
+@pytest.fixture(scope="module", autouse=True)
+def setup_warnings():
+    with pd.option_context("mode.null_grouper_warning", True):
+        yield
+
+
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [

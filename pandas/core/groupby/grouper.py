@@ -13,6 +13,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 from pandas._libs import lib
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import (
@@ -621,6 +623,7 @@ class Grouping:
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
         uniques: ArrayLike
+        unspecified_dropna = self._dropna is lib.no_default
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
@@ -662,7 +665,7 @@ class Grouping:
                         # NA code is based on first appearance, increment higher codes
                         codes = np.where(codes >= na_code, codes + 1, codes)
                     codes = np.where(na_mask, na_code, codes)
-                elif self._dropna is lib.no_default:
+                elif get_option("null_grouper_warning") and unspecified_dropna:
                     warnings.warn(
                         _NULL_KEY_MESSAGE,
                         NullKeyWarning,
@@ -688,8 +691,11 @@ class Grouping:
             codes, uniques = algorithms.factorize(  # type: ignore[assignment]
                 self.grouping_vector, sort=self._sort, use_na_sentinel=self.dropna
             )
-            # TODO: Is `min(codes)` or `-1 in codes` faster?
-            if self._dropna is lib.no_default and (codes == -1).any():
+            if (
+                get_option("null_grouper_warning")
+                and unspecified_dropna
+                and codes.min() == -1
+            ):
                 warnings.warn(
                     _NULL_KEY_MESSAGE,
                     NullKeyWarning,
