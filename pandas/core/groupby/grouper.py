@@ -285,12 +285,18 @@ class Grouper:
         self.level = level
         self.freq = freq
         self.sort = sort
-        self.dropna = dropna
+        self._dropna = dropna
 
         self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self.binner = None
         self._grouper = None
         self._indexer: npt.NDArray[np.intp] | None = None
+
+    @property
+    def dropna(self):
+        if self._dropna is lib.no_default:
+            return True
+        return self._dropna
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -694,7 +700,7 @@ class Grouping:
             if (
                 get_option("null_grouper_warning")
                 and unspecified_dropna
-                and codes.min() == -1
+                and codes.min(initial=0) == -1
             ):
                 warnings.warn(
                     _NULL_KEY_MESSAGE,
