@@ -1939,14 +1939,11 @@ class BarPlot(MPLPlot):
             subplots_flag = 0
 
         if subplots_flag & self.stacked:
-            sub_range = range(len(self.subplots))
-            ss_temp = {
-                x: self.subplots[x] for x in sub_range if len(self.subplots[x]) > 1
-            }
-            for k, v in ss_temp.items():
-                for x in v:
-                    _stacked_subplots_ind.setdefault(int(x), k)
-
+            for i, sub_plot in enumerate(self.subplots):
+                if len(sub_plot) <= 1:
+                    continue
+                for plot in sub_plot:
+                    _stacked_subplots_ind[int(plot)] = i
                 _stacked_subplots_offsets.append([0, 0])
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
