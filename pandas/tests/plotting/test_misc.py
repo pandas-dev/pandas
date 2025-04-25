@@ -681,3 +681,23 @@ class TestDataFramePlots:
             (a.get_text() == b.get_text())
             for a, b in zip(s.plot.bar().get_xticklabels(), expected)
         )
+
+
+def test_plot_bar_label_count_expected_fail():
+    df = DataFrame([(30, 10, 10), (20, 20, 20), (10, 30, 30)], columns=list("ABC"))
+    with pytest.raises(
+        ValueError,
+        match="The length of `title` must equal the number of columns "
+        "if using `title` of type `list` and `subplots=True`.",
+    ):
+        df.plot(
+            subplots=[("A", "B")],
+            kind="bar",
+            stacked=True,
+            title=["A&B", "C", "Extra Title"],
+        )
+
+
+def test_plot_bar_label_count_expected_success():
+    df = DataFrame([(30, 10, 10), (20, 20, 20), (10, 30, 30)], columns=list("ABC"))
+    df.plot(subplots=[("A", "B")], kind="bar", stacked=True, title=["A&B", "C"])
