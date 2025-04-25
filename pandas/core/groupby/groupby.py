@@ -3833,7 +3833,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         pandas.api.typing.ExpandingGroupby
-            An object that supports expanding transformations over each group
+            An object that supports expanding transformations over each group.
 
         See Also
         --------
