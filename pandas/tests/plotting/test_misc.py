@@ -726,7 +726,7 @@ def _BSS_subplot_checker(BSS_data, BSS_df, subplot_data_df, subplot_columns):
         sliced_df = subplot_sliced_by_source[i]
         if i == 0:
             # Checks that the bar chart starts y=0
-            assert (sliced_df["y_coord"] == 0).all
+            assert (sliced_df["y_coord"] == 0).all()
             height_iter = sliced_df["y_coord"].add(sliced_df["height"])
         else:
             height_iter = height_iter + sliced_df["height"]
