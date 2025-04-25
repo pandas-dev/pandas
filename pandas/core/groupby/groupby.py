@@ -3809,24 +3809,31 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def expanding(self, *args, **kwargs) -> ExpandingGroupby:
+    def expanding(
+        self,
+        min_periods: int = 1,
+        method: str = "single",
+    ) -> ExpandingGroupby:
         """
         Return an expanding grouper, providing expanding functionality per group.
 
-        Arguments are the same as `:meth:DataFrame.rolling` except that ``step`` cannot
-        be specified.
-
         Parameters
         ----------
-        *args : tuple
-            Positional arguments passed to the expanding window constructor.
-        **kwargs : dict
-            Keyword arguments passed to the expanding window constructor.
+        min_periods : int, default 1
+            Minimum number of observations in window required to have a value;
+            otherwise, result is ``np.nan``.
+
+        method : str {'single', 'table'}, default 'single'
+            Execute the expanding operation per single column or row (``'single'``)
+            or over the entire object (``'table'``).
+
+            This argument is only implemented when specifying ``engine='numba'``
+            in the method call.
 
         Returns
         -------
         pandas.api.typing.ExpandingGroupby
-            An object that supports expanding transformations over each group.
+            An object that supports expanding transformations over each group
 
         See Also
         --------
@@ -3844,7 +3851,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...     }
         ... )
         >>> df
-          Class  Value
+        Class  Value
         0     A     10
         1     A     20
         2     A     30
@@ -3853,7 +3860,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5     B     60
 
         >>> df.groupby("Class").expanding().mean()
-                 Value
+                Value
         Class
         A     0   10.0
               1   15.0
@@ -3866,9 +3873,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return ExpandingGroupby(
             self._selected_obj,
-            *args,
+            min_periods=min_periods,
+            method=method,
             _grouper=self._grouper,
-            **kwargs,
         )
 
     @final
