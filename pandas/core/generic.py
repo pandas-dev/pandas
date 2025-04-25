@@ -8852,8 +8852,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        Series.resample : Resample a Series.
-        DataFrame.resample : Resample a DataFrame.
         groupby : Group {klass} by mapping, function, label, or list of labels.
         asfreq : Reindex a {klass} with the given frequency without grouping.
 
