@@ -2283,3 +2283,21 @@ def test_large_number():
     )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "orient", ["records", "index", "columns", "split", "values", "table"]
+)
+def test_to_json_read_json_numeric_columns_all_orients(orient):
+    df = DataFrame([[1, 2, 3, 4]], columns=[5, 6, 7, 8])
+
+    with tm.ensure_clean("tmp.json") as path:
+        df.to_json(path, orient=orient)
+        result = read_json(path, orient=orient)
+
+        # Column types must be int in all cases
+        assert all(isinstance(col, int) for col in result.columns)
+
+        # Content check (relaxed for "values")
+        if orient != "values":
+            tm.assert_frame_equal(result, df, check_column_type=False)
