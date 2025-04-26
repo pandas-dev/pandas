@@ -372,6 +372,11 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     pandas.read_json
     """
     table = ujson_loads(json, precise_float=precise_float)
+    fields = table["schema"]["fields"]
+
+    if any(not isinstance(field["name"], str) for field in fields):
+        raise ValueError("All column names must be strings when using orient='table'.")
+
     col_order = [field["name"] for field in table["schema"]["fields"]]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 
