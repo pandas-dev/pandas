@@ -422,7 +422,6 @@ class TestConfig:
 
         f()
 
-
     def test_attribute_access(self):
         holder = []
 
