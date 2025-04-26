@@ -304,7 +304,7 @@ especially for computationally heavy tasks.
     for a more detailed guide to using **Numba**.
 
 Using :meth:`DataFrame.pipe` for Composable Logic
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Another useful pattern for improving readability and composability—especially when mixing
 vectorized logic with UDFs—is to use the :meth:`DataFrame.pipe` method.
