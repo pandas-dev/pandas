@@ -266,23 +266,6 @@ def set_option(*args) -> None:
     if len(args) == 1 and isinstance(args[0], dict):
         args = tuple(kv for item in args[0].items() for kv in item)
 
-    # Handle single option-value pair
-    if len(args) == 2:
-        key = _get_single_key(args[0])
-        v = args[1]
-
-        opt = _get_registered_option(key)
-        if opt and opt.validator:
-            opt.validator(v)
-
-        # walk the nested dict
-        root, k_root = _get_root(key)
-        root[k_root] = v
-
-        if opt.cb:
-            opt.cb(key)
-        return
-
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
         raise ValueError("Must provide an even number of non-keyword arguments")
