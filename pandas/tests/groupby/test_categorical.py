@@ -192,7 +192,7 @@ def test_basic_cut_grouping():
     # GH 9603
     df = DataFrame({"a": [1, 0, 0, 0]})
     c = pd.cut(df.a, [0, 1, 2, 3, 4], labels=Categorical(list("abcd")))
-    result = df.groupby(c, observed=False).apply(len)
+    result = df.groupby(c, observed=False, dropna=True).apply(len)
 
     exp_index = CategoricalIndex(c.values.categories, ordered=c.values.ordered)
     expected = Series([1, 0, 0, 0], index=exp_index)
@@ -568,7 +568,7 @@ def test_observed_groups_with_nan(observed):
             "vals": [1, 2, 3],
         }
     )
-    g = df.groupby("cat", observed=observed)
+    g = df.groupby("cat", observed=observed, dropna=True)
     result = g.groups
     if observed:
         expected = {"a": Index([0, 2], dtype="int64")}
@@ -587,7 +587,7 @@ def test_observed_nth():
     ser = Series([1, 2, 3])
     df = DataFrame({"cat": cat, "ser": ser})
 
-    result = df.groupby("cat", observed=False)["ser"].nth(0)
+    result = df.groupby("cat", observed=False, dropna=True)["ser"].nth(0)
     expected = df["ser"].iloc[[0]]
     tm.assert_series_equal(result, expected)
 
@@ -597,7 +597,7 @@ def test_dataframe_categorical_with_nan(observed):
     s1 = Categorical([np.nan, "a", np.nan, "a"], categories=["a", "b", "c"])
     s2 = Series([1, 2, 3, 4])
     df = DataFrame({"s1": s1, "s2": s2})
-    result = df.groupby("s1", observed=observed).first().reset_index()
+    result = df.groupby("s1", observed=observed, dropna=True).first().reset_index()
     if observed:
         expected = DataFrame(
             {"s1": Categorical(["a"], categories=["a", "b", "c"]), "s2": [2]}
@@ -768,7 +768,9 @@ def test_categorical_series(series, data):
     # Group the given series by a series with categorical data type such that group A
     # takes indices 0 and 3 and group B indices 1 and 2, obtaining the values mapped in
     # the given data.
-    groupby = series.groupby(Series(list("ABBA"), dtype="category"), observed=False)
+    groupby = series.groupby(
+        Series(list("ABBA"), dtype="category"), observed=False, dropna=True
+    )
     result = groupby.aggregate(list)
     expected = Series(data, index=CategoricalIndex(data.keys()))
     tm.assert_series_equal(result, expected)
@@ -973,7 +975,7 @@ def test_groupby_empty_with_category():
     # test fix for when group by on None resulted in
     # coercion of dtype categorical -> float
     df = DataFrame({"A": [None] * 3, "B": Categorical(["train", "train", "test"])})
-    result = df.groupby("A").first()["B"]
+    result = df.groupby("A", dropna=True).first()["B"]
     expected = Series(
         Categorical([], categories=["test", "train"]),
         index=Series([], dtype="object", name="A"),

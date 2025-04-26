@@ -878,6 +878,29 @@ class CategoricalConversionWarning(Warning):
     """
 
 
+class NullKeyWarning(Warning):
+    """
+    Warning raised when grouping on null/NA keys with default `dropna` argument.
+
+    This warning helps ensure data integrity and alerts users to potential issues
+    during grouping/aggregating when the default value of `dropna` would lead to
+    null keys being dropped from the output.
+
+    For more information, see discussion of [PDEP-11](#53094)
+
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
+    DataFrame.pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"A": ["a", None], "B": [1, 2]})
+    >>> df.groupby(["A"]).sum()  # doctest: +SKIP
+    ... # NullKeyWarning: ...
+    """
+
+
 class LossySetitemError(Exception):
     """
     Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
@@ -927,6 +950,7 @@ __all__ = [
     "MergeError",
     "NoBufferPresent",
     "NullFrequencyError",
+    "NullKeyWarning",
     "NumExprClobberingError",
     "NumbaUtilError",
     "OptionError",

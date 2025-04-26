@@ -457,6 +457,22 @@ with cf.config_prefix("mode"):
     )
 
 
+null_grouper_warning = """
+: string
+    Whether to show or hide NullKeyWarning if default grouping would result in a
+    null group key being dropped,
+    The default is False
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "null_grouper_warning",
+        False,
+        null_grouper_warning,
+        validator=is_bool,
+    )
+
+
 string_storage_doc = """
 : string
     The default storage for StringDtype.

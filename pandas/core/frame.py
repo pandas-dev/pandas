@@ -9148,7 +9148,7 @@ class DataFrame(NDFrame, OpsMixin):
         sort: bool = True,
         group_keys: bool = True,
         observed: bool = True,
-        dropna: bool = True,
+        dropna: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
 

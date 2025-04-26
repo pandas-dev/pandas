@@ -486,6 +486,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
 
+    @property
+    def dropna(self) -> bool:
+        if self._dropna is lib.no_default:
+            return True
+        return self._dropna
+
     @final
     @property
     def groups(self) -> dict[Hashable, Index]:
@@ -1053,7 +1059,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         sort: bool = True,
         group_keys: bool = True,
         observed: bool = False,
-        dropna: bool = True,
+        dropna: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         self._selection = selection
 
@@ -1064,7 +1070,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
-        self.dropna = dropna
+        self._dropna = dropna
 
         if grouper is None:
             grouper, exclusions, obj = get_grouper(
@@ -1073,7 +1079,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 level=level,
                 sort=sort,
                 observed=observed,
-                dropna=self.dropna,
+                dropna=self._dropna,
             )
 
         self.observed = observed
@@ -2664,7 +2670,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             groupings,
             sort=False,
             observed=self.observed,
-            dropna=self.dropna,
+            # TODO: Should we pass through lib.no_default?
+            dropna=self._dropna,
         )
         result_series = cast(Series, gb.size())
         result_series.name = name
@@ -2695,7 +2702,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             indexed_group_size = result_series.groupby(
                 result_series.index.droplevel(levels),
                 sort=self.sort,
-                dropna=self.dropna,
+                dropna=self._dropna,
                 # GH#43999 - deprecation of observed=False
                 observed=False,
             ).transform("sum")

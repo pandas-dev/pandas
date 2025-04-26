@@ -9,12 +9,20 @@ from typing import (
     TYPE_CHECKING,
     final,
 )
+import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
+from pandas._libs import lib
 from pandas._libs.tslibs import OutOfBoundsDatetime
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    NullKeyWarning,
+)
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -53,6 +61,13 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.generic import NDFrame
+
+
+_NULL_KEY_MESSAGE = (
+    "`dropna` is not specified but grouper encountered null group keys. These keys "
+    "will be dropped from the result by default. To keep null keys, set `dropna=True`, "
+    "or to hide this warning and drop null keys, set `dropna=False`."
+)
 
 
 class Grouper:
@@ -246,7 +261,7 @@ class Grouper:
     """
 
     sort: bool
-    dropna: bool
+    dropna: bool | lib.NoDefault
     _grouper: Index | None
 
     _attributes: tuple[str, ...] = ("key", "level", "freq", "sort", "dropna")
@@ -264,18 +279,24 @@ class Grouper:
         level=None,
         freq=None,
         sort: bool = False,
-        dropna: bool = True,
+        dropna: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         self.key = key
         self.level = level
         self.freq = freq
         self.sort = sort
-        self.dropna = dropna
+        self._dropna = dropna
 
         self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self.binner = None
         self._grouper = None
         self._indexer: npt.NDArray[np.intp] | None = None
+
+    @property
+    def dropna(self):
+        if self._dropna is lib.no_default:
+            return True
+        return self._dropna
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -442,7 +463,7 @@ class Grouping:
         sort: bool = True,
         observed: bool = False,
         in_axis: bool = False,
-        dropna: bool = True,
+        dropna: bool | lib.NoDefault = lib.no_default,
         uniques: ArrayLike | None = None,
     ) -> None:
         self.level = level
@@ -599,9 +620,16 @@ class Grouping:
     def uniques(self) -> ArrayLike:
         return self._codes_and_uniques[1]
 
+    @property
+    def dropna(self) -> bool:
+        if self._dropna is lib.no_default:
+            return True
+        return self._dropna
+
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
         uniques: ArrayLike
+        unspecified_dropna = self._dropna is lib.no_default
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
@@ -617,11 +645,11 @@ class Grouping:
             else:
                 ucodes = np.arange(len(categories))
 
-            has_dropped_na = False
-            if not self._dropna:
-                na_mask = cat.isna()
-                if np.any(na_mask):
-                    has_dropped_na = True
+            has_na_values = False
+            na_mask = cat.isna()
+            if np.any(na_mask):
+                has_na_values = True
+                if not self.dropna:
                     if self._sort:
                         # NA goes at the end, gets `largest non-NA code + 1`
                         na_code = len(categories)
@@ -637,11 +665,18 @@ class Grouping:
             )
             codes = cat.codes
 
-            if has_dropped_na:
-                if not self._sort:
-                    # NA code is based on first appearance, increment higher codes
-                    codes = np.where(codes >= na_code, codes + 1, codes)
-                codes = np.where(na_mask, na_code, codes)
+            if has_na_values:
+                if not self.dropna:
+                    if not self._sort:
+                        # NA code is based on first appearance, increment higher codes
+                        codes = np.where(codes >= na_code, codes + 1, codes)
+                    codes = np.where(na_mask, na_code, codes)
+                elif get_option("null_grouper_warning") and unspecified_dropna:
+                    warnings.warn(
+                        _NULL_KEY_MESSAGE,
+                        NullKeyWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
             return codes, uniques
 
@@ -660,8 +695,19 @@ class Grouping:
             # error: Incompatible types in assignment (expression has type "Union[
             # ndarray[Any, Any], Index]", variable has type "Categorical")
             codes, uniques = algorithms.factorize(  # type: ignore[assignment]
-                self.grouping_vector, sort=self._sort, use_na_sentinel=self._dropna
+                self.grouping_vector, sort=self._sort, use_na_sentinel=self.dropna
             )
+            if (
+                get_option("null_grouper_warning")
+                and unspecified_dropna
+                and codes.min(initial=0) == -1
+            ):
+                warnings.warn(
+                    _NULL_KEY_MESSAGE,
+                    NullKeyWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         return codes, uniques
 
     @cache_readonly

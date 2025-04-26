@@ -691,7 +691,7 @@ class TestGrouping:
 
         # factorizing doesn't confuse things
         s = Series(np.arange(8.0), index=index)
-        result = s.groupby(level=0, sort=sort).sum()
+        result = s.groupby(level=0, sort=sort, dropna=True).sum()
         expected = Series([6.0, 18.0], index=[0.0, 1.0])
         tm.assert_series_equal(result, expected)
 
@@ -817,7 +817,7 @@ class TestGrouping:
         df = DataFrame(
             [["x", np.nan, 10], [None, np.nan, 20]], columns=["A", "B", "C"]
         ).set_index(["A", "B"])
-        result = df.groupby(level=["A", "B"]).sum()
+        result = df.groupby(level=["A", "B"], dropna=True).sum()
         expected = DataFrame(
             data=[],
             index=MultiIndex(

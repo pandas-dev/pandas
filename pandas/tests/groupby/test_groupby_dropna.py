@@ -10,6 +10,12 @@ import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
+@pytest.fixture(scope="module", autouse=True)
+def setup_warnings():
+    with pd.option_context("mode.null_grouper_warning", True):
+        yield
+
+
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
@@ -382,6 +388,71 @@ def test_groupby_nan_included():
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
     assert list(result.keys())[0:2] == ["g1", "g2"]
+
+
+@pytest.mark.parametrize(
+    "by",
+    [
+        pytest.param("group", id="column"),
+        pytest.param(pd.Series(["g1", np.nan, "g1", "g2", np.nan]), id="Series"),
+        pytest.param(
+            pd.Series(["g1", np.nan, "g1", "g2", np.nan]).astype("category"),
+            id="Categorical",
+        ),
+        pytest.param("_index", id="index"),
+        pytest.param(["group", "group2"], id="multikey"),
+    ],
+)
+@pytest.mark.parametrize("dropna", [True, False, None])
+def test_groupby_nan_included_warns(by, dropna):
+    # GH 61339
+    data = {
+        "group": ["g1", np.nan, "g1", "g2", np.nan],
+        "group2": ["g1", "g2", np.nan, "g2", np.nan],
+        "B": [0, 1, 2, 3, 4],
+    }
+    df = pd.DataFrame(data)
+    if isinstance(by, str) and by == "_index":
+        df = df.set_index("group")
+        by = "group"
+
+    kwargs = {}
+    warning_type = pd.errors.NullKeyWarning
+    if dropna is not None:
+        kwargs = {"dropna": dropna}
+        warning_type = None
+
+    with tm.assert_produces_warning(warning_type):
+        grouped = df.groupby(by, **kwargs)
+        result = grouped.indices  # noqa:F841
+
+
+@pytest.mark.parametrize(
+    "by_type",
+    [
+        "level",
+        "argument",
+    ],
+)
+@pytest.mark.parametrize("dropna", [True, False, None])
+def test_groupby_series_nan_included_warns(by_type, dropna):
+    # GH 61339
+    index = ["a", "a", "b", np.nan]
+    ser = pd.Series([1, 2, 3, 3])
+
+    if by_type == "level":
+        ser = ser.set_axis(index, axis=0)
+        kwargs = {"level": 0}
+    elif by_type == "argument":
+        kwargs = {"by": index}
+
+    warning_type = pd.errors.NullKeyWarning
+    if dropna is not None:
+        kwargs["dropna"] = dropna
+        warning_type = None
+
+    with tm.assert_produces_warning(warning_type):
+        ser.groupby(**kwargs).sum()
 
 
 def test_groupby_drop_nan_with_multi_index():
