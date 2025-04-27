@@ -1639,8 +1639,10 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
-    class pandas.tseries.offsets.DateOffset(n = 1, normalize = False, weekday = 0, **kwds)
-    
+    class pandas.tseries.offsets.DateOffset(
+        n = 1, normalize = False, weekday = 0, **kwds
+        )
+
     Works exactly like the keyword argument form of relativedelta.
     Note that the positional argument form of relativedelta is not
     supported. Use of the keyword n is discouraged-- you would be better
