@@ -66,7 +66,7 @@ def get_dummies(
         can be a dictionary mapping column names to prefixes.
     prefix_sep : str, list of str, or dict of str, default '_'
         Should you choose to prepend DataFrame column names with a prefix, this
-        is the separator/delimiter to use between the two. Alternatively, 
+        is the separator/delimiter to use between the two. Alternatively,
         `prefix_sep` can be a list with length equal to the number of columns,
         or a dictionary mapping column names to separators.
     dummy_na : bool, default False
