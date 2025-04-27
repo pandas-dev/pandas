@@ -680,10 +680,8 @@ class Grouping:
         r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
         counts = ensure_int64(counts).cumsum()
         _result = (r[start:end] for start, end in zip(counts, counts[1:]))
-        result = dict(zip(uniques, _result))
-
         # map to the label
-        result = {k: self._index.take(v) for k, v in result.items()}
+        result = {k: self._index.take(v) for k, v in zip(uniques, _result)}
 
         return PrettyDict(result)
 
