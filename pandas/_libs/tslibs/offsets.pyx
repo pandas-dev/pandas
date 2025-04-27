@@ -1637,10 +1637,10 @@ class OffsetMeta(type):
 # TODO: figure out a way to use a metaclass with a cdef class
 class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
-    class pandas.tseries.offsets.DateOffset(n = 1, normalize = False, weekday = 0, **kwds)
-    
     Standard kind of date increment used for a date range.
 
+    class pandas.tseries.offsets.DateOffset(n = 1, normalize = False, weekday = 0, **kwds)
+    
     Works exactly like the keyword argument form of relativedelta.
     Note that the positional argument form of relativedelta is not
     supported. Use of the keyword n is discouraged-- you would be better
