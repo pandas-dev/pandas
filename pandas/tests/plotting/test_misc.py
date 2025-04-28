@@ -681,3 +681,138 @@ class TestDataFramePlots:
             (a.get_text() == b.get_text())
             for a, b in zip(s.plot.bar().get_xticklabels(), expected)
         )
+
+
+@pytest.fixture
+def df_bar_data():
+    return np.random.default_rng(3).integers(0, 100, 5)
+
+
+@pytest.fixture
+def df_bar_df(df_bar_data) -> DataFrame:
+    df_bar_df = DataFrame(
+        {
+            "A": df_bar_data,
+            "B": df_bar_data[::-1],
+            "C": df_bar_data[0],
+            "D": df_bar_data[-1],
+        }
+    )
+    return df_bar_df
+
+
+def _df_bar_xyheight_from_ax_helper(df_bar_data, ax, subplot_division):
+    subplot_data_df_list = []
+
+    # get xy and height of squares representing data, separated by subplots
+    for i in range(len(subplot_division)):
+        subplot_data = np.array(
+            [
+                (x.get_x(), x.get_y(), x.get_height())
+                for x in ax[i].findobj(plt.Rectangle)
+                if x.get_height() in df_bar_data
+            ]
+        )
+        subplot_data_df_list.append(
+            DataFrame(data=subplot_data, columns=["x_coord", "y_coord", "height"])
+        )
+
+    return subplot_data_df_list
+
+
+def _df_bar_subplot_checker(df_bar_data, df_bar_df, subplot_data_df, subplot_columns):
+    subplot_sliced_by_source = [
+        subplot_data_df.iloc[
+            len(df_bar_data) * i : len(df_bar_data) * (i + 1)
+        ].reset_index()
+        for i in range(len(subplot_columns))
+    ]
+    expected_total_height = df_bar_df.loc[:, subplot_columns].sum(axis=1)
+
+    for i in range(len(subplot_columns)):
+        sliced_df = subplot_sliced_by_source[i]
+        if i == 0:
+            # Checks that the bar chart starts y=0
+            assert (sliced_df["y_coord"] == 0).all()
+            height_iter = sliced_df["y_coord"].add(sliced_df["height"])
+        else:
+            height_iter = height_iter + sliced_df["height"]
+
+        if i + 1 == len(subplot_columns):
+            # Checks final height matches what is expected
+            tm.assert_series_equal(
+                height_iter, expected_total_height, check_names=False, check_dtype=False
+            )
+
+        else:
+            # Checks each preceding bar ends where the next one starts
+            next_start_coord = subplot_sliced_by_source[i + 1]["y_coord"]
+            tm.assert_series_equal(
+                height_iter, next_start_coord, check_names=False, check_dtype=False
+            )
+
+
+# GH Issue 61018
+@pytest.mark.parametrize("columns_used", [["A", "B"], ["C", "D"], ["D", "A"]])
+def test_bar_1_subplot_1_double_stacked(df_bar_data, df_bar_df, columns_used):
+    df_bar_df_trimmed = df_bar_df[columns_used]
+    subplot_division = [columns_used]
+    ax = df_bar_df_trimmed.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df_trimmed, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+@pytest.mark.parametrize(
+    "columns_used", [["A", "B", "C"], ["A", "C", "B"], ["D", "A", "C"]]
+)
+def test_bar_2_subplot_1_double_stacked(df_bar_data, df_bar_df, columns_used):
+    df_bar_df_trimmed = df_bar_df[columns_used]
+    subplot_division = [(columns_used[0], columns_used[1]), (columns_used[2],)]
+    ax = df_bar_df_trimmed.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df_trimmed, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+@pytest.mark.parametrize(
+    "subplot_division",
+    [
+        [("A", "B"), ("C", "D")],
+        [("A", "D"), ("C", "B")],
+        [("B", "C"), ("D", "A")],
+        [("B", "D"), ("C", "A")],
+    ],
+)
+def test_bar_2_subplot_2_double_stacked(df_bar_data, df_bar_df, subplot_division):
+    ax = df_bar_df.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+@pytest.mark.parametrize(
+    "subplot_division",
+    [[("A", "B", "C")], [("A", "D", "B")], [("C", "A", "D")], [("D", "C", "A")]],
+)
+def test_bar_2_subplots_1_triple_stacked(df_bar_data, df_bar_df, subplot_division):
+    ax = df_bar_df.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df, subplot_data_df_list[i], subplot_division[i]
+        )
