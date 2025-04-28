@@ -806,6 +806,7 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.__len__` and :meth:`.SeriesGroupBy.__len__` would raise when the grouping contained NA values and ``dropna=False`` (:issue:`58644`)
 - Bug in :meth:`.DataFrameGroupBy.any` that returned True for groups where all Timedelta values are NaT. (:issue:`59712`)
+- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupBy.groups` would fail when the groups were :class:`Categorical` with an NA value (:issue:`61356`)
 - Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)
 - Bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
