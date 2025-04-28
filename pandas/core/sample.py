@@ -123,7 +123,7 @@ def sample(
     random_state: np.random.RandomState | np.random.Generator,
 ) -> np.ndarray:
     """
-    Randomly sample `size` indices in `np.arange(obj_len)`
+    Randomly sample `size` indices in `np.arange(obj_len)`.
 
     Parameters
     ----------
