@@ -1,0 +1,93 @@
+{
+  "name": "@jupyterlite/pyodide-kernel-extension",
+  "version": "0.5.2",
+  "description": "JupyterLite - Pyodide Kernel Extension",
+  "homepage": "https://github.com/jupyterlite/pyodide-kernel",
+  "bugs": {
+    "url": "https://github.com/jupyterlite/pyodide-kernel/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlite/pyodide-kernel.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "JupyterLite Contributors",
+  "sideEffects": [
+    "style/*.css",
+    "style/index.js"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "directories": {
+    "lib": "lib/"
+  },
+  "files": [
+    "lib/*.d.ts",
+    "lib/*.js.map",
+    "lib/*.js",
+    "style/*.css",
+    "style/**/*.svg",
+    "style/index.js",
+    "schema/*.json"
+  ],
+  "scripts": {
+    "build": "jlpm build:lib && jlpm build:labextension:dev",
+    "build:prod": "jlpm build:lib && jlpm build:labextension",
+    "build:labextension": "jupyter labextension build .",
+    "build:labextension:dev": "jupyter labextension build --development True .",
+    "build:lib": "tsc",
+    "dist": "cd ../../dist && npm pack ../packages/pyodide-kernel-extension",
+    "clean": "jlpm clean:lib",
+    "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
+    "clean:labextension": "rimraf ../../jupyterlite_pyodide_kernel/labextension",
+    "clean:all": "jlpm clean:lib && jlpm clean:labextension",
+    "docs": "typedoc src",
+    "watch": "run-p watch:src watch:labextension",
+    "watch:src": "tsc -w",
+    "watch:labextension": "jupyter labextension watch ."
+  },
+  "dependencies": {
+    "@jupyterlab/coreutils": "^6.1.1",
+    "@jupyterlite/contents": "^0.5.0",
+    "@jupyterlite/kernel": "^0.5.0",
+    "@jupyterlite/pyodide-kernel": "^0.5.2",
+    "@jupyterlite/server": "^0.5.0"
+  },
+  "devDependencies": {
+    "@jupyterlab/builder": "~4.3.3",
+    "rimraf": "^5.0.1",
+    "typescript": "~5.2.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "outputDir": "../../jupyterlite_pyodide_kernel/labextension",
+    "webpackConfig": "webpack.config.js",
+    "sharedPackages": {
+      "@jupyterlite/kernel": {
+        "bundled": false,
+        "singleton": true
+      },
+      "@jupyterlite/server": {
+        "bundled": false,
+        "singleton": true
+      },
+      "@jupyterlite/contents": {
+        "bundled": false,
+        "singleton": true
+      }
+    },
+    "_build": {
+      "load": "static/remoteEntry.3ac7f76fb22d01270496.js",
+      "extension": "./extension"
+    }
+  },
+  "jupyterlite": {
+    "liteExtension": true
+  },
+  "piplite": {
+    "wheelDir": "static/pypi"
+  }
+}

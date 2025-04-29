@@ -1,0 +1,56 @@
+Metadata-Version: 2.4
+Name: types-setuptools
+Version: 78.1.0.20250329
+Summary: Typing stubs for setuptools
+Home-page: https://github.com/python/typeshed
+License: Apache-2.0
+Project-URL: GitHub, https://github.com/python/typeshed
+Project-URL: Changes, https://github.com/typeshed-internal/stub_uploader/blob/main/data/changelogs/setuptools.md
+Project-URL: Issue tracker, https://github.com/python/typeshed/issues
+Project-URL: Chat, https://gitter.im/python/typing
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Typing :: Stubs Only
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: setuptools
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+## Typing stubs for setuptools
+
+This is a [PEP 561](https://peps.python.org/pep-0561/)
+type stub package for the [`setuptools`](https://github.com/pypa/setuptools) package.
+It can be used by type-checking tools like
+[mypy](https://github.com/python/mypy/),
+[pyright](https://github.com/microsoft/pyright),
+[pytype](https://github.com/google/pytype/),
+[Pyre](https://pyre-check.org/),
+PyCharm, etc. to check code that uses `setuptools`. This version of
+`types-setuptools` aims to provide accurate annotations for
+`setuptools==78.1.*`.
+
+Given that `pkg_resources` is typed since `setuptools >= 71.1`, it is no longer included with `types-setuptools`.
+
+This package is part of the [typeshed project](https://github.com/python/typeshed).
+All fixes for types and metadata should be contributed there.
+See [the README](https://github.com/python/typeshed/blob/main/README.md)
+for more details. The source for this package can be found in the
+[`stubs/setuptools`](https://github.com/python/typeshed/tree/main/stubs/setuptools)
+directory.
+
+This package was tested with
+mypy 1.15.0,
+pyright 1.1.398,
+and pytype 2024.10.11.
+It was generated from typeshed commit
+[`8c9451154e7f24b997892dc82bb4326531e165a6`](https://github.com/python/typeshed/commit/8c9451154e7f24b997892dc82bb4326531e165a6).

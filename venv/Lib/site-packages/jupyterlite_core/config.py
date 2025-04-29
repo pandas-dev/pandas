@@ -1,0 +1,273 @@
+"""an observable configuration object for the JupyterLite lifecycle
+
+.. todo::
+
+    Move to a canonical JSON schema?
+
+"""
+
+import os
+from pathlib import Path
+from typing import Optional as _Optional
+from typing import Union as _Union
+
+from traitlets import Bool, CInt, Dict, Tuple, Unicode, Union, default
+from traitlets.config import LoggingConfigurable
+
+from . import constants as C  # noqa: N812
+from .trait_types import CPath, TypedTuple
+
+
+class LiteBuildConfig(LoggingConfigurable):
+    """the description of a JupyterLite build
+
+    This is most likely to be configured:
+    - from environment variables
+    - in a `pyproject.toml`
+    - from the command line
+    With direct instantiation a distant last place.
+
+    This is conceptually similar in scale to `jupyter_server_config.json`, and will
+    piggy-back off of the `{sys.prefix}/share/jupyter_{notebook,server}_config.d/`
+    loader paths
+    """
+
+    disable_addons: tuple[str] = TypedTuple(
+        Unicode(),
+        help=("skip loading `entry_point` for these addons. TODO: should be a dict"),
+    ).tag(config=True)
+
+    apps: tuple[str] = TypedTuple(
+        Unicode(),
+        help=("""the Lite apps to explicitly include in build e.g. lab, tree, repl"""),
+    ).tag(config=True)
+
+    app_archive: Path = CPath(help="The app archive to use. env: JUPYTERLITE_APP_ARCHIVE").tag(
+        config=True
+    )
+
+    no_libarchive: bool = Bool(
+        help="Don't detect and use libarchive-c for higher performance and more archives",
+        default_value=False,
+    ).tag(config=True)
+
+    lite_dir: Path = CPath(
+        help="The root folder of a JupyterLite project. env: JUPYTERLITE_DIR"
+    ).tag(config=True)
+
+    cache_dir: Path = CPath(help="A cache folder").tag(config=True)
+
+    output_dir: Path = CPath(
+        help="Where to build the JupyterLite site. env: JUPYTERLITE_OUTPUT_DIR"
+    ).tag(config=True)
+
+    output_archive: Path = CPath(help=("Archive to create. env: JUPYTERLITE_OUTPUT_ARCHIVE")).tag(
+        config=True
+    )
+
+    contents: tuple[Path] = TypedTuple(CPath(), help="Contents to add and index").tag(config=True)
+
+    ignore_sys_prefix: _Union[bool, tuple[str]] = Union(
+        [Bool(), TypedTuple(Unicode())], help="ignore components from sys.prefix"
+    ).tag(config=True)
+
+    federated_extensions: tuple[str] = TypedTuple(
+        Unicode(), help="Local paths or URLs in which to find federated_extensions"
+    ).tag(config=True)
+
+    settings_overrides: tuple[str] = TypedTuple(
+        CPath(), help=("Specific overrides.json to include")
+    ).tag(config=True)
+
+    no_sourcemaps: bool = Bool(
+        False, help="Strip all sourcemaps from applications and extensions"
+    ).tag(config=True)
+
+    no_unused_shared_packages: bool = Bool(
+        False, help="Remove any shared packages not used by --apps"
+    ).tag(config=True)
+
+    # serving
+    port: int = CInt(
+        help=("[serve] the port to (insecurely) expose on http://127.0.0.1. env: JUPYTERLITE_PORT")
+    ).tag(config=True)
+
+    base_url: str = Unicode(help=("[serve] the prefix to use. env: JUPYTERLITE_BASE_URL")).tag(
+        config=True
+    )
+
+    # patterns
+    ignore_contents: tuple[str] = Tuple(
+        help="Path regular expressions that should never be included as contents"
+    ).tag(config=True)
+
+    extra_ignore_contents: tuple[str] = Tuple(
+        help="Additional path regular expressions that should never be included as contents"
+    ).tag(config=True)
+
+    source_date_epoch: _Optional[int] = CInt(
+        allow_none=True,
+        min=1,
+        help="Trigger reproducible builds, clamping timestamps to this value",
+    ).tag(config=True)
+
+    http_headers: dict = Dict(help="the HTTP headers to add to all served responses").tag(
+        config=True
+    )
+
+    extra_http_headers: dict = Dict(
+        help="the HTTP headers to add to default headers on all served responses"
+    ).tag(config=True)
+
+    file_types: dict = Dict(help="JupyterLab-compatible file types for the server and browser").tag(
+        config=True
+    )
+
+    extra_file_types: dict = Dict(
+        help="extra JupyterLab-compatible file types for the server and browser"
+    ).tag(config=True)
+
+    @default("apps")
+    def _default_apps(self):
+        return []
+
+    @default("disable_addons")
+    def _default_disable_addons(self):
+        """the addons that are disabled by default."""
+        return []
+
+    @default("output_dir")
+    def _default_output_dir(self):
+        return Path(
+            os.environ.get("JUPYTERLITE_OUTPUT_DIR") or self.lite_dir / C.DEFAULT_OUTPUT_DIR
+        )
+
+    @default("cache_dir")
+    def _default_cache_dir(self):
+        return Path(os.environ.get("JUPYTERLITE_CACHE_DIR") or self.lite_dir / ".cache")
+
+    @default("lite_dir")
+    def _default_lite_dir(self):
+        return Path(os.environ.get("JUPYTERLITE_DIR", Path.cwd()))
+
+    @default("contents")
+    def _default_contents(self):
+        lite_files = self.lite_dir / "files"
+
+        if lite_files.is_dir():
+            return [lite_files]
+
+        return []
+
+    @default("overrides")
+    def _default_overrides(self):
+        all_overrides = []
+        for app in [None, *self.apps]:
+            app_dir = self.lite_dir / app if app else self.lite_dir
+            overrides_json = app_dir / C.OVERRIDES_JSON
+            if overrides_json.exists():
+                all_overrides += [overrides_json]
+        return all_overrides
+
+    @default("ignore_contents")
+    def _default_ignore_files(self):
+        output_dir = self.output_dir.name.replace(".", "\\.")
+        return [
+            r"/_build/",
+            r"/\.cache/",
+            r"/\.env",
+            r"/\.git",
+            r"/\.ipynb_checkpoints",
+            r"/build/",
+            r"/dist/",
+            r"/envs/",
+            r"/lib/",
+            r"/node_modules/",
+            r"/overrides\.json",
+            r"/untitled\..*",
+            r"/Untitled\..*",
+            r"/venvs/",
+            r"\.*doit\.db$",
+            r"\.pyc$",
+            C.JUPYTER_LITE_CONFIG.replace(".", "\\."),
+            C.JUPYTERLITE_IPYNB.replace(".", "\\."),
+            C.JUPYTERLITE_JSON.replace(".", "\\."),
+            rf"""/{output_dir}/""",
+        ]
+
+    @default("extra_ignore_contents")
+    def _default_extra_ignore_files(self):
+        return []
+
+    @default("app_archive")
+    def _default_app_archive(self):
+        return Path(os.environ.get("JUPYTERLITE_APP_ARCHIVE") or C.ALL_APP_ARCHIVES[-1])
+
+    @default("output_archive")
+    def _default_output_archive(self):
+        return Path(
+            os.environ.get("JUPYTERLITE_OUTPUT_ARCHIVE")
+            or self.output_dir / f"{self.lite_dir.name}-jupyterlite.tgz"
+        )
+
+    @default("source_date_epoch")
+    def _default_source_date_epoch(self):
+        if C.SOURCE_DATE_EPOCH not in os.environ:
+            return None
+        sde = int(os.environ[C.SOURCE_DATE_EPOCH])
+        return sde
+
+    @default("port")
+    def _default_port(self):
+        return int(os.environ.get("JUPYTERLITE_PORT", 8000))
+
+    @default("base_url")
+    def _default_base_url(self):
+        return os.environ.get("JUPYTERLITE_BASE_URL", "/")
+
+    @default("http_headers")
+    def _default_http_headers(self):
+        return {}
+
+    @default("extra_http_headers")
+    def _default_extra_http_header(self):
+        return {}
+
+    @default("file_types")
+    def _default_file_types(self):
+        """Partial definitions of file types used by the browser server contents manager.
+
+        Cosmetic fields, such as ``displayName``, will _not_ propagate to the UI.
+
+        @jupyterlab/rendermime-interfaces:src/index.ts#L167
+        export const JSON = 'application/json';
+        export const MANIFEST_JSON = 'application/manifest+json';
+        export const PLAIN_TEXT = 'text/plain';
+        export const CSV = 'text/csv';
+        export const CALENDAR = 'text/calendar';
+        export const CSS = 'text/css';
+        export const HTML = 'text/html';
+        export const JS = 'application/javascript';
+        export const PYTHON = 'application/x-python-code';
+        export const SVG = 'image/svg+xml';
+        export const XML = 'application/xml';
+        """
+
+        format_pairs = [
+            (
+                name,
+                dict(
+                    name=name,
+                    fileFormat=fileFormat,
+                    mimeTypes=ext_mime[1],
+                    extensions=ext_mime[0],
+                ),
+            )
+            for fileFormat, formats in C.DEFAULT_FILE_TYPES.items()
+            for name, ext_mime in formats.items()
+        ]
+        return dict(format_pairs)
+
+    @default("extra_file_types")
+    def _default_extra_file_types(self):
+        return {}

@@ -393,7 +393,7 @@ class TestSetOps:
         else:
             index = index_flat
 
-        if index.dtype == 'object':
+        if index.dtype == "object":
             index = index.astype(str)
 
         # test copy.union(subset) - need sort for unicode and string
@@ -465,7 +465,7 @@ class TestSetOps:
         else:
             index = index_flat
 
-        if index.dtype == 'object':
+        if index.dtype == "object":
             index = index.astype(str)
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)

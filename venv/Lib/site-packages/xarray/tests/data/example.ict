@@ -1,0 +1,33 @@
+29, 1001
+Henderson, Barron
+U.S. EPA
+Example file with artificial data
+JUST_A_TEST
+1, 1
+2018, 04, 27 2018, 04, 27
+0
+Start_UTC
+5
+1, 1, 1, 1, 1
+-9999, -9999, -9999, -9999, -9999
+lat, degrees_north
+lon, degrees_east
+elev, meters
+TEST_ppbv, ppbv
+TESTM_ppbv, ppbv
+0
+9
+INDEPENDENT_VARIABLE_DEFINITION: Start_UTC
+INDEPENDENT_VARIABLE_UNITS: Start_UTC
+ULOD_FLAG: -7777
+ULOD_VALUE: N/A
+LLOD_FLAG: -8888
+LLOD_VALUE: N/A, N/A, N/A, N/A, 0.025
+OTHER_COMMENTS: www-air.larc.nasa.gov/missions/etc/IcarttDataFormat.htm
+REVISION: R0
+R0: No comments for this revision.
+Start_UTC, lat, lon, elev, TEST_ppbv, TESTM_ppbv
+43200, 41.00000, -71.00000, 5, 1.2345, 2.220
+46800, 42.00000, -72.00000, 15, 2.3456, -9999
+50400, 42.00000, -73.00000, 20, 3.4567, -7777
+50400, 42.00000, -74.00000, 25, 4.5678, -8888

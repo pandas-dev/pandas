@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://jupyterlite-pyodide-kernel.readthedocs.org/en/latest/reference/schema/piplite-v0.html#",
+  "title": "PipLite Schema v0",
+  "description": "a schema for the warehouse-like API index",
+  "$ref": "#/definitions/top",
+  "definitions": {
+    "top": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/a-piplite-project"
+        }
+      }
+    },
+    "a-piplite-project": {
+      "type": "object",
+      "description": "a piplite-installable project, with one or more historical releases",
+      "properties": {
+        "releases": {
+          "patternProperties": {
+            ".*": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/a-piplite-distribution"
+              }
+            }
+          }
+        }
+      }
+    },
+    "a-piplite-distribution": {
+      "type": "object",
+      "properties": {
+        "comment_text": {
+          "type": "string"
+        },
+        "digests": {
+          "type": "object",
+          "properties": {
+            "md5": {
+              "$ref": "#/definitions/an-md5-digest"
+            },
+            "sha256": {
+              "$ref": "#/definitions/a-sha256-digest"
+            }
+          }
+        },
+        "downloads": {
+          "type": "number"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "has_sig": {
+          "type": "boolean"
+        },
+        "md5_digest": {
+          "$ref": "#/definitions/an-md5-digest"
+        },
+        "packagetype": {
+          "type": "string",
+          "enum": ["bdist_wheel"]
+        },
+        "python_version": {
+          "type": "string"
+        },
+        "requires_python": {
+          "$ref": "#/definitions/string-or-null"
+        },
+        "size": {
+          "type": "number"
+        },
+        "upload_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "upload_time_iso_8601": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "yanked": {
+          "type": "boolean"
+        },
+        "yanked_reason": {
+          "$ref": "#/definitions/string-or-null"
+        }
+      }
+    },
+    "string-or-null": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "an-md5-digest": {
+      "type": "string",
+      "pattern": "[a-f0-9]{32}"
+    },
+    "a-sha256-digest": {
+      "type": "string",
+      "pattern": "[a-f0-9]{64}"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+
+from .. import profiling, util
+
+
+class SnakevizGui(profiling.ProfilerGui):
+    name = 'snakeviz'
+    description = "snakeviz http://jiffyclub.github.io/snakeviz/"
+
+    @classmethod
+    def is_available(cls):
+        return util.has_command('snakeviz')
+
+    @classmethod
+    def open_profiler_gui(cls, profiler_file):
+        command = util.which('snakeviz')
+
+        return util.check_call(
+            [command, profiler_file],
+            valid_return_codes=(0, -15), timeout=None)

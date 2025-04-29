@@ -1,0 +1,88 @@
+Metadata-Version: 2.1
+Name: pytest-cython
+Version: 0.3.1
+Summary: A plugin for testing Cython extension modules
+Home-page: https://github.com/lgpage/pytest-cython
+Author: Logan Page
+Author-email: page.lg@gmail.com
+License: MIT
+Keywords: pytest,py.test,cython,doctest
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Software Development :: Testing
+Classifier: Topic :: Utilities
+Description-Content-Type: text/markdown
+License-File: LICENSE.md
+Requires-Dist: pytest >=8
+
+# Overview
+
+[![PyPI Package latest release](https://img.shields.io/pypi/v/pytest-cython.svg?style=flat)](https://pypi.org/project/pytest-cython)
+[![PyPI Package monthly downloads](https://img.shields.io/pypi/dm/pytest-cython.svg?style=flat)](https://pypi.org/project/pytest-cython)
+[![PyPI Wheel](https://img.shields.io/pypi/wheel/pytest-cython.svg?style=flat)](https://pypi.org/project/pytest-cython)
+[![Supported versions](https://img.shields.io/pypi/pyversions/pytest-cython.svg?style=flat)](https://pypi.org/project/pytest-cython)
+[![Supported implementations](https://img.shields.io/pypi/implementation/pytest-cython.svg?style=flat)](https://pypi.org/project/pytest-cython)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/pytest-cython.svg)](https://anaconda.org/conda-forge/pytest-cython)
+[![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pytest-cython.svg)](https://anaconda.org/conda-forge/pytest-cython)
+
+[![CI Check Status](https://github.com/lgpage/pytest-cython/actions/workflows/python-check.yml/badge.svg?branch=main)](https://github.com/lgpage/pytest-cython/actions/workflows/python-check.yml?query=branch%3Amain)
+[![CI Tests Status](https://github.com/lgpage/pytest-cython/actions/workflows/python-test.yml/badge.svg?branch=main)](https://github.com/lgpage/pytest-cython/actions/workflows/python-test.yml?query=branch%3Amain)
+[![Documentation Status](https://readthedocs.org/projects/pytest-cython/badge/?style=flat)](https://readthedocs.org/projects/pytest-cython)
+
+This [pytest](https://github.com/pytest-dev/pytest) plugin allows for the doctesting of C extension modules for
+Python, specifically created through [cython](https://cython.org/).
+
+## Installation
+
+You can install "pytest-cython" via [pip](https://pypi.org/project/pip/) from [PyPI](https://pypi.org):
+
+``` shell
+pip install pytest-cython
+```
+
+## Usage
+
+Basic usage:
+
+``` shell
+pytest --doctest-cython
+```
+
+You can also run the doctests for a single `.pyx` file as such:
+
+``` shell
+pytest --doctest-cython path/to/module.pyx
+```
+
+### Note
+
+It is assumed that the C extension modules have been build in place before running `py.test` and there is a
+matching Cython `.pyx` file
+
+## Compatibility
+
+The following table describes the versions of Pytest and Cython the each version of the pytest-cython plugin is
+compatible with.
+
+| Version | Pytest | Cython  |
+| ------- | ------ | ------- |
+| 0.3.x   | 8      | 0.29, 3 |
+| 0.2.x   | 6, 7   | 0.29, 3 |
+
+## Issues
+
+If you encounter any problems, please [file an issue](https://github.com/lgpage/pytest-cython/issues) along with a
+detailed description.
+
+## Acknowledgements
+
+This [pytest](https://github.com/pytest-dev/pytest) plugin was generated with
+[cookiecutter](https://github.com/cookiecutter/cookiecutter) along with [\@hackebrot](https://github.com/hackebrot)'s
+[cookiecutter-pytest-plugin](https://github.com/pytest-dev/cookiecutter-pytest-plugin) and
+[\@ionelmc](https://github.com/ionelmc)'s [cookiecutter-pylibrary](https://github.com/ionelmc/cookiecutter-pylibrary)
+templates.

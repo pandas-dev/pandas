@@ -1,0 +1,20 @@
+{
+  "name": "@jupyterlab/mock-consumer",
+  "version": "4.3.6",
+  "private": true,
+  "dependencies": {
+    "@jupyterlab/mock-token": "^4.3.6"
+  },
+  "devDependencies": {
+    "@jupyterlab/builder": "^4.3.6"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "sharedPackages": {
+      "@jupyterlab/mock-token": {
+        "singleton": true,
+        "bundled": false
+      }
+    }
+  }
+}

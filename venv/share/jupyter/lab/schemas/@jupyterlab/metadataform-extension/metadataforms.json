@@ -1,0 +1,100 @@
+{
+  "type": "object",
+  "title": "Metadata Form",
+  "description": "Settings of the metadata form extension.",
+  "jupyter.lab.metadataforms": [],
+  "jupyter.lab.transform": true,
+  "additionalProperties": false,
+  "properties": {
+    "metadataforms": {
+      "items": {
+        "$ref": "#/definitions/metadataForm"
+      },
+      "type": "array",
+      "default": []
+    }
+  },
+  "definitions": {
+    "metadataForm": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The section ID"
+        },
+        "metadataSchema": {
+          "type": "object",
+          "items": {
+            "$ref": "#/definitions/metadataSchema"
+          }
+        },
+        "uiSchema": {
+          "type": "object"
+        },
+        "metadataOptions": {
+          "type": "object",
+          "items": {
+            "$ref": "#/definitions/metadataOptions"
+          }
+        },
+        "label": {
+          "type": "string",
+          "description": "The section label"
+        },
+        "rank": {
+          "type": "integer",
+          "description": "The rank of the section in the right panel"
+        },
+        "showModified": {
+          "type": "boolean",
+          "description": "Whether to show that values have been modified from defaults"
+        }
+      },
+      "required": ["id", "metadataSchema"]
+    },
+    "metadataSchema": {
+      "properties": {
+        "properties": {
+          "type": "object",
+          "description": "The property set up by extension",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "type": "object",
+      "required": ["properties"]
+    },
+    "metadataOptions": {
+      "properties": {
+        "customRenderer": {
+          "type": "string"
+        },
+        "metadataLevel": {
+          "type": "string",
+          "enum": ["cell", "notebook"],
+          "default": "cell"
+        },
+        "cellTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["code", "markdown", "raw"]
+          }
+        },
+        "writeDefault": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

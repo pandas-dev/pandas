@@ -1,0 +1,15 @@
+[console_scripts]
+jupyter-lite = jupyterlite_core.app:main
+
+[jupyterlite.addon.v0]
+archive = jupyterlite_core.addons.archive:ArchiveAddon
+contents = jupyterlite_core.addons.contents:ContentsAddon
+federated_extensions = jupyterlite_core.addons.federated_extensions:FederatedExtensionAddon
+icons = jupyterlite_core.addons.icons:IconsAddon
+lite = jupyterlite_core.addons.lite:LiteAddon
+mimetypes = jupyterlite_core.addons.mimetypes:MimetypesAddon
+report = jupyterlite_core.addons.report:ReportAddon
+serve = jupyterlite_core.addons.serve:ServeAddon
+settings = jupyterlite_core.addons.settings:SettingsAddon
+static = jupyterlite_core.addons.static:StaticAddon
+translation = jupyterlite_core.addons.translation:TranslationAddon

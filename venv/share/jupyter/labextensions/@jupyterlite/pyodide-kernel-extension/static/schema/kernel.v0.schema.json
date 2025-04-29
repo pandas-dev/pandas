@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://jupyterlite-pyodide-kernel.readthedocs.org/en/latest/reference/schema/settings-v0.html#",
+  "title": "Pyodide Kernel Settings Schema v0",
+  "description": "Pyodide-specific configuration values. Will be defined in another location in the future.",
+  "type": "object",
+  "properties": {
+    "pyodideUrl": {
+      "description": "The path to the main pyodide.js entry point",
+      "type": "string",
+      "default": "https://cdn.jsdelivr.net/pyodide/v0.27.1/full/pyodide.js",
+      "format": "uri"
+    },
+    "disablePyPIFallback": {
+      "description": "Disable the piplite behavior of falling back to https://pypi.org/pypi/",
+      "default": false,
+      "type": "boolean"
+    },
+    "pipliteUrls": {
+      "description": "Paths to PyPI-compatible API endpoints for wheels. If ending in ``all.json``, assumed to be an aggregate, keyed by package name, with relative paths",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "format": "uri"
+    },
+    "loadPyodideOptions": {
+      "type": "object",
+      "description": "additional options to provide to `loadPyodide`, see https://pyodide.org/en/stable/usage/api/js-api.html#globalThis.loadPyodide",
+      "default": {},
+      "properties": {
+        "packages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

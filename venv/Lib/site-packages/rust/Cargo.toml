@@ -1,0 +1,35 @@
+[package]
+name = "cryptography-rust"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+once_cell = "1"
+cfg-if = "1"
+pyo3.workspace = true
+asn1.workspace = true
+cryptography-cffi = { path = "cryptography-cffi" }
+cryptography-keepalive = { path = "cryptography-keepalive" }
+cryptography-key-parsing = { path = "cryptography-key-parsing" }
+cryptography-x509 = { path = "cryptography-x509" }
+cryptography-x509-verification = { path = "cryptography-x509-verification" }
+cryptography-openssl = { path = "cryptography-openssl" }
+pem = { version = "3", default-features = false }
+openssl = "0.10.68"
+openssl-sys = "0.9.104"
+foreign-types-shared = "0.1"
+self_cell = "1"
+
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
+
+[lib]
+name = "cryptography_rust"
+crate-type = ["cdylib"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(CRYPTOGRAPHY_OPENSSL_300_OR_GREATER)', 'cfg(CRYPTOGRAPHY_OPENSSL_309_OR_GREATER)', 'cfg(CRYPTOGRAPHY_OPENSSL_320_OR_GREATER)', 'cfg(CRYPTOGRAPHY_IS_LIBRESSL)', 'cfg(CRYPTOGRAPHY_IS_BORINGSSL)', 'cfg(CRYPTOGRAPHY_OSSLCONF, values("OPENSSL_NO_IDEA", "OPENSSL_NO_CAST", "OPENSSL_NO_BF", "OPENSSL_NO_CAMELLIA", "OPENSSL_NO_SEED", "OPENSSL_NO_SM4"))'] }
