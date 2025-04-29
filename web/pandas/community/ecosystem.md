@@ -124,7 +124,7 @@ sns.set_theme()
 Hadley Wickham's [ggplot2](https://ggplot2.tidyverse.org/) is a
 foundational exploratory visualization package for the R language. Based
 on ["The Grammar of
-Graphics"](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html)
+Graphics"](https://doi.org/10.1007/0-387-28695-0)
 it provides a powerful, declarative and extremely general way to
 generate bespoke plots of any kind of data.
 Various implementations to other languages are available.
@@ -146,11 +146,8 @@ Seaborn](https://plot.ly/python/matplotlib-to-plotly-tutorial/) can
 convert figures into interactive web-based plots. Plots can be drawn in
 [IPython Notebooks](https://plot.ly/ipython-notebooks/) , edited with R
 or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly
-is free for unlimited sharing, and has
-[cloud](https://plot.ly/product/plans/),
-[offline](https://plot.ly/python/offline/), or
-[on-premise](https://plot.ly/product/enterprise/) accounts for private
-use.
+is free for unlimited sharing, and has cloud, offline, or on-premise
+accounts for private use.
 
 ### [Lux](https://github.com/lux-org/lux)
 
@@ -472,7 +469,7 @@ read_record.data
 df.dtypes
 ```
 
-ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/query_builder/).
+ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/processing/#arcticdb.QueryBuilder).
 
 ### [Hugging Face](https://huggingface.co/datasets)
 
@@ -658,7 +655,7 @@ Pandas provides an interface for defining
 The following libraries implement that interface to provide types not found in NumPy or pandas,
 which work well with pandas' data containers.
 
-### [awkward-pandas](https://awkward-pandas.readthedocs.io/)
+### [awkward-pandas](https://github.com/scikit-hep/awkward)
 
 Awkward-pandas provides an extension type for storing [Awkward
 Arrays](https://awkward-array.org/) inside pandas' Series and

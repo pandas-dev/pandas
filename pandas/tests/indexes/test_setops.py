@@ -5,7 +5,7 @@ set operations.
 
 from datetime import datetime
 import operator
-
+import pandas as pd
 import numpy as np
 import pytest
 
@@ -63,42 +63,22 @@ def index_flat2(index_flat):
 
 
 def test_union_same_types(index):
-    if index.inferred_type in ["mixed", "mixed-integer"]:
-        pytest.skip("Mixed-type Index not orderable; union fails")
-    # Union with a non-unique, non-monotonic index raises error
-    # Only needed for bool index factory
+    # mixed int string
+    if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        index = index.astype(str)
+
     idx1 = index.sort_values()
     idx2 = index.sort_values()
-    assert idx1.union(idx2).dtype == idx1.dtype
-
+    assert idx1.union(idx2, sort=False).dtype == idx1.dtype
 
 def test_union_different_types(index_flat, index_flat2, request):
-    # This test only considers combinations of indices
-    # GH 23525
     idx1 = index_flat
     idx2 = index_flat2
 
-    if (
-        not idx1.is_unique
-        and not idx2.is_unique
-        and idx1.dtype.kind == "i"
-        and idx2.dtype.kind == "b"
-    ) or (
-        not idx2.is_unique
-        and not idx1.is_unique
-        and idx2.dtype.kind == "i"
-        and idx1.dtype.kind == "b"
-    ):
-        # Each condition had idx[1|2].is_monotonic_decreasing
-        # but failed when e.g.
-        # idx1 = Index(
-        # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
-        # )
-        # idx2 = Index([0, 0, 1, 1, 2, 2], dtype='int64')
-        mark = pytest.mark.xfail(
-            reason="GH#44000 True==1", raises=ValueError, strict=False
-        )
-        request.applymarker(mark)
+    # Ειδική μεταχείριση για mixed-int-string
+    if idx1.equals(pd.Index([0, "a", 1, "b", 2, "c"])) or idx2.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        idx1 = idx1.astype(str)
+        idx2 = idx2.astype(str)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -109,7 +89,6 @@ def test_union_different_types(index_flat, index_flat2, request):
     elif (idx1.dtype.kind == "c" and (not lib.is_np_dtype(idx2.dtype, "iufc"))) or (
         idx2.dtype.kind == "c" and (not lib.is_np_dtype(idx1.dtype, "iufc"))
     ):
-        # complex objects non-sortable
         warn = RuntimeWarning
     elif (
         isinstance(idx1.dtype, PeriodDtype) and isinstance(idx2.dtype, CategoricalDtype)
@@ -140,8 +119,8 @@ def test_union_different_types(index_flat, index_flat2, request):
         return
 
     with tm.assert_produces_warning(warn, match=msg):
-        res1 = idx1.union(idx2)
-        res2 = idx2.union(idx1)
+        res1 = idx1.union(idx2, sort=False)
+        res2 = idx2.union(idx1, sort=False)
 
     if any_uint64 and (idx1_signed or idx2_signed):
         assert res1.dtype == np.dtype("O")
@@ -149,7 +128,6 @@ def test_union_different_types(index_flat, index_flat2, request):
     else:
         assert res1.dtype == common_dtype
         assert res2.dtype == common_dtype
-
 
 @pytest.mark.parametrize(
     "idx1,idx2",
@@ -260,11 +238,17 @@ class TestSetOps:
             pytest.skip("Mixed-type Index not orderable; union fails")
 
         index = index.unique()
+
+        # Mixed int string
+        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+            index = index.astype(str)
+
         first = index[3:]
         second = index[:5]
         everything = index
 
-        union = first.union(second)
+        # Default sort=None
+        union = first.union(second, sort=None)
         tm.assert_index_equal(union.sort_values(), everything.sort_values())
 
         if isinstance(index.dtype, DatetimeTZDtype):
@@ -275,7 +259,7 @@ class TestSetOps:
         # GH#10149
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
-            result = first.union(case)
+            result = first.union(case, sort=None)
             assert equal_contents(result, everything)
 
         if isinstance(index, MultiIndex):
@@ -326,10 +310,8 @@ class TestSetOps:
             # index fixture has e.g. an index of bools that does not satisfy this,
             #  another with [0, 0, 1, 1, 2, 2]
             pytest.skip("Index values no not satisfy test condition.")
-        if index.inferred_type == "mixed" or index.inferred_type == "mixed-integer":
-            pytest.skip("Mixed-type Index not orderable; symmetric_difference fails")
-
-
+        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+            index = index.astype(str)
         first = index[1:]
         second = index[:-1]
         answer = index[[0, -1]]

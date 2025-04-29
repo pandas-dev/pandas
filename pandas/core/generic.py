@@ -612,7 +612,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 v, copy=False, index=self.index, name=k, dtype=dtype
             ).__finalize__(self)
             for k, v, dtype in zip(self.columns, self._iter_column_arrays(), dtypes)
-            if not isinstance(k, int)
         }
 
     @final
@@ -887,7 +886,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
 
         >>> even_primes.squeeze()
-        2
+        np.int64(2)
 
         Squeezing objects with more than one value in every axis does nothing:
 
@@ -945,7 +944,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
-        1
+        np.int64(1)
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         result = self.iloc[
@@ -3569,6 +3568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif formatters is None and float_format is not None:
             formatters_ = partial(_wrap, alt_format_=lambda v: v)
         format_index_ = [index_format_, column_format_]
+        format_index_names_ = [index_format_, column_format_]
 
         # Deal with hiding indexes and relabelling column names
         hide_: list[dict] = []
@@ -3617,6 +3617,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             relabel_index=relabel_index_,
             format={"formatter": formatters_, **base_format_},
             format_index=format_index_,
+            format_index_names=format_index_names_,
             render_kwargs=render_kwargs_,
         )
 
@@ -3629,6 +3630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         relabel_index: dict | list[dict] | None = None,
         format: dict | list[dict] | None = None,
         format_index: dict | list[dict] | None = None,
+        format_index_names: dict | list[dict] | None = None,
         render_kwargs: dict | None = None,
     ):
         """
@@ -3673,7 +3675,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self = cast("DataFrame", self)
         styler = Styler(self, uuid="")
 
-        for kw_name in ["hide", "relabel_index", "format", "format_index"]:
+        for kw_name in [
+            "hide",
+            "relabel_index",
+            "format",
+            "format_index",
+            "format_index_names",
+        ]:
             kw = vars()[kw_name]
             if isinstance(kw, dict):
                 getattr(styler, kw_name)(**kw)
@@ -6077,8 +6085,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # One could make the deepcopy unconditionally, but a deepcopy
                 # of an empty dict is 50x more expensive than the empty check.
                 self.attrs = deepcopy(other.attrs)
-
-            self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
+            self.flags.allows_duplicate_labels = (
+                self.flags.allows_duplicate_labels
+                and other.flags.allows_duplicate_labels
+            )
             # For subclasses using _metadata.
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
@@ -7954,7 +7964,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: float64
 
         >>> s.asof(20)
-        2.0
+        np.float64(2.0)
 
         For a sequence `where`, a Series is returned. The first value is
         NaN, because the first element of `where` is before the first
@@ -7969,7 +7979,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         NaN, even though NaN is at the index location for ``30``.
 
         >>> s.asof(30)
-        2.0
+        np.float64(2.0)
 
         Take all columns into consideration
 
@@ -9704,7 +9714,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
                 cond = cond._constructor_expanddim(
-                    {i: cond for i in range(len(self.columns))},
+                    dict.fromkeys(range(len(self.columns)), cond),
                     copy=False,
                 )
                 cond.columns = self.columns

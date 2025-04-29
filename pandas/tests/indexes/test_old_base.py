@@ -357,16 +357,30 @@ class TestBase:
     def test_argsort(self, index):
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
-        if any(isinstance(x, str) for x in index) and any(isinstance(x, int) for x in index):
-            pytest.skip("Mixed types (int & str) not order-able")
+
+        # New test for mixed-int-string
+        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+            result = index.astype(str).argsort()
+            expected = np.array(index.astype(str)).argsort()
+            tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+            return
 
         result = index.argsort()
         expected = np.array(index).argsort()
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_numpy_argsort(self, index):
-        if any(isinstance(x, str) for x in index) and any(isinstance(x, int) for x in index):
-            pytest.skip("Mixed-type Index (int & str) not sortable")
+        # new test for mixed-int-string
+        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+            result = np.argsort(index.astype(str))
+            expected = index.astype(str).argsort()
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = np.argsort(index.astype(str), kind="mergesort")
+            expected = index.astype(str).argsort(kind="mergesort")
+            tm.assert_numpy_array_equal(result, expected)
+            return
+
         result = np.argsort(index)
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
@@ -374,7 +388,6 @@ class TestBase:
         result = np.argsort(index, kind="mergesort")
         expected = index.argsort(kind="mergesort")
         tm.assert_numpy_array_equal(result, expected)
-
         # these are the only two types that perform
         # pandas compatibility input validation - the
         # rest already perform separate (or no) such

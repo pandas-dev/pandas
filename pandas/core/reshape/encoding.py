@@ -60,13 +60,15 @@ def get_dummies(
     data : array-like, Series, or DataFrame
         Data of which to get dummy indicators.
     prefix : str, list of str, or dict of str, default None
-        String to append DataFrame column names.
+        A string to be prepended to DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
-    prefix_sep : str, default '_'
-        If appending prefix, separator/delimiter to use. Or pass a
-        list or dictionary as with `prefix`.
+    prefix_sep : str, list of str, or dict of str, default '_'
+        Should you choose to prepend DataFrame column names with a prefix, this
+        is the separator/delimiter to use between the two. Alternatively,
+        `prefix_sep` can be a list with length equal to the number of columns,
+        or a dictionary mapping column names to separators.
     dummy_na : bool, default False
         If True, a NaN indicator column will be added even if no NaN values are present.
         If False, NA values are encoded as all zero.
@@ -357,7 +359,7 @@ def _get_dummies_1d(
 
         if drop_first:
             # remove first GH12042
-            dummy_mat = dummy_mat[:, 1:]
+            dummy_mat = dummy_mat[:, 1:]  # type: ignore[assignment]
             dummy_cols = dummy_cols[1:]
         return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
 

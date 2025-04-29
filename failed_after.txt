@@ -1,0 +1,23 @@
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_invalid_na_position[mixed-int-string-None] xfail
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_invalid_na_position[mixed-int-string-middle] xfail
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_with_missing[mixed-int-string-first]
+FAILED pandas/tests/indexes/test_common.py::test_sort_values_with_missing[mixed-int-string-last]
+FAILED pandas/tests/indexes/test_numpy_compat.py::test_numpy_ufuncs_reductions[mixed-int-string-maximum]
+FAILED pandas/tests/indexes/test_numpy_compat.py::test_numpy_ufuncs_reductions[mixed-int-string-minimum]
+FAILED pandas/tests/indexes/test_old_base.py::TestBase::test_argsort[mixed-int-string]
+FAILED pandas/tests/indexes/test_old_base.py::TestBase::test_numpy_argsort[mixed-int-string]
+FAILED pandas/tests/indexes/test_setops.py::test_union_same_types[mixed-int-string]
+FAILED pandas/tests/indexes/test_setops.py::test_union_different_types[mixed-int-string]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_union_base[mixed-int-string]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_symmetric_difference[mixed-int-string]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_union_unequal[mixed-int-string-A-A-A]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_union_unequal[mixed-int-string-A-B-None]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_union_unequal[mixed-int-string-A-None-None]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_union_unequal[mixed-int-string-None-B-None]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_union_unequal[mixed-int-string-None-None-None]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_intersect_unequal[mixed-int-string-A-A-A]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_intersect_unequal[mixed-int-string-A-B-None]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_intersect_unequal[mixed-int-string-A-None-None]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_intersect_unequal[mixed-int-string-None-B-None]
+FAILED pandas/tests/indexes/test_setops.py::TestSetOps::test_intersect_unequal[mixed-int-string-None-None-None]
+= 37 failed, 16435 passed, 221 skipped, 47 xfailed, 3 xpassed in 73.59s (0:01:13) =

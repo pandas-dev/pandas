@@ -61,6 +61,7 @@ Other enhancements
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
 - :meth:`DataFrame.plot.scatter` argument ``c`` now accepts a column of strings, where rows with the same string are colored identically (:issue:`16827` and :issue:`16485`)
+- :meth:`Series.nlargest` uses a 'stable' sort internally and will preserve original ordering.
 - :class:`ArrowDtype` now supports ``pyarrow.JsonType`` (:issue:`60958`)
 - :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` methods ``sum``, ``mean``, ``median``, ``prod``, ``min``, ``max``, ``std``, ``var`` and ``sem`` now accept ``skipna`` parameter (:issue:`15675`)
 - :class:`Rolling` and :class:`Expanding` now support ``nunique`` (:issue:`26958`)
@@ -68,6 +69,7 @@ Other enhancements
 - :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.SeriesGroupBy.apply`, :meth:`.DataFrameGroupBy.apply` now support ``kurt`` (:issue:`40139`)
 - :meth:`DataFrame.apply` supports using third-party execution engines like the Bodo.ai JIT compiler (:issue:`60668`)
+- :meth:`DataFrame.iloc` and :meth:`Series.iloc` now support boolean masks in ``__getitem__`` for more consistent indexing behavior (:issue:`60994`)
 - :meth:`DataFrameGroupBy.transform`, :meth:`SeriesGroupBy.transform`, :meth:`DataFrameGroupBy.agg`, :meth:`SeriesGroupBy.agg`, :meth:`RollingGroupby.apply`, :meth:`ExpandingGroupby.apply`, :meth:`Rolling.apply`, :meth:`Expanding.apply`, :meth:`DataFrame.apply` with ``engine="numba"`` now supports positional arguments passed as kwargs (:issue:`58995`)
 - :meth:`Rolling.agg`, :meth:`Expanding.agg` and :meth:`ExponentialMovingWindow.agg` now accept :class:`NamedAgg` aggregations through ``**kwargs`` (:issue:`28333`)
 - :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
@@ -313,11 +315,39 @@ Optional libraries below the lowest tested version may still work, but are not c
 +========================+=====================+
 | pytz                   | 2023.4              |
 +------------------------+---------------------+
-| fastparquet            | 2023.10.0           |
+| fastparquet            | 2024.2.0            |
 +------------------------+---------------------+
 | adbc-driver-postgresql | 0.10.0              |
 +------------------------+---------------------+
 | mypy (dev)             | 1.9.0               |
++------------------------+---------------------+
+| beautifulsoup4         | 4.12.3              |
++------------------------+---------------------+
+| fsspec                 | 2024.2.0            |
++------------------------+---------------------+
+| gcsfs                  | 2024.2.0            |
++------------------------+---------------------+
+| s3fs                   | 2024.2.0            |
++------------------------+---------------------+
+| Jinja2                 | 3.1.3               |
++------------------------+---------------------+
+| matplotlib             | 3.8.3               |
++------------------------+---------------------+
+| numba                  | 0.59.0              |
++------------------------+---------------------+
+| numexpr                | 2.9.0               |
++------------------------+---------------------+
+| pymysql                | 1.1.0               |
++------------------------+---------------------+
+| pyreadstat             | 1.2.6               |
++------------------------+---------------------+
+| SciPy                  | 1.12.0              |
++------------------------+---------------------+
+| xarray                 | 2024.1.0            |
++------------------------+---------------------+
+| xlsxwriter             | 3.2.0               |
++------------------------+---------------------+
+| zstandard              | 0.22.0              |
 +------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
@@ -420,6 +450,7 @@ Other Deprecations
 - Deprecated lowercase strings ``w``, ``w-mon``, ``w-tue``, etc. denoting frequencies in :class:`Week` in favour of ``W``, ``W-MON``, ``W-TUE``, etc. (:issue:`58998`)
 - Deprecated parameter ``method`` in :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like` (:issue:`58667`)
 - Deprecated strings ``w``, ``d``, ``MIN``, ``MS``, ``US`` and ``NS`` denoting units in :class:`Timedelta` in favour of ``W``, ``D``, ``min``, ``ms``, ``us`` and ``ns`` (:issue:`59051`)
+- Deprecated the ``arg`` parameter of ``Series.map``; pass the added ``func`` argument instead. (:issue:`61260`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
 
 .. ---------------------------------------------------------------------------
@@ -591,6 +622,7 @@ Performance improvements
 - :func:`concat` returns a :class:`RangeIndex` column when possible when ``objs`` contains :class:`Series` and :class:`DataFrame` and ``axis=0`` (:issue:`58119`)
 - :func:`concat` returns a :class:`RangeIndex` level in the :class:`MultiIndex` result when ``keys`` is a ``range`` or :class:`RangeIndex` (:issue:`57542`)
 - :meth:`RangeIndex.append` returns a :class:`RangeIndex` instead of a :class:`Index` when appending values that could continue the :class:`RangeIndex` (:issue:`57467`)
+- :meth:`Series.nlargest` has improved performance when there are duplicate values in the index (:issue:`55767`)
 - :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57542`)
 - :meth:`Series.str.partition` with :class:`ArrowDtype` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57768`)
 - Performance improvement in :class:`DataFrame` when ``data`` is a ``dict`` and ``columns`` is specified (:issue:`24368`)
@@ -621,6 +653,7 @@ Performance improvements
 - Performance improvement in :meth:`CategoricalDtype.update_dtype` when ``dtype`` is a :class:`CategoricalDtype` with non ``None`` categories and ordered (:issue:`59647`)
 - Performance improvement in :meth:`DataFrame.__getitem__` when ``key`` is a :class:`DataFrame` with many columns (:issue:`61010`)
 - Performance improvement in :meth:`DataFrame.astype` when converting to extension floating dtypes, e.g. "Float64" (:issue:`60066`)
+- Performance improvement in :meth:`DataFrame.stack` when using ``future_stack=True`` and the DataFrame does not have a :class:`MultiIndex` (:issue:`58391`)
 - Performance improvement in :meth:`DataFrame.where` when ``cond`` is a :class:`DataFrame` with many columns (:issue:`61010`)
 - Performance improvement in :meth:`to_hdf` avoid unnecessary reopenings of the HDF5 file to speedup data addition to files with a very large number of groups . (:issue:`58248`)
 - Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
@@ -636,6 +669,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
+- Bug in :meth:`DataFrame.pivot` and :meth:`DataFrame.set_index` raising an ``ArrowNotImplementedError`` for columns with pyarrow dictionary dtype (:issue:`53051`)
 - Bug in :meth:`Series.convert_dtypes` with ``dtype_backend="pyarrow"`` where empty :class:`CategoricalDtype` :class:`Series` raised an error or got converted to ``null[pyarrow]`` (:issue:`59934`)
 -
 
@@ -648,6 +682,7 @@ Datetimelike
 - Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56147`)
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
 - Bug in :func:`tseries.frequencies.to_offset` would fail to parse frequency strings starting with "LWOM" (:issue:`59218`)
+- Bug in :meth:`DataFrame.fillna` raising an ``AssertionError`` instead of ``OutOfBoundsDatetime`` when filling a ``datetime64[ns]`` column with an out-of-bounds timestamp. Now correctly raises ``OutOfBoundsDatetime``. (:issue:`61208`)
 - Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` casting ``datetime64`` and ``timedelta64`` columns to ``float64`` and losing precision (:issue:`60850`)
 - Bug in :meth:`Dataframe.agg` with df with missing values resulting in IndexError (:issue:`58810`)
 - Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` does not raise on Custom business days frequencies bigger then "1C" (:issue:`58664`)
@@ -675,6 +710,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.corr` where numerical precision errors resulted in correlations above ``1.0`` (:issue:`61120`)
 - Bug in :meth:`DataFrame.quantile` where the column type was not preserved when ``numeric_only=True`` with a list-like ``q`` produced an empty result (:issue:`59035`)
+- Bug in :meth:`Series.dot` returning ``object`` dtype for :class:`ArrowDtype` and nullable-dtype data (:issue:`61375`)
 - Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
 
 Conversion
@@ -732,6 +768,7 @@ I/O
 - Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
 - Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
 - Bug in :meth:`DataFrame.to_excel` where the :class:`MultiIndex` index with a period level was not a date (:issue:`60099`)
+- Bug in :meth:`DataFrame.to_stata` when exporting a column containing both long strings (Stata strL) and :class:`pd.NA` values (:issue:`23633`)
 - Bug in :meth:`DataFrame.to_stata` when writing :class:`DataFrame` and ``byteorder=`big```. (:issue:`58969`)
 - Bug in :meth:`DataFrame.to_stata` when writing more than 32,000 value labels. (:issue:`60107`)
 - Bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
@@ -759,20 +796,26 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.boxplot` failed when there were multiple groupings (:issue:`14701`)
+- Bug in :meth:`DataFrame.plot.bar` when ``subplots`` and ``stacked=True`` are used in conjunction which causes incorrect stacking. (:issue:`61018`)
 - Bug in :meth:`DataFrame.plot.bar` with ``stacked=True`` where labels on stacked bars with zero-height segments were incorrectly positioned at the base instead of the label position of the previous segment (:issue:`59429`)
 - Bug in :meth:`DataFrame.plot.line` raising ``ValueError`` when set both color and a ``dict`` style (:issue:`59461`)
 - Bug in :meth:`DataFrame.plot` that causes a shift to the right when the frequency multiplier is greater than one. (:issue:`57587`)
+- Bug in :meth:`Series.plot` preventing a line and bar from being aligned on the same plot (:issue:`61161`)
+- Bug in :meth:`Series.plot` preventing a line and scatter plot from being aligned (:issue:`61005`)
 - Bug in :meth:`Series.plot` with ``kind="pie"`` with :class:`ArrowDtype` (:issue:`59192`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.__len__` and :meth:`.SeriesGroupBy.__len__` would raise when the grouping contained NA values and ``dropna=False`` (:issue:`58644`)
 - Bug in :meth:`.DataFrameGroupBy.any` that returned True for groups where all Timedelta values are NaT. (:issue:`59712`)
+- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupBy.groups` would fail when the groups were :class:`Categorical` with an NA value (:issue:`61356`)
 - Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)
 - Bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
 - Bug in :meth:`.Resampler.interpolate` on a :class:`DataFrame` with non-uniform sampling and/or indices not aligning with the resulting resampled index would result in wrong interpolation (:issue:`21351`)
+- Bug in :meth:`.Series.rolling` when used with a :class:`.BaseIndexer` subclass and computing min/max (:issue:`46726`)
 - Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` when passed ``times`` and aggregation functions other than mean (:issue:`51695`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` were not keeping the index name when the index had :class:`ArrowDtype` timestamp dtype (:issue:`61222`)
 - Bug in :meth:`DataFrame.resample` changing index type to :class:`MultiIndex` when the dataframe is empty and using an upsample method (:issue:`55572`)
 - Bug in :meth:`DataFrameGroupBy.agg` that raises ``AttributeError`` when there is dictionary input and duplicated columns, instead of returning a DataFrame with the aggregation of all duplicate columns. (:issue:`55041`)
 - Bug in :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` for empty data frame with ``group_keys=False`` still creating output index using group keys. (:issue:`60471`)
@@ -796,6 +839,7 @@ Reshaping
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when ``sort=False`` (:issue:`54987`, :issue:`55516`)
 - Bug in :meth:`DataFrame.merge` when merging two :class:`DataFrame` on ``intc`` or ``uintc`` types on Windows (:issue:`60091`, :issue:`58713`)
 - Bug in :meth:`DataFrame.pivot_table` incorrectly subaggregating results when called without an ``index`` argument (:issue:`58722`)
+- Bug in :meth:`DataFrame.pivot_table` incorrectly ignoring the ``values`` argument when also supplied to the ``index`` or ``columns`` parameters (:issue:`57876`, :issue:`61292`)
 - Bug in :meth:`DataFrame.stack` with the new implementation where ``ValueError`` is raised when ``level=[]`` (:issue:`60740`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
 - Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index = True`` drops the series name (:issue:`60723`, :issue:`56257`)
@@ -825,6 +869,7 @@ Other
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
 - Bug in :class:`Series` ignoring errors when trying to convert :class:`Series` input data to the given ``dtype`` (:issue:`60728`)
 - Bug in :func:`eval` on :class:`ExtensionArray` on including division ``/`` failed with a ``TypeError``. (:issue:`58748`)
+- Bug in :func:`eval` where method calls on binary operations like ``(x + y).dropna()`` would raise ``AttributeError: 'BinOp' object has no attribute 'value'`` (:issue:`61175`)
 - Bug in :func:`eval` where the names of the :class:`Series` were not preserved when using ``engine="numexpr"``. (:issue:`10239`)
 - Bug in :func:`eval` with ``engine="numexpr"`` returning unexpected result for float division. (:issue:`59736`)
 - Bug in :func:`to_numeric` raising ``TypeError`` when ``arg`` is a :class:`Timedelta` or :class:`Timestamp` scalar. (:issue:`59944`)
@@ -834,6 +879,7 @@ Other
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which did not allow to use ``tan`` function. (:issue:`55091`)
 - Bug in :meth:`DataFrame.query` where using duplicate column names led to a ``TypeError``. (:issue:`59950`)
 - Bug in :meth:`DataFrame.query` which raised an exception or produced incorrect results when expressions contained backtick-quoted column names containing the hash character ``#``, backticks, or characters that fall outside the ASCII range (U+0001..U+007F). (:issue:`59285`) (:issue:`49633`)
+- Bug in :meth:`DataFrame.query` which raised an exception when querying integer column names using backticks. (:issue:`60494`)
 - Bug in :meth:`DataFrame.shift` where passing a ``freq`` on a DataFrame with no columns did not shift the index correctly. (:issue:`60102`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.transform` that was returning the wrong order unless the index was monotonically increasing. (:issue:`57069`)
