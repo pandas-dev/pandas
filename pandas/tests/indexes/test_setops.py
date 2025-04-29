@@ -926,7 +926,9 @@ class TestSetOpsUnsorted:
         for idx in [index1, index2]:
             for lvl in range(idx.nlevels):
                 if has_mixed_types(idx.get_level_values(lvl)):
-                    skip_message = f"Mixed types in MultiIndex level {lvl} are not orderable"
+                    skip_message = (
+                        f"Mixed types in MultiIndex level {lvl} are not orderable"
+                    )
                     pytest.skip(skip_message)
 
         result = index1.symmetric_difference(index2, sort=sort)

@@ -77,7 +77,10 @@ class TestFactorize:
             pytest.skip("Skipping test for empty Index")
 
         if obj.name == "mixed-int-string" or obj.name is None:
-            skip_message = "Skipping test for mixed-int-string due to unsupported comparison between str and int"
+            skip_message = (
+                "Skipping test for mixed-int-string due to unsupported comparison "
+                "between str and int"
+            )
             pytest.skip(skip_message)
 
         result_codes, result_uniques = obj.factorize(sort=sort)
