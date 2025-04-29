@@ -920,12 +920,14 @@ class TestSetOpsUnsorted:
         index2 = MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
 
         def has_mixed_types(level):
-            return any(isinstance(x, str) for x in level) and any(isinstance(x, int) for x in level)
+            return any(isinstance(x, str) for x in level) and \
+                any(isinstance(x, int) for x in level)
 
         for idx in [index1, index2]:
             for lvl in range(idx.nlevels):
                 if has_mixed_types(idx.get_level_values(lvl)):
-                    pytest.skip(f"Mixed types in MultiIndex level {lvl} are not orderable")
+                    skip_message = f"Mixed types in MultiIndex level {lvl} are not orderable"
+                    pytest.skip(skip_message)
 
         result = index1.symmetric_difference(index2, sort=sort)
         expected = MultiIndex.from_tuples([("bar", 2), ("baz", 3), ("bar", 3)])
