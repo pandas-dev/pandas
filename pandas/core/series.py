@@ -2951,8 +2951,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
 
         if isinstance(other, ABCDataFrame):
+            common_type = find_common_type([self.dtypes] + list(other.dtypes))
             return self._constructor(
-                np.dot(lvals, rvals), index=other.columns, copy=False
+                np.dot(lvals, rvals), index=other.columns, copy=False, dtype=common_type
             ).__finalize__(self, method="dot")
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
