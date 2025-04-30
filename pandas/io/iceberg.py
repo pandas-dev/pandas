@@ -57,7 +57,7 @@ def read_iceberg(
 
     Examples
     --------
-    >>> df = pandas.read_iceberg(
+    >>> df = pd.read_iceberg(
     ...     catalog_name="my_catalog",
     ...     catalog_options={"s3.secret-access-key": "my-secret"},
     ...     table_name="my_table",
