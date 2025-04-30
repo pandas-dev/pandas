@@ -63,7 +63,7 @@ def read_iceberg(
     ...     catalog_properties={"s3.secret-access-key": "my-secret"},
     ...     row_filter="trip_distance >= 10.0",
     ...     selected_fields=("VendorID", "tpep_pickup_datetime"),
-    ... )
+    ... )  # doctest: +SKIP
     """
     pyiceberg_catalog = import_optional_dependency("pyiceberg.catalog")
     pyiceberg_expressions = import_optional_dependency("pyiceberg.expressions")
