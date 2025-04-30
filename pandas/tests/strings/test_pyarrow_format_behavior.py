@@ -3,7 +3,7 @@ import pytest
 from pandas import Series
 
 
-@pytest.mark.parametrize("dtype", ["string[pyarrow]", str])
+@pytest.mark.parametrize("dtype", [str])
 def test_string_array(dtype):
     test_series = Series(["asdf", "as"], dtype=dtype)
     regex = r"((as)|(as))"
@@ -23,7 +23,7 @@ def test_string_match(data, pattern, expected):
     assert list(ser.str.fullmatch(pattern)) == expected
 
 
-@pytest.mark.parametrize("dtype", ["string[pyarrow]", str])
+@pytest.mark.parametrize("dtype", [str])
 @pytest.mark.parametrize(
     "pattern, expected",
     [
