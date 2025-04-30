@@ -35,7 +35,7 @@ def read_iceberg(
         A tuple of strings representing the column names to return in the output
         dataframe.
     case_sensitive : bool, default True
-        If True column matching is case sensitive,
+        If True column matching is case sensitive.
     snapshot_id : int, optional
         Snapshot ID to time travel to. By default the table will be scanned as of the
         current snapshot ID.
@@ -58,9 +58,9 @@ def read_iceberg(
     Examples
     --------
     >>> df = pd.read_iceberg(
+    ...     table_identifier="my_table",
     ...     catalog_name="my_catalog",
-    ...     catalog_options={"s3.secret-access-key": "my-secret"},
-    ...     table_name="my_table",
+    ...     catalog_properties={"s3.secret-access-key": "my-secret"},
     ...     row_filter="trip_distance >= 10.0",
     ...     selected_fields=("VendorID", "tpep_pickup_datetime"),
     ... )
