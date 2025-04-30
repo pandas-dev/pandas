@@ -160,6 +160,7 @@ Iceberg
 ~~~~~~~
 .. autosummary::
     :toctree: api/
+
     read_iceberg
 
 ORC
