@@ -51,7 +51,7 @@ dependencies:
   - scipy>=1.12.0
   - sqlalchemy>=2.0.0
   - tabulate>=0.9.0
-  - xarray>=2024.1.1, <=2024.9.0
+  - xarray>=2024.1.1
   - xlrd>=2.0.1
   - xlsxwriter>=3.2.0
   - zstandard>=0.22.0
