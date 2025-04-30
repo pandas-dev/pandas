@@ -1495,7 +1495,7 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         fmt_values = values._format_native_types(
             na_rep=self.nat_rep, date_format=self.date_format
         )
-        return fmt_values.tolist()  # type: ignore[return-value]
+        return fmt_values.tolist()
 
 
 class _ExtensionArrayFormatter(_GenericArrayFormatter):
