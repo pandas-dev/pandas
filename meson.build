@@ -65,8 +65,6 @@ if cy.version().version_compare('>=3.1.0')
         subdir: 'pandas/_libs',
         install: true,
     )
-
-    add_project_arguments('--shared=pandas._libs._cyutility', language: 'cython')
 endif
 
 # Needed by pandas.test() when it looks for the pytest ini options
