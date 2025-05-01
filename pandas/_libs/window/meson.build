@@ -1,7 +1,7 @@
 py.extension_module(
     'aggregations',
     ['aggregations.pyx'],
-    cython_args: ['-X always_allow_keywords=true --shared=pandas._libs._cyutility'],
+    cython_args: ['--shared=pandas._libs._cyutility -X always_allow_keywords=true'],
     include_directories: [inc_np, inc_pd],
     subdir: 'pandas/_libs/window',
     override_options: ['cython_language=cpp'],
@@ -11,7 +11,7 @@ py.extension_module(
 py.extension_module(
     'indexers',
     ['indexers.pyx'],
-    cython_args: ['-X always_allow_keywords=true --shared=pandas._libs._cyutility'],
+    cython_args: ['--shared=pandas._libs._cyutility -X always_allow_keywords=true'],
     include_directories: [inc_np, inc_pd],
     subdir: 'pandas/_libs/window',
     install: true,
