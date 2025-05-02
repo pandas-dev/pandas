@@ -12,6 +12,7 @@ Usage:
     generated with this script:
     $ python scripts/generate_pip_deps_from_conda.py --compare
 """
+
 import argparse
 import pathlib
 import re

@@ -179,17 +179,11 @@ def strings_with_wrong_placed_whitespace(
 
     For example:
 
-    >>> rule = (
-    ...    "We want the space at the end of the line, "
-    ...    "not at the beginning"
-    ... )
+    >>> rule = "We want the space at the end of the line, not at the beginning"
 
     Instead of:
 
-    >>> rule = (
-    ...    "We want the space at the end of the line,"
-    ...    " not at the beginning"
-    ... )
+    >>> rule = "We want the space at the end of the line, not at the beginning"
 
     Parameters
     ----------
@@ -229,17 +223,11 @@ def strings_with_wrong_placed_whitespace(
 
         For example, this is bad:
 
-        >>> rule = (
-        ...    "We want the space at the end of the line,"
-        ...    " not at the beginning"
-        ... )
+        >>> rule = "We want the space at the end of the line, not at the beginning"
 
         And what we want is:
 
-        >>> rule = (
-        ...    "We want the space at the end of the line, "
-        ...    "not at the beginning"
-        ... )
+        >>> rule = "We want the space at the end of the line, not at the beginning"
 
         And if the string is ending with a new line character (\n) we
         do not want any trailing whitespaces after it.
@@ -247,17 +235,17 @@ def strings_with_wrong_placed_whitespace(
         For example, this is bad:
 
         >>> rule = (
-        ...    "We want the space at the begging of "
-        ...    "the line if the previous line is ending with a \n "
-        ...    "not at the end, like always"
+        ...     "We want the space at the begging of "
+        ...     "the line if the previous line is ending with a \n "
+        ...     "not at the end, like always"
         ... )
 
         And what we do want is:
 
         >>> rule = (
-        ...    "We want the space at the begging of "
-        ...    "the line if the previous line is ending with a \n"
-        ...    " not at the end, like always"
+        ...     "We want the space at the begging of "
+        ...     "the line if the previous line is ending with a \n"
+        ...     " not at the end, like always"
         ... )
         """
         if first_line.endswith(r"\n"):
@@ -319,10 +307,14 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
     while nodes:
         in_annotation, node = nodes.pop()
         if not in_annotation and (
-            (isinstance(node, ast.Name)  # Case `NoDefault`
-            and node.id == "NoDefault")
-            or (isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
-            and node.attr == "NoDefault")
+            (
+                isinstance(node, ast.Name)  # Case `NoDefault`
+                and node.id == "NoDefault"
+            )
+            or (
+                isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+                and node.attr == "NoDefault"
+            )
         ):
             yield (node.lineno, "NoDefault is used not only for typing")
 

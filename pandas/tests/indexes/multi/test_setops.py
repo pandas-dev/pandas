@@ -195,6 +195,39 @@ def test_difference(idx, sort):
         first.difference([1, 2, 3, 4, 5], sort=sort)
 
 
+def test_multiindex_difference_pyarrow_timestamp():
+    pa = pytest.importorskip("pyarrow")
+
+    df = (
+        DataFrame(
+            [(1, "1900-01-01", "a"), (2, "1900-01-01", "b")],
+            columns=["id", "date", "val"],
+        )
+        .astype(
+            {
+                "id": "int64[pyarrow]",
+                "date": "timestamp[ns][pyarrow]",
+                "val": "string[pyarrow]",
+            }
+        )
+        .set_index(["id", "date"])
+    )
+
+    idx = df.index
+    idx_val = idx[0]
+
+    # Assert the value exists in the original index
+    assert idx_val in idx
+
+    # Remove idx_val using difference()
+    new_idx = idx.difference([idx_val])
+
+    # Verify the result
+    assert len(new_idx) == 1
+    assert idx_val not in new_idx
+    assert new_idx.equals(MultiIndex.from_tuples([(2, pd.Timestamp("1900-01-01"))]))
+
+
 def test_difference_sort_special():
     # GH-24959
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
