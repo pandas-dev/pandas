@@ -822,7 +822,7 @@ def test_bar_2_subplots_1_triple_stacked(df_bar_data, df_bar_df, subplot_divisio
         )
 
 
-def test_bar_subplots_bool(df_bar_data, df_bar_df):
+def test_bar_subplots__stacking_bool(df_bar_data, df_bar_df):
     subplot_division = [("A"), ("B"), ("C"), ("D")]
     ax = df_bar_df.plot(subplots=True, kind="bar", stacked=True)
     subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
