@@ -729,7 +729,7 @@ def _df_bar_subplot_checker(df_bar_data, df_bar_df, subplot_data_df, subplot_col
     ]
 
     if len(subplot_columns) == 1:
-        expected_total_height = df_bar_df.loc[:, subplot_columns]
+        expected_total_height = df_bar_df.loc[:, subplot_columns[0]]
     else:
         expected_total_height = df_bar_df.loc[:, subplot_columns].sum(axis=1)
 
@@ -747,7 +747,6 @@ def _df_bar_subplot_checker(df_bar_data, df_bar_df, subplot_data_df, subplot_col
             tm.assert_series_equal(
                 height_iter, expected_total_height, check_names=False, check_dtype=False
             )
-
         else:
             # Checks each preceding bar ends where the next one starts
             next_start_coord = subplot_sliced_by_source[i + 1]["y_coord"]
