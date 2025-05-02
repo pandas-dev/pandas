@@ -27,6 +27,7 @@ table.append(df)
 """
 
 from contextlib import contextmanager
+import importlib
 import pathlib
 import tempfile
 
@@ -43,26 +44,42 @@ pq = pytest.importorskip("pyarrow.parquet")
 
 
 @contextmanager
-def create_catalog():
+def create_catalog(catalog_name_in_pyiceberg_config=None):
     # the catalog stores the full path of data files, so the catalog needs to be
     # created dynamically, and not saved in pandas/tests/io/data as other formats
-    with tempfile.TemporaryDirectory("pandas-iceberg.tmp") as catalog_path:
+    with tempfile.TemporaryDirectory("-pandas-iceberg.tmp") as catalog_path:
         uri = f"sqlite:///{catalog_path}/catalog.sqlite"
+        warehouse = f"file://{catalog_path}"
         catalog = pyiceberg_catalog.load_catalog(
-            "default",
+            catalog_name_in_pyiceberg_config or "default",
             type="sql",
             uri=uri,
-            warehouse=f"file://{catalog_path}",
+            warehouse=warehouse,
         )
-        catalog.create_namespace("default")
+        catalog.create_namespace("ns")
 
         df = pq.read_table(
             pathlib.Path(__file__).parent / "data" / "parquet" / "simple.parquet"
         )
-        table = catalog.create_table("default.simple", schema=df.schema)
+        table = catalog.create_table("ns.my_table", schema=df.schema)
         table.append(df)
 
-        yield uri
+        if catalog_name_in_pyiceberg_config is not None:
+            config_path = pathlib.Path.home() / ".pyiceberg.yaml"
+            with open(config_path, "w") as f:
+                f.write(f"""\
+catalog:
+  {catalog_name_in_pyiceberg_config}:
+    type: sql
+    uri: {uri}
+    warehouse: {warehouse}""")
+        importlib.reload(pyiceberg_catalog)  # needed to reload the config file
+
+        try:
+            yield uri
+        finally:
+            if catalog_name_in_pyiceberg_config is not None:
+                config_path.unlink()
 
 
 class TestIceberg:
@@ -75,31 +92,25 @@ class TestIceberg:
         )
         with create_catalog() as catalog_uri:
             result = read_iceberg(
-                "default.simple",
+                "ns.my_table",
                 catalog_properties={"uri": catalog_uri},
             )
         tm.assert_frame_equal(result, expected)
 
-    def test_read_by_catalog_name(self):
-        config_path = pathlib.Path.home() / ".pyiceberg.yaml"
-        with create_catalog() as catalog_uri:
-            with open(config_path, "w") as f:
-                f.write(f"""\
-    catalog:
-      pandas_tests_catalog:
-        uri: {catalog_uri}""")
-            expected = pd.DataFrame(
-                {
-                    "A": [1, 2, 3],
-                    "B": ["foo", "foo", "foo"],
-                }
-            )
+    @pytest.mark.parametrize("catalog_name", ["default", "pandas_tests"])
+    def test_read_by_catalog_name(self, catalog_name):
+        expected = pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": ["foo", "foo", "foo"],
+            }
+        )
+        with create_catalog(catalog_name_in_pyiceberg_config=catalog_name):
             result = read_iceberg(
-                "default.simple",
-                catalog_name="pandas_tests_catalog",
+                "ns.my_table",
+                catalog_name=catalog_name,
             )
         tm.assert_frame_equal(result, expected)
-        # config_path.unlink()
 
     def test_read_with_row_filter(self):
         expected = pd.DataFrame(
@@ -110,7 +121,7 @@ class TestIceberg:
         )
         with create_catalog() as catalog_uri:
             result = read_iceberg(
-                "default.simple",
+                "ns.my_table",
                 catalog_properties={"uri": catalog_uri},
                 row_filter="A > 1",
             )
@@ -124,7 +135,7 @@ class TestIceberg:
         )
         with create_catalog() as catalog_uri:
             result = read_iceberg(
-                "default.simple",
+                "ns.my_table",
                 catalog_properties={"uri": catalog_uri},
                 selected_fields=["a"],
                 case_sensitive=False,
@@ -134,7 +145,7 @@ class TestIceberg:
         with create_catalog() as catalog_uri:
             with pytest.raises(ValueError, match="^Could not find column"):
                 read_iceberg(
-                    "default.simple",
+                    "ns.my_table",
                     catalog_properties={"uri": catalog_uri},
                     selected_fields=["a"],
                     case_sensitive=True,
@@ -149,7 +160,7 @@ class TestIceberg:
         )
         with create_catalog() as catalog_uri:
             result = read_iceberg(
-                "default.simple",
+                "ns.my_table",
                 catalog_properties={"uri": catalog_uri},
                 limit=2,
             )
