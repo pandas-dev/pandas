@@ -225,7 +225,25 @@ def test_multiindex_difference_pyarrow_timestamp():
     # Verify the result
     assert len(new_idx) == 1
     assert idx_val not in new_idx
-    assert new_idx.equals(MultiIndex.from_tuples([(2, pd.Timestamp("1900-01-01"))]))
+
+    # Create expected index with the same PyArrow timestamp dtype
+    expected_df = (
+        DataFrame(
+            [(2, "1900-01-01", "b")],
+            columns=["id", "date", "val"],
+        )
+        .astype(
+            {
+                "id": "int64[pyarrow]",
+                "date": "timestamp[ns][pyarrow]",
+                "val": "string[pyarrow]",
+            }
+        )
+        .set_index(["id", "date"])
+    )
+    expected = expected_df.index
+
+    assert new_idx.equals(expected)
 
 
 def test_difference_sort_special():
