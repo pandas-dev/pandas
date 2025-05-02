@@ -196,7 +196,7 @@ def test_difference(idx, sort):
 
 
 def test_multiindex_difference_pyarrow_timestamp():
-    pa = pytest.importorskip("pyarrow")
+    pytest.importorskip("pyarrow")
 
     df = (
         DataFrame(
