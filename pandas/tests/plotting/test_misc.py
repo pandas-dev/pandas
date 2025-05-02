@@ -683,13 +683,6 @@ class TestDataFramePlots:
         )
 
 
-def test_plot_bar_label_count_default():
-    df = DataFrame(
-        [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
-    )
-    df.plot(subplots=True, kind="bar", title=["A", "B", "C", "D"])
-
-
 @pytest.fixture
 def df_bar_data():
     return np.random.default_rng(3).integers(0, 100, 5)
@@ -823,6 +816,15 @@ def test_bar_2_subplots_1_triple_stacked(df_bar_data, df_bar_df, subplot_divisio
         _df_bar_subplot_checker(
             df_bar_data, df_bar_df, subplot_data_df_list[i], subplot_division[i]
         )
+
+
+def test_plot_bar_label_count_default():
+    df = DataFrame(
+        [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
+    )
+    df.plot(subplots=True, kind="bar", title=["A", "B", "C", "D"])
+
+
 def test_plot_bar_label_count_expected_fail():
     df = DataFrame(
         [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
