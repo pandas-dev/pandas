@@ -1943,7 +1943,7 @@ class BarPlot(MPLPlot):
 
         self.subplots: list[Any]
 
-        if type(self.subplots) != bool:
+        if not isinstance(self.subplots, bool):
             if bool(self.subplots) and self.stacked:
                 for i, sub_plot in enumerate(self.subplots):
                     if len(sub_plot) <= 1:
