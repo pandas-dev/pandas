@@ -696,8 +696,9 @@ def test_plot_bar_label_count_expected_fail():
     )
     with pytest.raises(
         ValueError,
-        match="The length of `title` must equal the number of columns "
-        "if using `title` of type `list` and `subplots=True`.",
+        match="The length of `title` must equal the number "
+        "of subplots if `title` of type `list` "
+        "and subplots is iterable.\n",
     ):
         df.plot(
             subplots=[("A", "B")],
