@@ -3,27 +3,6 @@ Tests for the Apache Iceberg format.
 
 Tests in this file use a simple Iceberg catalog based on SQLite, with the same
 data used for Parquet tests (``pandas/tests/io/data/parquet/simple.parquet``).
-
-The next code has been used to generate the Iceberg catalog:
-
-```python
-import pyarrow.parquet as pq
-from pyiceberg.catalog import load_catalog
-
-warehouse = "pandas/tests/io/data/iceberg"
-catalog = load_catalog(
-    "default",
-    **{
-        "type": "sql",
-        "uri": f"sqlite:///{warehouse}/catalog.sqlite",
-        "warehouse": f"file://{warehouse}",
-    },
-)
-catalog.create_namespace("default")
-df = pq.read_table("pandas/tests/io/data/parquet/simple.parquet")
-table = catalog.create_table("default.simple", schema=df.schema)
-table.append(df)
-```
 """
 
 from contextlib import contextmanager
@@ -38,31 +17,7 @@ import pandas._testing as tm
 
 from pandas.io.iceberg import read_iceberg
 
-
-# TODO: Remove this before merging
-# Using to gather information about the CI errors that don't reproduce locally
-import os
-import pprint
-import strictyaml
-
-PYICEBERG_HOME = "PYICEBERG_HOME"
-search_dirs = [os.environ.get(PYICEBERG_HOME), os.path.expanduser("~"), os.getcwd()]
-data = [".pyiceberg locations:"]
-for dir_ in search_dirs:
-    path = None
-    exists = False
-    content = None
-    if dir_:
-        path = pathlib.Path(dir_) / ".pyiceberg.yaml"
-        exists = path.exists()
-        if exists:
-            with open(path, encoding="utf-8") as f:
-                yml_str = f.read()
-            content = strictyaml.load(yml_str).data
-    data.append((path, exists, content))
-
-raise RuntimeError(pprint.pformat(data))
-# TODO end
+pytestmark = [pytest.mark.single_cpu]
 
 pyiceberg = pytest.importorskip("pyiceberg")
 pyiceberg_catalog = pytest.importorskip("pyiceberg.catalog")
