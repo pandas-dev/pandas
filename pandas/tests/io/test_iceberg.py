@@ -19,6 +19,7 @@ from pandas.io.iceberg import read_iceberg
 
 pytestmark = [pytest.mark.single_cpu]
 
+"""
 # XXX Some tests fail in the CI because an empty .pyiceberg file is found.
 # Checking here before importing the pyiceberg module, to provide better
 # error message
@@ -52,7 +53,7 @@ except ImportError:
 else:
     check_pyiceberg_yaml_file()
 # XXX End checks
-
+"""
 
 pyiceberg = pytest.importorskip("pyiceberg")
 pyiceberg_catalog = pytest.importorskip("pyiceberg.catalog")
