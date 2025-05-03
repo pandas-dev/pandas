@@ -655,7 +655,7 @@ def is_dtype_equal(source, target) -> bool:
 
     Parameters
     ----------
-    source : dtype
+    source : type or str
         The first dtype to compare
     target : dtype
         The second dtype to compare.
