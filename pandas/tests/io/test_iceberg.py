@@ -38,6 +38,32 @@ import pandas._testing as tm
 
 from pandas.io.iceberg import read_iceberg
 
+
+# TODO: Remove this before merging
+# Using to gather information about the CI errors that don't reproduce locally
+import os
+import pprint
+import strictyaml
+
+PYICEBERG_HOME = "PYICEBERG_HOME"
+search_dirs = [os.environ.get(PYICEBERG_HOME), os.path.expanduser("~"), os.getcwd()]
+data = [".pyiceberg locations:"]
+for dir_ in search_dirs:
+    path = None
+    exists = False
+    content = None
+    if dir_:
+        path = pathlib.Path(dir_) / ".pyiceberg.yaml"
+        exists = path.exists()
+        if exists:
+            with open(path, encoding="utf-8") as f:
+                yml_str = f.read()
+            content = strictyaml.load(yml_str).data
+    data.append((path, exists, content))
+
+raise RuntimeError(pprint.pformat(data))
+# TODO end
+
 pyiceberg = pytest.importorskip("pyiceberg")
 pyiceberg_catalog = pytest.importorskip("pyiceberg.catalog")
 pq = pytest.importorskip("pyarrow.parquet")
