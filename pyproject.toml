@@ -68,7 +68,7 @@ gcp = ['gcsfs>=2024.2.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.2', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.2.0']
 parquet = ['pyarrow>=10.0.1']
 feather = ['pyarrow>=10.0.1']
-iceberg = ['pyiceberg>=0.6.1']
+iceberg = ['pyiceberg>=0.8.1']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
         #'blosc>=1.20.1',
         'tables>=3.8.0']
@@ -103,7 +103,7 @@ all = ['adbc-driver-postgresql>=0.10.0',
        'openpyxl>=3.1.2',
        'psycopg2>=2.9.6',
        'pyarrow>=10.0.1',
-       'pyiceberg>=0.6.1',
+       'pyiceberg>=0.8.1',
        'pymysql>=1.1.0',
        'PyQt5>=5.15.9',
        'pyreadstat>=1.2.6',
