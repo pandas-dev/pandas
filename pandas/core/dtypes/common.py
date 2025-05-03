@@ -667,7 +667,7 @@ def is_dtype_equal(source, target) -> bool:
 
     See Also
     --------
-    pandas.api.types.is_categorical_dtype : Check whether the provided array or dtype
+    api.types.is_categorical_dtype : Check whether the provided array or dtype
                                             is of the Categorical dtype.
     pandas.api.types.is_string_dtype : Check whether the provided array or dtype
                                        is of the string dtype.
