@@ -309,7 +309,7 @@ Dependency                                             Minimum Version    pip ex
 `zlib <https://github.com/madler/zlib>`__                                 hdf5             Compression for HDF5
 `fastparquet <https://github.com/dask/fastparquet>`__  2024.2.0           -                Parquet reading / writing (pyarrow is default)
 `pyarrow <https://github.com/apache/arrow>`__          10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
-`PyIceberg <https://py.iceberg.apache.org/>`__         0.6.1              iceberg          Apache Iceberg reading
+`PyIceberg <https://py.iceberg.apache.org/>`__         0.7.1              iceberg          Apache Iceberg reading
 `pyreadstat <https://github.com/Roche/pyreadstat>`__   1.2.6              spss             SPSS files (.sav) reading
 `odfpy <https://github.com/eea/odfpy>`__               1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
 ====================================================== ================== ================ ==========================================================

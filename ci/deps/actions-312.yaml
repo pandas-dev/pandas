@@ -42,7 +42,7 @@ dependencies:
   - openpyxl>=3.1.2
   - psycopg2>=2.9.6
   - pyarrow>=10.0.1
-  - pyiceberg>=0.6.1
+  - pyiceberg>=0.7.1
   - pymysql>=1.1.0
   - pyreadstat>=1.2.6
   - pytables>=3.8.0
