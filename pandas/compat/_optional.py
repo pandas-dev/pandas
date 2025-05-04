@@ -29,7 +29,7 @@ VERSIONS = {
     "fsspec": "2024.2.0",
     "html5lib": "1.1",
     "hypothesis": "6.84.0",
-    "gcsfs": "2024.2.0",
+    "gcsfs": "2024.0.0",
     "jinja2": "3.1.3",
     "lxml.etree": "4.9.2",
     "matplotlib": "3.8.3",
