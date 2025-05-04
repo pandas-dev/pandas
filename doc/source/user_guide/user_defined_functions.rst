@@ -87,23 +87,30 @@ Methods that support User-Defined Functions
 
 User-Defined Functions can be applied across various pandas methods:
 
-+----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| Method                     | Function Input         | Function Output          | Description                                                               |
-+============================+========================+==========================+===========================================================================+
-| :meth:`map`                | Scalar                 | Scalar                   | Apply a function to each element                                          |
-+----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`apply` (axis=0)     | Column (Series)        | Column (Series)          | Apply a function to each column                                           |
-+----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`apply` (axis=1)     | Row (Series)           | Row (Series)             | Apply a function to each row                                              |
-+----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`agg`                | Series/DataFrame       | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer              |
-+----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`transform`          | Series/DataFrame       | Same shape as input      | Apply a function while preserving shape; raises error if shape changes    |
-+----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`filter`             | -                      | -                        | Return rows that satisfy a boolean condition                              |
-+----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
-| :meth:`pipe`               | Series/DataFrame       | Series/DataFrame         | Chain functions together to apply to Series or Dataframe                  |
-+----------------------------+------------------------+--------------------------+---------------------------------------------------------------------------+
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Method                     | Function Input         | Function Output          | Description                                                                                                                                  |
++============================+========================+==========================+==============================================================================================================================================+
+| :meth:`map`                | Scalar                 | Scalar                   | Apply a function to each element                                                                                                             |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`apply` (axis=0)     | Column (Series)        | Column (Series)          | Apply a function to each column                                                                                                              |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`apply` (axis=1)     | Row (Series)           | Row (Series)             | Apply a function to each row                                                                                                                 |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`agg`                | Series/DataFrame       | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer                                                                                 |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`transform` (axis=0) | Column (Series)        | Column(Series)           | Same as :meth:`apply` with (axis=0), but it raises an exception if the function changes the shape of the data                                |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`transform` (axis=1) | Row (Series)           | Row (Series)             | Same as :meth:`apply` with (axis=1), but it raises an exception if the function changes the shape of the data                                |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`filter`             | Series or DataFrame    | Boolean                  | Only accepts UDFs in group by. Function is called for each group, and the group is removed from the result if the function returns ``False`` |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`pipe`               | Series/DataFrame       | Series/DataFrame         | Chain functions together to apply to Series or Dataframe                                                                                     |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+
+When applying UDFs in pandas, it is essential to select the appropriate method based
+on your specific task. Each method has its strengths and is designed for different use
+cases. Understanding the purpose and behavior of each method will help you make informed
+decisions, ensuring more efficient and maintainable code.
 
 .. note::
     Some of these methods are can also be applied to groupby, resample, and various window objects.
@@ -111,63 +118,32 @@ User-Defined Functions can be applied across various pandas methods:
     and :ref:`ewm()<window>` for details.
 
 
-Choosing the Right Method
--------------------------
-When applying UDFs in pandas, it is essential to select the appropriate method based
-on your specific task. Each method has its strengths and is designed for different use
-cases. Understanding the purpose and behavior of each method will help you make informed
-decisions, ensuring more efficient and maintainable code.
-
-Below is a table overview of all methods that accept UDFs:
-
-+------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
-| Method           | Purpose                              | Supports UDFs             | Keeps Shape        | Recommended Use Case                     |
-+==================+======================================+===========================+====================+==========================================+
-| :meth:`apply`    | General-purpose function             | Yes                       | Yes (when axis=1)  | Custom row-wise or column-wise operations|
-+------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
-| :meth:`agg`      | Aggregation                          | Yes                       | No                 | Custom aggregation logic                 |
-+------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
-| :meth:`transform`| Transform without reducing dimensions| Yes                       | Yes                | Broadcast element-wise transformations   |
-+------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
-| :meth:`map`      | Element-wise mapping                 | Yes                       | Yes                | Simple element-wise transformations      |
-+------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
-| :meth:`pipe`     | Functional chaining                  | Yes                       | Yes                | Building clean operation pipelines       |
-+------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
-| :meth:`filter`   | Row/Column selection                 | Not directly              | Yes                | Subsetting based on conditions           |
-+------------------+--------------------------------------+---------------------------+--------------------+------------------------------------------+
-
 :meth:`DataFrame.apply`
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`DataFrame.apply` allows you to apply UDFs along either rows or columns. While flexible,
+The :meth:`apply` method allows you to apply UDFs along either rows or columns. While flexible,
 it is slower than vectorized operations and should be used only when you need operations
 that cannot be achieved with built-in pandas functions.
 
-When to use: :meth:`DataFrame.apply` is suitable when no alternative vectorized method or UDF method is available,
+When to use: :meth:`apply` is suitable when no alternative vectorized method or UDF method is available,
 but consider optimizing performance with vectorized operations wherever possible.
-
-Documentation can be found at :meth:`~DataFrame.apply`.
 
 :meth:`DataFrame.agg`
 ~~~~~~~~~~~~~~~~~~~~~
 
-If you need to aggregate data, :meth:`DataFrame.agg` is a better choice than apply because it is
+If you need to aggregate data, :meth:`agg` is a better choice than apply because it is
 specifically designed for aggregation operations.
 
-When to use: Use :meth:`DataFrame.agg` for performing custom aggregations, where the operation returns
+When to use: Use :meth:`agg` for performing custom aggregations, where the operation returns
 a scalar value on each input.
-
-Documentation can be found at :meth:`~DataFrame.agg`.
 
 :meth:`DataFrame.transform`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The transform method is ideal for performing element-wise transformations while preserving the shape of the original DataFrame.
+The :meth:`transform` method is ideal for performing element-wise transformations while preserving the shape of the original DataFrame.
 It is generally faster than apply because it can take advantage of pandas' internal optimizations.
 
 When to use: When you need to perform element-wise transformations that retain the original structure of the DataFrame.
-
-Documentation can be found at :meth:`~DataFrame.transform`.
 
 .. code-block:: python
 
@@ -193,11 +169,11 @@ Documentation can be found at :meth:`~DataFrame.transform`.
 :meth:`DataFrame.filter`
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`DataFrame.filter` method is used to select subsets of the DataFrame’s
+The :meth:`filter` method is used to select subsets of the DataFrame’s
 columns or row. It is useful when you want to extract specific columns or rows that
 match particular conditions.
 
-When to use: Use :meth:`DataFrame.filter` when you want to use a UDF to create a subset of a DataFrame or Series
+When to use: Use :meth:`filter` when you want to use a UDF to create a subset of a DataFrame or Series
 
 .. note::
     :meth:`DataFrame.filter` does not accept UDFs, but can accept
@@ -223,27 +199,20 @@ When to use: Use :meth:`DataFrame.filter` when you want to use a UDF to create a
 Since filter does not directly accept a UDF, you have to apply the UDF indirectly,
 for example, by using list comprehensions.
 
-Documentation can be found at :meth:`~DataFrame.filter`.
-
 :meth:`DataFrame.map`
 ~~~~~~~~~~~~~~~~~~~~~
 
-:meth:`DataFrame.map` is used specifically to apply element-wise UDFs and is better
-for this purpose compared to :meth:`DataFrame.apply` because of its better performance.
+The :meth:`map` method is used specifically to apply element-wise UDFs.
 
-When to use: Use map for applying element-wise UDFs to DataFrames or Series.
-
-Documentation can be found at :meth:`~DataFrame.map`.
+When to use: Use :meth:`map` for applying element-wise UDFs to DataFrames or Series.
 
 :meth:`DataFrame.pipe`
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The pipe method is useful for chaining operations together into a clean and readable pipeline.
+The :meth:`pipe` method is useful for chaining operations together into a clean and readable pipeline.
 It is a helpful tool for organizing complex data processing workflows.
 
-When to use: Use pipe when you need to create a pipeline of operations and want to keep the code readable and maintainable.
-
-Documentation can be found at :meth:`~DataFrame.pipe`.
+When to use: Use :meth:`pipe` when you need to create a pipeline of operations and want to keep the code readable and maintainable.
 
 
 Performance
@@ -255,7 +224,7 @@ consider using built-in ``NumPy`` or ``pandas`` functions instead of UDFs
 for common operations.
 
 .. note::
-    If performance is critical, explore **vectorizated operations** before resorting
+    If performance is critical, explore **vectorized operations** before resorting
     to UDFs.
 
 Vectorized Operations
@@ -283,9 +252,9 @@ Measuring how long each operation takes:
 
 Vectorized operations in pandas are significantly faster than using :meth:`DataFrame.apply`
 with UDFs because they leverage highly optimized C functions
-via NumPy to process entire arrays at once. This approach avoids the overhead of looping
+via ``NumPy`` to process entire arrays at once. This approach avoids the overhead of looping
 through rows in Python and making separate function calls for each row, which is slow and
-inefficient. Additionally, NumPy arrays benefit from memory efficiency and CPU-level
+inefficient. Additionally, ``NumPy`` arrays benefit from memory efficiency and CPU-level
 optimizations, making vectorized operations the preferred choice whenever possible.
 
 
@@ -306,10 +275,10 @@ especially for computationally heavy tasks.
 Using :meth:`DataFrame.pipe` for Composable Logic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Another useful pattern for improving readability and composability—especially when mixing
-vectorized logic with UDFs—is to use the :meth:`DataFrame.pipe` method.
+Another useful pattern for improving readability and composability, especially when mixing
+vectorized logic with UDFs, is to use the :meth:`DataFrame.pipe` method.
 
-The ``.pipe`` method doesn't improve performance directly, but it enables cleaner
+:meth:`DataFrame.pipe` doesn't improve performance directly, but it enables cleaner
 method chaining by passing the entire object into a function. This is especially helpful
 when chaining custom transformations:
 
@@ -327,8 +296,8 @@ when chaining custom transformations:
     )
 
 This is functionally equivalent to calling ``add_ratio_column(df)``, but keeps your code
-clean and composable. The function you pass to ``.pipe`` can use vectorized operations,
-row-wise UDFs, or any other logic—``.pipe`` is agnostic.
+clean and composable. The function you pass to :meth:`DataFrame.pipe` can use vectorized operations,
+row-wise UDFs, or any other logic; :meth:`DataFrame.pipe` is agnostic.
 
 .. note::
     While :meth:`DataFrame.pipe` does not improve performance on its own,
