@@ -1295,8 +1295,8 @@ def _infer_protocol(path: str) -> str:
     if is_platform_windows() and re.match(r"^[a-zA-Z]:[\\/]", path):
         return "file"
 
-    parsed = parse_url(path)
-    if parsed.scheme in _VALID_URLS:
+    if is_fsspec_url(path):
+        parsed = parse_url(path)
         return parsed.scheme
     return "file"
 
@@ -1396,19 +1396,19 @@ def iterdir(
     # Remote paths (e.g., s3)
     fsspec = import_optional_dependency("fsspec", extra=scheme)
     fs = fsspec.filesystem(scheme)
-    if fs.isfile(path):
-        path_obj = PurePosixPath(path)
+    path_without_scheme = fsspec.core.strip_protocol(path_str)
+    if fs.isfile(path_without_scheme):
         if _match_file(
-            path_obj,
+            path_without_scheme,
             extensions,
             glob,
         ):
-            yield path_obj
+            yield PurePosixPath(path_without_scheme)
         return
-    if not fs.isdir(path):
+    if not fs.isdir(path_without_scheme):
         raise NotADirectoryError(f"Path {path!r} is neither a file nor a directory.")
 
-    files = fs.ls(path, detail=True)
+    files = fs.ls(path_without_scheme, detail=True)
     for f in files:
         if f["type"] == "file":
             path_obj = PurePosixPath(f["name"])
