@@ -109,7 +109,13 @@ def test_nat_vector_field_access():
     "value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat", "", "NAT"]
 )
 def test_identity(klass, value):
-    assert klass(value) is NaT
+    if value == "" and klass == Timestamp:
+        msg = "Passing an empty string to Timestamp"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = klass(value)
+    else:
+        result = klass(value)
+    assert result is NaT
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta])
