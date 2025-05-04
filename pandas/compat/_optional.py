@@ -46,7 +46,7 @@ VERSIONS = {
     "python-calamine": "0.1.7",
     "pytz": "2023.4",
     "pyxlsb": "1.0.10",
-    "s3fs": "2024.2.0",
+    "s3fs": "2023.12.2",
     "scipy": "1.12.0",
     "sqlalchemy": "2.0.0",
     "tables": "3.8.0",
