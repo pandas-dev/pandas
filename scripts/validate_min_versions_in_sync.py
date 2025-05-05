@@ -14,6 +14,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 """
 from __future__ import annotations
 
+import difflib
 import pathlib
 import sys
 
@@ -73,6 +74,11 @@ def pin_min_versions_to_ci_deps() -> int:
             yaml_map, toml_map, yaml_start_data
         )
         if yaml_result_data != yaml_start_data:
+            sys.stderr.write(difflib.unified_diff(
+                                       yaml_start_data,
+                                       yaml_result_data,
+                                       fromfile=curr_file,
+                                       tofile="edited"))
             with open(curr_file, "w", encoding="utf-8") as f:
                 f.write(yaml_result_data)
             ret |= 1
