@@ -77,7 +77,7 @@ def pin_min_versions_to_ci_deps() -> int:
             sys.stderr.write("\n".join(list(difflib.unified_diff(
                 yaml_start_data,
                 yaml_result_data,
-                fromfile=curr_file,
+                fromfile=curr_file.name,
                 tofile="edited"))))
             with open(curr_file, "w", encoding="utf-8") as f:
                 f.write(yaml_result_data)
