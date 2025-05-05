@@ -29,7 +29,7 @@ VERSIONS = {
     "fsspec": "2023.12.2",
     "html5lib": "1.1",
     "hypothesis": "6.84.0",
-    "gcsfs": "2024.0.0",
+    "gcsfs": "2023.12.2",
     "jinja2": "3.1.3",
     "lxml.etree": "4.9.2",
     "matplotlib": "3.8.3",
@@ -40,7 +40,7 @@ VERSIONS = {
     "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.1.0",
     "pyarrow": "10.0.1",
-    "pyiceberg": "0.7.1",  # FIXME remove this comment
+    "pyiceberg": "0.7.1",
     "pyreadstat": "1.2.6",
     "pytest": "7.3.2",
     "python-calamine": "0.1.7",
