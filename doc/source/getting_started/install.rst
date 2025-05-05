@@ -330,7 +330,7 @@ Installable with ``pip install "pandas[fss, aws, gcp]"``
 ============================================ ================== =============== ==========================================================
 Dependency                                   Minimum Version    pip extra       Notes
 ============================================ ================== =============== ==========================================================
-`fsspec <https://github.com/fsspec>`__       2024.2.0           fss, gcp, aws   Handling files aside from simple local and HTTP (required
+`fsspec <https://github.com/fsspec>`__       2023.12.2          fss, gcp, aws   Handling files aside from simple local and HTTP (required
                                                                                 dependency of s3fs, gcsfs).
 `gcsfs <https://github.com/fsspec/gcsfs>`__  2024.0.0           gcp             Google Cloud Storage access
 `s3fs <https://github.com/fsspec/s3fs>`__    2023.12.2          aws             Amazon S3 access

@@ -26,7 +26,7 @@ VERSIONS = {
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",
     "fastparquet": "2024.2.0",
-    "fsspec": "2024.2.0",
+    "fsspec": "2023.12.2",
     "html5lib": "1.1",
     "hypothesis": "6.84.0",
     "gcsfs": "2024.0.0",
