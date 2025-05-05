@@ -79,6 +79,7 @@ def pin_min_versions_to_ci_deps() -> int:
                 yaml_result_data,
                 fromfile=curr_file.name,
                 tofile="edited"))))
+            sys.stderr.write(yaml_result_data)
             with open(curr_file, "w", encoding="utf-8") as f:
                 f.write(yaml_result_data)
             ret |= 1
