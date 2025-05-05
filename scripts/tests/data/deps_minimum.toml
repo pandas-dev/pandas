@@ -57,13 +57,12 @@ test = ['hypothesis>=6.34.2', 'pytest>=7.3.2', 'pytest-xdist>=3.4.0']
 performance = ['bottleneck>=1.3.2', 'numba>=0.53.1', 'numexpr>=2.7.1']
 timezone = ['tzdata>=2022.1']
 computation = ['scipy>=1.7.1', 'xarray>=0.21.0']
-fss = ['fsspec>=2023.12.2']
-aws = ['s3fs>=2023.12.2']
-gcp = ['gcsfs>=2023.12.2']
+fss = ['fsspec>=2021.07.0']
+aws = ['s3fs>=2021.08.0']
+gcp = ['gcsfs>=2021.07.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
 parquet = ['pyarrow>=7.0.0']
 feather = ['pyarrow>=7.0.0']
-iceberg = ['pyiceberg>=0.7.1']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
         #'blosc>=1.20.1',
         'tables>=3.6.1']
@@ -82,8 +81,8 @@ all = ['beautifulsoup4>=5.9.3',
        #'blosc>=1.21.0',
        'bottleneck>=1.3.2',
        'fastparquet>=0.6.3',
-       'fsspec>=2023.12.2',
-       'gcsfs>=2023.12.2',
+       'fsspec>=2021.07.0',
+       'gcsfs>=2021.07.0',
        'html5lib>=1.1',
        'hypothesis>=6.34.2',
        'jinja2>=3.0.0',
@@ -104,7 +103,7 @@ all = ['beautifulsoup4>=5.9.3',
        'pyxlsb>=1.0.8',
        'qtpy>=2.3.0',
        'scipy>=1.7.1',
-       's3fs>=2023.12.2',
+       's3fs>=2021.08.0',
        'SQLAlchemy>=1.4.16',
        'tables>=3.6.1',
        'tabulate>=0.8.9',
