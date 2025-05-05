@@ -6,6 +6,7 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
+    StringDtype,
     date_range,
 )
 import pandas._testing as tm
@@ -51,9 +52,6 @@ class TestDataFrameToXArray:
         # datetimes w/tz are preserved
         # column names are lost
         expected = df.copy()
-        expected["f"] = expected["f"].astype(
-            object if not using_infer_string else "str"
-        )
         expected.columns.name = None
         tm.assert_frame_equal(result.to_dataframe(), expected)
 
@@ -88,8 +86,15 @@ class TestDataFrameToXArray:
 
 
 class TestSeriesToXArray:
-    def test_to_xarray_index_types(self, index_flat):
+    def test_to_xarray_index_types(self, index_flat, request):
         index = index_flat
+        if isinstance(index.dtype, StringDtype) and index.dtype.storage == "pyarrow":
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="xarray calling reshape of ArrowExtensionArray",
+                    raises=NotImplementedError,
+                )
+            )
         # MultiIndex is tested in test_to_xarray_with_multiindex
 
         from xarray import DataArray
