@@ -1477,14 +1477,6 @@ class StringMethods(NoNewAttributesMixin):
         0    False
         1     True
         2     True
-        dtype: bool
-
-        Ensure consistent behavior with alternation patterns:
-        >>> ser = pd.Series(["asdf", "as"], dtype="string[pyarrow]")
-        >>> ser.str.fullmatch(r"(as)|(as)")
-        0    False
-        1     True
-        dtype: bool
         """
         is_pyarrow = False
         arr = self._data.array
