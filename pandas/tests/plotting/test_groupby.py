@@ -1,6 +1,5 @@
 """Test cases for GroupBy.plot"""
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -157,6 +156,8 @@ class TestDataFrameGroupByPlots:
     def test_groupby_scatter_colors_differ(self):
         # GH 59846 - Test that scatter plots use different colors for different groups
         # similar to how line plots do
+        import matplotlib.pyplot as plt
+
         df = DataFrame(
             {
                 "x": [1, 2, 3, 4, 5, 6, 7, 8, 9],
