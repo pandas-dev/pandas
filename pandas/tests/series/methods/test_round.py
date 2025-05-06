@@ -78,4 +78,3 @@ class TestSeriesRound:
         msg = "Expected numeric dtype, got object instead."
         with pytest.raises(TypeError, match=msg):
             ser.round()
-
