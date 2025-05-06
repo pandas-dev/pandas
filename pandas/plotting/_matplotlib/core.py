@@ -805,9 +805,6 @@ class MPLPlot(ABC):
                     if not isinstance(self.subplots, bool):
                         if len(self.subplots) != len(self.title):
                             raise ValueError(
-                                "The length of `title` must equal the number "
-                                "of subplots if `title` of type `list` "
-                                "and subplots is iterable.\n"
                                 f"The number of titles ({len(self.title)}) must equal "
                                 f"the number of subplots ({len(self.subplots)})."
                             )
