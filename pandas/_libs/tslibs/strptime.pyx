@@ -444,6 +444,9 @@ def array_strptime(
             else:
                 val = str(val)
 
+            out_local = 0
+            out_tzoffset = 0
+
             if fmt == "ISO8601":
                 string_to_dts_succeeded = not string_to_dts(
                     val, &dts, &out_bestunit, &out_local,
