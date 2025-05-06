@@ -1469,14 +1469,6 @@ class StringMethods(NoNewAttributesMixin):
         containing alternation (|). For regex patterns with alternation operators,
         the method ensures proper grouping by wrapping the pattern in parentheses
         when using PyArrow-backed string arrays.
-
-        Examples
-        --------
-        >>> ser = pd.Series(["cat", "duck", "dove"])
-        >>> ser.str.fullmatch(r"d.+")
-        0    False
-        1     True
-        2     True
         """
         is_pyarrow = False
         arr = self._data.array
