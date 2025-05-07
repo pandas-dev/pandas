@@ -639,7 +639,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 dtype = StringDtype(storage="python")
 
         from pandas.core.arrays.masked import BaseMaskedArray
-        
+
         na_value = dtype.na_value
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype
