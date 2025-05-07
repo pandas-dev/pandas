@@ -1,5 +1,7 @@
 import pytest
+
 import pandas as pd
+
 
 def test_mixed_int_string_index():
     idx = pd.Index([0, "a", 1, "b", 2, "c"])

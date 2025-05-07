@@ -359,7 +359,7 @@ class TestBase:
             pytest.skip(f"{type(self).__name__} separately tested")
 
         # New test for mixed-int-string
-        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        if index.equals(Index([0, "a", 1, "b", 2, "c"])):
             result = index.astype(str).argsort()
             expected = np.array(index.astype(str)).argsort()
             tm.assert_numpy_array_equal(result, expected, check_dtype=False)

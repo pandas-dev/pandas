@@ -159,8 +159,9 @@ def test_numpy_ufuncs_reductions(index, func, request):
     has_int = any(isinstance(x, int) for x in index)
     if has_str and has_int:
         request.applymarker(
-            pytest.mark.xfail(reason="Cannot compare mixed types (int and str)"
-                            " in ufunc reductions")
+            pytest.mark.xfail(
+                reason="Cannot compare mixed types (int and str) in ufunc reductions"
+            )
         )
 
     if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
