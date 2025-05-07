@@ -801,6 +801,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.bar` with ``stacked=True`` where labels on stacked bars with zero-height segments were incorrectly positioned at the base instead of the label position of the previous segment (:issue:`59429`)
 - Bug in :meth:`DataFrame.plot.line` raising ``ValueError`` when set both color and a ``dict`` style (:issue:`59461`)
 - Bug in :meth:`DataFrame.plot` that causes a shift to the right when the frequency multiplier is greater than one. (:issue:`57587`)
+- Bug in :meth:`DataFrame.plot` where ``title`` would require extra titles when plotting more than one column per subplot. (:issue:`61019`)
 - Bug in :meth:`Series.plot` preventing a line and bar from being aligned on the same plot (:issue:`61161`)
 - Bug in :meth:`Series.plot` preventing a line and scatter plot from being aligned (:issue:`61005`)
 - Bug in :meth:`Series.plot` with ``kind="pie"`` with :class:`ArrowDtype` (:issue:`59192`)
