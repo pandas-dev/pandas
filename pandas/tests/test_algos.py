@@ -64,11 +64,11 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize("index_or_series_obj",
-                             [
-                             [1, 2, 3],
-                             ["a", "b", "c"],
-                             [0, "a", 1, "b", 2, "c"]
-                             ])
+                            [
+                            [1, 2, 3],
+                            ["a", "b", "c"],
+                            [0, "a", 1, "b", 2, "c"]
+                            ])
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = Index(index_or_series_obj)
@@ -77,7 +77,8 @@ class TestFactorize:
             pytest.skip("Skipping test for empty Index")
 
         if obj.name == "mixed-int-string" or obj.name is None:
-            pytest.skip("Skipping test for mixed-int-string due to unsupported comparison between str and int")
+            pytest.skip("Skipping test for mixed-int-string due"
+                        " to unsupported comparison between str and int")
 
 
         result_codes, result_uniques = obj.factorize(sort=sort)

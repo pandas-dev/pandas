@@ -74,9 +74,9 @@ def test_union_same_types(index):
 def test_union_different_types(index_flat, index_flat2, request):
     idx1 = index_flat
     idx2 = index_flat2
-
-    # Ειδική μεταχείριση για mixed-int-string
-    if idx1.equals(pd.Index([0, "a", 1, "b", 2, "c"])) or idx2.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+    # mixed int string
+    target_index = pd.Index([0, "a", 1, "b", 2, "c"])
+    if idx1.equals(target_index) or idx2.equals(target_index):
         idx1 = idx1.astype(str)
         idx2 = idx2.astype(str)
 
@@ -919,12 +919,16 @@ class TestSetOpsUnsorted:
         index2 = MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
 
         def has_mixed_types(level):
-            return any(isinstance(x, str) for x in level) and any(isinstance(x, int) for x in level)
+            return (
+                any(isinstance(x, str) for x in level)
+                and any(isinstance(x, int) for x in level)
+            )
 
         for idx in [index1, index2]:
             for lvl in range(idx.nlevels):
                 if has_mixed_types(idx.get_level_values(lvl)):
-                    pytest.skip(f"Mixed types in MultiIndex level {lvl} are not orderable")
+                    pytest.skip(f"Mixed types in MultiIndex level {lvl}"
+                                " are not orderable")
 
         result = index1.symmetric_difference(index2, sort=sort)
         expected = MultiIndex.from_tuples([("bar", 2), ("baz", 3), ("bar", 3)])
