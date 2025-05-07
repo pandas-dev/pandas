@@ -143,9 +143,6 @@ versionfile_build = "pandas/_version.py"
 tag_prefix = "v"
 parentdir_prefix = "pandas-"
 
-[tool.meson-python.args]
-setup = ['--vsenv'] # For Windows
-
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* cp38-* cp39-* pp* *_i686 *_ppc64le *_s390x"
 build-verbosity = 3
@@ -162,6 +159,7 @@ before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.s
 [tool.cibuildwheel.windows]
 environment = {}
 before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build_windows.sh"
+config-settings = "setup-args=--vsenv"
 test-command = """
   set PANDAS_CI='1' && \
   python -c "import pandas as pd; \
