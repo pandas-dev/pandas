@@ -442,7 +442,9 @@ class TestCommon:
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
     non_na_values = [x for x in index_with_missing if pd.notna(x)]
     if len({type(x) for x in non_na_values}) > 1:
-        pytest.mark.xfail(reason="Sorting fails due to heterogeneous types in index (int vs str)")
+        pytest.mark.xfail(
+            reason="Sorting fails due to heterogeneous types in index (int vs str)"
+        )
 
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
         index_with_missing.sort_values(na_position=na_position)
@@ -456,7 +458,9 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
 
     non_na_values = [x for x in index_with_missing if pd.notna(x)]
     if len({type(x) for x in non_na_values}) > 1:
-        pytest.mark.xfail(reason="Sorting fails due to heterogeneous types in index (int vs str)")
+        pytest.mark.xfail(
+            reason="Sorting fails due to heterogeneous types in index (int vs str)"
+        )
 
     if isinstance(index_with_missing, CategoricalIndex):
         request.applymarker(

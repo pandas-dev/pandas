@@ -371,7 +371,7 @@ class TestBase:
 
     def test_numpy_argsort(self, index):
         # new test for mixed-int-string
-        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        if index.equals(Index([0, "a", 1, "b", 2, "c"])):
             result = np.argsort(index.astype(str))
             expected = index.astype(str).argsort()
             tm.assert_numpy_array_equal(result, expected)
