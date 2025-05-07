@@ -802,7 +802,13 @@ class MPLPlot(ABC):
         if self.title:
             if self.subplots:
                 if is_list_like(self.title):
-                    if len(self.title) != self.nseries:
+                    if not isinstance(self.subplots, bool):
+                        if len(self.subplots) != len(self.title):
+                            raise ValueError(
+                                f"The number of titles ({len(self.title)}) must equal "
+                                f"the number of subplots ({len(self.subplots)})."
+                            )
+                    elif len(self.title) != self.nseries:
                         raise ValueError(
                             "The length of `title` must equal the number "
                             "of columns if using `title` of type `list` "
@@ -1934,13 +1940,14 @@ class BarPlot(MPLPlot):
 
         self.subplots: list[Any]
 
-        if bool(self.subplots) and self.stacked:
-            for i, sub_plot in enumerate(self.subplots):
-                if len(sub_plot) <= 1:
-                    continue
-                for plot in sub_plot:
-                    _stacked_subplots_ind[int(plot)] = i
-                _stacked_subplots_offsets.append([0, 0])
+        if not isinstance(self.subplots, bool):
+            if bool(self.subplots) and self.stacked:
+                for i, sub_plot in enumerate(self.subplots):
+                    if len(sub_plot) <= 1:
+                        continue
+                    for plot in sub_plot:
+                        _stacked_subplots_ind[int(plot)] = i
+                    _stacked_subplots_offsets.append([0, 0])
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)

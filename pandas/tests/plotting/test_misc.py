@@ -31,6 +31,8 @@ mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
 
+import re
+
 from pandas.plotting._matplotlib.style import get_standard_colors
 
 
@@ -727,7 +729,11 @@ def _df_bar_subplot_checker(df_bar_data, df_bar_df, subplot_data_df, subplot_col
         ].reset_index()
         for i in range(len(subplot_columns))
     ]
-    expected_total_height = df_bar_df.loc[:, subplot_columns].sum(axis=1)
+
+    if len(subplot_columns) == 1:
+        expected_total_height = df_bar_df.loc[:, subplot_columns[0]]
+    else:
+        expected_total_height = df_bar_df.loc[:, subplot_columns].sum(axis=1)
 
     for i in range(len(subplot_columns)):
         sliced_df = subplot_sliced_by_source[i]
@@ -743,7 +749,6 @@ def _df_bar_subplot_checker(df_bar_data, df_bar_df, subplot_data_df, subplot_col
             tm.assert_series_equal(
                 height_iter, expected_total_height, check_names=False, check_dtype=False
             )
-
         else:
             # Checks each preceding bar ends where the next one starts
             next_start_coord = subplot_sliced_by_source[i + 1]["y_coord"]
@@ -816,3 +821,44 @@ def test_bar_2_subplots_1_triple_stacked(df_bar_data, df_bar_df, subplot_divisio
         _df_bar_subplot_checker(
             df_bar_data, df_bar_df, subplot_data_df_list[i], subplot_division[i]
         )
+
+
+def test_bar_subplots_stacking_bool(df_bar_data, df_bar_df):
+    subplot_division = [("A"), ("B"), ("C"), ("D")]
+    ax = df_bar_df.plot(subplots=True, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+def test_plot_bar_label_count_default():
+    df = DataFrame(
+        [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
+    )
+    df.plot(subplots=True, kind="bar", title=["A", "B", "C", "D"])
+
+
+def test_plot_bar_label_count_expected_fail():
+    df = DataFrame(
+        [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
+    )
+    error_regex = re.escape(
+        "The number of titles (4) must equal the number of subplots (3)."
+    )
+    with pytest.raises(ValueError, match=error_regex):
+        df.plot(
+            subplots=[("A", "B")],
+            kind="bar",
+            title=["A&B", "C", "D", "Extra Title"],
+        )
+
+
+def test_plot_bar_label_count_expected_success():
+    df = DataFrame(
+        [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
+    )
+    df.plot(subplots=[("A", "B", "D")], kind="bar", title=["A&B&D", "C"])
