@@ -1402,7 +1402,7 @@ def iterdir(
         return
 
     for file in fs.ls(path_without_scheme, detail=True):
-        if fs.isfile(file):
+        if file["type"] == "file":
             path_obj = PurePosixPath(file["name"])
             if _match_file(
                 path_obj,
