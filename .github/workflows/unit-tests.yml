@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml, actions-313.yaml, actions-313-freethreading.yaml]
+        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml, actions-313.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["0"]
@@ -39,6 +39,10 @@ jobs:
             platform: ubuntu-24.04
           - name: "Minimum Versions"
             env_file: actions-310-minimum_versions.yaml
+            pattern: "not slow and not network and not single_cpu"
+            platform: ubuntu-24.04
+          - name: "Freethreading"
+            env_file: actions-313-freethreading.yaml
             pattern: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Locale: it_IT"

@@ -32,7 +32,8 @@ dependencies:
   - gcsfs>=2024.2.0
   - jinja2>=3.1.3
   - lxml>=4.9.2
-  - matplotlib>=3.8.3
+  # No Python 3.13t wheel
+  # - matplotlib>=3.8.3
   - numba>=0.59.0
   - numexpr>=2.9.0
   - odfpy>=1.4.1
