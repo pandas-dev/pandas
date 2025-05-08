@@ -446,6 +446,7 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
         index_with_missing.sort_values(na_position=na_position)
 
+
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
 def test_sort_values_with_missing(index_with_missing, na_position, request):
@@ -476,7 +477,8 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
 
     result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)
-    
+
+
 def test_sort_values_natsort_key():
     # GH#56081
     def split_convert(s):
