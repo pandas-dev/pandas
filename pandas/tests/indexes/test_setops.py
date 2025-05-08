@@ -77,7 +77,7 @@ def test_union_different_types(index_flat, index_flat2, request):
     idx1 = index_flat
     idx2 = index_flat2
     # mixed int string
-    target_index = pd.Index([0, "a", 1, "b", 2, "c"])
+    target_index = Index([0, "a", 1, "b", 2, "c"])
     if idx1.equals(target_index) or idx2.equals(target_index):
         idx1 = idx1.astype(str)
         idx2 = idx2.astype(str)
