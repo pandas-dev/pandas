@@ -697,14 +697,13 @@ def test_pyarrow_read_csv_datetime_dtype():
     tm.assert_frame_equal(expect, result)
 
 
-def test_iterdir_local(directory_with_dummy_csv):
-    for file in icom.iterdir(directory_with_dummy_csv):
+def test_iterdir_local(local_csv_directory):
+    for file in icom.iterdir(local_csv_directory):
         assert file.is_file()
-        assert file.name.startswith("file_")
         assert file.suffix == ".csv"
 
 
-def test_mock_remote_csv_directory_contents(mock_remote_csv_directory):
+def test_remote_csv_directory(remote_csv_directory):
     import fsspec
     from fsspec.implementations.memory import MemoryFileSystem
 
@@ -726,10 +725,13 @@ def test_mock_remote_csv_directory_contents(mock_remote_csv_directory):
     assert nested_files[0]["name"] == "/remote-bucket/nested/ignored.csv"
 
 
-def test_iterdir_remote(mock_remote_csv_directory):
+def test_iterdir_remote(remote_csv_directory):
     import fsspec
 
     fs = fsspec.filesystem("s3")
-    for file in icom.iterdir(mock_remote_csv_directory):
-        assert fs.isfile(file)
+    for file in icom.iterdir(remote_csv_directory):
+        assert fs.exists(file)
         assert file.suffix == ".csv"
+
+        # for fsspec<2024.5.0, fs.isfle(PurePosixPath) returns False
+        assert fs.isfile(str(file))

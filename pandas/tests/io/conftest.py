@@ -226,18 +226,18 @@ def compression_ext(request):
 
 
 @pytest.fixture
-def directory_with_dummy_csv(tmp_path):
+def local_csv_directory(tmp_path):
     """
     Fixture to create a directory with dummy CSV files for testing.
     """
     for i in range(3):
-        file_path = tmp_path / f"file_{i}.csv"
+        file_path = tmp_path / f"{i}.csv"
         file_path.touch()
     return tmp_path
 
 
 @pytest.fixture
-def mock_remote_csv_directory(monkeypatch):
+def remote_csv_directory(monkeypatch):
     _ = pytest.importorskip("fsspec", reason="fsspec is required for remote tests")
 
     from fsspec.implementations.memory import MemoryFileSystem

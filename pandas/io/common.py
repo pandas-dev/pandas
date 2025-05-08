@@ -1378,11 +1378,6 @@ def iterdir(
                 yield resolved_path
             return
 
-        if not resolved_path.is_dir():
-            raise NotADirectoryError(
-                f"Path {path!r} is neither a file nor a directory."
-            )
-
         for entry in resolved_path.iterdir():
             if entry.is_file():
                 if _match_file(
@@ -1393,7 +1388,7 @@ def iterdir(
                     yield entry
         return
 
-    # Remote paths (e.g., s3)
+    # Remote paths
     fsspec = import_optional_dependency("fsspec", extra=scheme)
     fs = fsspec.filesystem(scheme)
     path_without_scheme = fsspec.core.strip_protocol(path_str)
@@ -1405,13 +1400,10 @@ def iterdir(
         ):
             yield PurePosixPath(path_without_scheme)
         return
-    if not fs.isdir(path_without_scheme):
-        raise NotADirectoryError(f"Path {path!r} is neither a file nor a directory.")
 
-    files = fs.ls(path_without_scheme, detail=True)
-    for f in files:
-        if f["type"] == "file":
-            path_obj = PurePosixPath(f["name"])
+    for file in fs.ls(path_without_scheme, detail=True):
+        if fs.isfile(file):
+            path_obj = PurePosixPath(file["name"])
             if _match_file(
                 path_obj,
                 extensions,
