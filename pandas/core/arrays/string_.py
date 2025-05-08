@@ -655,8 +655,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 #  zero_copy_only to True which caused problems see GH#52076
                 scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
-            if isinstance(scalars, list) and all(isinstance(x, list) for x in scalars):
-                scalars = [str(x) for x in scalars]
             result = lib.ensure_string_array(scalars, na_value=na_value, copy=copy)
 
         # Manually creating new array avoids the validation step in the __init__, so is
