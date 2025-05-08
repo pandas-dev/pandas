@@ -210,7 +210,7 @@ class TestSetOps:
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
-            pytest.skip(f"Not relevant for {type(index).__name__}")
+            pytest.mark.xfail(reason="Not relevant for CategoricalIndex")
 
         first = index[:5].unique()
         second = index[:3].unique()
@@ -236,7 +236,7 @@ class TestSetOps:
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
         if index.inferred_type in ["mixed", "mixed-integer"]:
-            pytest.skip("Mixed-type Index not orderable; union fails")
+            pytest.mark.xfail(reason="Not relevant for mixed types")
 
         index = index.unique()
 
