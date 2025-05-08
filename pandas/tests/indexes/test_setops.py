@@ -13,7 +13,6 @@ from pandas._libs import lib
 
 from pandas.core.dtypes.cast import find_common_type
 
-import pandas as pd
 from pandas import (
     CategoricalDtype,
     CategoricalIndex,
@@ -242,7 +241,7 @@ class TestSetOps:
         index = index.unique()
 
         # Mixed int string
-        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        if index.equals(Index([0, "a", 1, "b", 2, "c"])):
             index = index.astype(str)
 
         first = index[3:]
@@ -311,7 +310,7 @@ class TestSetOps:
             # index fixture has e.g. an index of bools that does not satisfy this,
             #  another with [0, 0, 1, 1, 2, 2]
             pytest.skip("Index values no not satisfy test condition.")
-        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        if index.equals(Index([0, "a", 1, "b", 2, "c"])):
             index = index.astype(str)
         first = index[1:]
         second = index[:-1]

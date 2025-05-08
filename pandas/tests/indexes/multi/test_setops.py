@@ -627,7 +627,7 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_union_duplicates(index, request):
     # special case for mixed types
-    if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+    if index.equals(Index([0, "a", 1, "b", 2, "c"])):
         index = index.map(str)
 
     # GH#38977
