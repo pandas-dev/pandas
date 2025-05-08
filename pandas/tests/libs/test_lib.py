@@ -305,7 +305,5 @@ def test_ensure_string_array_list_of_lists():
     result = lib.ensure_string_array(arr)
 
     # Each item in result should still be a list, not a stringified version
-    assert isinstance(result, np.ndarray)
-    assert result.dtype == object
-    assert result[0] == "['t', 'e', 's', 't']"
-    assert result[1] == "['w', 'o', 'r', 'd']"
+    expected = np.array(["['t', 'e', 's', 't']", "['w', 'o', 'r', 'd']"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
