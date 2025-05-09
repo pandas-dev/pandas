@@ -4486,7 +4486,6 @@ class DataFrame(NDFrame, OpsMixin):
         global_dict: dict[str, Any] | None = ...,
         resolvers: list[Mapping] | None = ...,
         level: int = ...,
-        target: None = ...,
         inplace: Literal[False] = ...,
     ) -> DataFrame: ...
 
@@ -4501,7 +4500,6 @@ class DataFrame(NDFrame, OpsMixin):
         global_dict: dict[str, Any] | None = ...,
         resolvers: list[Mapping] | None = ...,
         level: int = ...,
-        target: None = ...,
         inplace: Literal[True],
     ) -> None: ...
 
@@ -4516,7 +4514,6 @@ class DataFrame(NDFrame, OpsMixin):
         global_dict: dict[str, Any] | None = ...,
         resolvers: list[Mapping] | None = ...,
         level: int = ...,
-        target: None = ...,
         inplace: bool = ...,
     ) -> DataFrame | None: ...
 
@@ -4530,7 +4527,6 @@ class DataFrame(NDFrame, OpsMixin):
         global_dict: dict[str, Any] | None = None,
         resolvers: list[Mapping] | None = None,
         level: int = 0,
-        target: None = None,
         inplace: bool = False,
     ) -> DataFrame | None:
         """
@@ -4551,11 +4547,45 @@ class DataFrame(NDFrame, OpsMixin):
 
             See the documentation for :meth:`DataFrame.eval` for details on
             referring to column names and variables in the query string.
+        parser : {'pandas', 'python'}, default 'pandas'
+            The parser to use to construct the syntax tree from the expression. The
+            default of ``'pandas'`` parses code slightly different than standard
+            Python. Alternatively, you can parse an expression using the
+            ``'python'`` parser to retain strict Python semantics.  See the
+            :ref:`enhancing performance <enhancingperf.eval>` documentation for
+            more details.
+        engine : {'python', 'numexpr'}, default 'numexpr'
+
+            The engine used to evaluate the expression. Supported engines are
+
+            - None : tries to use ``numexpr``, falls back to ``python``
+            - ``'numexpr'`` : This default engine evaluates pandas objects using
+              numexpr for large speed ups in complex expressions with large frames.
+            - ``'python'`` : Performs operations as if you had ``eval``'d in top
+              level python. This engine is generally not that useful.
+
+            More backends may be available in the future.
+        local_dict : dict or None, optional
+            A dictionary of local variables, taken from locals() by default.
+        global_dict : dict or None, optional
+            A dictionary of global variables, taken from globals() by default.
+        resolvers : list of dict-like or None, optional
+            A list of objects implementing the ``__getitem__`` special method that
+            you can use to inject an additional collection of namespaces to use for
+            variable lookup. For example, this is used in the
+            :meth:`~DataFrame.query` method to inject the
+            ``DataFrame.index`` and ``DataFrame.columns``
+            variables that refer to their respective :class:`~pandas.DataFrame`
+            instance attributes.
+        level : int, optional
+            The number of prior stack frames to traverse and add to the current
+            scope. Most users will **not** need to change this parameter.
+        inplace : bool, default False
+            If `target` is provided, and the expression mutates `target`, whether
+            to modify `target` inplace. Otherwise, return a copy of `target` with
+            the mutation.
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
-        **kwargs
-            See the documentation for :func:`eval` for complete details
-            on the keyword arguments accepted by :meth:`DataFrame.query`.
 
         Returns
         -------
