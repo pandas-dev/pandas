@@ -730,8 +730,7 @@ def test_iterdir_remote(remote_csv_directory):
 
     fs = fsspec.filesystem("s3")
     for file in icom.iterdir(remote_csv_directory):
-        assert fs.exists(file)
-        assert file.suffix == ".csv"
-
         # for fsspec<2024.5.0, fs.isfle(PurePosixPath) returns False
+        assert fs.exists(str(file))
+        assert file.suffix == ".csv"
         assert fs.isfile(str(file))
