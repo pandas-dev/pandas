@@ -78,6 +78,7 @@ Guides
     boolean
     visualization
     style
+    user_defined_functions
     groupby
     window
     timeseries
