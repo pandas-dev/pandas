@@ -4524,7 +4524,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         expr: str,
         *,
-        parser: Literal["pandas", "python"] = ...,
+        parser: Literal["pandas", "python"] = "pandas",
         engine: Literal["python", "numexpr"] | None = None,
         local_dict: dict[str, Any] | None = None,
         global_dict: dict[str, Any] | None = None,
@@ -4669,16 +4669,17 @@ class DataFrame(NDFrame, OpsMixin):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
 
-        res = self.eval(
-            expr,
-            parser,
-            engine,
-            local_dict,
-            global_dict,
-            resolvers,
-            level + 1,
-            target,
-        )
+        kwargs = {
+            "parser": parser,
+            "engine": engine,
+            "local_dict": local_dict,
+            "global_dict": global_dict,
+            "resolvers": resolvers,
+            "level": level + 1,
+            "target": None,
+        }
+
+        res = self.eval(expr, **kwargs)
 
         try:
             result = self.loc[res]
