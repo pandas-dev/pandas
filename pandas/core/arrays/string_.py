@@ -1015,7 +1015,30 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return super().searchsorted(value=value, side=side, sorter=sorter)
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
+        from pandas.arrays import (
+            ArrowExtensionArray,
+            BooleanArray,
+        )
+
+        if (
+            isinstance(other, BaseStringArray)
+            and self.dtype.na_value is not libmissing.NA
+            and other.dtype.na_value is libmissing.NA
+        ):
+            # NA has priority of NaN semantics
+            return NotImplemented
+
+        if isinstance(other, ArrowExtensionArray):
+            if isinstance(other, BaseStringArray):
+                # pyarrow storage has priority over python storage
+                # (except if we have NA semantics and other not)
+                if not (
+                    self.dtype.na_value is libmissing.NA
+                    and other.dtype.na_value is not libmissing.NA
+                ):
+                    return NotImplemented
+            else:
+                return NotImplemented
 
         if isinstance(other, StringArray):
             other = other._ndarray
