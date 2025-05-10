@@ -606,6 +606,17 @@ def test_map_kwargs():
     tm.assert_series_equal(result, expected)
 
 
+def test_map_arrow_timestamp_dict():
+    # GH 61231
+    pytest.importorskip("pyarrow")
+
+    ser = Series(date_range("2023-01-01", periods=3)).astype("timestamp[ns][pyarrow]")
+    mapper = {ts: i for i, ts in enumerate(ser)}
+    result = ser.map(mapper)
+    expected = Series([0, 1, 2], dtype="int64")
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_arg_as_kwarg():
     with tm.assert_produces_warning(
         FutureWarning, match="`arg` has been renamed to `func`"
