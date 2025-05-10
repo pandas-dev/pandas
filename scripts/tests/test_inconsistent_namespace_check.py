@@ -5,14 +5,10 @@ from scripts.check_for_inconsistent_pandas_namespace import (
 )
 
 BAD_FILE_0 = (
-    "from pandas import Categorical\n"
-    "cat_0 = Categorical()\n"
-    "cat_1 = pd.Categorical()"
+    "from pandas import Categorical\ncat_0 = Categorical()\ncat_1 = pd.Categorical()"
 )
 BAD_FILE_1 = (
-    "from pandas import Categorical\n"
-    "cat_0 = pd.Categorical()\n"
-    "cat_1 = Categorical()"
+    "from pandas import Categorical\ncat_0 = pd.Categorical()\ncat_1 = Categorical()"
 )
 BAD_FILE_2 = (
     "from pandas import Categorical\n"

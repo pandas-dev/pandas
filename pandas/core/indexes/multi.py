@@ -3891,6 +3891,60 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Set Methods
 
+    def difference(self, other, sort=None):
+        """
+        Return a new MultiIndex with elements from the index not in `other`.
+
+        Parameters
+        ----------
+        other : MultiIndex or array-like
+        sort : bool or None, default None
+            Whether to sort the resulting index.
+
+        Returns
+        -------
+        MultiIndex
+        """
+        if not isinstance(other, MultiIndex):
+            other = MultiIndex.from_tuples(other, names=self.names)
+
+        # Convert 'other' to codes using self's levels
+        other_codes = []
+        for i, (lev, name) in enumerate(zip(self.levels, self.names)):
+            level_vals = other.get_level_values(i)
+            other_code = lev.get_indexer(level_vals)
+            other_codes.append(other_code)
+
+        # Create mask for elements not in 'other'
+        n = len(self)
+        mask = np.ones(n, dtype=bool)
+        engine = self._engine
+        for codes in zip(*other_codes):
+            try:
+                loc = engine.get_loc(tuple(codes))
+                if isinstance(loc, slice):
+                    mask[loc] = False
+                elif isinstance(loc, np.ndarray):
+                    mask &= ~loc
+                else:
+                    mask[loc] = False
+            except KeyError:
+                pass
+
+        new_codes = [code[mask] for code in self.codes]
+        result = MultiIndex(
+            levels=self.levels,
+            codes=new_codes,
+            names=self.names,
+            verify_integrity=False,
+        )
+        if sort is None or sort is True:
+            try:
+                return result.sort_values()
+            except TypeError:
+                pass
+        return result
+
     def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
         if other.has_duplicates:
