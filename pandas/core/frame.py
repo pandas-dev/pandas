@@ -4694,14 +4694,15 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs = {}
-        kwargs["level"] = level + 1
-        kwargs["target"] = None
-        kwargs["parser"] = parser
-        kwargs["engine"] = engine
-        kwargs["local_dict"] = local_dict
-        kwargs["global_dict"] = global_dict
-        kwargs["resolvers"] = resolvers or ()
+        kwargs: Any = {
+        "level": level + 1,
+        "target": None,
+        "parser": parser,
+        "engine": engine,
+        "local_dict": local_dict,
+        "global_dict": global_dict,
+        "resolvers": resolvers or (),
+        }
 
         res = self.eval(expr, **kwargs)
 
