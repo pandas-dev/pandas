@@ -928,7 +928,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         mgr = self._mgr.get_slice(slobj, axis=axis)
-        out = self._constructor_from_mgr(mgr, axes=mgr.axes)
+        out = self._constructor_from_mgr(mgr, axes=mgr.axes).copy(deep=True)
         out._name = self._name
         return out.__finalize__(self)
 
