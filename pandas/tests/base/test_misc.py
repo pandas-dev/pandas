@@ -150,7 +150,9 @@ def test_searchsorted(request, index_or_series_obj):
     # Handle mixed int string
     if isinstance(obj, Index) and obj.inferred_type in ["mixed", "mixed-integer"]:
         request.applymarker(
-            pytest.mark.xfail(reason="Cannot compare mixed types (str and int)", strict=False)
+            pytest.mark.xfail(
+                reason="Cannot compare mixed types (str and int)", strict=False
+            )
         )
         obj = obj.unique()
 
@@ -162,7 +164,8 @@ def test_searchsorted(request, index_or_series_obj):
         # See gh-14833
         request.applymarker(
             pytest.mark.xfail(
-                reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833", strict=False
+                reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833",
+                strict=False,
             )
         )
         return
@@ -176,9 +179,7 @@ def test_searchsorted(request, index_or_series_obj):
 
     if isinstance(obj, Index) and obj.inferred_type == "tuples":
         # Tuples may not be supported by np.searchsorted
-        pytest.mark.xfail(
-            reason="Cannot handle tuples in searchsorted", strict=False
-        )
+        pytest.mark.xfail(reason="Cannot handle tuples in searchsorted", strict=False)
 
     # Only proceed if obj is not mixed or unsupported
     try:
