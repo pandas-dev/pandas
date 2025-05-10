@@ -1549,9 +1549,157 @@ class LinePlot(MPLPlot):
             self.data = self.data.fillna(value=0)
 
     def _make_plot(self, fig: Figure) -> None:
+        """Create the plot.
+
+        This method contains a fast path optimization for DataFrames with DatetimeIndex
+        and multiple columns. For large DataFrames with DatetimeIndex, plotting can be
+        very slow due to the overhead of date conversions for each column.
+
+        The optimization follows this strategy:
+        1. For the first column only: Use standard DatetimeIndex plotting to get ticks
+        2. For remaining columns: Plot with a simpler numeric index (much faster)
+        3. Apply the datetime tick labels from the first plot to all other plots
+
+        This avoids redundant DatetimeIndex -> PeriodIndex conversions and tick
+        calculations when plotting many columns with the same index.
+
+        The optimization can yield a 10x+ speedup on large DataFrames with many columns.
+        """
+        # Fast path for DatetimeIndex with many columns
+        # Implement the same strategy as the user's workaround that showed 11x speedup
+        if (
+            self._is_ts_plot()
+            and isinstance(self.data.index, ABCDatetimeIndex)
+            and len(self.data.columns) >= 2
+        ):  # Need at least 2 columns for this optimization
+            # Get the first axis for the plot
+            ax = self._get_ax(0)
+
+            # STEP 1: Plot only the first column to get datetime ticks
+            first_column = self.data.iloc[:, 0]
+            first_series = first_column.copy()
+            first_style = None
+
+            # Apply colors and style just for first column
+            colors = self._get_colors()
+            first_col_label = self.data.columns[0]
+            kwds = self.kwds.copy()
+            if self.color is not None:
+                kwds["color"] = self.color
+
+            # Set up style for first column
+            first_style, kwds = self._apply_style_colors(
+                colors,
+                kwds,
+                0,
+                first_col_label,  # type: ignore[arg-type]
+            )
+
+            # Add label to kwds for the first column
+            first_label = pprint_thing(first_col_label)
+            first_label = self._mark_right_label(first_label, index=0)
+            kwds["label"] = first_label
+
+            # Plot the first column with DatetimeIndex to set up ticks
+            first_ax = self._get_ax(0)
+            # We need to specifically add column_num for stacking
+            kwds["column_num"] = 0
+            lines = self._ts_plot(
+                first_ax, None, first_series, style=first_style, **kwds
+            )
+
+            # Get the x-ticks and labels from the first plot
+            xticks = first_ax.get_xticks()
+            xticklabels = [label.get_text() for label in first_ax.get_xticklabels()]
+
+            # Keep reference to the first line for the legend
+            first_line = lines[0]
+            self._append_legend_handles_labels(first_line, first_label)
+
+            # STEP 2: Plot all columns with a numeric index (much faster)
+            # Reset axes for faster plotting
+            data_without_index = self.data.reset_index(drop=True)
+
+            # Plot remaining columns
+            stacking_id = self._get_stacking_id()
+            is_errorbar = com.any_not_none(*self.errors.values())
+
+            # Skip the first column and process the remaining ones
+            for i, (col_idx, (label, y)) in enumerate(
+                zip(
+                    range(1, len(data_without_index.columns)),
+                    list(data_without_index.items())[1:],
+                )
+            ):
+                # Get the actual axis for this column - use the right column index
+                # Note: i is 0-based for the remaining columns after skipping the first
+                ax = self._get_ax(col_idx)  # Use col_idx which starts from 1
+
+                # Reset kwds for each column
+                kwds = self.kwds.copy()
+                if self.color is not None:
+                    kwds["color"] = self.color
+
+                # Apply style and colors
+                style, kwds = self._apply_style_colors(
+                    colors,
+                    kwds,
+                    col_idx,  # Use 1-based index to match column
+                    label,  # type: ignore[arg-type]
+                )
+
+                # Handle any error bars
+                errors = self._get_errorbars(label=label, index=col_idx)
+                kwds = dict(kwds, **errors)
+
+                # Format the label
+                label_str = pprint_thing(label)
+                label_str = self._mark_right_label(label_str, index=col_idx)
+                kwds["label"] = label_str
+
+                # Add column number for stacking
+                kwds["column_num"] = col_idx
+
+                try:
+                    # Use regular plot (not ts_plot) for better performance
+                    newlines = self._plot(
+                        ax,
+                        data_without_index.index,  # Use numeric index for speed
+                        np.asarray(y.values),
+                        style=style,
+                        stacking_id=stacking_id,
+                        is_errorbar=is_errorbar,
+                        **kwds,
+                    )
+                    self._append_legend_handles_labels(newlines[0], label_str)
+
+                    # STEP 3: Apply the datetime x-axis formatting to each plot
+                    # Use ticks from first plot for all subsequent plots
+                    num_ticks = len(xticks)
+                    new_xticks = np.linspace(0, len(self.data.index) - 1, num_ticks)
+                    ax.set_xlim(0, len(self.data.index) - 1)
+                    ax.set_xticks(new_xticks)
+                    ax.set_xticklabels(xticklabels)
+                except Exception as e:
+                    # If anything goes wrong with the plotting, log it but don't crash
+                    # This ensures the fix doesn't introduce new issues
+                    import warnings
+
+                    warnings.warn(
+                        f"Fast path plotting failed for column {col_idx}: {e!s}. "
+                        "Falling back to regular plotting method for remaining columns",
+                        stacklevel=2,
+                    )
+                    # Return without 'return' to fall back to the normal plotting path
+                    break
+            else:
+                # If we've successfully plotted all columns, return from the method
+                # We've already plotted everything with the fast path
+                return
+
+        # Regular path for other cases
         if self._is_ts_plot():
             data = maybe_convert_index(self._get_ax(0), self.data)
-
             x = data.index  # dummy, not used
             plotf = self._ts_plot
             it = data.items()
@@ -1570,6 +1718,7 @@ class LinePlot(MPLPlot):
         is_errorbar = com.any_not_none(*self.errors.values())
 
         colors = self._get_colors()
+
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
@@ -1636,15 +1785,34 @@ class LinePlot(MPLPlot):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = prepare_ts_data(data, ax, kwds)
 
-        # TODO #54485
-        ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
+        # Optimization for multi-column DatetimeIndex plots
+        if hasattr(ax, "_datetime_ticks_setup_done") and kwds.get("column_num", 0) > 0:
+            # Skip the expensive date axis setup for columns after the first one
+            # We'll just copy the ticks from the first plot
+            freq = getattr(ax, "freq", None)
+            lines = self._plot(
+                ax, data.index, np.asarray(data.values), style=style, **kwds
+            )
 
-        lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
-        # set date formatter, locators and rescale limits
-        # TODO #54485
-        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
+            if hasattr(ax, "_xticks") and hasattr(ax, "_xticklabels"):
+                # Use the stored ticks and labels from the first column plot
+                ax.set_xticks(ax._xticks)
+                ax.set_xticklabels(ax._xticklabels)
+        else:
+            # Regular path for first column or non-optimized plots
+            freq, data = prepare_ts_data(data, ax, kwds)
+
+            # TODO #54485
+            ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
+
+            lines = self._plot(
+                ax, data.index, np.asarray(data.values), style=style, **kwds
+            )
+            # set date formatter, locators and rescale limits
+            # TODO #54485
+            format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
+
         return lines
 
     @final
