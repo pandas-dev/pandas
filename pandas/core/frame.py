@@ -4695,13 +4695,13 @@ class DataFrame(NDFrame, OpsMixin):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
         kwargs: Any = {
-        "level": level + 1,
-        "target": None,
-        "parser": parser,
-        "engine": engine,
-        "local_dict": local_dict,
-        "global_dict": global_dict,
-        "resolvers": resolvers or (),
+            "level": level + 1,
+            "target": None,
+            "parser": parser,
+            "engine": engine,
+            "local_dict": local_dict,
+            "global_dict": global_dict,
+            "resolvers": resolvers or (),
         }
 
         res = self.eval(expr, **kwargs)
