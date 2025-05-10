@@ -102,8 +102,11 @@ def pivot_table(
         on the rows and columns.
     dropna : bool, default True
         Do not include columns whose entries are all NaN. If True,
-        rows with a NaN value in any column will be omitted before
-        computing margins.
+
+        * rows with an NA value in any column will be omitted before computing margins,
+        * index/column keys containing NA values will be dropped (see ``dropna``
+          parameter in :meth:``DataFrame.groupby``).
+
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
         when margins is True.
@@ -333,6 +336,11 @@ def __internal_pivot_table(
         values = list(values)
 
     grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
+    if values_passed:
+        # GH#57876 and GH#61292
+        # mypy is not aware `grouped[values]` will always be a DataFrameGroupBy
+        grouped = grouped[values]  # type: ignore[assignment]
+
     agged = grouped.agg(aggfunc, **kwargs)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):

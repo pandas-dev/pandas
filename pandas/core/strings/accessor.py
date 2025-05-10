@@ -3549,12 +3549,29 @@ class StringMethods(NoNewAttributesMixin):
     also includes other characters that can represent quantities such as
     unicode fractions.
 
-    >>> s1 = pd.Series(['one', 'one1', '1', ''])
+    >>> s1 = pd.Series(['one', 'one1', '1', '', '³', '⅕'])
     >>> s1.str.isnumeric()
     0    False
     1    False
     2     True
     3    False
+    4     True
+    5     True
+    dtype: bool
+
+    For a string to be considered numeric, all its characters must have a Unicode
+    numeric property matching :py:meth:`str.is_numeric`. As a consequence,
+    the following cases are **not** recognized as numeric:
+
+    - **Decimal numbers** (e.g., "1.1"): due to period ``"."``
+    - **Negative numbers** (e.g., "-5"):  due to minus sign ``"-"``
+    - **Scientific notation** (e.g., "1e3"): due to characters like ``"e"``
+
+    >>> s2 = pd.Series(["1.1", "-5", "1e3"])
+    >>> s2.str.isnumeric()
+    0    False
+    1    False
+    2    False
     dtype: bool
     """
     _shared_docs["isalnum"] = """

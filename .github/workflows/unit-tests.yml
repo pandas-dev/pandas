@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-22.04, ubuntu-24.04-arm]
-        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
+        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml, actions-313.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["0"]
@@ -188,7 +188,7 @@ jobs:
       matrix:
         # Note: Don't use macOS latest since macos 14 appears to be arm64 only
         os: [macos-13, macos-14, windows-latest]
-        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
+        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml, actions-313.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
@@ -316,7 +316,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    # if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
