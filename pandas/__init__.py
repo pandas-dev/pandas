@@ -3,20 +3,18 @@ from __future__ import annotations
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-_hard_dependencies = ("numpy", "dateutil")
-_missing_dependencies = []
+_hard_dependencies = ("numpy", "dateutil", "tzdata")
 
 for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
     except ImportError as _e:  # pragma: no cover
-        _missing_dependencies.append(f"{_dependency}: {_e}")
+        raise ImportError(
+            f"Unable to import required dependency {_dependency}. "
+            "Please see the traceback for details."
+        ) from _e
 
-if _missing_dependencies:  # pragma: no cover
-    raise ImportError(
-        "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
-    )
-del _hard_dependencies, _dependency, _missing_dependencies
+del _hard_dependencies, _dependency
 
 try:
     # numpy compat
