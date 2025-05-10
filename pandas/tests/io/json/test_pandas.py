@@ -2311,3 +2311,21 @@ def test_large_number():
     )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "df",
+    [
+        DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+        DataFrame({"X": [1.1, 2.2], "Y": ["a", "b"]}),
+    ],
+)
+def test_dtypes_to_json_consistency(df: DataFrame):
+    # GH 61170
+    expected = df.dtypes.apply(str).to_json()
+    result = df.dtypes.to_json()
+    result = json.loads(result)
+    for k in result:
+        if "name" in result[k]:
+            result[k] = result[k]["name"]
+    assert result == json.loads(expected)
