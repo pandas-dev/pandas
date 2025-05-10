@@ -14,7 +14,7 @@ def count_dummy_instances():
 
 
 def test_slicing_releases_dummy_instances():
-    """Ensure that slicing a Series does not retain references to all original Dummy instances."""
+    """Ensure slicing a Series does not retain references to original Dummy instances."""
     NDATA = 100_000
     baseline = count_dummy_instances()
     a = Series([Dummy(i) for i in range(NDATA)])
