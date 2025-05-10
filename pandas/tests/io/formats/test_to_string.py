@@ -758,9 +758,9 @@ class TestDataFrameToString:
         result = df.dtypes.to_string()
         expected = dedent(
             """\
-            x    string[pyarrow]
-            y     string[python]
-            z     int64[pyarrow]"""
+            x            string
+            y            string
+            z    int64[pyarrow]"""
         )
         assert result == expected
 
