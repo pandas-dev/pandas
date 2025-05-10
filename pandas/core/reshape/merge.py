@@ -3058,6 +3058,20 @@ def _items_overlap_with_suffix(
     llabels = left._transform_index(lrenamer)
     rlabels = right._transform_index(rrenamer)
 
+    # Check for duplicates created by suffixes
+    left_collisions = llabels.intersection(right.difference(to_rename))
+    right_collisions = rlabels.intersection(left.difference(to_rename))
+    if len(left_collisions) > 0:
+        raise MergeError(
+            "Passing 'suffixes' which cause duplicate columns "
+            f"{set(left_collisions)} is not allowed"
+        )
+    if len(right_collisions) > 0:
+        raise MergeError(
+            "Passing 'suffixes' which cause duplicate columns "
+            f"{set(right_collisions)} is not allowed"
+        )
+
     dups = []
     if not llabels.is_unique:
         # Only warn when duplicates are caused because of suffixes, already duplicated
