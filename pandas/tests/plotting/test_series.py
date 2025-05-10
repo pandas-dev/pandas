@@ -971,3 +971,27 @@ class TestSeriesPlots:
         s1.plot(ax=ax2)
         assert len(ax.xaxis.get_minor_ticks()) == 0
         assert len(ax.get_xticklabels()) > 0
+
+    def test_bar_line_plot(self):
+        """
+        Test that bar and line plots with the same x values are superposed
+        and that the x limits are set such that the plots are visible.
+        """
+        # GH61161
+        index = period_range("2023", periods=3, freq="Y")
+        years = set(index.year.astype(str))
+        s = Series([1, 2, 3], index=index)
+        ax = plt.subplot()
+        s.plot(kind="bar", ax=ax)
+        bar_xticks = [
+            label for label in ax.get_xticklabels() if label.get_text() in years
+        ]
+        s.plot(kind="line", ax=ax, color="r")
+        line_xticks = [
+            label for label in ax.get_xticklabels() if label.get_text() in years
+        ]
+        assert len(bar_xticks) == len(index)
+        assert bar_xticks == line_xticks
+        x_limits = ax.get_xlim()
+        assert x_limits[0] <= bar_xticks[0].get_position()[0]
+        assert x_limits[1] >= bar_xticks[-1].get_position()[0]
