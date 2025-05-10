@@ -474,7 +474,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _cmp_method(self, other, op):
         if (
-            isinstance(other, BaseStringArray)
+            isinstance(other, (BaseStringArray, ArrowExtensionArray))
             and self.dtype.na_value is not libmissing.NA
             and other.dtype.na_value is libmissing.NA
         ):

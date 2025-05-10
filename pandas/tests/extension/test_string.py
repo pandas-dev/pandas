@@ -240,10 +240,8 @@ class TestStringArray(base.ExtensionTests):
         if (
             using_infer_string
             and all_arithmetic_operators == "__radd__"
-            and (
-                dtype.na_value is pd.NA
-                and not (not HAS_PYARROW and dtype.storage == "python")
-            )
+            and dtype.na_value is pd.NA
+            and (HAS_PYARROW or dtype.storage != "pyarrow")
         ):
             # TODO(infer_string)
             mark = pytest.mark.xfail(

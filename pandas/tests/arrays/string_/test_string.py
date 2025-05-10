@@ -15,6 +15,7 @@ from pandas.compat.pyarrow import (
     pa_version_under12p0,
     pa_version_under19p0,
 )
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -369,6 +370,26 @@ def test_comparison_methods_array(comparison_op, dtype, dtype2):
         expected[-1] = getattr(other[-1], op_name)(a[-1])
         expected = pd.array(expected, dtype=expected_dtype)
         tm.assert_extension_array_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_comparison_methods_array_arrow_extension(comparison_op, dtype2):
+    # Test pd.ArrowDtype(pa.string()) against other string arrays
+    import pyarrow as pa
+
+    op_name = f"__{comparison_op.__name__}__"
+    dtype = pd.ArrowDtype(pa.string())
+    a = pd.array(["a", None, "c"], dtype=dtype)
+    other = pd.array([None, None, "c"], dtype=dtype2)
+    result = comparison_op(a, other)
+
+    # ensure operation is commutative
+    result2 = comparison_op(other, a)
+    tm.assert_equal(result, result2)
+
+    expected = pd.array([None, None, True], dtype="bool[pyarrow]")
+    expected[-1] = getattr(other[-1], op_name)(a[-1])
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_comparison_methods_list(comparison_op, dtype):
