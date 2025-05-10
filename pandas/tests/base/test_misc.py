@@ -147,48 +147,25 @@ def test_searchsorted(request, index_or_series_obj):
     # See gh-12238
     obj = index_or_series_obj
 
-    # Handle mixed int string
-    if isinstance(obj, Index) and obj.inferred_type in ["mixed", "mixed-integer"]:
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="Cannot compare mixed types (str and int)", strict=False
-            )
-        )
-        obj = obj.unique()
-
-        # Mixed int string specific case
-        if obj.equals(Index([0, "a", 1, "b", 2, "c"])):
-            obj = obj.astype(str)
-
+    # Check for MultiIndex
     if isinstance(obj, pd.MultiIndex):
-        # See gh-14833
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833",
-                strict=False,
-            )
-        )
-        return
+        pytest.xfail("np.searchsorted doesn't work on pd.MultiIndex: GH 14833")
 
-    if obj.dtype.kind == "c" and isinstance(obj, Index):
-        # Complex numbers are not comparable
-        request.applymarker(
-            pytest.mark.xfail(reason="Complex objects are not comparable", strict=False)
-        )
-        return
+    # Check for Index and subtypes
+    if isinstance(obj, Index):
+        # Mixed types
+        if obj.inferred_type in ["mixed", "mixed-integer"]:
+            try:
+                obj = obj.astype(str)
+            except (TypeError, ValueError):
+                pytest.xfail("Cannot compare mixed types (str and int)")
+        
+        # Complex types
+        elif obj.dtype.kind == "c":
+            pytest.xfail("Complex objects are not comparable")
 
-    if isinstance(obj, Index) and obj.inferred_type == "tuples":
-        # Tuples may not be supported by np.searchsorted
-        pytest.mark.xfail(reason="Cannot handle tuples in searchsorted", strict=False)
-
-    # Only proceed if obj is not mixed or unsupported
-    try:
-        max_obj = max(obj, default=0)
-    except TypeError:
-        pytest.mark.xfail(
-            reason="Cannot compute max for unsupported types", strict=False
-        )
-
+    # Run tests
+    max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)
     assert 0 <= index <= len(obj)
 
