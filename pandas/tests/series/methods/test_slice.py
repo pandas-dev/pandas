@@ -1,5 +1,5 @@
 import gc
-import pandas as pd
+
 from pandas import Series
 
 
@@ -14,7 +14,7 @@ def count_dummy_instances():
 
 
 def test_slicing_releases_dummy_instances():
-    """Ensure slicing a Series does not retain references to original Dummy instances."""
+    """Ensure Series slicing does not retain references to original Dummy data."""
     NDATA = 100_000
     baseline = count_dummy_instances()
     a = Series([Dummy(i) for i in range(NDATA)])
@@ -22,6 +22,6 @@ def test_slicing_releases_dummy_instances():
     gc.collect()
     after = count_dummy_instances()
     retained = after - baseline
-    assert (
-        retained <= 1
-    ), f"{retained} Dummy instances were retained; expected at most 1"
+    assert retained <= 1, (
+        f"{retained} Dummy instances were retained; expected at most 1"
+    )
