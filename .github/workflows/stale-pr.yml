@@ -12,7 +12,7 @@ jobs:
     permissions:
       pull-requests: write
     if: github.repository_owner == 'pandas-dev'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/stale@v9
       with:

@@ -17,7 +17,7 @@ jobs:
   deprecation_update:
     permissions:
       issues: write
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       DEPRECATION_TRACKER_ISSUE: 56596
     steps:
