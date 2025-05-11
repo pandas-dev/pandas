@@ -8,9 +8,6 @@ import pytest
 
 from pandas.compat import (
     IS64,
-    is_platform_arm,
-    is_platform_power,
-    is_platform_riscv64,
 )
 
 from pandas import (
@@ -1099,6 +1096,7 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
     tm.assert_series_equal(result, expected)
+
 
 def test_timeoffset_as_window_parameter_for_corr(unit):
     # GH: 28266
