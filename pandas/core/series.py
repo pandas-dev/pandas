@@ -5904,9 +5904,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not (hasattr(left.index, "levels") or hasattr(right.index, "levels")):
             if align_asobject:
                 if left.empty or right.empty:
-                    if left.dtype not in (object, np.bool_) or right.dtype not in (object, np.bool_):
+                    if left.dtype not in (object, np.bool_) or right.dtype not in (
+                        object,
+                        np.bool_,
+                    ):
                         return left.iloc[0:0], right.iloc[0:0]
-            return left.align(right, join='outer', fill_value=fill_value)
+            return left.align(right, join="outer", fill_value=fill_value)
 
         if hasattr(left.index, "levels") and not hasattr(right.index, "levels"):
             if left.empty or right.empty:
@@ -5918,8 +5921,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 right_aligned = right.reindex(first_level, fill_value=fill_value)
                 return left, right_aligned
 
-        return left.align(right, join='outer', fill_value=fill_value)
-        
+        return left.align(right, join="outer", fill_value=fill_value)
+
     def _binop(self, other: Series, func, level=None, fill_value=None) -> Series:
         """
         Perform generic binary operation with optional fill value.
