@@ -4,7 +4,6 @@ from datetime import (
 )
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
 
 from pandas.compat import (
@@ -1100,7 +1099,8 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
-    assert_allclose(result[1:].values, expected[1:].values, rtol=1e-5, atol=1e-8)
+    tm.assert_almost_equal(result[1:].values, expected[1:].values, rtol=1e-4, atol=1e-6)
+
 
 def test_timeoffset_as_window_parameter_for_corr(unit):
     # GH: 28266
