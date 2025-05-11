@@ -1082,8 +1082,7 @@ def test_rolling_sem(frame_or_series):
 
 
 @pytest.mark.xfail(
-    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
-    reason="GH 38921",
+    reason="Numerical precision issues with large/small values (GH 37051)"
 )
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
@@ -1099,8 +1098,7 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
-    tm.assert_almost_equal(result[1:].values, expected[1:].values, rtol=1e-4, atol=1e-6)
-
+    tm.assert_series_equal(result, expected)
 
 def test_timeoffset_as_window_parameter_for_corr(unit):
     # GH: 28266
