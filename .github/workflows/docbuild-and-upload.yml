@@ -50,9 +50,6 @@ jobs:
       # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
       run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
 
-    - name: Download and update translations
-      run: python web/pandas_translations.py
-
     - name: Test website
       run: python -m pytest web/
 

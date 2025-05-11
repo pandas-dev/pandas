@@ -145,7 +145,6 @@ doc/source/savefig/
 
 # Web & Translations #
 ##############################
-web/pandas-translations.tar.gz
 web/translations/
 web/pandas/pt/
 web/pandas/es/
