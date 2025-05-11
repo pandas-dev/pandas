@@ -3778,6 +3778,60 @@ class MultiIndex(Index):
         ind = np.lexsort(keys)
         return indexer[ind]
 
+
+    def searchsorted(
+        self,
+        value: tuple[Hashable, ...],
+        side: Literal["left", "right"] = "left",
+        sorter: npt.NDArray[np.intp] | None = None,
+    ) -> npt.NDArray[np.intp]:
+        """
+        Find the indices where elements should be inserted to maintain order.
+
+        Parameters
+        ----------
+        value : tuple
+            The value(s) to search for in the MultiIndex.
+        side : {'left', 'right'}, default 'left'
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index. Note that if `value` is
+            already present in the MultiIndex, the results will be different.
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort the MultiIndex.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of insertion points.
+
+        See Also
+        --------
+        Index.searchsorted : Search for insertion point in a 1-D index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], ["x", "y", "z"]])
+        >>> mi.searchsorted(("b", "y"))
+        1
+        """
+        if isinstance(value, tuple):
+            value = list(value)
+
+        if side not in ["left", "right"]:
+            raise ValueError("side must be either 'left' or 'right'")
+        
+        if not value:
+            raise ValueError("searchsorted requires a non-empty value")
+        
+        
+
+        dtype = np.dtype([(f"level_{i}", level.dtype) for i,level in enumerate(self.levels)])
+ 
+        val = np.asarray(value, dtype=dtype)
+
+        return np.searchsorted(self.values.astype(dtype),val, side=side, sorter=sorter) 
+
+
     def truncate(self, before=None, after=None) -> MultiIndex:
         """
         Slice index between two labels / tuples, return new MultiIndex.
@@ -4337,3 +4391,6 @@ def cartesian_product(X: list[np.ndarray]) -> list[np.ndarray]:
         )
         for i, x in enumerate(X)
     ]
+
+
+
