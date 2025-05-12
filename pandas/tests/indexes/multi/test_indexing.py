@@ -1032,8 +1032,7 @@ def test_get_loc_namedtuple_behaves_like_tuple():
 
 
 def test_searchsorted():
-    mi = MultiIndex.from_tuples([("a", 0), ("a", 1), 
-                                 ("b", 0), ("b", 1), ("c", 0)])
+    mi = MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0), ("b", 1), ("c", 0)])
 
     assert mi.searchsorted(("b", 0)) == 2
     assert mi.searchsorted(("b", 0), side="right") == 3
