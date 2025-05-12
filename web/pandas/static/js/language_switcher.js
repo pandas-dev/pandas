@@ -1,4 +1,5 @@
 window.addEventListener("DOMContentLoaded", function() {
+  var absBaseUrl = document.baseURI;
   var baseUrl = location.protocol + "//" + location.hostname
   if (location.port) {
      baseUrl = baseUrl + ":" + location.port
@@ -11,6 +12,15 @@ window.addEventListener("DOMContentLoaded", function() {
         'fr': 'Français',
         'pt': 'Português'
       }
+
+  // Handle preview URLs on github
+  // If preview URL changes, this regex will need to be updated
+  const re = /preview\/pandas-dev\/pandas\/(?<pr>[0-9]*)\//g;
+  var previewUrl = '';
+  for (const match of absBaseUrl.matchAll(re)) {
+    previewUrl = `/preview/pandas-dev/pandas/${match.groups.pr}`;
+  }
+  var pathName = location.pathname.replace(previewUrl, '')
 
   // Create dropdown menu
   function makeDropdown(options) {
@@ -41,8 +51,8 @@ window.addEventListener("DOMContentLoaded", function() {
         if (i !== 'en') {
           urlLanguage = '/' + i;
         }
-        var pathName = location.pathname.replace('/' + currentLanguage + '/', '/')
-        var newUrl = baseUrl + urlLanguage + pathName
+        pathName = pathName.replace('/' + currentLanguage + '/', '/')
+        var newUrl = baseUrl + previewUrl + urlLanguage + pathName
         window.location.href = newUrl;
       });
       dropdownMenu.appendChild(dropdownItem);

@@ -145,6 +145,7 @@ doc/source/savefig/
 
 # Web & Translations #
 ##############################
+web/preview/
 web/translations/
 web/pandas/es/
 web/pandas/pt/

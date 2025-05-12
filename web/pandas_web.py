@@ -87,10 +87,13 @@ class Preprocessors:
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
+        lang = context["selected_language"]
         ignore = context["translations"]["ignore"]
+        default_language = context["translations"]["default_language"]
         for i, item in enumerate(context["navbar"]):
             if item["target"] in ignore:
-                item["target"] = "/" + item["target"]
+                if lang != default_language:
+                    item["target"] = "../" + item["target"]
 
             context["navbar"][i] = dict(
                 item,
