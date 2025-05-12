@@ -147,29 +147,24 @@ def test_searchsorted(request, index_or_series_obj):
     # See gh-12238
     obj = index_or_series_obj
 
-    # 1. Check for multi-index
+    if any(isinstance(x, str) for x in obj) and any(isinstance(x, int) for x in obj):
+        request.applymarker(
+            pytest.mark.xfail(reason="Cannot compare mixed types (str and int)")
+        )
+
     if isinstance(obj, pd.MultiIndex):
-        request.applymarker(pytest.mark.xfail(reason="GH 14833", strict=False))
-        return
+        # See gh-14833
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833"
+            )
+        )
+    elif obj.dtype.kind == "c" and isinstance(obj, Index):
+        # TODO: Should Series cases also raise? Looks like they use numpy
+        #  comparison semantics https://github.com/numpy/numpy/issues/15981
+        mark = pytest.mark.xfail(reason="complex objects are not comparable")
+        request.applymarker(mark)
 
-    # 2. Check for Index and subtypes
-    if isinstance(obj, Index):
-        # 2a. Mixed types
-        if obj.inferred_type in ["mixed", "mixed-integer"]:
-            try:
-                obj = obj.astype(str)
-            except (TypeError, ValueError):
-                request.applymarker(
-                    pytest.mark.xfail(reason="Mixed types", strict=False)
-                )
-                return
-
-        # 2b. Complex types
-        elif obj.dtype.kind == "c":
-            request.applymarker(pytest.mark.xfail(reason="Complex types", strict=False))
-            return
-
-    # 3. Run test ONLY if there isn't mixed/complex types
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)
     assert 0 <= index <= len(obj)
