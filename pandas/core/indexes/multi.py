@@ -3778,7 +3778,6 @@ class MultiIndex(Index):
         ind = np.lexsort(keys)
         return indexer[ind]
 
-
     def searchsorted(
         self,
         value: tuple[Hashable, ...],
@@ -3814,38 +3813,46 @@ class MultiIndex(Index):
         >>> mi.searchsorted(("b", "y"))
         1
         """
-        if not isinstance(value, (tuple,list)):   
+        if not isinstance(value, (tuple, list)):
             raise TypeError("value must be a tuple or list")
 
         if isinstance(value, tuple):
             value = [value]
         if side not in ["left", "right"]:
             raise ValueError("side must be either 'left' or 'right'")
-        
+
         if not value:
             raise ValueError("searchsorted requires a non-empty value")
-        
-        try: 
-  
+
+        try:
             indexer = self.get_indexer(value)
             result = []
 
             for v, i in zip(value, indexer):
-                if i!= -1:
+                if i != -1:
                     result.append(i if side == "left" else i + 1)
-                else: 
-                    dtype = np.dtype([(f"level_{i}", level.dtype) for i, level in enumerate(self.levels)])
+                else:
+                    dtype = np.dtype(
+                        [
+                            (f"level_{i}", level.dtype)
+                            for i, level in enumerate(self.levels)
+                        ]
+                    )
 
                     val_array = np.array(value, dtype=dtype)
-                    
-                    pos = np.searchsorted( np.asarray(self.values,dtype=dtype),val_array , side=side, sorter = sorter)
+
+                    pos = np.searchsorted(
+                        np.asarray(self.values, dtype=dtype),
+                        val_array,
+                        side=side,
+                        sorter=sorter,
+                    )
                     result.append(pos)
-            
+
             return np.array(result, dtype=np.intp)
 
         except KeyError:
             pass
-
 
     def truncate(self, before=None, after=None) -> MultiIndex:
         """
@@ -4406,6 +4413,3 @@ def cartesian_product(X: list[np.ndarray]) -> list[np.ndarray]:
         )
         for i, x in enumerate(X)
     ]
-
-
-
