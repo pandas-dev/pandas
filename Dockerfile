@@ -2,10 +2,8 @@ FROM python:3.10.8
 WORKDIR /home/pandas
 
 RUN apt-get update && \
-    apt-get -y upgrade && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get install -y \
+    apt-get --no-install-recommends -y upgrade && \
+    apt-get --no-install-recommends -y install \
     build-essential \
     bash-completion \
     # hdf5 needed for pytables installation
