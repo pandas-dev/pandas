@@ -22,21 +22,18 @@ pyiceberg = pytest.importorskip("pyiceberg")
 pyiceberg_catalog = pytest.importorskip("pyiceberg.catalog")
 pq = pytest.importorskip("pyarrow.parquet")
 
-
-Catalog = collections.namedtuple("name", "uri")
+Catalog = collections.namedtuple("Catalog", ["name", "uri"])
 
 
 @pytest.fixture
-def catalog(request, tmp_path, params=(None, "default", "pandas_tests")):
+def catalog(request, tmp_path):
     # the catalog stores the full path of data files, so the catalog needs to be
     # created dynamically, and not saved in pandas/tests/io/data as other formats
-    catalog_path = tmp_path / "pandas-iceberg-catalog"
-    catalog_path.mkdir()
-    catalog_name = request.param
-    uri = f"sqlite:///{catalog_path}/catalog.sqlite"
-    warehouse = f"file://{catalog_path}"
+    uri = f"sqlite:///{tmp_path}/catalog.sqlite"
+    warehouse = f"file://{tmp_path}"
+    catalog_name = request.param if hasattr(request, "param") else None
     catalog = pyiceberg_catalog.load_catalog(
-        catalog_name,
+        catalog_name or "default",
         type="sql",
         uri=uri,
         warehouse=warehouse,
@@ -59,9 +56,9 @@ catalog:
     uri: {uri}
     warehouse: {warehouse}""")
 
-    importlib.reload(pyiceberg_catalog)  # needed to reload the config file
+        importlib.reload(pyiceberg_catalog)  # needed to reload the config file
 
-    yield Catalog(name=catalog_name, uri=uri)
+    yield Catalog(name=catalog_name or "default", uri=uri)
 
     if catalog_name is not None:
         config_path.unlink()
@@ -81,6 +78,7 @@ class TestIceberg:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("catalog", ["default", "pandas_tests"], indirect=True)
     def test_read_by_catalog_name(self, catalog):
         expected = pd.DataFrame(
             {
@@ -94,7 +92,7 @@ class TestIceberg:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_read_with_row_filter(self):
+    def test_read_with_row_filter(self, catalog):
         expected = pd.DataFrame(
             {
                 "A": [2, 3],
@@ -130,7 +128,7 @@ class TestIceberg:
                 case_sensitive=True,
             )
 
-    def test_read_with_limit(self):
+    def test_read_with_limit(self, catalog):
         expected = pd.DataFrame(
             {
                 "A": [1, 2],
