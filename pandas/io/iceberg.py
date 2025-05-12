@@ -21,6 +21,10 @@ def read_iceberg(
     """
     Read an Apache Iceberg table into a pandas DataFrame.
 
+    .. warning::
+
+       read_iceberg is experimental and may change without warning.
+
     Parameters
     ----------
     table_identifier : str

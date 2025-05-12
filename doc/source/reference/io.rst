@@ -163,6 +163,8 @@ Iceberg
 
     read_iceberg
 
+.. warning:: ``read_iceberg`` is experimental and may change without warning.
+
 ORC
 ~~~
 .. autosummary::
