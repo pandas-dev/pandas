@@ -146,5 +146,6 @@ doc/source/savefig/
 # Web & Translations #
 ##############################
 web/translations/
-web/pandas/pt/
 web/pandas/es/
+web/pandas/pt/
+web/pandas/fr/

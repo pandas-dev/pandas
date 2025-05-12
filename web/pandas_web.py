@@ -467,6 +467,7 @@ def download_and_extract_translations(url: str, dir_name: str):
     """
     Download the translations from the GitHub repository.
     """
+    shutil.rmtree(dir_name, ignore_errors=True)
     response = requests.get(url)
     if response.status_code == 200:
         doc = io.BytesIO(response.content)
@@ -480,30 +481,31 @@ def get_languages(source_path: str):
     """
     Get the list of languages available in the translations directory.
     """
-    languages_path = f"{source_path}/pandas-translations-main/web/pandas/"
-    en_path = f"{languages_path}/en/"
+    en_path = f"{source_path}/en/"
     if os.path.exists(en_path):
         shutil.rmtree(en_path)
 
-    paths = os.listdir(languages_path)
-    return [path for path in paths if os.path.isdir(f"{languages_path}/{path}")]
+    paths = os.listdir(source_path)
+    return [path for path in paths if os.path.isdir(f"{source_path}/{path}")]
 
 
 def copy_translations(source_path: str, target_path: str, languages: list[str]):
     """
     Copy the translations to the appropriate directory.
     """
-    languages_path = f"{source_path}/pandas-translations-main/web/pandas/"
     for lang in languages:
+        dest = f"{target_path}/{lang}/"
+        shutil.rmtree(dest, ignore_errors=True)
         cmds = [
             "rsync",
             "-av",
             "--delete",
-            f"{languages_path}/{lang}/",
-            f"{target_path}/{lang}/",
+            f"{source_path}/{lang}/",
+            dest,
         ]
         p = Popen(cmds, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
+        sys.stderr.write(f"\nCopying: {lang}...\n\n")
         sys.stderr.write(stdout.decode())
         sys.stderr.write(stderr.decode())
 
@@ -526,15 +528,22 @@ def main(
     config = get_config(base_config_fname)
     translations_path = os.path.join(base_folder, f"{config['translations']['folder']}")
 
-    sys.stderr.write("Downloading and extracting translations...\n")
-    download_and_extract_translations(config["translations"]["url"], translations_path)
+    sys.stderr.write("\nDownloading and extracting translations...\n\n")
+    translations_extract_path = translations_path
+    translations_source_path = os.path.join(
+        translations_path, config["translations"]["source_path"]
+    )
 
-    translated_languages = get_languages(translations_path)
+    download_and_extract_translations(
+        config["translations"]["url"], translations_extract_path
+    )
+
+    translated_languages = get_languages(translations_source_path)
     default_language = config["translations"]["default_language"]
     languages = [default_language] + translated_languages
 
-    sys.stderr.write("Copying translations...\n")
-    copy_translations(translations_path, source_path, translated_languages)
+    sys.stderr.write("\nCopying translations...\n")
+    copy_translations(translations_source_path, source_path, translated_languages)
 
     for language in languages:
         sys.stderr.write(f"\nProcessing language: {language}...\n\n")
@@ -596,7 +605,6 @@ def main(
                 shutil.copy(
                     os.path.join(source_path, fname), os.path.join(target_path, dirname)
                 )
-    return 0
 
 
 if __name__ == "__main__":

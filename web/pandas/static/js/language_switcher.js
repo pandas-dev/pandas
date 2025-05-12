@@ -1,9 +1,11 @@
 window.addEventListener("DOMContentLoaded", function() {
-  var BASE_URL = location.protocol + "//" + location.hostname + ":" + location.port
-  var CURRENT_LANGUAGE = document.documentElement.lang;
-  var PATHNAME = location.pathname.replace('/' + CURRENT_LANGUAGE + '/', '')
+  var baseUrl = location.protocol + "//" + location.hostname
+  if (location.port) {
+     baseUrl = baseUrl + ":" + location.port
+  }
+  var currentLanguage = document.documentElement.lang;
   var languages = JSON.parse(document.getElementById("languages").getAttribute('data-lang').replace(/'/g, '"'));
-  const language_names = {
+  const languageNames = {
         'en': 'English',
         'es': 'Español',
         'fr': 'Français',
@@ -24,7 +26,7 @@ window.addEventListener("DOMContentLoaded", function() {
     link.setAttribute("role", "button");
     link.setAttribute("aria-haspopup", "true");
     link.setAttribute("aria-expanded", "false");
-    link.textContent = language_names[CURRENT_LANGUAGE];
+    link.textContent = languageNames[currentLanguage];
 
     var dropdownMenu = document.createElement("div");
     dropdownMenu.classList.add("dropdown-menu");
@@ -32,16 +34,15 @@ window.addEventListener("DOMContentLoaded", function() {
     options.forEach(function(i) {
       var dropdownItem = document.createElement("a");
       dropdownItem.classList.add("dropdown-item");
-      dropdownItem.textContent = language_names[i] || i.toUpperCase();
+      dropdownItem.textContent = languageNames[i] || i.toUpperCase();
       dropdownItem.setAttribute("href", "#");
       dropdownItem.addEventListener("click", function() {
-        if (i == 'en') {
-          URL_LANGUAGE = '';
-        } else {
-          URL_LANGUAGE = '/' + i;
+        var urlLanguage = '';
+        if (i !== 'en') {
+          urlLanguage = '/' + i;
         }
-        var PATHNAME = location.pathname.replace('/' + CURRENT_LANGUAGE + '/', '/')
-        var newUrl = BASE_URL + URL_LANGUAGE + PATHNAME
+        var pathName = location.pathname.replace('/' + currentLanguage + '/', '/')
+        var newUrl = baseUrl + urlLanguage + pathName
         window.location.href = newUrl;
       });
       dropdownMenu.appendChild(dropdownItem);
