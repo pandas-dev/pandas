@@ -103,7 +103,7 @@ def test_xarray_cftimeindex_nearest():
     cftime = pytest.importorskip("cftime")
     xarray = pytest.importorskip("xarray")
 
-    times = xarray.cftime_range("0001", periods=2)
+    times = xarray.date_range("0001", periods=2, use_cftime=True)
     key = cftime.DatetimeGregorian(2000, 1, 1)
     result = times.get_indexer([key], method="nearest")
     expected = 1
