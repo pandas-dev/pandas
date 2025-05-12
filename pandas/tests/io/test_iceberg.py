@@ -16,7 +16,7 @@ import pandas._testing as tm
 
 from pandas.io.iceberg import read_iceberg
 
-pytestmark = [pytest.mark.single_cpu]
+pytestmark = pytest.mark.single_cpu
 
 pyiceberg = pytest.importorskip("pyiceberg")
 pyiceberg_catalog = pytest.importorskip("pyiceberg.catalog")
