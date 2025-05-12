@@ -336,11 +336,6 @@ def __internal_pivot_table(
         values = list(values)
 
     grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
-    if values_passed:
-        # GH#57876 and GH#61292
-        # mypy is not aware `grouped[values]` will always be a DataFrameGroupBy
-        grouped = grouped[values]  # type: ignore[assignment]
-
     agged = grouped.agg(aggfunc, **kwargs)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):

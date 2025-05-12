@@ -22,6 +22,8 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 
+import pandas.core.common as com
+
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
 
@@ -249,15 +251,29 @@ def _is_floats_color(color: Color | Collection[Color]) -> bool:
 def _get_colors_from_color_type(color_type: str, num_colors: int) -> list[Color]:
     """Get colors from user input color type."""
     if color_type == "default":
-        prop_cycle = mpl.rcParams["axes.prop_cycle"]
-        return [
-            c["color"]
-            for c in itertools.islice(prop_cycle, min(num_colors, len(prop_cycle)))
-        ]
+        return _get_default_colors(num_colors)
     elif color_type == "random":
-        return np.random.default_rng(num_colors).random((num_colors, 3)).tolist()
+        return _get_random_colors(num_colors)
     else:
         raise ValueError("color_type must be either 'default' or 'random'")
+
+
+def _get_default_colors(num_colors: int) -> list[Color]:
+    """Get `num_colors` of default colors from matplotlib rc params."""
+    colors = [c["color"] for c in mpl.rcParams["axes.prop_cycle"]]
+    return colors[0:num_colors]
+
+
+def _get_random_colors(num_colors: int) -> list[Color]:
+    """Get `num_colors` of random colors."""
+    return [_random_color(num) for num in range(num_colors)]
+
+
+def _random_color(column: int) -> list[float]:
+    """Get a random color represented as a list of length 3"""
+    # GH17525 use common._random_state to avoid resetting the seed
+    rs = com.random_state(column)
+    return rs.rand(3).tolist()
 
 
 def _is_single_string_color(color: Color) -> bool:

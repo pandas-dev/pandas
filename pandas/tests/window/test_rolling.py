@@ -8,6 +8,9 @@ import pytest
 
 from pandas.compat import (
     IS64,
+    is_platform_arm,
+    is_platform_power,
+    is_platform_riscv64,
 )
 
 from pandas import (
@@ -1079,7 +1082,8 @@ def test_rolling_sem(frame_or_series):
 
 
 @pytest.mark.xfail(
-    reason="Numerical precision issues with large/small values (GH 37051)"
+    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
+    reason="GH 38921",
 )
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
@@ -1096,6 +1100,9 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
     tm.assert_series_equal(result, expected)
+    # GH 42064
+    # new `roll_var` will output 0.0 correctly
+    tm.assert_series_equal(result == 0, expected == 0)
 
 
 def test_timeoffset_as_window_parameter_for_corr(unit):

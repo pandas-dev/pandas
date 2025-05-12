@@ -55,13 +55,11 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
-from pandas.plotting._matplotlib.converter import (
-    PeriodConverter,
-    register_pandas_matplotlib_converters,
-)
+from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
@@ -802,13 +800,7 @@ class MPLPlot(ABC):
         if self.title:
             if self.subplots:
                 if is_list_like(self.title):
-                    if not isinstance(self.subplots, bool):
-                        if len(self.subplots) != len(self.title):
-                            raise ValueError(
-                                f"The number of titles ({len(self.title)}) must equal "
-                                f"the number of subplots ({len(self.subplots)})."
-                            )
-                    elif len(self.title) != self.nseries:
+                    if len(self.title) != self.nseries:
                         raise ValueError(
                             "The length of `title` must equal the number "
                             "of columns if using `title` of type `list` "
@@ -894,7 +886,10 @@ class MPLPlot(ABC):
             if leg is not None:
                 title = leg.get_title().get_text()
                 # Replace leg.legend_handles because it misses marker info
-                handles = leg.legend_handles
+                if Version(mpl.__version__) < Version("3.7"):
+                    handles = leg.legendHandles
+                else:
+                    handles = leg.legend_handles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -1232,10 +1227,15 @@ class MPLPlot(ABC):
 
     @final
     def _get_subplots(self, fig: Figure) -> list[Axes]:
+        if Version(mpl.__version__) < Version("3.8"):
+            Klass = mpl.axes.Subplot
+        else:
+            Klass = mpl.axes.Axes
+
         return [
             ax
             for ax in fig.get_axes()
-            if (isinstance(ax, mpl.axes.Axes) and ax.get_subplotspec() is not None)
+            if (isinstance(ax, Klass) and ax.get_subplotspec() is not None)
         ]
 
     @final
@@ -1858,6 +1858,7 @@ class BarPlot(MPLPlot):
         self.bar_width = width
         self._align = align
         self._position = position
+        self.tick_pos = np.arange(len(data))
 
         if is_list_like(bottom):
             bottom = np.array(bottom)
@@ -1869,16 +1870,6 @@ class BarPlot(MPLPlot):
         self.log = log
 
         MPLPlot.__init__(self, data, **kwargs)
-
-        if self._is_ts_plot():
-            self.tick_pos = np.array(
-                PeriodConverter.convert_from_freq(
-                    self._get_xticks(),
-                    data.index.freq,
-                )
-            )
-        else:
-            self.tick_pos = np.arange(len(data))
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
@@ -1909,7 +1900,6 @@ class BarPlot(MPLPlot):
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    @register_pandas_matplotlib_converters
     def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
@@ -1934,21 +1924,6 @@ class BarPlot(MPLPlot):
         K = self.nseries
 
         data = self.data.fillna(0)
-
-        _stacked_subplots_ind: dict[int, int] = {}
-        _stacked_subplots_offsets = []
-
-        self.subplots: list[Any]
-
-        if not isinstance(self.subplots, bool):
-            if bool(self.subplots) and self.stacked:
-                for i, sub_plot in enumerate(self.subplots):
-                    if len(sub_plot) <= 1:
-                        continue
-                    for plot in sub_plot:
-                        _stacked_subplots_ind[int(plot)] = i
-                    _stacked_subplots_offsets.append([0, 0])
-
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
@@ -1974,28 +1949,7 @@ class BarPlot(MPLPlot):
             start = start + self._start_base
 
             kwds["align"] = self._align
-
-            if i in _stacked_subplots_ind:
-                offset_index = _stacked_subplots_ind[i]
-                pos_prior, neg_prior = _stacked_subplots_offsets[offset_index]  # type:ignore[assignment]
-                mask = y >= 0
-                start = np.where(mask, pos_prior, neg_prior) + self._start_base
-                w = self.bar_width / 2
-                rect = self._plot(
-                    ax,
-                    self.ax_pos + w,
-                    y,
-                    self.bar_width,
-                    start=start,
-                    label=label,
-                    log=self.log,
-                    **kwds,
-                )
-                pos_new = pos_prior + np.where(mask, y, 0)
-                neg_new = neg_prior + np.where(mask, 0, y)
-                _stacked_subplots_offsets[offset_index] = [pos_new, neg_new]
-
-            elif self.subplots:
+            if self.subplots:
                 w = self.bar_width / 2
                 rect = self._plot(
                     ax,

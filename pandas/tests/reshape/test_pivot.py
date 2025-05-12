@@ -15,7 +15,6 @@ from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
 from pandas import (
-    ArrowDtype,
     Categorical,
     DataFrame,
     Grouper,
@@ -2554,46 +2553,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(left=result, right=expected)
 
-    @pytest.mark.parametrize(
-        "index, columns, e_data, e_index, e_cols",
-        [
-            (
-                "Category",
-                "Value",
-                [
-                    [1.0, np.nan, 1.0, np.nan],
-                    [np.nan, 1.0, np.nan, 1.0],
-                ],
-                Index(data=["A", "B"], name="Category"),
-                Index(data=[10, 20, 40, 50], name="Value"),
-            ),
-            (
-                "Value",
-                "Category",
-                [
-                    [1.0, np.nan],
-                    [np.nan, 1.0],
-                    [1.0, np.nan],
-                    [np.nan, 1.0],
-                ],
-                Index(data=[10, 20, 40, 50], name="Value"),
-                Index(data=["A", "B"], name="Category"),
-            ),
-        ],
-        ids=["values-and-columns", "values-and-index"],
-    )
-    def test_pivot_table_values_as_two_params(
-        self, index, columns, e_data, e_index, e_cols
-    ):
-        # GH#57876
-        data = {"Category": ["A", "B", "A", "B"], "Value": [10, 20, 40, 50]}
-        df = DataFrame(data)
-        result = df.pivot_table(
-            index=index, columns=columns, values="Value", aggfunc="count"
-        )
-        expected = DataFrame(data=e_data, index=e_index, columns=e_cols)
-        tm.assert_frame_equal(result, expected)
-
 
 class TestPivot:
     def test_pivot(self):
@@ -2892,31 +2851,3 @@ class TestPivot:
             ),
         )
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-    def test_pivot_with_pyarrow_categorical(self):
-        # GH#53051
-        pa = pytest.importorskip("pyarrow")
-
-        df = DataFrame(
-            {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
-        ).astype(
-            {
-                "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
-                "number_column": "float[pyarrow]",
-            }
-        )
-
-        df = df.pivot(columns=["string_column"], values=["number_column"])
-
-        multi_index = MultiIndex.from_arrays(
-            [["number_column", "number_column", "number_column"], ["A", "B", "C"]],
-            names=(None, "string_column"),
-        )
-        df_expected = DataFrame(
-            [[1.0, np.nan, np.nan], [np.nan, 2.0, np.nan], [np.nan, np.nan, 3.0]],
-            columns=multi_index,
-        )
-        tm.assert_frame_equal(
-            df, df_expected, check_dtype=False, check_column_type=False
-        )

@@ -258,9 +258,8 @@ class CParserWrapper(ParserBase):
                 )
 
                 columns = _filter_usecols(self.usecols, columns)
-                columns_set = set(columns)
 
-                col_dict = {k: v for k, v in col_dict.items() if k in columns_set}
+                col_dict = {k: v for k, v in col_dict.items() if k in columns}
 
                 return index, columns, col_dict
 

@@ -13,6 +13,7 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
     _unpack_cycler,
 )
+from pandas.util.version import Version
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
@@ -714,7 +715,10 @@ class TestDataFrameColor:
         df_concat = pd.concat([df, df1], axis=1)
         result = df_concat.plot()
         legend = result.get_legend()
-        handles = legend.legend_handles
+        if Version(mpl.__version__) < Version("3.7"):
+            handles = legend.legendHandles
+        else:
+            handles = legend.legend_handles
         for legend, line in zip(handles, result.lines):
             assert legend.get_color() == line.get_color()
 

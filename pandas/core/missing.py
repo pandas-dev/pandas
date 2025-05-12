@@ -241,8 +241,7 @@ def find_valid_index(how: str, is_valid: npt.NDArray[np.bool_]) -> int | None:
         return None
 
     if is_valid.ndim == 2:
-        # reduce axis 1
-        is_valid = is_valid.any(axis=1)  # type: ignore[assignment]
+        is_valid = is_valid.any(axis=1)  # reduce axis 1
 
     if how == "first":
         idxpos = is_valid[::].argmax()
@@ -405,7 +404,10 @@ def interpolate_2d_inplace(
             **kwargs,
         )
 
-    np.apply_along_axis(func, axis, data)
+    # error: No overload variant of "apply_along_axis" matches
+    # argument types "Callable[[ndarray[Any, Any]], None]",
+    # "int", "ndarray[Any, Any]"
+    np.apply_along_axis(func, axis, data)  # type: ignore[call-overload]
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:

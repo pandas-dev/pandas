@@ -1497,10 +1497,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = values.all(axis=axis)
 
         if skipna:
-            return result  # type: ignore[return-value]
+            return result
         else:
             if not result or len(self) == 0 or not self._mask.any():
-                return result  # type: ignore[return-value]
+                return result
             else:
                 return self.dtype.na_value
 

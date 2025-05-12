@@ -39,7 +39,6 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
-from pandas.compat import HAS_PYARROW
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
@@ -381,13 +380,6 @@ def read_hdf(
     --------
     DataFrame.to_hdf : Write a HDF file from a DataFrame.
     HDFStore : Low-level access to HDF files.
-
-    Notes
-    -----
-    When ``errors="surrogatepass"``, ``pd.options.future.infer_string`` is true,
-    and PyArrow is installed, if a UTF-16 surrogate is encountered when decoding
-    to UTF-8, the resulting dtype will be
-    ``pd.StringDtype(storage="python", na_value=np.nan)``.
 
     Examples
     --------
@@ -2265,20 +2257,6 @@ class IndexCol:
         # making an Index instance could throw a number of different errors
         try:
             new_pd_index = factory(values, **kwargs)
-        except UnicodeEncodeError as err:
-            if (
-                errors == "surrogatepass"
-                and get_option("future.infer_string")
-                and str(err).endswith("surrogates not allowed")
-                and HAS_PYARROW
-            ):
-                new_pd_index = factory(
-                    values,
-                    dtype=StringDtype(storage="python", na_value=np.nan),
-                    **kwargs,
-                )
-            else:
-                raise
         except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
@@ -3192,29 +3170,12 @@ class GenericFixed(Fixed):
                 **kwargs,
             )
         else:
-            try:
-                index = factory(
-                    _unconvert_index(
-                        data, kind, encoding=self.encoding, errors=self.errors
-                    ),
-                    **kwargs,
-                )
-            except UnicodeEncodeError as err:
-                if (
-                    self.errors == "surrogatepass"
-                    and get_option("future.infer_string")
-                    and str(err).endswith("surrogates not allowed")
-                    and HAS_PYARROW
-                ):
-                    index = factory(
-                        _unconvert_index(
-                            data, kind, encoding=self.encoding, errors=self.errors
-                        ),
-                        dtype=StringDtype(storage="python", na_value=np.nan),
-                        **kwargs,
-                    )
-                else:
-                    raise
+            index = factory(
+                _unconvert_index(
+                    data, kind, encoding=self.encoding, errors=self.errors
+                ),
+                **kwargs,
+            )
 
         index.name = name
 
@@ -3350,24 +3311,13 @@ class SeriesFixed(GenericFixed):
         self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
-        try:
-            result = Series(values, index=index, name=self.name, copy=False)
-        except UnicodeEncodeError as err:
-            if (
-                self.errors == "surrogatepass"
-                and get_option("future.infer_string")
-                and str(err).endswith("surrogates not allowed")
-                and HAS_PYARROW
-            ):
-                result = Series(
-                    values,
-                    index=index,
-                    name=self.name,
-                    copy=False,
-                    dtype=StringDtype(storage="python", na_value=np.nan),
-                )
-            else:
-                raise
+        result = Series(values, index=index, name=self.name, copy=False)
+        if (
+            using_string_dtype()
+            and isinstance(values, np.ndarray)
+            and is_string_array(values, skipna=True)
+        ):
+            result = result.astype(StringDtype(na_value=np.nan))
         return result
 
     def write(self, obj, **kwargs) -> None:
@@ -4814,24 +4764,7 @@ class AppendableFrameTable(AppendableTable):
                 values = values.reshape((1, values.shape[0]))
 
             if isinstance(values, (np.ndarray, DatetimeArray)):
-                try:
-                    df = DataFrame(values.T, columns=cols_, index=index_, copy=False)
-                except UnicodeEncodeError as err:
-                    if (
-                        self.errors == "surrogatepass"
-                        and get_option("future.infer_string")
-                        and str(err).endswith("surrogates not allowed")
-                        and HAS_PYARROW
-                    ):
-                        df = DataFrame(
-                            values.T,
-                            columns=cols_,
-                            index=index_,
-                            copy=False,
-                            dtype=StringDtype(storage="python", na_value=np.nan),
-                        )
-                    else:
-                        raise
+                df = DataFrame(values.T, columns=cols_, index=index_, copy=False)
             elif isinstance(values, Index):
                 df = DataFrame(values, columns=cols_, index=index_)
             else:
@@ -4841,10 +4774,23 @@ class AppendableFrameTable(AppendableTable):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
 
             # If str / string dtype is stored in meta, use that.
+            converted = False
             for column in cols_:
                 dtype = getattr(self.table.attrs, f"{column}_meta", None)
                 if dtype in ["str", "string"]:
                     df[column] = df[column].astype(dtype)
+                    converted = True
+            # Otherwise try inference.
+            if (
+                not converted
+                and using_string_dtype()
+                and isinstance(values, np.ndarray)
+                and is_string_array(
+                    values,
+                    skipna=True,
+                )
+            ):
+                df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
 
         if len(frames) == 1:
@@ -5278,7 +5224,7 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel(), copy=False, dtype="object")
+            Series(data.ravel(), copy=False)
             .str.encode(encoding, errors)
             ._values.reshape(data.shape)
         )
@@ -5318,9 +5264,7 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            ser = Series(data, copy=False).str.decode(
-                encoding, errors=errors, dtype="object"
-            )
+            ser = Series(data, copy=False).str.decode(encoding, errors=errors)
             data = ser.to_numpy()
             data.flags.writeable = True
         else:

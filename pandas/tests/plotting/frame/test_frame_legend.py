@@ -12,6 +12,7 @@ from pandas.tests.plotting.common import (
     _check_legend_marker,
     _check_text_labels,
 )
+from pandas.util.version import Version
 
 mpl = pytest.importorskip("matplotlib")
 
@@ -31,7 +32,10 @@ class TestFrameLegend:
         df.plot("x", "b", c="blue", yerr=None, ax=ax, label="blue")
 
         legend = ax.get_legend()
-        result_handles = legend.legend_handles
+        if Version(mpl.__version__) < Version("3.7"):
+            result_handles = legend.legendHandles
+        else:
+            result_handles = legend.legend_handles
 
         assert isinstance(result_handles[0], mpl.collections.LineCollection)
         assert isinstance(result_handles[1], mpl.lines.Line2D)
@@ -44,7 +48,10 @@ class TestFrameLegend:
         ax = df.plot(legend=True, color={"a": "blue", "b": "green"}, secondary_y="b")
         df2.plot(legend=True, color={"d": "red"}, ax=ax)
         legend = ax.get_legend()
-        handles = legend.legend_handles
+        if Version(mpl.__version__) < Version("3.7"):
+            handles = legend.legendHandles
+        else:
+            handles = legend.legend_handles
         result = [handle.get_color() for handle in handles]
         expected = ["blue", "green", "red"]
         assert result == expected

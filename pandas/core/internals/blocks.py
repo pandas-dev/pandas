@@ -1679,8 +1679,6 @@ class EABackedBlock(Block):
 
         try:
             res_values = arr._where(cond, other).T
-        except OutOfBoundsDatetime:
-            raise
         except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, (IntervalDtype, StringDtype)):
@@ -1748,8 +1746,6 @@ class EABackedBlock(Block):
         try:
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
-        except OutOfBoundsDatetime:
-            raise
         except (TypeError, ValueError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
@@ -2098,7 +2094,7 @@ class ExtensionBlock(EABackedBlock):
                 self.values.take(
                     indices, allow_fill=needs_masking[i], fill_value=fill_value
                 ),
-                BlockPlacement(place),  # type: ignore[arg-type]
+                BlockPlacement(place),
                 ndim=2,
             )
             for i, (indices, place) in enumerate(zip(new_values, new_placement))
