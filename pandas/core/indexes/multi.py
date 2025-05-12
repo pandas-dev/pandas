@@ -3814,22 +3814,37 @@ class MultiIndex(Index):
         >>> mi.searchsorted(("b", "y"))
         1
         """
-        if isinstance(value, tuple):
-            value = list(value)
+        if not isinstance(value, (tuple,list)):   
+            raise TypeError("value must be a tuple or list")
 
+        if isinstance(value, tuple):
+            value = [value]
         if side not in ["left", "right"]:
             raise ValueError("side must be either 'left' or 'right'")
         
         if not value:
             raise ValueError("searchsorted requires a non-empty value")
         
-        
+        try: 
+  
+            indexer = self.get_indexer(value)
+            result = []
 
-        dtype = np.dtype([(f"level_{i}", level.dtype) for i,level in enumerate(self.levels)])
- 
-        val = np.asarray(value, dtype=dtype)
+            for v, i in zip(value, indexer):
+                if i!= -1:
+                    result.append(i if side == "left" else i + 1)
+                else: 
+                    dtype = np.dtype([(f"level_{i}", level.dtype) for i, level in enumerate(self.levels)])
 
-        return np.searchsorted(self.values.astype(dtype),val, side=side, sorter=sorter) 
+                    val_array = np.array(value, dtype=dtype)
+                    
+                    pos = np.searchsorted( np.asarray(self.values,dtype=dtype),val_array , side=side, sorter = sorter)
+                    result.append(pos)
+            
+            return np.array(result, dtype=np.intp)
+
+        except KeyError:
+            pass
 
 
     def truncate(self, before=None, after=None) -> MultiIndex:
