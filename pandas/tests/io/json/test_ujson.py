@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 import pandas._libs.json as ujson
+from pandas._libs.tslibs import offsets
 from pandas.compat import IS64
 
 from pandas import (
@@ -1041,3 +1042,9 @@ class TestPandasJSONTests:
         p = PeriodIndex(["2022-04-06", "2022-04-07"], freq="D")
         df = DataFrame(index=p)
         assert df.to_json() == "{}"
+
+    def test_to_json_with_period(self):
+        # GH 55490
+        offset = offsets.YearEnd(2021)
+        result = ujson.ujson_dumps(offset)
+        assert "base" not in result

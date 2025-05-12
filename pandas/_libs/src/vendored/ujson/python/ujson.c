@@ -74,6 +74,7 @@ typedef struct {
   PyObject *type_index;
   PyObject *type_nat;
   PyObject *type_na;
+  PyObject *type_offset;
 } modulestate;
 
 #define modulestate(o) ((modulestate *)PyModule_GetState(o))
@@ -205,6 +206,26 @@ int object_is_na_type(PyObject *obj) {
     return 0;
   }
   int result = PyObject_IsInstance(obj, type_na);
+  if (result == -1) {
+    PyErr_Clear();
+    return 0;
+  }
+  return result;
+}
+
+int object_is_offset_type(PyObject *obj) {
+  PyObject *module = PyState_FindModule(&moduledef);
+  if (module == NULL)
+    return 0;
+  modulestate *state = modulestate(module);
+  if (state == NULL)
+    return 0;
+  PyObject *type_offset = state->type_offset;
+  if (type_offset == NULL) {
+    PyErr_Clear();
+    return 0;
+  }
+  int result = PyObject_IsInstance(obj, type_offset);
   if (result == -1) {
     PyErr_Clear();
     return 0;
@@ -345,6 +366,27 @@ int object_is_na_type(PyObject *obj) {
   return result;
 }
 
+int object_is_offset_type(PyObject *obj) {
+  PyObject *module = PyImport_ImportModule("pandas._libs.tslibs.offsets");
+  if (module == NULL) {
+    PyErr_Clear();
+    return 0;
+  }
+  PyObject *type_offset = PyObject_GetAttrString(module, "BaseOffset");
+  if (type_offset == NULL) {
+    Py_DECREF(module);
+    PyErr_Clear();
+    return 0;
+  }
+  int result = PyObject_IsInstance(obj, type_offset);
+  if (result == -1) {
+    Py_DECREF(module);
+    Py_DECREF(type_offset);
+    PyErr_Clear();
+    return 0;
+  }
+  return result;
+}
 #endif
 
 static int module_traverse(PyObject *m, visitproc visit, void *arg) {
@@ -354,6 +396,7 @@ static int module_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(modulestate(m)->type_index);
   Py_VISIT(modulestate(m)->type_nat);
   Py_VISIT(modulestate(m)->type_na);
+  Py_VISIT(modulestate(m)->type_offset);
   return 0;
 }
 
@@ -364,6 +407,7 @@ static int module_clear(PyObject *m) {
   Py_CLEAR(modulestate(m)->type_index);
   Py_CLEAR(modulestate(m)->type_nat);
   Py_CLEAR(modulestate(m)->type_na);
+  Py_CLEAR(modulestate(m)->type_offset);
   return 0;
 }
 
@@ -434,6 +478,16 @@ PyMODINIT_FUNC PyInit_json(void) {
   } else {
     PyErr_Clear();
   }
+
+  PyObject *mod_offset = PyImport_ImportModule("pandas._libs.tslibs.offsets");
+  if (mod_offset) {
+    PyObject *type_offset = PyObject_GetAttrString(mod_offset, "BaseOffset");
+    assert(type_offset != NULL);
+    modulestate(module)->type_offset = type_offset;
+
+    Py_DECREF(mod_offset);
+  }
+
 #endif
 
   /* Not vendored for now

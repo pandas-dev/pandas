@@ -62,6 +62,7 @@ int object_is_series_type(PyObject *obj);
 int object_is_index_type(PyObject *obj);
 int object_is_nat_type(PyObject *obj);
 int object_is_na_type(PyObject *obj);
+int object_is_offset_type(PyObject *obj);
 
 typedef struct __NpyArrContext {
   PyObject *array;
@@ -923,6 +924,12 @@ static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
     const char *attrStr = PyBytes_AS_STRING(attr);
 
     if (attrStr[0] == '_') {
+      Py_DECREF(attr);
+      continue;
+    }
+
+    // Skip the 'base' attribute for BaseOffset objects
+    if (object_is_offset_type(obj) && strcmp(attrStr, "base") == 0) {
       Py_DECREF(attr);
       continue;
     }

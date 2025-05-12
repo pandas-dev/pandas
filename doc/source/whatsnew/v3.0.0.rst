@@ -789,6 +789,7 @@ I/O
 - Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
 - Bug in :meth:`set_option` where setting the pandas option ``display.html.use_mathjax`` to ``False`` has no effect (:issue:`59884`)
 - Bug in :meth:`to_excel` where :class:`MultiIndex` columns would be merged to a single row when ``merge_cells=False`` is passed (:issue:`60274`)
+- Bug in :meth:`to_json` period dtype was not being converted to string (:issue:`55490`)
 
 Period
 ^^^^^^
