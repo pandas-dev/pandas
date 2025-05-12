@@ -9,7 +9,6 @@ doc/cheatsheet                    @Dr-Irv
 doc/source/development            @noatamir
 
 # pandas
-pandas/_libs/                     @WillAyd
 pandas/_typing.py                 @Dr-Irv
 pandas/core/groupby/*             @rhshadrach
 pandas/io/excel/*                 @rhshadrach
