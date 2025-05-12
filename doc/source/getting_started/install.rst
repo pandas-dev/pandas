@@ -305,7 +305,6 @@ Installable with ``pip install "pandas[hdf5, parquet, iceberg, feather, spss, ex
 Dependency                                             Minimum Version    pip extra        Notes
 ====================================================== ================== ================ ==========================================================
 `PyTables <https://github.com/PyTables/PyTables>`__    3.8.0              hdf5             HDF5-based reading / writing
-`blosc <https://github.com/Blosc/c-blosc>`__           1.21.3             hdf5             Compression for HDF5; only available on ``conda``
 `zlib <https://github.com/madler/zlib>`__                                 hdf5             Compression for HDF5
 `fastparquet <https://github.com/dask/fastparquet>`__  2024.2.0           -                Parquet reading / writing (pyarrow is default)
 `pyarrow <https://github.com/apache/arrow>`__          10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
