@@ -103,7 +103,7 @@ def test_xarray_cftimeindex_nearest():
     cftime = pytest.importorskip("cftime")
     xarray = pytest.importorskip("xarray")
 
-    times = xarray.cftime_range("0001", periods=2)
+    times = xarray.date_range("0001", periods=2, use_cftime=True)
     key = cftime.DatetimeGregorian(2000, 1, 1)
     result = times.get_indexer([key], method="nearest")
     expected = 1
@@ -187,9 +187,9 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
-@pytest.mark.parametrize("dependency", ["numpy", "dateutil"])
+@pytest.mark.parametrize("dependency", ["numpy", "dateutil", "tzdata"])
 def test_missing_required_dependency(monkeypatch, dependency):
-    # GH#61030
+    # GH#61030, GH61273
     original_import = __import__
     mock_error = ImportError(f"Mock error for {dependency}")
 
