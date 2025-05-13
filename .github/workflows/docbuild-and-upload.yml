@@ -54,7 +54,7 @@ jobs:
       run: python -m pytest web/
 
     - name: Build website
-      run: python web/pandas_web.py web/pandas --target-path=web/build
+      run: python web/pandas_web.py web/pandas --target-path=web/build --translations
 
     - name: Build documentation
       run: doc/make.py --warnings-are-errors

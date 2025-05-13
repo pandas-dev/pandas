@@ -28,7 +28,6 @@ import argparse
 import collections
 import datetime
 import importlib
-import io
 import itertools
 import json
 import operator
@@ -36,12 +35,7 @@ import os
 import pathlib
 import re
 import shutil
-from subprocess import (
-    PIPE,
-    Popen,
-)
 import sys
-import tarfile
 import time
 import typing
 
@@ -71,7 +65,7 @@ class Preprocessors:
     """
 
     @staticmethod
-    def current_year(context):
+    def current_year(context: dict) -> dict:
         """
         Add the current year to the context, so it can be used for the copyright
         note, or other places where it is needed.
@@ -80,13 +74,16 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def navbar_add_info(context):
+    def navbar_add_info(context: dict, skip: bool = True) -> dict:
         """
         Items in the main navigation bar can be direct links, or dropdowns with
         subitems. This context preprocessor adds a boolean field
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
+        if skip:
+            return context
+
         lang = context["selected_language"]
         ignore = context["translations"]["ignore"]
         default_language = context["translations"]["default_language"]
@@ -103,7 +100,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def blog_add_posts(context):
+    def blog_add_posts(context: dict) -> dict:
         """
         Given the blog feed defined in the configuration yaml, this context
         preprocessor fetches the posts in the feeds, and returns the relevant
@@ -175,7 +172,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def maintainers_add_info(context):
+    def maintainers_add_info(context: dict) -> dict:
         """
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
@@ -225,7 +222,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def home_add_releases(context):
+    def home_add_releases(context: dict) -> dict:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
@@ -285,7 +282,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def roadmap_pdeps(context):
+    def roadmap_pdeps(context: dict) -> dict:
         """
         PDEP's (pandas enhancement proposals) are not part of the bar
         navigation. They are included as lists in the "Roadmap" page
@@ -399,26 +396,16 @@ def get_callable(obj_as_str: str) -> object:
     return obj
 
 
-def get_config(config_fname: str) -> dict:
-    """
-    Load the config yaml file and return it as a dictionary.
-    """
-    with open(config_fname, encoding="utf-8") as f:
-        context = yaml.safe_load(f)
-    return context
-
-
-def get_context(config_fname: str, **kwargs):
+def get_context(config_fname: str, **kwargs: dict) -> dict:
     """
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
     """
-    context = get_config(config_fname)
+    with open(config_fname, encoding="utf-8") as f:
+        context = yaml.safe_load(f)
+
     context["source_path"] = os.path.dirname(config_fname)
     context.update(kwargs)
-    context["languages"] = context.get("languages", ["en"])
-    context["selected_language"] = context.get("language", "en")
-
     preprocessors = (
         get_callable(context_prep)
         for context_prep in context["main"]["context_preprocessors"]
@@ -431,8 +418,24 @@ def get_context(config_fname: str, **kwargs):
     return context
 
 
+def update_navbar_context(context: dict) -> dict:
+    """
+    Update the context with the navbar information for each language.
+    """
+    language = context["selected_language"]
+    lang_prefix = (
+        language if language != context["translations"]["default_language"] else ""
+    )
+    navbar_path = os.path.join(context["source_path"], lang_prefix, "navbar.yml")
+    with open(navbar_path) as f:
+        navbar = yaml.safe_load(f)
+
+    context.update(navbar)
+    return Preprocessors.navbar_add_info(context, skip=False)
+
+
 def get_source_files(
-    source_path: str, language, languages
+    source_path: str, language: str, languages: list[str]
 ) -> typing.Generator[str, None, None]:
     """
     Generate the list of files present in the source directory.
@@ -466,56 +469,10 @@ def extend_base_template(content: str, base_template: str) -> str:
     return result
 
 
-def download_and_extract_translations(url: str, dir_name: str):
-    """
-    Download the translations from the GitHub repository.
-    """
-    shutil.rmtree(dir_name, ignore_errors=True)
-    response = requests.get(url)
-    if response.status_code == 200:
-        doc = io.BytesIO(response.content)
-        with tarfile.open(None, "r:gz", doc) as tar:
-            tar.extractall(dir_name)
-    else:
-        raise Exception(f"Failed to download translations: {response.status_code}")
-
-
-def get_languages(source_path: str):
-    """
-    Get the list of languages available in the translations directory.
-    """
-    en_path = f"{source_path}/en/"
-    if os.path.exists(en_path):
-        shutil.rmtree(en_path)
-
-    paths = os.listdir(source_path)
-    return [path for path in paths if os.path.isdir(f"{source_path}/{path}")]
-
-
-def copy_translations(source_path: str, target_path: str, languages: list[str]):
-    """
-    Copy the translations to the appropriate directory.
-    """
-    for lang in languages:
-        dest = f"{target_path}/{lang}/"
-        shutil.rmtree(dest, ignore_errors=True)
-        cmds = [
-            "rsync",
-            "-av",
-            "--delete",
-            f"{source_path}/{lang}/",
-            dest,
-        ]
-        p = Popen(cmds, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = p.communicate()
-        sys.stderr.write(f"\nCopying: {lang}...\n\n")
-        sys.stderr.write(stdout.decode())
-        sys.stderr.write(stderr.decode())
-
-
 def main(
     source_path: str,
     target_path: str,
+    process_translations: bool = False,
 ) -> int:
     """
     Copy every file in the source directory to the target directory.
@@ -526,50 +483,36 @@ def main(
     base_folder = os.path.dirname(__file__)
     base_source_path = source_path
     base_target_path = target_path
-    base_config_fname = os.path.join(source_path, "config.yml")
 
-    config = get_config(base_config_fname)
-    translations_path = os.path.join(base_folder, f"{config['translations']['folder']}")
+    shutil.rmtree(target_path, ignore_errors=True)
+    os.makedirs(target_path, exist_ok=True)
 
-    sys.stderr.write("\nDownloading and extracting translations...\n\n")
-    translations_extract_path = translations_path
-    translations_source_path = os.path.join(
-        translations_path, config["translations"]["source_path"]
+    # Handle translations
+    sys.path.append(base_folder)
+    trans = importlib.import_module("pandas_translations")
+    translated_languages, languages = trans.process_translations(
+        "config.yml", source_path, process_translations
     )
 
-    download_and_extract_translations(
-        config["translations"]["url"], translations_extract_path
+    sys.stderr.write("Generating context...\n")
+    context = get_context(
+        os.path.join(source_path, "config.yml"),
+        target_path=target_path,
+        languages=languages,
     )
+    sys.stderr.write("Context generated\n")
 
-    translated_languages = get_languages(translations_source_path)
-    default_language = config["translations"]["default_language"]
-    languages = [default_language] + translated_languages
-
-    sys.stderr.write("\nCopying translations...\n")
-    copy_translations(translations_source_path, source_path, translated_languages)
+    templates_path = os.path.join(source_path, context["main"]["templates_path"])
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
     for language in languages:
+        context["selected_language"] = language
+        context = update_navbar_context(context)
         sys.stderr.write(f"\nProcessing language: {language}...\n\n")
-        if language != default_language:
+
+        if language != context["translations"]["default_language"]:
             target_path = os.path.join(base_target_path, language)
             source_path = os.path.join(base_source_path, language)
-
-        shutil.rmtree(target_path, ignore_errors=True)
-        os.makedirs(target_path, exist_ok=True)
-
-        config_fname = os.path.join(source_path, "config.yml")
-        sys.stderr.write("Generating context...\n")
-
-        context = get_context(
-            config_fname,
-            target_path=target_path,
-            language=language,
-            languages=languages,
-        )
-        sys.stderr.write("Context generated\n")
-
-        templates_path = os.path.join(source_path, context["main"]["templates_path"])
-        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
         for fname in get_source_files(source_path, language, languages):
             if os.path.normpath(fname) in context["main"]["ignore"]:
@@ -608,6 +551,7 @@ def main(
                 shutil.copy(
                     os.path.join(source_path, fname), os.path.join(target_path, dirname)
                 )
+    return 0
 
 
 if __name__ == "__main__":
@@ -618,5 +562,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target-path", default="build", help="directory where to write the output"
     )
+    parser.add_argument("-t", "--translations", action="store_true")
     args = parser.parse_args()
-    sys.exit(main(args.source_path, args.target_path))
+    sys.exit(main(args.source_path, args.target_path, args.translations))
