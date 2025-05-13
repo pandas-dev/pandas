@@ -3,6 +3,7 @@ from datetime import (
     timedelta,
 )
 import platform
+import sys
 
 import numpy as np
 import pytest
@@ -1086,7 +1087,8 @@ def test_rolling_sem(frame_or_series):
     is_platform_arm()
     or is_platform_power()
     or is_platform_riscv64()
-    or platform.architecture()[0] == "32bit",
+    or platform.architecture()[0] == "32bit"
+    or sys.platform == "emscripten",
     reason="GH 38921: known numerical instability on 32-bit platforms",
 )
 @pytest.mark.parametrize(
