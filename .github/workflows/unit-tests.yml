@@ -241,12 +241,14 @@ jobs:
           fi
       - name: Build environment and Run Tests
         # https://github.com/numpy/numpy/issues/24703#issuecomment-1722379388
+        # Note: Pinned to Cython 3.0.10 to avoid numerical instability in 32-bit environments
+        # https://github.com/pandas-dev/pandas/pull/61423
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
+          python -m pip install --no-cache-dir versioneer[toml] cython==3.0.10 python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
           PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
