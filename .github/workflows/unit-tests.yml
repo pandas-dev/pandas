@@ -241,6 +241,8 @@ jobs:
           fi
       - name: Build environment and Run Tests
         # https://github.com/numpy/numpy/issues/24703#issuecomment-1722379388
+        # Note: Pinned to Cython 3.0.10 to avoid numerical instability in 32-bit environments
+        # https://github.com/pandas-dev/pandas/pull/61423
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
