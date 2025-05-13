@@ -3780,7 +3780,7 @@ class MultiIndex(Index):
 
     def searchsorted(
         self,
-        value: tuple[Hashable, ...],
+        value: Union[Tuple[Hashable, ...], Sequence[Tuple[Hashable, ...]]], 
         side: Literal["left", "right"] = "left",
         sorter: npt.NDArray[np.intp] | None = None,
     ) -> npt.NDArray[np.intp]:
@@ -3817,42 +3817,39 @@ class MultiIndex(Index):
             raise TypeError("value must be a tuple or list")
 
         if isinstance(value, tuple):
-            value = [value]
+            values = [value]
         if side not in ["left", "right"]:
             raise ValueError("side must be either 'left' or 'right'")
 
         if not value:
             raise ValueError("searchsorted requires a non-empty value")
 
-        try:
-            indexer = self.get_indexer(value)
-            result = []
+    
+        indexer = self.get_indexer(value)
+        result = []
 
-            for v, i in zip(value, indexer):
-                if i != -1:
-                    result.append(i if side == "left" else i + 1)
-                else:
-                    dtype = np.dtype(
-                        [
-                            (f"level_{i}", level.dtype)
-                            for i, level in enumerate(self.levels)
-                        ]
-                    )
+        for v, i in zip(value, indexer):
+            if i != -1:
+                result.append(i if side == "left" else i + 1)
+            else:
+                dtype = np.dtype(
+                    [
+                        (f"level_{i}", level.dtype)
+                        for i, level in enumerate(self.levels)
+                    ]
+                )
 
-                    val_array = np.array(value, dtype=dtype)
+                val_array = np.array(values, dtype=dtype)
 
-                    pos = np.searchsorted(
-                        np.asarray(self.values, dtype=dtype),
-                        val_array,
-                        side=side,
-                        sorter=sorter,
-                    )
-                    result.append(pos)
+                pos = np.searchsorted(
+                    np.asarray(self.values, dtype=dtype),
+                    val_array,
+                    side=side,
+                    sorter=sorter,
+                )
+                result.append(pos)
 
-            return np.array(result, dtype=np.intp)
-
-        except KeyError:
-            pass
+        return np.array(result, dtype=np.intp)
 
     def truncate(self, before=None, after=None) -> MultiIndex:
         """
