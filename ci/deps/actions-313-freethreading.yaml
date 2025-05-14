@@ -7,8 +7,8 @@ dependencies:
   # build dependencies
   - setuptools
   - versioneer
-  - meson=1.2.1
-  - meson-python=0.13.1
+  - meson=1.8.0
+  - meson-python=0.18.0
 
   # test dependencies
   - pytest>=7.3.2
