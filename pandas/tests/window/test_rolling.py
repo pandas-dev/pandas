@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import platform
 import sys
 
 import numpy as np
@@ -1082,12 +1083,14 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
+@pytest.mark.skipif(
     is_platform_arm()
     or is_platform_power()
     or is_platform_riscv64()
-    or sys.platform == "emscripten",
-    reason="GH 38921: known numerical instability on 32-bit platforms or Pyodide",
+    or platform.architecture()[0] == "32bit"
+    or sys.platform in ("emscripten", "wasm"),
+    reason="GH 38921: skipped due to known numerical instability on 32-bit or "
+    "WebAssembly platforms (Pyodide)",
 )
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
@@ -1103,7 +1106,7 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
-    tm.assert_almost_equal(result[1:].values, expected[1:].values, rtol=1e-2, atol=1e-5)
+    tm.assert_almost_equal(result[1:].values, expected[1:].values, rtol=1e-3, atol=1e-6)
 
 
 def test_timeoffset_as_window_parameter_for_corr(unit):
