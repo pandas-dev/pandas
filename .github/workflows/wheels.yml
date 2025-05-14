@@ -36,6 +36,10 @@ jobs:
           CIBW_BUILD_FRONTEND: 'pip'
           CIBW_PLATFORM: 'auto'
           CIBW_BEFORE_BUILD_WINDOWS: bash scripts/cibw_before_build_windows.sh
+          CIBW_ENVIRONMENT_WINDOWS: |
+            CC=cl.exe
+            CXX=cl.exe
+            LD=link.exe
 
       - name: Set up Python for validation
         uses: mamba-org/setup-micromamba@v2
