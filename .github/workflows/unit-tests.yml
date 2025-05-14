@@ -429,6 +429,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Cache Emscripten
+        uses: actions/cache@v3
+        with:
+          path: emsdk-cache
+          key: emsdk-${{ runner.os }}-${{ hashFiles('.github/workflows/unit-tests.yml') }}
+          restore-keys: |
+            emsdk-${{ runner.os }}-
 
       - name: Set up Emscripten toolchain
         uses: mymindstorm/setup-emsdk@v14
@@ -437,7 +444,9 @@ jobs:
           actions-cache-folder: emsdk-cache
 
       - name: Install pyodide-build
-        run: pip install "pyodide-build>=0.29.2"
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pyodide-build>=0.29.2"
 
       - name: Build pandas for Pyodide
         run: |
@@ -452,6 +461,7 @@ jobs:
         env:
           pyodide-version: '0.27.1'
         run: |
+          set -e  # Stop on error
           pyodide xbuildenv install ${{ env.pyodide-version }}
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
@@ -463,6 +473,7 @@ jobs:
         run: |
           source .venv-pyodide/bin/activate
           pip install pytest hypothesis
-          # do not import pandas from the checked out repo
-          cd ..
-          python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'
+          # Debugging flags for numerical issues
+          pytest pandas --maxfail=5 --tb=short -m "not clipboard and not
+          single_cpu and not slow and not network
+          and not db" --disable-warnings --durations=10

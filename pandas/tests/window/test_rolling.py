@@ -1103,9 +1103,10 @@ def test_rolling_sem(frame_or_series):
 def test_rolling_var_numerical_issues(func, third_value, values):
     # GH: 37051
     ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
-    result = getattr(ds.rolling(2), func)()
+    actual = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
-    tm.assert_almost_equal(result[1:].values, expected[1:].values, rtol=1e-3, atol=1e-6)
+    # Use pandas._testing.assert_series_equal
+    tm.assert_series_equal(actual, expected, check_less_precise=True, atol=1e-8)
 
 
 def test_timeoffset_as_window_parameter_for_corr(unit):
