@@ -55,12 +55,15 @@ if cy.version().version_compare('>=3.1.0')
         install: false,
         output: '_cyutility.c',
         command: [
-        cy, '-3', '--fast-fail',
-        '--generate-shared=' + meson.current_build_dir()/'_cyutility.c'
+            cy,
+            '-3',
+            '--fast-fail',
+            '--generate-shared=' + meson.current_build_dir() / '_cyutility.c',
         ],
     )
 
-    py.extension_module('_cyutility',
+    py.extension_module(
+        '_cyutility',
         cython_shared_src,
         subdir: 'pandas/_libs',
         install: true,
