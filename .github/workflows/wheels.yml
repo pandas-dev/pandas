@@ -35,6 +35,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           CIBW_BUILD_FRONTEND: 'pip'
           CIBW_PLATFORM: 'auto'
+          CIBW_ENVIRONMENT_WINDOWS: 'CC=cl CXX=cl'
           # Add any necessary build environment variables here if needed
           # e.g. CIBW_BEFORE_BUILD_WINDOWS: bash scripts/cibw_before_build_windows.sh
 
