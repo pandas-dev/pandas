@@ -168,6 +168,7 @@ class TestPDApi(Base):
         "read_parquet",
         "read_orc",
         "read_spss",
+        "read_iceberg",
     ]
 
     # top-level json funcs
