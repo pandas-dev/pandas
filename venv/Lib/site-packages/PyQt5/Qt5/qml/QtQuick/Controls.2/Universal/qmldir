@@ -1,4 +1,0 @@
-module QtQuick.Controls.Universal
-plugin qtquickcontrols2universalstyleplugin
-classname QtQuickControls2UniversalStylePlugin
-depends QtQuick.Controls 2.5

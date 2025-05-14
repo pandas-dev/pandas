@@ -1,3 +1,0 @@
-module Qt.labs.platform
-plugin qtlabsplatformplugin
-classname QtLabsPlatformPlugin

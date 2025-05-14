@@ -1,4 +1,0 @@
-module QtQuick.PrivateWidgets
-plugin widgetsplugin
-classname QtQuick2PrivateWidgetsPlugin
-typeinfo plugins.qmltypes

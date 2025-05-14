@@ -1,5 +1,0 @@
-module QtQuick.Timeline
-plugin qtquicktimelineplugin
-classname QtQuickTimelinePlugin
-typeinfo plugins.qmltypes
-designersupported

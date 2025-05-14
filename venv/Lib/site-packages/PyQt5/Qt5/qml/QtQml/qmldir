@@ -1,6 +1,0 @@
-module QtQml
-plugin qmlplugin
-classname QtQmlPlugin
-depends QtQml.Models 2.15
-depends QtQml.WorkerScript 2.15
-typeinfo plugins.qmltypes

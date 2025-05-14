@@ -1,6 +1,0 @@
-version = "2.9.*"
-upstream_repository = "https://github.com/dateutil/dateutil"
-partial_stub = true
-
-[tool.stubtest]
-ignore_missing_stub = true

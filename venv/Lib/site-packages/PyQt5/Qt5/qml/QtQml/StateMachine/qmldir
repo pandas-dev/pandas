@@ -1,4 +1,0 @@
-module QtQml.StateMachine
-plugin qtqmlstatemachine
-classname QtQmlStateMachinePlugin
-typeinfo plugins.qmltypes

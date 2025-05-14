@@ -1,8 +1,0 @@
-{
-    "version": 1.0,
-    "merge": {
-        "metadata": {
-            "serviceId":"EKS"
-        }
-    }
-}

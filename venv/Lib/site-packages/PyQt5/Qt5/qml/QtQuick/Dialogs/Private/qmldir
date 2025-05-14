@@ -1,4 +1,0 @@
-module QtQuick.Dialogs.Private
-plugin dialogsprivateplugin
-classname QtQuick2DialogsPrivatePlugin
-typeinfo plugins.qmltypes

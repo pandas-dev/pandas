@@ -1,6 +1,0 @@
-module Qt.labs.calendar
-plugin qtlabscalendarplugin
-classname QtLabsCalendarPlugin
-DayOfWeekRow 1.0 DayOfWeekRow.qml
-MonthGrid 1.0 MonthGrid.qml
-WeekNumberColumn 1.0 WeekNumberColumn.qml
