@@ -35,9 +35,20 @@ jobs:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           CIBW_BUILD_FRONTEND: 'pip'
           CIBW_PLATFORM: 'auto'
-          CIBW_ENVIRONMENT_WINDOWS: 'CC=cl CXX=cl'
-          # Add any necessary build environment variables here if needed
-          # e.g. CIBW_BEFORE_BUILD_WINDOWS: bash scripts/cibw_before_build_windows.sh
+          CIBW_BEFORE_BUILD_WINDOWS: |
+            echo "Attempting to set up MSVC ARM64 environment..."
+            rem Assuming Visual Studio 2022 Enterprise edition. Adjust path if different (e.g., Community, BuildTools).
+            call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
+            echo "Setting CC, CXX, CL, and _CL_ environment variables for Meson"
+            set CC=cl
+            set CXX=cl
+            rem /Brepro helps with build reproducibility
+            set CL=/Brepro
+            set _CL_=/Brepro
+            echo "Environment setup complete. PATH is: %PATH%"
+            echo "CC is: %CC%, CXX is: %CXX%"
+            echo "Verifying cl.exe is in PATH:"
+            where cl
 
       - name: Set up Python for validation
         uses: mamba-org/setup-micromamba@v2
