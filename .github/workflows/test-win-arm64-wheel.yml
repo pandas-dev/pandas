@@ -1,0 +1,59 @@
+name: Test win_arm64 Wheel builder
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build_wheels:
+    name: Build wheel for cp312-win_arm64
+    runs-on: windows-11-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        buildplat:
+        - [windows-11-arm, win_arm64]
+        python: [["cp312", "3.12"]]
+
+    steps:
+      - name: Checkout pandas
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.23.3
+        with:
+         package-dir: ./  # Build from source checkout
+        env:
+          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          CIBW_BUILD_FRONTEND: 'pip'
+          CIBW_PLATFORM: 'auto'
+          # Add any necessary build environment variables here if needed
+          # e.g. CIBW_BEFORE_BUILD_WINDOWS: bash scripts/cibw_before_build_windows.sh
+
+      - name: Set up Python for validation
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: wheel-env
+          create-args: >-
+            python=3.12
+            wheel
+          cache-downloads: true
+          cache-environment: true
+
+      - name: Validate wheel RECORD
+        shell: bash -el {0}
+        run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
+
+      # Artifact upload is removed as per requirements
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+      #     path: ./wheelhouse/*.whl
