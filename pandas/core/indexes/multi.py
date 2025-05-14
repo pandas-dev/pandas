@@ -3780,7 +3780,7 @@ class MultiIndex(Index):
 
     def searchsorted(
         self,
-        value: Union[Tuple[Hashable, ...], Sequence[Tuple[Hashable, ...]]], 
+        value: Any,
         side: Literal["left", "right"] = "left",
         sorter: npt.NDArray[np.intp] | None = None,
     ) -> npt.NDArray[np.intp]:
@@ -3789,7 +3789,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        value : tuple
+        value : Any
             The value(s) to search for in the MultiIndex.
         side : {'left', 'right'}, default 'left'
             If 'left', the index of the first suitable location found is given.
@@ -3800,7 +3800,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        numpy.ndarray
+        npt.NDArray[np.intp]
             Array of insertion points.
 
         See Also
@@ -3813,18 +3813,19 @@ class MultiIndex(Index):
         >>> mi.searchsorted(("b", "y"))
         1
         """
-        if not isinstance(value, (tuple, list)):
-            raise TypeError("value must be a tuple or list")
-
-        if isinstance(value, tuple):
-            values = [value]
-        if side not in ["left", "right"]:
-            raise ValueError("side must be either 'left' or 'right'")
 
         if not value:
             raise ValueError("searchsorted requires a non-empty value")
 
-    
+        if not isinstance(value, (tuple, list)):
+            raise TypeError("value must be a tuple or list")
+
+        if isinstance(value, tuple):
+            value = [value]
+
+        if side not in ["left", "right"]:
+            raise ValueError("side must be either 'left' or 'right'")
+
         indexer = self.get_indexer(value)
         result = []
 
@@ -3834,12 +3835,12 @@ class MultiIndex(Index):
             else:
                 dtype = np.dtype(
                     [
-                        (f"level_{i}", level.dtype)
+                        (f"level_{i}", np.asarray(level).dtype)
                         for i, level in enumerate(self.levels)
                     ]
                 )
-
-                val_array = np.array(values, dtype=dtype)
+    
+                val_array = np.array([v], dtype=dtype)
 
                 pos = np.searchsorted(
                     np.asarray(self.values, dtype=dtype),
@@ -3847,7 +3848,7 @@ class MultiIndex(Index):
                     side=side,
                     sorter=sorter,
                 )
-                result.append(pos)
+                result.append(int(pos[0]))
 
         return np.array(result, dtype=np.intp)
 
