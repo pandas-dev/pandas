@@ -30,7 +30,7 @@
 
                     <div class="collapse navbar-collapse" id="nav-content">   
                         <ul class="navbar-nav ms-auto">
-                            {% for item in navbar %}
+                            {% for item in navbar[selected_language] %}
                                 {% if not item.has_subitems %}
                                     <li class="nav-item">
                                         <a class="nav-link" href="{% if not item.target.startswith("http") %}{{ base_url }}{% endif %}{{ item.target }}">{{ item.name }}</a>

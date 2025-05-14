@@ -81,22 +81,17 @@ class Preprocessors:
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
-        if skip:
-            return context
-
-        lang = context["selected_language"]
         ignore = context["translations"]["ignore"]
-        default_language = context["translations"]["default_language"]
-        for i, item in enumerate(context["navbar"]):
-            if item["target"] in ignore:
-                if lang != default_language:
-                    item["target"] = "../" + item["target"]
+        for language in context["languages"]:
+            for i, item in enumerate(context["navbar"][language]):
+                if item["target"] in ignore:
+                    item["target"] = f"../{item['target']}"
 
-            context["navbar"][i] = dict(
-                item,
-                has_subitems=isinstance(item["target"], list),
-                slug=item["name"].replace(" ", "-").lower(),
-            )
+                context["navbar"][language][i] = dict(
+                    item,
+                    has_subitems=isinstance(item["target"], list),
+                    slug=(item["name"].replace(" ", "-").lower()),
+                )
         return context
 
     @staticmethod
@@ -396,7 +391,9 @@ def get_callable(obj_as_str: str) -> object:
     return obj
 
 
-def get_context(config_fname: str, **kwargs: dict) -> dict:
+def get_context(
+    config_fname: str, navbar_fname: str, languages: list[str], **kwargs: dict
+) -> dict:
     """
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
@@ -405,6 +402,22 @@ def get_context(config_fname: str, **kwargs: dict) -> dict:
         context = yaml.safe_load(f)
 
     context["source_path"] = os.path.dirname(config_fname)
+
+    navbar = {}
+    context["languages"] = languages
+    default_language = context["translations"]["default_language"]
+    default_prefix = context["translations"]["default_prefix"]
+    for language in languages:
+        prefix = default_prefix if language == default_language else language
+        navbar_path = os.path.join(context["source_path"], prefix, navbar_fname)
+
+        with open(navbar_path, encoding="utf-8") as f:
+            navbar_lang = yaml.safe_load(f)
+
+        navbar[language] = navbar_lang["navbar"]
+
+    context["navbar"] = navbar
+
     context.update(kwargs)
     preprocessors = (
         get_callable(context_prep)
@@ -418,43 +431,14 @@ def get_context(config_fname: str, **kwargs: dict) -> dict:
     return context
 
 
-def update_navbar_context(context: dict) -> dict:
-    """
-    Update the context with the navbar information for each language.
-    """
-    language = context["selected_language"]
-    lang_prefix = (
-        language if language != context["translations"]["default_language"] else ""
-    )
-    navbar_path = os.path.join(context["source_path"], lang_prefix, "navbar.yml")
-    with open(navbar_path) as f:
-        navbar = yaml.safe_load(f)
-
-    context.update(navbar)
-    return Preprocessors.navbar_add_info(context, skip=False)
-
-
-def get_source_files(
-    source_path: str, language: str, languages: list[str]
-) -> typing.Generator[str, None, None]:
+def get_source_files(source_path: str) -> typing.Generator[str, None, None]:
     """
     Generate the list of files present in the source directory.
     """
-    paths = []
-    all_languages = languages[:]
-    all_languages.remove(language)
     for root, dirs, fnames in os.walk(source_path):
         root_rel_path = os.path.relpath(root, source_path)
         for fname in fnames:
-            path = os.path.join(root_rel_path, fname)
-            for language in all_languages:
-                if path.startswith(language + "/"):
-                    break
-            else:
-                paths.append(path)
-
-    for path in paths:
-        yield path
+            yield os.path.join(root_rel_path, fname)
 
 
 def extend_base_template(content: str, base_template: str) -> str:
@@ -472,7 +456,6 @@ def extend_base_template(content: str, base_template: str) -> str:
 def main(
     source_path: str,
     target_path: str,
-    process_translations: bool = False,
 ) -> int:
     """
     Copy every file in the source directory to the target directory.
@@ -481,8 +464,6 @@ def main(
     before copying them. ``.md`` files are transformed to HTML.
     """
     base_folder = os.path.dirname(__file__)
-    base_source_path = source_path
-    base_target_path = target_path
 
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
@@ -491,12 +472,13 @@ def main(
     sys.path.append(base_folder)
     trans = importlib.import_module("pandas_translations")
     translated_languages, languages = trans.process_translations(
-        "config.yml", source_path, process_translations
+        "config.yml", source_path
     )
 
     sys.stderr.write("Generating context...\n")
     context = get_context(
         os.path.join(source_path, "config.yml"),
+        navbar_fname="navbar.yml",
         target_path=target_path,
         languages=languages,
     )
@@ -505,52 +487,51 @@ def main(
     templates_path = os.path.join(source_path, context["main"]["templates_path"])
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
-    for language in languages:
-        context["selected_language"] = language
-        context = update_navbar_context(context)
-        sys.stderr.write(f"\nProcessing language: {language}...\n\n")
+    default_language = context["translations"]["default_language"]
+    for fname in get_source_files(source_path):
+        selected_language = context["translations"]["default_language"]
+        for language in translated_languages:
+            if fname.startswith(language + "/"):
+                selected_language = language
+                break
 
-        if language != context["translations"]["default_language"]:
-            target_path = os.path.join(base_target_path, language)
-            source_path = os.path.join(base_source_path, language)
+        context["selected_language"] = selected_language
+        if os.path.normpath(fname) in context["main"]["ignore"]:
+            continue
 
-        for fname in get_source_files(source_path, language, languages):
-            if os.path.normpath(fname) in context["main"]["ignore"]:
-                continue
+        sys.stderr.write(f"Processing {fname}\n")
+        dirname = os.path.dirname(fname)
+        os.makedirs(os.path.join(target_path, dirname), exist_ok=True)
 
-            sys.stderr.write(f"Processing {fname}\n")
-            dirname = os.path.dirname(fname)
-            os.makedirs(os.path.join(target_path, dirname), exist_ok=True)
+        extension = os.path.splitext(fname)[-1]
+        if extension in (".html", ".md"):
+            with open(os.path.join(source_path, fname), encoding="utf-8") as f:
+                content = f.read()
+            if extension == ".md":
+                body = markdown.markdown(
+                    content, extensions=context["main"]["markdown_extensions"]
+                )
+                # Apply Bootstrap's table formatting manually
+                # Python-Markdown doesn't let us config table attributes by hand
+                body = body.replace("<table>", '<table class="table table-bordered">')
+                content = extend_base_template(body, context["main"]["base_template"])
 
-            extension = os.path.splitext(fname)[-1]
-            if extension in (".html", ".md"):
-                with open(os.path.join(source_path, fname), encoding="utf-8") as f:
-                    content = f.read()
-                if extension == ".md":
-                    body = markdown.markdown(
-                        content, extensions=context["main"]["markdown_extensions"]
-                    )
-                    # Apply Bootstrap's table formatting manually
-                    # Python-Markdown doesn't let us config table attributes by hand
-                    body = body.replace(
-                        "<table>", '<table class="table table-bordered">'
-                    )
-                    content = extend_base_template(
-                        body, context["main"]["base_template"]
-                    )
+            context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
+            if selected_language != default_language:
                 context["base_url"] = "".join(
-                    ["../"] * os.path.normpath(fname).count("/")
+                    ["../"] * (os.path.normpath(fname).count("/") - 1)
                 )
-                content = jinja_env.from_string(content).render(**context)
-                fname_html = os.path.splitext(fname)[0] + ".html"
-                with open(
-                    os.path.join(target_path, fname_html), "w", encoding="utf-8"
-                ) as f:
-                    f.write(content)
-            else:
-                shutil.copy(
-                    os.path.join(source_path, fname), os.path.join(target_path, dirname)
-                )
+
+            content = jinja_env.from_string(content).render(**context)
+            fname_html = os.path.splitext(fname)[0] + ".html"
+            with open(
+                os.path.join(target_path, fname_html), "w", encoding="utf-8"
+            ) as f:
+                f.write(content)
+        else:
+            shutil.copy(
+                os.path.join(source_path, fname), os.path.join(target_path, dirname)
+            )
     return 0
 
 
@@ -562,6 +543,5 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target-path", default="build", help="directory where to write the output"
     )
-    parser.add_argument("-t", "--translations", action="store_true")
     args = parser.parse_args()
-    sys.exit(main(args.source_path, args.target_path, args.translations))
+    sys.exit(main(args.source_path, args.target_path))

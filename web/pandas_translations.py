@@ -82,7 +82,7 @@ def copy_translations(source_path: str, target_path: str, languages: list[str]) 
 
 
 def process_translations(
-    config_fname: str, source_path: str, process_translations: bool
+    config_fname: str, source_path: str
 ) -> tuple[list[str], list[str]]:
     """
     Process the translations by downloading and extracting them from
@@ -95,15 +95,15 @@ def process_translations(
         translations_path, config["translations"]["source_path"]
     )
     default_language = config["translations"]["default_language"]
+
     sys.stderr.write("\nDownloading and extracting translations...\n\n")
     download_and_extract_translations(config["translations"]["url"], translations_path)
-    languages = [default_language]
+
     translated_languages = get_languages(translations_source_path)
     remove_translations(source_path, translated_languages)
-    if process_translations:
-        languages = [default_language] + translated_languages
 
-        sys.stderr.write("\nCopying translations...\n")
-        copy_translations(translations_source_path, source_path, translated_languages)
+    languages = [default_language] + translated_languages
+    sys.stderr.write("\nCopying translations...\n")
+    copy_translations(translations_source_path, source_path, translated_languages)
 
     return translated_languages, languages
