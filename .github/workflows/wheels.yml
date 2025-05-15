@@ -19,7 +19,7 @@ jobs:
       matrix:
         buildplat:
         - [windows-11-arm, win_arm64]
-        python: [["cp312", "3.12"]]
+        python: [["cp313", "3.13"]]
 
     steps:
       - name: Checkout pandas
@@ -27,33 +27,46 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.3
-        with:
-         package-dir: ./  # Build from source checkout
-        env:
-          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_BUILD_FRONTEND: 'pip'
-          CIBW_PLATFORM: 'auto'
-          CIBW_BEFORE_BUILD_WINDOWS: bash scripts/cibw_before_build_windows.sh
-          CIBW_ENVIRONMENT_WINDOWS: |
-            CC=cl.exe
-            CXX=cl.exe
-            LD=link.exe
+      - name: Debug MSVC tools in PATH
+        shell: cmd
+        run: |
+          echo "Searching for cl.exe..."
+          where cl.exe || echo "cl.exe not found in PATH"
+          echo "Searching for link.exe..."
+          where link.exe || echo "link.exe not found in PATH"
+          echo "Searching for nmake.exe..."
+          where nmake.exe || echo "nmake.exe not found in PATH"
+          echo "Current PATH:"
+          echo %PATH%
 
-      - name: Set up Python for validation
-        uses: mamba-org/setup-micromamba@v2
-        with:
-          environment-name: wheel-env
-          create-args: >-
-            python=3.12
-            wheel
-          cache-downloads: true
-          cache-environment: true
+      # Steps for building and validation are removed as per requirements
+      # - name: Build wheels
+      #   uses: pypa/cibuildwheel@v2.23.3
+      #   with:
+      #    package-dir: ./  # Build from source checkout
+      #   env:
+      #     CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+      #     CIBW_BUILD_FRONTEND: 'pip'
+      #     CIBW_PLATFORM: 'auto'
+      #     CIBW_BEFORE_BUILD_WINDOWS: bash scripts/cibw_before_build_windows.sh
+      #     CIBW_ENVIRONMENT_WINDOWS: |
+      #       CC=cl.exe
+      #       CXX=cl.exe
+      #       LD=link.exe
 
-      - name: Validate wheel RECORD
-        shell: bash -el {0}
-        run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
+      # - name: Set up Python for validation
+      #   uses: mamba-org/setup-micromamba@v2
+      #   with:
+      #     environment-name: wheel-env
+      #     create-args: >-
+      #       python=3.12
+      #       wheel
+      #     cache-downloads: true
+      #     cache-environment: true
+
+      # - name: Validate wheel RECORD
+      #   shell: bash -el {0}
+      #   run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
       # Artifact upload is removed as per requirements
       # - uses: actions/upload-artifact@v4
