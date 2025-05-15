@@ -240,7 +240,6 @@ class TestIndexSetOps:
     def test_union_name_preservation(
         self, first_list, second_list, first_name, second_name, expected_name, sort
     ):
-        expected_dtype = object if not first_list or not second_list else "str"
         first = Index(first_list, name=first_name)
         second = Index(second_list, name=second_name)
         union = first.union(second, sort=sort)
@@ -251,7 +250,7 @@ class TestIndexSetOps:
             expected = Index(sorted(vals), name=expected_name)
             tm.assert_index_equal(union, expected)
         else:
-            expected = Index(vals, name=expected_name, dtype=expected_dtype)
+            expected = Index(vals, name=expected_name)
             tm.assert_index_equal(union.sort_values(), expected.sort_values())
 
     @pytest.mark.parametrize(
