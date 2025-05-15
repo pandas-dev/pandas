@@ -38,6 +38,7 @@ jobs:
           CIBW_ARCHS: 'ARM64'
           CIBW_BEFORE_BUILD_WINDOWS: |
             call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
+            where cl.exe || (echo cl.exe not found && exit 1)
             bash scripts/cibw_before_build_windows.sh
           CIBW_ENVIRONMENT_WINDOWS: |
             CC=cl.exe
