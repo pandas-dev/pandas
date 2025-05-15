@@ -2,8 +2,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import platform
-import sys
 
 import numpy as np
 import pytest
@@ -1083,14 +1081,9 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    is_platform_arm()
-    or is_platform_power()
-    or is_platform_riscv64()
-    or platform.architecture()[0] == "32bit"
-    or sys.platform in ("emscripten", "wasm"),
-    reason="GH 38921: skipped due to known numerical instability on 32-bit or "
-    "WebAssembly platforms (Pyodide)",
+@pytest.mark.xfail(
+    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
+    reason="GH 38921",
 )
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
@@ -1106,7 +1099,10 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
-    tm.assert_almost_equal(result[1:].values, expected[1:].values, rtol=1e-3, atol=1e-6)
+    tm.assert_series_equal(result, expected)
+    # GH 42064
+    # new `roll_var` will output 0.0 correctly
+    tm.assert_series_equal(result == 0, expected == 0)
 
 
 def test_timeoffset_as_window_parameter_for_corr(unit):
@@ -1950,3 +1946,66 @@ def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     df.index = df.index.as_unit("ns")
 
     tm.assert_frame_equal(ref_df, df)
+
+
+class PrescribedWindowIndexer(BaseIndexer):
+    def __init__(self, start, end):
+        self._start = start
+        self._end = end
+        super().__init__()
+
+    def get_window_bounds(
+        self, num_values=None, min_periods=None, center=None, closed=None, step=None
+    ):
+        if num_values is None:
+            num_values = len(self._start)
+        start = np.clip(self._start, 0, num_values)
+        end = np.clip(self._end, 0, num_values)
+        return start, end
+
+
+class TestMinMax:
+    @pytest.mark.parametrize(
+        "is_max, has_nan, exp_list",
+        [
+            (True, False, [3.0, 5.0, 2.0, 5.0, 1.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
+            (True, True, [3.0, 4.0, 2.0, 4.0, 1.0, 4.0, 6.0, 7.0, 7.0, 9.0]),
+            (False, False, [3.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 7.0, 0.0]),
+            (False, True, [3.0, 2.0, 2.0, 1.0, 1.0, 1.0, 6.0, 6.0, 7.0, 1.0]),
+        ],
+    )
+    def test_minmax(self, is_max, has_nan, exp_list):
+        nan_idx = [0, 5, 8]
+        df = DataFrame(
+            {
+                "data": [5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 6.0, 7.0, 8.0, 9.0],
+                "start": [2, 0, 3, 0, 4, 0, 5, 5, 7, 3],
+                "end": [3, 4, 4, 5, 5, 6, 7, 8, 9, 10],
+            }
+        )
+        if has_nan:
+            df.loc[nan_idx, "data"] = np.nan
+        expected = Series(exp_list, name="data")
+        r = df.data.rolling(
+            PrescribedWindowIndexer(df.start.to_numpy(), df.end.to_numpy())
+        )
+        if is_max:
+            result = r.max()
+        else:
+            result = r.min()
+
+        tm.assert_series_equal(result, expected)
+
+    def test_wrong_order(self):
+        start = np.array(range(5), dtype=np.int64)
+        end = start + 1
+        end[3] = end[2]
+        start[3] = start[2] - 1
+
+        df = DataFrame({"data": start * 1.0, "start": start, "end": end})
+
+        r = df.data.rolling(PrescribedWindowIndexer(start, end))
+        with pytest.raises(
+            ValueError, match="Start/End ordering requirement is violated at index 3"
+        ):
+            r.max()
