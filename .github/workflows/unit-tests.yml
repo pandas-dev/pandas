@@ -169,6 +169,9 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+      with:
+        # xref https://github.com/cython/cython/issues/6870
+        werror: ${{ matrix.name != 'Freethreading' }}
       # TODO: Re-enable once Pypy has Pypy 3.10 on conda-forge
       if: ${{ matrix.name != 'Pypy' }}
 
