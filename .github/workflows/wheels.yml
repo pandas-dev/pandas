@@ -28,10 +28,9 @@ jobs:
           fetch-depth: 0
 
       - name: Set up MSVC environment
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
-          echo "MSVC environment for ARM64 initialized."
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64 # Ensure this matches your target architecture
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
@@ -43,6 +42,9 @@ jobs:
           CIBW_PLATFORM: 'auto'
           CIBW_BEFORE_BUILD_WINDOWS: bash scripts/cibw_before_build_windows.sh
           CIBW_ENVIRONMENT_WINDOWS: |
+            PATH="%PATH%"
+            INCLUDE="%INCLUDE%"
+            LIB="%LIB%"
             CC=cl.exe
             CXX=cl.exe
             LD=link.exe
