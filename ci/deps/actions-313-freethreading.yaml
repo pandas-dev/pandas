@@ -12,7 +12,6 @@ dependencies:
 
   # test dependencies
   - pytest>=7.3.2
-  - pytest-cov
   - pytest-xdist>=3.4.0
 
   # required dependencies
@@ -24,6 +23,8 @@ dependencies:
 
   # Move Cython to build dependencies, once they release a version that supports freethreading
   - pip:
+    # No free-threaded coveragepy (with the C-extension) on conda-forge yet
+    - pytest-cov
     - "tzdata>=2022.7"
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "cython"
