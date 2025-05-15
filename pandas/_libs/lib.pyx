@@ -777,7 +777,10 @@ cpdef ndarray[object] ensure_string_array(
             return out
         arr = arr.to_numpy(dtype=object)
     elif not util.is_array(arr):
-        arr = np.array(arr, dtype="object")
+        # GH#61155: Guarantee a 1-d result when array is a list of lists
+        input_arr = arr
+        arr = np.empty(len(arr), dtype="object")
+        arr[:] = input_arr
 
     result = np.asarray(arr, dtype="object")
 
