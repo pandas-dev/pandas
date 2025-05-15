@@ -30,6 +30,13 @@ jobs:
       - name: Debug MSVC tools in PATH
         shell: cmd
         run: |
+          echo "Listing contents of C:\Program Files\Microsoft Visual Studio\..."
+          dir "C:\Program Files\Microsoft Visual Studio\"
+          echo ""
+          echo "Attempting to set up MSVC environment..."
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
+          echo "MSVC environment setup attempted."
+          echo ""
           echo "Searching for cl.exe..."
           where cl.exe || echo "cl.exe not found in PATH"
           echo "Searching for link.exe..."
