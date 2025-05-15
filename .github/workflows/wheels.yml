@@ -34,7 +34,8 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           CIBW_BUILD_FRONTEND: 'pip'
-          CIBW_PLATFORM: 'auto'
+          CIBW_PLATFORM: 'windows'
+          CIBW_ARCHS: 'ARM64'
           CIBW_BEFORE_BUILD_WINDOWS: |
             call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
             bash scripts/cibw_before_build_windows.sh
