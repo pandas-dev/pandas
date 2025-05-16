@@ -102,10 +102,6 @@ jobs:
         # TODO: support PyPy?
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
-        # TODO: Remove this plus installing build deps in cibw_before_build.sh
-        # after pandas can be built with a released NumPy/Cython
-        - python: ["cp313t", "3.13"]
-          cibw_build_frontend: 'pip; args: --no-build-isolation'
         # Build Pyodide wheels and upload them to Anaconda.org
         # NOTE: this job is similar to the one in unit-tests.yml except for the fact
         # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
