@@ -84,5 +84,3 @@ pandas/tests/io/parser/data export-ignore
 
 # Include cibw script in sdist since it's needed for building wheels
 scripts/cibw_before_build.sh -export-ignore
-scripts/cibw_before_build_windows.sh -export-ignore
-scripts/cibw_before_test_windows.sh -export-ignore
