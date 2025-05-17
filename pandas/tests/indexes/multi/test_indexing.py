@@ -1032,15 +1032,14 @@ def test_get_loc_namedtuple_behaves_like_tuple():
 
 
 def test_searchsorted():
-    mi = MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0),
-                                  ("b", 1), ("c", 0)])
+    # GH14833
+    mi = MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0), ("b", 1), ("c", 0)])
 
     assert np.all(mi.searchsorted(("b", 0)) == 2)
     assert np.all(mi.searchsorted(("b", 0), side="right") == 3)
-
     assert np.all(mi.searchsorted(("a", 0)) == 0)
     assert np.all(mi.searchsorted(("a", -1)) == 0)
-    assert np.all(mi.searchsorted(("c", 1)) == 5)  # Beyond the last
+    assert np.all(mi.searchsorted(("c", 1)) == 5)
 
     result = mi.searchsorted([("a", 1), ("b", 0), ("c", 0)])
     expected = np.array([1, 2, 4], dtype=np.intp)
@@ -1054,4 +1053,4 @@ def test_searchsorted():
         mi.searchsorted(("a", 1), side="middle")
 
     with pytest.raises(TypeError, match="value must be a tuple or list"):
-        mi.searchsorted("a")  # not a tuple
+        mi.searchsorted("a")

@@ -16,6 +16,7 @@ from typing import (
     Any,
     Literal,
     cast,
+    overload,
 )
 import warnings
 
@@ -44,6 +45,14 @@ from pandas._typing import (
     Shape,
     npt,
 )
+if TYPE_CHECKING:
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+        ScalarLike_co,
+    )
+
+
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -3778,9 +3787,25 @@ class MultiIndex(Index):
         ind = np.lexsort(keys)
         return indexer[ind]
 
+    @overload
     def searchsorted(
         self,
-        value: Any,
+        value: ScalarLike_co,
+        side: Literal["left", "right"] = ...,
+        sirter:NumpySorter = ...,
+    ) -> np.intp:...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> npt.NDArray[np.intp]:...
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: npt.NDArray[np.intp] | None = None,
     ) -> npt.NDArray[np.intp]:
@@ -3831,6 +3856,7 @@ class MultiIndex(Index):
 
         for v, i in zip(value, indexer):
             if i != -1:
+
                 result.append(i if side == "left" else i + 1)
             else:
                 dtype = np.dtype(
@@ -3839,7 +3865,7 @@ class MultiIndex(Index):
                         for i, level in enumerate(self.levels)
                     ]
                 )
-    
+
                 val_array = np.array([v], dtype=dtype)
 
                 pos = np.searchsorted(
