@@ -2779,7 +2779,7 @@ class TestDataFrameConstructors:
             ["NaT", "0 days 00:00:00.000000001"], dtype="timedelta64[ns]"
         )
         tm.assert_frame_equal(result, expected)
-
+        
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
