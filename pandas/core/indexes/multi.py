@@ -3857,7 +3857,8 @@ class MultiIndex(Index):
 
         for v, i in zip(value, indexer):
             if i != -1:
-                result.append(i if side == "left" else i + 1)
+                val = i if side == "left" else i + 1
+                result.append(np.intp(val))
             else:
                 dtype = np.dtype(
                     [
@@ -3874,7 +3875,7 @@ class MultiIndex(Index):
                     side=side,
                     sorter=sorter,
                 )
-                result.append(int(pos[0]))
+                result.append(np.intp(pos[0]))
 
         return np.array(result, dtype=np.intp)
 
