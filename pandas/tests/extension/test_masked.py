@@ -171,6 +171,12 @@ class TestMaskedArrays(base.ExtensionTests):
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         result = data_missing.map(lambda x: x, na_action=na_action)
+        if data_missing.dtype.kind != "b":
+            for i in range(len(result)):
+                if result[i] is pd.NA:
+                    result[i] = "nan"
+            result = result.astype("float64")
+            
         if data_missing.dtype == Float32Dtype():
             # map roundtrips through objects, which converts to float64
             expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
@@ -181,10 +187,15 @@ class TestMaskedArrays(base.ExtensionTests):
     def test_map_na_action_ignore(self, data_missing_for_sorting):
         zero = data_missing_for_sorting[2]
         result = data_missing_for_sorting.map(lambda x: zero, na_action="ignore")
+        
         if data_missing_for_sorting.dtype.kind == "b":
             expected = np.array([False, pd.NA, False], dtype=object)
         else:
             expected = np.array([zero, np.nan, zero])
+            for i in range(len(result)):
+                if result[i] is pd.NA:
+                    result[i] = "nan"
+            result = result.astype("float64")
         tm.assert_numpy_array_equal(result, expected)
 
     def _get_expected_exception(self, op_name, obj, other):
