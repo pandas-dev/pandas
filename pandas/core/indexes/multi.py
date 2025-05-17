@@ -45,6 +45,7 @@ from pandas._typing import (
     Shape,
     npt,
 )
+
 if TYPE_CHECKING:
     from pandas._typing import (
         NumpySorter,
@@ -3792,8 +3793,8 @@ class MultiIndex(Index):
         self,
         value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
-        sirter:NumpySorter = ...,
-    ) -> np.intp:...
+        sorter: NumpySorter = ...,
+    ) -> np.intp: ...
 
     @overload
     def searchsorted(
@@ -3801,14 +3802,14 @@ class MultiIndex(Index):
         value: npt.ArrayLike | ExtensionArray,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
-    ) -> npt.NDArray[np.intp]:...
+    ) -> npt.NDArray[np.intp]: ...
 
     def searchsorted(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: npt.NDArray[np.intp] | None = None,
-    ) -> npt.NDArray[np.intp]:
+    ) -> np.intp | npt.NDArray[np.intp]:
         """
         Find the indices where elements should be inserted to maintain order.
 
@@ -3856,7 +3857,6 @@ class MultiIndex(Index):
 
         for v, i in zip(value, indexer):
             if i != -1:
-
                 result.append(i if side == "left" else i + 1)
             else:
                 dtype = np.dtype(

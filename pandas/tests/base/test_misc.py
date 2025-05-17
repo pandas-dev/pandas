@@ -141,7 +141,7 @@ def test_memory_usage_components_narrow_series(any_real_numpy_dtype):
     index_usage = series.index.memory_usage()
     assert total_usage == non_index_usage + index_usage
 
- 
+
 def test_searchsorted(request, index_or_series_obj):
     # numpy.searchsorted calls obj.searchsorted under the hood.
     # See gh-12238
