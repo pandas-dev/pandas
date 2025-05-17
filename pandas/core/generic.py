@@ -3964,7 +3964,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         indices : array-like
             An array of ints indicating which positions to take.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
             For `Series` this parameter is unused and defaults to 0.
@@ -6819,12 +6819,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  3  z   <NA>  <NA>    20  200.0
 
         >>> dfn.dtypes
-        a             Int32
-        b    string[python]
-        c           boolean
-        d    string[python]
-        e             Int64
-        f           Float64
+        a      Int32
+        b     string
+        c    boolean
+        d     string
+        e      Int64
+        f    Float64
         dtype: object
 
         Start with a Series of strings and missing data represented by ``np.nan``.
