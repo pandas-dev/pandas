@@ -23,7 +23,7 @@
 .tags
 .cache/
 .vscode/
-virtualenvs/
+
 
 
 # Compiled source #
