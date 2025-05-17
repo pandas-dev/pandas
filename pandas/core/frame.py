@@ -48,6 +48,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.tslibs.timestamps import Timestamp
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
@@ -4180,6 +4181,14 @@ class DataFrame(NDFrame, OpsMixin):
         ):
             # Column to set is duplicated
             self._setitem_array([key], value)
+        elif (
+            # GH#61444
+            isinstance(key, Hashable)
+            and key in self.columns
+            and is_scalar(value)
+            and isinstance(value, (Timestamp, np.datetime64))
+        ):
+            self._set_item(key, [value] * len(self))
         else:
             # set column
             self._set_item(key, value)
