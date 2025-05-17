@@ -18,6 +18,7 @@ Usage::
 As a pre-commit hook:
     pre-commit run validate-errors-locations --all-files
 """
+
 from __future__ import annotations
 
 import argparse

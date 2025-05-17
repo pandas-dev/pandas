@@ -11,6 +11,7 @@ As pre-commit hook (recommended):
 From the command-line:
     python scripts/validate_rst_title_capitalization.py <rst file>
 """
+
 from __future__ import annotations
 
 import argparse
@@ -271,7 +272,8 @@ def main(source_paths: list[str]) -> int:
             if title != correct_title_capitalization(title):
                 print(
                     f"""{filename}:{line_number}:{err_msg} "{title}" to "{
-                    correct_title_capitalization(title)}" """
+                        correct_title_capitalization(title)
+                    }" """
                 )
                 number_of_errors += 1
 
