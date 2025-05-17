@@ -25,39 +25,6 @@ static:
   css:
   - static/css/pandas.css
   - static/css/codehilite.css
-navbar:
-  - name: "About us"
-    target:
-    - name: "About pandas"
-      target: about/
-    - name: "Project roadmap"
-      target: about/roadmap.html
-    - name: "Governance"
-      target: about/governance.html
-    - name: "Team"
-      target: about/team.html
-    - name: "Sponsors"
-      target: about/sponsors.html
-    - name: "Citing and logo"
-      target: about/citing.html
-  - name: "Getting started"
-    target: getting_started.html
-  - name: "Documentation"
-    target: docs/
-  - name: "Community"
-    target:
-    - name: "Blog"
-      target: community/blog/
-    - name: "Ask a question (StackOverflow)"
-      target: https://stackoverflow.com/questions/tagged/pandas
-    - name: "Code of conduct"
-      target: community/coc.html
-    - name: "Ecosystem"
-      target: community/ecosystem.html
-    - name: "Benchmarks"
-      target: community/benchmarks.html
-  - name: "Contribute"
-    target: contribute.html
 blog:
   num_posts: 50
   posts_path: community/blog
@@ -204,3 +171,11 @@ sponsors:
     kind: partner
 roadmap:
   pdeps_path: pdeps
+translations:
+  url: https://github.com/Scientific-Python-Translations/pandas-translations/archive/refs/heads/main.tar.gz
+  folder: translations
+  source_path: pandas-translations-main/web/pandas/
+  default_language: 'en'
+  default_prefix: ''
+  ignore:
+    - docs/

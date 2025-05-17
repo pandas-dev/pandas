@@ -65,7 +65,7 @@ class Preprocessors:
     """
 
     @staticmethod
-    def current_year(context):
+    def current_year(context: dict) -> dict:
         """
         Add the current year to the context, so it can be used for the copyright
         note, or other places where it is needed.
@@ -74,23 +74,28 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def navbar_add_info(context):
+    def navbar_add_info(context: dict, skip: bool = True) -> dict:
         """
         Items in the main navigation bar can be direct links, or dropdowns with
         subitems. This context preprocessor adds a boolean field
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
-        for i, item in enumerate(context["navbar"]):
-            context["navbar"][i] = dict(
-                item,
-                has_subitems=isinstance(item["target"], list),
-                slug=(item["name"].replace(" ", "-").lower()),
-            )
+        ignore = context["translations"]["ignore"]
+        for language in context["languages"]:
+            for i, item in enumerate(context["navbar"][language]):
+                if item["target"] in ignore:
+                    item["target"] = f"../{item['target']}"
+
+                context["navbar"][language][i] = dict(
+                    item,
+                    has_subitems=isinstance(item["target"], list),
+                    slug=(item["name"].replace(" ", "-").lower()),
+                )
         return context
 
     @staticmethod
-    def blog_add_posts(context):
+    def blog_add_posts(context: dict) -> dict:
         """
         Given the blog feed defined in the configuration yaml, this context
         preprocessor fetches the posts in the feeds, and returns the relevant
@@ -162,7 +167,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def maintainers_add_info(context):
+    def maintainers_add_info(context: dict) -> dict:
         """
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
@@ -212,7 +217,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def home_add_releases(context):
+    def home_add_releases(context: dict) -> dict:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
@@ -272,7 +277,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def roadmap_pdeps(context):
+    def roadmap_pdeps(context: dict) -> dict:
         """
         PDEP's (pandas enhancement proposals) are not part of the bar
         navigation. They are included as lists in the "Roadmap" page
@@ -386,7 +391,9 @@ def get_callable(obj_as_str: str) -> object:
     return obj
 
 
-def get_context(config_fname: str, **kwargs):
+def get_context(
+    config_fname: str, navbar_fname: str, languages: list[str], **kwargs: dict
+) -> dict:
     """
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
@@ -395,8 +402,23 @@ def get_context(config_fname: str, **kwargs):
         context = yaml.safe_load(f)
 
     context["source_path"] = os.path.dirname(config_fname)
-    context.update(kwargs)
 
+    navbar = {}
+    context["languages"] = languages
+    default_language = context["translations"]["default_language"]
+    default_prefix = context["translations"]["default_prefix"]
+    for language in languages:
+        prefix = default_prefix if language == default_language else language
+        navbar_path = os.path.join(context["source_path"], prefix, navbar_fname)
+
+        with open(navbar_path, encoding="utf-8") as f:
+            navbar_lang = yaml.safe_load(f)
+
+        navbar[language] = navbar_lang["navbar"]
+
+    context["navbar"] = navbar
+
+    context.update(kwargs)
     preprocessors = (
         get_callable(context_prep)
         for context_prep in context["main"]["context_preprocessors"]
@@ -441,19 +463,39 @@ def main(
     For ``.md`` and ``.html`` files, render them with the context
     before copying them. ``.md`` files are transformed to HTML.
     """
-    config_fname = os.path.join(source_path, "config.yml")
+    base_folder = os.path.dirname(__file__)
 
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
 
+    # Handle translations
+    sys.path.append(base_folder)
+    trans = importlib.import_module("pandas_translations")
+    translated_languages, languages = trans.process_translations(
+        "config.yml", source_path
+    )
+
     sys.stderr.write("Generating context...\n")
-    context = get_context(config_fname, target_path=target_path)
+    context = get_context(
+        os.path.join(source_path, "config.yml"),
+        navbar_fname="navbar.yml",
+        target_path=target_path,
+        languages=languages,
+    )
     sys.stderr.write("Context generated\n")
 
     templates_path = os.path.join(source_path, context["main"]["templates_path"])
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
+    default_language = context["translations"]["default_language"]
     for fname in get_source_files(source_path):
+        selected_language = context["translations"]["default_language"]
+        for language in translated_languages:
+            if fname.startswith(language + "/"):
+                selected_language = language
+                break
+
+        context["selected_language"] = selected_language
         if os.path.normpath(fname) in context["main"]["ignore"]:
             continue
 
@@ -473,7 +515,13 @@ def main(
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
+
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
+            if selected_language != default_language:
+                context["base_url"] = "".join(
+                    ["../"] * (os.path.normpath(fname).count("/") - 1)
+                )
+
             content = jinja_env.from_string(content).render(**context)
             fname_html = os.path.splitext(fname)[0] + ".html"
             with open(
@@ -484,6 +532,7 @@ def main(
             shutil.copy(
                 os.path.join(source_path, fname), os.path.join(target_path, dirname)
             )
+    return 0
 
 
 if __name__ == "__main__":

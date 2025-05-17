@@ -141,3 +141,12 @@ doc/source/savefig/
 # Pyodide/WASM related files #
 ##############################
 /.pyodide-xbuildenv-*
+
+
+# Web & Translations #
+##############################
+web/preview/
+web/translations/
+web/pandas/es/
+web/pandas/pt/
+web/pandas/fr/
