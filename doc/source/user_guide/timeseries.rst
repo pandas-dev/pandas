@@ -1065,9 +1065,9 @@ Holiday calendars can be used to provide the list of holidays.  See the
 
 .. ipython:: python
 
-    from pandas.tseries.holiday import USFederalHolidayCalendar
+    calendar = np.busdaycalendar(holidays=['2014-01-01', '2014-01-20'])
 
-    bday_us = pd.offsets.CustomBusinessDay(calendar=USFederalHolidayCalendar())
+    bday_us = pd.offsets.CustomBusinessDay(calendar=calendar)
 
     # Friday before MLK Day
     dt = datetime.datetime(2014, 1, 17)
@@ -1080,7 +1080,8 @@ in the usual way.
 
 .. ipython:: python
 
-    bmth_us = pd.offsets.CustomBusinessMonthBegin(calendar=USFederalHolidayCalendar())
+    bdd = np.busdaycalendar(holidays=['2011-07-01', '2011-07-04', '2011-07-17'])
+    bmth_us = pd.offsets.CustomBusinessMonthBegin(calendar=bdd)
 
     # Skip new years
     dt = datetime.datetime(2013, 12, 17)
@@ -1210,9 +1211,9 @@ as ``BusinessHour`` except that it skips specified custom holidays.
 
 .. ipython:: python
 
-    from pandas.tseries.holiday import USFederalHolidayCalendar
+   calendar = np.busdaycalendar(holidays=['2014-01-01', '2014-01-20'])
 
-    bhour_us = pd.offsets.CustomBusinessHour(calendar=USFederalHolidayCalendar())
+    bhour_us = pd.offsets.CustomBusinessHour(calendar=calendar)
     # Friday before MLK Day
     dt = datetime.datetime(2014, 1, 17, 15)
 

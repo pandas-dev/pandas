@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import numpy as np
 import pytest
 
 from pandas import (
@@ -14,7 +15,6 @@ from pandas.tseries.holiday import (
     Holiday,
     Timestamp,
     USFederalHolidayCalendar,
-    USLaborDay,
     USThanksgivingDay,
     get_calendar,
 )
@@ -97,10 +97,7 @@ def test_calendar_2031():
     # Labor Day 2031 is on September 1. Saturday before is August 30.
     # Next working day after August 30 ought to be Tuesday, September 2.
 
-    class testCalendar(AbstractHolidayCalendar):
-        rules = [USLaborDay]
-
-    cal = testCalendar()
+    cal = np.busdaycalendar(holidays=["2031-09-01"])
     workDay = offsets.CustomBusinessDay(calendar=cal)
     Sat_before_Labor_Day_2031 = to_datetime("2031-08-30")
     next_working_day = Sat_before_Labor_Day_2031 + 0 * workDay
