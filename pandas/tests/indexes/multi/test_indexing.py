@@ -1029,3 +1029,28 @@ def test_get_loc_namedtuple_behaves_like_tuple():
         assert idx.get_loc(("i1", "i2")) == 0
         assert idx.get_loc(("i3", "i4")) == 1
         assert idx.get_loc(("i5", "i6")) == 2
+
+
+def test_searchsorted():
+    # GH14833
+    mi = MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0), ("b", 1), ("c", 0)])
+
+    assert np.all(mi.searchsorted(("b", 0)) == 2)
+    assert np.all(mi.searchsorted(("b", 0), side="right") == 3)
+    assert np.all(mi.searchsorted(("a", 0)) == 0)
+    assert np.all(mi.searchsorted(("a", -1)) == 0)
+    assert np.all(mi.searchsorted(("c", 1)) == 5)
+
+    result = mi.searchsorted([("a", 1), ("b", 0), ("c", 0)])
+    expected = np.array([1, 2, 4], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = mi.searchsorted([("a", 1), ("b", 0), ("c", 0)], side="right")
+    expected = np.array([2, 3, 5], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+    with pytest.raises(ValueError, match="side must be either 'left' or 'right'"):
+        mi.searchsorted(("a", 1), side="middle")
+
+    with pytest.raises(TypeError, match="value must be a tuple or list"):
+        mi.searchsorted("a")
