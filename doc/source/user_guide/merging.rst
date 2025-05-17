@@ -957,7 +957,7 @@ location.
 :func:`merge_ordered`
 ---------------------
 
-:func:`merge_ordered` combines order data such as numeric or time series data
+:func:`merge_ordered` combines ordered data such as numeric or time series data
 with optional filling of missing data with ``fill_method``.
 
 .. ipython:: python
