@@ -5777,6 +5777,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
+
         if key is None and (
             (ascending and self.is_monotonic_increasing)
             or (not ascending and self.is_monotonic_decreasing)

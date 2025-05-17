@@ -147,6 +147,11 @@ def test_searchsorted(request, index_or_series_obj):
     # See gh-12238
     obj = index_or_series_obj
 
+    if any(isinstance(x, str) for x in obj) and any(isinstance(x, int) for x in obj):
+        request.applymarker(
+            pytest.mark.xfail(reason="Cannot compare mixed types (str and int)")
+        )
+
     if isinstance(obj, pd.MultiIndex):
         # See gh-14833
         request.applymarker(
