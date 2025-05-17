@@ -3789,7 +3789,7 @@ class MultiIndex(Index):
         return indexer[ind]
 
     @overload
-    def searchsorted(
+    def searchsorted(  # type: ignore[overload-overlap]
         self,
         value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
@@ -3809,7 +3809,7 @@ class MultiIndex(Index):
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: npt.NDArray[np.intp] | None = None,
-    ) -> np.intp | npt.NDArray[np.intp]:
+    ) -> npt.NDArray[np.intp] | np.intp:
         """
         Find the indices where elements should be inserted to maintain order.
 
@@ -3826,8 +3826,9 @@ class MultiIndex(Index):
 
         Returns
         -------
-        npt.NDArray[np.intp]
-            Array of insertion points.
+        npt.NDArray[np.intp] or np.intp
+            The index or indices where the value(s) should be inserted to
+            maintain order.
 
         See Also
         --------
@@ -3837,7 +3838,7 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], ["x", "y", "z"]])
         >>> mi.searchsorted(("b", "y"))
-        1
+        array([1])
         """
 
         if not value:
@@ -3876,7 +3877,8 @@ class MultiIndex(Index):
                     sorter=sorter,
                 )
                 result.append(np.intp(pos[0]))
-
+        if len(result) == 1:
+            return result[0]
         return np.array(result, dtype=np.intp)
 
     def truncate(self, before=None, after=None) -> MultiIndex:
