@@ -116,6 +116,10 @@ from pandas.core.dtypes.missing import (
     isna,
     notna,
 )
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCIndex
+)
 
 from pandas.core import (
     algorithms,
@@ -795,7 +799,7 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype,
                     copy,
                 )
-            elif getattr(data, "name", None) is not None:
+            elif isinstance(data, (ABCSeries, ABCIndex)) and data.name is not None:
                 # i.e. Series/Index with non-None name
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
