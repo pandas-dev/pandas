@@ -40,6 +40,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_nested_list_like,
 )
+from pandas.core.dtypes.generic import ABCDatetimeIndex
 
 from pandas import (
     Index,
@@ -301,6 +302,7 @@ class DatetimeConverter(mdates.DateConverter):
             except Exception:
                 return values
 
+        # Fast path for single values
         if isinstance(values, (datetime, pydt.date, np.datetime64, pydt.time)):
             return mdates.date2num(values)
         elif is_integer(values) or is_float(values):
@@ -308,10 +310,29 @@ class DatetimeConverter(mdates.DateConverter):
         elif isinstance(values, str):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray, Index, Series)):
+            # Check for cache to avoid redundant conversions
+            # This is especially important for DataFrames with the same DatetimeIndex
+            # for all columns
+            if isinstance(values, Index) and hasattr(axis, "_converter_cache"):
+                cache_key = id(values)
+                if cache_key in axis._converter_cache:
+                    return axis._converter_cache[cache_key]
+
             if isinstance(values, Series):
                 # https://github.com/matplotlib/matplotlib/issues/11391
                 # Series was skipped. Convert to DatetimeIndex to get asi8
                 values = Index(values)
+
+            # For DatetimeIndex objects, directly use _mpl_repr() for better efficiency
+            if isinstance(values, ABCDatetimeIndex):
+                result = values._mpl_repr()
+                # Cache result for reuse with subsequent columns
+                if hasattr(axis, "_converter_cache"):
+                    axis._converter_cache[id(values)] = result
+                elif axis is not None:
+                    axis._converter_cache = {id(values): result}
+                return result
+
             if isinstance(values, Index):
                 values = values.values
             if not isinstance(values, np.ndarray):
@@ -325,7 +346,15 @@ class DatetimeConverter(mdates.DateConverter):
             except Exception:
                 pass
 
-            values = mdates.date2num(values)
+            result = mdates.date2num(values)
+
+            # Cache result if possible
+            if hasattr(axis, "_converter_cache"):
+                axis._converter_cache[id(values)] = result
+            elif axis is not None:
+                axis._converter_cache = {id(values): result}
+
+            return result
 
         return values
 
@@ -426,10 +455,29 @@ class MilliSecondLocator(mdates.DateLocator):
             )
 
         interval = self._get_interval()
-        freq = f"{interval}ms"
+
+        # Use seconds instead of milliseconds for large intervals to improve performance
+        if interval >= 1000:
+            # Use seconds instead of ms for better performance
+            sec_interval = interval / 1000
+            freq = f"{sec_interval}s"
+        else:
+            freq = f"{interval}ms"
+
         tz = self.tz.tzname(None)
         st = dmin.replace(tzinfo=None)
         ed = dmax.replace(tzinfo=None)
+
+        # Limit ticks for large date ranges to improve performance
+        date_diff = (ed - st).total_seconds()
+        if (
+            date_diff > 86400 * 365 and interval < 1000
+        ):  # Year+ of data with small interval
+            # Generate limited ticks for large datasets instead of a full date range
+            num_ticks = max_millis_ticks
+            tick_locs = np.linspace(mdates.date2num(st), mdates.date2num(ed), num_ticks)
+            return tick_locs
+
         all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).astype(object)
 
         try:
