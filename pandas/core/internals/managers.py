@@ -1800,7 +1800,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
-            if passed_nan and blk.dtype.kind in ["m", "M"]:
+            if passed_nan and blk.dtype.kind in "mM":
                 arr[isna(blk.values)] = na_value
 
             if not copy:
