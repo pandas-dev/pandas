@@ -9,7 +9,9 @@ from abc import (
 import codecs
 from collections import defaultdict
 from collections.abc import (
+    Generator,
     Hashable,
+    Iterable,
     Mapping,
     Sequence,
 )
@@ -26,7 +28,10 @@ from io import (
 )
 import mmap
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+    PurePosixPath,
+)
 import re
 import tarfile
 from typing import (
@@ -55,6 +60,7 @@ from pandas._typing import (
     BaseBuffer,
     ReadCsvBuffer,
 )
+from pandas.compat import is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -1282,3 +1288,125 @@ def dedup_names(
         counts[col] = cur_count + 1
 
     return names
+
+
+def _infer_protocol(path: str) -> str:
+    # Treat Windows drive letters like C:\ as local file paths
+    if is_platform_windows() and re.match(r"^[a-zA-Z]:[\\/]", path):
+        return "file"
+
+    if is_fsspec_url(path):
+        parsed = parse_url(path)
+        return parsed.scheme
+    return "file"
+
+
+def _match_file(
+    path: Path | PurePosixPath, extensions: set[str] | None, glob: str | None
+) -> bool:
+    """Check if the file matches the given extensions and glob pattern.
+    Parameters
+    ----------
+    path : Path or PurePosixPath
+        The file path to check.
+    extensions : set[str]
+        A set of file extensions to match against.
+    glob : str
+        A glob pattern to match against.
+    Returns
+    -------
+    bool
+        True if the file matches the extensions and glob pattern, False otherwise.
+    """
+    return (extensions is None or path.suffix.lower() in extensions) and (
+        glob is None or path.match(glob)
+    )
+
+
+def iterdir(
+    path: FilePath,
+    extensions: str | Iterable[str] | None = None,
+    glob: str | None = None,
+) -> Generator[Path | PurePosixPath]:
+    """Yield file paths in a directory (no nesting allowed).
+
+    Supports:
+    - Local paths (str, os.PathLike)
+    - file:// URLs
+    - Remote paths (e.g., s3://) via fsspec (if installed)
+
+    Parameters
+    ----------
+    path : FilePath
+        Path to the directory (local or remote).
+    extensions : str or list of str, optional
+        Only yield files with the given extension(s). Case-insensitive.
+        If None, all files are yielded.
+    glob : str, optional
+        Only yield files matching the given glob pattern.
+        If None, all files are yielded.
+
+    Yields
+    ------
+    pathlib.Path or pathlib.PurePosixPath
+        File paths within the directory.
+
+    Raises
+    ------
+    NotADirectoryError
+        If the given path is not a directory.
+    ImportError
+        If fsspec is required but not installed.
+    """
+    if extensions is not None:
+        if isinstance(extensions, str):
+            extensions = {extensions.lower()}
+        else:
+            extensions = {ext.lower() for ext in extensions}
+
+    path_str = os.fspath(path)
+    scheme = _infer_protocol(path_str)
+
+    if scheme == "file":
+        resolved_path = Path(path_str)
+        if resolved_path.is_file():
+            if _match_file(
+                resolved_path,
+                extensions,
+                glob,
+            ):
+                yield resolved_path
+            return
+
+        for entry in resolved_path.iterdir():
+            if entry.is_file():
+                if _match_file(
+                    entry,
+                    extensions,
+                    glob,
+                ):
+                    yield entry
+        return
+
+    # Remote paths
+    fsspec = import_optional_dependency("fsspec", extra=scheme)
+    fs = fsspec.filesystem(scheme)
+    path_without_scheme = fsspec.core.strip_protocol(path_str)
+    if fs.isfile(path_without_scheme):
+        if _match_file(
+            path_without_scheme,
+            extensions,
+            glob,
+        ):
+            yield PurePosixPath(path_without_scheme)
+        return
+
+    for file in fs.ls(path_without_scheme, detail=True):
+        if file["type"] == "file":
+            path_obj = PurePosixPath(file["name"])
+            if _match_file(
+                path_obj,
+                extensions,
+                glob,
+            ):
+                yield path_obj
