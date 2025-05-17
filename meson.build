@@ -47,6 +47,27 @@ endif
 cy = meson.get_compiler('cython')
 if cy.version().version_compare('>=3.1.0')
     add_project_arguments('-Xfreethreading_compatible=true', language: 'cython')
+
+    # Use shared utility code to reduce wheel sizes
+    # copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
+    cy = find_program(cy.cmd_array()[0])
+    cython_shared_src = custom_target(
+        install: false,
+        output: '_cyutility.c',
+        command: [
+            cy,
+            '-3',
+            '--fast-fail',
+            '--generate-shared=' + meson.current_build_dir() / '_cyutility.c',
+        ],
+    )
+
+    py.extension_module(
+        '_cyutility',
+        cython_shared_src,
+        subdir: 'pandas/_libs',
+        install: true,
+    )
 endif
 
 # Needed by pandas.test() when it looks for the pytest ini options

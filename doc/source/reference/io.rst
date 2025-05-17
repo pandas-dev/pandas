@@ -156,6 +156,15 @@ Parquet
    read_parquet
    DataFrame.to_parquet
 
+Iceberg
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    read_iceberg
+
+.. warning:: ``read_iceberg`` is experimental and may change without warning.
+
 ORC
 ~~~
 .. autosummary::
