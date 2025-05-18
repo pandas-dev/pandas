@@ -5,7 +5,7 @@ requires = [
     "meson-python>=0.13.1",
     "meson>=1.2.1,<2",
     "wheel",
-    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython==3.1.0rc1",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Force numpy higher than 2.0rc1, so that built wheels are compatible
     # with both numpy 1 and 2
     "numpy>=2.0.0rc1",
@@ -154,12 +154,12 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-free-threaded-support = true
+enable = ["cpython-freethreading"]
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
 environment = {}
-before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build_windows.sh"
+before-build = "pip install delvewheel"
 test-command = """
   set PANDAS_CI='1' && \
   python -c "import pandas as pd; \
