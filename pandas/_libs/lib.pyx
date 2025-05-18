@@ -502,7 +502,7 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     return True
 
 
-def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
+def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, intp_t max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
         intp_t k, vstart, vlast, v
@@ -777,7 +777,10 @@ cpdef ndarray[object] ensure_string_array(
             return out
         arr = arr.to_numpy(dtype=object)
     elif not util.is_array(arr):
-        arr = np.array(arr, dtype="object")
+        # GH#61155: Guarantee a 1-d result when array is a list of lists
+        input_arr = arr
+        arr = np.empty(len(arr), dtype="object")
+        arr[:] = input_arr
 
     result = np.asarray(arr, dtype="object")
 
@@ -1518,7 +1521,7 @@ cdef object _try_infer_map(object dtype):
 
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Return a string label of the type of a scalar or list-like of values.
+    Return a string label of the type of the elements in a list-like input.
 
     This method inspects the elements of the provided input and determines
     classification of its data type. It is particularly useful for
@@ -1527,7 +1530,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Parameters
     ----------
-    value : scalar, list, ndarray, or pandas type
+    value : list, ndarray, or pandas type
         The input data to infer the dtype.
     skipna : bool, default True
         Ignore NaN values when inferring the type.

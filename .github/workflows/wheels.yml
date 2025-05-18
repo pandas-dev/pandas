@@ -40,7 +40,7 @@ jobs:
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -92,8 +92,8 @@ jobs:
         # GitHub Actions doesn't support pairing matrix values together, let's improvise
         # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
-        - [ubuntu-22.04, manylinux_x86_64]
-        - [ubuntu-22.04, musllinux_x86_64]
+        - [ubuntu-24.04, manylinux_x86_64]
+        - [ubuntu-24.04, musllinux_x86_64]
         - [ubuntu-24.04-arm, manylinux_aarch64]
         - [macos-13, macosx_x86_64]
         # Note: M1 images on Github Actions start from macOS 14
@@ -102,14 +102,10 @@ jobs:
         # TODO: support PyPy?
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
-        # TODO: Remove this plus installing build deps in cibw_before_build.sh
-        # after pandas can be built with a released NumPy/Cython
-        - python: ["cp313t", "3.13"]
-          cibw_build_frontend: 'pip; args: --no-build-isolation'
         # Build Pyodide wheels and upload them to Anaconda.org
         # NOTE: this job is similar to the one in unit-tests.yml except for the fact
         # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
-        - buildplat: [ubuntu-22.04, pyodide_wasm32]
+        - buildplat: [ubuntu-24.04, pyodide_wasm32]
           python: ["cp312", "3.12"]
           cibw_build_frontend: 'build'
 
@@ -153,7 +149,7 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.0
+        uses: pypa/cibuildwheel@v2.23.3
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:

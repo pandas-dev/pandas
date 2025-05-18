@@ -68,7 +68,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
             >>> fig, ax = plt.subplots()
             >>> ax.axis("off")
-            (0.0, 1.0, 0.0, 1.0)
+            (np.float64(0.0), np.float64(1.0), np.float64(0.0), np.float64(1.0))
             >>> table = pd.plotting.table(
             ...     ax, df, loc="center", cellLoc="center", colWidths=[0.2, 0.2]
             ... )
@@ -412,7 +412,7 @@ def andrews_curves(
         >>> df = pd.read_csv(
         ...     "https://raw.githubusercontent.com/pandas-dev/"
         ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )
+        ... )  # doctest: +SKIP
         >>> pd.plotting.andrews_curves(df, "Name")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -551,7 +551,7 @@ def parallel_coordinates(
         >>> df = pd.read_csv(
         ...     "https://raw.githubusercontent.com/pandas-dev/"
         ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )
+        ... )  # doctest: +SKIP
         >>> pd.plotting.parallel_coordinates(
         ...     df, "Name", color=("#556270", "#4ECDC4", "#C7F464")
         ... )  # doctest: +SKIP
