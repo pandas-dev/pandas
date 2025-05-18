@@ -2781,6 +2781,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_from_array_like_with_name_attribute(self):
+        # GH#61443
         class DummyArray(np.ndarray):
             def __new__(cls, input_array):
                 obj = np.asarray(input_array).view(cls)
