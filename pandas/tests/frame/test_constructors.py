@@ -2792,6 +2792,7 @@ class TestDataFrameConstructors:
         expected = DataFrame(np.eye(3))
         tm.assert_frame_equal(df, expected)
 
+
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
         rng1 = pd.period_range("1/1/1999", "1/1/2012", freq="M")

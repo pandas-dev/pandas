@@ -112,13 +112,13 @@ from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     ExtensionDtype,
 )
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
-)
-from pandas.core.dtypes.generic import (
-    ABCSeries,
-    ABCIndex
 )
 
 from pandas.core import (
@@ -804,7 +804,7 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
-                    {data.name: data},  # type: ignore[union-attr]
+                    {data.name: data},
                     index,
                     columns,
                     dtype=dtype,
