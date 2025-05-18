@@ -846,6 +846,7 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` with the new implementation where ``ValueError`` is raised when ``level=[]`` (:issue:`60740`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
 - Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index = True`` drops the series name (:issue:`60723`, :issue:`56257`)
+- Bug in :meth:`DataFrame.join` where passing a non-pandas object like a ``polars.DataFrame`` with the ``on=`` parameter raised a misleading error message instead of a ``TypeError``. (:issue:`61434`)
 
 Sparse
 ^^^^^^

@@ -10885,6 +10885,27 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("Other Series must have a name")
             other = DataFrame({other.name: other})
 
+        if on is not None:
+            if isinstance(other, Iterable) and not isinstance(
+                other, (DataFrame, Series, str, bytes, bytearray)
+            ):
+                invalid = next(
+                    (obj for obj in other if not isinstance(obj, (DataFrame, Series))),
+                    None,
+                )
+                if invalid is not None:
+                    raise TypeError(
+                        f"Join with 'on={on}' requires a pandas DataFrame or Series, "
+                        "or an iterable of such objects as 'other'. Got an "
+                        f"invalid element of type {type(invalid).__name__} instead."
+                    )
+            elif not isinstance(other, (DataFrame, Series)):
+                raise TypeError(
+                    f"Join with 'on={on}' requires a pandas DataFrame or Series as "
+                    "'other'. Got "
+                    f"{type(other).__name__} instead."
+                )
+
         if isinstance(other, DataFrame):
             if how == "cross":
                 return merge(
