@@ -419,10 +419,12 @@ NaPosition: TypeAlias = Literal["first", "last"]
 NsmallestNlargestKeep: TypeAlias = Literal["first", "last", "all"]
 
 # quantile interpolation
-QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "nearest"]
+QuantileInterpolation: TypeAlias = Literal[
+    "linear", "lower", "higher", "midpoint", "nearest"
+]
 
 # plotting
-PlottingOrientation = Literal["horizontal", "vertical"]
+PlottingOrientation: TypeAlias = Literal["horizontal", "vertical"]
 
 # dropna
 AnyAll: TypeAlias = Literal["any", "all"]
