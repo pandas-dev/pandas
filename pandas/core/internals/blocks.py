@@ -805,7 +805,7 @@ class Block(PandasObject, libinternals.Block):
             for x, y in zip(src_list, dest_list)
             if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
-        if not len(pairs):
+        if not pairs:
             return [self.copy(deep=False)]
 
         src_len = len(pairs) - 1
@@ -1679,6 +1679,8 @@ class EABackedBlock(Block):
 
         try:
             res_values = arr._where(cond, other).T
+        except OutOfBoundsDatetime:
+            raise
         except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, (IntervalDtype, StringDtype)):
@@ -1746,6 +1748,8 @@ class EABackedBlock(Block):
         try:
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
+        except OutOfBoundsDatetime:
+            raise
         except (TypeError, ValueError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
@@ -2094,7 +2098,7 @@ class ExtensionBlock(EABackedBlock):
                 self.values.take(
                     indices, allow_fill=needs_masking[i], fill_value=fill_value
                 ),
-                BlockPlacement(place),
+                BlockPlacement(place),  # type: ignore[arg-type]
                 ndim=2,
             )
             for i, (indices, place) in enumerate(zip(new_values, new_placement))

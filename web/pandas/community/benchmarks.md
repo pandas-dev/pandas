@@ -11,7 +11,7 @@ kinds of benchmarks relevant to pandas:
 
 pandas benchmarks are implemented in the [asv_bench](https://github.com/pandas-dev/pandas/tree/main/asv_bench)
 directory of our repository. The benchmarks are implemented for the
-[airspeed velocity](https://asv.readthedocs.io/en/v0.6.1/) (asv for short) framework.
+[airspeed velocity](https://asv.readthedocs.io/en/latest/) (asv for short) framework.
 
 The benchmarks can be run locally by any pandas developer. This can be done
 with the `asv run` command, and it can be useful to detect if local changes have
@@ -22,54 +22,15 @@ More information on running the performance test suite is found
 Note that benchmarks are not deterministic, and running in different hardware or
 running in the same hardware with different levels of stress have a big impact in
 the result. Even running the benchmarks with identical hardware and almost identical
-conditions produces significant differences when running the same exact code.
+conditions can produce significant differences when running the same exact code.
 
-## pandas benchmarks servers
+## Automated benchmark runner
 
-We currently have two physical servers running the benchmarks of pandas for every
-(or almost every) commit to the `main` branch. The servers run independently from
-each other. The original server has been running for a long time, and it is physically
-located with one of the pandas maintainers. The newer server is in a datacenter
-kindly sponsored by [OVHCloud](https://www.ovhcloud.com/). More information about
-pandas sponsors, and how your company can support the development of pandas is
-available at the [pandas sponsors]({{ base_url }}about/sponsors.html) page.
+The [asv-runner](https://github.com/pandas-dev/asv-runner/) repository automatically runs the pandas asv benchmark suite
+for every (or almost every) commit to the `main` branch. It is run on GitHub actions.
+See the linked repository for more details. The results are available at:
 
-Results of the benchmarks are available at:
-
-- Original server: [asv](https://asv-runner.github.io/asv-collection/pandas/)
-- OVH server: [asv](https://pandas.pydata.org/benchmarks/asv/) (benchmarks results can
-  also be visualized in this [Conbench PoC](http://57.128.112.95:5000/)
-
-### Original server configuration
-
-The machine can be configured with the Ansible playbook in
-[tomaugspurger/asv-runner](https://github.com/tomaugspurger/asv-runner).
-The results are published to another GitHub repository,
-[tomaugspurger/asv-collection](https://github.com/tomaugspurger/asv-collection).
-
-The benchmarks are scheduled by [Airflow](https://airflow.apache.org/).
-It has a dashboard for viewing and debugging the results.
-You’ll need to setup an SSH tunnel to view them:
-
-```
-ssh -L 8080:localhost:8080 pandas@panda.likescandy.com
-```
-
-### OVH server configuration
-
-The server used to run the benchmarks has been configured to reduce system
-noise and maximize the stability of the benchmarks times.
-
-The details on how the server is configured can be found in the
-[pandas-benchmarks repository](https://github.com/pandas-dev/pandas-benchmarks).
-There is a quick summary here:
-
-- CPU isolation: Avoid user space tasks to execute in the same CPU as benchmarks, possibly interrupting them during the execution (include all virtual CPUs using a physical core)
-- NoHZ: Stop the kernel tick that enables context switching in the isolated CPU
-- IRQ affinity: Ban benchmarks CPU to avoid many (but not all) kernel interruption in the isolated CPU
-- TurboBoost: Disable CPU scaling based on high CPU demand
-- P-States: Use "performance" governor to disable P-States and CPU frequency changes based on them
-- C-States: Set C-State to 0 and disable changes to avoid slower CPU after system inactivity
+https://pandas-dev.github.io/asv-runner/
 
 ## Community benchmarks
 
