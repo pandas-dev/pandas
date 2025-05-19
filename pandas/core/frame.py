@@ -4703,6 +4703,7 @@ class DataFrame(NDFrame, OpsMixin):
             expr,
             level=level + 1,
             parser=parser,
+            target=None,
             engine=engine,
             local_dict=local_dict,
             global_dict=global_dict,
