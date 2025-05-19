@@ -7447,6 +7447,160 @@ class DataFrame(NDFrame, OpsMixin):
 
         return counts
 
+    def nsorted(
+        self,
+        n: int,
+        columns: IndexLabel,
+        ascending: bool | Sequence[bool],
+        keep: NsmallestNlargestKeep = "first",
+    ) -> DataFrame:
+        """
+        Return the first `n` rows ordered by `columns` in the order defined by
+        `ascending`.
+
+        The columns that are not specified are returned as
+        well, but not used for ordering.
+
+        This method is equivalent to
+        ``df.sort_values(columns, ascending=ascending).head(n)``, but more
+        performant.
+
+        Parameters
+        ----------
+        n : int
+            Number of rows to return.
+        columns : label or list of labels
+            Column label(s) to order by.
+        ascending : bool or list of bools
+            Whether to sort in ascending or descending order.
+            If a list, must be the same length as `columns`.
+        keep : {'first', 'last', 'all'}, default 'first'
+            Where there are duplicate values:
+
+            - ``first`` : prioritize the first occurrence(s)
+            - ``last`` : prioritize the last occurrence(s)
+            - ``all`` : keep all the ties of the smallest item even if it means
+              selecting more than ``n`` items.
+
+        Returns
+        -------
+        DataFrame
+            The first `n` rows ordered by the given columns in the order given
+            in `ascending`.
+
+        See Also
+        --------
+        DataFrame.nlargest : Return the first `n` rows ordered by `columns` in
+            descending order.
+        DataFrame.nsmallest : Return the first `n` rows ordered by `columns` in
+            ascending order.
+        DataFrame.sort_values : Sort DataFrame by the values.
+        DataFrame.head : Return the first `n` rows without re-ordering.
+
+        Notes
+        -----
+        This function cannot be used with all column types. For example, when
+        specifying columns with `object` or `category` dtypes, ``TypeError`` is
+        raised.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "population": [
+        ...             59000000,
+        ...             65000000,
+        ...             434000,
+        ...             434000,
+        ...             434000,
+        ...             337000,
+        ...             11300,
+        ...             11300,
+        ...             11300,
+        ...         ],
+        ...         "GDP": [1937894, 2583560, 12011, 4520, 12128, 17036, 182, 38, 311],
+        ...         "alpha-2": ["IT", "FR", "MT", "MV", "BN", "IS", "NR", "TV", "AI"],
+        ...     },
+        ...     index=[
+        ...         "Italy",
+        ...         "France",
+        ...         "Malta",
+        ...         "Maldives",
+        ...         "Brunei",
+        ...         "Iceland",
+        ...         "Nauru",
+        ...         "Tuvalu",
+        ...         "Anguilla",
+        ...     ],
+        ... )
+        >>> df
+                  population      GDP alpha-2
+        Italy       59000000  1937894      IT
+        France      65000000  2583560      FR
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
+        Iceland       337000    17036      IS
+        Nauru          11300      182      NR
+        Tuvalu         11300       38      TV
+        Anguilla       11300      311      AI
+
+        In the following example, we will use ``nsorted`` to select the three
+        rows having the largest values in column "population".
+
+        >>> df.nsorted(3, "population", ascending=False)
+                population      GDP alpha-2
+        France    65000000  2583560      FR
+        Italy     59000000  1937894      IT
+        Malta       434000    12011      MT
+
+        When using ``keep='last'``, ties are resolved in reverse order:
+
+        >>> df.nsorted(3, "population", ascending=False, keep="last")
+                population      GDP alpha-2
+        France    65000000  2583560      FR
+        Italy     59000000  1937894      IT
+        Brunei      434000    12128      BN
+
+        When using ``keep='all'``, the number of elements kept can go beyond ``n``
+        if there are duplicate values for the smallest element. All the
+        ties are kept:
+
+        >>> df.nsorted(3, "population", ascending=False, keep="all")
+                  population      GDP alpha-2
+        France      65000000  2583560      FR
+        Italy       59000000  1937894      IT
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
+
+        However, ``nsorted`` does not keep ``n`` distinct largest elements:
+
+        >>> df.nsorted(5, "population", ascending=False, keep="all")
+                  population      GDP alpha-2
+        France      65000000  2583560      FR
+        Italy       59000000  1937894      IT
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
+
+        To order by the largest values in column "population" and break ties
+        according to the smallest values in column "GDP", we can specify
+        multiple columns and ascending orders like in the next example.
+
+        >>> df.nsorted(3, ["population", "GDP"], ascending=[False, True])
+                population      GDP alpha-2
+        France    65000000  2583560      FR
+        Italy     59000000  1937894      IT
+        Maldives      434000     4520      MV
+        """
+        return selectn.SelectNFrame(
+            self,
+            n=n,
+            keep=keep,
+            columns=columns,
+        ).nsorted(ascending=ascending)
+
     def nlargest(
         self, n: int, columns: IndexLabel, keep: NsmallestNlargestKeep = "first"
     ) -> DataFrame:
@@ -7456,6 +7610,9 @@ class DataFrame(NDFrame, OpsMixin):
         Return the first `n` rows with the largest values in `columns`, in
         descending order. The columns that are not specified are returned as
         well, but not used for ordering.
+
+        This method is equivalent to
+        ``df.nsorted(n, columns, ascending=False)``.
 
         This method is equivalent to
         ``df.sort_values(columns, ascending=False).head(n)``, but more
@@ -7485,6 +7642,8 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.nsmallest : Return the first `n` rows ordered by `columns` in
             ascending order.
+        DataFrame.nsorted : Return the first `n` rows ordered by `columns` in
+            the order given in `ascending`.
         DataFrame.sort_values : Sort DataFrame by the values.
         DataFrame.head : Return the first `n` rows without re-ordering.
 
@@ -7553,7 +7712,7 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
 
-        When using ``keep='all'``, the number of element kept can go beyond ``n``
+        When using ``keep='all'``, the number of elements kept can go beyond ``n``
         if there are duplicate values for the smallest element, all the
         ties are kept:
 
@@ -7584,7 +7743,7 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
         """
-        return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
+        return self.nsorted(n=n, columns=columns, ascending=False, keep=keep)
 
     def nsmallest(
         self, n: int, columns: IndexLabel, keep: NsmallestNlargestKeep = "first"
@@ -7595,6 +7754,9 @@ class DataFrame(NDFrame, OpsMixin):
         Return the first `n` rows with the smallest values in `columns`, in
         ascending order. The columns that are not specified are returned as
         well, but not used for ordering.
+
+        This method is equivalent to
+        ``df.nsorted(n, columns, ascending=True)``.
 
         This method is equivalent to
         ``df.sort_values(columns, ascending=True).head(n)``, but more
@@ -7623,6 +7785,8 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.nlargest : Return the first `n` rows ordered by `columns` in
             descending order.
+        DataFrame.nsorted : Return the first `n` rows ordered by `columns` in
+            the order given in `ascending`.
         DataFrame.sort_values : Sort DataFrame by the values.
         DataFrame.head : Return the first `n` rows without re-ordering.
 
@@ -7715,7 +7879,7 @@ class DataFrame(NDFrame, OpsMixin):
         Anguilla       11300  311      AI
         Nauru         337000  182      NR
         """
-        return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
+        return self.nsorted(n=n, columns=columns, ascending=True, keep=keep)
 
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
         """

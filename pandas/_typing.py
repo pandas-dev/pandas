@@ -429,7 +429,7 @@ DateTimeErrorChoices = Literal["raise", "coerce"]
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
 
-# Arguments for nsmallest and nlargest
+# Arguments for nsorted, nsmallest and nlargest
 NsmallestNlargestKeep = Literal["first", "last", "all"]
 
 # quantile interpolation

@@ -11,7 +11,6 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Generic,
-    Literal,
     cast,
     final,
 )
@@ -37,6 +36,7 @@ if TYPE_CHECKING:
         DtypeObj,
         IndexLabel,
         NDFrameT,
+        NsmallestNlargestKeep,
     )
 
     from pandas import (
@@ -55,9 +55,7 @@ else:
 
 
 class SelectN(Generic[NDFrameT]):
-    def __init__(
-        self, obj: NDFrameT, n: int, keep: Literal["first", "last", "all"]
-    ) -> None:
+    def __init__(self, obj: NDFrameT, n: int, keep: NsmallestNlargestKeep) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -65,16 +63,20 @@ class SelectN(Generic[NDFrameT]):
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
-    def compute(self, method: str) -> NDFrameT:
+    def compute(self, ascending: bool | Sequence[bool]) -> NDFrameT:
         raise NotImplementedError
 
     @final
+    def nsorted(self, ascending: bool | Sequence[bool]) -> NDFrameT:
+        return self.compute(ascending=ascending)
+
+    @final
     def nlargest(self) -> NDFrameT:
-        return self.compute("nlargest")
+        return self.nsorted(ascending=False)
 
     @final
     def nsmallest(self) -> NDFrameT:
-        return self.compute("nsmallest")
+        return self.nsorted(ascending=True)
 
     @final
     @staticmethod
@@ -90,39 +92,40 @@ class SelectN(Generic[NDFrameT]):
 
 class SelectNSeries(SelectN[Series]):
     """
-    Implement n largest/smallest for Series
+    Implement n-sorting for Series
 
     Parameters
     ----------
     obj : Series
     n : int
-    keep : {'first', 'last'}, default 'first'
+    keep : {'first', 'last', 'all'}, default 'first'
 
     Returns
     -------
     nordered : Series
     """
 
-    def compute(self, method: str) -> Series:
+    def compute(self, ascending: bool) -> Series:
         from pandas.core.reshape.concat import concat
+
+        assert isinstance(ascending, bool)
 
         n = self.n
         dtype = self.obj.dtype
         if not self.is_valid_dtype_n_method(dtype):
-            raise TypeError(f"Cannot use method '{method}' with dtype {dtype}")
+            raise TypeError(f"Cannot use n-sorting with dtype {dtype}")
 
         if n <= 0:
             return self.obj[[]]
 
-        # Save index and reset to default index to avoid performance impact
-        # from when index contains duplicates
+        # Save index and reset to the default index to avoid performance impact
+        # from when the index contains duplicates
         original_index: Index = self.obj.index
         default_index = self.obj.reset_index(drop=True)
 
-        # Slower method used when taking the full length of the series
+        # Slower method used when taking the full length of the series.
         # In this case, it is equivalent to a sort.
         if n >= len(default_index):
-            ascending = method == "nsmallest"
             result = default_index.sort_values(ascending=ascending, kind="stable").head(
                 n
             )
@@ -146,7 +149,7 @@ class SelectNSeries(SelectN[Series]):
         if arr.dtype.kind == "b":
             arr = arr.view(np.uint8)
 
-        if method == "nlargest":
+        if not ascending:
             arr = -arr
             if is_integer_dtype(new_dtype):
                 # GH 21426: ensure reverse ordering at boundaries
@@ -164,8 +167,8 @@ class SelectNSeries(SelectN[Series]):
         n = min(n, narr)
 
         # arr passed into kth_smallest must be contiguous. We copy
-        # here because kth_smallest will modify its input
-        # avoid OOB access with kth_smallest_c when n <= 0
+        # here because kth_smallest will modify its input.
+        # Avoid OOB access with kth_smallest_c when n <= 0
         if len(arr) > 0:
             kth_val = libalgos.kth_smallest(arr.copy(order="C"), n - 1)
         else:
@@ -211,7 +214,7 @@ class SelectNFrame(SelectN[DataFrame]):
         self,
         obj: DataFrame,
         n: int,
-        keep: Literal["first", "last", "all"],
+        keep: NsmallestNlargestKeep,
         columns: IndexLabel,
     ) -> None:
         super().__init__(obj, n, keep)
@@ -222,7 +225,7 @@ class SelectNFrame(SelectN[DataFrame]):
         columns = list(columns)
         self.columns = columns
 
-    def compute(self, method: str) -> DataFrame:
+    def compute(self, ascending: bool | Sequence[bool]) -> DataFrame:
         n = self.n
         frame = self.obj
         columns = self.columns
@@ -232,58 +235,71 @@ class SelectNFrame(SelectN[DataFrame]):
             if not self.is_valid_dtype_n_method(dtype):
                 raise TypeError(
                     f"Column {column!r} has dtype {dtype}, "
-                    f"cannot use method {method!r} with this dtype"
+                    f"cannot use n-sorting with this dtype"
                 )
 
-        def get_indexer(current_indexer: Index, other_indexer: Index) -> Index:
+        if isinstance(ascending, bool):
+            ascending = [ascending] * len(columns)
+
+        if len(ascending) != len(columns):
+            raise ValueError(
+                f"`ascending` must have the same length as columns"
+                f", {len(ascending)} != {len(columns)}"
+            )
+
+        def get_indexer(
+            current_indexer: Index,
+            other_indexer: Index,
+            asc: bool,
+        ) -> Index:
             """
             Helper function to concat `current_indexer` and `other_indexer`
-            depending on `method`
+            depending on the sorting order `asc` (ascending or descending).
             """
-            if method == "nsmallest":
+            if asc:
                 return current_indexer.append(other_indexer)
             else:
                 return other_indexer.append(current_indexer)
 
-        # Below we save and reset the index in case index contains duplicates
+        # Below we save and reset the index in case the index contains
+        # duplicates
         original_index = frame.index
         cur_frame = frame = frame.reset_index(drop=True)
         cur_n = n
         indexer: Index = default_index(0)
 
         for i, column in enumerate(columns):
-            # For each column we apply method to cur_frame[column].
+            # For each column we apply n-sorting to cur_frame[column].
             # If it's the last column or if we have the number of
-            # results desired we are done.
-            # Otherwise there are duplicates of the largest/smallest
-            # value and we need to look at the rest of the columns
+            # results desired, we are done.
+            # Otherwise, there are duplicates of the largest/smallest
+            # value, and we need to look at the rest of the columns
             # to determine which of the rows with the largest/smallest
             # value in the column to keep.
             series = cur_frame[column]
             is_last_column = len(columns) - 1 == i
-            values = getattr(series, method)(
-                cur_n, keep=self.keep if is_last_column else "all"
+            values = series.nsorted(
+                cur_n,
+                ascending=ascending[i],
+                keep=self.keep if is_last_column else "all",
             )
 
             if is_last_column or len(values) <= cur_n:
-                indexer = get_indexer(indexer, values.index)
+                indexer = get_indexer(indexer, values.index, asc=ascending[i])
                 break
 
-            # Now find all values which are equal to
-            # the (nsmallest: largest)/(nlargest: smallest)
-            # from our series.
+            # Now find all the values equal to the largest (if ascending, else
+            # smallest) value in the current series.
             border_value = values == values[values.index[-1]]
 
-            # Some of these values are among the top-n
-            # some aren't.
+            # Some of these values are among the top-n, some aren't.
             unsafe_values = values[border_value]
 
             # These values are definitely among the top-n
             safe_values = values[~border_value]
-            indexer = get_indexer(indexer, safe_values.index)
+            indexer = get_indexer(indexer, safe_values.index, asc=ascending[i])
 
-            # Go on and separate the unsafe_values on the remaining
-            # columns.
+            # Go on and separate the unsafe_values on the remaining columns.
             cur_frame = cur_frame.loc[unsafe_values.index]
             cur_n = n - len(indexer)
 
@@ -295,7 +311,5 @@ class SelectNFrame(SelectN[DataFrame]):
         # If there is only one column, the frame is already sorted.
         if len(columns) == 1:
             return frame
-
-        ascending = method == "nsmallest"
 
         return frame.sort_values(columns, ascending=ascending, kind="stable")

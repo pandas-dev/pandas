@@ -185,6 +185,7 @@ if TYPE_CHECKING:
         ListLike,
         MutableMappingT,
         NaPosition,
+        NsmallestNlargestKeep,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
@@ -3832,9 +3833,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
         return res.__finalize__(self, method="argsort")
 
-    def nlargest(
-        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    def nsorted(
+        self,
+        n: int,
+        ascending: bool,
+        keep: NsmallestNlargestKeep = "first",
     ) -> Series:
+        return selectn.SelectNSeries(
+            self,
+            n=n,
+            keep=keep,
+        ).nsorted(ascending=ascending)
+
+    def nlargest(self, n: int = 5, keep: NsmallestNlargestKeep = "first") -> Series:
         """
         Return the largest `n` elements.
 
@@ -3939,9 +3950,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(
-        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
-    ) -> Series:
+    def nsmallest(self, n: int = 5, keep: NsmallestNlargestKeep = "first") -> Series:
         """
         Return the smallest `n` elements.
 
