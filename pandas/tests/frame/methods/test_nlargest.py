@@ -75,8 +75,8 @@ class TestNSorted:
         )
         if "b" in columns:
             error_msg = (
-                f"Column 'b' has dtype (object|str), "
-                f"cannot use method '{nselect_method}' with this dtype"
+                "Column 'b' has dtype (object|str), "
+                "cannot use n-sorting with this dtype"
             )
             with pytest.raises(TypeError, match=error_msg):
                 getattr(df, nselect_method)(n, columns)
@@ -87,6 +87,29 @@ class TestNSorted:
             expected = df.sort_values(columns, ascending=ascending).head(n)
             tm.assert_frame_equal(result, expected)
 
+    def test_nsorted(self):
+        df = pd.DataFrame(
+            {
+                "x": [2, 2, 1],
+                "y": [3, 2, 1],
+            },
+            index=["a", "b", "c"],
+        )
+        cols = ["x", "y"]
+        ascending = [True, False]
+        n = 2
+        df_sort_values = df.sort_values(cols, ascending=ascending).head(n)
+        result = df.nsorted(n, cols, ascending=ascending)
+        tm.assert_frame_equal(result, df_sort_values)
+        expected = pd.DataFrame(
+            {
+                "x": [1, 2],
+                "y": [1, 3],
+            },
+            index=["c", "a"],
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "columns", [["group", "category_string"], ["group", "string"]]
     )
@@ -95,7 +118,7 @@ class TestNSorted:
         col = columns[1]
         error_msg = (
             f"Column '{col}' has dtype {df[col].dtype}, "
-            f"cannot use method '{nselect_method}' with this dtype"
+            f"cannot use n-sorting with this dtype"
         )
         # escape some characters that may be in the repr
         error_msg = (

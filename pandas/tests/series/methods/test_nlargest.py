@@ -20,7 +20,7 @@ def assert_check_nselect_boundary(vals, dtype, method):
     tm.assert_series_equal(result, expected)
 
 
-class TestSeriesNLargestNSmallest:
+class TestSeriesNSorted:
     @pytest.mark.parametrize(
         "r",
         [
@@ -37,7 +37,7 @@ class TestSeriesNLargestNSmallest:
     @pytest.mark.parametrize("arg", [2, 5, 0, -1])
     def test_nlargest_error(self, r, method, arg):
         dt = r.dtype
-        msg = f"Cannot use method 'n(largest|smallest)' with dtype {dt}"
+        msg = f"Cannot use n-sorting with dtype {dt}"
         with pytest.raises(TypeError, match=msg):
             getattr(r, method)(arg)
 
@@ -77,6 +77,9 @@ class TestSeriesNLargestNSmallest:
         tm.assert_series_equal(ser.nsmallest(len(ser) + 1), ser.sort_values())
         tm.assert_series_equal(ser.nlargest(len(ser)), ser.iloc[[4, 0, 1, 3, 2]])
         tm.assert_series_equal(ser.nlargest(len(ser) + 1), ser.iloc[[4, 0, 1, 3, 2]])
+
+        tm.assert_series_equal(ser.nsorted(2, True), ser.nsmallest(2))
+        tm.assert_series_equal(ser.nsorted(2, False), ser.nlargest(2))
 
     def test_nlargest_misc(self):
         ser = Series([3.0, np.nan, 1, 2, 5])
