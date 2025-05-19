@@ -105,10 +105,12 @@ class SelectNSeries(SelectN[Series]):
     nordered : Series
     """
 
-    def compute(self, ascending: bool) -> Series:
+    def compute(self, ascending: bool | Sequence[bool]) -> Series:
         from pandas.core.reshape.concat import concat
 
-        assert isinstance(ascending, bool)
+        if isinstance(ascending, Sequence):
+            assert len(ascending) == 1
+            ascending = ascending[0]
 
         n = self.n
         dtype = self.obj.dtype
