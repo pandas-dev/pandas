@@ -1,6 +1,7 @@
 """
-Note: for naming purposes, most tests are title with as e.g. "test_nlargest_foo"
-but are implicitly also testing nsmallest_foo.
+Note: for naming purposes, most test method titles include "nsorted"
+(e.g., "test_nlargest_foo") but are implicitly also testing "nsmallest" and
+"nlargest".
 """
 
 from string import ascii_lowercase
@@ -41,11 +42,11 @@ def df_main_dtypes():
     )
 
 
-class TestNLargestNSmallest:
+class TestNSorted:
     # ----------------------------------------------------------------------
     # Top / bottom
     @pytest.mark.parametrize(
-        "order",
+        "columns",
         [
             ["a"],
             ["c"],
@@ -63,7 +64,7 @@ class TestNLargestNSmallest:
         ],
     )
     @pytest.mark.parametrize("n", range(1, 11))
-    def test_nlargest_n(self, nselect_method, n, order):
+    def test_nsorted_n(self, nselect_method, n: int, columns):
         # GH#10393
         df = pd.DataFrame(
             {
@@ -72,24 +73,24 @@ class TestNLargestNSmallest:
                 "c": np.random.default_rng(2).permutation(10).astype("float64"),
             }
         )
-        if "b" in order:
+        if "b" in columns:
             error_msg = (
                 f"Column 'b' has dtype (object|str), "
                 f"cannot use method '{nselect_method}' with this dtype"
             )
             with pytest.raises(TypeError, match=error_msg):
-                getattr(df, nselect_method)(n, order)
+                getattr(df, nselect_method)(n, columns)
         else:
             ascending = nselect_method == "nsmallest"
-            result = getattr(df, nselect_method)(n, order)
+            result = getattr(df, nselect_method)(n, columns)
             result.index = pd.Index(list(result.index))
-            expected = df.sort_values(order, ascending=ascending).head(n)
+            expected = df.sort_values(columns, ascending=ascending).head(n)
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "columns", [["group", "category_string"], ["group", "string"]]
     )
-    def test_nlargest_error(self, df_main_dtypes, nselect_method, columns):
+    def test_nsorted_error(self, df_main_dtypes, nselect_method, columns):
         df = df_main_dtypes
         col = columns[1]
         error_msg = (
@@ -106,12 +107,12 @@ class TestNLargestNSmallest:
         with pytest.raises(TypeError, match=error_msg):
             getattr(df, nselect_method)(2, columns)
 
-    def test_nlargest_all_dtypes(self, df_main_dtypes):
+    def test_nsorted_all_dtypes(self, df_main_dtypes):
         df = df_main_dtypes
         df.nsmallest(2, list(set(df) - {"category_string", "string"}))
         df.nlargest(2, list(set(df) - {"category_string", "string"}))
 
-    def test_nlargest_duplicates_on_starter_columns(self):
+    def test_nsorted_duplicates_on_starter_columns(self):
         # regression test for GH#22752
 
         df = pd.DataFrame({"a": [2, 2, 2, 1, 1, 1], "b": [1, 2, 3, 3, 2, 1]})
@@ -128,7 +129,7 @@ class TestNLargestNSmallest:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_nlargest_n_identical_values(self):
+    def test_nsorted_n_identical_values(self):
         # GH#15297
         df = pd.DataFrame({"a": [1] * 5, "b": [1, 2, 3, 4, 5]})
 
@@ -141,25 +142,26 @@ class TestNLargestNSmallest:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "order",
+        "columns",
         [["a", "b", "c"], ["c", "b", "a"], ["a"], ["b"], ["a", "b"], ["c", "b"]],
     )
     @pytest.mark.parametrize("n", range(1, 6))
-    def test_nlargest_n_duplicate_index(self, n, order, request):
+    def test_nsorted_n_duplicate_index(self, n: int, columns, request):
         # GH#13412
 
         df = pd.DataFrame(
             {"a": [1, 2, 3, 4, 4], "b": [1, 1, 1, 1, 1], "c": [0, 1, 2, 5, 4]},
             index=[0, 0, 1, 1, 1],
         )
-        result = df.nsmallest(n, order)
-        expected = df.sort_values(order, kind="stable").head(n)
+        result = df.nsmallest(n, columns)
+        expected = df.sort_values(columns, kind="stable").head(n)
         tm.assert_frame_equal(result, expected)
 
-        result = df.nlargest(n, order)
-        expected = df.sort_values(order, ascending=False, kind="stable").head(n)
+        result = df.nlargest(n, columns)
+        expected = df.sort_values(columns, ascending=False, kind="stable").head(n)
         if Version(np.__version__) >= Version("1.25") and (
-            (order == ["a"] and n in (1, 2, 3, 4)) or ((order == ["a", "b"]) and n == 5)
+            (columns == ["a"] and n in (1, 2, 3, 4))
+            or ((columns == ["a", "b"]) and n == 5)
         ):
             request.applymarker(
                 pytest.mark.xfail(
@@ -172,7 +174,7 @@ class TestNLargestNSmallest:
             )
         tm.assert_frame_equal(result, expected)
 
-    def test_nlargest_duplicate_keep_all_ties(self):
+    def test_nsorted_duplicate_keep_all_ties(self):
         # GH#16818
         df = pd.DataFrame(
             {"a": [5, 4, 4, 2, 3, 3, 3, 3], "b": [10, 9, 8, 7, 5, 50, 10, 20]}
@@ -197,7 +199,7 @@ class TestNLargestNSmallest:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_nlargest_multiindex_column_lookup(self):
+    def test_nsorted_multiindex_column_lookup(self):
         # Check whether tuples are correctly treated as multi-level lookups.
         # GH#23033
         df = pd.DataFrame(
