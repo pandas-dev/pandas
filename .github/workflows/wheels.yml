@@ -42,12 +42,8 @@ jobs:
           CIBW_PLATFORM: 'windows'
           CIBW_ARCHS: 'ARM64'
           CIBW_BEFORE_BUILD_WINDOWS: |
-            python -m pip install delvewheel wheel
+            python -m pip install delvewheel
             bash scripts/cibw_before_build_windows.sh
-          # CIBW_ENVIRONMENT_WINDOWS: |
-          #   CC=cl.exe
-          #   CXX=cl.exe
-          #   LD=link.exe
 
       # - name: Set up Python for validation
       #   uses: mamba-org/setup-micromamba@v2
@@ -61,7 +57,9 @@ jobs:
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
-        run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
+        run: |
+          python -m pip install wheel
+          for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
       - uses: actions/upload-artifact@v4
         with:
