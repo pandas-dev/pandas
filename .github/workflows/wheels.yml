@@ -42,6 +42,7 @@ jobs:
           CIBW_PLATFORM: 'windows'
           CIBW_ARCHS: 'ARM64'
           CIBW_BEFORE_BUILD_WINDOWS: |
+            python -m pip install delvewheel
             echo "Searching for cl.exe..."
             where cl.exe || echo "cl.exe not found in PATH"
             echo "Searching for link.exe..."

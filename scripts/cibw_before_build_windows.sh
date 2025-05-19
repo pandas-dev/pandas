@@ -4,7 +4,6 @@ for file in $PACKAGE_DIR/LICENSES/*; do
   cat $file >> $PACKAGE_DIR/LICENSE
 done
 
-python -m pip install delvewheel
 # TODO: Delete when there's a PyPI Cython release that supports free-threaded Python 3.13
 FREE_THREADED_BUILD="$(python -c"import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")"
 if [[ $FREE_THREADED_BUILD == "True" ]]; then
