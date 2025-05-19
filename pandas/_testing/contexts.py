@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
+import sys
 import tempfile
 from typing import (
     IO,
@@ -81,7 +82,9 @@ def set_timezone(tz: str) -> Generator[None]:
                     pass
             else:
                 os.environ["TZ"] = tz
-                time.tzset()
+                # Next line allows typing checks to pass on Windows
+                if sys.platform != "win32":
+                    time.tzset()
 
     orig_tz = os.environ.get("TZ")
     setTZ(tz)

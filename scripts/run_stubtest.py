@@ -85,9 +85,11 @@ if __name__ == "__main__":
     ]
 
     # create allowlist
-    with tempfile.NamedTemporaryFile(mode="w+t") as allow:
-        allow.write("\n".join(_ALLOWLIST))
-        allow.flush()
+    with tempfile.TemporaryDirectory() as td:
+        allow = os.path.join(td, "test")
+        with open(allow, "w+t") as allow:
+            allow.write("\n".join(_ALLOWLIST))
+            allow.flush()
 
         args = pyi_modules + [
             "--ignore-missing-stub",

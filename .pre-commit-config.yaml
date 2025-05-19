@@ -140,7 +140,7 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-    -   id: mypy
+    -   id: stubtest
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
