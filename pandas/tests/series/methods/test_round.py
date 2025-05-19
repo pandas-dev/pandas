@@ -74,6 +74,7 @@ class TestSeriesRound:
         tm.assert_series_equal(ser, expected)
 
     def test_round_dtype_object(self):
+        # GH#61206
         ser = Series([0.2], dtype="object")
         msg = "Expected numeric dtype, got object instead."
         with pytest.raises(TypeError, match=msg):
