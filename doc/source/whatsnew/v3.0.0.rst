@@ -80,6 +80,7 @@ Other enhancements
 - Added half-year offset classes :class:`HalfYearBegin`, :class:`HalfYearEnd`, :class:`BHalfYearBegin` and :class:`BHalfYearEnd` (:issue:`60928`)
 - Added support to read from Apache Iceberg tables with the new :func:`read_iceberg` function (:issue:`61383`)
 - Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library (:issue:`60748`)
+- Implemented :meth:`MultiIndex.searchsorted` (:issue:`14833`)
 - Implemented :meth:`Series.str.isascii` and :meth:`Series.str.isascii` (:issue:`59091`)
 - Improved deprecation message for offset aliases (:issue:`60820`)
 - Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
@@ -87,7 +88,6 @@ Other enhancements
 - Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
 
