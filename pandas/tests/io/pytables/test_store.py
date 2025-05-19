@@ -26,7 +26,6 @@ import pandas._testing as tm
 from pandas.api.types import (
     CategoricalDtype,
 )
-from pandas.conftest import has_pyarrow
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
