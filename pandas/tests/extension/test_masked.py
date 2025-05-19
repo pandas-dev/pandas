@@ -176,7 +176,7 @@ class TestMaskedArrays(base.ExtensionTests):
                 if result[i] is pd.NA:
                     result[i] = "nan"
             result = result.astype("float64")
-            
+
         if data_missing.dtype == Float32Dtype():
             # map roundtrips through objects, which converts to float64
             expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
@@ -187,7 +187,7 @@ class TestMaskedArrays(base.ExtensionTests):
     def test_map_na_action_ignore(self, data_missing_for_sorting):
         zero = data_missing_for_sorting[2]
         result = data_missing_for_sorting.map(lambda x: zero, na_action="ignore")
-        
+
         if data_missing_for_sorting.dtype.kind == "b":
             expected = np.array([False, pd.NA, False], dtype=object)
         else:
