@@ -69,7 +69,9 @@ jobs:
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
-        run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
+        run: |
+          python -m pip install wheel
+          for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
       # Artifact upload is removed as per requirements
       # - uses: actions/upload-artifact@v4
