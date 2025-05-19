@@ -57,15 +57,15 @@ jobs:
             CXX=cl.exe
             LD=link.exe
 
-      - name: Set up Python for validation
-        uses: mamba-org/setup-micromamba@v2
-        with:
-          environment-name: wheel-env
-          create-args: >-
-            python=${{ matrix.python[1] }}
-            wheel
-          cache-downloads: true
-          cache-environment: true
+      # - name: Set up Python for validation
+      #   uses: mamba-org/setup-micromamba@v2
+      #   with:
+      #     environment-name: wheel-env
+      #     create-args: >-
+      #       python=${{ matrix.python[1] }}
+      #       wheel
+      #     cache-downloads: true
+      #     cache-environment: true
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
