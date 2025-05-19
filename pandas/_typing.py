@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from builtins import type as type_t  # pyright: ignore[reportUnusedImport]
 from collections.abc import (
     Callable,
     Hashable,
@@ -517,3 +518,5 @@ UsecolsArgType: TypeAlias = (
 SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
 
 SliceType: TypeAlias = Hashable | None
+
+__all__ = ["type_t"]
