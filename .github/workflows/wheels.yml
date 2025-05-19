@@ -92,13 +92,13 @@ jobs:
         # GitHub Actions doesn't support pairing matrix values together, let's improvise
         # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
-        # - [ubuntu-24.04, manylinux_x86_64]
-        # - [ubuntu-24.04, musllinux_x86_64]
-        # - [ubuntu-24.04-arm, manylinux_aarch64]
-        # - [macos-13, macosx_x86_64]
-        # # Note: M1 images on Github Actions start from macOS 14
-        # - [macos-14, macosx_arm64]
-        # - [windows-2022, win_amd64]
+        - [ubuntu-24.04, manylinux_x86_64]
+        - [ubuntu-24.04, musllinux_x86_64]
+        - [ubuntu-24.04-arm, manylinux_aarch64]
+        - [macos-13, macosx_x86_64]
+        # Note: M1 images on Github Actions start from macOS 14
+        - [macos-14, macosx_arm64]
+        - [windows-2022, win_amd64]
         - [windows-11-arm, win_arm64] # Test only this platform
         # TODO: support PyPy?
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
@@ -112,6 +112,8 @@ jobs:
         exclude:
           - buildplat: [windows-11-arm, win_arm64]
             python: ["cp310", "3.10"]
+          - buildplat: [windows-11-arm, win_arm64]
+            python: ["cp313t", "3.13"]
 
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
