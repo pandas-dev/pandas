@@ -177,5 +177,8 @@ translations:
   source_path: pandas-translations-main/web/pandas/
   default_language: 'en'
   default_prefix: ''
-  ignore:
-    - docs/
+  languages:
+    en: English
+    es: Español
+    pt: Português
+    # fr: Français

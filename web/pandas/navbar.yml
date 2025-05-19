@@ -17,6 +17,7 @@ navbar:
     target: getting_started.html
   - name: "Documentation"
     target: docs/
+    translated: false
   - name: "Community"
     target:
     - name: "Blog"

@@ -28,6 +28,7 @@ import argparse
 import collections
 import datetime
 import importlib
+import io
 import itertools
 import json
 import operator
@@ -36,6 +37,7 @@ import pathlib
 import re
 import shutil
 import sys
+import tarfile
 import time
 import typing
 
@@ -74,17 +76,16 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def navbar_add_info(context: dict, skip: bool = True) -> dict:
+    def navbar_add_info(context: dict) -> dict:
         """
         Items in the main navigation bar can be direct links, or dropdowns with
         subitems. This context preprocessor adds a boolean field
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
-        ignore = context["translations"]["ignore"]
-        for language in context["languages"]:
+        for language in context["translations"]["languages"]:
             for i, item in enumerate(context["navbar"][language]):
-                if item["target"] in ignore:
+                if not item.get("translated", True):
                     item["target"] = f"../{item['target']}"
 
                 context["navbar"][language][i] = dict(
@@ -391,9 +392,7 @@ def get_callable(obj_as_str: str) -> object:
     return obj
 
 
-def get_context(
-    config_fname: str, navbar_fname: str, languages: list[str], **kwargs: dict
-) -> dict:
+def get_context(config_fname: str, navbar_fname: str, **kwargs: dict) -> dict:
     """
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
@@ -403,19 +402,20 @@ def get_context(
 
     context["source_path"] = os.path.dirname(config_fname)
 
-    navbar = {}
-    context["languages"] = languages
     default_language = context["translations"]["default_language"]
     default_prefix = context["translations"]["default_prefix"]
-    for language in languages:
+    translated_languages = context["translations"]["languages"].copy()
+    translated_languages.pop(default_language)
+    context["translated_languages"] = translated_languages
+    download_and_extract_translations(context)
+    navbar = {}
+    for language in context["translations"]["languages"]:
         prefix = default_prefix if language == default_language else language
-        navbar_path = os.path.join(context["source_path"], prefix, navbar_fname)
-
-        with open(navbar_path, encoding="utf-8") as f:
+        with open(
+            os.path.join(context["source_path"], prefix, navbar_fname), encoding="utf-8"
+        ) as f:
             navbar_lang = yaml.safe_load(f)
-
         navbar[language] = navbar_lang["navbar"]
-
     context["navbar"] = navbar
 
     context.update(kwargs)
@@ -453,6 +453,27 @@ def extend_base_template(content: str, base_template: str) -> str:
     return result
 
 
+def download_and_extract_translations(context: dict) -> None:
+    """
+    Download the translations from the GitHub repository and extract them.
+    """
+    base_folder = os.path.dirname(__file__)
+    extract_path = os.path.join(base_folder, context["translations"]["folder"])
+    shutil.rmtree(extract_path, ignore_errors=True)
+    response = requests.get(context["translations"]["url"])
+    if response.status_code == 200:
+        with tarfile.open(None, "r:gz", io.BytesIO(response.content)) as tar:
+            tar.extractall(os.path.join(base_folder, context["translations"]["folder"]))
+    else:
+        raise Exception(f"Failed to download translations: {response.status_code}")
+    for lang in context["translated_languages"]:
+        shutil.rmtree(os.path.join(base_folder, "pandas", lang), ignore_errors=True)
+        shutil.move(
+            os.path.join(extract_path, context["translations"]["source_path"], lang),
+            os.path.join(base_folder, "pandas", lang),
+        )
+
+
 def main(
     source_path: str,
     target_path: str,
@@ -463,34 +484,23 @@ def main(
     For ``.md`` and ``.html`` files, render them with the context
     before copying them. ``.md`` files are transformed to HTML.
     """
-    base_folder = os.path.dirname(__file__)
-
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
-
-    # Handle translations
-    sys.path.append(base_folder)
-    trans = importlib.import_module("pandas_translations")
-    translated_languages, languages = trans.process_translations(
-        "config.yml", source_path
-    )
 
     sys.stderr.write("Generating context...\n")
     context = get_context(
         os.path.join(source_path, "config.yml"),
         navbar_fname="navbar.yml",
         target_path=target_path,
-        languages=languages,
     )
     sys.stderr.write("Context generated\n")
 
     templates_path = os.path.join(source_path, context["main"]["templates_path"])
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
-    default_language = context["translations"]["default_language"]
     for fname in get_source_files(source_path):
         selected_language = context["translations"]["default_language"]
-        for language in translated_languages:
+        for language in context["translated_languages"]:
             if fname.startswith(language + "/"):
                 selected_language = language
                 break
@@ -517,7 +527,7 @@ def main(
                 content = extend_base_template(body, context["main"]["base_template"])
 
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
-            if selected_language != default_language:
+            if selected_language != context["translations"]["default_language"]:
                 context["base_url"] = "".join(
                     ["../"] * (os.path.normpath(fname).count("/") - 1)
                 )
