@@ -76,12 +76,12 @@ def pivot_table(
         Input pandas DataFrame object.
     values : list-like or scalar, optional
         Column or columns to aggregate.
-    index : column, Grouper, array, or list of the previous
+    index : column, Grouper, array, or sequence of the previous
         Keys to group by on the pivot table index. If a list is passed,
         it can contain any of the other types (except list). If an array is
         passed, it must be the same length as the data and will be used in
         the same manner as column values.
-    columns : column, Grouper, array, or list of the previous
+    columns : column, Grouper, array, or sequence of the previous
         Keys to group by on the pivot table column. If a list is passed,
         it can contain any of the other types (except list). If an array is
         passed, it must be the same length as the data and will be used in
@@ -708,11 +708,11 @@ def pivot(
     ----------
     data : DataFrame
         Input pandas DataFrame object.
-    columns : label or object or a list of the previous
+    columns : label or a sequence of the previous
         Column to use to make new frame's columns.
-    index : label or object or a list of the previous, optional
+    index : label or a sequence of the previous, optional
         Column to use to make new frame's index. If not given, uses existing index.
-    values : label, object or a list of the previous, optional
+    values : label or a sequence of the previous, optional
         Column(s) to use for populating new frame's values. If not
         specified, all remaining columns will be used and the result will
         have hierarchically indexed columns.
