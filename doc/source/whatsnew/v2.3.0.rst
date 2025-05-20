@@ -50,10 +50,20 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_230.notable_bug_fixes.string_comparisons:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Comparisons between different string dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, comparing Series of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise. pandas will now use the hierarchy
+
+    object < (python, NaN) < (pyarrow, NaN) < (python, NA) < (pyarrow, NA)
+
+in determining the result dtype when there are different string dtypes compared. Some examples:
+
+- When ``pd.StringDtype("pyarrow", na_value=pd.NA)`` is compared against any other string dtype, the result will always be ``boolean[pyarrow]``.
+- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("pyarrow", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
+- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("python", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
 
 .. _whatsnew_230.api_changes:
 
@@ -119,6 +129,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.max`, :meth:`.Resampler.min`, :meth:`.Resampler.max` on string input of all NA values would return float dtype; now returns string (:issue:`60810`)
 - Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` on :class:`StringDtype` with all NA values resulted in ``0`` and is now the empty string ``""`` (:issue:`60229`)
 - Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` did not raise for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
 - Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` incorrectly returning integer results in case of ``method="average"`` and raising an error if it would truncate results (:issue:`59768`)

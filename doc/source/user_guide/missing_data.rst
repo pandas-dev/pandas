@@ -258,9 +258,6 @@ will convert your data to use the nullable data types supporting :class:`NA`,
 such as :class:`Int64Dtype` or :class:`ArrowDtype`. This is especially helpful after reading
 in data sets from IO methods where data types were inferred.
 
-In this example, while the dtypes of all columns are changed, we show the results for
-the first 10 columns.
-
 .. ipython:: python
 
    import io
@@ -434,7 +431,7 @@ where the index and column aligns between the original object and the filled obj
 
 .. note::
 
-   :meth:`DataFrame.where` can also be used to fill NA values.Same result as above.
+   :meth:`DataFrame.where` can also be used to fill NA values. Same result as above.
 
    .. ipython:: python
 
