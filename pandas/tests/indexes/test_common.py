@@ -439,15 +439,22 @@ class TestCommon:
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
+@pytest.mark.parametrize("box_in_series", [False, True])
 @pytest.mark.xfail(
-    reason="Sorting fails due to heterogeneous types in index (int vs str)"
+    reason="Sorting fails due to heterogeneous types in index (int vs str)",
+    strict=False,
 )
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    if len({type(x) for x in index_with_missing if pd.notna(x)}) > 1:
-        index_with_missing = index_with_missing.map(str)
+def test_sort_values_invalid_na_position(
+    index_with_missing, na_position, box_in_series
+):
+    if box_in_series:
+        pass
+    else:
+        if len({type(x) for x in index_with_missing if pd.notna(x)}) > 1:
+            index_with_missing = index_with_missing.map(str)
 
-    with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+            index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
