@@ -4448,7 +4448,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
             if not hasattr(engine, "__pandas_udf__"):
                 raise ValueError(f"Not a valid engine: {engine!r}")
-            result = engine.__pandas_udf__.map(
+            result = engine.__pandas_udf__.map(  # type: ignore[attr-defined]
                 data=self,
                 func=func,
                 args=(),
