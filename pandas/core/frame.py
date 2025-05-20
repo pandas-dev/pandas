@@ -9177,11 +9177,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------%s
-        columns : label or a sequence of the previous
+        columns : Hashable or a sequence of the previous
             Column to use to make new frame's columns.
-        index : label or a sequence of the previous, optional
+        index : Hashable or a sequence of the previous, optional
             Column to use to make new frame's index. If not given, uses existing index.
-        values : label or a sequence of the previous, optional
+        values : Hashable or a sequence of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
