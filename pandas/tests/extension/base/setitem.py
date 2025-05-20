@@ -222,12 +222,9 @@ class BaseSetitemTests:
         "idx, box_in_series",
         [
             ([0, 1, 2, pd.NA], False),
-            pytest.param(
-                [0, 1, 2, pd.NA], True, marks=pytest.mark.xfail(reason="GH-31948")
-            ),
+            ([0, 1, 2, pd.NA], True),
             (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            # TODO: change False to True?
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),  # noqa: PT014
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), True),
         ],
         ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
     )
