@@ -293,6 +293,7 @@ MultiIndex components
    MultiIndex.copy
    MultiIndex.append
    MultiIndex.truncate
+   MultiIndex.searchsorted
 
 MultiIndex selecting
 ~~~~~~~~~~~~~~~~~~~~
