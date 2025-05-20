@@ -1731,10 +1731,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return Index or MultiIndex name.
 
+        Returns
+        -------
+        label (hashable object)
+            The name of the Index.
+
         See Also
         --------
         Index.set_names: Able to set new names partially and by level.
         Index.rename: Able to set new names partially and by level.
+        Series.name: Corresponding Series property.
 
         Examples
         --------
