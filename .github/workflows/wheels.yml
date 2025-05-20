@@ -174,7 +174,7 @@ jobs:
           CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
           CIBW_PLATFORM: ${{ (matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide') || (matrix.buildplat[1] == 'win_arm64' && 'windows') || 'auto' }}
           CIBW_ARCHS: ${{ matrix.buildplat[1] == 'win_arm64' && 'ARM64' || 'auto' }}
-          CIBW_BEFORE_BUILD_WINDOWS: ${{ matrix.buildplat[1] == 'win_arm64' && format('python -m pip install delvewheel', github.workspace) || '' }}
+          CIBW_BEFORE_BUILD_WINDOWS: 'python -m pip install delvewheel'
 
       - name: Set up Python for validation/upload (non-ARM64 Windows & other OS)
         if: matrix.buildplat[1] != 'win_arm64'
