@@ -1796,6 +1796,25 @@ class _iLocIndexer(_LocationIndexer):
         since it goes from positional indexers back to labels when calling
         BlockManager methods, see GH#12991, GH#22046, GH#15686.
         """
+
+        def _has_missing_in_indexer(indexer) -> bool:
+            # If the indexer is a list or tuple, check for None directly
+            if isinstance(indexer, (list, tuple)):
+                return any(x is None for x in indexer)
+
+            # If the indexer is a NumPy, Pandas, or Arrow array-like, try safe casting
+            try:
+                # Some extension types may not support direct iteration
+                indexer_list = indexer.tolist()
+                return any(x is None for x in indexer_list)
+            except Exception:
+                return False
+
+        if _has_missing_in_indexer(indexer):
+            raise ValueError(
+                "Cannot index with an integer indexer containing NA values"
+            )
+
         info_axis = self.obj._info_axis_number
 
         # maybe partial set
