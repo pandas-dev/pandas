@@ -23,6 +23,9 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.api.types import (
+    CategoricalDtype,
+)
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
@@ -1107,3 +1110,23 @@ def test_store_bool_index(tmp_path, setup_path):
     df.to_hdf(path, key="a")
     result = read_hdf(path, "a")
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("model", ["name", "longname", "verylongname"])
+def test_select_categorical_string_columns(tmp_path, model):
+    # Corresponding to BUG: 57608
+
+    path = tmp_path / "test.h5"
+
+    models = CategoricalDtype(categories=["name", "longname", "verylongname"])
+    df = DataFrame(
+        {"modelId": ["name", "longname", "longname"], "value": [1, 2, 3]}
+    ).astype({"modelId": models, "value": int})
+
+    with HDFStore(path, "w") as store:
+        store.append("df", df, data_columns=["modelId"])
+
+    with HDFStore(path, "r") as store:
+        result = store.select("df", "modelId == model")
+        expected = df[df["modelId"] == model]
+        tm.assert_frame_equal(result, expected)
