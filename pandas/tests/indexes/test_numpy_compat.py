@@ -156,13 +156,14 @@ def test_numpy_ufuncs_reductions(index, func, request):
     if len(index) == 0:
         pytest.skip("Test doesn't make sense for empty index.")
 
-    if any(isinstance(x, str) for x in index) and \
-            any(isinstance(x, int) for x in index):
+    if any(isinstance(x, str) for x in index) and any(
+        isinstance(x, int) for x in index
+    ):
         request.applymarker(
             pytest.mark.xfail(
                 reason=(
-                    "Cannot compare mixed types (int and str) in ufunc reductions"
-                    " and should raise a TypeError"
+                    "Cannot compare mixed types (int and str) in ufunc reductions "
+                    "and should raise a TypeError"
                 )
             )
         )

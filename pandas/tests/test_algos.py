@@ -63,12 +63,9 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=complex)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("index_or_series_obj",
-                             [
-                             [1, 2, 3],
-                             ["a", "b", "c"],
-                             [0, "a", 1, "b", 2, "c"]
-                             ])
+    @pytest.mark.parametrize(
+        "index_or_series_obj", [[1, 2, 3], ["a", "b", "c"], [0, "a", 1, "b", 2, "c"]]
+    )
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = Index(index_or_series_obj)
@@ -94,10 +91,8 @@ class TestFactorize:
         if expected_uniques.dtype == bool and obj.dtype == object:
             expected_uniques = expected_uniques.astype(object)
 
-
         if sort:
             expected_uniques = expected_uniques.sort_values()
-
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`

@@ -5,7 +5,7 @@ set operations.
 
 from datetime import datetime
 import operator
-import pandas as pd
+
 import numpy as np
 import pytest
 
@@ -64,20 +64,22 @@ def index_flat2(index_flat):
 
 def test_union_same_types(index):
     # mixed int string
-    if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+    if index.equals(Index([0, "a", 1, "b", 2, "c"])):
         index = index.astype(str)
 
     idx1 = index.sort_values()
     idx2 = index.sort_values()
     assert idx1.union(idx2, sort=False).dtype == idx1.dtype
 
+
 def test_union_different_types(index_flat, index_flat2, request):
     idx1 = index_flat
     idx2 = index_flat2
 
     # Special handling for mixed int-string types
-    if idx1.equals(pd.Index([0, "a", 1, "b", 2, "c"])) or \
-            idx2.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+    if idx1.equals(Index([0, "a", 1, "b", 2, "c"])) or idx2.equals(
+        Index([0, "a", 1, "b", 2, "c"])
+    ):
         idx1 = idx1.astype(str)
         idx2 = idx2.astype(str)
 
@@ -129,6 +131,7 @@ def test_union_different_types(index_flat, index_flat2, request):
     else:
         assert res1.dtype == common_dtype
         assert res2.dtype == common_dtype
+
 
 @pytest.mark.parametrize(
     "idx1,idx2",
@@ -234,14 +237,13 @@ class TestSetOps:
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
-
         if index.inferred_type in ["mixed", "mixed-integer"]:
             pytest.skip("Mixed-type Index not orderable; union fails")
 
         index = index.unique()
 
         # Mixed int string
-        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        if index.equals(Index([0, "a", 1, "b", 2, "c"])):
             index = index.astype(str)
 
         first = index[3:]
@@ -296,7 +298,6 @@ class TestSetOps:
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_symmetric_difference(self, index, using_infer_string, request):
-
         if (
             using_infer_string
             and index.dtype == "object"
@@ -311,7 +312,7 @@ class TestSetOps:
             # index fixture has e.g. an index of bools that does not satisfy this,
             #  another with [0, 0, 1, 1, 2, 2]
             pytest.skip("Index values no not satisfy test condition.")
-        if index.equals(pd.Index([0, "a", 1, "b", 2, "c"])):
+        if index.equals(Index([0, "a", 1, "b", 2, "c"])):
             index = index.astype(str)
         first = index[1:]
         second = index[:-1]
@@ -920,8 +921,9 @@ class TestSetOpsUnsorted:
         index2 = MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
 
         def has_mixed_types(level):
-            return any(isinstance(x, str) for x in level) and \
-                any(isinstance(x, int) for x in level)
+            return any(isinstance(x, str) for x in level) and any(
+                isinstance(x, int) for x in level
+            )
 
         for idx in [index1, index2]:
             for lvl in range(idx.nlevels):
