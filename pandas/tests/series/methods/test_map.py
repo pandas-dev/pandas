@@ -20,6 +20,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.tests.apply.conftest import engine  # noqa: F401
 
 
 def test_series_map_box_timedelta():
@@ -32,7 +33,7 @@ def test_series_map_box_timedelta():
     ser.map(f)
 
 
-def test_map_callable(datetime_series, engine):
+def test_map_callable(datetime_series, engine):  # noqa: F811
     with np.errstate(all="ignore"):
         tm.assert_series_equal(
             datetime_series.map(np.sqrt, engine=engine), np.sqrt(datetime_series)
@@ -273,7 +274,7 @@ def test_map_decimal(string_series):
     assert isinstance(result.iloc[0], Decimal)
 
 
-def test_map_na_exclusion(engine):
+def test_map_na_exclusion(engine):  # noqa: F811
     s = Series([1.5, np.nan, 3, np.nan, 5])
 
     result = s.map(lambda x: x * 2, na_action="ignore", engine=engine)
