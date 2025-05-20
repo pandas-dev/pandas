@@ -1,2 +1,0 @@
-[console_scripts]
-send2trash = send2trash.__main__:main

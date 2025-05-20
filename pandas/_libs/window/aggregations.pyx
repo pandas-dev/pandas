@@ -1354,8 +1354,8 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                     if interpolation_type == LINEAR:
                         vlow = skiplist_get(skiplist, idx, &ret)
                         vhigh = skiplist_get(skiplist, idx + 1, &ret)
-                        output[i] = ((vlow + (vhigh - vlow) *
-                                      (idx_with_fraction - idx)))
+                        output[i] = (vlow + (vhigh - vlow) *
+                                     (idx_with_fraction - idx))
                     elif interpolation_type == LOWER:
                         output[i] = skiplist_get(skiplist, idx, &ret)
                     elif interpolation_type == HIGHER:

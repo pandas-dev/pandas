@@ -1,4 +1,0 @@
-[console_scripts]
-pylupdate5=PyQt5.pylupdate_main:main
-pyrcc5=PyQt5.pyrcc_main:main
-pyuic5=PyQt5.uic.pyuic:main

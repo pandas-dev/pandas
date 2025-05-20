@@ -1,3 +1,0 @@
-[console_scripts]
-ipython = IPython:start_ipython
-ipython3 = IPython:start_ipython

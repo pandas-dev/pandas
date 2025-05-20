@@ -412,7 +412,7 @@ def andrews_curves(
         >>> df = pd.read_csv(
         ...     "https://raw.githubusercontent.com/pandas-dev/"
         ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )
+        ... )  # doctest: +SKIP
         >>> pd.plotting.andrews_curves(df, "Name")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -551,7 +551,7 @@ def parallel_coordinates(
         >>> df = pd.read_csv(
         ...     "https://raw.githubusercontent.com/pandas-dev/"
         ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )
+        ... )  # doctest: +SKIP
         >>> pd.plotting.parallel_coordinates(
         ...     df, "Name", color=("#556270", "#4ECDC4", "#C7F464")
         ... )  # doctest: +SKIP

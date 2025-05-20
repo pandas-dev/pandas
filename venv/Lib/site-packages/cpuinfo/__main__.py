@@ -1,5 +1,0 @@
-
-import cpuinfo
-
-cpuinfo.main()
-

@@ -1,5 +1,0 @@
-APPLICATION_AMZ_JSON_1_0 = "application/x-amz-json-1.0"
-APPLICATION_AMZ_JSON_1_1 = "application/x-amz-json-1.1"
-APPLICATION_JSON = "application/json"
-
-JSON_TYPES = [APPLICATION_JSON, APPLICATION_AMZ_JSON_1_0, APPLICATION_AMZ_JSON_1_1]

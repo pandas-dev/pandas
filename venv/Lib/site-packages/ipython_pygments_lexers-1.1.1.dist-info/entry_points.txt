@@ -1,5 +1,0 @@
-[pygments.lexers]
-ipython=ipython_pygments_lexers:IPythonLexer
-ipython3=ipython_pygments_lexers:IPython3Lexer
-ipythonconsole=ipython_pygments_lexers:IPythonConsoleLexer
-

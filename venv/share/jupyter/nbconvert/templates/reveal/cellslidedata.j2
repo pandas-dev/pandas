@@ -1,9 +1,0 @@
-{%- macro cellslidedata(cell) -%}
-    {% if cell.metadata.slideshow | length > 0 -%}
-        {% if cell.metadata.slideshow.data | length > 0 -%}
-            {% for key in (cell.metadata.slideshow.data) -%}
-                {{- (' data_' ~ key)|replace("_", "-") -}}="{{- cell.metadata.slideshow.data[key]|escape_html -}}"
-            {%- endfor -%}
-        {%- endif %}
-    {%- endif %}
-{%- endmacro %}

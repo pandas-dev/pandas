@@ -706,7 +706,7 @@ indices_dict = {
     "string-python": Index(
         pd.array([f"pandas_{i}" for i in range(10)], dtype="string[python]")
     ),
-    "mixed-int-string": Index([0, "a", 1, "b", 2, "c"])
+    "mixed-int-string": Index([0, "a", 1, "b", 2, "c"]),
 }
 if has_pyarrow:
     idx = Index(pd.array([f"pandas_{i}" for i in range(10)], dtype="string[pyarrow]"))
