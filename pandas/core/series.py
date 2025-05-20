@@ -4345,7 +4345,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             mapping correspondence.
         engine : decorator, optional
             Choose the execution engine to use to run the function. Only used for
-            functions. If ``map`` is called with a mapping or ``Series``, and
+            functions. If ``map`` is called with a mapping or ``Series``, an
             exception will be raised. If ``engine`` is not provided the function will
             be executed by the regular Python interpreter.
 
@@ -4358,8 +4358,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Not all functions can be executed with all execution engines. In general,
             JIT compilers will require type stability in the function (no variable
             should change data type during the execution). And not all pandas and
-            NumPy APIs are supported. Check the engine documentation [1]_ and [2]_
-            for limitations.
+            NumPy APIs are supported. Check the engine documentation for limitations.
 
             .. versionadded:: 3.0.0
 

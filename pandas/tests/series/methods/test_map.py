@@ -634,17 +634,12 @@ def test_map_func_is_none():
         Series([1, 2]).map(func=None)
 
 
-def test_map_engine_no_function():
+@pytest.mark.parametrize("func", [{}, {1: 2}, Series([3, 4])])
+def test_map_engine_no_function(func):
     s = Series([1, 2])
 
     with pytest.raises(ValueError, match="engine argument can only be specified"):
-        s.map({}, engine="something")
-
-    with pytest.raises(ValueError, match="engine argument can only be specified"):
-        s.map({1: 2}, engine="something")
-
-    with pytest.raises(ValueError, match="engine argument can only be specified"):
-        s.map(Series([3, 4]), engine="something")
+        s.map(func, engine="something")
 
 
 def test_map_engine_not_executor():
