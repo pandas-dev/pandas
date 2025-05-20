@@ -93,37 +93,37 @@ class PerformanceWarning(Warning):
 
 class PandasChangeWarning(Warning):
     """
-    Warning raised for any pending deprecation.
-    """
-
-
-class Pandas4Warning(PandasChangeWarning, DeprecationWarning):
-    """
-    Warning raised for a pending deprecation that will be enforced in pandas 4.0.
-    """
-
-
-class Pandas5Warning(PandasChangeWarning, PendingDeprecationWarning):
-    """
-    Warning raised for a pending deprecation that will be enforced in pandas 5.0.
+    Warning raised for any an upcoming change.
     """
 
 
 class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWarning):
     """
-    Warning raised for a pending deprecation that is a PendingDeprecationWarning.
+    Warning raised for an upcoming change that is a PendingDeprecationWarning.
     """
 
 
 class PandasDeprecationWarning(PandasChangeWarning, DeprecationWarning):
     """
-    Warning raised for a pending deprecation that is a DeprecationWarning.
+    Warning raised for an upcoming change that is a DeprecationWarning.
     """
 
 
 class PandasFutureWarning(PandasChangeWarning, FutureWarning):
     """
-    Warning raised for a pending deprecation that is a FutureWarning.
+    Warning raised for an upcoming change that is a FutureWarning.
+    """
+
+
+class Pandas4Warning(PandasDeprecationWarning):
+    """
+    Warning raised for an upcoming change that will be enforced in pandas 4.0.
+    """
+
+
+class Pandas5Warning(PandasPendingDeprecationWarning):
+    """
+    Warning raised for an upcoming change that will be enforced in pandas 5.0.
     """
 
 
