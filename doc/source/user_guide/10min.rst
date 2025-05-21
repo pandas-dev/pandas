@@ -185,7 +185,7 @@ yields a :class:`Series`:
    df["A"]
 
 If the label only contains letters, numbers, and underscores, you can
-alternatively use dot notation:
+alternatively use the column name attribute:
 
 .. ipython:: python
 
