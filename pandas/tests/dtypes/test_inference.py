@@ -12,6 +12,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 from fractions import Fraction
@@ -27,7 +28,6 @@ from typing import (
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import (
     lib,
@@ -830,7 +830,11 @@ class TestInference:
 
         out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         # no OutOfBoundsDatetime/OutOfBoundsTimedeltas
-        tm.assert_numpy_array_equal(out, arr)
+        if dtype == "datetime64[ns]":
+            expected = np.array(["2363-10-04"], dtype="M8[us]")
+        else:
+            expected = arr
+        tm.assert_numpy_array_equal(out, expected)
 
     def test_maybe_convert_objects_mixed_datetimes(self):
         ts = Timestamp("now")
@@ -1018,7 +1022,7 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=timezone.utc), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 
@@ -1578,6 +1582,31 @@ class TestTypeInference:
         )
         assert not lib.is_string_array(np.array([1, 2]))
 
+    @pytest.mark.parametrize(
+        "func",
+        [
+            "is_bool_array",
+            "is_date_array",
+            "is_datetime_array",
+            "is_datetime64_array",
+            "is_float_array",
+            "is_integer_array",
+            "is_interval_array",
+            "is_string_array",
+            "is_time_array",
+            "is_timedelta_or_timedelta64_array",
+        ],
+    )
+    def test_is_dtype_array_empty_obj(self, func):
+        # https://github.com/pandas-dev/pandas/pull/60796
+        func = getattr(lib, func)
+
+        arr = np.empty((2, 0), dtype=object)
+        assert not func(arr)
+
+        arr = np.empty((0, 2), dtype=object)
+        assert not func(arr)
+
     def test_to_object_array_tuples(self):
         r = (5, 6)
         values = [r]
@@ -1921,7 +1950,7 @@ class TestIsScalar:
         assert not is_scalar(pd.array([1, 2, 3]))
 
     def test_is_scalar_number(self):
-        # Number() is not recognied by PyNumber_Check, so by extension
+        # Number() is not recognized by PyNumber_Check, so by extension
         #  is not recognized by is_scalar, but instances of non-abstract
         #  subclasses are.
 

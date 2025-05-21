@@ -262,7 +262,7 @@ Note:
 
 The JSON format for the TableSchema interface is the existing.
 
-The JSON format for the Global interface is defined in [JSON-TAB](https://github.com/loco-philippe/NTV/blob/main/documentation/JSON-TAB-standard.pdf) specification.
+The JSON format for the Global interface is defined in [JSON-TAB](https://github.com/loco-philippe/NTV/blob/v1.1.0/documentation/JSON-TAB-standard.pdf) specification.
 It includes the naming rules originally defined in the [JSON-ND project](https://github.com/glenkleidon/JSON-ND) and support for categorical data.
 The specification have to be updated to include sparse data.
 
@@ -419,7 +419,7 @@ To conclude,
 
 ## Core team decision
 
-Vote was open from september-11 to setpember-26:
+Vote was open from september-11 to september-26:
 
 - Final tally is 0 approvals, 5 abstentions, 7 disapprove. The quorum has been met. The PDEP fails.
 

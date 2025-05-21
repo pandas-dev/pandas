@@ -6,15 +6,16 @@
 Installation
 ============
 
-The easiest way to install pandas is to install it
-as part of the `Anaconda <https://docs.continuum.io/free/anaconda/>`__ distribution, a
-cross platform distribution for data analysis and scientific computing.
-The `Conda <https://conda.io/en/latest/>`__ package manager is the
-recommended installation method for most users.
+The pandas development team officially distributes pandas for installation
+through the following methods:
 
-Instructions for installing :ref:`from source <install.source>`,
-:ref:`PyPI <install.pypi>`, or a
-:ref:`development version <install.dev>` are also provided.
+* Available on `conda-forge <https://anaconda.org/conda-forge/pandas>`__ for installation with the conda package manager.
+* Available on `PyPI <https://pypi.org/project/pandas/>`__ for installation with pip.
+* Available on `Github <https://github.com/pandas-dev/pandas>`__ for installation from source.
+
+.. note::
+    pandas may be installable from other sources besides the ones listed above,
+    but they are **not** managed by the pandas development team.
 
 .. _install.version:
 
@@ -26,68 +27,54 @@ See :ref:`Python support policy <policies.python_support>`.
 Installing pandas
 -----------------
 
-.. _install.anaconda:
+.. _install.conda:
 
-Installing with Anaconda
-~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Conda
+~~~~~~~~~~~~~~~~~~~~~
 
-For users that are new to Python, the easiest way to install Python, pandas, and the
-packages that make up the `PyData <https://pydata.org/>`__ stack
-(`SciPy <https://scipy.org/>`__, `NumPy <https://numpy.org/>`__,
-`Matplotlib <https://matplotlib.org/>`__, `and more <https://docs.continuum.io/free/anaconda/reference/packages/pkg-docs/>`__)
-is with `Anaconda <https://docs.continuum.io/free/anaconda/>`__, a cross-platform
-(Linux, macOS, Windows) Python distribution for data analytics and
-scientific computing. Installation instructions for Anaconda
-`can be found here <https://docs.continuum.io/free/anaconda/install/>`__.
+For users working with the `Conda <https://conda.io/en/latest/>`__ package manager,
+pandas can be installed from the ``conda-forge`` channel.
 
-.. _install.miniconda:
+.. code-block:: shell
 
-Installing with Miniconda
-~~~~~~~~~~~~~~~~~~~~~~~~~
+    conda install -c conda-forge pandas
 
-For users experienced with Python, the recommended way to install pandas with
-`Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__.
-Miniconda allows you to create a minimal, self-contained Python installation compared to Anaconda and use the
-`Conda <https://conda.io/en/latest/>`__ package manager to install additional packages
-and create a virtual environment for your installation. Installation instructions for Miniconda
-`can be found here <https://docs.conda.io/en/latest/miniconda.html>`__.
+To install the Conda package manager on your system, the
+`Miniforge distribution <https://github.com/conda-forge/miniforge?tab=readme-ov-file#install>`__
+is recommended.
 
-The next step is to create a new conda environment. A conda environment is like a
-virtualenv that allows you to specify a specific version of Python and set of libraries.
-Run the following commands from a terminal window.
+Additionally, it is recommended to install and run pandas from a virtual environment.
 
 .. code-block:: shell
 
     conda create -c conda-forge -n name_of_my_env python pandas
-
-This will create a minimal environment with only Python and pandas installed.
-To put your self inside this environment run.
-
-.. code-block:: shell
-
+    # On Linux or MacOS
     source activate name_of_my_env
     # On Windows
     activate name_of_my_env
 
-.. _install.pypi:
+.. tip::
+    For users that are new to Python, the easiest way to install Python, pandas, and the
+    packages that make up the `PyData <https://pydata.org/>`__ stack such as
+    `SciPy <https://scipy.org/>`__, `NumPy <https://numpy.org/>`__ and
+    `Matplotlib <https://matplotlib.org/>`__
+    is with `Anaconda <https://docs.anaconda.com/anaconda/install/>`__, a cross-platform
+    (Linux, macOS, Windows) Python distribution for data analytics and
+    scientific computing.
 
-Installing from PyPI
-~~~~~~~~~~~~~~~~~~~~
+    However, pandas from Anaconda is **not** officially managed by the pandas development team.
 
-pandas can be installed via pip from
-`PyPI <https://pypi.org/project/pandas>`__.
+.. _install.pip:
+
+Installing with pip
+~~~~~~~~~~~~~~~~~~~
+
+For users working with the `pip <https://pip.pypa.io/en/stable/>`__ package manager,
+pandas can be installed from `PyPI <https://pypi.org/project/pandas/>`__.
 
 .. code-block:: shell
 
     pip install pandas
-
-.. note::
-    You must have ``pip>=19.3`` to install from PyPI.
-
-.. note::
-
-    It is recommended to install and run pandas from a virtual environment, for example,
-    using the Python standard library's `venv <https://docs.python.org/3/library/venv.html>`__
 
 pandas can also be installed with sets of optional dependencies to enable certain functionality. For example,
 to install pandas with the optional dependencies to read Excel files.
@@ -98,25 +85,8 @@ to install pandas with the optional dependencies to read Excel files.
 
 The full list of extras that can be installed can be found in the :ref:`dependency section.<install.optional_dependencies>`
 
-Handling ImportErrors
-~~~~~~~~~~~~~~~~~~~~~
-
-If you encounter an ``ImportError``, it usually means that Python couldn't find pandas in the list of available
-libraries. Python internally has a list of directories it searches through, to find packages. You can
-obtain these directories with.
-
-.. code-block:: python
-
-    import sys
-    sys.path
-
-One way you could be encountering this error is if you have multiple Python installations on your system
-and you don't have pandas installed in the Python installation you're currently using.
-In Linux/Mac you can run ``which python`` on your terminal and it will tell you which Python installation you're
-using. If it's something like "/usr/bin/python", you're using the Python from the system, which is not recommended.
-
-It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
-You can find simple installation instructions for pandas :ref:`in this document <install.miniconda>`.
+Additionally, it is recommended to install and run pandas from a virtual environment, for example,
+using the Python standard library's `venv <https://docs.python.org/3/library/venv.html>`__
 
 .. _install.source:
 
@@ -144,49 +114,24 @@ index from the PyPI registry of anaconda.org. You can install it by running.
 
     pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
 
-Note that you might be required to uninstall an existing version of pandas to install the development version.
+.. note::
+    You might be required to uninstall an existing version of pandas to install the development version.
 
-.. code-block:: shell
+    .. code-block:: shell
 
-    pip uninstall pandas -y
+        pip uninstall pandas -y
 
 Running the test suite
 ----------------------
 
-pandas is equipped with an exhaustive set of unit tests. The packages required to run the tests
-can be installed with ``pip install "pandas[test]"``. To run the tests from a
-Python terminal.
+If pandas has been installed :ref:`from source <install.source>`, running ``pytest pandas`` will run all of pandas unit tests.
 
-.. code-block:: python
-
-    >>> import pandas as pd
-    >>> pd.test()
-    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.9/site-packages/pandas
-
-    ============================= test session starts ==============================
-    platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
-    rootdir: /home/user
-    plugins: dash-1.19.0, anyio-3.5.0, hypothesis-6.29.3
-    collected 154975 items / 4 skipped / 154971 selected
-    ........................................................................ [  0%]
-    ........................................................................ [ 99%]
-    .......................................                                  [100%]
-
-    ==================================== ERRORS ====================================
-
-    =================================== FAILURES ===================================
-
-    =============================== warnings summary ===============================
-
-    =========================== short test summary info ============================
-
-    = 1 failed, 146194 passed, 7402 skipped, 1367 xfailed, 5 xpassed, 197 warnings, 10 errors in 1090.16s (0:18:10) =
-
+The unit tests can also be run from the pandas module itself with the :func:`test` function. The packages required to run the tests
+can be installed with ``pip install "pandas[test]"``.
 
 .. note::
 
-    This is just an example of what information is shown. Test failures are not necessarily indicative
-    of a broken pandas installation.
+    Test failures are not necessarily indicative of a broken pandas installation.
 
 .. _install.dependencies:
 
@@ -205,7 +150,6 @@ Package                                                          Minimum support
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.23.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
-`pytz <https://pypi.org/project/pytz/>`__                        2020.1
 `tzdata <https://pypi.org/project/tzdata/>`__                    2022.7
 ================================================================ ==========================
 
@@ -220,7 +164,7 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
-If using pip, optional pandas dependencies can be installed or managed in a file (e.g. requirements.txt or pyproject.toml)
+With pip, optional pandas dependencies can be installed or managed in a file (e.g. requirements.txt or pyproject.toml)
 as optional extras (e.g. ``pandas[performance, aws]``). All optional dependencies can be installed with ``pandas[all]``,
 and specific sets of dependencies are listed in the sections below.
 
@@ -239,9 +183,9 @@ Installable with ``pip install "pandas[performance]"``
 ===================================================== ================== ================== ===================================================================================================================================================================================
 Dependency                                            Minimum Version    pip extra          Notes
 ===================================================== ================== ================== ===================================================================================================================================================================================
-`numexpr <https://github.com/pydata/numexpr>`__       2.8.4              performance        Accelerates certain numerical operations by using multiple cores as well as smart chunking and caching to achieve large speedups
+`numexpr <https://github.com/pydata/numexpr>`__       2.9.0              performance        Accelerates certain numerical operations by using multiple cores as well as smart chunking and caching to achieve large speedups
 `bottleneck <https://github.com/pydata/bottleneck>`__ 1.3.6              performance        Accelerates certain types of ``nan`` by using specialized cython routines to achieve large speedup.
-`numba <https://github.com/numba/numba>`__            0.56.4             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
+`numba <https://github.com/numba/numba>`__            0.59.0             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
 ===================================================== ================== ================== ===================================================================================================================================================================================
 
 Visualization
@@ -249,25 +193,25 @@ Visualization
 
 Installable with ``pip install "pandas[plot, output-formatting]"``.
 
-========================= ================== ================== =============================================================
-Dependency                Minimum Version    pip extra          Notes
-========================= ================== ================== =============================================================
-matplotlib                3.6.3              plot               Plotting library
-Jinja2                    3.1.2              output-formatting  Conditional formatting with DataFrame.style
-tabulate                  0.9.0              output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
-========================= ================== ================== =============================================================
+========================================================== ================== ================== =======================================================
+Dependency                                                 Minimum Version    pip extra          Notes
+========================================================== ================== ================== =======================================================
+`matplotlib <https://github.com/matplotlib/matplotlib>`__  3.8.3              plot               Plotting library
+`Jinja2 <https://github.com/pallets/jinja>`__              3.1.3              output-formatting  Conditional formatting with DataFrame.style
+`tabulate <https://github.com/astanin/python-tabulate>`__  0.9.0              output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
+========================================================== ================== ================== =======================================================
 
 Computation
 ^^^^^^^^^^^
 
 Installable with ``pip install "pandas[computation]"``.
 
-========================= ================== =============== =============================================================
-Dependency                Minimum Version    pip extra       Notes
-========================= ================== =============== =============================================================
-SciPy                     1.10.0             computation     Miscellaneous statistical functions
-xarray                    2022.12.0          computation     pandas-like API for N-dimensional data
-========================= ================== =============== =============================================================
+============================================== ================== =============== =======================================
+Dependency                                     Minimum Version    pip extra       Notes
+============================================== ================== =============== =======================================
+`SciPy <https://github.com/scipy/scipy>`__     1.12.0             computation     Miscellaneous statistical functions
+`xarray <https://github.com/pydata/xarray>`__  2024.1.1           computation     pandas-like API for N-dimensional data
+============================================== ================== =============== =======================================
 
 .. _install.excel_dependencies:
 
@@ -276,29 +220,29 @@ Excel files
 
 Installable with ``pip install "pandas[excel]"``.
 
-========================= ================== =============== =============================================================
-Dependency                Minimum Version    pip extra       Notes
-========================= ================== =============== =============================================================
-xlrd                      2.0.1              excel           Reading for xls files
-xlsxwriter                3.0.5              excel           Writing for xlsx files
-openpyxl                  3.1.0              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
-pyxlsb                    1.0.10             excel           Reading for xlsb files
-python-calamine           0.1.7              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
-odfpy                     1.4.1              excel           Reading / writing for OpenDocument 1.2 files
-========================= ================== =============== =============================================================
+================================================================== ================== =============== =============================================================
+Dependency                                                         Minimum Version    pip extra       Notes
+================================================================== ================== =============== =============================================================
+`xlrd <https://github.com/python-excel/xlrd>`__                    2.0.1              excel           Reading for xls files
+`xlsxwriter <https://github.com/jmcnamara/XlsxWriter>`__           3.2.0              excel           Writing for xlsx files
+`openpyxl <https://github.com/theorchard/openpyxl>`__              3.1.2              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
+`pyxlsb <https://github.com/willtrnr/pyxlsb>`__                    1.0.10             excel           Reading for xlsb files
+`python-calamine <https://github.com/dimastbk/python-calamine>`__  0.1.7              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
+`odfpy <https://github.com/eea/odfpy>`__                           1.4.1              excel           Reading / writing for OpenDocument 1.2 files
+================================================================== ================== =============== =============================================================
 
 HTML
 ^^^^
 
 Installable with ``pip install "pandas[html]"``.
 
-========================= ================== =============== =============================================================
-Dependency                Minimum Version    pip extra       Notes
-========================= ================== =============== =============================================================
-BeautifulSoup4            4.11.2             html            HTML parser for read_html
-html5lib                  1.1                html            HTML parser for read_html
-lxml                      4.9.2              html            HTML parser for read_html
-========================= ================== =============== =============================================================
+=============================================================== ================== =============== ==========================
+Dependency                                                      Minimum Version    pip extra       Notes
+=============================================================== ================== =============== ==========================
+`BeautifulSoup4 <https://github.com/wention/BeautifulSoup4>`__  4.12.3             html            HTML parser for read_html
+`html5lib <https://github.com/html5lib/html5lib-python>`__      1.1                html            HTML parser for read_html
+`lxml <https://github.com/lxml/lxml>`__                         4.9.2              html            HTML parser for read_html
+=============================================================== ================== =============== ==========================
 
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
@@ -329,45 +273,45 @@ XML
 
 Installable with ``pip install "pandas[xml]"``.
 
-========================= ================== =============== =============================================================
-Dependency                Minimum Version    pip extra       Notes
-========================= ================== =============== =============================================================
-lxml                      4.9.2              xml             XML parser for read_xml and tree builder for to_xml
-========================= ================== =============== =============================================================
+======================================== ================== =============== ====================================================
+Dependency                               Minimum Version    pip extra       Notes
+======================================== ================== =============== ====================================================
+`lxml <https://github.com/lxml/lxml>`__  4.9.2              xml             XML parser for read_xml and tree builder for to_xml
+======================================== ================== =============== ====================================================
 
 SQL databases
 ^^^^^^^^^^^^^
 
 Traditional drivers are installable with ``pip install "pandas[postgresql, mysql, sql-other]"``
 
-========================= ================== =============== =============================================================
-Dependency                Minimum Version    pip extra       Notes
-========================= ================== =============== =============================================================
-SQLAlchemy                2.0.0              postgresql,     SQL support for databases other than sqlite
-                                             mysql,
-                                             sql-other
-psycopg2                  2.9.6              postgresql      PostgreSQL engine for sqlalchemy
-pymysql                   1.0.2              mysql           MySQL engine for sqlalchemy
-adbc-driver-postgresql    0.10.0             postgresql      ADBC Driver for PostgreSQL
-adbc-driver-sqlite        0.8.0              sql-other       ADBC Driver for SQLite
-========================= ================== =============== =============================================================
+================================================================== ================== =============== ============================================
+Dependency                                                         Minimum Version    pip extra       Notes
+================================================================== ================== =============== ============================================
+`SQLAlchemy <https://github.com/sqlalchemy/sqlalchemy>`__          2.0.0              postgresql,     SQL support for databases other than sqlite
+                                                                                      mysql,
+                                                                                      sql-other
+`psycopg2 <https://github.com/psycopg/psycopg2>`__                 2.9.6              postgresql      PostgreSQL engine for sqlalchemy
+`pymysql <https://github.com/PyMySQL/PyMySQL>`__                   1.1.0              mysql           MySQL engine for sqlalchemy
+`adbc-driver-postgresql <https://github.com/apache/arrow-adbc>`__  0.10.0             postgresql      ADBC Driver for PostgreSQL
+`adbc-driver-sqlite <https://github.com/apache/arrow-adbc>`__      0.8.0              sql-other       ADBC Driver for SQLite
+================================================================== ================== =============== ============================================
 
 Other data sources
 ^^^^^^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[hdf5, parquet, feather, spss, excel]"``
+Installable with ``pip install "pandas[hdf5, parquet, iceberg, feather, spss, excel]"``
 
-========================= ================== ================ =============================================================
-Dependency                Minimum Version    pip extra        Notes
-========================= ================== ================ =============================================================
-PyTables                  3.8.0              hdf5             HDF5-based reading / writing
-blosc                     1.21.3             hdf5             Compression for HDF5; only available on ``conda``
-zlib                                         hdf5             Compression for HDF5
-fastparquet               2023.10.0          -                Parquet reading / writing (pyarrow is default)
-pyarrow                   10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
-pyreadstat                1.2.0              spss             SPSS files (.sav) reading
-odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
-========================= ================== ================ =============================================================
+====================================================== ================== ================ ==========================================================
+Dependency                                             Minimum Version    pip extra        Notes
+====================================================== ================== ================ ==========================================================
+`PyTables <https://github.com/PyTables/PyTables>`__    3.8.0              hdf5             HDF5-based reading / writing
+`zlib <https://github.com/madler/zlib>`__                                 hdf5             Compression for HDF5
+`fastparquet <https://github.com/dask/fastparquet>`__  2024.2.0           -                Parquet reading / writing (pyarrow is default)
+`pyarrow <https://github.com/apache/arrow>`__          10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
+`PyIceberg <https://py.iceberg.apache.org/>`__         0.7.1              iceberg          Apache Iceberg reading
+`pyreadstat <https://github.com/Roche/pyreadstat>`__   1.2.6              spss             SPSS files (.sav) reading
+`odfpy <https://github.com/eea/odfpy>`__               1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
+====================================================== ================== ================ ==========================================================
 
 .. _install.warn_orc:
 
@@ -382,26 +326,26 @@ Access data in the cloud
 
 Installable with ``pip install "pandas[fss, aws, gcp]"``
 
-========================= ================== =============== =============================================================
-Dependency                Minimum Version    pip extra       Notes
-========================= ================== =============== =============================================================
-fsspec                    2022.11.0          fss, gcp, aws   Handling files aside from simple local and HTTP (required
-                                                             dependency of s3fs, gcsfs).
-gcsfs                     2022.11.0          gcp             Google Cloud Storage access
-s3fs                      2022.11.0          aws             Amazon S3 access
-========================= ================== =============== =============================================================
+============================================ ================== =============== ==========================================================
+Dependency                                   Minimum Version    pip extra       Notes
+============================================ ================== =============== ==========================================================
+`fsspec <https://github.com/fsspec>`__       2023.12.2          fss, gcp, aws   Handling files aside from simple local and HTTP (required
+                                                                                dependency of s3fs, gcsfs).
+`gcsfs <https://github.com/fsspec/gcsfs>`__  2023.12.2          gcp             Google Cloud Storage access
+`s3fs <https://github.com/fsspec/s3fs>`__    2023.12.2          aws             Amazon S3 access
+============================================ ================== =============== ==========================================================
 
 Clipboard
 ^^^^^^^^^
 
 Installable with ``pip install "pandas[clipboard]"``.
 
-========================= ================== =============== =============================================================
-Dependency                Minimum Version    pip extra       Notes
-========================= ================== =============== =============================================================
-PyQt4/PyQt5               5.15.9             clipboard       Clipboard I/O
-qtpy                      2.3.0              clipboard       Clipboard I/O
-========================= ================== =============== =============================================================
+======================================================================================== ================== =============== ==============
+Dependency                                                                               Minimum Version    pip extra       Notes
+======================================================================================== ================== =============== ==============
+`PyQt4 <https://pypi.org/project/PyQt4/>`__/`PyQt5 <https://pypi.org/project/PyQt5/>`__  5.15.9             clipboard       Clipboard I/O
+`qtpy <https://github.com/spyder-ide/qtpy>`__                                            2.3.0              clipboard       Clipboard I/O
+======================================================================================== ================== =============== ==============
 
 .. note::
 
@@ -414,8 +358,19 @@ Compression
 
 Installable with ``pip install "pandas[compression]"``
 
-========================= ================== =============== =============================================================
-Dependency                Minimum Version    pip extra       Notes
-========================= ================== =============== =============================================================
-Zstandard                 0.19.0             compression     Zstandard compression
-========================= ================== =============== =============================================================
+================================================= ================== =============== ======================
+Dependency                                        Minimum Version    pip extra       Notes
+================================================= ================== =============== ======================
+`Zstandard <https://github.com/facebook/zstd>`__  0.19.0             compression     Zstandard compression
+================================================= ================== =============== ======================
+
+Timezone
+^^^^^^^^
+
+Installable with ``pip install "pandas[timezone]"``
+
+========================================== ================== =================== ==============================================
+Dependency                                 Minimum Version    pip extra           Notes
+========================================== ================== =================== ==============================================
+`pytz <https://github.com/stub42/pytz>`__  2023.4             timezone            Alternative timezone library to ``zoneinfo``.
+========================================== ================== =================== ==============================================

@@ -14,7 +14,7 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 
@@ -192,6 +192,7 @@ def ndarray_to_mgr(
 ) -> Manager:
     # used in DataFrame.__init__
     # input must be a ndarray, list, Series, Index, ExtensionArray
+    infer_object = not isinstance(values, (ABCSeries, Index, ExtensionArray))
 
     if isinstance(values, ABCSeries):
         if columns is None:
@@ -257,7 +258,7 @@ def ndarray_to_mgr(
             # and a subsequent `astype` will not already result in a copy
             values = np.array(values, copy=True, order="F")
         else:
-            values = np.array(values, copy=False)
+            values = np.asarray(values)
         values = _ensure_2d(values)
 
     else:
@@ -287,22 +288,21 @@ def ndarray_to_mgr(
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
-    if dtype is None and is_object_dtype(values.dtype):
+    if dtype is None and infer_object and is_object_dtype(values.dtype):
         obj_columns = list(values)
         maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
         # don't convert (and copy) the objects if no type inference occurs
         if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
-            dvals_list = [ensure_block_shape(dval, 2) for dval in maybe_datetime]
             block_values = [
-                new_block_2d(dvals_list[n], placement=BlockPlacement(n))
-                for n in range(len(dvals_list))
+                new_block_2d(ensure_block_shape(dval, 2), placement=BlockPlacement(n))
+                for n, dval in enumerate(maybe_datetime)
             ]
         else:
             bp = BlockPlacement(slice(len(columns)))
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
-    elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
-        dtype = StringDtype(storage="pyarrow_numpy")
+    elif dtype is None and values.dtype.kind == "U" and using_string_dtype():
+        dtype = StringDtype(na_value=np.nan)
 
         obj_columns = list(values)
         block_values = [
@@ -417,8 +417,7 @@ def dict_to_mgr(
             else x.copy(deep=True)
             if (
                 isinstance(x, Index)
-                or isinstance(x, ABCSeries)
-                and is_1d_only_ea_dtype(x.dtype)
+                or (isinstance(x, ABCSeries) and is_1d_only_ea_dtype(x.dtype))
             )
             else x
             for x in arrays
@@ -621,7 +620,7 @@ def reorder_arrays(
     arrays: list[ArrayLike], arr_columns: Index, columns: Index | None, length: int
 ) -> tuple[list[ArrayLike], Index]:
     """
-    Pre-emptively (cheaply) reindex arrays with new columns.
+    Preemptively (cheaply) reindex arrays with new columns.
     """
     # reorder according to the columns
     if columns is not None:
@@ -635,7 +634,7 @@ def reorder_arrays(
                     arr = np.empty(length, dtype=object)
                     arr.fill(np.nan)
                 else:
-                    arr = arrays[k]
+                    arr = arrays[k]  # type: ignore[assignment]
                 new_arrays.append(arr)
 
             arrays = new_arrays
@@ -750,7 +749,8 @@ def to_arrays(
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
         # e.g. recarray
-        columns = Index(list(data.dtype.names))
+        if columns is None:
+            columns = Index(data.dtype.names)
         arrays = [data[k] for k in columns]
         return arrays, columns
 
@@ -842,7 +842,7 @@ def _list_of_dict_to_arrays(
 
     # assure that they are of the base dict class and not of derived
     # classes
-    data = [d if type(d) is dict else dict(d) for d in data]  # noqa: E721
+    data = [d if type(d) is dict else dict(d) for d in data]
 
     content = lib.dicts_to_array(data, list(columns))
     return content, columns
@@ -864,7 +864,7 @@ def _finalize_columns_and_data(
         # GH#26429 do not raise user-facing AssertionError
         raise ValueError(err) from err
 
-    if len(contents) and contents[0].dtype == np.object_:
+    if contents and contents[0].dtype == np.object_:
         contents = convert_object_array(contents, dtype=dtype)
 
     return contents, columns
@@ -907,8 +907,7 @@ def _validate_or_indexify_columns(
         if not is_mi_list and len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
             raise AssertionError(
-                f"{len(columns)} columns passed, passed data had "
-                f"{len(content)} columns"
+                f"{len(columns)} columns passed, passed data had {len(content)} columns"
             )
         if is_mi_list:
             # check if nested list column, length of each sub-list should be equal
@@ -965,8 +964,9 @@ def convert_object_array(
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
-                    arr = maybe_infer_to_datetimelike(arr)
-                    if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
+                    convert_to_nullable_dtype = dtype_backend != "numpy"
+                    arr = maybe_infer_to_datetimelike(arr, convert_to_nullable_dtype)
+                    if convert_to_nullable_dtype and arr.dtype == np.dtype("O"):
                         new_dtype = StringDtype()
                         arr_cls = new_dtype.construct_array_type()
                         arr = arr_cls._from_sequence(arr, dtype=new_dtype)

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Mapping,
     Sequence,
 )
 import datetime
+from decimal import Decimal
 from functools import partial
 import os
 from textwrap import fill
@@ -14,7 +16,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypeVar,
@@ -43,6 +44,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_decimal,
     is_file_like,
     is_float,
     is_integer,
@@ -87,7 +89,7 @@ if TYPE_CHECKING:
     )
 _read_excel_doc = (
     """
-Read an Excel file into a ``pandas`` ``DataFrame``.
+Read an Excel file into a ``DataFrame``.
 
 Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
@@ -113,7 +115,7 @@ sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
     Lists of strings/integers are used to request multiple sheets.
-    Specify ``None`` to get all worksheets.
+    When ``None``, will return a dictionary containing DataFrames for each sheet.
 
     Available cases:
 
@@ -122,7 +124,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * ``None``: All worksheets.
+    * ``None``: Returns a dictionary containing DataFrames for each sheet..
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -195,7 +197,7 @@ skiprows : list-like, int, or callable, optional
     False otherwise. An example of a valid callable argument would be ``lambda
     x: x in [0, 2]``.
 nrows : int, default None
-    Number of rows to parse.
+    Number of rows to parse. Does not include header rows.
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
@@ -267,14 +269,15 @@ skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 {storage_options}
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
-    (still experimental). Behaviour is as follows:
+    (still experimental). If not specified, the default behavior
+    is to not use nullable data types. If specified, the behavior
+    is as follows:
 
     * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-      (default).
-    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-      DataFrame.
+    * ``"pyarrow"``: returns pyarrow-backed nullable
+      :class:`ArrowDtype` :class:`DataFrame`
 
     .. versionadded:: 2.0
 
@@ -857,24 +860,23 @@ class BaseExcelReader(Generic[_WorkbookT]):
         # a row containing just the index name(s)
         has_index_names = False
         if is_list_header and not is_len_one_list_header and index_col is not None:
-            index_col_list: Sequence[int]
+            index_col_set: set[int]
             if isinstance(index_col, int):
-                index_col_list = [index_col]
+                index_col_set = {index_col}
             else:
                 assert isinstance(index_col, Sequence)
-                index_col_list = index_col
+                index_col_set = set(index_col)
 
             # We have to handle mi without names. If any of the entries in the data
             # columns are not empty, this is a regular row
             assert isinstance(header, Sequence)
             if len(header) < len(data):
                 potential_index_names = data[len(header)]
-                potential_data = [
-                    x
+                has_index_names = all(
+                    x == "" or x is None
                     for i, x in enumerate(potential_index_names)
-                    if not control_row[i] and i not in index_col_list
-                ]
-                has_index_names = all(x == "" or x is None for x in potential_data)
+                    if not control_row[i] and i not in index_col_set
+                )
 
         if is_list_like(index_col):
             # Forward fill values for MultiIndex index.
@@ -958,7 +960,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
-    * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
+    * `odf <https://pypi.org/project/odfpy/>`__ for ods files
 
     See :meth:`DataFrame.to_excel` for typical usage.
 
@@ -1005,7 +1007,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
         * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
         * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
-        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
+        * odf: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
 
@@ -1348,6 +1350,8 @@ class ExcelWriter(Generic[_WorkbookT]):
             val = float(val)
         elif is_bool(val):
             val = bool(val)
+        elif is_decimal(val):
+            val = Decimal(val)
         elif isinstance(val, datetime.datetime):
             fmt = self._datetime_format
         elif isinstance(val, datetime.date):
@@ -1457,9 +1461,9 @@ def inspect_excel_format(
         with zipfile.ZipFile(stream) as zf:
             # Workaround for some third party files that use forward slashes and
             # lower case names.
-            component_names = [
+            component_names = {
                 name.replace("\\", "/").lower() for name in zf.namelist()
-            ]
+            }
 
         if "xl/workbook.xml" in component_names:
             return "xlsx"
@@ -1645,7 +1649,8 @@ class ExcelFile:
             Strings are used for sheet names. Integers are used in zero-indexed
             sheet positions (chart sheets do not count as a sheet position).
             Lists of strings/integers are used to request multiple sheets.
-            Specify ``None`` to get all worksheets.
+            When ``None``, will return a dictionary containing DataFrames for
+            each sheet.
         header : int, list of int, default 0
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will
@@ -1729,14 +1734,15 @@ class ExcelFile:
             comment string and the end of the current line is ignored.
         skipfooter : int, default 0
             Rows at the end to skip (0-indexed).
-        dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        dtype_backend : {{'numpy_nullable', 'pyarrow'}}
             Back-end data type applied to the resultant :class:`DataFrame`
-            (still experimental). Behaviour is as follows:
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              (default).
-            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame.
+            * ``"pyarrow"``: returns pyarrow-backed nullable
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
         **kwds : dict, optional

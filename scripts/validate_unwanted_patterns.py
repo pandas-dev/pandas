@@ -12,14 +12,14 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 
 import argparse
 import ast
-from collections.abc import Iterable
+from collections.abc import (
+    Callable,
+    Iterable,
+)
 import sys
 import token
 import tokenize
-from typing import (
-    IO,
-    Callable,
-)
+from typing import IO
 
 PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_extension_array_shared_docs",
@@ -29,8 +29,6 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_shared_docs",
     "_new_Index",
     "_new_PeriodIndex",
-    "_agg_template_series",
-    "_agg_template_frame",
     "_pipe_template",
     "_apply_groupings_depr",
     "__main__",
@@ -321,10 +319,10 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
     while nodes:
         in_annotation, node = nodes.pop()
         if not in_annotation and (
-            isinstance(node, ast.Name)  # Case `NoDefault`
-            and node.id == "NoDefault"
-            or isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
-            and node.attr == "NoDefault"
+            (isinstance(node, ast.Name)  # Case `NoDefault`
+            and node.id == "NoDefault")
+            or (isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+            and node.attr == "NoDefault")
         ):
             yield (node.lineno, "NoDefault is used not only for typing")
 

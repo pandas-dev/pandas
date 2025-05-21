@@ -139,8 +139,8 @@ class BaseGetitemTests:
                 "index out of bounds",  # pyarrow
                 "Out of bounds access",  # Sparse
                 f"loc must be an integer between -{ub} and {ub}",  # Sparse
-                f"index {ub+1} is out of bounds for axis 0 with size {ub}",
-                f"index -{ub+1} is out of bounds for axis 0 with size {ub}",
+                f"index {ub + 1} is out of bounds for axis 0 with size {ub}",
+                f"index -{ub + 1} is out of bounds for axis 0 with size {ub}",
             ]
         )
         with pytest.raises(IndexError, match=msg):
@@ -408,7 +408,7 @@ class BaseGetitemTests:
         result = s.take([0, -1])
         expected = pd.Series(
             data._from_sequence([data[0], data[len(data) - 1]], dtype=s.dtype),
-            index=[0, len(data) - 1],
+            index=range(0, 198, 99),
         )
         tm.assert_series_equal(result, expected)
 
@@ -428,7 +428,8 @@ class BaseGetitemTests:
 
         result = s.reindex([n, n + 1])
         expected = pd.Series(
-            data._from_sequence([na_value, na_value], dtype=s.dtype), index=[n, n + 1]
+            data._from_sequence([na_value, na_value], dtype=s.dtype),
+            index=range(n, n + 2, 1),
         )
         tm.assert_series_equal(result, expected)
 
@@ -450,7 +451,7 @@ class BaseGetitemTests:
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
         assert res.ndim == 1
-        assert res._mgr.arrays[0].ndim == 1
+        assert res._mgr.blocks[0].ndim == 1
         if hasattr(res._mgr, "blocks"):
             assert res._mgr._block.ndim == 1
 

@@ -223,7 +223,9 @@ class TestCommon:
             pass
 
         result = idx.unique()
-        tm.assert_index_equal(result, idx_unique)
+        tm.assert_index_equal(
+            result, idx_unique, exact=not isinstance(index, RangeIndex)
+        )
 
         # nans:
         if not index._can_hold_na:

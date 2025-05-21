@@ -7,9 +7,9 @@ that can be mixed into or pinned onto other pandas classes.
 
 from __future__ import annotations
 
+import functools
 from typing import (
     TYPE_CHECKING,
-    Callable,
     final,
 )
 import warnings
@@ -18,6 +18,8 @@ from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import TypeT
 
     from pandas import Index
@@ -116,11 +118,11 @@ class PandasDelegate:
             )
 
         def _create_delegator_method(name: str):
+            method = getattr(delegate, accessor_mapping(name))
+
+            @functools.wraps(method)
             def f(self, *args, **kwargs):
                 return self._delegate_method(name, *args, **kwargs)
-
-            f.__name__ = name
-            f.__doc__ = getattr(delegate, accessor_mapping(name)).__doc__
 
             return f
 
@@ -349,7 +351,7 @@ Traceback (most recent call last):
 AttributeError: The series must contain integer data only.
 >>> df = pd.Series([1, 2, 3])
 >>> df.int_accessor.sum()
-6"""
+np.int64(6)"""
 
 
 @doc(_register_accessor, klass="Series", examples=_register_series_examples)

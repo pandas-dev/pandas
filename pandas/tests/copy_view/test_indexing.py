@@ -725,15 +725,13 @@ def test_column_as_series_set_with_upcast(backend):
         with pytest.raises(TypeError, match="Invalid value"):
             s[0] = "foo"
         expected = Series([1, 2, 3], name="a")
+        tm.assert_series_equal(s, expected)
+        tm.assert_frame_equal(df, df_orig)
+        # ensure cached series on getitem is not the changed series
+        tm.assert_series_equal(df["a"], df_orig["a"])
     else:
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             s[0] = "foo"
-        expected = Series(["foo", 2, 3], dtype=object, name="a")
-
-    tm.assert_series_equal(s, expected)
-    tm.assert_frame_equal(df, df_orig)
-    # ensure cached series on getitem is not the changed series
-    tm.assert_series_equal(df["a"], df_orig["a"])
 
 
 @pytest.mark.parametrize(
@@ -805,16 +803,14 @@ def test_set_value_copy_only_necessary_column(indexer_func, indexer, val, col):
     view = df[:]
 
     if val == "a":
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype is deprecated"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             indexer_func(df)[indexer] = val
+    else:
+        indexer_func(df)[indexer] = val
 
-    indexer_func(df)[indexer] = val
-
-    assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
-    assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
-    tm.assert_frame_equal(view, df_orig)
+        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+        tm.assert_frame_equal(view, df_orig)
 
 
 def test_series_midx_slice():

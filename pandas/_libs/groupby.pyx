@@ -62,7 +62,12 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept nogil:
+cdef float64_t median_linear_mask(
+    float64_t* a,
+    int n,
+    uint8_t* mask,
+    bint skipna=True
+) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -77,7 +82,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
             na_count += 1
 
     if na_count:
-        if na_count == n:
+        if na_count == n or not skipna:
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
@@ -104,7 +109,8 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
 cdef float64_t median_linear(
     float64_t* a,
     int n,
-    bint is_datetimelike=False
+    bint is_datetimelike=False,
+    bint skipna=True,
 ) noexcept nogil:
     cdef:
         int i, j, na_count = 0
@@ -125,7 +131,7 @@ cdef float64_t median_linear(
                 na_count += 1
 
     if na_count:
-        if na_count == n:
+        if na_count == n or not skipna:
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
@@ -186,6 +192,7 @@ def group_median_float64(
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint is_datetimelike=False,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -229,7 +236,7 @@ def group_median_float64(
 
                 for j in range(ngroups):
                     size = _counts[j + 1]
-                    result = median_linear_mask(ptr, size, ptr_mask)
+                    result = median_linear_mask(ptr, size, ptr_mask, skipna)
                     out[j, i] = result
 
                     if result != result:
@@ -244,7 +251,7 @@ def group_median_float64(
                 ptr += _counts[0]
                 for j in range(ngroups):
                     size = _counts[j + 1]
-                    out[j, i] = median_linear(ptr, size, is_datetimelike)
+                    out[j, i] = median_linear(ptr, size, is_datetimelike, skipna)
                     ptr += size
 
 
@@ -398,8 +405,14 @@ def group_cumsum(
         for i in range(N):
             lab = labels[i]
 
-            if lab < 0:
+            if uses_mask and lab < 0:
+                # GH#58811
+                result_mask[i, :] = True
+                out[i, :] = 0
                 continue
+            elif lab < 0:
+                continue
+
             for j in range(K):
                 val = values[i, j]
 
@@ -694,18 +707,19 @@ def group_sum(
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
     bint is_datetimelike=False,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0 using Kahan summation
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        sum_t val, t, y
+        sum_t val, t, y, nan_val
         sum_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
-        bint isna_entry
+        bint isna_entry, isna_result
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -716,6 +730,15 @@ def group_sum(
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
+    if uses_mask:
+        nan_val = 0
+    elif is_datetimelike:
+        nan_val = NPY_NAT
+    elif sum_t is int64_t or sum_t is uint64_t:
+        # This has no effect as int64 can't be nan. Setting to 0 to avoid type error
+        nan_val = 0
+    else:
+        nan_val = NAN
 
     with nogil(sum_t is not object):
         for i in range(N):
@@ -732,6 +755,18 @@ def group_sum(
                     isna_entry = mask[i, j]
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
+
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    else:
+                        isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
+
+                    if isna_result:
+                        # If sum is already NA, don't add to it. This is important for
+                        # datetimelikebecause adding a value to NPY_NAT may not result
+                        # in a NPY_NAT
+                        continue
 
                 if not isna_entry:
                     nobs[lab, j] += 1
@@ -759,6 +794,11 @@ def group_sum(
                             # because of no gil
                             compensation[lab, j] = 0
                         sumx[lab, j] = t
+                elif not skipna:
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        sumx[lab, j] = nan_val
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, sumx
@@ -775,17 +815,18 @@ def group_prod(
     const uint8_t[:, ::1] mask,
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        int64float_t val
+        int64float_t val, nan_val
         int64float_t[:, ::1] prodx
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = mask is not None
+        bint isna_entry, isna_result, uses_mask = mask is not None
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -794,6 +835,7 @@ def group_prod(
     prodx = np.ones((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
+    nan_val = _get_na_val(<int64float_t>0, False)
 
     with nogil:
         for i in range(N):
@@ -810,9 +852,24 @@ def group_prod(
                 else:
                     isna_entry = _treat_as_na(val, False)
 
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    else:
+                        isna_result = _treat_as_na(prodx[lab, j], False)
+
+                    if isna_result:
+                        # If prod is already NA, no need to update it
+                        continue
+
                 if not isna_entry:
                     nobs[lab, j] += 1
                     prodx[lab, j] *= val
+                elif not skipna:
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        prodx[lab, j] = nan_val
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, prodx
@@ -833,6 +890,7 @@ def group_var(
     uint8_t[:, ::1] result_mask=None,
     bint is_datetimelike=False,
     str name="var",
+    bint skipna=True,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -840,7 +898,7 @@ def group_var(
         floating[:, ::1] mean
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = mask is not None
+        bint isna_entry, isna_result, uses_mask = mask is not None
         bint is_std = name == "std"
         bint is_sem = name == "sem"
 
@@ -877,11 +935,34 @@ def group_var(
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    elif is_datetimelike:
+                        # With group_var, we cannot just use _treat_as_na bc
+                        #  datetimelike dtypes get cast to float64 instead of
+                        #  to int64.
+                        isna_result = out[lab, j] == NPY_NAT
+                    else:
+                        isna_result = _treat_as_na(out[lab, j], is_datetimelike)
+
+                    if isna_result:
+                        # If aggregate is already NA, don't add to it. This is
+                        # important for datetimelike because adding a value to NPY_NAT
+                        # may not result in a NPY_NAT
+                        continue
+
                 if not isna_entry:
                     nobs[lab, j] += 1
                     oldmean = mean[lab, j]
                     mean[lab, j] += (val - oldmean) / nobs[lab, j]
                     out[lab, j] += (val - mean[lab, j]) * (val - oldmean)
+                elif not skipna:
+                    nobs[lab, j] = 0
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        out[lab, j] = NAN
 
         for i in range(ncounts):
             for j in range(K):
@@ -904,7 +985,7 @@ def group_var(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-@cython.cpow
+@cython.cpow(True)
 def group_skew(
     float64_t[:, ::1] out,
     int64_t[::1] counts,
@@ -955,7 +1036,7 @@ def group_skew(
                     isna_entry = _treat_as_na(val, False)
 
                 if not isna_entry:
-                    # Based on RunningStats::Push from
+                    # Running stats update based on RunningStats::Push from
                     #  https://www.johndcook.com/blog/skewness_kurtosis/
                     n1 = nobs[lab, j]
                     n = n1 + 1
@@ -991,6 +1072,100 @@ def group_skew(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
+@cython.cpow(True)
+def group_kurt(
+    float64_t[:, ::1] out,
+    int64_t[::1] counts,
+    ndarray[float64_t, ndim=2] values,
+    const intp_t[::1] labels,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
+) -> None:
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        int64_t[:, ::1] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = mask is not None
+        float64_t[:, ::1] M1, M2, M3, M4
+        float64_t delta, delta_n, delta_n2, term1, val
+        int64_t n1, n
+        float64_t ct, num, den, adj
+
+    if len_values != len_labels:
+        raise ValueError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    # M1, M2, M3 and M4 correspond to 1st, 2nd, 3rd and 4th Moments
+    M1 = np.zeros((<object>out).shape, dtype=np.float64)
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    M3 = np.zeros((<object>out).shape, dtype=np.float64)
+    M4 = np.zeros((<object>out).shape, dtype=np.float64)
+
+    N, K = (<object>values).shape
+
+    out[:, :] = 0.0
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
+
+                if not isna_entry:
+                    # Running stats update based on RunningStats::Push from
+                    #  https://www.johndcook.com/blog/skewness_kurtosis/
+                    n1 = nobs[lab, j]
+                    n = n1 + 1
+
+                    nobs[lab, j] = n
+                    delta = val - M1[lab, j]
+                    delta_n = delta / n
+                    delta_n2 = delta_n * delta_n
+                    term1 = delta * delta_n * n1
+
+                    M1[lab, j] += delta_n
+                    M4[lab, j] += (term1 * delta_n2 * (n*n - 3*n + 3)
+                                   + 6 * delta_n2 * M2[lab, j]
+                                   - 4 * delta_n * M3[lab, j])
+                    M3[lab, j] += term1 * delta_n * (n - 2) - 3 * delta_n * M2[lab, j]
+                    M2[lab, j] += term1
+                elif not skipna:
+                    M1[lab, j] = NaN
+                    M2[lab, j] = NaN
+                    M3[lab, j] = NaN
+                    M4[lab, j] = NaN
+
+        for i in range(ngroups):
+            for j in range(K):
+                ct = <float64_t>nobs[i, j]
+                if ct < 4:
+                    if result_mask is not None:
+                        result_mask[i, j] = 1
+                    out[i, j] = NaN
+                elif M2[i, j] == 0:
+                    out[i, j] = 0
+                else:
+                    num = ct * (ct + 1) * (ct - 1) * M4[i, j]
+                    den = (ct - 2) * (ct - 3) * M2[i, j] ** 2
+                    adj = 3.0 * (ct - 1) ** 2 / ((ct - 2) * (ct - 3))
+                    out[i, j] = num / den - adj
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_mean(
     mean_t[:, ::1] out,
     int64_t[::1] counts,
@@ -1000,6 +1175,7 @@ def group_mean(
     bint is_datetimelike=False,
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
 ) -> None:
     """
     Compute the mean per label given a label assignment for each value.
@@ -1025,6 +1201,8 @@ def group_mean(
         Mask of the input values.
     result_mask : ndarray[bool, ndim=2], optional
         Mask of the out array
+    skipna : bool, optional
+        If True, ignore nans in `values`.
 
     Notes
     -----
@@ -1038,7 +1216,7 @@ def group_mean(
         mean_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = mask is not None
+        bint isna_entry, isna_result, uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -1078,6 +1256,23 @@ def group_mean(
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    elif is_datetimelike:
+                        # With group_mean, we cannot just use _treat_as_na bc
+                        #  datetimelike dtypes get cast to float64 instead of
+                        #  to int64.
+                        isna_result = sumx[lab, j] == NPY_NAT
+                    else:
+                        isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
+
+                    if isna_result:
+                        # If sum is already NA, don't add to it. This is important for
+                        # datetimelike because adding a value to NPY_NAT may not result
+                        # in NPY_NAT
+                        continue
+
                 if not isna_entry:
                     nobs[lab, j] += 1
                     y = val - compensation[lab, j]
@@ -1091,6 +1286,14 @@ def group_mean(
                         # because of no gil
                         compensation[lab, j] = 0.
                     sumx[lab, j] = t
+                elif not skipna:
+                    # Set the nobs to 0 so that in case of datetimelike,
+                    # dividing NPY_NAT by nobs may not result in a NPY_NAT
+                    nobs[lab, j] = 0
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        sumx[lab, j] = nan_val
 
         for i in range(ncounts):
             for j in range(K):
@@ -1662,6 +1865,7 @@ cdef group_min_max(
     bint compute_max=True,
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
 ):
     """
     Compute minimum/maximum  of columns of `values`, in row groups `labels`.
@@ -1689,6 +1893,8 @@ cdef group_min_max(
     result_mask : ndarray[bool, ndim=2], optional
         If not None, these specify locations in the output that are NA.
         Modified in-place.
+    skipna : bool, default True
+        If True, ignore nans in `values`.
 
     Notes
     -----
@@ -1697,17 +1903,18 @@ cdef group_min_max(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
-        numeric_t val
+        numeric_t val, nan_val
         numeric_t[:, ::1] group_min_or_max
         int64_t[:, ::1] nobs
         bint uses_mask = mask is not None
-        bint isna_entry
+        bint isna_entry, isna_result
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
+    nan_val = _get_na_val(<numeric_t>0, is_datetimelike)
 
     group_min_or_max = np.empty_like(out)
     group_min_or_max[:] = _get_min_or_max(<numeric_t>0, compute_max, is_datetimelike)
@@ -1729,6 +1936,18 @@ cdef group_min_max(
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    else:
+                        isna_result = _treat_as_na(
+                            group_min_or_max[lab, j], is_datetimelike
+                        )
+
+                    if isna_result:
+                        # If current min/max is already NA, it will always be NA
+                        continue
+
                 if not isna_entry:
                     nobs[lab, j] += 1
                     if compute_max:
@@ -1737,6 +1956,11 @@ cdef group_min_max(
                     else:
                         if val < group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
+                elif not skipna:
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        group_min_or_max[lab, j] = nan_val
 
     _check_below_mincount(
         out, uses_mask, result_mask, ngroups, K, nobs, min_count, group_min_or_max
@@ -1868,6 +2092,7 @@ def group_max(
     bint is_datetimelike=False,
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
 ) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
@@ -1880,6 +2105,7 @@ def group_max(
         compute_max=True,
         mask=mask,
         result_mask=result_mask,
+        skipna=skipna,
     )
 
 
@@ -1894,6 +2120,7 @@ def group_min(
     bint is_datetimelike=False,
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
 ) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
@@ -1906,6 +2133,7 @@ def group_min(
         compute_max=False,
         mask=mask,
         result_mask=result_mask,
+        skipna=skipna,
     )
 
 

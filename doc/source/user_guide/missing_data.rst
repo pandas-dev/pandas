@@ -32,7 +32,7 @@ use :class:`api.typing.NaTType`.
 :class:`NA` for :class:`StringDtype`, :class:`Int64Dtype` (and other bit widths),
 :class:`Float64Dtype` (and other bit widths), :class:`BooleanDtype` and :class:`ArrowDtype`.
 These types will maintain the original data type of the data.
-For typing applications, use :class:`api.types.NAType`.
+For typing applications, use :class:`api.typing.NAType`.
 
 .. ipython:: python
 
@@ -60,7 +60,7 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 
 .. warning::
 
-   Equality compaisons between ``np.nan``, :class:`NaT`, and :class:`NA`
+   Equality comparisons between ``np.nan``, :class:`NaT`, and :class:`NA`
    do not act like ``None``
 
    .. ipython:: python
@@ -258,9 +258,6 @@ will convert your data to use the nullable data types supporting :class:`NA`,
 such as :class:`Int64Dtype` or :class:`ArrowDtype`. This is especially helpful after reading
 in data sets from IO methods where data types were inferred.
 
-In this example, while the dtypes of all columns are changed, we show the results for
-the first 10 columns.
-
 .. ipython:: python
 
    import io
@@ -319,7 +316,7 @@ Missing values propagate through arithmetic operations between pandas objects.
 
 The descriptive statistics and computational methods discussed in the
 :ref:`data structure overview <basics.stats>` (and listed :ref:`here
-<api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all
+<api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
 When summing data, NA values or empty data will be treated as zero.
@@ -337,10 +334,8 @@ When taking the product, NA values or empty data will be treated as 1.
    pd.Series([], dtype="float64").prod()
 
 Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
-ignore NA values by default preserve them in the result. This behavior can be changed
-with ``skipna``
-
-* Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod` ignore NA values by default, but preserve them in the resulting arrays. To override this behaviour and include NA values, use ``skipna=False``.
+ignore NA values by default, but preserve them in the resulting array. To override
+this behaviour and include NA values in the calculation, use ``skipna=False``.
 
 
 .. ipython:: python
@@ -355,7 +350,7 @@ with ``skipna``
 Dropping missing data
 ~~~~~~~~~~~~~~~~~~~~~
 
-:meth:`~DataFrame.dropna` dropa rows or columns with missing data.
+:meth:`~DataFrame.dropna` drops rows or columns with missing data.
 
 .. ipython:: python
 
@@ -436,7 +431,7 @@ where the index and column aligns between the original object and the filled obj
 
 .. note::
 
-   :meth:`DataFrame.where` can also be used to fill NA values.Same result as above.
+   :meth:`DataFrame.where` can also be used to fill NA values. Same result as above.
 
    .. ipython:: python
 

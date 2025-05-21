@@ -9,8 +9,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -598,7 +596,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
-            (pd.Timestamp("2012-01-01"), "datetime64[ns]"),
+            (pd.Timestamp("2012-01-01"), "datetime64[s]"),
             (pd.Timestamp("2012-01-01", tz="US/Eastern"), object),
             (1, object),
             ("x", object),
@@ -615,7 +613,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
                 pd.Timestamp("2011-01-04"),
             ]
         )
-        assert obj.dtype == "datetime64[ns]"
+        assert obj.dtype == "datetime64[s]"
 
         exp = klass(
             [
@@ -630,10 +628,10 @@ class TestFillnaSeriesCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
-            (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
+            (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[s, US/Eastern]"),
             (pd.Timestamp("2012-01-01"), object),
             # pre-2.0 with a mismatched tz we would get object result
-            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), "datetime64[ns, US/Eastern]"),
+            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), "datetime64[s, US/Eastern]"),
             (1, object),
             ("x", object),
         ],
@@ -650,7 +648,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
                 pd.Timestamp("2011-01-04", tz=tz),
             ]
         )
-        assert obj.dtype == "datetime64[ns, US/Eastern]"
+        assert obj.dtype == "datetime64[s, US/Eastern]"
 
         if getattr(fill_val, "tz", None) is None:
             fv = fill_val
@@ -825,11 +823,10 @@ class TestReplaceSeriesCoercion(CoercionBase):
             raise ValueError
         return replacer
 
-    # Expected needs adjustment for the infer string option, seems to work as expecetd
-    @pytest.mark.skipif(using_pyarrow_string_dtype(), reason="TODO: test is to complex")
     def test_replace_series(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xxx")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
+        obj = obj.astype(from_key)
         assert obj.dtype == from_key
 
         if from_key.startswith("datetime") and to_key.startswith("datetime"):
@@ -850,7 +847,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         else:
             exp = pd.Series(self.rep[to_key], index=index, name="yyy")
-            assert exp.dtype == to_key
 
         result = obj.replace(replacer)
         tm.assert_series_equal(result, exp, check_dtype=False)
@@ -867,7 +863,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         self, how, to_key, from_key, replacer, using_infer_string
     ):
         index = pd.Index([3, 4], name="xyz")
-        obj = pd.Series(self.rep[from_key], index=index, name="yyy")
+        obj = pd.Series(self.rep[from_key], index=index, name="yyy").dt.as_unit("ns")
         assert obj.dtype == from_key
 
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
@@ -891,7 +887,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     )
     def test_replace_series_datetime_datetime(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xyz")
-        obj = pd.Series(self.rep[from_key], index=index, name="yyy")
+        obj = pd.Series(self.rep[from_key], index=index, name="yyy").dt.as_unit("ns")
         assert obj.dtype == from_key
 
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
@@ -900,8 +896,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
         ):
             # with mismatched tzs, we retain the original dtype as of 2.0
             exp = exp.astype(obj.dtype)
-        else:
-            assert exp.dtype == to_key
+        elif to_key == from_key:
+            exp = exp.dt.as_unit("ns")
 
         result = obj.replace(replacer)
         tm.assert_series_equal(result, exp, check_dtype=False)

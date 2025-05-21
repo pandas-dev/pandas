@@ -1,5 +1,7 @@
 """Test cases for .boxplot method"""
 
+from __future__ import annotations
+
 import itertools
 import string
 
@@ -22,6 +24,7 @@ from pandas.tests.plotting.common import (
     _check_ticks_props,
     _check_visible,
 )
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -35,12 +38,21 @@ def _check_ax_limits(col, ax):
     assert y_max >= col.max()
 
 
+if Version(mpl.__version__) < Version("3.10"):
+    verts: list[dict[str, bool | str]] = [{"vert": False}, {"vert": True}]
+else:
+    verts = [{"orientation": "horizontal"}, {"orientation": "vertical"}]
+
+
+@pytest.fixture(params=verts)
+def vert(request):
+    return request.param
+
+
 class TestDataFramePlots:
     def test_stacked_boxplot_set_axis(self):
         # GH2980
-        import matplotlib.pyplot as plt
-
-        n = 80
+        n = 30
         df = DataFrame(
             {
                 "Clinical": np.random.default_rng(2).choice([0, 1, 2, 3], n),
@@ -51,10 +63,10 @@ class TestDataFramePlots:
         )
         ax = df.plot(kind="bar", stacked=True)
         assert [int(x.get_text()) for x in ax.get_xticklabels()] == df.index.to_list()
-        ax.set_xticks(np.arange(0, 80, 10))
+        ax.set_xticks(np.arange(0, n, 10))
         plt.draw()  # Update changes
         assert [int(x.get_text()) for x in ax.get_xticklabels()] == list(
-            np.arange(0, 80, 10)
+            np.arange(0, n, 10)
         )
 
     @pytest.mark.slow
@@ -227,12 +239,12 @@ class TestDataFramePlots:
         # GH 22799
         df = DataFrame(
             {
-                "a": date_range("2012-01-01", periods=100),
-                "b": np.random.default_rng(2).standard_normal(100),
-                "c": np.random.default_rng(2).standard_normal(100) + 2,
-                "d": date_range("2012-01-01", periods=100).astype(str),
-                "e": date_range("2012-01-01", periods=100, tz="UTC"),
-                "f": timedelta_range("1 days", periods=100),
+                "a": date_range("2012-01-01", periods=10),
+                "b": np.random.default_rng(2).standard_normal(10),
+                "c": np.random.default_rng(2).standard_normal(10) + 2,
+                "d": date_range("2012-01-01", periods=10).astype(str),
+                "e": date_range("2012-01-01", periods=10, tz="UTC"),
+                "f": timedelta_range("1 days", periods=10),
             }
         )
         ax = df.plot(kind="box")
@@ -282,8 +294,6 @@ class TestDataFramePlots:
     def test_colors_in_theme(self, scheme, expected):
         # GH: 40769
         df = DataFrame(np.random.default_rng(2).random((10, 2)))
-        import matplotlib.pyplot as plt
-
         plt.style.use(scheme)
         result = df.plot.box(return_type="dict")
         for k, v in expected.items():
@@ -316,7 +326,7 @@ class TestDataFramePlots:
 
         assert result[expected][0].get_color() == "C1"
 
-    @pytest.mark.parametrize("vert", [True, False])
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_plot_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
@@ -326,27 +336,26 @@ class TestDataFramePlots:
             }
         )
         xlabel, ylabel = "x", "y"
-        ax = df.plot(kind="box", vert=vert, xlabel=xlabel, ylabel=ylabel)
+        ax = df.plot(kind="box", xlabel=xlabel, ylabel=ylabel, **vert)
         assert ax.get_xlabel() == xlabel
         assert ax.get_ylabel() == ylabel
 
-    @pytest.mark.parametrize("vert", [True, False])
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_plot_box(self, vert):
         # GH 54941
         rng = np.random.default_rng(2)
-        df1 = DataFrame(rng.integers(0, 100, size=(100, 4)), columns=list("ABCD"))
-        df2 = DataFrame(rng.integers(0, 100, size=(100, 4)), columns=list("ABCD"))
+        df1 = DataFrame(rng.integers(0, 100, size=(10, 4)), columns=list("ABCD"))
+        df2 = DataFrame(rng.integers(0, 100, size=(10, 4)), columns=list("ABCD"))
 
         xlabel, ylabel = "x", "y"
         _, axs = plt.subplots(ncols=2, figsize=(10, 7), sharey=True)
-        df1.plot.box(ax=axs[0], vert=vert, xlabel=xlabel, ylabel=ylabel)
-        df2.plot.box(ax=axs[1], vert=vert, xlabel=xlabel, ylabel=ylabel)
+        df1.plot.box(ax=axs[0], xlabel=xlabel, ylabel=ylabel, **vert)
+        df2.plot.box(ax=axs[1], xlabel=xlabel, ylabel=ylabel, **vert)
         for ax in axs:
             assert ax.get_xlabel() == xlabel
             assert ax.get_ylabel() == ylabel
-        mpl.pyplot.close()
 
-    @pytest.mark.parametrize("vert", [True, False])
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
@@ -356,11 +365,11 @@ class TestDataFramePlots:
             }
         )
         xlabel, ylabel = "x", "y"
-        ax = df.boxplot(vert=vert, xlabel=xlabel, ylabel=ylabel)
+        ax = df.boxplot(xlabel=xlabel, ylabel=ylabel, **vert)
         assert ax.get_xlabel() == xlabel
         assert ax.get_ylabel() == ylabel
 
-    @pytest.mark.parametrize("vert", [True, False])
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_group_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
@@ -370,14 +379,19 @@ class TestDataFramePlots:
             }
         )
         xlabel, ylabel = "x", "y"
-        ax = df.boxplot(by="group", vert=vert, xlabel=xlabel, ylabel=ylabel)
+        ax = df.boxplot(by="group", xlabel=xlabel, ylabel=ylabel, **vert)
         for subplot in ax:
             assert subplot.get_xlabel() == xlabel
             assert subplot.get_ylabel() == ylabel
-        mpl.pyplot.close()
 
-    @pytest.mark.parametrize("vert", [True, False])
-    def test_boxplot_group_no_xlabel_ylabel(self, vert):
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
+    def test_boxplot_group_no_xlabel_ylabel(self, vert, request):
+        if Version(mpl.__version__) >= Version("3.10") and vert == {
+            "orientation": "horizontal"
+        }:
+            request.applymarker(
+                pytest.mark.xfail(reason=f"{vert} fails starting with matplotlib 3.10")
+            )
         df = DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
@@ -385,11 +399,14 @@ class TestDataFramePlots:
                 "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
             }
         )
-        ax = df.boxplot(by="group", vert=vert)
+        ax = df.boxplot(by="group", **vert)
         for subplot in ax:
-            target_label = subplot.get_xlabel() if vert else subplot.get_ylabel()
+            target_label = (
+                subplot.get_xlabel()
+                if vert == {"vert": True} or vert == {"orientation": "vertical"}
+                else subplot.get_ylabel()
+            )
             assert target_label == pprint_thing(["group"])
-        mpl.pyplot.close()
 
 
 class TestDataFrameGroupByPlots:

@@ -10,9 +10,10 @@ from typing import (
     Any,
     Literal,
 )
-from warnings import catch_warnings
-
-from pandas._config import using_pyarrow_string_dtype
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -20,14 +21,13 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
-import pandas as pd
 from pandas import (
     DataFrame,
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io._util import arrow_string_types_mapper
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
     IOHandles,
     get_handle,
@@ -242,20 +242,10 @@ class PyArrowImpl(BaseImpl):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
-
-        to_pandas_kwargs = {}
-        if dtype_backend == "numpy_nullable":
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping()
-            to_pandas_kwargs["types_mapper"] = mapping.get
-        elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
-        elif using_pyarrow_string_dtype():
-            to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
@@ -271,7 +261,17 @@ class PyArrowImpl(BaseImpl):
                 filters=filters,
                 **kwargs,
             )
-            result = pa_table.to_pandas(**to_pandas_kwargs)
+            with catch_warnings():
+                filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+                result = arrow_table_to_pandas(
+                    pa_table,
+                    dtype_backend=dtype_backend,
+                    to_pandas_kwargs=to_pandas_kwargs,
+                )
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
@@ -352,6 +352,7 @@ class FastParquetImpl(BaseImpl):
         filters=None,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        to_pandas_kwargs: dict | None = None,
         **kwargs,
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
@@ -366,6 +367,10 @@ class FastParquetImpl(BaseImpl):
         if filesystem is not None:
             raise NotImplementedError(
                 "filesystem is not implemented for the fastparquet engine."
+            )
+        if to_pandas_kwargs is not None:
+            raise NotImplementedError(
+                "to_pandas_kwargs is not implemented for the fastparquet engine."
             )
         path = stringify_path(path)
         handles = None
@@ -384,7 +389,15 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, filters=filters, **kwargs)
+            with catch_warnings():
+                filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+                return parquet_file.to_pandas(
+                    columns=columns, filters=filters, **kwargs
+                )
         finally:
             if handles is not None:
                 handles.close()
@@ -449,7 +462,7 @@ def to_parquet(
         .. versionadded:: 2.1.0
 
     kwargs
-        Additional keyword arguments passed to the engine
+        Additional keyword arguments passed to the engine.
 
     Returns
     -------
@@ -488,6 +501,7 @@ def read_parquet(
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
     filters: list[tuple] | list[list[tuple]] | None = None,
+    to_pandas_kwargs: dict | None = None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -525,14 +539,15 @@ def read_parquet(
 
         .. versionadded:: 1.3.0
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -559,6 +574,12 @@ def read_parquet(
         to prevent the loading of some row-groups and/or files.
 
         .. versionadded:: 2.1.0
+
+    to_pandas_kwargs : dict | None, default None
+        Keyword arguments to pass through to :func:`pyarrow.Table.to_pandas`
+        when ``engine="pyarrow"``.
+
+        .. versionadded:: 3.0.0
 
     **kwargs
         Any additional kwargs are passed to the engine.
@@ -632,5 +653,6 @@ def read_parquet(
         storage_options=storage_options,
         dtype_backend=dtype_backend,
         filesystem=filesystem,
+        to_pandas_kwargs=to_pandas_kwargs,
         **kwargs,
     )

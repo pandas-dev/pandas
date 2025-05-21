@@ -25,7 +25,6 @@ from pandas.errors import (
 )
 from pandas.errors.cow import _chained_assignment_msg
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -161,7 +160,7 @@ class IndexingMixin:
 
         .. versionchanged:: 3.0
 
-           Returning a tuple from a callable is deprecated.
+           Callables which return a tuple are deprecated as input.
 
         ``.iloc[]`` is primarily integer position based (from ``0`` to
         ``length-1`` of the axis), but may also be used with a boolean
@@ -213,7 +212,7 @@ class IndexingMixin:
         With a scalar integer.
 
         >>> type(df.iloc[0])
-        <class 'pandas.core.series.Series'>
+        <class 'pandas.Series'>
         >>> df.iloc[0]
         a    1
         b    2
@@ -266,7 +265,7 @@ class IndexingMixin:
         With scalar integers.
 
         >>> df.iloc[0, 1]
-        2
+        np.int64(2)
 
         With lists of integers.
 
@@ -376,7 +375,7 @@ class IndexingMixin:
         Single label for row and column
 
         >>> df.loc["cobra", "shield"]
-        2
+        np.int64(2)
 
         Slice with labels for row and single label for column. As mentioned
         above, note that both the start and stop of the slice are included.
@@ -586,7 +585,7 @@ class IndexingMixin:
         Single tuple for the index with a single label for the column
 
         >>> df.loc[("cobra", "mark i"), "shield"]
-        2
+        np.int64(2)
 
         Slice from index tuple to single label
 
@@ -667,18 +666,18 @@ class IndexingMixin:
         Get value at specified row/column pair
 
         >>> df.at[4, "B"]
-        2
+        np.int64(2)
 
         Set value at specified row/column pair
 
         >>> df.at[4, "B"] = 10
         >>> df.at[4, "B"]
-        10
+        np.int64(10)
 
         Get value within a Series
 
         >>> df.loc[5].at["B"]
-        4
+        np.int64(4)
         """
         return _AtIndexer("at", self)
 
@@ -716,18 +715,18 @@ class IndexingMixin:
         Get value at specified row/column pair
 
         >>> df.iat[1, 2]
-        1
+        np.int64(1)
 
         Set value at specified row/column pair
 
         >>> df.iat[1, 2] = 10
         >>> df.iat[1, 2]
-        10
+        np.int64(10)
 
         Get value within a series
 
         >>> df.loc[0].iat[1]
-        2
+        np.int64(2)
         """
         return _iAtIndexer("iat", self)
 
@@ -811,8 +810,11 @@ class _LocationIndexer(NDFrameIndexerBase):
 
                 if is_scalar_indexer(icols, self.ndim - 1) and ndim == 1:
                     # e.g. test_loc_setitem_boolean_mask_allfalse
-                    # test_loc_setitem_ndframe_values_alignment
-                    value = self.obj.iloc._align_series(indexer, value)
+                    if len(newkey) == 0:
+                        value = value.iloc[:0]
+                    else:
+                        # test_loc_setitem_ndframe_values_alignment
+                        value = self.obj.iloc._align_series(indexer, value)
                     indexer = (newkey, icols)
 
                 elif (
@@ -828,8 +830,11 @@ class _LocationIndexer(NDFrameIndexerBase):
                         indexer = (newkey, icols)
 
                     elif ndim == 2 and value.shape[1] == 1:
-                        # test_loc_setitem_ndframe_values_alignment
-                        value = self.obj.iloc._align_frame(indexer, value)
+                        if len(newkey) == 0:
+                            value = value.iloc[:0]
+                        else:
+                            # test_loc_setitem_ndframe_values_alignment
+                            value = self.obj.iloc._align_frame(indexer, value)
                         indexer = (newkey, icols)
         elif com.is_bool_indexer(indexer):
             indexer = indexer.nonzero()[0]
@@ -909,7 +914,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
-        iloc = self if self.name == "iloc" else self.obj.iloc
+        iloc: _iLocIndexer = (
+            cast("_iLocIndexer", self) if self.name == "iloc" else self.obj.iloc
+        )
         iloc._setitem_with_indexer(indexer, value, self.name)
 
     def _validate_key(self, key, axis: AxisInt) -> None:
@@ -968,8 +975,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 self._validate_key(k, i)
             except ValueError as err:
                 raise ValueError(
-                    "Location based indexing can only have "
-                    f"[{self._valid_types}] types"
+                    f"Location based indexing can only have [{self._valid_types}] types"
                 ) from err
         return key
 
@@ -1232,8 +1238,10 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, bool) and not (
             is_bool_dtype(ax.dtype)
             or ax.dtype.name == "boolean"
-            or isinstance(ax, MultiIndex)
-            and is_bool_dtype(ax.get_level_values(0).dtype)
+            or (
+                isinstance(ax, MultiIndex)
+                and is_bool_dtype(ax.get_level_values(0).dtype)
+            )
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
@@ -1574,14 +1582,9 @@ class _iLocIndexer(_LocationIndexer):
         if com.is_bool_indexer(key):
             if hasattr(key, "index") and isinstance(key.index, Index):
                 if key.index.inferred_type == "integer":
-                    raise NotImplementedError(
-                        "iLocation based boolean "
-                        "indexing on an integer type "
-                        "is not available"
-                    )
+                    return
                 raise ValueError(
-                    "iLocation based boolean indexing cannot use "
-                    "an indexable as a mask"
+                    "iLocation based boolean indexing cannot use an indexable as a mask"
                 )
             return
 
@@ -1804,10 +1807,10 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and len(self.obj._mgr.arrays) and self.ndim > 1:
+        if not take_split_path and len(self.obj._mgr.blocks) and self.ndim > 1:
             # in case of dict, keys are indices
             val = list(value.values()) if isinstance(value, dict) else value
-            arr = self.obj._mgr.arrays[0]
+            arr = self.obj._mgr.blocks[0].values
             take_split_path = not can_hold_element(
                 arr, extract_array(val, extract_numpy=True)
             )
@@ -1985,8 +1988,7 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer((pi, info_axis[0]), value[0])
 
                 raise ValueError(
-                    "Must have equal len keys and value "
-                    "when setting with an iterable"
+                    "Must have equal len keys and value when setting with an iterable"
                 )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
@@ -2014,8 +2016,7 @@ class _iLocIndexer(_LocationIndexer):
 
             else:
                 raise ValueError(
-                    "Must have equal len keys and value "
-                    "when setting with an iterable"
+                    "Must have equal len keys and value when setting with an iterable"
                 )
 
         else:
@@ -2113,7 +2114,7 @@ class _iLocIndexer(_LocationIndexer):
 
         is_full_setter = com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj))
 
-        is_null_setter = com.is_empty_slice(pi) or is_array_like(pi) and len(pi) == 0
+        is_null_setter = com.is_empty_slice(pi) or (is_array_like(pi) and len(pi) == 0)
 
         if is_null_setter:
             # no-op, don't cast dtype later
@@ -2124,14 +2125,14 @@ class _iLocIndexer(_LocationIndexer):
                 self.obj._mgr.column_setitem(
                     loc, plane_indexer, value, inplace_only=True
                 )
-            except (ValueError, TypeError, LossySetitemError):
+            except (ValueError, TypeError, LossySetitemError) as exc:
                 # If we're setting an entire column and we can't do it inplace,
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
                 dtype = self.obj.dtypes.iloc[loc]
                 if dtype not in (np.void, object) and not self.obj.empty:
                     # - Exclude np.void, as that is a special case for expansion.
-                    #   We want to warn for
+                    #   We want to raise for
                     #       df = pd.DataFrame({'a': [1, 2]})
                     #       df.loc[:, 'a'] = .3
                     #   but not for
@@ -2140,14 +2141,9 @@ class _iLocIndexer(_LocationIndexer):
                     # - Exclude `object`, as then no upcasting happens.
                     # - Exclude empty initial object with enlargement,
                     #   as then there's nothing to be inconsistent with.
-                    warnings.warn(
-                        f"Setting an item of incompatible dtype is deprecated "
-                        "and will raise in a future error of pandas. "
-                        f"Value '{value}' has dtype incompatible with {dtype}, "
-                        "please explicitly cast to a compatible dtype first.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                    raise TypeError(
+                        f"Invalid value '{value}' for dtype '{dtype}'"
+                    ) from exc
                 self.obj.isetitem(loc, value)
         else:
             # set value into the column (first attempting to operate inplace, then
@@ -2308,11 +2304,11 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        ilocs: Sequence[int | np.integer] | np.ndarray
+        ilocs: Sequence[int | np.integer] | np.ndarray | range
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ilocs = np.arange(len(self.obj.columns))[column_indexer]
+            ilocs = range(len(self.obj.columns))[column_indexer]
         elif (
             isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
         ):
@@ -2349,11 +2345,17 @@ class _iLocIndexer(_LocationIndexer):
 
         if isinstance(indexer, tuple):
             # flatten np.ndarray indexers
+            if (
+                len(indexer) == 2
+                and isinstance(indexer[1], np.ndarray)
+                and indexer[1].dtype == np.bool_
+            ):
+                indexer = (indexer[0], np.where(indexer[1])[0])
+
             def ravel(i):
                 return i.ravel() if isinstance(i, np.ndarray) else i
 
             indexer = tuple(map(ravel, indexer))
-
             aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
@@ -2371,12 +2373,15 @@ class _iLocIndexer(_LocationIndexer):
 
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
-            if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
+            if all(is_sequence(_) or isinstance(_, slice) for _ in indexer):
                 ser_values = ser.reindex(obj.axes[0][indexer[0]])._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
-                    len_indexer = len(indexer[1])
+                    if isinstance(indexer[1], slice):
+                        len_indexer = len(obj.axes[1][indexer[1]])
+                    else:
+                        len_indexer = len(indexer[1])
                     ser_values = (
                         np.tile(ser_values, len_indexer).reshape(len_indexer, -1).T
                     )
@@ -2395,7 +2400,7 @@ class _iLocIndexer(_LocationIndexer):
                         new_ix = Index([new_ix])
                     else:
                         new_ix = Index(new_ix)
-                    if ser.index.equals(new_ix):
+                    if not len(new_ix) or ser.index.equals(new_ix):
                         if using_cow:
                             return ser
                         return ser._values.copy()
@@ -2440,7 +2445,7 @@ class _iLocIndexer(_LocationIndexer):
                 ax = self.obj.axes[i]
                 if is_sequence(ix) or isinstance(ix, slice):
                     if isinstance(ix, np.ndarray):
-                        ix = ix.ravel()
+                        ix = ix.reshape(-1)
                     if idx is None:
                         idx = ax[ix]
                     elif cols is None:
@@ -2742,19 +2747,15 @@ def check_dict_or_set_indexers(key) -> None:
     """
     Check if the indexer is or contains a dict or set, which is no longer allowed.
     """
-    if (
-        isinstance(key, set)
-        or isinstance(key, tuple)
-        and any(isinstance(x, set) for x in key)
+    if isinstance(key, set) or (
+        isinstance(key, tuple) and any(isinstance(x, set) for x in key)
     ):
         raise TypeError(
             "Passing a set as an indexer is not supported. Use a list instead."
         )
 
-    if (
-        isinstance(key, dict)
-        or isinstance(key, tuple)
-        and any(isinstance(x, dict) for x in key)
+    if isinstance(key, dict) or (
+        isinstance(key, tuple) and any(isinstance(x, dict) for x in key)
     ):
         raise TypeError(
             "Passing a dict as an indexer is not supported. Use a list instead."

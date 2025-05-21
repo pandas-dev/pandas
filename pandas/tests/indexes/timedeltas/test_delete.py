@@ -44,7 +44,7 @@ class TestTimedeltaIndexDelete:
 
         # reset freq to None
         expected_3_5 = TimedeltaIndex(
-            ["1 d", "2 d", "3 d", "7 d", "8 d", "9 d", "10d"], freq=None, name="idx"
+            ["1 D", "2 D", "3 D", "7 D", "8 D", "9 D", "10D"], freq=None, name="idx"
         )
 
         cases = {

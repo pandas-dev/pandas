@@ -96,6 +96,14 @@ class FloatingArray(NumericArray):
     -------
     FloatingArray
 
+    See Also
+    --------
+    array : Create an array.
+    Float32Dtype : Float32 dtype for FloatingArray.
+    Float64Dtype : Float64 dtype for FloatingArray.
+    Series : One-dimensional labeled array capable of holding data.
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
     Examples
     --------
     Create an FloatingArray with :func:`pandas.array`:

@@ -131,8 +131,8 @@ class FixedWindowIndexer(BaseIndexer):
         if closed in ["left", "neither"]:
             end -= 1
 
-        end = np.clip(end, 0, num_values)
-        start = np.clip(start, 0, num_values)
+        end = np.clip(end, 0, num_values)  # type: ignore[assignment]
+        start = np.clip(start, 0, num_values)  # type: ignore[assignment]
 
         return start, end
 
@@ -166,6 +166,31 @@ class VariableWindowIndexer(BaseIndexer):
 class VariableOffsetWindowIndexer(BaseIndexer):
     """
     Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
+
+    Parameters
+    ----------
+    index_array : np.ndarray, default 0
+        Array-like structure specifying the indices for data points.
+        This parameter is currently not used.
+
+    window_size : int, optional, default 0
+        Specifies the number of data points in each window.
+        This parameter is currently not used.
+
+    index : DatetimeIndex, optional
+        ``DatetimeIndex`` of the labels of each observation.
+
+    offset : BaseOffset, optional
+        ``DateOffset`` representing the size of the window.
+
+    **kwargs
+        Additional keyword arguments passed to the parent class ``BaseIndexer``.
+
+    See Also
+    --------
+    api.indexers.BaseIndexer : Base class for all indexers.
+    DataFrame.rolling : Rolling window calculations on DataFrames.
+    offsets : Module providing various time offset classes.
 
     Examples
     --------
@@ -377,7 +402,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
         start = np.arange(0, num_values, step, dtype="int64")
         end = start + self.window_size
         if self.window_size:
-            end = np.clip(end, 0, num_values)
+            end = np.clip(end, 0, num_values)  # type: ignore[assignment]
 
         return start, end
 
@@ -453,9 +478,9 @@ class GroupbyIndexer(BaseIndexer):
             )
             start = start.astype(np.int64)
             end = end.astype(np.int64)
-            assert len(start) == len(
-                end
-            ), "these should be equal in length from get_window_bounds"
+            assert len(start) == len(end), (
+                "these should be equal in length from get_window_bounds"
+            )
             # Cannot use groupby_indices as they might not be monotonic with the object
             # we're rolling over
             window_indices = np.arange(
@@ -463,7 +488,7 @@ class GroupbyIndexer(BaseIndexer):
             )
             window_indices_start += len(indices)
             # Extend as we'll be slicing window like [start, end)
-            window_indices = np.append(window_indices, [window_indices[-1] + 1]).astype(
+            window_indices = np.append(window_indices, [window_indices[-1] + 1]).astype(  # type: ignore[assignment]
                 np.int64, copy=False
             )
             start_arrays.append(window_indices.take(ensure_platform_int(start)))

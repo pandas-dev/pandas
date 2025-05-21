@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
+import sys
 import tempfile
 from typing import (
     IO,
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
 @contextmanager
 def decompress_file(
     path: FilePath | BaseBuffer, compression: CompressionOptions
-) -> Generator[IO[bytes], None, None]:
+) -> Generator[IO[bytes]]:
     """
     Open a compressed file and return a file object.
 
@@ -50,7 +51,7 @@ def decompress_file(
 
 
 @contextmanager
-def set_timezone(tz: str) -> Generator[None, None, None]:
+def set_timezone(tz: str) -> Generator[None]:
     """
     Context manager for temporarily setting a timezone.
 
@@ -73,14 +74,17 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     import time
 
     def setTZ(tz) -> None:
-        if tz is None:
-            try:
-                del os.environ["TZ"]
-            except KeyError:
-                pass
-        else:
-            os.environ["TZ"] = tz
-            time.tzset()
+        if hasattr(time, "tzset"):
+            if tz is None:
+                try:
+                    del os.environ["TZ"]
+                except KeyError:
+                    pass
+            else:
+                os.environ["TZ"] = tz
+                # Next line allows typing checks to pass on Windows
+                if sys.platform != "win32":
+                    time.tzset()
 
     orig_tz = os.environ.get("TZ")
     setTZ(tz)
@@ -91,7 +95,7 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
 
 
 @contextmanager
-def ensure_clean(filename=None) -> Generator[Any, None, None]:
+def ensure_clean(filename=None) -> Generator[Any]:
     """
     Gets a temporary path and agrees to remove on close.
 
@@ -123,7 +127,7 @@ def ensure_clean(filename=None) -> Generator[Any, None, None]:
 
 
 @contextmanager
-def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
+def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 

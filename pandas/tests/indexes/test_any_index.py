@@ -22,12 +22,6 @@ def test_boolean_context_compat(index):
         bool(index)
 
 
-def test_sort(index):
-    msg = "cannot sort an Index object in-place, use sort_values instead"
-    with pytest.raises(TypeError, match=msg):
-        index.sort()
-
-
 def test_hash_error(index):
     with pytest.raises(TypeError, match=f"unhashable type: '{type(index).__name__}'"):
         hash(index)
@@ -46,7 +40,7 @@ def test_map_identity_mapping(index, request):
     # GH#12766
 
     result = index.map(lambda x: x)
-    if index.dtype == object and result.dtype == bool:
+    if index.dtype == object and (result.dtype == bool or result.dtype == "string"):
         assert (index == result).all()
         # TODO: could work that into the 'exact="equiv"'?
         return  # FIXME: doesn't belong in this file anymore!

@@ -29,10 +29,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 from pandas.io.common import file_path_to_url
 
@@ -150,7 +146,7 @@ class TestReadHtml:
         df = (
             DataFrame(
                 np.random.default_rng(2).random((4, 3)),
-                columns=pd.Index(list("abc"), dtype=object),
+                columns=pd.Index(list("abc")),
             )
             .map("{:.3f}".format)
             .astype(float)
@@ -176,23 +172,15 @@ class TestReadHtml:
             }
         )
 
-        if string_storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
-        elif dtype_backend == "pyarrow":
-            pa = pytest.importorskip("pyarrow")
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
-        else:
-            pa = pytest.importorskip("pyarrow")
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
-
         out = df.to_html(index=False)
         with pd.option_context("mode.string_storage", string_storage):
             result = flavor_read_html(StringIO(out), dtype_backend=dtype_backend)[0]
+
+        if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            string_dtype = pd.ArrowDtype(pa.string())
+        else:
+            string_dtype = pd.StringDtype(string_storage)
 
         expected = DataFrame(
             {
@@ -202,8 +190,8 @@ class TestReadHtml:
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": Series(["a", "b", "c"], dtype=string_dtype),
+                "h": Series(["a", "b", None], dtype=string_dtype),
             }
         )
 
@@ -219,7 +207,9 @@ class TestReadHtml:
                 }
             )
 
-        tm.assert_frame_equal(result, expected)
+        # the storage of the str columns' Index is also affected by the
+        # string_storage setting -> ignore that for checking the result
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.network
     @pytest.mark.single_cpu
@@ -1014,6 +1004,33 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_rowspan_in_header_overflowing_to_body(self, flavor_read_html):
+        # GH60210
+
+        result = flavor_read_html(
+            StringIO(
+                """
+            <table>
+                <tr>
+                    <th rowspan="2">A</th>
+                    <th>B</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>C</td>
+                    <td>2</td>
+                </tr>
+            </table>
+        """
+            )
+        )[0]
+
+        expected = DataFrame(data=[["A", 1], ["C", 2]], columns=["A", "B"])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_header_inferred_from_rows_with_only_th(self, flavor_read_html):
         # GH17054
         result = flavor_read_html(
@@ -1044,11 +1061,15 @@ class TestReadHtml:
 
     def test_parse_dates_list(self, flavor_read_html):
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
-        expected = df.to_html()
-        res = flavor_read_html(StringIO(expected), parse_dates=[1], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-        res = flavor_read_html(StringIO(expected), parse_dates=["date"], index_col=0)
-        tm.assert_frame_equal(df, res[0])
+
+        expected = df[:]
+        expected["date"] = expected["date"].dt.as_unit("s")
+
+        str_df = df.to_html()
+        res = flavor_read_html(StringIO(str_df), parse_dates=[1], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
+        res = flavor_read_html(StringIO(str_df), parse_dates=["date"], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
 
     def test_wikipedia_states_table(self, datapath, flavor_read_html):
         data = datapath("io", "data", "html", "wikipedia_states.html")

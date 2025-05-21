@@ -37,26 +37,26 @@ if TYPE_CHECKING:
 
 
 __all__ = [
-    "Index",
-    "MultiIndex",
     "CategoricalIndex",
-    "IntervalIndex",
-    "RangeIndex",
-    "InvalidIndexError",
-    "TimedeltaIndex",
-    "PeriodIndex",
     "DatetimeIndex",
-    "_new_Index",
+    "Index",
+    "IntervalIndex",
+    "InvalidIndexError",
+    "MultiIndex",
     "NaT",
+    "PeriodIndex",
+    "RangeIndex",
+    "TimedeltaIndex",
+    "_new_Index",
+    "all_indexes_same",
+    "default_index",
     "ensure_index",
     "ensure_index_from_sequences",
     "get_objs_combined_axis",
-    "union_indexes",
     "get_unanimous_names",
-    "all_indexes_same",
-    "default_index",
-    "safe_sort_index",
     "maybe_sequence_to_range",
+    "safe_sort_index",
+    "union_indexes",
 ]
 
 
@@ -130,7 +130,7 @@ def _get_combined_index(
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
-        index = Index([])
+        index: Index = default_index(0)
     elif len(indexes) == 1:
         index = indexes[0]
     elif intersect:
@@ -212,20 +212,25 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
     if kind == "special":
         result = indexes[0]
 
-        dtis = [x for x in indexes if isinstance(x, DatetimeIndex)]
-        dti_tzs = [x for x in dtis if x.tz is not None]
-        if len(dti_tzs) not in [0, len(dtis)]:
+        num_dtis = 0
+        num_dti_tzs = 0
+        for idx in indexes:
+            if isinstance(idx, DatetimeIndex):
+                num_dtis += 1
+                if idx.tz is not None:
+                    num_dti_tzs += 1
+        if num_dti_tzs not in [0, num_dtis]:
             # TODO: this behavior is not tested (so may not be desired),
             #  but is kept in order to keep behavior the same when
             #  deprecating union_many
             # test_frame_from_dict_with_mixed_indexes
             raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
-        if len(dtis) == len(indexes):
+        if num_dtis == len(indexes):
             sort = True
             result = indexes[0]
 
-        elif len(dtis) > 1:
+        elif num_dtis > 1:
             # If we have mixed timezones, our casting behavior may depend on
             #  the order of indexes, which we don't want.
             sort = False

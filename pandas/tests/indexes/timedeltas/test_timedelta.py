@@ -51,9 +51,9 @@ class TestTimedeltaIndex:
         s = Series(rng)
         s[1] = np.nan
 
-        tm.assert_series_equal(s.dt.days, Series([1, np.nan], index=[0, 1]))
+        tm.assert_series_equal(s.dt.days, Series([1, np.nan], index=range(2)))
         tm.assert_series_equal(
-            s.dt.seconds, Series([10 * 3600 + 11 * 60 + 12, np.nan], index=[0, 1])
+            s.dt.seconds, Series([10 * 3600 + 11 * 60 + 12, np.nan], index=range(2))
         )
 
         # preserve name (GH15589)
