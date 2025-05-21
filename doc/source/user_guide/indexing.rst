@@ -1464,7 +1464,7 @@ and column labels, this can be achieved by ``pandas.factorize``  and NumPy index
 
 For heterogeneous column types, we subset columns to avoid unnecessary numpy conversions:
 
-.. ipython:: python
+.. code-block:: python
 
    def pd_lookup_het(df, row_labels, col_labels):
       rows = df.index.get_indexer(row_labels)
@@ -1480,7 +1480,7 @@ For heterogeneous column types, we subset columns to avoid unnecessary numpy con
 
 For homogeneous column types, it is fastest to skip column subsetting and go directly to numpy:
 
-.. ipython:: python
+.. code-block:: python
 
    def pd_lookup_hom(df, row_labels, col_labels):
        rows = df.index.get_indexer(row_labels)
