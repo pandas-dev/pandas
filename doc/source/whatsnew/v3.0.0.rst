@@ -779,6 +779,7 @@ I/O
 - Bug in :meth:`DataFrame.to_stata` when writing more than 32,000 value labels. (:issue:`60107`)
 - Bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Bug in :meth:`HDFStore.get` was failing to save data of dtype datetime64[s] correctly (:issue:`59004`)
+- Bug in :meth:`HDFStore.select` causing queries on categorical string columns to return unexpected results (:issue:`57608`)
 - Bug in :meth:`read_csv` causing segmentation fault when ``encoding_errors`` is not a string. (:issue:`59059`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)

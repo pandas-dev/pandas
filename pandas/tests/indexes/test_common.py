@@ -464,7 +464,9 @@ def test_sort_values_invalid_na_position(
     reason="Sorting fails due to heterogeneous types in index (int vs str)",
     strict=False,
 )
-def test_sort_values_with_missing(index_with_missing, na_position, request, box_in_series):
+def test_sort_values_with_missing(
+    index_with_missing, na_position, request, box_in_series
+):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
@@ -489,7 +491,6 @@ def test_sort_values_with_missing(index_with_missing, na_position, request, box_
     else:
         not_na_vals = index_with_missing[index_with_missing.notna()].values
 
-
     sorted_values = np.sort(not_na_vals)
     if na_position == "first":
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
@@ -500,7 +501,9 @@ def test_sort_values_with_missing(index_with_missing, na_position, request, box_
     if isinstance(index_with_missing, pd.Series):
         expected = pd.Series(sorted_values, dtype=index_with_missing.dtype)
     else:
-        expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
+        expected = type(index_with_missing)(
+            sorted_values, dtype=index_with_missing.dtype
+        )
 
     result = index_with_missing.sort_values(na_position=na_position)
     if isinstance(index_with_missing, pd.Series):
