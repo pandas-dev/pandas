@@ -99,8 +99,6 @@ These are bug fixes that might have notable behavior changes.
 .. _whatsnew_300.notable_bug_fixes.groupby_unobs_and_na:
 
 
-
-
 Improved behavior in groupby for ``observed=False``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -748,7 +746,6 @@ Indexing
 - Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 - Bug in reindexing of :class:`DataFrame` with :class:`PeriodDtype` columns in case of consolidated block (:issue:`60980`, :issue:`60273`)
 - Bug in :class:`Index` methods when handling mixed integer and string values (e.g. ``Index([0, "a", 1, "b", 2, "c"])``) uncovered by new test case (:issue:`54072`)
-- ``Index.__setitem__`` raises ``ValueError`` when integer indexers contain ``pd.NA``. (:gh:`61465`)
 
 
 Missing
