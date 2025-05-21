@@ -563,7 +563,6 @@ def set_nulls(
     if null_kind == ColumnNullType.USE_SENTINEL:
         null_pos = pd.Series(data) == sentinel_val
     elif null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
-        assert validity, "Expected to have a validity buffer for the mask"
         valid_buff, valid_dtype = validity
         null_pos = buffer_to_ndarray(
             valid_buff, valid_dtype, offset=col.offset, length=col.size()

@@ -8,7 +8,7 @@ developers to build powerful and more focused data tools. The creation
 of libraries that complement pandas' functionality also allows pandas
 development to remain focused around its original requirements.
 
-This is an community-maintained list of projects that build on pandas in order
+This is a community-maintained list of projects that build on pandas in order
 to provide tools in the PyData space. The pandas core development team does not necessarily endorse any particular project on this list or have any knowledge of the maintenance status of any particular library.
 
 For a more complete list of projects that depend on pandas, see the [libraries.io usage page for
@@ -29,6 +29,12 @@ Statsmodels provides powerful statistics, econometrics, analysis and
 modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
+
+### [skrub](https://skrub-data.org)
+
+Skrub facilitates machine learning on dataframes. It bridges pandas
+to scikit-learn and related. In particular it facilitates building
+features from dataframes.
 
 ### [Featuretools](https://github.com/alteryx/featuretools/)
 
@@ -118,7 +124,7 @@ sns.set_theme()
 Hadley Wickham's [ggplot2](https://ggplot2.tidyverse.org/) is a
 foundational exploratory visualization package for the R language. Based
 on ["The Grammar of
-Graphics"](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html)
+Graphics"](https://doi.org/10.1007/0-387-28695-0)
 it provides a powerful, declarative and extremely general way to
 generate bespoke plots of any kind of data.
 Various implementations to other languages are available.
@@ -140,11 +146,8 @@ Seaborn](https://plot.ly/python/matplotlib-to-plotly-tutorial/) can
 convert figures into interactive web-based plots. Plots can be drawn in
 [IPython Notebooks](https://plot.ly/ipython-notebooks/) , edited with R
 or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly
-is free for unlimited sharing, and has
-[cloud](https://plot.ly/product/plans/),
-[offline](https://plot.ly/python/offline/), or
-[on-premise](https://plot.ly/product/enterprise/) accounts for private
-use.
+is free for unlimited sharing, and has cloud, offline, or on-premise
+accounts for private use.
 
 ### [Lux](https://github.com/lux-org/lux)
 
@@ -158,7 +161,7 @@ df = pd.read_csv("data.csv")
 df  # discover interesting insights!
 ```
 
-By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
+By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
 
 ### [D-Tale](https://github.com/man-group/dtale)
 
@@ -205,7 +208,7 @@ standard output formats (HTML, HTML presentation slides, LaTeX, PDF,
 ReStructuredText, Markdown, Python) through 'Download As' in the web
 interface and `jupyter convert` in a shell.
 
-Pandas DataFrames implement `_repr_html_`and `_repr_latex` methods which
+Pandas DataFrames implement `_repr_html_` and `_repr_latex` methods which
 are utilized by Jupyter Notebook for displaying (abbreviated) HTML or
 LaTeX tables. LaTeX output is properly escaped. (Note: HTML tables may
 or may not be compatible with non-HTML Jupyter output formats.)
@@ -342,7 +345,7 @@ It supports the following data types:
 
 - pandas data types
 - data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
-- data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
+- data types defined in [Table Schema specification](https://datapackage.org/standard/table-schema/)
 
 The interface is always reversible (conversion round trip) with two formats (JSON-NTV and JSON-TableSchema).
 
@@ -466,7 +469,7 @@ read_record.data
 df.dtypes
 ```
 
-ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/query_builder/).
+ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/processing/#arcticdb.QueryBuilder).
 
 ### [Hugging Face](https://huggingface.co/datasets)
 
@@ -496,17 +499,29 @@ You can find more information about the Hugging Face Dataset Hub in the [documen
 
 ## Out-of-core
 
-### [Bodo](https://bodo.ai/)
+### [Bodo](https://github.com/bodo-ai/Bodo)
 
-Bodo is a high-performance Python computing engine that automatically parallelizes and
-optimizes your code through compilation using HPC (high-performance computing) techniques.
-Designed to operate with native pandas dataframes, Bodo compiles your pandas code to execute
-across multiple cores on a single machine or distributed clusters of multiple compute nodes efficiently.
-Bodo also makes distributed pandas dataframes queryable with SQL.
 
-The community edition of Bodo is free to use on up to 8 cores. Beyond that, Bodo offers a paid
-enterprise edition. Free licenses of Bodo (for more than 8 cores) are available
-[upon request](https://www.bodo.ai/contact) for academic and non-profit use.
+Bodo is a high-performance compute engine for Python data processing.
+Using an auto-parallelizing just-in-time (JIT) compiler, Bodo simplifies scaling Pandas
+workloads from laptops to clusters without major code changes.
+Under the hood, Bodo relies on MPI-based high-performance computing (HPC) technology—making it
+both easier to use and often much faster than alternatives.
+Bodo also provides a SQL engine that can query distributed pandas dataframes efficiently.
+
+```python
+import pandas as pd
+import bodo
+
+@bodo.jit
+def process_data():
+    df = pd.read_parquet("my_data.pq")
+    df2 = pd.DataFrame({"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)})
+    df2.to_parquet("out.pq")
+
+process_data()
+```
+
 
 ### [Cylon](https://cylondata.org/)
 
@@ -578,7 +593,7 @@ df = pd.read_csv("big.csv")  # use all your cores!
 ### [Pandarallel](https://github.com/nalepae/pandarallel)
 
 Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
-If also displays progress bars.
+It also displays progress bars.
 
 ```python
 from pandarallel import pandarallel
@@ -640,7 +655,7 @@ Pandas provides an interface for defining
 The following libraries implement that interface to provide types not found in NumPy or pandas,
 which work well with pandas' data containers.
 
-### [awkward-pandas](https://awkward-pandas.readthedocs.io/)
+### [awkward-pandas](https://github.com/scikit-hep/awkward)
 
 Awkward-pandas provides an extension type for storing [Awkward
 Arrays](https://awkward-array.org/) inside pandas' Series and
@@ -676,7 +691,7 @@ units aware.
 
 ### [Text Extensions](https://ibm.biz/text-extensions-for-pandas)
 
-Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into Pandas DataFrames.
+Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into pandas DataFrames.
 
 ## Accessors
 

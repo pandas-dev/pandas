@@ -644,7 +644,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         ctx = node.ctx
         if isinstance(ctx, ast.Load):
             # resolve the value
-            resolved = self.visit(value).value
+            visited_value = self.visit(value)
+            if hasattr(visited_value, "value"):
+                resolved = visited_value.value
+            else:
+                resolved = visited_value(self.env)
             try:
                 v = getattr(resolved, attr)
                 name = self.env.add_tmp(v)
@@ -698,7 +702,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if not isinstance(key, ast.keyword):
                     # error: "expr" has no attribute "id"
                     raise ValueError(
-                        "keyword error in function call " f"'{node.func.id}'"  # type: ignore[attr-defined]
+                        f"keyword error in function call '{node.func.id}'"  # type: ignore[attr-defined]
                     )
 
                 if key.arg:

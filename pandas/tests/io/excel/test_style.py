@@ -356,6 +356,6 @@ def test_format_hierarchical_rows_periodindex(merge_cells):
 
     for cell in formatted_cells:
         if cell.row != 0 and cell.col == 0:
-            assert isinstance(
-                cell.val, Timestamp
-            ), "Period should be converted to Timestamp"
+            assert isinstance(cell.val, Timestamp), (
+                "Period should be converted to Timestamp"
+            )

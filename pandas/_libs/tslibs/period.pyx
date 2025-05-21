@@ -1752,9 +1752,6 @@ cdef class _Period(PeriodMixin):
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
         self.freq = freq
-        # Note: this is more performant than PeriodDtype.from_date_offset(freq)
-        #  because from_date_offset cannot be made a cdef method (until cython
-        #  supported cdef classmethods)
         self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
     @classmethod
@@ -1913,7 +1910,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str, BaseOffset
+        freq : str, DateOffset
             The target frequency to convert the Period object to.
             If a string is provided,
             it must be a valid :ref:`period alias <timeseries.period_aliases>`.
@@ -2139,6 +2136,12 @@ cdef class _Period(PeriodMixin):
     def day(self) -> int:
         """
         Get day of the month that a Period falls on.
+
+        The `day` property provides a simple way to access the day component
+        of a `Period` object, which represents time spans in various frequencies
+        (e.g., daily, hourly, monthly). If the period's frequency does not include
+        a day component (e.g., yearly or quarterly periods), the returned day
+        corresponds to the first day of that period.
 
         Returns
         -------
@@ -2593,7 +2596,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str, BaseOffset
+        freq : str, DateOffset
             Frequency to use for the returned period.
 
         See Also
@@ -2835,6 +2838,11 @@ cdef class _Period(PeriodMixin):
 class Period(_Period):
     """
     Represents a period of time.
+
+    A `Period` represents a specific time span rather than a point in time.
+    Unlike `Timestamp`, which represents a single instant, a `Period` defines a
+    duration, such as a month, quarter, or year. The exact representation is
+    determined by the `freq` parameter.
 
     Parameters
     ----------

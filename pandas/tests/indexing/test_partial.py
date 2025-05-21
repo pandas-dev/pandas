@@ -30,7 +30,7 @@ class TestEmptyFrameSetitemExpansion:
         expected = DataFrame(
             {"series": [1.23] * 4},
             index=pd.RangeIndex(4, name="df_index"),
-            columns=Index(["series"], dtype=object),
+            columns=Index(["series"]),
         )
 
         tm.assert_frame_equal(df, expected)
@@ -43,7 +43,7 @@ class TestEmptyFrameSetitemExpansion:
         expected = DataFrame(
             {"series": [1.23] * 4},
             index=pd.RangeIndex(4, name="series_index"),
-            columns=Index(["series"], dtype=object),
+            columns=Index(["series"]),
         )
         tm.assert_frame_equal(df, expected)
 
@@ -96,9 +96,7 @@ class TestEmptyFrameSetitemExpansion:
         # these work as they don't really change
         # anything but the index
         # GH#5632
-        expected = DataFrame(
-            columns=Index(["foo"], dtype=object), index=Index([], dtype="object")
-        )
+        expected = DataFrame(columns=Index(["foo"]), index=Index([], dtype="object"))
 
         df = DataFrame(index=Index([], dtype="object"))
         df["foo"] = Series([], dtype="object")
@@ -116,9 +114,7 @@ class TestEmptyFrameSetitemExpansion:
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_empty_frame3(self):
-        expected = DataFrame(
-            columns=Index(["foo"], dtype=object), index=Index([], dtype="int64")
-        )
+        expected = DataFrame(columns=Index(["foo"]), index=Index([], dtype="int64"))
         expected["foo"] = expected["foo"].astype("float64")
 
         df = DataFrame(index=Index([], dtype="int64"))
@@ -135,9 +131,7 @@ class TestEmptyFrameSetitemExpansion:
         df = DataFrame(index=Index([], dtype="int64"))
         df["foo"] = range(len(df))
 
-        expected = DataFrame(
-            columns=Index(["foo"], dtype=object), index=Index([], dtype="int64")
-        )
+        expected = DataFrame(columns=Index(["foo"]), index=Index([], dtype="int64"))
         # range is int-dtype-like, so we get int64 dtype
         expected["foo"] = expected["foo"].astype("int64")
         tm.assert_frame_equal(df, expected)
@@ -210,7 +204,7 @@ class TestEmptyFrameSetitemExpansion:
         df = DataFrame(index=[0])
         df = df.copy()
         df["a"] = 0
-        expected = DataFrame(0, index=[0], columns=Index(["a"], dtype=object))
+        expected = DataFrame(0, index=[0], columns=Index(["a"]))
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_empty_frame_empty_consistencies(self, using_infer_string):

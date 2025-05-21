@@ -279,6 +279,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
+    It allows users to interact with a `DataFrame` that contains sparse data types
+    (`SparseDtype`). It provides methods and attributes to efficiently work with sparse
+    storage, reducing memory usage while maintaining compatibility with standard pandas
+    operations.
+
     Parameters
     ----------
     data : scipy.sparse.spmatrix
@@ -292,7 +297,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     --------
     >>> df = pd.DataFrame({"a": [1, 2, 0, 0], "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
     >>> df.sparse.density
-    0.5
+    np.float64(0.5)
     """
 
     def _validate(self, data) -> None:
@@ -454,7 +459,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
         >>> df.sparse.density
-        0.5
+        np.float64(0.5)
         """
         tmp = np.mean([column.array.density for _, column in self._parent.items()])
         return tmp

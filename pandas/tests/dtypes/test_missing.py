@@ -321,7 +321,7 @@ class TestIsNA:
 
     def test_decimal(self):
         # scalars GH#23530
-        a = Decimal(1.0)
+        a = Decimal("1.0")
         assert isna(a) is False
         assert notna(a) is True
 
@@ -769,8 +769,8 @@ na_vals = (
         np.datetime64("NaT"),
         np.timedelta64("NaT"),
     ]
-    + [np.datetime64("NaT", unit) for unit in m8_units]
-    + [np.timedelta64("NaT", unit) for unit in m8_units]
+    + [np.datetime64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]
+    + [np.timedelta64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]
 )
 
 inf_vals = [

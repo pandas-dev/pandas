@@ -998,8 +998,9 @@ class MinMaxReso:
     and Timedelta class.  On an instance, these depend on the object's _reso.
     On the class, we default to the values we would get with nanosecond _reso.
     """
-    def __init__(self, name):
+    def __init__(self, name, docstring):
         self._name = name
+        self.__doc__ = docstring
 
     def __get__(self, obj, type=None):
         if self._name == "min":
@@ -1012,9 +1013,13 @@ class MinMaxReso:
 
         if obj is None:
             # i.e. this is on the class, default to nanos
-            return Timedelta(val)
+            result = Timedelta(val)
         else:
-            return Timedelta._from_value_and_reso(val, obj._creso)
+            result = Timedelta._from_value_and_reso(val, obj._creso)
+
+        result.__doc__ = self.__doc__
+
+        return result
 
     def __set__(self, obj, value):
         raise AttributeError(f"{self._name} is not settable.")
@@ -1033,9 +1038,75 @@ cdef class _Timedelta(timedelta):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
-    min = MinMaxReso("min")
-    max = MinMaxReso("max")
-    resolution = MinMaxReso("resolution")
+
+    _docstring_min = """
+    Returns the minimum bound possible for Timedelta.
+
+    This property provides access to the smallest possible value that
+    can be represented by a Timedelta object.
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.max: Returns the maximum bound possible for Timedelta.
+    Timedelta.resolution: Returns the smallest possible difference between
+        non-equal Timedelta objects.
+
+    Examples
+    --------
+    >>> pd.Timedelta.min
+    -106752 days +00:12:43.145224193
+    """
+
+    _docstring_max = """
+    Returns the maximum bound possible for Timedelta.
+
+    This property provides access to the largest possible value that
+    can be represented by a Timedelta object.
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.min: Returns the minimum bound possible for Timedelta.
+    Timedelta.resolution: Returns the smallest possible difference between
+        non-equal Timedelta objects.
+
+    Examples
+    --------
+    >>> pd.Timedelta.max
+    106751 days 23:47:16.854775807
+    """
+
+    _docstring_reso = """
+    Returns the smallest possible difference between non-equal Timedelta objects.
+
+    The resolution value is determined by the underlying representation of time
+    units and is equivalent to Timedelta(nanoseconds=1).
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.max: Returns the maximum bound possible for Timedelta.
+    Timedelta.min: Returns the minimum bound possible for Timedelta.
+
+    Examples
+    --------
+    >>> pd.Timedelta.resolution
+    0 days 00:00:00.000000001
+    """
+
+    min = MinMaxReso("min", _docstring_min)
+    max = MinMaxReso("max", _docstring_max)
+    resolution = MinMaxReso("resolution", _docstring_reso)
 
     @property
     def value(self):
@@ -1740,7 +1811,8 @@ cdef class _Timedelta(timedelta):
         Format the Timedelta as ISO 8601 Duration.
 
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
-        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
+        values. See Wikipedia:
+        `ISO 8601 § Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
 
         Returns
         -------

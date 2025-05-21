@@ -933,7 +933,7 @@ class TestStyler:
 
     def test_export(self, df, styler):
         f = lambda x: "color: red" if x > 0 else "color: blue"
-        g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
+        g = lambda x, z: f"color: {z}"
         style1 = styler
         style1.map(f).map(g, z="b").highlight_max()._compute()  # = render
         result = style1.export()

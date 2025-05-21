@@ -353,8 +353,7 @@ def test_construction():
         Timedelta("foo")
 
     msg = (
-        "cannot construct a Timedelta from "
-        "the passed arguments, allowed keywords are "
+        "cannot construct a Timedelta from the passed arguments, allowed keywords are "
     )
     with pytest.raises(ValueError, match=msg):
         Timedelta(day=10)

@@ -23,7 +23,7 @@ permissions:
 jobs:
   web_and_docs:
     name: Doc Build and Upload
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -58,6 +58,10 @@ jobs:
 
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
+
+    - name: Build the interactive terminal
+      working-directory: web/interactive_terminal
+      run: jupyter lite build
 
     - name: Build documentation zip
       run: doc/make.py zip_html
