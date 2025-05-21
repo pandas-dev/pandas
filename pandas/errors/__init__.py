@@ -94,36 +94,90 @@ class PerformanceWarning(Warning):
 class PandasChangeWarning(Warning):
     """
     Warning raised for any an upcoming change.
+
+    See Also
+    --------
+    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+
+    Examples
+    --------
+    >>> pd.errors.PandasChangeWarning
+    <class 'pandas.errors.PandasChangeWarning'>
     """
 
 
 class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWarning):
     """
     Warning raised for an upcoming change that is a PendingDeprecationWarning.
+
+    See Also
+    --------
+    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+
+    Examples
+    --------
+    >>> pd.errors.PandasPendingDeprecationWarning
+    <class 'pandas.errors.PandasPendingDeprecationWarning'>
     """
 
 
 class PandasDeprecationWarning(PandasChangeWarning, DeprecationWarning):
     """
     Warning raised for an upcoming change that is a DeprecationWarning.
+
+    See Also
+    --------
+    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+
+    Examples
+    --------
+    >>> pd.errors.PandasDeprecationWarning
+    <class 'pandas.errors.PandasDeprecationWarning'>
     """
 
 
 class PandasFutureWarning(PandasChangeWarning, FutureWarning):
     """
     Warning raised for an upcoming change that is a FutureWarning.
+
+    See Also
+    --------
+    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+
+    Examples
+    --------
+    >>> pd.errors.PandasFutureWarning
+    <class 'pandas.errors.PandasFutureWarning'>
     """
 
 
 class Pandas4Warning(PandasDeprecationWarning):
     """
     Warning raised for an upcoming change that will be enforced in pandas 4.0.
+
+    See Also
+    --------
+    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+
+    Examples
+    --------
+    >>> pd.errors.Pandas4Warning
+    <class 'pandas.errors.Pandas4Warning'>
     """
 
 
 class Pandas5Warning(PandasPendingDeprecationWarning):
     """
     Warning raised for an upcoming change that will be enforced in pandas 5.0.
+
+    See Also
+    --------
+    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+
+    Examples
+    --------
+    >>> pd.errors.Pandas5Warning
+    <class 'pandas.errors.Pandas5Warning'>
     """
 
 
@@ -968,6 +1022,12 @@ __all__ = [
     "OptionError",
     "OutOfBoundsDatetime",
     "OutOfBoundsTimedelta",
+    "Pandas4Warning",
+    "Pandas5Warning",
+    "PandasChangeWarning",
+    "PandasDeprecationWarning",
+    "PandasFutureWarning",
+    "PandasPendingDeprecationWarning",
     "ParserError",
     "ParserWarning",
     "PerformanceWarning",

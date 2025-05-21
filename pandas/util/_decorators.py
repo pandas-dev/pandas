@@ -25,10 +25,10 @@ if TYPE_CHECKING:
 
 
 def deprecate(
+    klass: type[Warning],
     name: str,
     alternative: Callable[..., Any],
     version: str,
-    klass: type[Warning],
     alt_name: str | None = None,
     stacklevel: int = 2,
     msg: str | None = None,
@@ -44,6 +44,8 @@ def deprecate(
 
     Parameters
     ----------
+    klass : Warning
+        The warning class to use.
     name : str
         Name of function to deprecate.
     alternative : func
@@ -52,8 +54,6 @@ def deprecate(
         Version of pandas in which the method has been deprecated.
     alt_name : str, optional
         Name to use in preference of alternative.__name__.
-    klass : Warning, optional
-        The warning class to use.
     stacklevel : int, default 2
     msg : str
         The message to display in the warning.
@@ -100,8 +100,8 @@ def deprecate(
 
 
 def deprecate_kwarg(
-    old_arg_name: str,
     klass: type[Warning],
+    old_arg_name: str,
     new_arg_name: str | None,
     mapping: Mapping[Any, Any] | Callable[[Any], Any] | None = None,
     stacklevel: int = 2,
@@ -111,6 +111,8 @@ def deprecate_kwarg(
 
     Parameters
     ----------
+    klass : Warning
+        The warning class to use.
     old_arg_name : str
         Name of argument in function to deprecate.
     new_arg_name : str or None
@@ -120,15 +122,13 @@ def deprecate_kwarg(
         If mapping is present, use it to translate old arguments to
         new arguments. A callable must do its own value checking;
         values not found in a dict will be forwarded unchanged.
-    klass : Warning, optional
-        The warning class to use.
     stacklevel : int, default 2
 
     Examples
     --------
     The following deprecates 'cols', using 'columns' instead
 
-    >>> @deprecate_kwarg(old_arg_name="cols", new_arg_name="columns")
+    >>> @deprecate_kwarg(FutureWarning, old_arg_name="cols", new_arg_name="columns")
     ... def f(columns=""):
     ...     print(columns)
     >>> f(columns="should work ok")
@@ -142,7 +142,7 @@ def deprecate_kwarg(
     >>> f(cols="should error", columns="can't pass do both")  # doctest: +SKIP
     TypeError: Can only specify 'cols' or 'columns', not both
 
-    >>> @deprecate_kwarg("old", "new", {"yes": True, "no": False})
+    >>> @deprecate_kwarg(FutureWarning, "old", "new", {"yes": True, "no": False})
     ... def f(new=False):
     ...     print("yes!" if new else "no!")
     >>> f(old="yes")  # doctest: +SKIP
@@ -152,7 +152,7 @@ def deprecate_kwarg(
 
     To raise a warning that a keyword will be removed entirely in the future
 
-    >>> @deprecate_kwarg(old_arg_name="cols", new_arg_name=None)
+    >>> @deprecate_kwarg(FutureWarning, old_arg_name="cols", new_arg_name=None)
     ... def f(cols="", another_param=""):
     ...     print(cols)
     >>> f(cols="should raise warning")  # doctest: +SKIP
@@ -267,7 +267,6 @@ def future_version_msg(version: str | None) -> str:
 
 
 def deprecate_nonkeyword_arguments(
-    version: str | None,
     klass: type[Warning],
     allowed_args: list[str] | None = None,
     name: str | None = None,
@@ -277,26 +276,30 @@ def deprecate_nonkeyword_arguments(
 
     Parameters
     ----------
-    version : str, optional
-        The version in which positional arguments will become
-        keyword-only. If None, then the warning message won't
-        specify any particular version.
-
+    klass : Warning, optional
+        The warning class to use.
     allowed_args : list, optional
         In case of list, it must be the list of names of some
         first arguments of the decorated functions that are
         OK to be given as positional arguments. In case of None value,
         defaults to list of all arguments not having the
         default value.
-
     name : str, optional
         The specific name of the function to show in the warning
         message. If None, then the Qualified name of the function
         is used.
-
-    klass : Warning, optional
-        The warning class to use.
     """
+    from pandas.errors import (
+        Pandas4Warning,
+        Pandas5Warning,
+    )
+
+    if klass is Pandas4Warning:
+        version = "4.0"
+    elif klass is Pandas5Warning:
+        version = "5.0"
+    else:
+        raise AssertionError(f"{type(klass)=} must be a versioned warning")
 
     def decorate(func):
         old_sig = inspect.signature(func)

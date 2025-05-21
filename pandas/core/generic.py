@@ -4387,7 +4387,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
     # issue 58667
-    @deprecate_kwarg("method", klass=Pandas4Warning, new_arg_name=None)
+    @deprecate_kwarg(Pandas4Warning, "method", new_arg_name=None)
     @final
     def reindex_like(
         self,
