@@ -107,6 +107,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Enabled :class:`Series.mode` and :class:`DataFrame.mode` with ``dropna=False`` to sort the result for all dtypes in the presence of NA values; previously only certain dtypes would sort (:issue:`60702`)
+- Bug in :meth:`Series.round` on object columns no longer raises ``TypeError``
 -
 
 Conversion
