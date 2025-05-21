@@ -67,9 +67,25 @@ class Preprocessors:
     """
 
     @staticmethod
-    def process_translations(context: dict) -> dict:
+    def current_year(context: dict) -> dict:
         """
-        Download the translations from the GitHub repository and extract them.
+        Add the current year to the context, so it can be used for the copyright
+        note, or other places where it is needed.
+        """
+        context["current_year"] = datetime.datetime.now().year
+        return context
+
+    @staticmethod
+    def download_translated_content(context: dict) -> dict:
+        """
+        Download the translations from the mirror translations repository.
+        https://github.com/Scientific-Python-Translations/pandas-translations
+
+        All translated languages are downloaded, extracted and place inside the
+        ``pandas`` folder in a separate folder for each language (e.g. ``pandas/es``).
+
+        The extracted folder and the translations folders are deleted before
+        downloading the information, so the translations are always up to date.
         """
         base_folder = os.path.dirname(__file__)
         extract_path = os.path.join(base_folder, context["translations"]["source_path"])
@@ -90,12 +106,27 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def current_year(context: dict) -> dict:
+    def add_navbar_content(context: dict) -> dict:
         """
-        Add the current year to the context, so it can be used for the copyright
-        note, or other places where it is needed.
+        Add the navbar content to the context.
+
+        The navbar content is loaded for all available languages.
         """
-        context["current_year"] = datetime.datetime.now().year
+        context["navbar"] = {}
+        for lang in context["translations"]["languages"]:
+            path = os.path.join(
+                context["source_path"],
+                "" if lang == "en" else f"{lang}",
+                context["main"]["navbar_fname"],
+            )
+            if os.path.exists(path):
+                with open(
+                    path,
+                    encoding="utf-8",
+                ) as f:
+                    navbar_lang = yaml.safe_load(f)
+                context["navbar"][lang] = navbar_lang["navbar"]
+
         return context
 
     @staticmethod
@@ -106,34 +137,39 @@ class Preprocessors:
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
+        for i, item in enumerate(context["navbar"]["en"]):
+            context["navbar"]["en"][i] = dict(
+                item,
+                has_subitems=isinstance(item["target"], list),
+                slug=(item["name"].replace(" ", "-").lower()),
+            )
+        return context
 
-        def update_target(item: dict, url_prefix: str) -> None:
+    @staticmethod
+    def navbar_add_translated_info(context: dict) -> dict:
+        """
+        Prepare the translated navbar information for the template.
+
+        Items in the main navigation bar can be direct links, or dropdowns with
+        subitems. This context preprocessor adds a boolean field
+        ``has_subitems`` that tells which one of them every element is. It
+        also adds a ``slug`` field to be used as a CSS id.
+        """
+
+        def update_target(item: dict, prefix: str) -> None:
             if item.get("translated", True):
-                item["target"] = f"{url_prefix}{item['target']}"
+                item["target"] = f"{prefix}/{item['target']}"
             else:
                 item["target"] = f"../{item['target']}"
 
-        context["navbar"] = {}
-        for lang in context["translations"]["languages"]:
-            prefix = "" if lang == "en" else lang
-            url_prefix = "" if lang == "en" else lang + "/"
-            with open(
-                os.path.join(
-                    context["source_path"], prefix, context["main"]["navbar_fname"]
-                ),
-                encoding="utf-8",
-            ) as f:
-                navbar_lang = yaml.safe_load(f)
-
-            context["navbar"][lang] = navbar_lang["navbar"]
-            for i, item in enumerate(navbar_lang["navbar"]):
+        for lang in list(context["translations"]["languages"].keys())[1:]:
+            for i, item in enumerate(context["navbar"][lang]):
                 has_subitems = isinstance(item["target"], list)
-                if lang != "en":
-                    if has_subitems:
-                        for sub_item in item["target"]:
-                            update_target(sub_item, url_prefix)
-                    else:
-                        update_target(item, url_prefix)
+                if has_subitems:
+                    for sub_item in item["target"]:
+                        update_target(sub_item, lang)
+                else:
+                    update_target(item, lang)
 
                 context["navbar"][lang][i] = dict(
                     item,

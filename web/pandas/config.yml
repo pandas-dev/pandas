@@ -8,9 +8,11 @@ main:
   - config.yml
   github_repo_url: pandas-dev/pandas
   context_preprocessors:
-  - pandas_web.Preprocessors.process_translations
   - pandas_web.Preprocessors.current_year
+  - pandas_web.Preprocessors.download_translated_content
+  - pandas_web.Preprocessors.add_navbar_content
   - pandas_web.Preprocessors.navbar_add_info
+  - pandas_web.Preprocessors.navbar_add_translated_info
   - pandas_web.Preprocessors.blog_add_posts
   - pandas_web.Preprocessors.maintainers_add_info
   - pandas_web.Preprocessors.home_add_releases
