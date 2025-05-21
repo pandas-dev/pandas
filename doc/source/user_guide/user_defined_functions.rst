@@ -96,15 +96,15 @@ User-Defined Functions can be applied across various pandas methods:
 +----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :meth:`apply` (axis=1)     | Row (Series)           | Row (Series)             | Apply a function to each row                                                                                                                 |
 +----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :meth:`agg`                | Series/DataFrame       | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer                                                                                 |
-+----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :meth:`transform` (axis=0) | Column (Series)        | Column(Series)           | Same as :meth:`apply` with (axis=0), but it raises an exception if the function changes the shape of the data                                |
-+----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :meth:`transform` (axis=1) | Row (Series)           | Row (Series)             | Same as :meth:`apply` with (axis=1), but it raises an exception if the function changes the shape of the data                                |
+| :meth:`pipe`               | Series or DataFrame    | Series or DataFrame      | Chain functions together to apply to Series or Dataframe                                                                                     |
 +----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :meth:`filter`             | Series or DataFrame    | Boolean                  | Only accepts UDFs in group by. Function is called for each group, and the group is removed from the result if the function returns ``False`` |
 +----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :meth:`pipe`               | Series/DataFrame       | Series/DataFrame         | Chain functions together to apply to Series or Dataframe                                                                                     |
+| :meth:`agg`                | Series or DataFrame    | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer                                                                                 |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`transform` (axis=0) | Column (Series)        | Column (Series)          | Same as :meth:`apply` with (axis=0), but it raises an exception if the function changes the shape of the data                                |
++----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| :meth:`transform` (axis=1) | Row (Series)           | Row (Series)             | Same as :meth:`apply` with (axis=1), but it raises an exception if the function changes the shape of the data                                |
 +----------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 
 When applying UDFs in pandas, it is essential to select the appropriate method based
@@ -118,15 +118,141 @@ decisions, ensuring more efficient and maintainable code.
     and :ref:`ewm()<window>` for details.
 
 
-:meth:`DataFrame.apply`
-~~~~~~~~~~~~~~~~~~~~~~~
+:meth:`Series.map` and :meth:`DataFrame.map`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`apply` method allows you to apply UDFs along either rows or columns. While flexible,
-it is slower than vectorized operations and should be used only when you need operations
-that cannot be achieved with built-in pandas functions.
+The :meth:`map` method is used specifically to apply element-wise UDFs. This means the function
+will be called for each element in the ``Series`` or ``DataFrame``, with the individual value or
+the cell as the function argument.
+
+.. ipython:: python
+
+    temperature_celsius = pd.DataFrame({
+        "NYC": [14, 21, 23],
+        "Los Angeles": [22, 28, 31],
+    })
+
+    def to_fahrenheit(value):
+        return value * (9 / 5) + 32
+
+    temperature_celsius.map(to_fahrenheit)
+
+In this example, the function ``to_fahrenheit`` will be called 6 times, once for each value
+in the ``DataFrame``. And the result of each call will be returned in the corresponding cell
+of the resulting ``DataFrame``.
+
+In general, ``map`` will be slow, as it will not make use of vectorization. Instead, a Python
+function call for each value will be required, which will slow down things significantly if
+working with medium or large data.
+
+When to use: Use :meth:`map` for applying element-wise UDFs to DataFrames or Series.
+
+:meth:`Series.apply` and :meth:`DataFrame.apply`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :meth:`apply` method allows you to apply UDFs for a whole column or row. This is different
+from :meth:`map` in that the function will be called for each column (or row), not for each individual value.
+
+.. ipython:: python
+
+    temperature_celsius = pd.DataFrame({
+        "NYC": [14, 21, 23],
+        "Los Angeles": [22, 28, 31],
+    })
+
+    def to_fahrenheit(column):
+        return column * (9 / 5) + 32
+
+    temperature_celsius.apply(to_fahrenheit)
+
+In the example, ``to_fahrenheit`` will be called only twice, as opposed to the 6 times with :meth:`map`.
+This will be faster than using :meth:`map`, since the operations for each column are vectorized, and the
+overhead of iterating over data in Python and calling Python functions is significantly reduced.
+
+In some cases, the function may require all the data to be able to compute the result. So :meth:`apply`
+is needed, since with :meth:`map` the function can only access one element at a time.
+
+.. ipython:: python
+
+    temperature = pd.DataFrame({
+        "NYC": [14, 21, 23],
+        "Los Angeles": [22, 28, 31],
+    })
+
+    def normalize(column):
+        return column / column.mean()
+
+    temperature.apply(normalize)
+
+In the example, the ``normalize`` function needs to compute the mean of the whole column in order
+to divide each element by it. So, we cannot call the function for each element, but we need the
+function to receive the whole column.
+
+:meth:`apply` can also execute function by row, by specifying ``axis=1``.
+
+.. ipython:: python
+
+    temperature = pd.DataFrame({
+        "NYC": [14, 21, 23],
+        "Los Angeles": [22, 28, 31],
+    })
+
+    def hotter(row):
+        return row["Los Angeles"] - row["NYC"]
+
+    temperature.apply(hotter, axis=1)
+
+In the example, the function ``hotter`` will be called 3 times, once for each row. And each
+call will receive the whole row as the argument, allowing computations that require more than
+one value in the row.
+
+``apply`` is also available for :meth:`SeriesGroupBy.apply`, :meth:`DataFrameGroupBy.apply`,
+:meth:`Rolling.apply`, :meth:`Expanding.apply` and :meth:`Resampler.apply`. You can read more
+about ``apply`` in groupby operations :ref:`groupby.apply`.
 
 When to use: :meth:`apply` is suitable when no alternative vectorized method or UDF method is available,
 but consider optimizing performance with vectorized operations wherever possible.
+
+:meth:`DataFrame.pipe`
+~~~~~~~~~~~~~~~~~~~~~~
+
+The :meth:`pipe` method is useful for chaining operations together into a clean and readable pipeline.
+It is a helpful tool for organizing complex data processing workflows.
+
+When to use: Use :meth:`pipe` when you need to create a pipeline of operations and want to keep the code readable and maintainable.
+
+:meth:`DataFrame.filter`
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :meth:`filter` method is used to select subsets of the DataFrame’s
+columns or row. It is useful when you want to extract specific columns or rows that
+match particular conditions.
+
+When to use: Use :meth:`filter` when you want to use a UDF to create a subset of a DataFrame or Series
+
+.. note::
+    :meth:`DataFrame.filter` does not accept UDFs, but can accept
+    list comprehensions that have UDFs applied to them.
+
+.. ipython:: python
+
+    # Sample DataFrame
+    df = pd.DataFrame({
+        'AA': [1, 2, 3],
+        'BB': [4, 5, 6],
+        'C': [7, 8, 9],
+        'D': [10, 11, 12]
+    })
+
+    # Function that filters out columns where the name is longer than 1 character
+    def is_long_name(column_name):
+        return len(column_name) > 1
+
+    df_filtered = df.filter(items=[col for col in df.columns if is_long_name(col)])
+    print(df_filtered)
+
+Since filter does not directly accept a UDF, you have to apply the UDF indirectly,
+for example, by using list comprehensions.
 
 :meth:`DataFrame.agg`
 ~~~~~~~~~~~~~~~~~~~~~
@@ -165,54 +291,6 @@ When to use: When you need to perform element-wise transformations that retain t
         return pred
 
     result = df.groupby('group').transform(fit_model)
-
-:meth:`DataFrame.filter`
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-The :meth:`filter` method is used to select subsets of the DataFrame’s
-columns or row. It is useful when you want to extract specific columns or rows that
-match particular conditions.
-
-When to use: Use :meth:`filter` when you want to use a UDF to create a subset of a DataFrame or Series
-
-.. note::
-    :meth:`DataFrame.filter` does not accept UDFs, but can accept
-    list comprehensions that have UDFs applied to them.
-
-.. ipython:: python
-
-    # Sample DataFrame
-    df = pd.DataFrame({
-        'AA': [1, 2, 3],
-        'BB': [4, 5, 6],
-        'C': [7, 8, 9],
-        'D': [10, 11, 12]
-    })
-
-    # Function that filters out columns where the name is longer than 1 character
-    def is_long_name(column_name):
-        return len(column_name) > 1
-
-    df_filtered = df.filter(items=[col for col in df.columns if is_long_name(col)])
-    print(df_filtered)
-
-Since filter does not directly accept a UDF, you have to apply the UDF indirectly,
-for example, by using list comprehensions.
-
-:meth:`DataFrame.map`
-~~~~~~~~~~~~~~~~~~~~~
-
-The :meth:`map` method is used specifically to apply element-wise UDFs.
-
-When to use: Use :meth:`map` for applying element-wise UDFs to DataFrames or Series.
-
-:meth:`DataFrame.pipe`
-~~~~~~~~~~~~~~~~~~~~~~
-
-The :meth:`pipe` method is useful for chaining operations together into a clean and readable pipeline.
-It is a helpful tool for organizing complex data processing workflows.
-
-When to use: Use :meth:`pipe` when you need to create a pipeline of operations and want to keep the code readable and maintainable.
 
 
 Performance
