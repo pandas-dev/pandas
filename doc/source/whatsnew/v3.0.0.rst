@@ -97,7 +97,7 @@ Notable bug fixes
 These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_300.notable_bug_fixes.groupby_unobs_and_na:
-- ``Index.__setitem__`` raises ``ValueError`` when integer indexers contain ``pd.NA``. (:gh:`61465`)
+- ``Index.__setitem__`` raises ``ValueError`` when integer indexers contain ``pd.NA``. (:issue:`61465`)
 
 
 Improved behavior in groupby for ``observed=False``
