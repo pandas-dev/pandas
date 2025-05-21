@@ -67,6 +67,29 @@ class Preprocessors:
     """
 
     @staticmethod
+    def process_translations(context: dict) -> dict:
+        """
+        Download the translations from the GitHub repository and extract them.
+        """
+        base_folder = os.path.dirname(__file__)
+        extract_path = os.path.join(base_folder, context["translations"]["source_path"])
+        shutil.rmtree(extract_path, ignore_errors=True)
+        response = requests.get(context["translations"]["url"])
+        if response.status_code == 200:
+            with tarfile.open(None, "r:gz", io.BytesIO(response.content)) as tar:
+                tar.extractall(base_folder)
+        else:
+            raise Exception(f"Failed to download translations: {response.status_code}")
+
+        for lang in list(context["translations"]["languages"].keys())[1:]:
+            shutil.rmtree(os.path.join(base_folder, "pandas", lang), ignore_errors=True)
+            shutil.move(
+                os.path.join(extract_path, lang),
+                os.path.join(base_folder, "pandas", lang),
+            )
+        return context
+
+    @staticmethod
     def current_year(context: dict) -> dict:
         """
         Add the current year to the context, so it can be used for the copyright
@@ -83,14 +106,38 @@ class Preprocessors:
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
-        for language in context["translations"]["languages"]:
-            for i, item in enumerate(context["navbar"][language]):
-                if not item.get("translated", True):
-                    item["target"] = f"../{item['target']}"
 
-                context["navbar"][language][i] = dict(
+        def update_target(item: dict, url_prefix: str) -> None:
+            if item.get("translated", True):
+                item["target"] = f"{url_prefix}{item['target']}"
+            else:
+                item["target"] = f"../{item['target']}"
+
+        context["navbar"] = {}
+        for lang in context["translations"]["languages"]:
+            prefix = "" if lang == "en" else lang
+            url_prefix = "" if lang == "en" else lang + "/"
+            with open(
+                os.path.join(
+                    context["source_path"], prefix, context["main"]["navbar_fname"]
+                ),
+                encoding="utf-8",
+            ) as f:
+                navbar_lang = yaml.safe_load(f)
+
+            context["navbar"][lang] = navbar_lang["navbar"]
+            for i, item in enumerate(navbar_lang["navbar"]):
+                has_subitems = isinstance(item["target"], list)
+                if lang != "en":
+                    if has_subitems:
+                        for sub_item in item["target"]:
+                            update_target(sub_item, url_prefix)
+                    else:
+                        update_target(item, url_prefix)
+
+                context["navbar"][lang][i] = dict(
                     item,
-                    has_subitems=isinstance(item["target"], list),
+                    has_subitems=has_subitems,
                     slug=(item["name"].replace(" ", "-").lower()),
                 )
         return context
@@ -392,7 +439,7 @@ def get_callable(obj_as_str: str) -> object:
     return obj
 
 
-def get_context(config_fname: str, navbar_fname: str, **kwargs: dict) -> dict:
+def get_context(config_fname: str, **kwargs: dict) -> dict:
     """
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
@@ -401,24 +448,8 @@ def get_context(config_fname: str, navbar_fname: str, **kwargs: dict) -> dict:
         context = yaml.safe_load(f)
 
     context["source_path"] = os.path.dirname(config_fname)
-
-    default_language = context["translations"]["default_language"]
-    default_prefix = context["translations"]["default_prefix"]
-    translated_languages = context["translations"]["languages"].copy()
-    translated_languages.pop(default_language)
-    context["translated_languages"] = translated_languages
-    download_and_extract_translations(context)
-    navbar = {}
-    for language in context["translations"]["languages"]:
-        prefix = default_prefix if language == default_language else language
-        with open(
-            os.path.join(context["source_path"], prefix, navbar_fname), encoding="utf-8"
-        ) as f:
-            navbar_lang = yaml.safe_load(f)
-        navbar[language] = navbar_lang["navbar"]
-    context["navbar"] = navbar
-
     context.update(kwargs)
+
     preprocessors = (
         get_callable(context_prep)
         for context_prep in context["main"]["context_preprocessors"]
@@ -453,27 +484,6 @@ def extend_base_template(content: str, base_template: str) -> str:
     return result
 
 
-def download_and_extract_translations(context: dict) -> None:
-    """
-    Download the translations from the GitHub repository and extract them.
-    """
-    base_folder = os.path.dirname(__file__)
-    extract_path = os.path.join(base_folder, context["translations"]["folder"])
-    shutil.rmtree(extract_path, ignore_errors=True)
-    response = requests.get(context["translations"]["url"])
-    if response.status_code == 200:
-        with tarfile.open(None, "r:gz", io.BytesIO(response.content)) as tar:
-            tar.extractall(os.path.join(base_folder, context["translations"]["folder"]))
-    else:
-        raise Exception(f"Failed to download translations: {response.status_code}")
-    for lang in context["translated_languages"]:
-        shutil.rmtree(os.path.join(base_folder, "pandas", lang), ignore_errors=True)
-        shutil.move(
-            os.path.join(extract_path, context["translations"]["source_path"], lang),
-            os.path.join(base_folder, "pandas", lang),
-        )
-
-
 def main(
     source_path: str,
     target_path: str,
@@ -490,22 +500,14 @@ def main(
     sys.stderr.write("Generating context...\n")
     context = get_context(
         os.path.join(source_path, "config.yml"),
-        navbar_fname="navbar.yml",
         target_path=target_path,
     )
     sys.stderr.write("Context generated\n")
 
     templates_path = os.path.join(source_path, context["main"]["templates_path"])
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
-
     for fname in get_source_files(source_path):
-        selected_language = context["translations"]["default_language"]
-        for language in context["translated_languages"]:
-            if fname.startswith(language + "/"):
-                selected_language = language
-                break
-
-        context["selected_language"] = selected_language
+        context["lang"] = fname[0:2] if fname[2] == "/" else "en"
         if os.path.normpath(fname) in context["main"]["ignore"]:
             continue
 
@@ -525,13 +527,7 @@ def main(
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
-
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
-            if selected_language != context["translations"]["default_language"]:
-                context["base_url"] = "".join(
-                    ["../"] * (os.path.normpath(fname).count("/") - 1)
-                )
-
             content = jinja_env.from_string(content).render(**context)
             fname_html = os.path.splitext(fname)[0] + ".html"
             with open(

@@ -1,12 +1,14 @@
 main:
   templates_path: _templates
   base_template: "layout.html"
+  navbar_fname: "navbar.yml"
   production_url: "https://pandas.pydata.org/"
   ignore:
   - _templates/layout.html
   - config.yml
   github_repo_url: pandas-dev/pandas
   context_preprocessors:
+  - pandas_web.Preprocessors.process_translations
   - pandas_web.Preprocessors.current_year
   - pandas_web.Preprocessors.navbar_add_info
   - pandas_web.Preprocessors.blog_add_posts
@@ -173,12 +175,8 @@ roadmap:
   pdeps_path: pdeps
 translations:
   url: https://github.com/Scientific-Python-Translations/pandas-translations/archive/refs/heads/main.tar.gz
-  folder: translations
   source_path: pandas-translations-main/web/pandas/
-  default_language: 'en'
-  default_prefix: ''
   languages:
     en: English
     es: Español
     pt: Português
-    # fr: Français
