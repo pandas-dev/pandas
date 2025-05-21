@@ -178,11 +178,25 @@ Getitem (``[]``)
 ~~~~~~~~~~~~~~~~
 
 For a :class:`DataFrame`, passing a single label selects a column and
-yields a :class:`Series` equivalent to ``df.A``:
+yields a :class:`Series`:
 
 .. ipython:: python
 
    df["A"]
+
+If the label only contains letters, numbers, and underscores, you can
+alternatively use the column name attribute:
+
+.. ipython:: python
+
+   df.A
+
+Passing a list of column labels selects multiple columns, which can be useful
+for getting a subset/rearranging:
+
+.. ipython:: python
+
+   df[["B", "A"]]
 
 For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:
 
