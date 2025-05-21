@@ -15,7 +15,7 @@ def test_function_warns_pandas_deprecation_warning():
         f1()
 
 
-@deprecate_kwarg("old", klass=PandasChangeWarning, new_arg_name="new")
+@deprecate_kwarg(PandasChangeWarning, "old", new_arg_name="new")
 def f2(new=0):
     return new
 

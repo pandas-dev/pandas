@@ -4,13 +4,16 @@ Tests for the `deprecate_nonkeyword_arguments` decorator
 
 import inspect
 
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 import pandas._testing as tm
 
+WARNING_CATEGORY = Pandas4Warning
+
 
 @deprecate_nonkeyword_arguments(
-    version="1.1", allowed_args=["a", "b"], name="f_add_inputs", klass=FutureWarning
+    WARNING_CATEGORY, allowed_args=["a", "b"], name="f_add_inputs"
 )
 def f(a, b=0, c=0, d=0):
     return a + b + c + d
@@ -41,25 +44,25 @@ def test_two_and_two_arguments():
 
 
 def test_three_arguments():
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(WARNING_CATEGORY):
         assert f(6, 3, 3) == 12
 
 
 def test_four_arguments():
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(WARNING_CATEGORY):
         assert f(1, 2, 3, 4) == 10
 
 
 def test_three_arguments_with_name_in_warning():
     msg = (
-        "Starting with pandas version 1.1 all arguments of f_add_inputs "
+        "Starting with pandas version 4.0 all arguments of f_add_inputs "
         "except for the arguments 'a' and 'b' will be keyword-only."
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         assert f(6, 3, 3) == 12
 
 
-@deprecate_nonkeyword_arguments(version="1.1", klass=FutureWarning)
+@deprecate_nonkeyword_arguments(WARNING_CATEGORY)
 def g(a, b=0, c=0, d=0):
     with tm.assert_produces_warning(None):
         return a + b + c + d
@@ -75,20 +78,20 @@ def test_one_and_three_arguments_default_allowed_args():
 
 
 def test_three_arguments_default_allowed_args():
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(WARNING_CATEGORY):
         assert g(6, 3, 3) == 12
 
 
 def test_three_positional_argument_with_warning_message_analysis():
     msg = (
-        "Starting with pandas version 1.1 all arguments of g "
+        "Starting with pandas version 4.0 all arguments of g "
         "except for the argument 'a' will be keyword-only."
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         assert g(6, 3, 3) == 12
 
 
-@deprecate_nonkeyword_arguments(version="1.1", klass=FutureWarning)
+@deprecate_nonkeyword_arguments(WARNING_CATEGORY)
 def h(a=0, b=0, c=0, d=0):
     return a + b + c + d
 
@@ -103,17 +106,17 @@ def test_all_keyword_arguments():
 
 
 def test_one_positional_argument():
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(WARNING_CATEGORY):
         assert h(23) == 23
 
 
 def test_one_positional_argument_with_warning_message_analysis():
-    msg = "Starting with pandas version 1.1 all arguments of h will be keyword-only."
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = "Starting with pandas version 4.0 all arguments of h will be keyword-only."
+    with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         assert h(19) == 19
 
 
-@deprecate_nonkeyword_arguments(version="1.1", klass=UserWarning)
+@deprecate_nonkeyword_arguments(WARNING_CATEGORY)
 def i(a=0, /, b=0, *, c=0, d=0):
     return a + b + c + d
 
@@ -123,14 +126,12 @@ def test_i_signature():
 
 
 def test_i_warns_klass():
-    with tm.assert_produces_warning(UserWarning):
+    with tm.assert_produces_warning(WARNING_CATEGORY):
         assert i(1, 2) == 3
 
 
 class Foo:
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "bar"], klass=FutureWarning
-    )
+    @deprecate_nonkeyword_arguments(WARNING_CATEGORY, allowed_args=["self", "bar"])
     def baz(self, bar=None, foobar=None): ...
 
 
@@ -140,8 +141,8 @@ def test_foo_signature():
 
 def test_class():
     msg = (
-        r"In a future version of pandas all arguments of Foo\.baz "
+        r"Starting with pandas version 4.0 all arguments of Foo\.baz "
         r"except for the argument \'bar\' will be keyword-only"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         Foo().baz("qux", "quox")
