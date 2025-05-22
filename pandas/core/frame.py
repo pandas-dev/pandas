@@ -4481,18 +4481,58 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def query(
-        self, expr: str, *, inplace: Literal[False] = ..., **kwargs
+        self,
+        expr: str,
+        *,
+        parser: Literal["pandas", "python"] = ...,
+        engine: Literal["python", "numexpr"] | None = ...,
+        local_dict: dict[str, Any] | None = ...,
+        global_dict: dict[str, Any] | None = ...,
+        resolvers: list[Mapping] | None = ...,
+        level: int = ...,
+        inplace: Literal[False] = ...,
     ) -> DataFrame: ...
 
     @overload
-    def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None: ...
+    def query(
+        self,
+        expr: str,
+        *,
+        parser: Literal["pandas", "python"] = ...,
+        engine: Literal["python", "numexpr"] | None = ...,
+        local_dict: dict[str, Any] | None = ...,
+        global_dict: dict[str, Any] | None = ...,
+        resolvers: list[Mapping] | None = ...,
+        level: int = ...,
+        inplace: Literal[True],
+    ) -> None: ...
 
     @overload
     def query(
-        self, expr: str, *, inplace: bool = ..., **kwargs
+        self,
+        expr: str,
+        *,
+        parser: Literal["pandas", "python"] = ...,
+        engine: Literal["python", "numexpr"] | None = ...,
+        local_dict: dict[str, Any] | None = ...,
+        global_dict: dict[str, Any] | None = ...,
+        resolvers: list[Mapping] | None = ...,
+        level: int = ...,
+        inplace: bool = ...,
     ) -> DataFrame | None: ...
 
-    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(
+        self,
+        expr: str,
+        *,
+        parser: Literal["pandas", "python"] = "pandas",
+        engine: Literal["python", "numexpr"] | None = None,
+        local_dict: dict[str, Any] | None = None,
+        global_dict: dict[str, Any] | None = None,
+        resolvers: list[Mapping] | None = None,
+        level: int = 0,
+        inplace: bool = False,
+    ) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4511,11 +4551,41 @@ class DataFrame(NDFrame, OpsMixin):
 
             See the documentation for :meth:`DataFrame.eval` for details on
             referring to column names and variables in the query string.
+        parser : {'pandas', 'python'}, default 'pandas'
+            The parser to use to construct the syntax tree from the expression. The
+            default of ``'pandas'`` parses code slightly different than standard
+            Python. Alternatively, you can parse an expression using the
+            ``'python'`` parser to retain strict Python semantics.  See the
+            :ref:`enhancing performance <enhancingperf.eval>` documentation for
+            more details.
+        engine : {'python', 'numexpr'}, default 'numexpr'
+
+            The engine used to evaluate the expression. Supported engines are
+
+            - None : tries to use ``numexpr``, falls back to ``python``
+            - ``'numexpr'`` : This default engine evaluates pandas objects using
+              numexpr for large speed ups in complex expressions with large frames.
+            - ``'python'`` : Performs operations as if you had ``eval``'d in top
+              level python. This engine is generally not that useful.
+
+            More backends may be available in the future.
+        local_dict : dict or None, optional
+            A dictionary of local variables, taken from locals() by default.
+        global_dict : dict or None, optional
+            A dictionary of global variables, taken from globals() by default.
+        resolvers : list of dict-like or None, optional
+            A list of objects implementing the ``__getitem__`` special method that
+            you can use to inject an additional collection of namespaces to use for
+            variable lookup. For example, this is used in the
+            :meth:`~DataFrame.query` method to inject the
+            ``DataFrame.index`` and ``DataFrame.columns``
+            variables that refer to their respective :class:`~pandas.DataFrame`
+            instance attributes.
+        level : int, optional
+            The number of prior stack frames to traverse and add to the current
+            scope. Most users will **not** need to change this parameter.
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
-        **kwargs
-            See the documentation for :func:`eval` for complete details
-            on the keyword arguments accepted by :meth:`DataFrame.query`.
 
         Returns
         -------
@@ -4628,10 +4698,17 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs["level"] = kwargs.pop("level", 0) + 1
-        kwargs["target"] = None
 
-        res = self.eval(expr, **kwargs)
+        res = self.eval(
+            expr,
+            level=level + 1,
+            parser=parser,
+            target=None,
+            engine=engine,
+            local_dict=local_dict,
+            global_dict=global_dict,
+            resolvers=resolvers or (),
+        )
 
         try:
             result = self.loc[res]
@@ -9181,11 +9258,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------%s
-        columns : str or object or a list of str
+        columns : Hashable or a sequence of the previous
             Column to use to make new frame's columns.
-        index : str or object or a list of str, optional
+        index : Hashable or a sequence of the previous, optional
             Column to use to make new frame's index. If not given, uses existing index.
-        values : str, object or a list of the previous, optional
+        values : Hashable or a sequence of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
@@ -9324,12 +9401,12 @@ class DataFrame(NDFrame, OpsMixin):
         ----------%s
         values : list-like or scalar, optional
             Column or columns to aggregate.
-        index : column, Grouper, array, or list of the previous
+        index : column, Grouper, array, or sequence of the previous
             Keys to group by on the pivot table index. If a list is passed,
             it can contain any of the other types (except list). If an array is
             passed, it must be the same length as the data and will be used in
             the same manner as column values.
-        columns : column, Grouper, array, or list of the previous
+        columns : column, Grouper, array, or sequence of the previous
             Keys to group by on the pivot table column. If a list is passed,
             it can contain any of the other types (except list). If an array is
             passed, it must be the same length as the data and will be used in
