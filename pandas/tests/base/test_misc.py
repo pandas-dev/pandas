@@ -151,9 +151,7 @@ def test_searchsorted(request, index_or_series_obj):
         request.applymarker(pytest.mark.xfail(reason="GH 14833", strict=False))
         return
 
-    # 2. Check for Index and subtypes
     if isinstance(obj, Index):
-        # 2a. Mixed types
         if obj.inferred_type in ["mixed", "mixed-integer"]:
             try:
                 obj = obj.astype(str)
