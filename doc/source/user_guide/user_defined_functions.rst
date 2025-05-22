@@ -1,4 +1,4 @@
-.. _user_defined_functions:
+.. _udf:
 
 {{ header }}
 
@@ -291,7 +291,7 @@ functions.
     def highest_jump(column):
         return column.pct_change().max()
 
-    temperature.apply(highest_jump)
+    temperature.agg(highest_jump)
 
 
 When to use: Use :meth:`agg` for performing custom aggregations, where the operation returns
