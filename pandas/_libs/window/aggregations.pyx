@@ -737,7 +737,7 @@ cdef void update_sum_of_window(float64_t val,
 
     cdef:
         float64_t val_raised
-        int  val_length, x_length
+        double  val_length, x_length
         bool val_length_flag, x_length_flag
 
     if add_mode:
