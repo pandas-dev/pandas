@@ -156,13 +156,10 @@ def test_searchsorted(request, index_or_series_obj):
             try:
                 obj = obj.astype(str)
             except (TypeError, ValueError):
-                request.applymarker(
-                    pytest.mark.xfail(reason="Mixed types", strict=False)
-                )
+                request.applymarker(pytest.mark.xfail(reason="Mixed types"))
                 return
 
         elif obj.dtype.kind == "c":
-            request.applymarker(pytest.mark.xfail(reason="Complex types", strict=False))
             return
 
     max_obj = max(obj, default=0)

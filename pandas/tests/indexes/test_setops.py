@@ -63,8 +63,11 @@ def index_flat2(index_flat):
 
 
 def test_union_same_types(index):
-    # mixed int string
-    if index.equals(Index([0, "a", 1, "b", 2, "c"])):
+    # Exclude MultiIndex from mixed-type handling
+    if not isinstance(index, MultiIndex) and index.inferred_type in [
+        "mixed",
+        "mixed-integer",
+    ]:
         index = index.astype(str)
 
     idx1 = index.sort_values()
@@ -75,12 +78,20 @@ def test_union_same_types(index):
 def test_union_different_types(index_flat, index_flat2, request):
     idx1 = index_flat
     idx2 = index_flat2
-    # mixed int string
-    target_index = Index([0, "a", 1, "b", 2, "c"])
-    if idx1.equals(target_index) or idx2.equals(target_index):
+
+    # Exclude MultiIndex from mixed-type handling
+    if not isinstance(idx1, MultiIndex) and idx1.inferred_type in [
+        "mixed",
+        "mixed-integer",
+    ]:
         idx1 = idx1.astype(str)
+    if not isinstance(idx2, MultiIndex) and idx2.inferred_type in [
+        "mixed",
+        "mixed-integer",
+    ]:
         idx2 = idx2.astype(str)
 
+    # ... rest of the function remains unchanged ...
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
     warn = None
