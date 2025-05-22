@@ -1,13 +1,18 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
-
 from libc.math cimport (
     round,
     signbit,
     sqrt,
+    pow,
+    log10,
+    abs,
+    isfinite,
 )
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
 from libcpp.unordered_map cimport unordered_map
+from libcpp cimport bool
+
 
 from pandas._libs.algos cimport TiebreakEnumType
 
@@ -20,6 +25,8 @@ from numpy cimport (
     int64_t,
     ndarray,
 )
+
+
 
 cnp.import_array()
 
@@ -724,6 +731,46 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
 
     return result
 
+cdef void update_sum_of_window( float64_t val,
+                                float64_t **x_value,
+                                float64_t **comp_value,
+                                int power_of_element,  
+                                bool add_mode,   #1 for add_kurt, 0 for remove_kurt
+                                ) noexcept nogil:
+
+    cdef:
+        float64_t val_raised, new_sum
+        bool val_length_flag, x_length_flag
+    
+    if add_mode:
+        val_raised = pow(val, power_of_element)
+    else:
+        val_raised = -pow(val, power_of_element)
+
+    x_length_flag = abs(log10(abs(x_value[0][0]))) > 15 and isfinite(abs(log10(abs(x_value[0][0])))) == 1
+    val_length_flag = abs(log10(abs(val_raised))) > 15 and isfinite(abs(log10(abs(val_raised)))) == 1
+
+    # We'll try to maintain comp_value as the counter for 
+    # numbers <1e15 to keep it from getting rounded out.
+    if x_length_flag and val_length_flag:
+        #Both > 1e15 or < 1-e15
+        x_value[0][0] += val_raised
+
+    elif x_length_flag:
+        comp_value[0][0] += val_raised
+
+
+    elif val_length_flag:
+        comp_value[0][0] += x_value[0][0]
+        x_value[0][0] = val_raised
+        
+    else:
+        #Neither are >1e15/<1e-15, safe to proceed
+        x_value[0][0] += val_raised
+
+        if comp_value[0][0] != 0:
+            x_value[0][0] += comp_value[0][0]
+            comp_value[0][0] = 0
 
 cdef void add_kurt(float64_t val, int64_t *nobs,
                    float64_t *x, float64_t *xx,
@@ -736,29 +783,15 @@ cdef void add_kurt(float64_t val, int64_t *nobs,
                    float64_t *prev_value
                    ) noexcept nogil:
     """ add a value from the kurotic calc """
-    cdef:
-        float64_t y, t
 
     # Not NaN
     if val == val:
         nobs[0] = nobs[0] + 1
 
-        y = val - compensation_x[0]
-        t = x[0] + y
-        compensation_x[0] = t - x[0] - y
-        x[0] = t
-        y = val * val - compensation_xx[0]
-        t = xx[0] + y
-        compensation_xx[0] = t - xx[0] - y
-        xx[0] = t
-        y = val * val * val - compensation_xxx[0]
-        t = xxx[0] + y
-        compensation_xxx[0] = t - xxx[0] - y
-        xxx[0] = t
-        y = val * val * val * val - compensation_xxxx[0]
-        t = xxxx[0] + y
-        compensation_xxxx[0] = t - xxxx[0] - y
-        xxxx[0] = t
+        update_sum_of_window(val, &x,    &compensation_x,    1, 1)
+        update_sum_of_window(val, &xx,   &compensation_xx,   2, 1)
+        update_sum_of_window(val, &xxx,  &compensation_xxx,  3, 1)
+        update_sum_of_window(val, &xxxx, &compensation_xxxx, 4, 1)
 
         # GH#42064, record num of same values to remove floating point artifacts
         if val == prev_value[0]:
@@ -768,7 +801,6 @@ cdef void add_kurt(float64_t val, int64_t *nobs,
             num_consecutive_same_value[0] = 1
         prev_value[0] = val
 
-
 cdef void remove_kurt(float64_t val, int64_t *nobs,
                       float64_t *x, float64_t *xx,
                       float64_t *xxx, float64_t *xxxx,
@@ -777,40 +809,25 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
                       float64_t *compensation_xxx,
                       float64_t *compensation_xxxx) noexcept nogil:
     """ remove a value from the kurotic calc """
-    cdef:
-        float64_t y, t
 
     # Not NaN
     if val == val:
         nobs[0] = nobs[0] - 1
 
-        y = - val - compensation_x[0]
-        t = x[0] + y
-        compensation_x[0] = t - x[0] - y
-        x[0] = t
-        y = - val * val - compensation_xx[0]
-        t = xx[0] + y
-        compensation_xx[0] = t - xx[0] - y
-        xx[0] = t
-        y = - val * val * val - compensation_xxx[0]
-        t = xxx[0] + y
-        compensation_xxx[0] = t - xxx[0] - y
-        xxx[0] = t
-        y = - val * val * val * val - compensation_xxxx[0]
-        t = xxxx[0] + y
-        compensation_xxxx[0] = t - xxxx[0] - y
-        xxxx[0] = t
-
+        update_sum_of_window(val, &x,    &compensation_x,    1, 0)
+        update_sum_of_window(val, &xx,   &compensation_xx,   2, 0)
+        update_sum_of_window(val, &xxx,  &compensation_xxx,  3, 0)
+        update_sum_of_window(val, &xxxx, &compensation_xxxx, 4, 0)
 
 def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         float64_t val, mean_val, min_val, sum_val = 0
-        float64_t compensation_xxxx_add, compensation_xxxx_remove
-        float64_t compensation_xxx_remove, compensation_xxx_add
-        float64_t compensation_xx_remove, compensation_xx_add
-        float64_t compensation_x_remove, compensation_x_add
+        float64_t compensation_xxxx
+        float64_t compensation_xxx
+        float64_t compensation_xx
+        float64_t compensation_x
         float64_t x, xx, xxx, xxxx
         float64_t prev_value
         int64_t nobs, s, e, num_consecutive_same_value
@@ -851,16 +868,16 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
                 prev_value = values[s]
                 num_consecutive_same_value = 0
 
-                compensation_xxxx_add = compensation_xxxx_remove = 0
-                compensation_xxx_remove = compensation_xxx_add = 0
-                compensation_xx_remove = compensation_xx_add = 0
-                compensation_x_remove = compensation_x_add = 0
+                compensation_xxxx = 0
+                compensation_xxx = 0
+                compensation_xx = 0
+                compensation_x = 0
                 x = xx = xxx = xxxx = 0
                 nobs = 0
                 for j in range(s, e):
                     add_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
-                             &compensation_x_add, &compensation_xx_add,
-                             &compensation_xxx_add, &compensation_xxxx_add,
+                             &compensation_x, &compensation_xx,
+                             &compensation_xxx, &compensation_xxxx,
                              &num_consecutive_same_value, &prev_value)
 
             else:
@@ -870,14 +887,14 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     remove_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
-                                &compensation_x_remove, &compensation_xx_remove,
-                                &compensation_xxx_remove, &compensation_xxxx_remove)
+                                &compensation_x, &compensation_xx,
+                                &compensation_xxx, &compensation_xxxx)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     add_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
-                             &compensation_x_add, &compensation_xx_add,
-                             &compensation_xxx_add, &compensation_xxxx_add,
+                             &compensation_x, &compensation_xx,
+                             &compensation_xxx, &compensation_xxxx,
                              &num_consecutive_same_value, &prev_value)
 
             output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx,
