@@ -161,12 +161,10 @@ def test_searchsorted(request, index_or_series_obj):
                 )
                 return
 
-        # 2b. Complex types
         elif obj.dtype.kind == "c":
             request.applymarker(pytest.mark.xfail(reason="Complex types", strict=False))
             return
 
-    # 3. Run test ONLY if there isn't mixed/complex types
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)
     assert 0 <= index <= len(obj)
