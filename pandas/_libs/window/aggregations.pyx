@@ -1,18 +1,17 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 from libc.math cimport (
+    abs,
+    isfinite,
+    log10,
+    pow,
     round,
     signbit,
     sqrt,
-    pow,
-    log10,
-    abs,
-    isfinite,
 )
+from libcpp cimport bool
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
 from libcpp.unordered_map cimport unordered_map
-from libcpp cimport bool
-
 
 from pandas._libs.algos cimport TiebreakEnumType
 
@@ -25,8 +24,6 @@ from numpy cimport (
     int64_t,
     ndarray,
 )
-
-
 
 cnp.import_array()
 
@@ -731,41 +728,44 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
 
     return result
 
-cdef void update_sum_of_window( float64_t val,
-                                float64_t **x_value,
-                                float64_t **comp_value,
-                                int power_of_element,  
-                                bool add_mode,   #1 for add_kurt, 0 for remove_kurt
-                                ) noexcept nogil:
+cdef void update_sum_of_window(float64_t val,
+                               float64_t **x_value,
+                               float64_t **comp_value,
+                               int power_of_element,
+                               bool add_mode,   # 1 for add_kurt, 0 for remove_kurt
+                               ) noexcept nogil:
 
     cdef:
-        float64_t val_raised, new_sum
+        float64_t val_raised
+        int  val_length, x_length
         bool val_length_flag, x_length_flag
-    
+
     if add_mode:
         val_raised = pow(val, power_of_element)
     else:
         val_raised = -pow(val, power_of_element)
 
-    x_length_flag = abs(log10(abs(x_value[0][0]))) > 15 and isfinite(abs(log10(abs(x_value[0][0])))) == 1
-    val_length_flag = abs(log10(abs(val_raised))) > 15 and isfinite(abs(log10(abs(val_raised)))) == 1
+    x_length = abs(log10(abs(x_value[0][0])))
+    val_length = abs(log10(abs(val_raised)))
 
-    # We'll try to maintain comp_value as the counter for 
+    x_length_flag = x_length > 15 and isfinite(x_length)
+    val_length_flag = val_length > 15 and isfinite(val_length)
+
+    # We'll try to maintain comp_value as the counter for
     # numbers <1e15 to keep it from getting rounded out.
     if x_length_flag and val_length_flag:
-        #Both > 1e15 or < 1-e15
+        # Both > 1e15 or < 1-e15
         x_value[0][0] += val_raised
 
     elif x_length_flag:
         comp_value[0][0] += val_raised
 
-
     elif val_length_flag:
         comp_value[0][0] += x_value[0][0]
         x_value[0][0] = val_raised
-        
+
     else:
-        #Neither are >1e15/<1e-15, safe to proceed
+        # Neither are >1e15/<1e-15, safe to proceed
         x_value[0][0] += val_raised
 
         if comp_value[0][0] != 0:
@@ -818,6 +818,7 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
         update_sum_of_window(val, &xx,   &compensation_xx,   2, 0)
         update_sum_of_window(val, &xxx,  &compensation_xxx,  3, 0)
         update_sum_of_window(val, &xxxx, &compensation_xxxx, 4, 0)
+
 
 def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:

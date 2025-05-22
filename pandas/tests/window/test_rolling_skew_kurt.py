@@ -226,52 +226,60 @@ def test_rolling_kurt_eq_value_fperr(step):
     assert (a[a.index >= 9] == -3).all()
     assert a[a.index < 9].isna().all()
 
-@pytest.mark.parametrize("test_len, window_size, modifiers",
-                         [([0, 10], 5,  [[0,1e6], [3, -1e6]]),
-                          ([0, 10], 5,  [[0,1e-6], [3, 1e6]]),
-                          ([10, 100], 20,[[40, -1e10], [59, -9e9]]),
-                          ([10500, 11000], 200,[[10581, 0], [109900, -1e6], [10999, 0]]),
-                          ]
-                        )
+
+@pytest.mark.parametrize(
+    "test_len, window_size, modifiers",
+    [
+        ([0, 10], 5, [[0, 1e6], [3, -1e6]]),
+        ([0, 10], 5, [[0, 1e-6], [3, 1e6]]),
+        ([10, 100], 20, [[40, -1e10], [59, -9e9]]),
+        ([10500, 11000], 200, [[10581, 0], [109900, -1e6], [10999, 0]]),
+    ],
+)
 def test_rolling_kurt_outlier_influence(test_len, window_size, modifiers):
     # #61416 Extreme values causes kurtosis value to become incorrect
-    test_series = Series(range(test_len[0], test_len[1]), index = range(test_len[0], test_len[1]))
+    test_series = Series(
+        range(test_len[0], test_len[1]), index=range(test_len[0], test_len[1])
+    )
     for ind, number in modifiers:
         test_series = test_series.replace(ind, number)
-        
-    #minimum elements needed for "window_size" number of kurts 
+
+    # minimum elements needed for "window_size" number of kurts
     test_len_diff = test_len[1] - test_len[0]
-    min_elements_needed = test_len_diff - 2*window_size + 1 
-    expected_series = (test_series[min_elements_needed:].reindex(range(test_len[0], test_len[1])))
-    
-    actual = test_series.rolling(window_size,min_periods=1).kurt()
-    expected = expected_series.rolling(window_size,min_periods=1).kurt()
-    
-    tm.assert_series_equal(actual.tail(window_size), 
-                           expected.tail(window_size)
-                        )
-    
-@pytest.mark.parametrize("array_param, window_size, modifiers",
-                         [([10, 10, 10], 5,  [[0,1e6], [3, -1e6]]),
-                          ([-15, 10, 10], 5,  [[0,1e2], [3, 1e6]]),
-                          ([1e4, 1e3, 100], 20, [[90,-1e7], [0, 1e7]]),
-                          ([1e-3, 3e-3, 100], 20, [[90,100], [20, 1e4]]),
-                          ]
-                        )
+    min_elements_needed = test_len_diff - 2 * window_size + 1
+    expected_series = test_series[min_elements_needed:].reindex(
+        range(test_len[0], test_len[1])
+    )
+
+    actual = test_series.rolling(window_size, min_periods=1).kurt()
+    expected = expected_series.rolling(window_size, min_periods=1).kurt()
+
+    tm.assert_series_equal(actual.tail(window_size), expected.tail(window_size))
+
+
+@pytest.mark.parametrize(
+    "array_param, window_size, modifiers",
+    [
+        ([10, 10, 10], 5, [[0, 1e6], [3, -1e6]]),
+        ([-15, 10, 10], 5, [[0, 1e2], [3, 1e6]]),
+        ([1e4, 1e3, 100], 20, [[90, -1e7], [0, 1e7]]),
+        ([1e-3, 3e-3, 100], 20, [[90, 100], [20, 1e4]]),
+    ],
+)
 def test_rolling_kurt_outlier_influence_rand(array_param, window_size, modifiers):
     # #61416 Extreme values causes kurtosis value to become incorrect
-    rand_array = np.random.default_rng(5).normal(array_param[0], array_param[1], array_param[2])
+    rand_array = np.random.default_rng(5).normal(
+        array_param[0], array_param[1], array_param[2]
+    )
     test_series = Series(rand_array)
     for ind, number in modifiers:
         test_series = test_series.replace(ind, number)
-        
-    #minimum elements needed for "window_size" number of kurts 
-    min_elements_needed = array_param[2] - 2*window_size + 1 
-    expected_series = (test_series[min_elements_needed:])
-        
-    actual = test_series.rolling(window_size,min_periods=1).kurt()
-    expected = expected_series.rolling(window_size,min_periods=1).kurt()
-    
-    tm.assert_series_equal(actual.tail(window_size), 
-                           expected.tail(window_size)
-                        )
+
+    # minimum elements needed for "window_size" number of kurts
+    min_elements_needed = array_param[2] - 2 * window_size + 1
+    expected_series = test_series[min_elements_needed:]
+
+    actual = test_series.rolling(window_size, min_periods=1).kurt()
+    expected = expected_series.rolling(window_size, min_periods=1).kurt()
+
+    tm.assert_series_equal(actual.tail(window_size), expected.tail(window_size))
