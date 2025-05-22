@@ -11353,8 +11353,7 @@ class DataFrame(NDFrame, OpsMixin):
         c -0.150812  0.191417  0.895202
         """
         data = self._get_numeric_data() if numeric_only else self
-        dtypes = [blk.dtype for blk in self._mgr.blocks]
-        if any(d.kind in "mM" for d in dtypes):
+        if any(blk.dtype.kind in "mM" for blk in self._mgr.blocks):
             msg = (
                 "DataFrame contains columns with dtype datetime64 "
                 "or timedelta64, which are not supported for cov."

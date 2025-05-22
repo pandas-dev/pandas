@@ -1867,7 +1867,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = blk.get_values(dtype)
             result[rl.indexer] = arr
-            if na_value is not lib.no_default and blk.dtype.kind in ["m", "M"]:
+            if na_value is not lib.no_default and blk.dtype.kind in "mM":
                 result[rl.indexer][isna(arr)] = na_value
             itemmask[rl.indexer] = 1
 
