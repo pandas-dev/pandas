@@ -147,7 +147,6 @@ def test_searchsorted(request, index_or_series_obj):
     # See gh-12238
     obj = index_or_series_obj
 
-    # 1. Check for multi-index
     if isinstance(obj, pd.MultiIndex):
         request.applymarker(pytest.mark.xfail(reason="GH 14833", strict=False))
         return
