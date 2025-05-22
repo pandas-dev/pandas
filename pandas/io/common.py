@@ -9,7 +9,6 @@ from abc import (
 import codecs
 from collections import defaultdict
 from collections.abc import (
-    Generator,
     Hashable,
     Iterable,
     Mapping,
@@ -1304,7 +1303,8 @@ def _infer_protocol(path: str) -> str:
 def _match_file(
     path: Path | PurePosixPath, extensions: set[str] | None, glob: str | None
 ) -> bool:
-    """Check if the file matches the given extensions and glob pattern.
+    """
+    Check if the file matches the given extensions and glob pattern.
     Parameters
     ----------
     path : Path or PurePosixPath
@@ -1324,10 +1324,10 @@ def _match_file(
 
 
 def iterdir(
-    path: FilePath,
+    path: FilePath | BaseBuffer,
     extensions: str | Iterable[str] | None = None,
     glob: str | None = None,
-) -> Generator[Path | PurePosixPath]:
+) -> list[Path | PurePosixPath] | BaseBuffer:
     """Yield file paths in a directory (no nesting allowed).
 
     Supports:
@@ -1346,7 +1346,7 @@ def iterdir(
         Only yield files matching the given glob pattern.
         If None, all files are yielded.
 
-    Yields
+    Returns
     ------
     pathlib.Path or pathlib.PurePosixPath
         File paths within the directory.
@@ -1358,6 +1358,9 @@ def iterdir(
     ImportError
         If fsspec is required but not installed.
     """
+    if hasattr(path, "read") or hasattr(path, "write"):
+        return path
+
     if extensions is not None:
         if isinstance(extensions, str):
             extensions = {extensions.lower()}
@@ -1375,9 +1378,9 @@ def iterdir(
                 extensions,
                 glob,
             ):
-                yield resolved_path
-            return
+                return [resolved_path]
 
+        result = []
         for entry in resolved_path.iterdir():
             if entry.is_file():
                 if _match_file(
@@ -1385,8 +1388,8 @@ def iterdir(
                     extensions,
                     glob,
                 ):
-                    yield entry
-        return
+                    result.append(entry)
+        return result
 
     # Remote paths
     fsspec = import_optional_dependency("fsspec", extra=scheme)
@@ -1398,9 +1401,9 @@ def iterdir(
             extensions,
             glob,
         ):
-            yield PurePosixPath(path_without_scheme)
-        return
+            return [PurePosixPath(path_without_scheme)]
 
+    result = []
     for file in fs.ls(path_without_scheme, detail=True):
         if file["type"] == "file":
             path_obj = PurePosixPath(file["name"])
@@ -1409,4 +1412,5 @@ def iterdir(
                 extensions,
                 glob,
             ):
-                yield path_obj
+                result.append(path_obj)
+    return result

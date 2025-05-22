@@ -55,6 +55,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     get_handle,
+    iterdir,
     stringify_path,
     validate_header_arg,
 )
@@ -73,6 +74,7 @@ from pandas.io.parsers.python_parser import (
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Generator,
         Hashable,
         Iterable,
         Mapping,
@@ -668,9 +670,23 @@ def _validate_names(names: Sequence[Hashable] | None) -> None:
             raise ValueError("Names should be an ordered collection.")
 
 
+def _multi_file_generator(
+    list_of_files: list[str], kwds
+) -> Generator[DataFrame] | Generator[TextFileReader]:
+    """Generator for multiple files."""
+    for file in list_of_files:
+        parser = TextFileReader(file, **kwds)
+
+        if kwds.get("chunksize", None) or kwds.get("iterator", False):
+            yield parser
+        else:
+            with parser:
+                yield parser.read(kwds.get("nrows", None))
+
+
 def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
-) -> DataFrame | TextFileReader:
+) -> DataFrame | TextFileReader | Generator[DataFrame] | Generator[TextFileReader]:
     """Generic reader of line files."""
     # if we pass a date_format and parse_dates=False, we should not parse the
     # dates GH#44366
@@ -709,14 +725,25 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
-    # Create the parser.
-    parser = TextFileReader(filepath_or_buffer, **kwds)
+    extensions = kwds.get("extensions", None)
+    glob = kwds.get("glob", None)
+    files = iterdir(filepath_or_buffer, extensions, glob)
 
-    if chunksize or iterator:
-        return parser
+    if len(files) == 0:
+        raise FileNotFoundError(
+            f"No files found in {filepath_or_buffer}, "
+            f"with extension(s) {extensions} and glob pattern {glob}"
+        )
+    elif len(files) == 1:
+        parser = TextFileReader(files[0], **kwds)
 
-    with parser:
-        return parser.read(nrows)
+        if chunksize or iterator:
+            return parser
+
+        with parser:
+            return parser.read(nrows)
+    else:
+        return _multi_file_generator(files, kwds)
 
 
 @overload
@@ -932,10 +959,9 @@ def read_table(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     skip_blank_lines: bool = True,
