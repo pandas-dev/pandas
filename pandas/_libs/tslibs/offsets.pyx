@@ -1640,6 +1640,45 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Standard kind of date increment used for a date range.
 
     Works exactly like the keyword argument form of relativedelta.
+
+    Standard base class for defining time based frequency offsets in pandas.
+
+    DateOffset objects can be added to or subtracted from datetime-like values.
+    Subclasses of DateOffset define specific time increments, such as days,
+    months, or business days. This class is not typically used directly;
+    instead, use subclasses like MonthEnd, BusinessDay, or Hour.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of time periods the offset represents.
+    normalize : bool, default False
+        Whether to normalize the result to midnight.
+    **kwds : dict, optional
+        Additional keyword arguments handled by subclasses. Examples include:
+        months, days, weekday, weekmask, holidays, etc.
+
+    See Also
+    --------
+    pandas.tseries.offsets.BusinessDay : Offset representing business days.
+    pandas.tseries.offsets.MonthEnd : Offset representing end-of-month dates.
+    pandas.date_range : Generate a sequence of dates using an offset.
+    pandas.Series.resample : Convert time series to specified frequency.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import DateOffset
+    >>> import pandas as pd
+    >>> ts = pd.Timestamp("2023-01-15")
+    >>> ts + DateOffset(months=1)
+    Timestamp('2023-02-15 00:00:00')
+
+    >>> ts - DateOffset(days=10)
+    Timestamp('2023-01-05 00:00:00')
+
+    >>> ts + DateOffset(weekday=0)  # Monday
+    Timestamp('2023-01-16 00:00:00')
+
     Note that the positional argument form of relativedelta is not
     supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
