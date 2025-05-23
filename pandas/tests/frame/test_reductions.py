@@ -1917,6 +1917,39 @@ class TestEmptyDataFrameReductions:
         expected = Series([pd.NA, pd.NA], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"a": [0, 1, 2], "b": [pd.NaT, pd.NaT, pd.NaT]},
+            {"a": [0, 1, 2], "b": [Timestamp("1990-01-01"), pd.NaT, pd.NaT]},
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    Timestamp("1990-01-01"),
+                    Timestamp("1991-01-01"),
+                    Timestamp("1992-01-01"),
+                ],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.NaT],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    pd.Timedelta("1 days"),
+                    pd.Timedelta("2 days"),
+                    pd.Timedelta("3 days"),
+                ],
+            },
+        ],
+    )
+    def test_df_cov_pd_nat(self, data):
+        # GH #53115
+        df = DataFrame(data)
+        with pytest.raises(TypeError, match="not supported for cov"):
+            df.cov()
+
 
 def test_sum_timedelta64_skipna_false():
     # GH#17235
