@@ -16,6 +16,7 @@ FUNCTIONS:
     strptime -- Calculates the time struct represented by the passed-in string
 """
 from datetime import timezone
+import zoneinfo
 
 from cpython.datetime cimport (
     PyDate_Check,
@@ -38,7 +39,6 @@ from _thread import allocate_lock as _thread_allocate_lock
 import re
 
 import numpy as np
-import pytz
 
 cimport numpy as cnp
 from numpy cimport (
@@ -354,7 +354,7 @@ def array_strptime(
     bint exact=True,
     errors="raise",
     bint utc=False,
-    NPY_DATETIMEUNIT creso=NPY_FR_ns,
+    NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
 ):
     """
     Calculates the datetime structs represented by the passed array of strings
@@ -365,7 +365,7 @@ def array_strptime(
     fmt : string-like regex
     exact : matches must be exact if True, search if False
     errors : string specifying error handling, {'raise', 'coerce'}
-    creso : NPY_DATETIMEUNIT, default NPY_FR_ns
+    creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
         Set to NPY_FR_GENERIC to infer a resolution.
     """
 
@@ -443,6 +443,9 @@ def array_strptime(
                 continue
             else:
                 val = str(val)
+
+            out_local = 0
+            out_tzoffset = 0
 
             if fmt == "ISO8601":
                 string_to_dts_succeeded = not string_to_dts(
@@ -536,7 +539,7 @@ def array_strptime(
 
         except ValueError as ex:
             ex.args = (
-                f"{str(ex)}, at position {i}. You might want to try:\n"
+                f"{str(ex)}. You might want to try:\n"
                 "    - passing `format` if your strings have a consistent format;\n"
                 "    - passing `format='ISO8601'` if your strings are "
                 "all ISO8601 but not necessarily in exactly the same format;\n"
@@ -712,7 +715,7 @@ cdef tzinfo _parse_with_format(
             elif len(s) <= 6:
                 item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_us
             else:
-                item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ns
+                item_reso[0] = NPY_FR_ns
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
             us = int(s)
@@ -747,7 +750,7 @@ cdef tzinfo _parse_with_format(
                 week_of_year_start = 0
         elif parse_code == 17:
             # e.g. val='2011-12-30T00:00:00.000000UTC'; fmt='%Y-%m-%dT%H:%M:%S.%f%Z'
-            tz = pytz.timezone(found_dict["Z"])
+            tz = zoneinfo.ZoneInfo(found_dict["Z"])
         elif parse_code == 19:
             # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
             tz = parse_timezone_directive(found_dict["z"])
@@ -837,7 +840,7 @@ class TimeRE(_TimeRE):
         if key == "Z":
             # lazy computation
             if self._Z is None:
-                self._Z = self.__seqToRE(pytz.all_timezones, "Z")
+                self._Z = self.__seqToRE(zoneinfo.available_timezones(), "Z")
             # Note: handling Z is the key difference vs using the stdlib
             # _strptime.TimeRE. test_to_datetime_parse_tzname_or_tzoffset with
             # fmt='%Y-%m-%d %H:%M:%S %Z' fails with the stdlib version.
@@ -924,6 +927,13 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
 
     correction = date(iso_year, 1, 4).isoweekday() + 3
     ordinal = (iso_week * 7) + iso_weekday - correction
+
+    if iso_week == 53:
+        now = date.fromordinal(date(iso_year, 1, 1).toordinal() + ordinal - iso_weekday)
+        jan_4th = date(iso_year+1, 1, 4)
+        if (jan_4th - now).days < 7:
+            raise ValueError(f"Week 53 does not exist in ISO year {iso_year}.")
+
     # ordinal may be negative or 0 now, which means the date is in the previous
     # calendar year
     if ordinal < 1:

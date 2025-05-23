@@ -10,7 +10,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -87,7 +86,10 @@ from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
     from enum import Enum
 
     class ellipsis(Enum):
@@ -287,12 +289,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
 
+    SparseArray efficiently stores data with a high frequency of a
+    specific fill value (e.g., zeros), saving memory by only retaining
+    non-fill elements and their indices. This class is particularly
+    useful for large datasets where most values are redundant.
+
     Parameters
     ----------
     data : array-like or scalar
         A dense array of values to store in the SparseArray. This may contain
         `fill_value`.
     sparse_index : SparseIndex, optional
+        Index indicating the locations of sparse elements.
     fill_value : scalar, optional
         Elements in data that are ``fill_value`` are not stored in the
         SparseArray. For memory savings, this should be the most common value
@@ -342,6 +350,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     Methods
     -------
     None
+
+    See Also
+    --------
+    SparseDtype : Dtype for sparse data.
 
     Examples
     --------
@@ -545,11 +557,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
-        fill_value = self.fill_value
-
         if self.sp_index.ngaps == 0:
             # Compat for na dtype and int values.
-            return self.sp_values
+            if copy is True:
+                return np.array(self.sp_values)
+            else:
+                return self.sp_values
+
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        fill_value = self.fill_value
+
         if dtype is None:
             # Can NumPy represent this type?
             # If not, `np.result_type` will raise. We catch that
@@ -601,6 +622,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         An ndarray containing the non- ``fill_value`` values.
 
+        This property returns the actual data values stored in the sparse
+        representation, excluding the values that are equal to the ``fill_value``.
+        The result is an ndarray of the underlying values, preserving the sparse
+        structure by omitting the default ``fill_value`` entries.
+
+        See Also
+        --------
+        Series.sparse.to_dense : Convert a Series from sparse values to dense.
+        Series.sparse.fill_value : Elements in `data` that are `fill_value` are
+            not stored.
+        Series.sparse.density : The percent of non- ``fill_value`` points, as decimal.
+
         Examples
         --------
         >>> from pandas.arrays import SparseArray
@@ -620,6 +653,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Elements in `data` that are `fill_value` are not stored.
 
         For memory savings, this should be the most common value in the array.
+
+        See Also
+        --------
+        SparseDtype : Dtype for data stored in :class:`SparseArray`.
+        Series.value_counts : Return a Series containing counts of unique values.
+        Series.fillna : Fill NA/NaN in a Series with a specified value.
 
         Examples
         --------
@@ -669,6 +708,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         The percent of non- ``fill_value`` points, as decimal.
 
+        See Also
+        --------
+        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
+            scipy sparse matrix.
+
         Examples
         --------
         >>> from pandas.arrays import SparseArray
@@ -682,6 +726,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def npoints(self) -> int:
         """
         The number of non- ``fill_value`` points.
+
+        This property returns the number of elements in the sparse series that are
+        not equal to the ``fill_value``. Sparse data structures store only the
+        non-``fill_value`` elements, reducing memory usage when the majority of
+        values are the same.
+
+        See Also
+        --------
+        Series.sparse.to_dense : Convert a Series from sparse values to dense.
+        Series.sparse.fill_value : Elements in ``data`` that are ``fill_value`` are
+            not stored.
+        Series.sparse.density : The percent of non- ``fill_value`` points, as decimal.
 
         Examples
         --------
@@ -706,7 +762,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def fillna(
         self,
-        value=None,
+        value,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
@@ -717,6 +773,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ----------
         value : scalar
         limit : int, optional
+            Not supported for SparseArray, must be None.
         copy: bool, default True
             Ignored for SparseArray.
 
@@ -736,8 +793,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
-        if value is None:
-            raise ValueError("Must specify 'value'.")
+        if limit is not None:
+            raise ValueError("limit must be None")
         new_values = np.where(isna(self.sp_values), value, self.sp_values)
 
         if self._null_fill_value:
@@ -1252,7 +1309,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self, mapper, na_action=None) -> Self:
+    def map(self, mapper, na_action: Literal["ignore"] | None = None) -> Self:
         """
         Map categories using an input mapping or function.
 

@@ -241,7 +241,8 @@ def find_valid_index(how: str, is_valid: npt.NDArray[np.bool_]) -> int | None:
         return None
 
     if is_valid.ndim == 2:
-        is_valid = is_valid.any(axis=1)  # reduce axis 1
+        # reduce axis 1
+        is_valid = is_valid.any(axis=1)  # type: ignore[assignment]
 
     if how == "first":
         idxpos = is_valid[::].argmax()
@@ -312,9 +313,9 @@ def get_interp_index(method, index: Index) -> Index:
     # create/use the index
     if method == "linear":
         # prior default
-        from pandas import Index
+        from pandas import RangeIndex
 
-        index = Index(np.arange(len(index)))
+        index = RangeIndex(len(index))
     else:
         methods = {"index", "values", "nearest", "time"}
         is_numeric_or_datetime = (
@@ -404,13 +405,7 @@ def interpolate_2d_inplace(
             **kwargs,
         )
 
-    # error: Argument 1 to "apply_along_axis" has incompatible type
-    # "Callable[[ndarray[Any, Any]], None]"; expected "Callable[...,
-    # Union[_SupportsArray[dtype[<nothing>]], Sequence[_SupportsArray
-    # [dtype[<nothing>]]], Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]],
-    # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
-    # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
-    np.apply_along_axis(func, axis, data)  # type: ignore[arg-type]
+    np.apply_along_axis(func, axis, data)
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -616,6 +611,9 @@ def _interpolate_scipy_wrapper(
         terp = alt_methods.get(method, None)
         if terp is None:
             raise ValueError(f"Can not interpolate with method={method}.")
+
+        # Make sure downcast is not in kwargs for alt methods
+        kwargs.pop("downcast", None)
         new_y = terp(x, y, new_x, **kwargs)
     return new_y
 

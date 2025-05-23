@@ -20,7 +20,7 @@ following paper:
             url          = {https://doi.org/10.5281/zenodo.3509134}
         }
 
-- [Data structures for statistical computing in python](https://conference.scipy.org/proceedings/scipy2010/pdfs/mckinney.pdf),
+- [Data structures for statistical computing in python](https://pub.curvenote.com/01908378-3686-7168-a380-d82bbf21c799/public/mckinney-57fc0d4e8a08cd7f26a4b8bf468a71f4.pdf),
    McKinney, Proceedings of the 9th Python in Science Conference, Volume 445, 2010.
 
         @InProceedings{ mckinney-proc-scipy-2010,

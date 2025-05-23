@@ -162,7 +162,6 @@ class TestSeriesMisc:
 
     def test_inspect_getmembers(self):
         # GH38782
-        pytest.importorskip("jinja2")
         ser = Series(dtype=object)
         inspect.getmembers(ser)
 

@@ -233,11 +233,7 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = g.apply(lambda x: x.sum())
-        expected["A"] = [0, 2, 4]
-        expected = expected.loc[:, ["A", "B"]]
+        result = g.apply(lambda x: x.sum())
         tm.assert_frame_equal(result, expected)
 
     def test_grouper_creation_bug2(self):
@@ -545,31 +541,38 @@ class TestGrouping:
 
         df = DataFrame([[1, "A"]], columns=midx)
 
+        msg = "`groups` by one element list returns scalar is deprecated"
         grouped = df.groupby("to filter").groups
         assert grouped["A"] == [0]
 
-        grouped = df.groupby([("to filter", "")]).groups
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            grouped = df.groupby([("to filter", "")]).groups
         assert grouped["A"] == [0]
 
         df = DataFrame([[1, "A"], [2, "B"]], columns=midx)
 
         expected = df.groupby("to filter").groups
-        result = df.groupby([("to filter", "")]).groups
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby([("to filter", "")]).groups
         assert result == expected
 
         df = DataFrame([[1, "A"], [2, "A"]], columns=midx)
 
         expected = df.groupby("to filter").groups
-        result = df.groupby([("to filter", "")]).groups
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby([("to filter", "")]).groups
         tm.assert_dict_equal(result, expected)
 
     def test_groupby_multiindex_tuple(self):
-        # GH 17979
+        # GH 17979, GH#59179
         df = DataFrame(
             [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
             columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
         )
-        expected = df.groupby([("b", 1)]).groups
+
+        msg = "`groups` by one element list returns scalar is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df.groupby([("b", 1)]).groups
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
 
@@ -579,17 +582,21 @@ class TestGrouping:
                 [["a", "b", "b", "c"], ["d", "d", "e", "e"]]
             ),
         )
-        expected = df2.groupby([("b", "d")]).groups
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df2.groupby([("b", "d")]).groups
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
 
         df3 = DataFrame(df.values, columns=[("a", "d"), ("b", "d"), ("b", "e"), "c"])
-        expected = df3.groupby([("b", "d")]).groups
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df3.groupby([("b", "d")]).groups
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
 
     def test_groupby_multiindex_partial_indexing_equivalence(self):
-        # GH 17977
+        # GH 17977, GH#59179
         df = DataFrame(
             [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
             columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
@@ -615,8 +622,10 @@ class TestGrouping:
         result_max = df.groupby([("a", 1)])["b"].max()
         tm.assert_frame_equal(expected_max, result_max)
 
-        expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
-        result_groups = df.groupby([("a", 1)])["b"].groups
+        msg = "`groups` by one element list returns scalar is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
+            result_groups = df.groupby([("a", 1)])["b"].groups
         tm.assert_dict_equal(expected_groups, result_groups)
 
     def test_groupby_level(self, sort, multiindex_dataframe_random_data, df):
@@ -719,15 +728,18 @@ class TestGrouping:
         tm.assert_almost_equal(grouped._grouper.codes[0], exp_labels)
 
     def test_list_grouper_with_nat(self):
-        # GH 14715
+        # GH 14715, GH#59179
         df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
         grouper = Grouper(key="date", freq="YS")
+        msg = "`groups` by one element list returns scalar is deprecated"
 
         # Grouper in a list grouping
-        result = df.groupby([grouper])
+        gb = df.groupby([grouper])
         expected = {Timestamp("2011-01-01"): Index(list(range(364)))}
-        tm.assert_dict_equal(result.groups, expected)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = gb.groups
+        tm.assert_dict_equal(result, expected)
 
         # Test case without a list
         result = df.groupby(grouper)
@@ -761,9 +773,20 @@ class TestGrouping:
         # (not testing other agg fns, because they return
         # different index objects.
         df = DataFrame({1: [], 2: []})
-        g = df.groupby(1, group_keys=False)
+        g = df.groupby(1, group_keys=True)
         result = getattr(g[2], func)(lambda x: x)
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_apply_empty_with_group_keys_false(self):
+        # 60471
+        # test apply'ing empty groups with group_keys False
+        # (not testing other agg fns, because they return
+        # different index objects.
+        df = DataFrame({"A": [], "B": [], "C": []})
+        g = df.groupby("A", group_keys=False)
+        result = g.apply(lambda x: x / x.sum())
+        expected = DataFrame({"B": [], "C": []}, index=None)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
@@ -798,7 +821,7 @@ class TestGrouping:
         expected = DataFrame(
             data=[],
             index=MultiIndex(
-                levels=[Index(["x"], dtype="object"), Index([], dtype="float64")],
+                levels=[Index(["x"], dtype="str"), Index([], dtype="float64")],
                 codes=[[], []],
                 names=["A", "B"],
             ),
@@ -821,6 +844,33 @@ class TestGrouping:
             index=Index([], dtype=np.int64, name="id"),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_groupby_tuple_keys_handle_multiindex(self):
+        # https://github.com/pandas-dev/pandas/issues/21340
+        df = DataFrame(
+            {
+                "num1": [0, 8, 9, 4, 3, 3, 5, 9, 3, 6],
+                "num2": [3, 8, 6, 4, 9, 2, 1, 7, 0, 9],
+                "num3": [6, 5, 7, 8, 5, 1, 1, 10, 7, 8],
+                "category_tuple": [
+                    (0, 1),
+                    (0, 1),
+                    (0, 1),
+                    (0, 4),
+                    (2, 3),
+                    (2, 3),
+                    (2, 3),
+                    (2, 3),
+                    (5,),
+                    (6,),
+                ],
+                "category_string": list("aaabbbbcde"),
+            }
+        )
+        expected = df.sort_values(by=["category_tuple", "num1"])
+        result = df.groupby("category_tuple").apply(lambda x: x.sort_values(by="num1"))
+        expected = expected[result.columns]
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
 
 # get_group
@@ -937,7 +987,9 @@ class TestGetGroup:
         df = DataFrame({"a": list("abssbab")})
         tm.assert_frame_equal(df.groupby("a").get_group("a"), df.iloc[[0, 5]])
         # GH 13530
-        exp = DataFrame(index=Index(["a", "b", "s"], name="a"), columns=[])
+        exp = DataFrame(
+            index=Index(["a", "b", "s"], name="a"), columns=Index([], dtype="str")
+        )
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
 
@@ -965,17 +1017,20 @@ class TestGetGroup:
 class TestIteration:
     def test_groups(self, df):
         grouped = df.groupby(["A"])
-        groups = grouped.groups
-        assert groups is grouped.groups  # caching works
+        msg = "`groups` by one element list returns scalar is deprecated"
 
-        for k, v in grouped.groups.items():
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            groups = grouped.groups
+            assert groups is grouped.groups  # caching works
+
+        for k, v in groups.items():
             assert (df.loc[v]["A"] == k).all()
 
         grouped = df.groupby(["A", "B"])
         groups = grouped.groups
         assert groups is grouped.groups  # caching works
 
-        for k, v in grouped.groups.items():
+        for k, v in groups.items():
             assert (df.loc[v]["A"] == k[0]).all()
             assert (df.loc[v]["B"] == k[1]).all()
 
@@ -1128,3 +1183,15 @@ def test_grouping_by_key_is_in_axis():
     result = gb.sum()
     expected = DataFrame({"a": [1, 2], "b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_any_with_timedelta():
+    # GH#59712
+    df = DataFrame({"value": [pd.Timedelta(1), pd.NaT]})
+
+    result = df.groupby(np.array([0, 1], dtype=np.int64))["value"].any()
+
+    expected = Series({0: True, 1: False}, name="value", dtype=bool)
+    expected.index = expected.index.astype(np.int64)
+
+    tm.assert_series_equal(result, expected)

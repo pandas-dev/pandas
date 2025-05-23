@@ -206,6 +206,18 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         super().test_shift_fill_value(data)
 
     @skip_nested
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        # The "scalar" for this array isn't a scalar.
+        super().test_fillna_limit_frame(data_missing)
+
+    @skip_nested
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        # The "scalar" for this array isn't a scalar.
+        super().test_fillna_limit_series(data_missing)
+
+    @skip_nested
     def test_fillna_copy_frame(self, data_missing):
         # The "scalar" for this array isn't a scalar.
         super().test_fillna_copy_frame(data_missing)

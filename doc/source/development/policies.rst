@@ -46,10 +46,12 @@ deprecation removed in the next major release (2.0.0).
 These policies do not apply to features marked as **experimental** in the documentation.
 pandas may change the behavior of experimental features at any time.
 
+.. _policies.python_support:
+
 Python support
 ~~~~~~~~~~~~~~
 
-pandas mirrors the `NumPy guidelines for Python support <https://numpy.org/neps/nep-0029-deprecation_policy.html#implementation>`__.
+pandas mirrors the `SPEC 0 guideline for Python support <https://scientific-python.org/specs/spec-0000>`__.
 
 Security policy
 ~~~~~~~~~~~~~~~

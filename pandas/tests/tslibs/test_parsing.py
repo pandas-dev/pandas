@@ -17,6 +17,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 from pandas.compat import (
     ISMUSL,
+    WASM,
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
@@ -29,16 +30,20 @@ import pandas._testing as tm
 from pandas._testing._hypothesis import DATETIME_NO_TZ
 
 
+@pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
 @pytest.mark.skipif(
     is_platform_windows() or ISMUSL,
     reason="TZ setting incorrect on Windows and MUSL Linux",
 )
 def test_parsing_tzlocal_deprecated():
     # GH#50791
-    msg = (
-        r"Parsing 'EST' as tzlocal \(dependent on system timezone\) "
-        r"is no longer supported\. "
-        "Pass the 'tz' keyword or call tz_localize after construction instead"
+    msg = "|".join(
+        [
+            r"Parsing 'EST' as tzlocal \(dependent on system timezone\) "
+            r"is no longer supported\. "
+            "Pass the 'tz' keyword or call tz_localize after construction instead",
+            ".*included an un-recognized timezone",
+        ]
     )
     dtstr = "Jan 15 2004 03:00 EST"
 
@@ -129,10 +134,7 @@ def test_does_not_convert_mixed_integer(date_string, expected):
         (
             "2013Q1",
             {"freq": "INVLD-L-DEC-SAT"},
-            (
-                "Unable to retrieve month information "
-                "from given freq: INVLD-L-DEC-SAT"
-            ),
+            ("Unable to retrieve month information from given freq: INVLD-L-DEC-SAT"),
         ),
     ],
 )

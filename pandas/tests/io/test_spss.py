@@ -67,6 +67,22 @@ def test_spss_labelled_str(datapath):
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
 @pytest.mark.filterwarnings("ignore:ChainedAssignmentError:FutureWarning")
+def test_spss_kwargs(datapath):
+    # test file from the Haven project (https://haven.tidyverse.org/)
+    # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
+    fname = datapath("io", "data", "spss", "labelled-str.sav")
+
+    df = pd.read_spss(fname, convert_categoricals=True, row_limit=1)
+    expected = pd.DataFrame({"gender": ["Male"]}, dtype="category")
+    tm.assert_frame_equal(df, expected)
+
+    df = pd.read_spss(fname, convert_categoricals=False, row_offset=1)
+    expected = pd.DataFrame({"gender": ["F"]})
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
+@pytest.mark.filterwarnings("ignore:ChainedAssignmentError:FutureWarning")
 def test_spss_umlauts(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
@@ -153,12 +169,9 @@ def test_spss_metadata(datapath):
         "variable_measure": {"VAR00002": "unknown"},
         "file_label": None,
         "file_format": "sav/zsav",
+        "creation_time": datetime.datetime(2015, 2, 6, 14, 33, 36),
+        "modification_time": datetime.datetime(2015, 2, 6, 14, 33, 36),
     }
-    if Version(pyreadstat.__version__) >= Version("1.2.4"):
-        metadata.update(
-            {
-                "creation_time": datetime.datetime(2015, 2, 6, 14, 33, 36),
-                "modification_time": datetime.datetime(2015, 2, 6, 14, 33, 36),
-            }
-        )
-    assert df.attrs == metadata
+    if Version(pyreadstat.__version__) >= Version("1.2.8"):
+        metadata["mr_sets"] = {}
+    tm.assert_dict_equal(df.attrs, metadata)

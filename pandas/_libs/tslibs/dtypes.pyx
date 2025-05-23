@@ -1,9 +1,6 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
 from enum import Enum
-import warnings
-
-from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.np_datetime cimport (
@@ -176,6 +173,10 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "EOM": "M",
     "BME": "M",
     "SME": "M",
+    "BMS": "M",
+    "CBME": "M",
+    "CBMS": "M",
+    "SMS": "M",
     "BQS": "Q",
     "QS": "Q",
     "BQE": "Q",
@@ -228,7 +229,6 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YE-NOV": "Y-NOV",
     "W": "W",
     "ME": "M",
-    "Y": "Y",
     "BYE": "Y",
     "BYE-DEC": "Y-DEC",
     "BYE-JAN": "Y-JAN",
@@ -245,7 +245,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YS": "Y",
     "BYS": "Y",
 }
-cdef dict c_OFFSET_DEPR_FREQSTR = {
+cdef dict c_OFFSET_RENAMED_FREQSTR = {
     "M": "ME",
     "Q": "QE",
     "Q-DEC": "QE-DEC",
@@ -303,18 +303,67 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "BQ-OCT": "BQE-OCT",
     "BQ-NOV": "BQE-NOV",
 }
+PERIOD_TO_OFFSET_FREQSTR = {
+    "M": "ME",
+    "Q": "QE",
+    "Q-DEC": "QE-DEC",
+    "Q-JAN": "QE-JAN",
+    "Q-FEB": "QE-FEB",
+    "Q-MAR": "QE-MAR",
+    "Q-APR": "QE-APR",
+    "Q-MAY": "QE-MAY",
+    "Q-JUN": "QE-JUN",
+    "Q-JUL": "QE-JUL",
+    "Q-AUG": "QE-AUG",
+    "Q-SEP": "QE-SEP",
+    "Q-OCT": "QE-OCT",
+    "Q-NOV": "QE-NOV",
+    "Y": "YE",
+    "Y-DEC": "YE-DEC",
+    "Y-JAN": "YE-JAN",
+    "Y-FEB": "YE-FEB",
+    "Y-MAR": "YE-MAR",
+    "Y-APR": "YE-APR",
+    "Y-MAY": "YE-MAY",
+    "Y-JUN": "YE-JUN",
+    "Y-JUL": "YE-JUL",
+    "Y-AUG": "YE-AUG",
+    "Y-SEP": "YE-SEP",
+    "Y-OCT": "YE-OCT",
+    "Y-NOV": "YE-NOV",
+}
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
-cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {
-    v: k for k, v in c_OFFSET_DEPR_FREQSTR.items()
+cdef dict c_PERIOD_TO_OFFSET_FREQSTR = PERIOD_TO_OFFSET_FREQSTR
+
+cdef dict c_DEPR_UNITS = {
+    "w": "W",
+    "d": "D",
+    "H": "h",
+    "MIN": "min",
+    "S": "s",
+    "MS": "ms",
+    "US": "us",
+    "NS": "ns",
 }
 
-# Map deprecated resolution abbreviations to correct resolution abbreviations
-cdef dict c_DEPR_ABBREVS = {
-    "H": "h",
-    "BH": "bh",
-    "CBH": "cbh",
-    "S": "s",
+cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
+    "w": "W",
+    "w-mon": "W-MON",
+    "w-tue": "W-TUE",
+    "w-wed": "W-WED",
+    "w-thu": "W-THU",
+    "w-fri": "W-FRI",
+    "w-sat": "W-SAT",
+    "w-sun": "W-SUN",
+    "d": "D",
+    "b": "B",
+    "c": "C",
+    "MIN": "min",
+    "US": "us",
+    "NS": "ns",
 }
+
+cdef str INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
 
 class FreqGroup(Enum):
@@ -405,43 +454,18 @@ class Resolution(Enum):
         >>> Resolution.get_reso_from_freqstr('h') == Resolution.RESO_HR
         True
         """
-        cdef:
-            str abbrev
-        if freq in {"T", "t", "L", "l", "U", "u", "N", "n"}:
-            raise ValueError(
-                f"Frequency \'{freq}\' is no longer supported."
-            )
         try:
-            if freq in c_DEPR_ABBREVS:
-                abbrev = c_DEPR_ABBREVS[freq]
-                warnings.warn(
-                    f"\'{freq}\' is deprecated and will be removed in a future "
-                    f"version. Please use \'{abbrev}\' "
-                    f"instead of \'{freq}\'.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                freq = abbrev
             attr_name = _abbrev_to_attrnames[freq]
-        except KeyError:
+        except KeyError as exc:
+            msg = INVALID_FREQ_ERR_MSG.format(freq)
             # For quarterly and yearly resolutions, we need to chop off
             #  a month string.
             split_freq = freq.split("-")
             if len(split_freq) != 2:
-                raise
+                raise ValueError(msg) from exc
             if split_freq[1] not in _month_names:
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
-                raise
-            if split_freq[0] in c_DEPR_ABBREVS:
-                abbrev = c_DEPR_ABBREVS[split_freq[0]]
-                warnings.warn(
-                    f"\'{split_freq[0]}\' is deprecated and will be removed in a "
-                    f"future version. Please use \'{abbrev}\' "
-                    f"instead of \'{split_freq[0]}\'.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                split_freq[0] = abbrev
+                raise ValueError(msg) from exc
             attr_name = _abbrev_to_attrnames[split_freq[0]]
 
         return cls.from_attrname(attr_name)

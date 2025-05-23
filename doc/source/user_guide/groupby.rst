@@ -418,7 +418,7 @@ You can also include the grouping columns if you want to operate on them.
 
 .. note::
 
-   The ``groupby`` operation in Pandas drops the ``name`` field of the columns Index object
+   The ``groupby`` operation in pandas drops the ``name`` field of the columns Index object
    after the operation. This change ensures consistency in syntax between different
    column selection methods within groupby operations.
 
@@ -506,29 +506,28 @@ listed below, those with a ``*`` do *not* have an efficient, GroupBy-specific, i
 .. csv-table::
     :header: "Method", "Description"
     :widths: 20, 80
-    :delim: ;
 
-        :meth:`~.DataFrameGroupBy.any`;Compute whether any of the values in the groups are truthy
-        :meth:`~.DataFrameGroupBy.all`;Compute whether all of the values in the groups are truthy
-        :meth:`~.DataFrameGroupBy.count`;Compute the number of non-NA values in the groups
-        :meth:`~.DataFrameGroupBy.cov` * ;Compute the covariance of the groups
-        :meth:`~.DataFrameGroupBy.first`;Compute the first occurring value in each group
-        :meth:`~.DataFrameGroupBy.idxmax`;Compute the index of the maximum value in each group
-        :meth:`~.DataFrameGroupBy.idxmin`;Compute the index of the minimum value in each group
-        :meth:`~.DataFrameGroupBy.last`;Compute the last occurring value in each group
-        :meth:`~.DataFrameGroupBy.max`;Compute the maximum value in each group
-        :meth:`~.DataFrameGroupBy.mean`;Compute the mean of each group
-        :meth:`~.DataFrameGroupBy.median`;Compute the median of each group
-        :meth:`~.DataFrameGroupBy.min`;Compute the minimum value in each group
-        :meth:`~.DataFrameGroupBy.nunique`;Compute the number of unique values in each group
-        :meth:`~.DataFrameGroupBy.prod`;Compute the product of the values in each group
-        :meth:`~.DataFrameGroupBy.quantile`;Compute a given quantile of the values in each group
-        :meth:`~.DataFrameGroupBy.sem`;Compute the standard error of the mean of the values in each group
-        :meth:`~.DataFrameGroupBy.size`;Compute the number of values in each group
-        :meth:`~.DataFrameGroupBy.skew` *;Compute the skew of the values in each group
-        :meth:`~.DataFrameGroupBy.std`;Compute the standard deviation of the values in each group
-        :meth:`~.DataFrameGroupBy.sum`;Compute the sum of the values in each group
-        :meth:`~.DataFrameGroupBy.var`;Compute the variance of the values in each group
+        :meth:`~.DataFrameGroupBy.any`,Compute whether any of the values in the groups are truthy
+        :meth:`~.DataFrameGroupBy.all`,Compute whether all of the values in the groups are truthy
+        :meth:`~.DataFrameGroupBy.count`,Compute the number of non-NA values in the groups
+        :meth:`~.DataFrameGroupBy.cov` * ,Compute the covariance of the groups
+        :meth:`~.DataFrameGroupBy.first`,Compute the first occurring value in each group
+        :meth:`~.DataFrameGroupBy.idxmax`,Compute the index of the maximum value in each group
+        :meth:`~.DataFrameGroupBy.idxmin`,Compute the index of the minimum value in each group
+        :meth:`~.DataFrameGroupBy.last`,Compute the last occurring value in each group
+        :meth:`~.DataFrameGroupBy.max`,Compute the maximum value in each group
+        :meth:`~.DataFrameGroupBy.mean`,Compute the mean of each group
+        :meth:`~.DataFrameGroupBy.median`,Compute the median of each group
+        :meth:`~.DataFrameGroupBy.min`,Compute the minimum value in each group
+        :meth:`~.DataFrameGroupBy.nunique`,Compute the number of unique values in each group
+        :meth:`~.DataFrameGroupBy.prod`,Compute the product of the values in each group
+        :meth:`~.DataFrameGroupBy.quantile`,Compute a given quantile of the values in each group
+        :meth:`~.DataFrameGroupBy.sem`,Compute the standard error of the mean of the values in each group
+        :meth:`~.DataFrameGroupBy.size`,Compute the number of values in each group
+        :meth:`~.DataFrameGroupBy.skew` * ,Compute the skew of the values in each group
+        :meth:`~.DataFrameGroupBy.std`,Compute the standard deviation of the values in each group
+        :meth:`~.DataFrameGroupBy.sum`,Compute the sum of the values in each group
+        :meth:`~.DataFrameGroupBy.var`,Compute the variance of the values in each group
 
 Some examples:
 
@@ -619,7 +618,7 @@ this will make an extra copy.
 
 .. _groupby.aggregate.udf:
 
-Aggregation with User-Defined Functions
+Aggregation with user-defined functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Users can also provide their own User-Defined Functions (UDFs) for custom aggregations.
@@ -669,8 +668,9 @@ column, which produces an aggregated result with a hierarchical column index:
    grouped[["C", "D"]].agg(["sum", "mean", "std"])
 
 
-The resulting aggregations are named after the functions themselves. If you
-need to rename, then you can add in a chained operation for a ``Series`` like this:
+The resulting aggregations are named after the functions themselves.
+
+For a ``Series``, if you need to rename, you can add in a chained operation like this:
 
 .. ipython:: python
 
@@ -680,7 +680,18 @@ need to rename, then you can add in a chained operation for a ``Series`` like th
        .rename(columns={"sum": "foo", "mean": "bar", "std": "baz"})
    )
 
+Or, you can simply pass a list of tuples each with the name of the new column and the aggregate function:
+
+.. ipython:: python
+
+   (
+      grouped["C"]
+      .agg([("foo", "sum"), ("bar", "mean"), ("baz", "std")])
+   )
+
 For a grouped ``DataFrame``, you can rename in a similar manner:
+
+By chaining ``rename`` operation,
 
 .. ipython:: python
 
@@ -688,6 +699,16 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
        grouped[["C", "D"]].agg(["sum", "mean", "std"]).rename(
            columns={"sum": "foo", "mean": "bar", "std": "baz"}
        )
+   )
+
+Or, passing a list of tuples,
+
+.. ipython:: python
+
+   (
+      grouped[["C", "D"]].agg(
+         [("foo", "sum"), ("bar", "mean"), ("baz", "std")]
+      )
    )
 
 .. note::
@@ -832,19 +853,18 @@ The following methods on GroupBy act as transformations.
 .. csv-table::
     :header: "Method", "Description"
     :widths: 20, 80
-    :delim: ;
 
-        :meth:`~.DataFrameGroupBy.bfill`;Back fill NA values within each group
-        :meth:`~.DataFrameGroupBy.cumcount`;Compute the cumulative count within each group
-        :meth:`~.DataFrameGroupBy.cummax`;Compute the cumulative max within each group
-        :meth:`~.DataFrameGroupBy.cummin`;Compute the cumulative min within each group
-        :meth:`~.DataFrameGroupBy.cumprod`;Compute the cumulative product within each group
-        :meth:`~.DataFrameGroupBy.cumsum`;Compute the cumulative sum within each group
-        :meth:`~.DataFrameGroupBy.diff`;Compute the difference between adjacent values within each group
-        :meth:`~.DataFrameGroupBy.ffill`;Forward fill NA values within each group
-        :meth:`~.DataFrameGroupBy.pct_change`;Compute the percent change between adjacent values within each group
-        :meth:`~.DataFrameGroupBy.rank`;Compute the rank of each value within each group
-        :meth:`~.DataFrameGroupBy.shift`;Shift values up or down within each group
+        :meth:`~.DataFrameGroupBy.bfill`,Back fill NA values within each group
+        :meth:`~.DataFrameGroupBy.cumcount`,Compute the cumulative count within each group
+        :meth:`~.DataFrameGroupBy.cummax`,Compute the cumulative max within each group
+        :meth:`~.DataFrameGroupBy.cummin`,Compute the cumulative min within each group
+        :meth:`~.DataFrameGroupBy.cumprod`,Compute the cumulative product within each group
+        :meth:`~.DataFrameGroupBy.cumsum`,Compute the cumulative sum within each group
+        :meth:`~.DataFrameGroupBy.diff`,Compute the difference between adjacent values within each group
+        :meth:`~.DataFrameGroupBy.ffill`,Forward fill NA values within each group
+        :meth:`~.DataFrameGroupBy.pct_change`,Compute the percent change between adjacent values within each group
+        :meth:`~.DataFrameGroupBy.rank`,Compute the rank of each value within each group
+        :meth:`~.DataFrameGroupBy.shift`,Shift values up or down within each group
 
 In addition, passing any built-in aggregation method as a string to
 :meth:`~.DataFrameGroupBy.transform` (see the next section) will broadcast the result
@@ -1054,7 +1074,7 @@ missing values with the ``ffill()`` method.
    ).set_index("date")
    df_re
 
-   df_re.groupby("group").resample("1D", include_groups=False).ffill()
+   df_re.groupby("group").resample("1D").ffill()
 
 .. _groupby.filter:
 
@@ -1092,11 +1112,10 @@ efficient, GroupBy-specific, implementation.
 .. csv-table::
     :header: "Method", "Description"
     :widths: 20, 80
-    :delim: ;
 
-        :meth:`~.DataFrameGroupBy.head`;Select the top row(s) of each group
-        :meth:`~.DataFrameGroupBy.nth`;Select the nth row(s) of each group
-        :meth:`~.DataFrameGroupBy.tail`;Select the bottom row(s) of each group
+        :meth:`~.DataFrameGroupBy.head`,Select the top row(s) of each group
+        :meth:`~.DataFrameGroupBy.nth`,Select the nth row(s) of each group
+        :meth:`~.DataFrameGroupBy.tail`,Select the bottom row(s) of each group
 
 Users can also use transformations along with Boolean indexing to construct complex
 filtrations within groups. For example, suppose we are given groups of products and
@@ -1233,16 +1252,16 @@ the argument ``group_keys`` which defaults to ``True``. Compare
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=True).apply(lambda x: x, include_groups=False)
+    df.groupby("A", group_keys=True).apply(lambda x: x)
 
 with
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=False).apply(lambda x: x, include_groups=False)
+    df.groupby("A", group_keys=False).apply(lambda x: x)
 
 
-Numba Accelerated Routines
+Numba accelerated routines
 --------------------------
 
 .. versionadded:: 1.1
@@ -1677,7 +1696,7 @@ introduction <categorical>` and the
 
     dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
 
-Groupby by indexer to 'resample' data
+GroupBy by indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
@@ -1723,7 +1742,7 @@ column index name will be used as the name of the inserted column:
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
 
-   result = df.groupby("a").apply(compute_metrics, include_groups=False)
+   result = df.groupby("a").apply(compute_metrics)
 
    result
 

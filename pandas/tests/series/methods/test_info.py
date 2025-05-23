@@ -5,10 +5,16 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas._config import using_string_dtype
+
+from pandas.compat import (
+    HAS_PYARROW,
+    PYPY,
+)
 
 from pandas import (
     CategoricalIndex,
+    Index,
     MultiIndex,
     Series,
     date_range,
@@ -39,7 +45,9 @@ def test_info_categorical():
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_info_series(lexsorted_two_level_string_multiindex, verbose):
+def test_info_series(
+    lexsorted_two_level_string_multiindex, verbose, using_infer_string
+):
     index = lexsorted_two_level_string_multiindex
     ser = Series(range(len(index)), index=index, name="sth")
     buf = StringIO()
@@ -48,7 +56,7 @@ def test_info_series(lexsorted_two_level_string_multiindex, verbose):
 
     expected = textwrap.dedent(
         """\
-        <class 'pandas.core.series.Series'>
+        <class 'pandas.Series'>
         MultiIndex: 10 entries, ('foo', 'one') to ('qux', 'three')
         """
     )
@@ -61,10 +69,11 @@ def test_info_series(lexsorted_two_level_string_multiindex, verbose):
             10 non-null     int64
             """
         )
+    qualifier = "" if using_infer_string and HAS_PYARROW else "+"
     expected += textwrap.dedent(
         f"""\
         dtypes: int64(1)
-        memory usage: {ser.memory_usage()}.0+ bytes
+        memory usage: {ser.memory_usage()}.0{qualifier} bytes
         """
     )
     assert result == expected
@@ -78,7 +87,7 @@ def test_info_memory():
     memory_bytes = float(s.memory_usage())
     expected = textwrap.dedent(
         f"""\
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
     RangeIndex: 2 entries, 0 to 1
     Series name: None
     Non-Null Count  Dtype
@@ -144,9 +153,13 @@ def test_info_memory_usage_deep_pypy():
     "index, plus",
     [
         ([1, 2, 3], False),
-        (list("ABC"), True),
+        (Index(list("ABC"), dtype="str"), not (using_string_dtype() and HAS_PYARROW)),
+        (Index(list("ABC"), dtype=object), True),
         (MultiIndex.from_product([range(3), range(3)]), False),
-        (MultiIndex.from_product([range(3), ["foo", "bar"]]), True),
+        (
+            MultiIndex.from_product([range(3), ["foo", "bar"]]),
+            not (using_string_dtype() and HAS_PYARROW),
+        ),
     ],
 )
 def test_info_memory_usage_qualified(index, plus):

@@ -4,7 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import Callable
+from typing import TYPE_CHECKING
 import warnings
 
 from dateutil.relativedelta import (
@@ -34,6 +34,9 @@ from pandas.tseries.offsets import (
     Day,
     Easter,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def next_monday(dt: datetime) -> datetime:
@@ -633,12 +636,17 @@ def HolidayCalendarFactory(name: str, base, other, base_class=AbstractHolidayCal
 
 
 __all__ = [
+    "FR",
+    "MO",
+    "SA",
+    "SU",
+    "TH",
+    "TU",
+    "WE",
+    "HolidayCalendarFactory",
     "after_nearest_workday",
     "before_nearest_workday",
-    "FR",
     "get_calendar",
-    "HolidayCalendarFactory",
-    "MO",
     "nearest_workday",
     "next_monday",
     "next_monday_or_tuesday",
@@ -646,11 +654,6 @@ __all__ = [
     "previous_friday",
     "previous_workday",
     "register",
-    "SA",
-    "SU",
     "sunday_to_monday",
-    "TH",
-    "TU",
-    "WE",
     "weekend_to_monday",
 ]

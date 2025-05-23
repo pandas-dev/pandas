@@ -12,8 +12,8 @@ from pandas.core.arrays.sparse.array import (
 __all__ = [
     "BlockIndex",
     "IntIndex",
-    "make_sparse_index",
     "SparseAccessor",
     "SparseArray",
     "SparseFrameAccessor",
+    "make_sparse_index",
 ]

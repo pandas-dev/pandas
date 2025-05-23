@@ -209,7 +209,7 @@ def test_aggregate_api_consistency():
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
-    msg = r"Column\(s\) \['r', 'r2'\] do not exist"
+    msg = r"Label\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         grouped[["D", "C"]].agg({"r": "sum", "r2": "mean"})
 
@@ -224,7 +224,7 @@ def test_agg_dict_renaming_deprecation():
             {"B": {"foo": ["sum", "max"]}, "C": {"bar": ["count", "min"]}}
         )
 
-    msg = r"Column\(s\) \['ma'\] do not exist"
+    msg = r"Label\(s\) \['ma'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
@@ -355,7 +355,8 @@ def test_series_agg_multi_pure_python():
     )
 
     def bad(x):
-        assert len(x.values.base) > 0
+        if isinstance(x.values, np.ndarray):
+            assert len(x.values.base) > 0
         return "foo"
 
     result = data.groupby(["A", "B"]).agg(bad)
@@ -498,17 +499,13 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.first()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[0])["B"].iloc[0]
 
     ts = df["B"].iloc[2]
     assert ts == grouped.last()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[-1])["B"].iloc[0]
 
 
 def test_sum_uint64_overflow():

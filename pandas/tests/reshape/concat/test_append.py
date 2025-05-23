@@ -332,7 +332,7 @@ class TestAppend:
 
         # pd.NaT gets inferred as tz-naive, so append result is tz-naive
         result = df._append({"a": pd.NaT}, ignore_index=True)
-        expected = DataFrame({"a": [np.nan]}, dtype=object)
+        expected = DataFrame({"a": [pd.NaT]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
         # also test with typed value to append
@@ -359,12 +359,6 @@ class TestAppend:
         result = df._append(other, ignore_index=True)
 
         expected = other.astype(object)
-        if isinstance(val, str) and dtype_str != "int64":
-            # TODO: expected used to be `other.astype(object)` which is a more
-            #  reasonable result.  This was changed when tightening
-            #  assert_frame_equal's treatment of mismatched NAs to match the
-            #  existing behavior.
-            expected = DataFrame({"a": [np.nan]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(

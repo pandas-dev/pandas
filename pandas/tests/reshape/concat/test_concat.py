@@ -5,6 +5,7 @@ from collections import (
 from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
+import itertools
 
 import numpy as np
 import pytest
@@ -49,37 +50,37 @@ class TestConcatenate:
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
 
-        # These are actual copies.
-        result = concat([df, df2, df3], axis=1)
-        for arr in result._mgr.arrays:
-            assert arr.base is not None
-
-        # These are the same.
         result = concat([df, df2, df3], axis=1)
 
-        for arr in result._mgr.arrays:
+        for block in result._mgr.blocks:
+            arr = block.values
             if arr.dtype.kind == "f":
-                assert arr.base is df._mgr.arrays[0].base
+                assert arr.base is df._mgr.blocks[0].values.base
             elif arr.dtype.kind in ["i", "u"]:
-                assert arr.base is df2._mgr.arrays[0].base
+                assert arr.base is df2._mgr.blocks[0].values.base
             elif arr.dtype == object:
                 assert arr.base is not None
+            elif arr.dtype == "string":
+                tm.shares_memory(arr, df3._mgr.blocks[0].values)
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
         result = concat([df, df2, df3, df4], axis=1)
-        for arr in result._mgr.arrays:
+        for blocks in result._mgr.blocks:
+            arr = blocks.values
             if arr.dtype.kind == "f":
                 # this is a view on some array in either df or df4
                 assert any(
-                    np.shares_memory(arr, other)
-                    for other in df._mgr.arrays + df4._mgr.arrays
+                    np.shares_memory(arr, block.values)
+                    for block in itertools.chain(df._mgr.blocks, df4._mgr.blocks)
                 )
             elif arr.dtype.kind in ["i", "u"]:
-                assert arr.base is df2._mgr.arrays[0].base
+                assert arr.base is df2._mgr.blocks[0].values.base
             elif arr.dtype == object:
                 # this is a view on df3
-                assert any(np.shares_memory(arr, other) for other in df3._mgr.arrays)
+                assert any(
+                    np.shares_memory(arr, block.values) for block in df3._mgr.blocks
+                )
 
     def test_concat_with_group_keys(self):
         # axis=0
@@ -125,7 +126,7 @@ class TestConcatenate:
         tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
         tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
 
-        assert result.columns.names == ("group_key", None)
+        assert result.columns.names == ["group_key", None]
 
     @pytest.mark.parametrize("mapping", ["mapping", "dict"])
     def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
@@ -325,6 +326,8 @@ class TestConcatenate:
     def test_concat_mixed_objs_index_names(self):
         # Test row-wise concat for mixed series/frames with distinct names
         # GH2385, GH15047
+        # GH #60723 & GH #56257 (Updated the test case,
+        # as the above GH PR ones were incorrect)
 
         index = date_range("01-Jan-2013", periods=10, freq="h")
         arr = np.arange(10, dtype="int64")
@@ -340,8 +343,11 @@ class TestConcatenate:
         result = concat([s1, df, s2])
         tm.assert_frame_equal(result, expected)
 
-        # Rename all series to 0 when ignore_index=True
-        expected = DataFrame(np.tile(arr, 3).reshape(-1, 1), columns=[0])
+        expected = DataFrame(
+            np.kron(np.where(np.identity(3) == 1, 1, np.nan), arr).T,
+            index=np.arange(30, dtype=np.int64),
+            columns=["foo", 0, "bar"],
+        )
         result = concat([s1, df, s2], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
@@ -789,14 +795,13 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
 
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    warn = None
+    needs_update = False
     if df_dtype == "datetime64[ns]" or (
         df_dtype == "float64" and empty_dtype != "float64"
     ):
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg):
-        result = concat([empty, df])
+        needs_update = True
+
+    result = concat([empty, df])
     expected = df
     if df_dtype == "int64":
         # TODO what exact behaviour do we want for integer eventually?
@@ -804,6 +809,10 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
             expected = df.astype("float64")
         else:
             expected = df.astype("object")
+
+    if needs_update:
+        # GH#40893 changed the expected here to retain dependence on empty
+        expected = expected.astype(object)
     tm.assert_frame_equal(result, expected)
 
 
@@ -820,17 +829,19 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
         else:
             df_dtype = "float64"
 
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    warn = None
+    needs_update = False
     if empty_dtype != df_dtype and empty_dtype is not None:
-        warn = FutureWarning
+        needs_update = True
     elif df_dtype == "datetime64[ns]":
-        warn = FutureWarning
+        needs_update = True
 
-    with tm.assert_produces_warning(warn, match=msg):
-        result = concat([empty, df], ignore_index=True)
+    result = concat([empty, df], ignore_index=True)
 
     expected = DataFrame({"foo": [np.nan, 1, 2], "bar": [np.nan, 1, 2]}, dtype=df_dtype)
+    if needs_update:
+        # GH#40893 changed the expected here to retain dependence on empty
+        expected = expected.astype(object)
+        expected.iloc[0] = np.nan
     tm.assert_frame_equal(result, expected)
 
 
@@ -841,10 +852,16 @@ def test_concat_ignore_empty_from_reindex():
 
     aligned = df2.reindex(columns=df1.columns)
 
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df1, aligned], ignore_index=True)
-    expected = df1 = DataFrame({"a": [1, 2], "b": [pd.Timestamp("2012-01-01"), pd.NaT]})
+    result = concat([df1, aligned], ignore_index=True)
+
+    expected = DataFrame(
+        {
+            "a": [1, 2],
+            "b": pd.array([pd.Timestamp("2012-01-01"), np.nan], dtype=object),
+        },
+        dtype=object,
+    )
+    expected["a"] = expected["a"].astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -907,10 +924,10 @@ def test_concat_none_with_timezone_timestamp():
     # GH#52093
     df1 = DataFrame([{"A": None}])
     df2 = DataFrame([{"A": pd.Timestamp("1990-12-20 00:00:00+00:00")}])
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df1, df2], ignore_index=True)
-    expected = DataFrame({"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]})
+    result = concat([df1, df2], ignore_index=True)
+    expected = DataFrame(
+        {"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]}, dtype=object
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -920,3 +937,67 @@ def test_concat_with_series_and_frame_returns_rangeindex_columns():
     result = concat([ser, df])
     expected = DataFrame([0, 1, 2], index=[0, 0, 1])
     tm.assert_frame_equal(result, expected, check_column_type=True)
+
+
+def test_concat_with_moot_ignore_index_and_keys():
+    df1 = DataFrame([[0]])
+    df2 = DataFrame([[42]])
+
+    ignore_index = True
+    keys = ["df1", "df2"]
+    msg = f"Cannot set {ignore_index=} and specify keys. Either should be used."
+    with pytest.raises(ValueError, match=msg):
+        concat([df1, df2], keys=keys, ignore_index=ignore_index)
+
+
+@pytest.mark.parametrize(
+    "inputs, ignore_index, axis, expected",
+    [
+        # Concatenating DataFrame and named Series without ignore_index
+        (
+            [DataFrame({"a": [0, 1], "b": [2, 3]}), Series([4, 5], name="c")],
+            False,
+            0,
+            DataFrame(
+                {
+                    "a": [0, 1, None, None],
+                    "b": [2, 3, None, None],
+                    "c": [None, None, 4, 5],
+                },
+                index=[0, 1, 0, 1],
+            ),
+        ),
+        # Concatenating DataFrame and named Series with ignore_index
+        (
+            [DataFrame({"a": [0, 1], "b": [2, 3]}), Series([4, 5], name="c")],
+            True,
+            0,
+            DataFrame(
+                {
+                    "a": [0, 1, None, None],
+                    "b": [2, 3, None, None],
+                    "c": [None, None, 4, 5],
+                },
+                index=[0, 1, 2, 3],
+            ),
+        ),
+        # Concatenating DataFrame and unnamed Series along columns
+        (
+            [DataFrame({"a": [0, 1], "b": [2, 3]}), Series([4, 5]), Series([4, 5])],
+            False,
+            1,
+            DataFrame({"a": [0, 1], "b": [2, 3], 0: [4, 5], 1: [4, 5]}, index=[0, 1]),
+        ),
+        # Concatenating DataFrame and unnamed Series along columns with ignore_index
+        (
+            [DataFrame({"a": [0, 1], "b": [2, 3]}), Series([4, 5]), Series([4, 5])],
+            True,
+            1,
+            DataFrame({0: [0, 1], 1: [2, 3], 2: [4, 5], 3: [4, 5]}, index=[0, 1]),
+        ),
+    ],
+)
+def test_concat_of_series_and_frame(inputs, ignore_index, axis, expected):
+    # GH #60723 and #56257
+    result = concat(inputs, ignore_index=ignore_index, axis=axis)
+    tm.assert_frame_equal(result, expected)

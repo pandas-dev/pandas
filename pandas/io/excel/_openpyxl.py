@@ -42,7 +42,7 @@ class OpenpyxlWriter(ExcelWriter):
     _engine = "openpyxl"
     _supported_extensions = (".xlsx", ".xlsm")
 
-    def __init__(
+    def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,

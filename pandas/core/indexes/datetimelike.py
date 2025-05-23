@@ -441,6 +441,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         """
         Convert to a dtype with the given unit resolution.
 
+        This method is for converting the dtype of a ``DatetimeIndex`` or
+        ``TimedeltaIndex`` to a new dtype with the given unit
+        resolution/precision.
+
         Parameters
         ----------
         unit : {'s', 'ms', 'us', 'ns'}
@@ -448,6 +452,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         Returns
         -------
         same type as self
+            Converted to the specified unit.
+
+        See Also
+        --------
+        Timestamp.as_unit : Convert to the given unit.
+        Timedelta.as_unit : Convert to the given unit.
+        DatetimeIndex.as_unit : Convert to the given unit.
+        TimedeltaIndex.as_unit : Convert to the given unit.
 
         Examples
         --------
@@ -523,7 +535,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
         freq = cast(Tick, self.freq)
-        tick = Timedelta(freq).as_unit("ns")._value
+        tick = Timedelta(freq).as_unit(self.unit)._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
@@ -536,7 +548,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # RangeIndex defaults to step=1, which we don't want.
             new_freq = self.freq
         elif isinstance(res_i8, RangeIndex):
-            new_freq = to_offset(Timedelta(res_i8.step))
+            new_freq = to_offset(
+                Timedelta(res_i8.step, unit=self.unit).as_unit(self.unit)
+            )
 
         # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
