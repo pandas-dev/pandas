@@ -195,6 +195,24 @@ class TestConfig:
         assert cf.get_option("b.c") is None
         assert cf.get_option("b.b") == 10.0
 
+    def test_set_option_dict(self):
+        # GH 61093
+
+        cf.register_option("a", 1, "doc")
+        cf.register_option("b.c", "hullo", "doc2")
+        cf.register_option("b.b", None, "doc2")
+
+        assert cf.get_option("a") == 1
+        assert cf.get_option("b.c") == "hullo"
+        assert cf.get_option("b.b") is None
+
+        options_dict = {"a": "2", "b.c": None, "b.b": 10.0}
+        cf.set_option(options_dict)
+
+        assert cf.get_option("a") == "2"
+        assert cf.get_option("b.c") is None
+        assert cf.get_option("b.b") == 10.0
+
     def test_validation(self):
         cf.register_option("a", 1, "doc", validator=cf.is_int)
         cf.register_option("d", 1, "doc", validator=cf.is_nonnegative_int)
@@ -372,6 +390,33 @@ class TestConfig:
 
         # Test that option_context can be used as a decorator too (#34253).
         @cf.option_context("a", 123)
+        def f():
+            eq(123)
+
+        f()
+
+    def test_set_ContextManager_dict(self):
+        def eq(val):
+            assert cf.get_option("a") == val
+            assert cf.get_option("b.c") == val
+
+        cf.register_option("a", 0)
+        cf.register_option("b.c", 0)
+
+        eq(0)
+        with cf.option_context({"a": 15, "b.c": 15}):
+            eq(15)
+            with cf.option_context({"a": 25, "b.c": 25}):
+                eq(25)
+            eq(15)
+        eq(0)
+
+        cf.set_option("a", 17)
+        cf.set_option("b.c", 17)
+        eq(17)
+
+        # Test that option_context can be used as a decorator too
+        @cf.option_context({"a": 123, "b.c": 123})
         def f():
             eq(123)
 
