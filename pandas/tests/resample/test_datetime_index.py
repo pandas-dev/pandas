@@ -8,6 +8,7 @@ import pytest
 from pandas._libs import lib
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1313,7 +1314,7 @@ def test_resample_consistency(unit):
 
     s10 = s.reindex(index=i10, method="bfill")
     s10_2 = s.reindex(index=i10, method="bfill", limit=2)
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(Pandas4Warning):
         rl = s.reindex_like(s10, method="bfill", limit=2)
     r10_2 = s.resample("10Min").bfill(limit=2)
     r10 = s.resample("10Min").bfill()
