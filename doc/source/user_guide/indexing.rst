@@ -1462,7 +1462,7 @@ Looking up values by index/column labels
 Sometimes you want to extract a set of values given a sequence of row labels
 and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing.
 
-For heterogeneous column types, we subset columns to avoid unnecessary numpy conversions:
+For heterogeneous column types, we subset columns to avoid unnecessary NumPy conversions:
 
 .. code-block:: python
 
@@ -1478,12 +1478,13 @@ For heterogeneous column types, we subset columns to avoid unnecessary numpy con
       result = values[flat_index]
       return result
 
-For homogeneous column types, it is fastest to skip column subsetting and go directly to numpy:
+For homogeneous column types, it is fastest to skip column subsetting and go directly to NumPy:
 
 .. code-block:: python
 
    def pd_lookup_hom(df, row_labels, col_labels):
        rows = df.index.get_indexer(row_labels)
+       df = df.loc[:, sorted(set(col_labels))]
        cols = df.columns.get_indexer(col_labels)
        result = df.to_numpy()[rows, cols]
        return result
