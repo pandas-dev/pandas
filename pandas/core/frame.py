@@ -5216,6 +5216,84 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
+    def lookup(self, row_labels, col_labels) -> ExtensionArray | np.ndarray:
+        """
+        Label-based "fancy indexing" function for DataFrame.
+
+        Given equal-length arrays of row and column labels, return an
+        array of the values corresponding to each (row, col) pair.
+
+        Parameters
+        ----------
+        row_labels : sequence
+            The row labels to use for lookup.
+        col_labels : sequence
+            The column labels to use for lookup.
+
+        Returns
+        -------
+        numpy.ndarray
+            The found values.
+
+        Examples
+        --------
+        >>> grades = pd.DataFrame(
+        ...     {
+        ...         "Math": [85, 92, 78, 88, 95],
+        ...         "Science": [90, 85, 92, 79, 87],
+        ...     },
+        ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
+        ... )
+        >>> feedback = pd.DataFrame(
+        ...     {
+        ...         "Math": [
+        ...             "Strong analytical skills",
+        ...             "Excellent problem-solving",
+        ...             "Needs more practice",
+        ...             "Solid understanding",
+        ...             "Exceptional reasoning",
+        ...         ],
+        ...         "Science": [
+        ...             "Excellent inquiry skills",
+        ...             "Good theoretical concepts",
+        ...             "Strong methodological interest",
+        ...             "Needs focus",
+        ...             "Outstanding curiosity",
+        ...         ],
+        ...     },
+        ...     index=["Alice", "Bob", "Charlie", "David", "Eve"],
+        ... )
+        >>> student_top = grades.rank(1).idxmax(1)  #  student's top score
+        >>> feedback.lookup(student_top.index, student_top)
+        array(['Excellent inquiry skills', 'Excellent problem-solving',
+               'Strong methodological interest', 'Solid understanding',
+               'Exceptional reasoning'], dtype=object)
+        """
+        n = len(row_labels)
+        if n != len(col_labels):
+            raise ValueError("Row labels must have same size as column labels")
+        if not (self.index.is_unique and self.columns.is_unique):
+            # GH#33041
+            raise ValueError("DataFrame.lookup requires unique index and columns")
+
+        ridx = self.index.get_indexer(row_labels)
+        cidx = self.columns.get_indexer(col_labels)
+        if (ridx == -1).any():
+            raise KeyError("One or more row labels was not found")
+        if (cidx == -1).any():
+            raise KeyError("One or more column labels was not found")
+
+        sub = self.take(np.unique(cidx), axis=1)
+        sub = sub.take(np.unique(ridx), axis=0)
+        ridx = sub.index.get_indexer(row_labels)
+        values = sub.melt()["value"]
+        cidx = sub.columns.get_indexer(col_labels)
+        flat_index = ridx + cidx * len(sub)
+
+        result = values[flat_index]
+
+        return result
+
     def _reindex_multi(self, axes: dict[str, Index], fill_value) -> DataFrame:
         """
         We are guaranteed non-Nones in the axes.
