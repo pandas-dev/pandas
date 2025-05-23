@@ -231,6 +231,11 @@ def _get_freq(ax: Axes, series: Series):
 
 
 def use_dynamic_x(ax: Axes, index: Index) -> bool:
+    # Cache the result of dynamic_x calculations at the axis level to avoid redundant
+    # processing for multiple columns in a DataFrame
+    if hasattr(ax, "_dynamic_x_cache") and id(index) in ax._dynamic_x_cache:  # type: ignore[attr-defined]
+        return ax._dynamic_x_cache[id(index)]  # type: ignore[attr-defined]
+
     freq = _get_index_freq(index)
     ax_freq = _get_ax_freq(ax)
 
@@ -238,15 +243,27 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
         freq = ax_freq
     # do not use tsplot if irregular was plotted first
     elif (ax_freq is None) and (len(ax.get_lines()) > 0):
-        return False
+        result = False
+        if not hasattr(ax, "_dynamic_x_cache"):
+            ax._dynamic_x_cache = {}  # type: ignore[attr-defined]
+        ax._dynamic_x_cache[id(index)] = result  # type: ignore[attr-defined]
+        return result
 
     if freq is None:
-        return False
+        result = False
+        if not hasattr(ax, "_dynamic_x_cache"):
+            ax._dynamic_x_cache = {}  # type: ignore[attr-defined]
+        ax._dynamic_x_cache[id(index)] = result  # type: ignore[attr-defined]
+        return result
 
     freq_str = _get_period_alias(freq)
 
     if freq_str is None:
-        return False
+        result = False
+        if not hasattr(ax, "_dynamic_x_cache"):
+            ax._dynamic_x_cache = {}  # type: ignore[attr-defined]
+        ax._dynamic_x_cache[id(index)] = result  # type: ignore[attr-defined]
+        return result
 
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(index, ABCDatetimeIndex):
@@ -254,11 +271,19 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         if base <= FreqGroup.FR_DAY.value:
-            return index[:1].is_normalized
-        period = Period(index[0], freq_str)
-        assert isinstance(period, Period)
-        return period.to_timestamp().tz_localize(index.tz) == index[0]
-    return True
+            result = index[:1].is_normalized
+        else:
+            period = Period(index[0], freq_str)
+            assert isinstance(period, Period)
+            result = period.to_timestamp().tz_localize(index.tz) == index[0]
+    else:
+        result = True
+
+    # Cache the result
+    if not hasattr(ax, "_dynamic_x_cache"):
+        ax._dynamic_x_cache = {}  # type: ignore[attr-defined]
+    ax._dynamic_x_cache[id(index)] = result  # type: ignore[attr-defined]
+    return result
 
 
 def _get_index_freq(index: Index) -> BaseOffset | None:
@@ -279,6 +304,25 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
+        # Cache the converted index on the axis to avoid redundant conversions
+        # when plotting multiple columns with the same index
+        index_id = id(data.index)
+
+        # Check if we already have a cached conversion for this index
+        if (
+            hasattr(ax, "_converted_index_cache")
+            and index_id in ax._converted_index_cache
+        ):  # type: ignore[attr-defined]
+            freq_str, converted_index = ax._converted_index_cache[index_id]  # type: ignore[attr-defined]
+
+            # Create a new object with the cached converted index
+            if isinstance(data.index, ABCDatetimeIndex):
+                return data.tz_localize(None).to_period(freq=freq_str)
+            else:  # PeriodIndex
+                result = data.copy()
+                result.index = converted_index
+                return result
+
         freq: str | BaseOffset | None = data.index.freq
 
         if freq is None:
@@ -305,10 +349,24 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
                 category=FutureWarning,
             )
 
+            # Initialize the cache if it doesn't exist
+            if not hasattr(ax, "_converted_index_cache"):
+                ax._converted_index_cache = {}  # type: ignore[attr-defined]
+
             if isinstance(data.index, ABCDatetimeIndex):
-                data = data.tz_localize(None).to_period(freq=freq_str)
+                # Convert to period
+                converted_data = data.tz_localize(None).to_period(freq=freq_str)
+                # Cache the converted index for future use
+                ax._converted_index_cache[index_id] = (freq_str, converted_data.index)  # type: ignore[attr-defined]
+                return converted_data
             elif isinstance(data.index, ABCPeriodIndex):
-                data.index = data.index.asfreq(freq=freq_str, how="start")
+                # Asfreq the period index
+                converted_index = data.index.asfreq(freq=freq_str, how="start")
+                # Cache the converted index for future use
+                ax._converted_index_cache[index_id] = (freq_str, converted_index)  # type: ignore[attr-defined]
+                result = data.copy()
+                result.index = converted_index
+                return result
     return data
 
 
@@ -369,14 +427,27 @@ def format_dateaxis(
 def prepare_ts_data(
     series: Series, ax: Axes, kwargs: dict[str, Any]
 ) -> tuple[BaseOffset | str, Series]:
+    # Check if axes already have frequency information set up
+    # This prevents redundant setup for multi-column DataFrames with the same index
+    index_id = id(series.index)
+    ts_data_setup_done = (
+        hasattr(ax, "_ts_data_setup_done") and index_id in ax._ts_data_setup_done  # type: ignore[attr-defined]
+    )
+
     freq, data = maybe_resample(series, ax, kwargs)
 
-    # Set ax with freq info
-    decorate_axes(ax, freq)
-    # digging deeper
-    if hasattr(ax, "left_ax"):
-        decorate_axes(ax.left_ax, freq)
-    if hasattr(ax, "right_ax"):
-        decorate_axes(ax.right_ax, freq)
+    if not ts_data_setup_done:
+        # Set ax with freq info
+        decorate_axes(ax, freq)
+        # digging deeper
+        if hasattr(ax, "left_ax"):
+            decorate_axes(ax.left_ax, freq)
+        if hasattr(ax, "right_ax"):
+            decorate_axes(ax.right_ax, freq)
+
+        # Mark this index as having been set up for this axis
+        if not hasattr(ax, "_ts_data_setup_done"):
+            ax._ts_data_setup_done = set()  # type: ignore[attr-defined]
+        ax._ts_data_setup_done.add(index_id)  # type: ignore[attr-defined]
 
     return freq, data
