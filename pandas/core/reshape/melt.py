@@ -239,6 +239,9 @@ def melt(
     mdata: dict[Hashable, AnyArrayLike] = {}
     for col in id_vars:
         id_data = frame.pop(col)
+        # GH61475 - prevent AttributeError when duplicate column
+        if not hasattr(id_data, "dtype"):
+            raise Exception(f"{col} is a duplicate column header")
         if not isinstance(id_data.dtype, np.dtype):
             # i.e. ExtensionDtype
             if num_cols_adjusted > 0:
