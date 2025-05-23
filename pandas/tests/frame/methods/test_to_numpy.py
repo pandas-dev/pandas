@@ -50,9 +50,8 @@ class TestToNumpy:
         df = DataFrame(dti)
         df.iloc[0, 0] = NaT
         expected = np.array([[np.nan], [1.45169280e18], [1.45177920e18]])
-        assert np.allclose(
-            df.to_numpy(float, na_value=np.nan), expected, equal_nan=True
-        )
+        result = df.to_numpy(float, na_value=np.nan)
+        tm.assert_numpy_array_equal(result, expected)
 
         df = DataFrame(
             {
@@ -69,11 +68,12 @@ class TestToNumpy:
                 ],
             }
         )
-        arr = np.array(
+        expected = np.array(
             [
                 [0.00e00, 0.00e00, 1.00e00],
                 [8.64e04, np.nan, np.nan],
                 [np.nan, 8.64e04, 2.00e00],
             ]
         )
-        assert np.allclose(df.to_numpy(float, na_value=np.nan), arr, equal_nan=True)
+        result = df.to_numpy(float, na_value=np.nan)
+        tm.assert_numpy_array_equal(result, expected)
