@@ -45,9 +45,9 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core._numba.executor import generate_apply_looper
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     prepare_function_arguments,
@@ -211,7 +211,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         """
 
         looper_args, looper_kwargs = prepare_function_arguments(
-            func,   # type: ignore[arg-type]
+            func,  # type: ignore[arg-type]
             args,
             kwargs,
             num_required_args=1,
@@ -221,8 +221,8 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
         # list[Callable[..., Any] | str]]"; expected "Hashable"
         nb_looper = generate_apply_looper(
-            func,   # type: ignore[arg-type]
-            **get_jit_arguments(engine_kwargs)
+            func,  # type: ignore[arg-type]
+            **get_jit_arguments(engine_kwargs),
         )
         result = nb_looper(data, axis, *looper_args)
         # If we made the result 2-D, squeeze it back to 1-D
