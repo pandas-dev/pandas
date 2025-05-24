@@ -189,7 +189,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         func,
         args: tuple,
         kwargs: dict,
-        engine_kwargs: dict | None,
+        decorator: Callable | None,
         skip_na: bool,
     ):
         """
@@ -203,7 +203,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         func,
         args: tuple,
         kwargs: dict,
-        engine_kwargs: dict | None,
+        decorator: Callable,
         axis: int | str,
     ):
         """
@@ -222,7 +222,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         # list[Callable[..., Any] | str]]"; expected "Hashable"
         nb_looper = generate_apply_looper(
             func,  # type: ignore[arg-type]
-            **get_jit_arguments(engine_kwargs),
+            **get_jit_arguments(decorator),
         )
         result = nb_looper(data, axis, *looper_args)
         # If we made the result 2-D, squeeze it back to 1-D
