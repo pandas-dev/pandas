@@ -439,7 +439,13 @@ class TestCommon:
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
+def test_sort_values_invalid_na_position(index_with_missing, na_position, request):
+    if index_with_missing.inferred_type == "mixed-integer":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="Mixed-integer Indexes do not support sorting with missing values"
+            )
+        )
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
         index_with_missing.sort_values(na_position=na_position)
 
@@ -450,6 +456,12 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
+    if index_with_missing.inferred_type == "mixed-integer":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="Mixed-integer Indexes do not support sorting with missing values"
+            )
+        )
     if isinstance(index_with_missing, CategoricalIndex):
         request.applymarker(
             pytest.mark.xfail(
