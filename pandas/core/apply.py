@@ -209,9 +209,12 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         """
         Apply `func` along the given axis using Numba.
         """
+        engine_kwargs: dict[str, bool] | None = (
+            decorator if isinstance(decorator, dict) else None
+        )
 
         looper_args, looper_kwargs = prepare_function_arguments(
-            func,  # type: ignore[arg-type]
+            func,
             args,
             kwargs,
             num_required_args=1,
@@ -221,8 +224,8 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
         # list[Callable[..., Any] | str]]"; expected "Hashable"
         nb_looper = generate_apply_looper(
-            func,  # type: ignore[arg-type]
-            **get_jit_arguments(decorator),
+            func,
+            **get_jit_arguments(engine_kwargs),
         )
         result = nb_looper(data, axis, *looper_args)
         # If we made the result 2-D, squeeze it back to 1-D
