@@ -907,6 +907,7 @@ Other
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
 - Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
+- Bug in input validation when coercing object-dtype arrays containing ambiguous datetime strings to ``datetime64`` that could result in silently inconsistent parsing. (:issue:`61353``)
 
 .. ***DO NOT USE THIS SECTION***
 
