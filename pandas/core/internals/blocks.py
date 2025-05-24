@@ -2177,6 +2177,40 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     if isinstance(values, np.ndarray):
         values = ensure_wrapped_if_datetimelike(values)
 
+        _date_like_re = re.compile(r"\d{1,4}[/\-]\d{1,2}[/\-]\d{1,4}")
+        if (
+            values.dtype == object
+            and values.ndim == 1
+            and len(values) > 0
+            and all(isinstance(x, str) and _date_like_re.match(x) for x in values)
+        ):
+            print("[DEBUG] matched ambiguous datetime regex:", values)
+            from pandas.core.tools.datetimes import (
+                _guess_datetime_format_for_array,
+                to_datetime,
+            )
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                fmt = _guess_datetime_format_for_array(values)
+
+            if fmt is None:
+                raise ValueError(
+                    "Ambiguous datetime string format detected. "
+                    "Specify a format via `pd.to_datetime(..., format=...)` "
+                    "or use `dayfirst=True`."
+                )
+
+            try:
+                # Validate consistent parsing
+                to_datetime(values, format=fmt, dayfirst=False)
+            except ValueError:
+                raise ValueError(
+                    "Inconsistent or ambiguous datetime strings detected. "
+                    "Specify `format=...` "
+                    "or use `dayfirst=True` to ensure correct parsing."
+                ) from None
+
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
 

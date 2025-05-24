@@ -816,6 +816,18 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_with_ambiguous_datetime_strings_raises(self):
+        df = DataFrame({"a": date_range("2020-01-01", periods=2)})
+        with pytest.raises(
+            ValueError,
+            match=(
+                "(?i)ambiguous datetime string format|"
+                "inconsistent or ambiguous datetime strings"
+            ),
+        ):
+            ambiguous_dates = Series(["12/01/2020", "13/01/2020"], dtype=object)
+            df.loc[:, "a"] = ambiguous_dates
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -1399,3 +1411,15 @@ def test_setitem_partial_row_multiple_columns():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_constructor_with_ambiguous_datetime_strings_raises():
+    with pytest.raises(
+        ValueError,
+        match=(
+            "(?i)ambiguous datetime string format|"
+            "inconsistent or ambiguous datetime strings"
+        ),
+    ):
+        df = DataFrame({"a": Series(["12/01/2020", "13/01/2020"], dtype="object")})
+        df.astype({"a": "datetime64[ns]"})
