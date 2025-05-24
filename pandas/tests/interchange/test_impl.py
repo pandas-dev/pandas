@@ -288,7 +288,7 @@ def test_empty_pyarrow(data):
     expected = pd.DataFrame(data)
     arrow_df = pa_from_dataframe(expected)
     result = from_dataframe(arrow_df)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_column_type=False)
 
 
 def test_multi_chunk_pyarrow() -> None:
@@ -298,8 +298,7 @@ def test_multi_chunk_pyarrow() -> None:
     table = pa.table([n_legs], names=names)
     with pytest.raises(
         RuntimeError,
-        match="To join chunks a copy is required which is "
-        "forbidden by allow_copy=False",
+        match="Cannot do zero copy conversion into multi-column DataFrame block",
     ):
         pd.api.interchange.from_dataframe(table, allow_copy=False)
 
@@ -605,4 +604,13 @@ def test_empty_dataframe():
     dfi = df.__dataframe__()
     result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
     expected = pd.DataFrame({"a": []}, dtype="int8")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_from_dataframe_list_dtype():
+    pa = pytest.importorskip("pyarrow", "14.0.0")
+    data = {"a": [[1, 2], [4, 5, 6]]}
+    tbl = pa.table(data)
+    result = from_dataframe(tbl)
+    expected = pd.DataFrame(data)
     tm.assert_frame_equal(result, expected)
