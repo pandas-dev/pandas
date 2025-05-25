@@ -8,6 +8,8 @@
   [Noa Tamir](https://github.com/noatamir)
 - Revision: 3
 
+[TOC]
+
 ## PDEP definition, purpose and scope
 
 A PDEP (pandas enhancement proposal) is a proposal for a **major** change in
