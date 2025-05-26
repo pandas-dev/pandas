@@ -815,8 +815,8 @@ Conversion
 ^^^^^^^^^^
 - Bug in :meth:`DataFrame.astype` when called with ``str`` on unpickled array - the array might change in-place (:issue:`54654`)
 - Bug in :meth:`DataFrame.astype` where ``errors="ignore"`` had no effect for extension types (:issue:`54654`)
+- Bug in :meth:`DataFrame.loc` was not throwing "incompatible dtype warning" (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_) when assigning a ``Series`` with a different dtype using a full column setter (e.g. ``df.loc[:, 'a'] = incompatible_value``) (:issue:`39584`)
 - Bug in :meth:`Series.convert_dtypes` not converting all NA column to ``null[pyarrow]`` (:issue:`55346`)
-- Bug in :meth:``DataFrame.loc`` was not throwing "incompatible dtype warning" (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_) when assigning a ``Series`` with a different dtype using a full column setter (e.g. ``df.loc[:, 'a'] = incompatible_value``) (:issue:`39584`)
 
 Strings
 ^^^^^^^
