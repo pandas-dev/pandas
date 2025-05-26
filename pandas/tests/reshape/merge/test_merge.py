@@ -2371,13 +2371,35 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
 
 @pytest.mark.parametrize("force_suffixes", [False, True])
 def test_merge_suffix_with_force_simple(force_suffixes):
+    df1 = pd.DataFrame({
+                'ID': [1, 2, 3],
+                'Value': ['A', 'B', 'C']
+                })
+
+    df2 = pd.DataFrame({
+                    'ID': [2, 3, 4],
+                    'Value': ['D', 'E', 'F']
+                })
+
+    if force_suffixes:
+        expected = DataFrame([[2, 2, "B", "D"], [3, 3, "C", "E"]], columns=["ID_left", "Value_left", "ID_right", "Value_right"])
+    else:
+        expected = DataFrame([[2, "B", "D"], [3, "C", "E"]], columns=["ID", "Value_left", "Value_right"])
+
+    result = merge(df1, df2, on="ID", suffixes=("_left", "_right"), force_suffixes=force_suffixes)
+    tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize("force_suffixes", [False, True])
+def test_merge_suffix_with_force_multi_column(force_suffixes):
     a = DataFrame({"A": [1, 2, 3, 98], "B": [4, 5, 6, 99], "ALPHABET": ["A", "B", "C", "Z"]})
     b = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "alphabet": ["a", "b", "c"]})
 
     if force_suffixes:
-        expected = DataFrame([[1, 4, "A", 1, 4, "a"], [2, 5, "B", 2, 5, "b"], [3, 6, "C", 3, 6, "c"]], columns=["A_x", "B_x", "ALPHABET_x", "a_y", "b_y", "alphabet_y"])
+        expected = DataFrame([[1, 4, "A", 1, 4, "a"], [2, 5, "B", 2, 5, "b"], [3, 6, "C", 3, 6, "c"]],
+                             columns=["A_x", "B_x", "ALPHABET_x", "a_y", "b_y", "alphabet_y"])
     else:
-        expected = DataFrame([[1, 4, "A", 1, 4, "a"], [2, 5, "B", 2, 5, "b"], [3, 6, "C", 3, 6, "c"]], columns=["A", "B", "ALPHABET", "a", "b", "alphabet"])
+        expected = DataFrame([[1, 4, "A", 1, 4, "a"], [2, 5, "B", 2, 5, "b"], [3, 6, "C", 3, 6, "c"]],
+                             columns=["A", "B", "ALPHABET", "a", "b", "alphabet"])
 
     result = merge(a, b, left_on=["A", "B"], right_on=["a", "b"],
                    force_suffixes=force_suffixes)
