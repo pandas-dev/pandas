@@ -2382,11 +2382,14 @@ def test_merge_suffix_with_force_simple(force_suffixes):
                 })
 
     if force_suffixes:
-        expected = DataFrame([[2, 2, "B", "D"], [3, 3, "C", "E"]], columns=["ID_left", "Value_left", "ID_right", "Value_right"])
+        expected = DataFrame([[2, 2, "B", "D"], [3, 3, "C", "E"]],
+                             columns=["ID_left", "Value_left", "ID_right", "Value_right"])
     else:
-        expected = DataFrame([[2, "B", "D"], [3, "C", "E"]], columns=["ID", "Value_left", "Value_right"])
+        expected = DataFrame([[2, "B", "D"], [3, "C", "E"]],
+                             columns=["ID", "Value_left", "Value_right"])
 
-    result = merge(df1, df2, on="ID", suffixes=("_left", "_right"), force_suffixes=force_suffixes)
+    result = merge(df1, df2, on="ID", suffixes=("_left", "_right"),
+                   force_suffixes=force_suffixes)
     tm.assert_frame_equal(result, expected)
 
 @pytest.mark.parametrize("force_suffixes", [False, True])
