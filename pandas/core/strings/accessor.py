@@ -1460,10 +1460,7 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        match : Similar, but also returns `True`
-        when only a *prefix* of the string
-            matches the regular expression.
-        extract : Extract matched groups.
+        re.fullmatch : Match the entire string using a regular expression.
 
         Notes
         -----
