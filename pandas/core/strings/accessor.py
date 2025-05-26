@@ -1431,8 +1431,10 @@ class StringMethods(NoNewAttributesMixin):
         Determine if each string entirely matches a regular expression.
 
         Checks if each string in the Series or Index fully matches the
-        specified regular expression pattern. This function is useful when the
-        requirement is for an entire string to conform to a pattern, such as
+        specified regular expression pattern.
+        This function is useful when the
+        requirement is for an entire string to conform
+        to a pattern, such as
         validating formats like phone numbers or email addresses.
 
         Parameters
@@ -1458,7 +1460,8 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        match : Similar, but also returns `True` when only a *prefix* of the string
+        match : Similar, but also returns `True`
+        when only a *prefix* of the string
             matches the regular expression.
         extract : Extract matched groups.
 
@@ -1466,13 +1469,14 @@ class StringMethods(NoNewAttributesMixin):
         -----
         This method enforces consistent behavior between Python's string dtype
         and PyArrow-backed string arrays when using regular expressions
-        containing alternation (|). For regex patterns with alternation operators,
-        the method ensures proper grouping by wrapping the pattern in parentheses
+        containing alternation (|). For regex
+        patterns with alternation operators,
+        the method ensures proper grouping by
+        wrapping the pattern in parentheses
         when using PyArrow-backed string arrays.
 
         Examples
         --------
-        >>> import pandas as pd
         >>> s = pd.Series(["foo", "bar", "foobar", ""])
         >>> s.str.fullmatch("foo")
         0     True
@@ -2675,7 +2679,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes"])
     def count(self, pat, flags: int = 0):
-        r"""
+        """
         Count occurrences of pattern in each string of the Series/Index.
 
         This function is used to count the number of times a particular regex
