@@ -10,6 +10,7 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
+    Any,
     final,
 )
 import warnings
@@ -20,11 +21,11 @@ from pandas.util._exceptions import find_stack_level
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from pandas.core.frame import DataFrame
     from pandas._typing import TypeT
 
     from pandas import Index
     from pandas.core.generic import NDFrame
-
 
 from importlib_metadata import entry_points
 
@@ -401,18 +402,18 @@ def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
 class DataFrameAccessorLoader:
     """Loader class for registering DataFrame accessors via entry points."""
 
-    ENTRY_POINT_GROUP = "pandas_dataframe_accessor"
+    ENTRY_POINT_GROUP: str = "pandas_dataframe_accessor"
 
     @classmethod
-    def load(cls):
+    def load(cls) -> None:
         """loads and registers accessors defined by 'pandas_dataframe_accessor'."""
         eps = entry_points(group=cls.ENTRY_POINT_GROUP)
 
         for ep in eps:
-            name = ep.name
+            name: str = ep.name
 
-            def make_property(ep):
-                def accessor(self):
+            def make_property(ep) -> Callable[[DataFrame], Any]:
+                def accessor(self) -> Any:
                     cls_ = ep.load()
                     return cls_(self)
 
