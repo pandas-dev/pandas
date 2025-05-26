@@ -40,8 +40,8 @@ and in the Python interpreter.
 
 .. ipython:: python
 
-   'dense : {:0.2f} bytes'.format(df.memory_usage().sum() / 1e3)
-   'sparse: {:0.2f} bytes'.format(sdf.memory_usage().sum() / 1e3)
+   f'dense: {df.memory_usage().sum()} bytes'
+   f'sparse: {sdf.memory_usage().sum()} bytes'
 
 Functionally, their behavior should be nearly
 identical to their dense counterparts.
