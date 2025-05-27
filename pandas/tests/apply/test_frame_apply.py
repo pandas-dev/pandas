@@ -17,7 +17,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.apply.common import MockEngineDecorator
+from pandas.tests.apply.conftest import MockEngineDecorator
 from pandas.tests.frame.common import zip_frames
 from pandas.util.version import Version
 
