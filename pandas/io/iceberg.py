@@ -1,4 +1,5 @@
 from typing import (
+    TYPE_CHECKING,
     Any,
 )
 
@@ -6,8 +7,13 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame
 
+if TYPE_CHECKING:
+    from pyiceberg.catalog import Catalog  # noqa: TC004
 
-def _get_catalog(catalog_name: str | None, catalog_properties: dict[str, Any] | None):
+
+def _get_catalog(
+    catalog_name: str | None, catalog_properties: dict[str, Any] | None
+) -> Catalog:
     pyiceberg_catalog = import_optional_dependency("pyiceberg.catalog")
     if catalog_properties is None:
         catalog_properties = {}
@@ -105,7 +111,7 @@ def to_iceberg(
     catalog_properties: dict[str, Any] | None = None,
     location: str | None = None,
     snapshot_properties: dict[str, str] | None = None,
-):
+) -> None:
     """
     Write a DataFrame to an Apache Iceberg table.
 
@@ -128,11 +134,6 @@ def to_iceberg(
     --------
     read_iceberg : Read an Apache Iceberg table.
     DataFrame.to_parquet : Write a DataFrame in Parquet format.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
-    >>> df.to_iceberg("my_table", catalog_name="my_catalog")
     """
     pa = import_optional_dependency("pyarrow")
 

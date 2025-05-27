@@ -3574,6 +3574,10 @@ class DataFrame(NDFrame, OpsMixin):
         snapshot_properties : dict of {str: str}, optional
             Custom properties to be added to the snapshot summary
 
+        Returns
+        -------
+        None
+
         See Also
         --------
         read_iceberg : Read an Apache Iceberg table.
@@ -3582,7 +3586,7 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
-        >>> df.to_iceberg("my_table", catalog_name="my_catalog")
+        >>> df.to_iceberg("my_table", catalog_name="my_catalog")  # doctest: +SKIP
         """
         from pandas.io.iceberg import to_iceberg
 

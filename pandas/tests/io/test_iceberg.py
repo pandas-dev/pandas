@@ -177,3 +177,25 @@ class TestIceberg:
             catalog_name=catalog.name,
         )
         tm.assert_frame_equal(result, df)
+
+    def test_write_existing_table(self, catalog):
+        original = read_iceberg(
+            "ns.my_table",
+            catalog_properties={"uri": catalog.uri},
+        )
+        new = pd.DataFrame(
+            {
+                "A": [4, 5],
+                "B": ["bar", "foobar"],
+            }
+        )
+        new.to_iceberg(
+            "ns.my_table",
+            catalog_properties={"uri": catalog.uri},
+            location=catalog.warehouse,
+        )
+        result = read_iceberg(
+            "ns.my_table",
+            catalog_properties={"uri": catalog.uri},
+        )
+        tm.assert_frame_equal(result, pd.concat([original, new]))
