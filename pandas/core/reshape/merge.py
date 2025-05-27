@@ -198,15 +198,15 @@ def merge(
           to SQL left anti join; preserve key order.
         * right_anti: use only keys from right frame that are not in left frame, similar
           to SQL right anti join; preserve key order.
-    on : label or list
+    on : Hashable or a sequence of the previous
         Column or index level names to join on. These must be found in both
         DataFrames. If `on` is None and not merging on indexes then this defaults
         to the intersection of the columns in both DataFrames.
-    left_on : label or list, or array-like
+    left_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the left DataFrame. Can also
         be an array or list of arrays of the length of the left DataFrame.
         These arrays are treated as if they are columns.
-    right_on : label or list, or array-like
+    right_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the right DataFrame. Can also
         be an array or list of arrays of the length of the right DataFrame.
         These arrays are treated as if they are columns.
@@ -536,13 +536,13 @@ def merge_ordered(
         First pandas object to merge.
     right : DataFrame or named Series
         Second pandas object to merge.
-    on : label or list
+    on : Hashable or a sequence of the previous
         Field names to join on. Must be found in both DataFrames.
-    left_on : label or list, or array-like
+    left_on : Hashable or a sequence of the previous, or array-like
         Field names to join on in left DataFrame. Can be a vector or list of
         vectors of the length of the DataFrame to use a particular vector as
         the join key instead of columns.
-    right_on : label or list, or array-like
+    right_on : Hashable or a sequence of the previous, or array-like
         Field names to join on in right DataFrame or vector/list of vectors per
         left_on docs.
     left_by : column name or list of column names
