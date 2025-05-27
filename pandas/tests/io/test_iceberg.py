@@ -22,7 +22,7 @@ pyiceberg = pytest.importorskip("pyiceberg")
 pyiceberg_catalog = pytest.importorskip("pyiceberg.catalog")
 pq = pytest.importorskip("pyarrow.parquet")
 
-Catalog = collections.namedtuple("Catalog", ["name", "uri"])
+Catalog = collections.namedtuple("Catalog", ["name", "uri", "warehouse"])
 
 
 @pytest.fixture
@@ -58,7 +58,7 @@ catalog:
 
         importlib.reload(pyiceberg_catalog)  # needed to reload the config file
 
-    yield Catalog(name=catalog_name or "default", uri=uri)
+    yield Catalog(name=catalog_name or "default", uri=uri, warehouse=warehouse)
 
     if catalog_name is not None:
         config_path.unlink()
@@ -141,3 +141,39 @@ class TestIceberg:
             limit=2,
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_write(self, catalog):
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": ["foo", "foo", "foo"],
+            }
+        )
+        df.to_iceberg(
+            "ns.new_table",
+            catalog_properties={"uri": catalog.uri},
+            location=catalog.warehouse,
+        )
+        result = read_iceberg(
+            "ns.new_table",
+            catalog_properties={"uri": catalog.uri},
+        )
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("catalog", ["default", "pandas_tests"], indirect=True)
+    def test_write_by_catalog_name(self, catalog):
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": ["foo", "foo", "foo"],
+            }
+        )
+        df.to_iceberg(
+            "ns.new_table",
+            catalog_name=catalog.name,
+        )
+        result = read_iceberg(
+            "ns.new_table",
+            catalog_name=catalog.name,
+        )
+        tm.assert_frame_equal(result, df)
