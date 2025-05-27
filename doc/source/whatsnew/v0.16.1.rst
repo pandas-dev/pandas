@@ -353,7 +353,7 @@ Deprecations
 Index representation
 ~~~~~~~~~~~~~~~~~~~~
 
-The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanged (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
+The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``); if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanged (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
 
 Previous behavior
 

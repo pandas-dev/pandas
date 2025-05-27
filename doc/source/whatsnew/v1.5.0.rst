@@ -287,7 +287,7 @@ and attributes without holding entire tree in memory (:issue:`45442`).
 
     In [1]: df = pd.read_xml(
     ...      "/path/to/downloaded/enwikisource-latest-pages-articles.xml",
-    ...      iterparse = {"page": ["title", "ns", "id"]})
+    ...      iterparse = {"page": ["title", "ns", "id"]}
     ...  )
     df
     Out[2]:

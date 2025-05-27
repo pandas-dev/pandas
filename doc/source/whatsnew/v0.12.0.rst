@@ -245,7 +245,7 @@ IO enhancements
       format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
 
     - If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-      with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will
+      with ``df.to_csv(..., index=False)``), then any ``names`` on the columns index will
       be *lost*.
 
       .. ipython:: python
