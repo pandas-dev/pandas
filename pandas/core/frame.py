@@ -10641,7 +10641,11 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"Unknown engine {engine}")
 
     def map(
-        self, func: PythonFuncType, na_action: Literal["ignore"] | None = None, **kwargs
+        self,
+        func: PythonFuncType,
+        skipna: bool = False,
+        na_action: Literal["ignore"] | None = None,
+        **kwargs,
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
@@ -10657,6 +10661,8 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         func : callable
             Python function, returns a single value from a single value.
+        skipna : bool = False
+            If ``True``, propagate missing values without passing them to ``func``.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to func.
         **kwargs
@@ -10691,7 +10697,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
-        >>> df_copy.map(lambda x: len(str(x)), na_action="ignore")
+        >>> df_copy.map(lambda x: len(str(x)), skipna=True)
              0  1
         0  NaN  4
         1  5.0  5
@@ -10719,8 +10725,14 @@ class DataFrame(NDFrame, OpsMixin):
         0   1.000000   4.494400
         1  11.262736  20.857489
         """
-        if na_action not in {"ignore", None}:
-            raise ValueError(f"na_action must be 'ignore' or None. Got {na_action!r}")
+        if na_action == "ignore":
+            warnings.warn(
+                "The ``na_action`` parameter has been deprecated and it will be "
+                "removed in a future version of pandas. Use ``skipna`` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            skipna = True
 
         if self.empty:
             return self.copy()
@@ -10728,7 +10740,7 @@ class DataFrame(NDFrame, OpsMixin):
         func = functools.partial(func, **kwargs)
 
         def infer(x):
-            return x._map_values(func, na_action=na_action)
+            return x._map_values(func, skipna=skipna)
 
         return self.apply(infer).__finalize__(self, "map")
 

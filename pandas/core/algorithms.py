@@ -1629,9 +1629,7 @@ def union_with_duplicates(
 
 
 def map_array(
-    arr: ArrayLike,
-    mapper,
-    na_action: Literal["ignore"] | None = None,
+    arr: ArrayLike, mapper, skipna: bool = False
 ) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
@@ -1640,8 +1638,8 @@ def map_array(
     ----------
     mapper : function, dict, or Series
         Mapping correspondence.
-    na_action : {None, 'ignore'}, default None
-        If 'ignore', propagate NA values, without passing them to the
+    skipna : bool, default False
+        If ``True``, propagate NA values, without passing them to the
         mapping correspondence.
 
     Returns
@@ -1652,10 +1650,6 @@ def map_array(
         a MultiIndex will be returned.
     """
     from pandas import Index
-
-    if na_action not in (None, "ignore"):
-        msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
-        raise ValueError(msg)
 
     # we can fastpath dict/Series to an efficient map
     # as we know that we are not going to have to yield
@@ -1690,7 +1684,7 @@ def map_array(
                 mapper = Series(mapper)
 
     if isinstance(mapper, ABCSeries):
-        if na_action == "ignore":
+        if skipna:
             mapper = mapper[mapper.index.notna()]
 
         # Since values were input this means we came from either
@@ -1705,7 +1699,7 @@ def map_array(
 
     # we must convert to python types
     values = arr.astype(object, copy=False)
-    if na_action is None:
+    if not skipna:
         return lib.map_infer(values, mapper)
     else:
         return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))

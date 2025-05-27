@@ -1497,7 +1497,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def map(
         self,
         mapper,
-        na_action: Literal["ignore"] | None = None,
+        skipna: bool = False,
     ):
         """
         Map categories using an input mapping or function.
@@ -1515,8 +1515,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
-        na_action : {None, 'ignore'}, default None
-            If 'ignore', propagate NaN values, without passing them to the
+        skipna : bool, default False
+            If ``True``, propagate NA values, without passing them to the
             mapping correspondence.
 
         Returns
@@ -1541,10 +1541,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat
         ['a', 'b', 'c']
         Categories (3, object): ['a', 'b', 'c']
-        >>> cat.map(lambda x: x.upper(), na_action=None)
+        >>> cat.map(lambda x: x.upper(), skipna=False)
         ['A', 'B', 'C']
         Categories (3, object): ['A', 'B', 'C']
-        >>> cat.map({"a": "first", "b": "second", "c": "third"}, na_action=None)
+        >>> cat.map({"a": "first", "b": "second", "c": "third"}, skipna=False)
         ['first', 'second', 'third']
         Categories (3, object): ['first', 'second', 'third']
 
@@ -1555,19 +1555,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat
         ['a', 'b', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
-        >>> cat.map({"a": 3, "b": 2, "c": 1}, na_action=None)
+        >>> cat.map({"a": 3, "b": 2, "c": 1}, skipna=False)
         [3, 2, 1]
         Categories (3, int64): [3 < 2 < 1]
 
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
-        >>> cat.map({"a": "first", "b": "second", "c": "first"}, na_action=None)
+        >>> cat.map({"a": "first", "b": "second", "c": "first"}, skipna=False)
         Index(['first', 'second', 'first'], dtype='object')
 
         If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
-        >>> cat.map({"a": "first", "b": "second"}, na_action=None)
+        >>> cat.map({"a": "first", "b": "second"}, skipna=False)
         Index(['first', 'second', nan], dtype='object')
         """
         assert callable(mapper) or is_dict_like(mapper)
@@ -1577,7 +1577,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         has_nans = np.any(self._codes == -1)
 
         na_val = np.nan
-        if na_action is None and has_nans:
+        if not skipna and has_nans:
             na_val = mapper(np.nan) if callable(mapper) else mapper.get(np.nan, np.nan)
 
         if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
