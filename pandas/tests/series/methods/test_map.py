@@ -20,6 +20,9 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+
+# The fixture it's mostly used in pandas/tests/apply, so it's defined in that
+# conftest, which is out of scope here. So we need to manually import
 from pandas.tests.apply.conftest import engine  # noqa: F401
 
 
