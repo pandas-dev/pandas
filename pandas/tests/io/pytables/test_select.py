@@ -23,7 +23,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-from pandas.io.pytables import Term
+from pandas.io.pytables import _Term as Term
 
 pytestmark = [pytest.mark.single_cpu]
 
@@ -143,7 +143,7 @@ def test_select(setup_path):
         tm.assert_frame_equal(expected, result)
 
         # equivalently
-        result = store.select("df", [("columns=['A', 'B']")])
+        result = store.select("df", ["columns=['A', 'B']"])
         expected = df.reindex(columns=["A", "B"])
         tm.assert_frame_equal(expected, result)
 
