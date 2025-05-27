@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from pandas import Index
     from pandas.core.generic import NDFrame
 
-from importlib_metadata import entry_points
+from importlib.metadata import entry_points
 
 
 class DirNamesMixin:
@@ -412,7 +412,7 @@ class DataFrameAccessorLoader:
         for ep in eps:
             name: str = ep.name
 
-            def make_property(ep) -> Callable[[DataFrame], Any]:
+            def make_property(ep):
                 def accessor(self) -> Any:
                     cls_ = ep.load()
                     return cls_(self)
