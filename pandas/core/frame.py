@@ -3555,7 +3555,7 @@ class DataFrame(NDFrame, OpsMixin):
         catalog_properties: dict[str, Any] | None = None,
         location: str | None = None,
         snapshot_properties: dict[str, str] | None = None,
-    ):
+    ) -> None:
         """
         Write a DataFrame to an Apache Iceberg table.
 
@@ -3573,10 +3573,6 @@ class DataFrame(NDFrame, OpsMixin):
             Location for the table.
         snapshot_properties : dict of {str: str}, optional
             Custom properties to be added to the snapshot summary
-
-        Returns
-        -------
-        None
 
         See Also
         --------
