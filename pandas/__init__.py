@@ -350,3 +350,4 @@ __all__ = [
 from pandas.core.accessor import DataFrameAccessorLoader
 
 DataFrameAccessorLoader.load()
+del DataFrameAccessorLoader

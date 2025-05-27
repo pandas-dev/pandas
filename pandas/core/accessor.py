@@ -21,7 +21,6 @@ from pandas.util._exceptions import find_stack_level
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pandas.core.frame import DataFrame
     from pandas._typing import TypeT
 
     from pandas import Index
