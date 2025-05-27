@@ -8,12 +8,12 @@ from pandas.compat._optional import import_optional_dependency
 from pandas import DataFrame
 
 if TYPE_CHECKING:
-    from pyiceberg.catalog import Catalog  # noqa: TC004
+    from pyiceberg.catalog import Catalog
 
 
 def _get_catalog(
     catalog_name: str | None, catalog_properties: dict[str, Any] | None
-) -> Catalog:
+) -> "Catalog":
     pyiceberg_catalog = import_optional_dependency("pyiceberg.catalog")
     if catalog_properties is None:
         catalog_properties = {}

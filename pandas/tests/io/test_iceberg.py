@@ -185,10 +185,11 @@ class TestIceberg:
         )
         new = pd.DataFrame(
             {
-                "A": [4, 5],
-                "B": ["bar", "foobar"],
+                "A": [1, 2, 3],
+                "B": ["foo", "foo", "foo"],
             }
         )
+        expected = pd.concat([original, new], ignore_index=True)
         new.to_iceberg(
             "ns.my_table",
             catalog_properties={"uri": catalog.uri},
@@ -198,4 +199,4 @@ class TestIceberg:
             "ns.my_table",
             catalog_properties={"uri": catalog.uri},
         )
-        tm.assert_frame_equal(result, pd.concat([original, new]))
+        tm.assert_frame_equal(result, expected)
