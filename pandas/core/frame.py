@@ -3586,7 +3586,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.iceberg import to_iceberg
 
-        return to_iceberg(
+        to_iceberg(
             self,
             table_identifier,
             catalog_name,
