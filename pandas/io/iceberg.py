@@ -1,23 +1,10 @@
 from typing import (
-    TYPE_CHECKING,
     Any,
 )
 
 from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame
-
-if TYPE_CHECKING:
-    from pyiceberg.catalog import Catalog
-
-
-def _get_catalog(
-    catalog_name: str | None, catalog_properties: dict[str, Any] | None
-) -> "Catalog":
-    pyiceberg_catalog = import_optional_dependency("pyiceberg.catalog")
-    if catalog_properties is None:
-        catalog_properties = {}
-    return pyiceberg_catalog.load_catalog(catalog_name, **catalog_properties)
 
 
 def read_iceberg(
@@ -83,8 +70,11 @@ def read_iceberg(
     ...     selected_fields=("VendorID", "tpep_pickup_datetime"),
     ... )  # doctest: +SKIP
     """
-    catalog = _get_catalog(catalog_name, catalog_properties)
+    pyiceberg_catalog = import_optional_dependency("pyiceberg.catalog")
     pyiceberg_expressions = import_optional_dependency("pyiceberg.expressions")
+    if catalog_properties is None:
+        catalog_properties = {}
+    catalog = pyiceberg_catalog.load_catalog(catalog_name, **catalog_properties)
     table = catalog.load_table(table_identifier)
     if row_filter is None:
         row_filter = pyiceberg_expressions.AlwaysTrue()
@@ -136,8 +126,10 @@ def to_iceberg(
     DataFrame.to_parquet : Write a DataFrame in Parquet format.
     """
     pa = import_optional_dependency("pyarrow")
-
-    catalog = _get_catalog(catalog_name, catalog_properties)
+    pyiceberg_catalog = import_optional_dependency("pyiceberg.catalog")
+    if catalog_properties is None:
+        catalog_properties = {}
+    catalog = pyiceberg_catalog.load_catalog(catalog_name, **catalog_properties)
     arrow_table = pa.Table.from_pandas(df)
     table = catalog.create_table_if_not_exists(
         identifier=table_identifier,
