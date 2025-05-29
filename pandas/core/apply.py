@@ -13,6 +13,7 @@ from typing import (
     cast,
 )
 
+import numba
 import numpy as np
 
 from pandas._libs.internals import BlockValuesRefs
@@ -1148,8 +1149,9 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-            engine_obj = NumbaExecutionEngine()
-            result = engine_obj.apply(
+            if not hasattr(numba.jit, "__pandas_udf__"):
+                numba.jit.__pandas_udf__ = NumbaExecutionEngine
+            result = numba.jit.__pandas_udf__.apply(
                 self.values,
                 self.func,
                 self.args,
