@@ -173,9 +173,7 @@ def melt(
     1      b          B          E      3
     2      c          B          E      5
     """
-    # GH61475 - prevent AttributeError when duplicate column in id_vars
-    if id_vars and any(frame.columns.tolist().count(col) > 1 for col in id_vars):
-        raise ValueError("id_vars cannot contain duplicate columns.")
+
     if value_name in frame.columns:
         raise ValueError(
             f"value_name ({value_name}) cannot match an element in "
@@ -184,6 +182,10 @@ def melt(
     id_vars = ensure_list_vars(id_vars, "id_vars", frame.columns)
     value_vars_was_not_none = value_vars is not None
     value_vars = ensure_list_vars(value_vars, "value_vars", frame.columns)
+
+    # GH61475 - prevent AttributeError when duplicate column in id_vars
+    if len(frame.columns.get_indexer_for(id_vars)) > len(id_vars):
+        raise ValueError("id_vars cannot contain duplicate columns.")
 
     if id_vars or value_vars:
         if col_level is not None:
