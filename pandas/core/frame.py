@@ -11073,7 +11073,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not left_key or not right_key:
             raise ValueError("Must specify 'on' or both 'left_on' and 'right_on'")
-
         result = []
 
         right_indexed = {}
@@ -11112,7 +11111,6 @@ class DataFrame(NDFrame, OpsMixin):
                     row = {k: None for k in self.columns}
                     row.update({k: v for k, v in r_row.items()})
                     result.append(row)
-
         if sort:
             result.sort(key=lambda x: x.get(left_key))
 
