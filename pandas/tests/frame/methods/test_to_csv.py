@@ -1450,3 +1450,22 @@ class TestDataFrameToCSV:
             RuntimeWarning, match=msg, raise_on_extra_warnings=False
         ):
             df.to_csv(tar_path, mode="a")
+
+    def test_to_csv_escape_quotechar(self):
+        # GH61514
+        df = DataFrame(
+            {
+                "col_a": ["a", "a2"],
+                "col_b": ['b"c', None],
+                "col_c": ['de,f"', '"c'],
+            }
+        )
+
+        result = df.to_csv(quotechar='"', escapechar="\\", quoting=csv.QUOTE_NONE)
+        expected_rows = [
+            ",col_a,col_b,col_c",
+            '0,a,b\\"c,de\\,f\\"',
+            '1,a2,,\\"c',
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
