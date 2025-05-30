@@ -11057,11 +11057,11 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.reshape.merge import merge
 
         df1 = pd.DataFrame({"name": ["Chad", "Robert", "Mike", "Sarah", "May"],
-                            "value": [1, 2, 6, 7, 9]
-                            })
+                        "value": [1, 2, 6, 7, 9]
+                        })
         df2 = pd.DataFrame({"name": ["Carley", "Name", "July", "Sarah", "May"],
-                      "value": [4, 5, 6, 7, 9]
-                      })
+                        "value": [4, 5, 6, 7, 9]
+                        })
         df1.merge(df2, how='inner', on='value')
 
         # Determine join keys
