@@ -37,6 +37,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import pandas as pd
 from numpy import ma
 
 from pandas._config import get_option
@@ -262,7 +263,6 @@ if TYPE_CHECKING:
     from pandas.core.internals.managers import SingleBlockManager
 
     from pandas.io.formats.style import Styler
-
 # ---------------------------------------------------------------------
 # Docstring templates
 
@@ -4877,7 +4877,9 @@ class DataFrame(NDFrame, OpsMixin):
             kwargs["target"] = self
         kwargs["resolvers"] = tuple(kwargs.get("resolvers", ())) + resolvers
 
-        return _eval(expr, inplace=inplace, **kwargs)
+        result = _eval(expr, inplace=inplace, **kwargs)
+
+        return result.__finalize__(self, method="eval")
 
     def select_dtypes(self, include=None, exclude=None) -> DataFrame:
         """
@@ -11054,20 +11056,69 @@ class DataFrame(NDFrame, OpsMixin):
 
         from pandas.core.reshape.merge import merge
 
-        return merge(
-            self,
-            right,
-            how=how,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            left_index=left_index,
-            right_index=right_index,
-            sort=sort,
-            suffixes=suffixes,
-            indicator=indicator,
-            validate=validate,
-        )
+        df1 = pd.DataFrame({"name": ["Chad", "Robert", "Mike", "Sarah", "May"],
+                            "value": [1, 2, 6, 7, 9]
+                            })
+        df2 = pd.DataFrame({"name": ["Carley", "Name", "July", "Sarah", "May"],
+                      "value": [4, 5, 6, 7, 9]
+                      })
+        df1.merge(df2, how='inner', on='value')
+
+        # Determine join keys
+        if on:
+            left_key = right_key = on
+        else:
+            left_key = left_on
+            right_key = right_on
+
+        if not left_key or not right_key:
+            raise ValueError("Must specify 'on' or both 'left_on' and 'right_on'")
+
+        result = []
+
+        right_indexed = {}
+        for r_row in right.data:
+            key = r_row[right_key]
+            right_indexed.setdefault(key, []).append(r_row)
+
+        matched_keys = set()
+
+        for l_row in self.data:
+            key = l_row[left_key]
+            r_matches = right_indexed.get(key)
+
+            if r_matches:
+                for r_row in r_matches:
+                    joined = {}
+                    for k, v in l_row.items():
+                        joined[k] = v
+                    for k, v in r_row.items():
+                        if k == right_key and left_key == right_key:
+                            continue
+                        elif k in joined:
+                            joined[k + suffixes[1]] = v
+                        else:
+                            joined[k] = v
+                    result.append(joined)
+                    matched_keys.add(key)
+            elif how in ("left", "outer"):
+                result.append({**l_row, **{k: None for k in right.columns - {right_key}}})
+
+        if how in ("right", "outer"):
+            left_keys = {row[left_key] for row in self.data}
+            for r_row in right.data:
+                key = r_row[right_key]
+                if key not in matched_keys and key not in left_keys:
+                    row = {k: None for k in self.columns}
+                    row.update({k: v for k, v in r_row.items()})
+                    result.append(row)
+
+        if sort:
+            result.sort(key=lambda x: x.get(left_key))
+
+        return result.__finalize__(self, method="merge")
+
+
 
     def round(
         self, decimals: int | dict[IndexLabel, int] | Series = 0, *args, **kwargs
