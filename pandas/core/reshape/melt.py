@@ -173,7 +173,6 @@ def melt(
     1      b          B          E      3
     2      c          B          E      5
     """
-
     if value_name in frame.columns:
         raise ValueError(
             f"value_name ({value_name}) cannot match an element in "
