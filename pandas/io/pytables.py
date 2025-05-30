@@ -20,6 +20,7 @@ from typing import (
     Any,
     Final,
     Literal,
+    TypeAlias,
     cast,
     overload,
 )
@@ -160,7 +161,7 @@ def _ensure_str(name):
     return name
 
 
-Term = PyTablesExpr
+_Term: TypeAlias = PyTablesExpr
 
 
 def _ensure_term(where, scope_level: int):
@@ -175,12 +176,12 @@ def _ensure_term(where, scope_level: int):
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
         where = [
-            Term(term, scope_level=level + 1) if maybe_expression(term) else term
+            _Term(term, scope_level=level + 1) if maybe_expression(term) else term
             for term in where
             if term is not None
         ]
     elif maybe_expression(where):
-        where = Term(where, scope_level=level)
+        where = _Term(where, scope_level=level)
     return where if where is None or len(where) else None
 
 

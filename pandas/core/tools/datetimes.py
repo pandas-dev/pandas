@@ -6,6 +6,7 @@ from functools import partial
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
+    TypeAlias,
     TypedDict,
     Union,
     cast,
@@ -93,34 +94,33 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[list, tuple, AnyArrayLike]
-Scalar = Union[float, str]
-DatetimeScalar = Union[Scalar, date, np.datetime64]
+_ArrayConvertible: TypeAlias = list | tuple | AnyArrayLike
+_Scalar: TypeAlias = float | str
+_DatetimeScalar: TypeAlias = _Scalar | date | np.datetime64
 
-DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
-
-DatetimeDictArg = Union[list[Scalar], tuple[Scalar, ...], AnyArrayLike]
-
-
-class YearMonthDayDict(TypedDict, total=True):
-    year: DatetimeDictArg
-    month: DatetimeDictArg
-    day: DatetimeDictArg
+_DatetimeScalarOrArrayConvertible: TypeAlias = _DatetimeScalar | _ArrayConvertible
+_DatetimeDictArg: TypeAlias = list[_Scalar] | tuple[_Scalar, ...] | AnyArrayLike
 
 
-class FulldatetimeDict(YearMonthDayDict, total=False):
-    hour: DatetimeDictArg
-    hours: DatetimeDictArg
-    minute: DatetimeDictArg
-    minutes: DatetimeDictArg
-    second: DatetimeDictArg
-    seconds: DatetimeDictArg
-    ms: DatetimeDictArg
-    us: DatetimeDictArg
-    ns: DatetimeDictArg
+class _YearMonthDayDict(TypedDict, total=True):
+    year: _DatetimeDictArg
+    month: _DatetimeDictArg
+    day: _DatetimeDictArg
 
 
-DictConvertible = Union[FulldatetimeDict, "DataFrame"]
+class _FulldatetimeDict(_YearMonthDayDict, total=False):
+    hour: _DatetimeDictArg
+    hours: _DatetimeDictArg
+    minute: _DatetimeDictArg
+    minutes: _DatetimeDictArg
+    second: _DatetimeDictArg
+    seconds: _DatetimeDictArg
+    ms: _DatetimeDictArg
+    us: _DatetimeDictArg
+    ns: _DatetimeDictArg
+
+
+_DictConvertible = Union[_FulldatetimeDict, "DataFrame"]
 start_caching_at = 50
 
 
@@ -151,7 +151,7 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
 
 
 def should_cache(
-    arg: ArrayConvertible, unique_share: float = 0.7, check_count: int | None = None
+    arg: _ArrayConvertible, unique_share: float = 0.7, check_count: int | None = None
 ) -> bool:
     """
     Decides whether to do caching.
@@ -211,7 +211,7 @@ def should_cache(
 
 
 def _maybe_cache(
-    arg: ArrayConvertible,
+    arg: _ArrayConvertible,
     format: str | None,
     cache: bool,
     convert_listlike: Callable,
@@ -290,7 +290,7 @@ def _box_as_indexlike(
 
 
 def _convert_and_box_cache(
-    arg: DatetimeScalarOrArrayConvertible,
+    arg: _DatetimeScalarOrArrayConvertible,
     cache_array: Series,
     name: Hashable | None = None,
 ) -> Index:
@@ -622,7 +622,7 @@ def _adjust_to_origin(arg, origin, unit):
 
 @overload
 def to_datetime(
-    arg: DatetimeScalar,
+    arg: _DatetimeScalar,
     errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -637,7 +637,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: Series | DictConvertible,
+    arg: Series | _DictConvertible,
     errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -666,7 +666,7 @@ def to_datetime(
 
 
 def to_datetime(
-    arg: DatetimeScalarOrArrayConvertible | DictConvertible,
+    arg: _DatetimeScalarOrArrayConvertible | _DictConvertible,
     errors: DateTimeErrorChoices = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
@@ -676,7 +676,7 @@ def to_datetime(
     unit: str | None = None,
     origin: str = "unix",
     cache: bool = True,
-) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
+) -> DatetimeIndex | Series | _DatetimeScalar | NaTType | None:
     """
     Convert argument to datetime.
 

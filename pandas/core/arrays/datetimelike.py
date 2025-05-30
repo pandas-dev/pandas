@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeAlias,
     Union,
     cast,
     final,
@@ -161,7 +162,8 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+# underscore at end because of rule PYI043 that private types should not end with 'T'
+_DTScalarOrNaT_: TypeAlias = DatetimeLikeScalar | NaTType
 
 
 def _make_unpacked_invalid_op(op_name: str):
@@ -236,7 +238,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         """
         raise AbstractMethodError(self)
 
-    def _scalar_from_string(self, value: str) -> DTScalarOrNaT:
+    def _scalar_from_string(self, value: str) -> _DTScalarOrNaT_:
         """
         Construct a scalar type from a string.
 
@@ -257,7 +259,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         raise AbstractMethodError(self)
 
     def _unbox_scalar(
-        self, value: DTScalarOrNaT
+        self, value: _DTScalarOrNaT_
     ) -> np.int64 | np.datetime64 | np.timedelta64:
         """
         Unbox the integer value of a scalar `value`.
@@ -279,7 +281,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         """
         raise AbstractMethodError(self)
 
-    def _check_compatible_with(self, other: DTScalarOrNaT) -> None:
+    def _check_compatible_with(self, other: _DTScalarOrNaT_) -> None:
         """
         Verify that `self` and `other` are compatible.
 
@@ -370,7 +372,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         return self._ndarray
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT: ...
+    def __getitem__(self, key: ScalarIndexer) -> _DTScalarOrNaT_: ...
 
     @overload
     def __getitem__(
@@ -378,7 +380,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         key: SequenceIndexer | PositionalIndexerTuple,
     ) -> Self: ...
 
-    def __getitem__(self, key: PositionalIndexer2D) -> Self | DTScalarOrNaT:
+    def __getitem__(self, key: PositionalIndexer2D) -> Self | _DTScalarOrNaT_:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
@@ -386,7 +388,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
+        result = cast(Union[Self, _DTScalarOrNaT_], super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:

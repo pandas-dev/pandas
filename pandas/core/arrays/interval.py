@@ -9,7 +9,7 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Literal,
-    Union,
+    TypeAlias,
     overload,
 )
 
@@ -109,8 +109,8 @@ if TYPE_CHECKING:
     )
 
 
-IntervalSide = Union[TimeArrayLike, np.ndarray]
-IntervalOrNA = Union[Interval, float]
+_IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
+_IntervalOrNA: TypeAlias = Interval | float
 
 _interval_shared_docs: dict[str, str] = {}
 
@@ -216,8 +216,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return 1
 
     # To make mypy recognize the fields
-    _left: IntervalSide
-    _right: IntervalSide
+    _left: _IntervalSide
+    _right: _IntervalSide
     _dtype: IntervalDtype
 
     # ---------------------------------------------------------------------
@@ -234,8 +234,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
-            left: IntervalSide = data._left
-            right: IntervalSide = data._right
+            left: _IntervalSide = data._left
+            right: _IntervalSide = data._right
             closed = closed or data.closed
             dtype = IntervalDtype(left.dtype, closed=closed)
         else:
@@ -277,8 +277,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @classmethod
     def _simple_new(
         cls,
-        left: IntervalSide,
-        right: IntervalSide,
+        left: _IntervalSide,
+        right: _IntervalSide,
         dtype: IntervalDtype,
     ) -> Self:
         result = IntervalMixin.__new__(cls)
@@ -296,7 +296,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         closed: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-    ) -> tuple[IntervalSide, IntervalSide, IntervalDtype]:
+    ) -> tuple[_IntervalSide, _IntervalSide, IntervalDtype]:
         """Ensure correctness of input parameters for cls._simple_new."""
         from pandas.core.indexes.base import ensure_index
 
@@ -704,12 +704,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self._left)
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
+    def __getitem__(self, key: ScalarIndexer) -> _IntervalOrNA: ...
 
     @overload
     def __getitem__(self, key: SequenceIndexer) -> Self: ...
 
-    def __getitem__(self, key: PositionalIndexer) -> Self | IntervalOrNA:
+    def __getitem__(self, key: PositionalIndexer) -> Self | _IntervalOrNA:
         key = check_array_indexer(self, key)
         left = self._left[key]
         right = self._right[key]
@@ -858,7 +858,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
 
-    def min(self, *, axis: AxisInt | None = None, skipna: bool = True) -> IntervalOrNA:
+    def min(self, *, axis: AxisInt | None = None, skipna: bool = True) -> _IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
 
         if not len(self):
@@ -875,7 +875,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[0]
         return obj[indexer]
 
-    def max(self, *, axis: AxisInt | None = None, skipna: bool = True) -> IntervalOrNA:
+    def max(self, *, axis: AxisInt | None = None, skipna: bool = True) -> _IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
 
         if not len(self):
@@ -1016,8 +1016,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed_set.pop()
 
-        left: IntervalSide = np.concatenate([interval.left for interval in to_concat])
-        right: IntervalSide = np.concatenate([interval.right for interval in to_concat])
+        left: _IntervalSide = np.concatenate([interval.left for interval in to_concat])
+        right: _IntervalSide = np.concatenate(
+            [interval.right for interval in to_concat]
+        )
 
         left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
 
@@ -1952,7 +1954,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return isin(self.astype(object), values.astype(object))
 
     @property
-    def _combined(self) -> IntervalSide:
+    def _combined(self) -> _IntervalSide:
         # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
         # has no attribute "reshape"  [union-attr]
         left = self.left._values.reshape(-1, 1)  # type: ignore[union-attr]
