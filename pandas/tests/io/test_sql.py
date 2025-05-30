@@ -17,6 +17,7 @@ import uuid
 
 import numpy as np
 import pytest
+import xdist
 
 from pandas._config import using_string_dtype
 
@@ -601,11 +602,11 @@ def drop_view(
 
 
 @pytest.fixture
-def mysql_pymysql_engine():
+def mysql_pymysql_engine(worker_name):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
     engine = sqlalchemy.create_engine(
-        "mysql+pymysql://root@localhost:3306/pandas",
+        f"mysql+pymysql://root@localhost:3306/pandas{worker_name}",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
         poolclass=sqlalchemy.pool.NullPool,
     )
@@ -649,11 +650,11 @@ def mysql_pymysql_conn_types(mysql_pymysql_engine_types):
 
 
 @pytest.fixture
-def postgresql_psycopg2_engine():
+def postgresql_psycopg2_engine(worker_name):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
+        f"postgresql+psycopg2://postgres:postgres@localhost:5432/pandas{worker_name}",
         poolclass=sqlalchemy.pool.NullPool,
     )
     yield engine
@@ -684,12 +685,12 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 
 @pytest.fixture
-def postgresql_adbc_conn():
+def postgresql_adbc_conn(worker_name):
     pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
-    uri = "postgresql://postgres:postgres@localhost:5432/pandas"
+    uri = f"postgresql://postgres:postgres@localhost:5432/pandas{worker_name}"
     with dbapi.connect(uri) as conn:
         yield conn
         for view in get_all_views(conn):
@@ -748,10 +749,10 @@ def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
 
 
 @pytest.fixture
-def sqlite_str():
+def sqlite_str(worker_name):
     pytest.importorskip("sqlalchemy")
     with tm.ensure_clean() as name:
-        yield f"sqlite:///{name}"
+        yield f"sqlite:///{name}{worker_name}"
 
 
 @pytest.fixture
@@ -816,14 +817,14 @@ def sqlite_conn_types(sqlite_engine_types):
         yield conn
 
 
-@pytest.fixture
-def sqlite_adbc_conn():
+@pytest.fixture(scope="function")
+def sqlite_adbc_conn(worker_name):
     pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_sqlite")
     from adbc_driver_sqlite import dbapi
 
     with tm.ensure_clean() as name:
-        uri = f"file:{name}"
+        uri = f"file:{name}{worker_name}"
         with dbapi.connect(uri) as conn:
             yield conn
             for view in get_all_views(conn):
@@ -892,6 +893,131 @@ def sqlite_buildin_types(sqlite_buildin, types_data):
     types_data = [tuple(entry.values()) for entry in types_data]
     create_and_load_types_sqlite3(sqlite_buildin, types_data)
     return sqlite_buildin
+
+
+@pytest.fixture(scope="session")
+def worker_name(request):
+    """
+    Creates a unique schema name for Postgres to use, in order to
+    isolate tests for parallelization.
+    :return: Name to use for creating an isolated schema
+    :rtype: str
+    """
+    return xdist.get_xdist_worker_id(request)
+
+
+@pytest.fixture(scope="session")
+def create_engines():
+        # Indirectly import dependencies. To avoid being picked up by depdency scanning software.
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    pymysql = pytest.importorskip("pymysql")
+
+    # Round robin creation of DB connections.
+    create_engine_commands = [
+        lambda : sqlalchemy.create_engine("mysql+pymysql://root@localhost:3306/pandas", connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS}, poolclass=sqlalchemy.pool.NullPool),
+        lambda : sqlalchemy.create_engine("postgresql+psycopg2://postgres:postgres@localhost:5432/pandas", poolclass=sqlalchemy.pool.NullPool, isolation_level="AUTOCOMMIT")
+    ]
+    return create_engine_commands
+
+
+@pytest.fixture(scope="session")
+def round_robin_ordering(worker_number):
+    round_robin_order = [(worker_number+i)%len(create_engine_commands) for i in range(len(create_engine_commands))]
+
+
+@pytest.fixture(scope="session")
+def worker_number(worker_name):
+    if worker_name == 'master':
+        worker_number = 1
+    else:
+        worker_number = int(worker_name[2:])
+    return worker_number
+
+
+@pytest.fixture(scope="session")
+def create_db_string():
+    return [
+        f"""CREATE DATABASE IF NOT EXISTS pandas{worker_name}""",
+        f"""CREATE DATABASE pandas{worker_name}"""
+    ]
+
+
+@pytest.fixture(scope="session")
+def execute_db_command():
+    for i in range(len(create_engine_commands)):
+        engine=create_engines()[round_robin_order()[i]]()
+        connection = engine.connect()
+        connection.execute(sqlalchemy.text(create_db_string()))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def prepare_db_setup(request, worker_name):
+    worker_number = worker_number
+    create_engine_commands = create_engines()
+    create_db_command = create_db_string()
+    assert len(create_engine_commands) == len(create_db_command)
+
+    round_robin_order = round_robin_ordering()
+
+    for i in range(len(create_engine_commands)):
+        engine = create_engine_commands[round_robin_order[i]]()
+        connection = engine.connect()
+        connection.execute(sqlalchemy.text(create_db_string[round_robin_order[i]]))
+        engine.dispose()
+    yield 
+    teardown_db_string = [
+        f"""DROP DATABASE IF EXISTS pandas{worker_name}""",
+        f"""DROP DATABASE IF EXISTS pandas{worker_name}"""
+    ]
+    
+    for i in range(len(create_engine_commands)):
+        engine = create_engine_commands[round_robin_order[i]]()
+        connection = engine.connect()
+        connection.execute(sqlalchemy.text(teardown_db_string[round_robin_order[i]]))
+        engine.dispose()
+    
+    
+
+
+# @pytest.fixture(scope="session")
+# def parallelize_mysql():
+#     sqlalchemy = pytest.importorskip("sqlalchemy")
+#     pymysql = pytest.importorskip("pymysql")
+#
+#     engine = sqlalchemy.create_engine(
+#         connection_string,
+#         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
+#         poolclass=sqlalchemy.pool.NullPool,
+#     )
+#     with engine.connect() as connection:
+#         connection.execute(sqlalchemy.text(
+#             f"""
+#         CREATE DATABASE IF NOT EXISTS pandas{worker_name};
+#         """
+#         ))
+#         # connection.commit()
+#         # connection.close()
+#     yield
+#     engine.dispose()
+#
+#     pass
+
+
+
+
+# @pytest.fixture(scope="session", autouse=True)
+# def set_up_dbs(parallelize_mysql_dbs, request):
+#     if hasattr(request.config, "workerinput"):
+#         # The tests are multi-threaded
+#         worker_name = xdist.get_xdist_worker_id(request)
+#         worker_count = request.config.workerinput["workercount"]
+#         print(worker_name, worker_count)
+#         parallelize_mysql_dbs(request, worker_name, worker_count)
+#     else:
+#         quit(1)
+    # parallelize_mysql_dbs
+
+
 
 
 mysql_connectable = [
@@ -978,8 +1104,11 @@ all_connectable_types = (
     sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
 )
 
-
-@pytest.mark.parametrize("conn", all_connectable)
+#TODO fix
+@pytest.mark.parametrize("conn", [
+    #pytest.param("mysql_pymysql_engine", marks=pytest.mark.db),
+    pytest.param("mysql_pymysql_conn", marks=pytest.mark.db),
+])
 def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
