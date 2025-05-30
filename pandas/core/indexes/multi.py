@@ -3841,14 +3841,16 @@ class MultiIndex(Index):
         array([1])
         """
 
-        if not value:
-            raise ValueError("searchsorted requires a non-empty value")
-
-        if not isinstance(value, (tuple, list)):
-            raise TypeError("value must be a tuple or list")
-
         if isinstance(value, tuple):
             value = [value]
+        elif isinstance(value, (list, np.ndarray, ExtensionArray)):
+            if len(value) == 0:
+                raise ValueError("searchsorted requires a non-empty sequence")
+        else:
+            raise TypeError(
+                "value must be a tuple (scalar key), or a list/numpy"
+                "array/ExtensionArray of tuples"
+            )
 
         if side not in ["left", "right"]:
             raise ValueError("side must be either 'left' or 'right'")
@@ -3861,15 +3863,16 @@ class MultiIndex(Index):
                 val = i if side == "left" else i + 1
                 result.append(np.intp(val))
             else:
-                dtype = np.dtype(
-                    [
-                        (f"level_{i}", np.asarray(level).dtype)
-                        for i, level in enumerate(self.levels)
-                    ]
-                )
+                fields = []
+                for i, level in enumerate(self.levels):
+                    level_dtype = level.dtype
+                    if isinstance(level_dtype, ExtensionDtype):
+                        fields.append((f"level_{i}", object))
+                    else:
+                        fields.append((f"level_{i}", level_dtype))
+                dtype = np.dtype(fields)
 
                 val_array = np.array([v], dtype=dtype)
-
                 pos = np.searchsorted(
                     np.asarray(self.values, dtype=dtype),
                     val_array,
@@ -3877,6 +3880,7 @@ class MultiIndex(Index):
                     sorter=sorter,
                 )
                 result.append(np.intp(pos[0]))
+
         if len(result) == 1:
             return result[0]
         return np.array(result, dtype=np.intp)

@@ -1076,7 +1076,15 @@ def test_searchsorted_list(mi, values, side, expected):
     "value, side, error_type, match",
     [
         (("a", 1), "middle", ValueError, "side must be either 'left' or 'right'"),
-        ("a", "left", TypeError, "value must be a tuple or list"),
+        (
+            "a",
+            "left",
+            TypeError,
+            re.escape(
+                "value must be a tuple (scalar key), or a list/numpy"
+                "array/ExtensionArray of tuples"
+            ),
+        ),
     ],
     ids=["invalid-side", "invalid-value-type"],
 )
