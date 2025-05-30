@@ -418,6 +418,35 @@ def test_suppress_future_warning_with_sort_kw(sort):
     tm.assert_frame_equal(result, expected)
 
 
+def test_join_with_invalid_non_pandas_objects_raises_typeerror():
+    # GH#61434
+    # case - 'other' is an invalid non-pandas object
+    df1 = DataFrame(
+        {
+            "Column2": [10, 20, 30],
+            "Column3": ["A", "B", "C"],
+            "Column4": ["Lala", "YesYes", "NoNo"],
+        }
+    )
+
+    class FakeOther:
+        def __init__(self):
+            self.Column2 = [10, 20, 30]
+            self.Column3 = ["A", "B", "C"]
+
+    invalid_other = FakeOther()
+
+    with pytest.raises(TypeError, match="requires a pandas DataFrame or Series"):
+        df1.join(invalid_other, on=["Column2", "Column3"], how="inner")
+
+    # 'other' is an iterable with mixed types
+    df2 = DataFrame({"Column2": [10, 20, 30], "Column3": ["A", "B", "C"]})
+    mixed_iterable = [df2, 42]
+
+    with pytest.raises(TypeError, match="requires a pandas DataFrame or Series"):
+        df1.join(mixed_iterable, on=["Column2", "Column3"], how="inner")
+
+
 class TestDataFrameJoin:
     def test_join(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
