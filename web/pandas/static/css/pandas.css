@@ -1,3 +1,6 @@
+html {
+  scroll-padding-top: calc(var(--pst-header-height) + 1rem);
+}
 body {
     padding-top: 5em;
     color: #444;
