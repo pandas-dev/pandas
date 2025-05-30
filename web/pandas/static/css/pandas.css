@@ -121,5 +121,5 @@ h3:hover a.headerlink {
     transition: opacity 0.5s;
 }
 .container {
-    max-width: 120ch;
+    max-width: 100ch;
 }
