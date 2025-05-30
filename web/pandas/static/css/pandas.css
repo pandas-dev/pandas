@@ -1,5 +1,5 @@
 html {
-  scroll-padding-top: calc(var(--pst-header-height) + 1rem);
+  scroll-padding-top: 5rem;
 }
 body {
     padding-top: 5em;
