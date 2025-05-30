@@ -201,6 +201,69 @@ class TestDatetimeIndexSetOps:
         expected = date_range("2000-01-01", periods=3, tz="UTC").as_unit("us")
         tm.assert_index_equal(result, expected)
 
+    def test_union_same_nonzero_timezone_different_units(self):
+        # GH 60080 - fix timezone being changed to UTC when units differ
+        # but timezone is the same
+        tz = "UTC+05:00"
+        idx1 = date_range("2000-01-01", periods=3, tz=tz).as_unit("us")
+        idx2 = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+
+        # Check pre-conditions
+        assert idx1.tz == idx2.tz
+        assert idx1.dtype != idx2.dtype  # Different units
+
+        # Test union preserves timezone when units differ
+        result = idx1.union(idx2)
+        expected = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_union_different_dates_same_timezone_different_units(self):
+        # GH 60080 - fix timezone being changed to UTC when units differ
+        # but timezone is the same
+        tz = "UTC+05:00"
+        idx1 = date_range("2000-01-01", periods=3, tz=tz).as_unit("us")
+        idx3 = date_range("2000-01-03", periods=3, tz=tz).as_unit("us")
+
+        # Test with different dates to ensure it's not just returning one of the inputs
+        result = idx1.union(idx3)
+        expected = DatetimeIndex(
+            ["2000-01-01", "2000-01-02", "2000-01-03", "2000-01-04", "2000-01-05"],
+            tz=tz,
+        ).as_unit("us")
+        tm.assert_index_equal(result, expected)
+
+    def test_intersection_same_timezone_different_units(self):
+        # GH 60080 - fix timezone being changed to UTC when units differ
+        # but timezone is the same
+        tz = "UTC+05:00"
+        idx1 = date_range("2000-01-01", periods=3, tz=tz).as_unit("us")
+        idx2 = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+
+        # Check pre-conditions
+        assert idx1.tz == idx2.tz
+        assert idx1.dtype != idx2.dtype  # Different units
+
+        # Test intersection
+        result = idx1.intersection(idx2)
+        expected = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_symmetric_difference_same_timezone_different_units(self):
+        # GH 60080 - fix timezone being changed to UTC when units differ
+        # but timezone is the same
+        tz = "UTC+05:00"
+        idx1 = date_range("2000-01-01", periods=3, tz=tz).as_unit("us")
+        idx4 = date_range("2000-01-02", periods=3, tz=tz).as_unit("ns")
+
+        # Check pre-conditions
+        assert idx1.tz == idx4.tz
+        assert idx1.dtype != idx4.dtype  # Different units
+
+        # Test symmetric_difference
+        result = idx1.symmetric_difference(idx4)
+        expected = DatetimeIndex(["2000-01-01", "2000-01-04"], tz=tz).as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
     # TODO: moved from test_datetimelike; de-duplicate with version below
     def test_intersection2(self):
         first = date_range("2020-01-01", periods=10)
