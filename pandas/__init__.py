@@ -348,3 +348,8 @@ __all__ = [
     "unique",
     "wide_to_long",
 ]
+
+from pandas.core.accessor import DataFrameAccessorLoader
+
+DataFrameAccessorLoader.load()
+del DataFrameAccessorLoader

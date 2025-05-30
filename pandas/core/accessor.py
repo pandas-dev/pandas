@@ -10,6 +10,7 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
+    Any,
     final,
 )
 import warnings
@@ -24,6 +25,8 @@ if TYPE_CHECKING:
 
     from pandas import Index
     from pandas.core.generic import NDFrame
+
+from importlib.metadata import entry_points
 
 
 class DirNamesMixin:
@@ -393,3 +396,26 @@ def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import Index
 
     return _register_accessor(name, Index)
+
+
+class DataFrameAccessorLoader:
+    """Loader class for registering DataFrame accessors via entry points."""
+
+    ENTRY_POINT_GROUP: str = "pandas_dataframe_accessor"
+
+    @classmethod
+    def load(cls) -> None:
+        """loads and registers accessors defined by 'pandas_dataframe_accessor'."""
+        eps = entry_points(group=cls.ENTRY_POINT_GROUP)
+
+        for ep in eps:
+            name: str = ep.name
+
+            def make_property(ep):
+                def accessor(self) -> Any:
+                    cls_ = ep.load()
+                    return cls_(self)
+
+                return accessor
+
+            register_dataframe_accessor(name)(make_property(ep))
