@@ -1001,3 +1001,31 @@ def test_concat_of_series_and_frame(inputs, ignore_index, axis, expected):
     # GH #60723 and #56257
     result = concat(inputs, ignore_index=ignore_index, axis=axis)
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_mixed_type_multiindex_no_warning():
+    # GH #61477
+    left_data = np.random.rand(100, 3)
+    left_index = pd.date_range("2024-01-01", periods=100, freq="T")
+    left_cols = pd.MultiIndex.from_tuples([
+        ("price", "A"), ("diff", ("high", "low"))
+    ])
+    left_df = pd.DataFrame(left_data, index=left_index, columns=left_cols)
+
+    right_data = np.random.rand(90, 2)
+    right_index = pd.date_range("2024-01-01 00:30", periods=90, freq="T")
+    right_cols = pd.MultiIndex.from_tuples([
+        ("X", 1), ("X", 2)
+    ])
+    right_df = pd.DataFrame(right_data, index=right_index, columns=right_cols)
+
+    # sort=False: no warning + original column order preserved
+    with pytest.warns(None) as record:
+        out = pd.concat([left_df, right_df], axis=1, sort=False)
+
+    # assert no RuntimeWarning was emitted
+    assert not any(isinstance(w.message, RuntimeWarning) for w in record)
+
+    # assert concatenated columns come in exactly left_cols then right_cols
+    expected = list(left_df.columns) + list(right_df.columns)
+    assert list(out.columns) == expected
