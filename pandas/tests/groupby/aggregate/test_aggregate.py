@@ -1808,16 +1808,19 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
     )
     tm.assert_frame_equal(result, expected)
 
+
 def test_groupby_aggregate_empty_builtin_sum():
-    df = pd.DataFrame(columns=["Group", "Data"])
+    df = DataFrame(columns=["Group", "Data"])
     result = df.groupby(["Group"], as_index=False)["Data"].agg("sum")
-    expected = pd.DataFrame(columns=["Group", "Data"])
+    expected = DataFrame(columns=["Group", "Data"])
     tm.assert_frame_equal(result, expected)
+
 
 def test_groupby_aggregate_empty_udf():
     def func(x):
         return sum(x)
-    df = pd.DataFrame(columns=["Group", "Data"])
+
+    df = DataFrame(columns=["Group", "Data"])
     result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
-    expected = pd.DataFrame(columns=["Group", "Data"])
+    expected = DataFrame(columns=["Group", "Data"])
     tm.assert_frame_equal(result, expected)
