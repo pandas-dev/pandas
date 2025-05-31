@@ -635,8 +635,8 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
 
     This method generates an autocorrelation plot for a given time series,
     which helps to identify any periodic structure or correlation within the
-    data across various lags. It shows the correlation of a time series with a delayed
-    copy of itself as a function of delay. Autocorrelation plots are useful for
+    data across various lags. It shows the correlation of a time series with a
+    delayed copy of itself as a function of delay. Autocorrelation plots are useful for
     checking randomness in a data set. If the data are random, the autocorrelations
     should be near zero for any and all time-lag separations. If the data are not
     random, then one or more of the autocorrelations will be significantly
