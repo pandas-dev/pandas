@@ -629,8 +629,7 @@ def test_union_duplicates(index, request):
     # special case for mixed types
     if index.inferred_type == "mixed":
         pytest.mark.xfail(
-            reason="GH#38977 - mixed type union with duplicates is not supported"
-        )(request.node)
+            reason="GH#38977 - mixed type union with duplicates is not supported")
 
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
