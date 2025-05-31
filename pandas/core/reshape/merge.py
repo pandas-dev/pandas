@@ -153,6 +153,7 @@ def merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
+    force_suffixes: bool = False,
     copy: bool | lib.NoDefault = lib.no_default,
     indicator: str | bool = False,
     validate: str | None = None,
@@ -395,6 +396,7 @@ def merge(
             right_index=right_index,
             sort=sort,
             suffixes=suffixes,
+            force_suffixes=force_suffixes,
             indicator=indicator,
             validate=validate,
         )
@@ -411,6 +413,7 @@ def _cross_merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
+    force_suffixes: bool = False,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -447,6 +450,7 @@ def _cross_merge(
         right_index=right_index,
         sort=sort,
         suffixes=suffixes,
+        force_suffixes=force_suffixes,
         indicator=indicator,
         validate=validate,
     )
@@ -966,6 +970,7 @@ class _MergeOperation:
         right_index: bool = False,
         sort: bool = True,
         suffixes: Suffixes = ("_x", "_y"),
+        force_suffixes: bool = False,
         indicator: str | bool = False,
         validate: str | None = None,
     ) -> None:
@@ -978,6 +983,8 @@ class _MergeOperation:
         self.on = com.maybe_make_list(on)
 
         self.suffixes = suffixes
+        self.force_suffixes = force_suffixes
+
         self.sort = sort or how == "outer"
 
         self.left_index = left_index
@@ -1088,7 +1095,7 @@ class _MergeOperation:
         right = self.right[:]
 
         llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, self.right._info_axis, self.suffixes
+            self.left._info_axis, self.right._info_axis, self.suffixes, self.force_suffixes
         )
 
         if left_indexer is not None and not is_range_indexer(left_indexer, len(left)):
@@ -3007,7 +3014,7 @@ def _validate_operand(obj: DataFrame | Series) -> DataFrame:
 
 
 def _items_overlap_with_suffix(
-    left: Index, right: Index, suffixes: Suffixes
+    left: Index, right: Index, suffixes: Suffixes, force_suffixes: bool = False
 ) -> tuple[Index, Index]:
     """
     Suffixes type validation.
@@ -3023,7 +3030,11 @@ def _items_overlap_with_suffix(
             "Provide 'suffixes' as a tuple instead."
         )
 
-    to_rename = left.intersection(right)
+    if not force_suffixes:
+        to_rename = left.intersection(right)
+    else:
+        to_rename = left.union(right)
+
     if len(to_rename) == 0:
         return left, right
 
