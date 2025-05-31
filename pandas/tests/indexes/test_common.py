@@ -489,9 +489,7 @@ def test_sort_values_invalid_na_position(request, na_position, index_fixture):
             "mixed-int-string",
             marks=pytest.mark.xfail(reason="Mixed index types"),
         ),
-        pytest.param(
-            "object", marks=pytest.mark.xfail(reason="Object index types")
-        ),
+        pytest.param("object", marks=pytest.mark.xfail(reason="Object index types")),
         pytest.param("integer", marks=pytest.mark.xfail(reason="Integer index types")),
         pytest.param("float", marks=pytest.mark.xfail(reason="Float index types")),
     ],
