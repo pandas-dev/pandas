@@ -342,7 +342,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
     _name: Hashable
-    _metadata: list[str] = ["_name"]
+    _metadata: list[str] = []
     _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
@@ -375,6 +375,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool | None = None,
     ) -> None:
         allow_mgr = False
+        if "_name" not in self._metadata:
+            # Subclass overrides _metadata, see @540db96b
+            self._metadata.append("_name")
         if (
             isinstance(data, SingleBlockManager)
             and index is None
@@ -613,7 +616,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # We assume that the subclass __init__ knows how to handle a
         #  pd.Series object.
-        return self._constructor(ser)
+        self._metadata.remove("_name")
+        metadata = {k: getattr(self, k) for k in self._metadata}
+        return self._constructor(ser, **metadata)
 
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
@@ -637,7 +642,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # We assume that the subclass __init__ knows how to handle a
         #  pd.DataFrame object.
-        return self._constructor_expanddim(df)
+        self._metadata.remove("_name")
+        metadata = {k: getattr(self, k) for k in self._metadata}
+        return self._constructor_expanddim(df, **metadata)
 
     # types
     @property
