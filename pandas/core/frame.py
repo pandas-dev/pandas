@@ -337,15 +337,15 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
       to SQL left anti join; preserve key order.
     * right_anti: use only keys from right frame that are not in left frame, similar
       to SQL right anti join; preserve key order.
-on : label or list
+on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
     to the intersection of the columns in both DataFrames.
-left_on : label or list, or array-like
+left_on : Hashable or a sequence of the previous, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
     These arrays are treated as if they are columns.
-right_on : label or list, or array-like
+right_on : Hashable or a sequence of the previous, or array-like
     Column or index level names to join on in the right DataFrame. Can also
     be an array or list of arrays of the length of the right DataFrame.
     These arrays are treated as if they are columns.
@@ -7395,7 +7395,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : label or list of labels, optional
+        subset : Hashable or a sequence of the previous, optional
             Columns to use when counting unique combinations.
         normalize : bool, default False
             Return proportions rather than frequencies.
@@ -7546,7 +7546,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         n : int
             Number of rows to return.
-        columns : label or list of labels
+        columns : Hashable or a sequence of the previous
             Column label(s) to order by.
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
@@ -11434,6 +11434,12 @@ class DataFrame(NDFrame, OpsMixin):
         c -0.150812  0.191417  0.895202
         """
         data = self._get_numeric_data() if numeric_only else self
+        if any(blk.dtype.kind in "mM" for blk in self._mgr.blocks):
+            msg = (
+                "DataFrame contains columns with dtype datetime64 "
+                "or timedelta64, which are not supported for cov."
+            )
+            raise TypeError(msg)
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
