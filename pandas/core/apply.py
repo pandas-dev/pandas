@@ -13,6 +13,7 @@ from typing import (
     cast,
 )
 
+import numba
 import numpy as np
 
 from pandas._libs.internals import BlockValuesRefs
@@ -176,6 +177,60 @@ class BaseExecutionEngine(abc.ABC):
             But passing rows as other data structures is technically possible
             as far as the function ``func`` is implemented accordingly.
         """
+
+
+class NumbaExecutionEngine(BaseExecutionEngine):
+    """
+    Numba-based execution engine for pandas apply and map operations.
+    """
+
+    @staticmethod
+    def map(
+        data: np.ndarray | Series | DataFrame,
+        func,
+        args: tuple,
+        kwargs: dict,
+        decorator: Callable | None,
+        skip_na: bool,
+    ):
+        """
+        Elementwise map for the Numba engine. Currently not supported.
+        """
+        raise NotImplementedError("Numba map is not implemented yet.")
+
+    @staticmethod
+    def apply(
+        data: np.ndarray | Series | DataFrame,
+        func,
+        args: tuple,
+        kwargs: dict,
+        decorator: Callable,
+        axis: int | str,
+    ):
+        """
+        Apply `func` along the given axis using Numba.
+        """
+        engine_kwargs: dict[str, bool] | None = (
+            decorator if isinstance(decorator, dict) else None
+        )
+
+        looper_args, looper_kwargs = prepare_function_arguments(
+            func,
+            args,
+            kwargs,
+            num_required_args=1,
+        )
+        # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
+        # incompatible type "Callable[..., Any] | str | list[Callable
+        # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
+        # list[Callable[..., Any] | str]]"; expected "Hashable"
+        nb_looper = generate_apply_looper(
+            func,
+            **get_jit_arguments(engine_kwargs),
+        )
+        result = nb_looper(data, axis, *looper_args)
+        # If we made the result 2-D, squeeze it back to 1-D
+        return np.squeeze(result)
 
 
 def frame_apply(
@@ -1094,23 +1149,16 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-            args, kwargs = prepare_function_arguments(
-                self.func,  # type: ignore[arg-type]
+            if not hasattr(numba.jit, "__pandas_udf__"):
+                numba.jit.__pandas_udf__ = NumbaExecutionEngine
+            result = numba.jit.__pandas_udf__.apply(
+                self.values,
+                self.func,
                 self.args,
                 self.kwargs,
-                num_required_args=1,
+                engine_kwargs,
+                self.axis,
             )
-            # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
-            # incompatible type "Callable[..., Any] | str | list[Callable
-            # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
-            # list[Callable[..., Any] | str]]"; expected "Hashable"
-            nb_looper = generate_apply_looper(
-                self.func,  # type: ignore[arg-type]
-                **get_jit_arguments(engine_kwargs),
-            )
-            result = nb_looper(self.values, self.axis, *args)
-            # If we made the result 2-D, squeeze it back to 1-D
-            result = np.squeeze(result)
         else:
             result = np.apply_along_axis(
                 wrap_function(self.func),
