@@ -555,6 +555,14 @@ class TestMelt:
         ):
             df.melt(var_name=["first", "second", "third"])
 
+    def test_melt_duplicate_column_header_raises(self):
+        # GH61475
+        df = DataFrame([[1, 2, 3], [3, 4, 5]], columns=["A", "A", "B"])
+        msg = "id_vars cannot contain duplicate columns."
+
+        with pytest.raises(ValueError, match=msg):
+            df.melt(id_vars=["A"], value_vars=["B"])
+
 
 class TestLreshape:
     def test_pairs(self):
