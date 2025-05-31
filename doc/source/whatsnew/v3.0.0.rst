@@ -857,6 +857,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :class:`Categorical` when constructing with an :class:`Index` with :class:`ArrowDtype` (:issue:`60563`)
+- Bug in :func:`assert_frame_equal` with ``check_dtype=False`` that failed when comparing columns containing ``pd.NA`` with ``Int32`` and ``object`` dtypes. Now handles such comparisons by coercing to ``dtype="object"`` internally. (:issue:`61473`)
 - Bug in :meth:`.arrays.ArrowExtensionArray.__setitem__` which caused wrong behavior when using an integer array with repeated values as a key (:issue:`58530`)
 - Bug in :meth:`ArrowExtensionArray.factorize` where NA values were dropped when input was dictionary-encoded even when dropna was set to False(:issue:`60567`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)

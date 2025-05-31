@@ -1014,6 +1014,7 @@ def assert_series_equal(
             pass
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
+
     if check_exact:
         left_values = left._values
         right_values = right._values
@@ -1030,11 +1031,18 @@ def assert_series_equal(
             )
         else:
             # convert both to NumPy if not, check_dtype would raise earlier
-            lv, rv = left_values, right_values
-            if isinstance(left_values, ExtensionArray):
-                lv = left_values.to_numpy()
-            if isinstance(right_values, ExtensionArray):
-                rv = right_values.to_numpy()
+            lv, rv = left._values, right._values
+            if not check_dtype and not (
+                isinstance(lv, ExtensionArray) and isinstance(rv, ExtensionArray)
+            ):
+                lv = left.to_numpy(dtype="object")
+                rv = right.to_numpy(dtype="object")
+            else:
+                if isinstance(lv, ExtensionArray):
+                    lv = rv.to_numpy()
+                if isinstance(rv, ExtensionArray):
+                    rv = rv.to_numpy()
+
             assert_numpy_array_equal(
                 lv,
                 rv,
@@ -1105,9 +1113,16 @@ def assert_series_equal(
             obj=str(obj),
         )
     else:
+        lv, rv = left._values, right._values
+        if not check_dtype and not (
+            isinstance(left._values, ExtensionArray)
+            and isinstance(right._values, ExtensionArray)
+        ):
+            lv = left.to_numpy(dtype="object")
+            rv = right.to_numpy(dtype="object")
         _testing.assert_almost_equal(
-            left._values,
-            right._values,
+            lv,
+            rv,
             rtol=rtol,
             atol=atol,
             check_dtype=bool(check_dtype),
