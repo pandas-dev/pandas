@@ -4479,6 +4479,119 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
+    def select(self, *args):
+        """
+        Select a subset of columns from the DataFrame.
+
+        Select can be used to return a DataFrame with some specific columns.
+        This can be used to remove unwanted columns, as well as to return a
+        DataFrame with the columns sorted in a specific order.
+
+        Parameters
+        ----------
+        *args : hashable or tuple of hashable
+            The names or the columns to return. In general this will be strings,
+            but pandas supports other types of column names, if they are hashable.
+
+        Returns
+        -------
+        DataFrame
+            The DataFrame with the selected columns.
+
+        See Also
+        --------
+        DataFrame.filter : To return a subset of rows, instead of a subset of columns.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "first_name": ["John", "Alice", "Bob"],
+        ...         "last_name": ["Smith", "Cooper", "Marley"],
+        ...         "age": [61, 22, 35],
+        ...     }
+        ... )
+
+        Select a subset of columns:
+
+        >>> df.select("first_name", "age")
+          first_name  age
+        0       John   61
+        1      Alice   22
+        2        Bob   35
+
+        Selecting with a pattern can be done with Python expressions:
+
+        >>> df.select(*[col for col in df.columns if col.endswith("_name")])
+          first_name last_name
+        0       John     Smith
+        1      Alice    Cooper
+        2        Bob    Marley
+
+        All columns can be selected, but in a different order:
+
+        >>> df.select("last_name", "first_name", "age")
+          last_name first_name  age
+        0     Smith       John   61
+        1    Cooper      Alice   22
+        2    Marley        Bob   35
+
+        In case the columns are in a list, Python unpacking with star can be used:
+
+        >>> columns = ["last_name", "age"]
+        >>> df.select(*columns)
+                  last_name  age
+        0     Smith   61
+        1    Cooper   22
+        2    Marley   35
+
+        Note that a DataFrame is always returned. If a single column is requested, a
+        DataFrame with a single column is returned, not a Series:
+
+        >>> df.select("age")
+           age
+        0   61
+        1   22
+        2   35
+
+        The ``select`` method also works when columns are a ``MultiIndex``:
+
+        >>> df = pd.DataFrame(
+        ...     [("John", "Smith", 61), ("Alice", "Cooper", 22), ("Bob", "Marley", 35)],
+        ...     columns=pd.MultiIndex.from_tuples(
+        ...         [("names", "first_name"), ("names", "last_name"), ("other", "age")]
+        ...     ),
+        ... )
+
+        If just column names are provided, they will select from the first level of the
+        ``MultiIndex``:
+
+        >>> df.select("names")
+              names
+          first_name last_name
+        0       John     Smith
+        1      Alice    Cooper
+        2        Bob    Marley
+
+        To select from multiple or all levels, tuples can be provided:
+
+        >>> df.select(("names", "last_name"), ("other", "age"))
+              names other
+          last_name   age
+        0     Smith    61
+        1    Cooper    22
+        2    Marley    35
+        """
+        if args and isinstance(args[0], list):
+            raise ValueError(
+                "`DataFrame.select` does not support a list. Please use "
+                "`df.select('col1', 'col2',...)` or `df.select(*['col1', 'col2',...])` "
+                "instead"
+            )
+
+        indexer = self.columns._get_indexer_strict(list(args), "columns")[1]
+        return self.take(indexer, axis=1)
+
     @overload
     def query(
         self,
