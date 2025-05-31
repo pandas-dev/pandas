@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-from contextlib import closing
 import csv
 from datetime import (
     date,
@@ -2580,10 +2579,10 @@ def test_sql_open_close(test_frame3):
     # between the writing and reading (as in many real situations).
 
     with tm.ensure_clean() as name:
-        with closing(sqlite3.connect(name)) as conn:
+        with contextlib.closing(sqlite3.connect(name)) as conn:
             assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
 
-        with closing(sqlite3.connect(name)) as conn:
+        with contextlib.closing(sqlite3.connect(name)) as conn:
             result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
 
     tm.assert_frame_equal(test_frame3, result)
