@@ -904,6 +904,21 @@ class HDFStore:
         # create the storer and axes
         where = _ensure_term(where, scope_level=1)
         s = self._create_storer(group)
+
+        # Raise an error if trying to query tz-aware index
+        if where is not None:
+            try:
+                index = s.obj.index
+                if hasattr(index, "tz") and index.tz is not None:
+                    raise ValueError(
+                        "Filtering with `where=` on timezone-aware indexes is not supported "
+                        "in HDFStore."
+                    )
+
+            except AttributeError:
+                # some storer types (e.g. Legacy format) may not have `obj`; skip check
+                pass
+
         s.infer_axes()
 
         # function to call on iteration
