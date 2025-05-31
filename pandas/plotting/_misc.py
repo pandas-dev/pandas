@@ -633,6 +633,16 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
     """
     Autocorrelation plot for time series.
 
+    This method generates an autocorrelation plot for a given time series,
+    which helps to identify any periodic structure or correlation within the
+    data across various lags. The autocorrelations are computed for increasing
+    lags and plotted as vertical bars. Horizontal lines at 95% and 99% confidence
+    intervals are shown to assist in identifying statistically significant lags. The
+    dashed line corresponds to the 99% confidence band, which can help detect
+    whether observed autocorrelations deviate significantly from what would
+    be expected under white noise. This plot is useful in time series analysis for
+    identifying potential model structures, such as autoregressive components.
+
     Parameters
     ----------
     series : Series
