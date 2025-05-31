@@ -3864,12 +3864,12 @@ class MultiIndex(Index):
                 result.append(np.intp(val))
             else:
                 fields = []
-                for i, level in enumerate(self.levels):
+                for j, level in enumerate(self.levels):
                     level_dtype = level.dtype
                     if isinstance(level_dtype, ExtensionDtype):
-                        fields.append((f"level_{i}", object))
+                        fields.append((f"level_{j}", object))
                     else:
-                        fields.append((f"level_{i}", level_dtype))
+                        fields.append((f"level_{j}", level_dtype))
                 dtype = np.dtype(fields)
 
                 val_array = np.array([v], dtype=dtype)
