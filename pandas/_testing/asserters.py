@@ -1014,9 +1014,13 @@ def assert_series_equal(
             pass
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
-    if check_exact:
+    if not check_dtype:
+        left_values = left.to_numpy(dtype="object")
+        right_values = right.to_numpy(dtype="object")
+    else:
         left_values = left._values
         right_values = right._values
+    if check_exact:
         # Only check exact if dtype is numeric
         if isinstance(left_values, ExtensionArray) and isinstance(
             right_values, ExtensionArray
@@ -1051,10 +1055,10 @@ def assert_series_equal(
 
         # datetimelike may have different objects (e.g. datetime.datetime
         # vs Timestamp) but will compare equal
-        if not Index(left._values).equals(Index(right._values)):
+        if not Index(left_values).equals(Index(right_values)):
             msg = (
-                f"[datetimelike_compat=True] {left._values} "
-                f"is not equal to {right._values}."
+                f"[datetimelike_compat=True] {left_values} "
+                f"is not equal to {right_values}."
             )
             raise AssertionError(msg)
     elif isinstance(left.dtype, IntervalDtype) and isinstance(
@@ -1065,8 +1069,8 @@ def assert_series_equal(
         right.dtype, CategoricalDtype
     ):
         _testing.assert_almost_equal(
-            left._values,
-            right._values,
+            left_values,
+            right_values,
             rtol=rtol,
             atol=atol,
             check_dtype=bool(check_dtype),
@@ -1077,8 +1081,8 @@ def assert_series_equal(
         right.dtype, ExtensionDtype
     ):
         assert_extension_array_equal(
-            left._values,
-            right._values,
+            left_values,
+            right_values,
             rtol=rtol,
             atol=atol,
             check_dtype=check_dtype,
