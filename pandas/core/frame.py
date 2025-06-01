@@ -10644,7 +10644,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         func: PythonFuncType,
         skipna: bool = False,
-        na_action: Literal["ignore"] | None = lib.no_default,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
         """

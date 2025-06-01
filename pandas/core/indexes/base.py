@@ -6354,7 +6354,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         mapper,
         skipna: bool = False,
-        na_action: Literal["ignore"] | None = lib.no_default,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
     ):
         """
         Map values using an input mapping or function.

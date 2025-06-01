@@ -4328,7 +4328,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         func: Callable | Mapping | Series | None = None,
         skipna: bool = False,
-        na_action: Literal["ignore"] | None = lib.no_default,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
         engine: Callable | None = None,
         **kwargs,
     ) -> Series:

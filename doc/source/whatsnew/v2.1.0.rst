@@ -172,6 +172,7 @@ and ``na_action="ignore"`` did not work correctly for any :class:`.ExtensionArra
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
     ser = pd.Series(["a", "b", np.nan], dtype="category")
     ser.map(str.upper, na_action="ignore")
