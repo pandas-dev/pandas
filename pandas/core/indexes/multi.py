@@ -3855,6 +3855,30 @@ class MultiIndex(Index):
         if side not in ["left", "right"]:
             raise ValueError("side must be either 'left' or 'right'")
 
+        if sorter is None:
+            get_val = lambda i: self.values[i]
+        else:
+            get_val = lambda i: self.values[sorter[i]]
+
+        def has_missing(val):
+            if isinstance(val, tuple):
+                return np.any(isna(list(val)))
+            return np.any(isna(val))
+
+        def binary_search(key, side="left", sorter=None):
+            l_ptr, r_ptr = 0, len(self) if sorter is None else len(sorter)
+            while l_ptr < r_ptr:
+                mid = l_ptr + (r_ptr - l_ptr) // 2
+
+                mid_val = get_val(mid)
+                if has_missing(mid_val):
+                    raise ValueError(f"Unsortable or missing value: {mid_val}")
+                if mid_val > key or (side == "left" and mid_val == key):
+                    r_ptr = mid
+                else:
+                    l_ptr = mid + 1
+            return sorter[l_ptr] if sorter is not None else l_ptr
+
         indexer = self.get_indexer(value)
         result = []
 
@@ -3863,23 +3887,7 @@ class MultiIndex(Index):
                 val = i if side == "left" else i + 1
                 result.append(np.intp(val))
             else:
-                fields = []
-                for j, level in enumerate(self.levels):
-                    level_dtype = level.dtype
-                    if isinstance(level_dtype, ExtensionDtype):
-                        fields.append((f"level_{j}", object))
-                    else:
-                        fields.append((f"level_{j}", level_dtype))
-                dtype = np.dtype(fields)
-
-                val_array = np.array([v], dtype=dtype)
-                pos = np.searchsorted(
-                    np.asarray(self.values, dtype=dtype),
-                    val_array,
-                    side=side,
-                    sorter=sorter,
-                )
-                result.append(np.intp(pos[0]))
+                result.append(binary_search(v, side=side, sorter=sorter))
 
         if len(result) == 1:
             return result[0]
