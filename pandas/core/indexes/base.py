@@ -6351,7 +6351,10 @@ class Index(IndexOpsMixin, PandasObject):
         return PrettyDict(result)
 
     def map(
-        self, mapper, skipna: bool = False, na_action: Literal["ignore"] | None = None
+        self,
+        mapper,
+        skipna: bool = False,
+        na_action: Literal["ignore"] | None = lib.no_default,
     ):
         """
         Map values using an input mapping or function.
@@ -6399,14 +6402,20 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        if na_action == "ignore":
+        if na_action != lib.no_default:
             warnings.warn(
                 "The ``na_action`` parameter has been deprecated and it will be "
                 "removed in a future version of pandas. Use ``skipna`` instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            skipna = True
+            if na_action == "ignore":
+                skipna = True
+            elif na_action not in (None, "ignore"):
+                raise ValueError(
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action!r} was passed"
+                )
 
         new_values = self._map_values(mapper, skipna=skipna)
 

@@ -18,29 +18,29 @@ import pandas._testing as tm
     ],
     ids=["string", "interval"],
 )
-def test_map_str(data, categories, ordered, na_action):
+def test_map_str(data, categories, ordered, skipna):
     # GH 31202 - override base class since we want to maintain categorical/ordered
     cat = Categorical(data, categories=categories, ordered=ordered)
-    result = cat.map(str, na_action=na_action)
+    result = cat.map(str, skipna=skipna)
     expected = Categorical(
         map(str, data), categories=map(str, categories), ordered=ordered
     )
     tm.assert_categorical_equal(result, expected)
 
 
-def test_map(na_action):
+def test_map(skipna):
     cat = Categorical(list("ABABC"), categories=list("CBA"), ordered=True)
-    result = cat.map(lambda x: x.lower(), na_action=na_action)
+    result = cat.map(lambda x: x.lower(), skipna=skipna)
     exp = Categorical(list("ababc"), categories=list("cba"), ordered=True)
     tm.assert_categorical_equal(result, exp)
 
     cat = Categorical(list("ABABC"), categories=list("BAC"), ordered=False)
-    result = cat.map(lambda x: x.lower(), na_action=na_action)
+    result = cat.map(lambda x: x.lower(), skipna=skipna)
     exp = Categorical(list("ababc"), categories=list("bac"), ordered=False)
     tm.assert_categorical_equal(result, exp)
 
     # GH 12766: Return an index not an array
-    result = cat.map(lambda x: 1, na_action=na_action)
+    result = cat.map(lambda x: 1, skipna=skipna)
     exp = Index(np.array([1] * 5, dtype=np.int64))
     tm.assert_index_equal(result, exp)
 
@@ -50,15 +50,15 @@ def test_map(na_action):
     def f(x):
         return {"A": 10, "B": 20, "C": 30}.get(x)
 
-    result = cat.map(f, na_action=na_action)
+    result = cat.map(f, skipna=skipna)
     exp = Categorical([10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False)
     tm.assert_categorical_equal(result, exp)
 
     mapper = Series([10, 20, 30], index=["A", "B", "C"])
-    result = cat.map(mapper, na_action=na_action)
+    result = cat.map(mapper, skipna=skipna)
     tm.assert_categorical_equal(result, exp)
 
-    result = cat.map({"A": 10, "B": 20, "C": 30}, na_action=na_action)
+    result = cat.map({"A": 10, "B": 20, "C": 30}, skipna=skipna)
     tm.assert_categorical_equal(result, exp)
 
 
@@ -83,7 +83,7 @@ def test_map(na_action):
 )
 def test_map_with_nan_none(data, f, expected):  # GH 24241
     values = Categorical(data)
-    result = values.map(f, na_action=None)
+    result = values.map(f, skipna=False)
     if isinstance(expected, Categorical):
         tm.assert_categorical_equal(result, expected)
     else:
@@ -111,26 +111,26 @@ def test_map_with_nan_none(data, f, expected):  # GH 24241
 )
 def test_map_with_nan_ignore(data, f, expected):  # GH 24241
     values = Categorical(data)
-    result = values.map(f, na_action="ignore")
+    result = values.map(f, skipna=True)
     if data[1] == 1:
         tm.assert_categorical_equal(result, expected)
     else:
         tm.assert_index_equal(result, expected)
 
 
-def test_map_with_dict_or_series(na_action):
+def test_map_with_dict_or_series(skipna):
     orig_values = ["a", "B", 1, "a"]
     new_values = ["one", 2, 3.0, "one"]
     cat = Categorical(orig_values)
 
     mapper = Series(new_values[:-1], index=orig_values[:-1])
-    result = cat.map(mapper, na_action=na_action)
+    result = cat.map(mapper, skipna=skipna)
 
     # Order of categories in result can be different
     expected = Categorical(new_values, categories=[3.0, 2, "one"])
     tm.assert_categorical_equal(result, expected)
 
     mapper = dict(zip(orig_values[:-1], new_values[:-1]))
-    result = cat.map(mapper, na_action=na_action)
+    result = cat.map(mapper, skipna=skipna)
     # Order of categories in result can be different
     tm.assert_categorical_equal(result, expected)

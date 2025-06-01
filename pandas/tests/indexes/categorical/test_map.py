@@ -98,7 +98,7 @@ def test_map_with_categorical_series():
 )
 def test_map_with_nan_ignore(data, f, expected):  # GH 24241
     values = CategoricalIndex(data)
-    result = values.map(f, na_action="ignore")
+    result = values.map(f, skipna=True)
     tm.assert_index_equal(result, expected)
 
 
@@ -123,7 +123,7 @@ def test_map_with_nan_ignore(data, f, expected):  # GH 24241
 )
 def test_map_with_nan_none(data, f, expected):  # GH 24241
     values = CategoricalIndex(data)
-    result = values.map(f, na_action=None)
+    result = values.map(f, skipna=False)
     tm.assert_index_equal(result, expected)
 
 

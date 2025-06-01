@@ -4328,7 +4328,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         func: Callable | Mapping | Series | None = None,
         skipna: bool = False,
-        na_action: Literal["ignore"] | None = None,
+        na_action: Literal["ignore"] | None = lib.no_default,
         engine: Callable | None = None,
         **kwargs,
     ) -> Series:
@@ -4437,14 +4437,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3  I am a rabbit
         dtype: object
         """
-        if na_action == "ignore":
+        if na_action != lib.no_default:
             warnings.warn(
                 "The ``na_action`` parameter has been deprecated and it will be "
                 "removed in a future version of pandas. Use ``skipna`` instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            skipna = True
+            if na_action == "ignore":
+                skipna = True
+            elif na_action not in (None, "ignore"):
+                raise ValueError(
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action!r} was passed"
+                )
 
         if func is None:
             if "arg" in kwargs:
