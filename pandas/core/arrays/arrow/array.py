@@ -2601,6 +2601,13 @@ class ArrowExtensionArray(
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
+    def _str_zfill(self, width: int) -> Self:
+        # TODO: Replace with pc.utf8_zfill when supported by arrow
+        # Arrow ENH - https://github.com/apache/arrow/issues/46683
+        predicate = lambda val: val.zfill(width)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
+
     @property
     def _dt_days(self) -> Self:
         return type(self)(
