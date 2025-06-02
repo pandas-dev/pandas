@@ -495,6 +495,8 @@ def get_array_op(op):
         "mod",
         "divmod",
         "pow",
+        "shift",
+        "lshift",
     }:
         return partial(arithmetic_op, op=op)
     else:

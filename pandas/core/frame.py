@@ -8454,6 +8454,38 @@ class DataFrame(NDFrame, OpsMixin):
             other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
         )
 
+    @Appender(ops.make_flex_doc("rshift", "dataframe"))
+    def rshift(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
+        return self._flex_arith_method(
+            other, operator.rshift, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rrshift", "dataframe"))
+    def rrshift(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
+        return self._flex_arith_method(
+            other, roperator.rrshift, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("lshift", "dataframe"))
+    def lshift(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
+        return self._flex_arith_method(
+            other, operator.lshift, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rlshift", "dataframe"))
+    def rlshift(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
+        return self._flex_arith_method(
+            other, roperator.rlshift, level=level, fill_value=fill_value, axis=axis
+        )
+
     # ----------------------------------------------------------------------
     # Combination-Related
 

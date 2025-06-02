@@ -216,6 +216,31 @@ dtype: float64
 """
 )
 
+_rshift_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.rshift(1, fill_value=0)
+a    0.0
+b    0.0
+c    0.0
+d    NaN
+dtype: float64
+"""
+)
+
+_lshift_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.rshift(1, fill_value=0)
+a    2.0
+b    2.0
+c    2.0
+d    NaN
+dtype: float64
+"""
+)
+
+
 _ne_example_SERIES = (
     _common_examples_algebra_SERIES
     + """
@@ -364,6 +389,20 @@ _op_descriptions: dict[str, dict[str, str | None]] = {
         "series_examples": _divmod_example_SERIES,
         "series_returns": _returns_tuple,
         "df_examples": None,
+    },
+    "rshift": {
+        "op": ">>",
+        "desc": "Bitwise right shift",
+        "reverse": "rrshift",
+        "series_examples": _rshift_example_SERIES,
+        "series_returns": _returns_series,
+    },
+    "lshift": {
+        "op": "<<",
+        "desc": "Bitwise left shift",
+        "reverse": "rlshift",
+        "series_examples": _lshift_example_SERIES,
+        "series_returns": _returns_series,
     },
     # Comparison Operators
     "eq": {

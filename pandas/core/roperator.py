@@ -61,3 +61,11 @@ def ror_(left, right):
 
 def rxor(left, right):
     return operator.xor(right, left)
+
+
+def rrshift(left, right):
+    return operator.rshift(right, left)
+
+
+def rlshift(left, right):
+    return operator.lshift(right, left)

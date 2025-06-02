@@ -2199,3 +2199,99 @@ def test_mixed_col_index_dtype(using_infer_string):
             dtype = "string"
         expected.columns = expected.columns.astype(dtype)
     tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_rshift():
+    df = DataFrame({"a": [8, 16], "b": [32, 64]})
+    result = df >> 2
+    expected = DataFrame({"a": [2, 4], "b": [8, 16]})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_rshift_negative():
+    df = DataFrame({"a": [8, 16], "b": [32, 64]})
+    result = df >> -1
+    expected = DataFrame({"a": [0, 0], "b": [0, 0]})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_rshift_zero():
+    df = DataFrame({"a": [8, 16], "b": [32, 64]})
+    result = df >> 0
+
+    tm.assert_frame_equal(result, df)
+
+
+def test_dataframe_lshift():
+    df = DataFrame({"a": [1, 2], "b": [4, 8]})
+    result = df << 2
+    expected = DataFrame({"a": [4, 8], "b": [16, 32]})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_lshift_negative():
+    df = DataFrame({"a": [8, 16], "b": [32, 64]})
+    result = df << -1
+    expected = DataFrame({"a": [0, 0], "b": [0, 0]})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_lshift_zero():
+    df = DataFrame({"a": [8, 16], "b": [32, 64]})
+    result = df << 0
+
+    tm.assert_frame_equal(result, df)
+
+
+def test_dataframe_rrshift():
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = operator.rshift(64, df)
+    expected = DataFrame({"a": [32, 16], "b": [8, 4]})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_rlshift():
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = operator.lshift(1, df)
+    expected = DataFrame({"a": [2, 4], "b": [8, 16]})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_irshift():
+    df = DataFrame({"a": [8, 16], "b": [32, 64]})
+    df >>= 2
+    expected = DataFrame({"a": [2, 4], "b": [8, 16]})
+
+    tm.assert_frame_equal(df, expected)
+
+
+def test_dataframe_ilshift():
+    df = DataFrame({"a": [1, 2], "b": [4, 8]})
+    df <<= 2
+    expected = DataFrame({"a": [4, 8], "b": [16, 32]})
+
+    tm.assert_frame_equal(df, expected)
+
+
+def test_dataframe_rshift_dataframe():
+    df1 = DataFrame({"a": [8, 4], "b": [2, 1]})
+    df2 = DataFrame({"a": [3, 2], "b": [1, 0]})
+    result = df1 >> df2
+    expected = DataFrame({"a": [1, 1], "b": [1, 1]})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_lshift_dataframe():
+    df1 = DataFrame({"a": [1, 2], "b": [4, 8]})
+    df2 = DataFrame({"a": [3, 2], "b": [1, 0]})
+    result = df1 << df2
+    expected = DataFrame({"a": [8, 8], "b": [8, 8]})
+
+    tm.assert_frame_equal(result, expected)

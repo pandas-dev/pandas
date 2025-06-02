@@ -6578,6 +6578,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             other, roperator.rdivmod, level=level, fill_value=fill_value, axis=axis
         )
 
+    @Appender(ops.make_flex_doc("rshift", "series"))
+    def rshift(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
+        return self._flex_method(
+            other, operator.rshift, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rrshift", "series"))
+    def rrshift(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
+        return self._flex_method(
+            other, roperator.rrshift, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("lshift", "series"))
+    def lshift(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
+        return self._flex_method(
+            other, operator.lshift, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rlshift", "series"))
+    def rlshift(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
+        return self._flex_method(
+            other, roperator.rlshift, level=level, fill_value=fill_value, axis=axis
+        )
+
     # ----------------------------------------------------------------------
     # Reductions
 

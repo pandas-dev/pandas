@@ -248,6 +248,22 @@ class OpsMixin:
     def __rpow__(self, other):
         return self._arith_method(other, roperator.rpow)
 
+    @unpack_zerodim_and_defer("__rshift__")
+    def __rshift__(self, other):
+        return self._arith_method(other, operator.rshift)
+
+    @unpack_zerodim_and_defer("__rrshift__")
+    def __rrshift__(self, other):
+        return self._arith_method(other, roperator.rrshift)
+
+    @unpack_zerodim_and_defer("__lshift__")
+    def __lshift__(self, other):
+        return self._arith_method(other, operator.lshift)
+
+    @unpack_zerodim_and_defer("__rlshift__")
+    def __rlshift__(self, other):
+        return self._arith_method(other, roperator.rlshift)
+
 
 # -----------------------------------------------------------------------------
 # Helpers to implement __array_ufunc__

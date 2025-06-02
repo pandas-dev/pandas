@@ -11705,6 +11705,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # error: Unsupported left operand type for ^ ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__xor__)  # type: ignore[operator]
 
+    @final
+    def __irshift__(self, other) -> Self:
+        # error: Unsupported left operand type for >> ("Type[NDFrame]")
+        return self._inplace_method(other, type(self).__rshift__)  # type: ignore[operator]
+
+    @final
+    def __ilshift__(self, other) -> Self:
+        # error: Unsupported left operand type for << ("Type[NDFrame]")
+        return self._inplace_method(other, type(self).__lshift__)  # type: ignore[operator]
+
     # ----------------------------------------------------------------------
     # Misc methods
 
