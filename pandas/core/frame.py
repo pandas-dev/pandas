@@ -3561,6 +3561,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         .. versionadded:: 3.0.0
 
+        .. warning::
+
+           to_iceberg is experimental and may change without warning.
+
         Parameters
         ----------
         table_identifier : str

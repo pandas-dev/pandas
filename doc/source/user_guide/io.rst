@@ -5417,7 +5417,7 @@ engines to safely work with the same tables at the same time.
 
 Iceberg support predicate pushdown and column pruning, which are available to pandas
 users via the ``row_filter`` and ``selected_fields`` parameters of the :func:`~pandas.read_iceberg`
-function. This is convenient to extract from large tables a subset that fits in memory asa
+function. This is convenient to extract from large tables a subset that fits in memory as a
 pandas ``DataFrame``.
 
 Internally, pandas uses PyIceberg_ to query Iceberg.
@@ -5496,6 +5496,29 @@ parameter:
 
 Reading a particular snapshot is also possible providing the snapshot ID as an argument to
 ``snapshot_id``.
+
+To save a ``DataFrame`` to Iceberg, it can be done with the :meth:`DataFrame.to_iceberg`
+method:
+
+.. code-block:: python
+
+    df.to_iceberg("my_table", catalog_name="my_catalog")
+
+To specify the catalog, it works in the same way as for :func:`read_iceberg` with the
+``catalog_name`` and ``catalog_properties`` parameters.
+
+The location of the table can be specified with the ``location`` parameter:
+
+.. code-block:: python
+
+    df.to_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        location="s://my-data-lake/my-iceberg-tables",
+    )
+
+It is possible to add properties to the table snapshot by passing a dictionary to the
+``snapshot_properties`` parameter.
 
 More information about the Iceberg format can be found in the `Apache Iceberg official
 page <https://iceberg.apache.org/>`__.
