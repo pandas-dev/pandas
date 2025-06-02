@@ -2458,7 +2458,7 @@ you can use the ``tz_convert`` method.
 
     For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``.
+    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``).
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 

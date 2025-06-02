@@ -1415,7 +1415,7 @@ of multi-columns indices.
 
 .. note::
    If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-   with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will
+   with ``df.to_csv(..., index=False)``), then any ``names`` on the columns index will
    be *lost*.
 
 .. ipython:: python
