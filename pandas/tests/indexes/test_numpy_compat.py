@@ -157,9 +157,7 @@ def test_numpy_ufuncs_reductions(index, func, request):
         pytest.skip("Test doesn't make sense for empty index.")
     if getattr(index, "inferred_type", None) in ["mixed", "mixed-integer"]:
         request.applymarker(
-            pytest.mark.xfail(
-                reason="Cannot compare mixed types in ufunc reductions"
-            )
+            pytest.mark.xfail(reason="Cannot compare mixed types in ufunc reductions")
         )
 
     if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
