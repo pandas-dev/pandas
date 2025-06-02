@@ -32,9 +32,9 @@ All warnings for upcoming changes in pandas will have the base class :class:`pan
 
 - :class:`pandas.errors.Pandas4Warning`: Warnings which will be enforced in pandas 4.0.
 - :class:`pandas.errors.Pandas4Warning`: Warnings which will be enforced in pandas 5.0.
-- :class:`pandas.errors.PandasPendingDeprecationWarning`: Warnings which will emit a ``PendingDeprecationWarning``, independent of the version they will be enforced.
-- :class:`pandas.errors.PandasDeprecationWarning`: Warnings which will emit a ``DeprecationWarning``, independent of the version they will be enforced.
-- :class:`pandas.errors.PandasFutureWarning`: Warnings which will emit a ``PandasFutureWarning``, independent of the version they will be enforced.
+- :class:`pandas.errors.PandasPendingDeprecationWarning`: Base class of all warnings which emit a ``PendingDeprecationWarning``, independent of the version they will be enforced.
+- :class:`pandas.errors.PandasDeprecationWarning`: Base class of all warnings which emit a ``DeprecationWarning``, independent of the version they will be enforced.
+- :class:`pandas.errors.PandasFutureWarning`: Base class of all warnings which emit a ``PandasFutureWarning``, independent of the version they will be enforced.
 
 .. _whatsnew_300.enhancements.other:
 
