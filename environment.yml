@@ -12,7 +12,7 @@ dependencies:
   - meson=1.2.1
   - meson-python=0.13.1
 
-  # test dependencies 
+  # test dependencies
   - pytest>=7.3.2
   - pytest-cov
   - pytest-xdist>=3.4.0
