@@ -2541,7 +2541,7 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def map(self, mapper, skipna: bool = False):
         """
         Map values using an input mapping or function.
 
@@ -2549,9 +2549,9 @@ class ExtensionArray:
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
-        na_action : {None, 'ignore'}, default None
-            If 'ignore', propagate NA values, without passing them to the
-            mapping correspondence. If 'ignore' is not supported, a
+        skipna : bool, default False
+            If ``True``, propagate NA values, without passing them to the
+            mapping correspondence. If ``True`` is not supported, a
             ``NotImplementedError`` should be raised.
 
         Returns
@@ -2561,7 +2561,7 @@ class ExtensionArray:
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        return map_array(self, mapper, na_action=na_action)
+        return map_array(self, mapper, skipna=skipna)
 
     # ------------------------------------------------------------------------
     # GroupBy Methods

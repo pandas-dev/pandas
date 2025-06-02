@@ -1309,7 +1309,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None) -> Self:
+    def map(self, mapper, skipna: bool = False) -> Self:
         """
         Map categories using an input mapping or function.
 
@@ -1317,8 +1317,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ----------
         mapper : dict, Series, callable
             The correspondence from old values to new.
-        na_action : {None, 'ignore'}, default None
-            If 'ignore', propagate NA values, without passing them to the
+        skipna : bool, default False
+            If ``True``, propagate NA values, without passing them to the
             mapping correspondence.
 
         Returns
@@ -1353,7 +1353,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         fill_val = self.fill_value
 
-        if na_action is None or notna(fill_val):
+        if not skipna or notna(fill_val):
             fill_val = mapper.get(fill_val, fill_val) if is_map else mapper(fill_val)
 
         def func(sp_val):

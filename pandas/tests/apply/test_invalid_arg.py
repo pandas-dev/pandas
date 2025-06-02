@@ -54,23 +54,6 @@ def test_agg_raises():
         df.agg()
 
 
-def test_map_with_invalid_na_action_raises():
-    # https://github.com/pandas-dev/pandas/issues/32815
-    s = Series([1, 2, 3])
-    msg = "na_action must either be 'ignore' or None"
-    with pytest.raises(ValueError, match=msg):
-        s.map(lambda x: x, na_action="____")
-
-
-@pytest.mark.parametrize("input_na_action", ["____", True])
-def test_map_arg_is_dict_with_invalid_na_action_raises(input_na_action):
-    # https://github.com/pandas-dev/pandas/issues/46588
-    s = Series([1, 2, 3])
-    msg = f"na_action must either be 'ignore' or None, {input_na_action} was passed"
-    with pytest.raises(ValueError, match=msg):
-        s.map({1: 2}, na_action=input_na_action)
-
-
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
 def test_nested_renamer(frame_or_series, method, func):
