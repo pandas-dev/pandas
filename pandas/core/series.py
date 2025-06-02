@@ -4327,8 +4327,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def map(
         self,
         func: Callable | Mapping | Series | None = None,
-        skipna: bool = False,
         na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
         engine: Callable | None = None,
         **kwargs,
     ) -> Series:
@@ -4343,15 +4343,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         func : function, collections.abc.Mapping subclass or Series
             Function or mapping correspondence.
-        skipna : bool, default False
-            If ``True``, do not pass missing values to the function, and
-            propagate them to the result directly instead.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
 
             .. deprecated:: 3.0.0
                 Use ``skipna`` instead.
+        skipna : bool, default False
+            If ``True``, do not pass missing values to the function, and
+            propagate them to the result directly instead.
         engine : decorator, optional
             Choose the execution engine to use to run the function. Only used for
             functions. If ``map`` is called with a mapping or ``Series``, an

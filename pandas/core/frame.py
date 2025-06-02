@@ -10643,8 +10643,8 @@ class DataFrame(NDFrame, OpsMixin):
     def map(
         self,
         func: PythonFuncType,
-        skipna: bool = False,
         na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
         **kwargs,
     ) -> DataFrame:
         """
@@ -10661,10 +10661,13 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         func : callable
             Python function, returns a single value from a single value.
-        skipna : bool = False
-            If ``True``, propagate missing values without passing them to ``func``.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to func.
+
+            .. deprecated:: 3.0.0
+                Use ``skipna`` instead.
+        skipna : bool = False
+            If ``True``, propagate missing values without passing them to ``func``.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.

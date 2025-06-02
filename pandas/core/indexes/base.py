@@ -6353,8 +6353,8 @@ class Index(IndexOpsMixin, PandasObject):
     def map(
         self,
         mapper,
-        skipna: bool = False,
         na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
     ):
         """
         Map values using an input mapping or function.
@@ -6363,15 +6363,15 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
-        skipna : bool = False
-            If ``True``, propagate NA values, without passing them to the
-            mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
             mapping correspondence.
 
             .. deprecated:: 3.0.0
                 Use ``skipna`` instead.
+        skipna : bool = False
+            If ``True``, propagate NA values, without passing them to the
+            mapping correspondence.
 
         Returns
         -------

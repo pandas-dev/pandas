@@ -458,8 +458,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def map(
         self,
         mapper,
-        skipna: bool = False,
         na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
     ):
         """
         Map values using input an input mapping or function.
@@ -477,15 +477,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
-        skipna : bool, default False
-            If ``True``, propagate NaN values, without passing them to
-            the mapping correspondence.
         na_action : {None, 'ignore'}, default 'ignore'
             If 'ignore', propagate NaN values, without passing them to
             the mapping correspondence.
 
             .. deprecated:: 3.0.0
                 Use ``skipna`` instead.
+        skipna : bool, default False
+            If ``True``, propagate NaN values, without passing them to
+            the mapping correspondence.
 
         Returns
         -------
