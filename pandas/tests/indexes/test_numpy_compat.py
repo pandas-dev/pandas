@@ -155,12 +155,10 @@ def test_numpy_ufuncs_reductions(index, func, request):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
     if len(index) == 0:
         pytest.skip("Test doesn't make sense for empty index.")
-    has_str = any(isinstance(x, str) for x in index)
-    has_int = any(isinstance(x, int) for x in index)
-    if has_str and has_int:
+    if getattr(index, "inferred_type", None) in ["mixed", "mixed-integer"]:
         request.applymarker(
             pytest.mark.xfail(
-                reason="Cannot compare mixed types (int and str) in ufunc reductions"
+                reason="Cannot compare mixed types in ufunc reductions"
             )
         )
 
