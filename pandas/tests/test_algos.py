@@ -64,11 +64,10 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize(
-        "index_or_series_obj", [[1, 2, 3], ["a", "b", "c"], [0, "a", 1, "b", 2, "c"]]
-    )
+        "param_obj", [[1, 2, 3], ["a", "b", "c"], [0, "a", 1, "b", 2, "c"]])
     @pytest.mark.parametrize("sort", [True, False])
-    def test_factorize(self, index_or_series_obj, sort):
-        obj = Index(index_or_series_obj)
+    def test_factorize(self, param_obj, sort):
+        obj = Index(param_obj)
 
         if obj.empty:
             pytest.skip("Skipping test for empty Index")
