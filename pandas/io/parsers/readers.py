@@ -729,21 +729,22 @@ def _read(
     glob = kwds.get("glob", None)
     files = iterdir(filepath_or_buffer, extensions, glob)
 
-    if len(files) == 0:
+    if isinstance(files, list) and not files:
         raise FileNotFoundError(
             f"No files found in {filepath_or_buffer}, "
             f"with extension(s) {extensions} and glob pattern {glob}"
         )
-    elif len(files) == 1:
-        parser = TextFileReader(files[0], **kwds)
+
+    if (isinstance(files, list) and len(files) == 1) or not isinstance(files, list):
+        file = files[0] if isinstance(files, list) else files
+        parser = TextFileReader(file, **kwds)
 
         if chunksize or iterator:
             return parser
 
         with parser:
             return parser.read(nrows)
-    else:
-        return _multi_file_generator(files, kwds)
+    return _multi_file_generator(files, kwds)
 
 
 @overload

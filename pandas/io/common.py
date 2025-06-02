@@ -46,6 +46,7 @@ from typing import (
     overload,
 )
 from urllib.parse import (
+    unquote,
     urljoin,
     urlparse as parse_url,
     uses_netloc,
@@ -1323,6 +1324,13 @@ def _match_file(
     )
 
 
+def _resolve_local_path(path_str: str) -> Path:
+    parsed = parse_url(path_str)
+    if is_platform_windows() and parsed.netloc:
+        return Path(f"{parsed.netloc}{parsed.path}")
+    return Path(unquote(parsed.path))
+
+
 def iterdir(
     path: FilePath | BaseBuffer,
     extensions: str | Iterable[str] | None = None,
@@ -1361,6 +1369,11 @@ def iterdir(
     if hasattr(path, "read") or hasattr(path, "write"):
         return path
 
+    if not isinstance(path, (str, os.PathLike)):
+        raise TypeError(
+            f"Expected file path name or file-like object, got {type(path)} type"
+        )
+
     if extensions is not None:
         if isinstance(extensions, str):
             extensions = {extensions.lower()}
@@ -1371,7 +1384,7 @@ def iterdir(
     scheme = _infer_protocol(path_str)
 
     if scheme == "file":
-        resolved_path = Path(path_str)
+        resolved_path = _resolve_local_path(path_str)
         if resolved_path.is_file():
             if _match_file(
                 resolved_path,
