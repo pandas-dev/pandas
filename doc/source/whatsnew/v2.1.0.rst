@@ -171,15 +171,26 @@ and ``na_action="ignore"`` did not work correctly for any :class:`.ExtensionArra
 
 *New behavior*:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-    ser = pd.Series(["a", "b", np.nan], dtype="category")
-    ser.map(str.upper, na_action="ignore")
-    df = pd.DataFrame(ser)
-    df.map(str.upper, na_action="ignore")
-    idx = pd.Index(ser)
-    idx.map(str.upper, na_action="ignore")
+    In [1]: ser = pd.Series(["a", "b", np.nan], dtype="category")
+    In [2]: ser.map(str.upper, na_action="ignore")
+    Out[2]:
+    0      A
+    1      B
+    2    NaN
+    dtype: category
+    Categories (2, object): ['A', 'B']
+    In [3]: df = pd.DataFrame(ser)
+    In [4]: df.map(str.upper, na_action="ignore")
+    Out[4]:
+         0
+    0    A
+    1    B
+    2  NaN
+    In [5]: idx = pd.Index(ser)
+    In [6]: idx.map(str.upper, na_action="ignore")
+    Out[6]: CategoricalIndex(['A', 'B', nan], categories=['A', 'B'], ordered=False, dtype='category')
 
 Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
 This has been deprecated and the default for :meth:`Categorical.map` will change
