@@ -630,6 +630,13 @@ class TestDataFrameSortValues:
         expected = DataFrame({"A": [10, 20], "B": [1, 5]})
         tm.assert_frame_equal(result, expected)
 
+    def test_sort_by_column_named_none(self):
+        # GH#61512
+        df = DataFrame([[3, 1], [2, 2]], columns=[None, "C1"])
+        result = df.sort_values(by=None)
+        expected = DataFrame([[2, 2], [3, 1]], columns=[None, "C1"], index=[1, 0])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
