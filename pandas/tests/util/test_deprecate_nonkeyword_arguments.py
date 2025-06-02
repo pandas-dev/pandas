@@ -4,12 +4,12 @@ Tests for the `deprecate_nonkeyword_arguments` decorator
 
 import inspect
 
-from pandas.errors import Pandas4Warning
+from pandas.errors import _CurrentDeprecationWarning
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 import pandas._testing as tm
 
-WARNING_CATEGORY = Pandas4Warning
+WARNING_CATEGORY = _CurrentDeprecationWarning
 
 
 @deprecate_nonkeyword_arguments(

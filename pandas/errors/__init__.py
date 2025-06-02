@@ -4,6 +4,7 @@ Expose public exceptions & warnings
 
 from __future__ import annotations
 
+import abc
 import ctypes
 
 from pandas._config.config import OptionError
@@ -93,17 +94,23 @@ class PerformanceWarning(Warning):
 
 class PandasChangeWarning(Warning):
     """
-    Warning raised for any an upcoming change.
+    Warning raised for any upcoming change.
 
     See Also
     --------
     errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
     --------
     >>> pd.errors.PandasChangeWarning
     <class 'pandas.errors.PandasChangeWarning'>
     """
+
+    @classmethod
+    @abc.abstractmethod
+    def version(cls) -> str:
+        """Version where change will be enforced."""
 
 
 class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWarning):
@@ -113,6 +120,7 @@ class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWar
     See Also
     --------
     errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
     --------
@@ -128,6 +136,7 @@ class PandasDeprecationWarning(PandasChangeWarning, DeprecationWarning):
     See Also
     --------
     errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
     --------
@@ -157,13 +166,18 @@ class Pandas4Warning(PandasDeprecationWarning):
 
     See Also
     --------
-    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
     --------
     >>> pd.errors.Pandas4Warning
     <class 'pandas.errors.Pandas4Warning'>
     """
+
+    @classmethod
+    def version(cls) -> str:
+        """Version where change will be enforced."""
+        return "4.0"
 
 
 class Pandas5Warning(PandasPendingDeprecationWarning):
@@ -173,12 +187,21 @@ class Pandas5Warning(PandasPendingDeprecationWarning):
     See Also
     --------
     errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
     --------
     >>> pd.errors.Pandas5Warning
     <class 'pandas.errors.Pandas5Warning'>
     """
+
+    @classmethod
+    def version(cls) -> str:
+        """Version where change will be enforced."""
+        return "5.0"
+
+
+_CurrentDeprecationWarning = Pandas4Warning
 
 
 class UnsupportedFunctionCall(ValueError):

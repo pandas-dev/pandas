@@ -23,6 +23,8 @@ if TYPE_CHECKING:
         Mapping,
     )
 
+    from pandas.errors import PandasChangeWarning
+
 
 def deprecate(
     klass: type[Warning],
@@ -267,7 +269,7 @@ def future_version_msg(version: str | None) -> str:
 
 
 def deprecate_nonkeyword_arguments(
-    klass: type[Warning],
+    klass: type[PandasChangeWarning],
     allowed_args: list[str] | None = None,
     name: str | None = None,
 ) -> Callable[[F], F]:
@@ -289,17 +291,6 @@ def deprecate_nonkeyword_arguments(
         message. If None, then the Qualified name of the function
         is used.
     """
-    from pandas.errors import (
-        Pandas4Warning,
-        Pandas5Warning,
-    )
-
-    if klass is Pandas4Warning:
-        version = "4.0"
-    elif klass is Pandas5Warning:
-        version = "5.0"
-    else:
-        raise AssertionError(f"{type(klass)=} must be a versioned warning")
 
     def decorate(func):
         old_sig = inspect.signature(func)
@@ -328,7 +319,7 @@ def deprecate_nonkeyword_arguments(
 
         num_allow_args = len(allow_args)
         msg = (
-            f"{future_version_msg(version)} all arguments of "
+            f"{future_version_msg(klass.version())} all arguments of "
             f"{name or func.__qualname__}{{arguments}} will be keyword-only."
         )
 
