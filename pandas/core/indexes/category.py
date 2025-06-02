@@ -10,7 +10,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -453,7 +456,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         return self.categories._is_comparable_dtype(dtype)
 
     def map(
-        self, mapper, skipna: bool = False, na_action: Literal["ignore"] | None = None
+        self,
+        mapper,
+        skipna: bool = False,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
     ):
         """
         Map values using input an input mapping or function.
@@ -530,14 +536,20 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> idx.map({"a": "first", "b": "second"})
         Index(['first', 'second', nan], dtype='object')
         """
-        if na_action == "ignore":
+        if na_action != lib.no_default:
             warnings.warn(
                 "The ``na_action`` parameter has been deprecated and it will be "
                 "removed in a future version of pandas. Use ``skipna`` instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            skipna = True
+            if na_action == "ignore":
+                skipna = True
+            elif na_action not in (None, "ignore"):
+                raise ValueError(
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action!r} was passed"
+                )
 
         mapped = self._values.map(mapper, skipna=skipna)
         return Index(mapped, name=self.name)
