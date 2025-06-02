@@ -64,7 +64,8 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize(
-        "param_obj", [[1, 2, 3], ["a", "b", "c"], [0, "a", 1, "b", 2, "c"]])
+        "param_obj", [[1, 2, 3], ["a", "b", "c"], [0, "a", 1, "b", 2, "c"]]
+    )
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, param_obj, sort):
         obj = Index(param_obj)
