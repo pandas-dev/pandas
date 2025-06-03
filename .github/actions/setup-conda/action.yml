@@ -9,17 +9,14 @@ runs:
     - name: Install ${{ inputs.environment-file }}
       uses: mamba-org/setup-micromamba@v2
       with:
-        # Pinning to due solver performance regressions
-        micromamba-version: '2.1.0-0'
         environment-file: ${{ inputs.environment-file }}
         environment-name: test
         condarc-file: ci/.condarc
         cache-environment: true
         cache-downloads: true
-        cache-downloads-key: "foobar1"
-        cache-environment-key: "foobar2"
-        log-level: trace
-        create-args: --strict-channel-priority
+        cache-downloads-key: "foobar3"
+        cache-environment-key: "foobar4"
+        create-args: mamba<2.1.1
 
     - name: Uninstall pyarrow
       if: ${{ env.REMOVE_PYARROW == '1' }}
