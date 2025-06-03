@@ -1,12 +1,14 @@
 # TODO(npdtypes): Many types specified here can be made more specific/accurate;
 #  the more specific versions are specified in comments
+from collections.abc import (
+    Callable,
+    Generator,
+    Hashable,
+)
 from decimal import Decimal
 from typing import (
     Any,
-    Callable,
     Final,
-    Generator,
-    Hashable,
     Literal,
     TypeAlias,
     overload,
