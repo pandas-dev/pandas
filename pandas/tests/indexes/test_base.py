@@ -40,6 +40,7 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
+from pandas.testing import assert_series_equal
 
 
 class TestIndex:
@@ -1717,3 +1718,51 @@ def test_is_monotonic_pyarrow_list_type():
     idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     assert not idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "string[python]",
+        pytest.param(
+            pd.StringDtype(storage="pyarrow", na_value=pd.NA),
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        pytest.param(
+            pd.StringDtype(storage="pyarrow", na_value=np.nan),
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+def test_index_equals_different_string_dtype(dtype):
+    # GH 61099
+    idx_obj = Index(["a", "b", "c"])
+    idx_str = Index(["a", "b", "c"], dtype=dtype)
+
+    assert idx_obj.equals(idx_str)
+    assert idx_str.equals(idx_obj)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "string[python]",
+        pytest.param(
+            pd.StringDtype(storage="pyarrow", na_value=pd.NA),
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        pytest.param(
+            pd.StringDtype(storage="pyarrow", na_value=np.nan),
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+def test_index_comparison_different_string_dtype(dtype):
+    # GH 61099
+    idx = Index(["a", "b", "c"])
+    s_obj = Series([1, 2, 3], index=idx)
+    s_str = Series([4, 5, 6], index=idx.astype(dtype))
+
+    expected = Series([True, True, True], index=["a", "b", "c"])
+    result = s_obj < s_str
+    assert_series_equal(result, expected)
