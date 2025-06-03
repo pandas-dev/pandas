@@ -14,7 +14,7 @@ runs:
         condarc-file: ci/.condarc
         cache-environment: true
         cache-downloads: true
-        log-level: debug
+        log-level: trace
         create-args: --strict-channel-priority
 
     - name: Uninstall pyarrow
