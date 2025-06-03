@@ -11,7 +11,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import HAS_PYARROW
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -2183,18 +2183,28 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
-def test_mixed_col_index_dtype():
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "string[python]",
+        pytest.param(
+            pd.StringDtype(storage="pyarrow", na_value=pd.NA),
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        pytest.param(
+            pd.StringDtype(storage="pyarrow", na_value=np.nan),
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+def test_mixed_col_index_dtype(dtype):
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
     df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
-    df1.columns = df2.columns.astype("string")
+    df1.columns = df2.columns.astype(dtype)
     result = df1 + df2
     expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
 
-    if HAS_PYARROW:
-        dtype = "string[pyarrow]"
-    else:
-        dtype = "string"
     expected.columns = expected.columns.astype(dtype)
 
     tm.assert_frame_equal(result, expected)
