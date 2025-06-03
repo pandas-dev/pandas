@@ -898,9 +898,9 @@ def sqlite_buildin_types(sqlite_buildin, types_data):
 @pytest.fixture(scope="session")
 def worker_name(request):
     """
-    Creates a unique schema name for Postgres to use, in order to
+    Returns a unique name per worker, in order to
     isolate tests for parallelization.
-    :return: Name to use for creating an isolated schema
+    :return: Name to use for creating/accessing an isolated SQL database
     :rtype: str
     """
     return xdist.get_xdist_worker_id(request)
@@ -908,11 +908,20 @@ def worker_name(request):
 
 @pytest.fixture(scope="session")
 def create_engines():
-        # Indirectly import dependencies. To avoid being picked up by depdency scanning software.
+    """
+    Fixture factory. Returns a list of lambda functions.
+    :return:    create_engine_commands, a list of lambda functions that build an SQLAlchemy engine
+    :rtype:     list[function, function]
+
+    :mockup:
+    create_engine_commands = [
+        MySQL,
+        Postgres,
+    ]
+    """
+    # Indirectly import dependencies. To avoid being picked up by dependency scanning software.
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
-
-    # Round robin creation of DB connections.
     create_engine_commands = [
         lambda : sqlalchemy.create_engine("mysql+pymysql://root@localhost:3306/pandas", connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS}, poolclass=sqlalchemy.pool.NullPool),
         lambda : sqlalchemy.create_engine("postgresql+psycopg2://postgres:postgres@localhost:5432/pandas", poolclass=sqlalchemy.pool.NullPool, isolation_level="AUTOCOMMIT")
@@ -921,12 +930,78 @@ def create_engines():
 
 
 @pytest.fixture(scope="session")
-def round_robin_ordering(worker_number):
-    round_robin_order = [(worker_number+i)%len(create_engine_commands) for i in range(len(create_engine_commands))]
+def build_db_string(worker_name):
+    """
+    Returns a list of queries used per SQL offering (Postgres, MySQL) to create per-worker DBs.
+    :return:    build_db_string_query
+    :rtype:     list[str, str]
+
+
+    :mockup:
+    build_db_string_query = [
+        MySQL,
+        Postgres,
+    ]
+    """
+    build_db_string_query = [
+        f"""CREATE DATABASE IF NOT EXISTS pandas{worker_name}""",
+        f"""CREATE DATABASE pandas{worker_name}""",
+    ]
+    return build_db_string_query
+
+
+@pytest.fixture(scope="session")
+def teardown_db_string(worker_name):
+    """
+    Returns a list of queries used per SQL offering (Postgres, MySQL) to teardown per-worker DBs.
+    :return:    teardown_db_string_query
+    :rtype:     list[str, str]
+
+
+    :mockup:
+    teardown_db_string_query = [
+        MySQL,
+        Postgres,
+    ]
+    """
+    teardown_db_string_query = [
+        f"""DROP DATABASE pandas{worker_name}""",
+        f"""DROP DATABASE pandas{worker_name}""",
+    ]
+    return teardown_db_string_query
+
+
+@pytest.fixture(scope="session")
+def number_of_connections(create_engines, build_db_string, teardown_db_string):
+    """
+    Asserts that there's parity between the number of strings and functions needed to create DBs.
+    Used for round-robin scheduling of DB initialization and teardown.
+    :return:    len(build_db_string)
+    :rtype:     int
+    """
+    assert len(create_engines) == len(build_db_string) == len(teardown_db_string)
+    return len(build_db_string)
+
+
+@pytest.fixture(scope="session")
+def round_robin_order(worker_number, number_of_connections):
+    """
+    Round-robin ordering of threads to initialize their own DB, equalizing connectivitiy burden between each SQL engine.
+    :return:    rr_order, a modular ring, e.g. with 2 DBs, w1 gets [1,0], w2 gets [0,1], w3 gets [1,0], etc.
+    :rtype:     list[int]*number_of_connections
+    """
+    rr_order = [(worker_number+i) % number_of_connections for i in range(number_of_connections)]
+    return rr_order
 
 
 @pytest.fixture(scope="session")
 def worker_number(worker_name):
+    """
+    Casts worker_name to an integer, making sure that with only one thread, or without xdist, DB connections are
+    still made correctly.
+    :return:    worker_number, integer portion of worker_name, `1` if master.
+    :rtype:     int
+    """
     if worker_name == 'master':
         worker_number = 1
     else:
@@ -935,87 +1010,48 @@ def worker_number(worker_name):
 
 
 @pytest.fixture(scope="session")
-def create_db_string():
-    return [
-        f"""CREATE DATABASE IF NOT EXISTS pandas{worker_name}""",
-        f"""CREATE DATABASE pandas{worker_name}"""
-    ]
+def orphan_db_wrapper(request):
+    def take_care_of_orphan_dbs(create_engines, round_robin_order, teardown_db_string):
+        """
+        Gets each thread's round-robin order, and connects to the appropriate SQL engine with the
+        appropriate teardown query string.
+        :return:    None
+        """
+        sqlalchemy = pytest.importorskip("sqlalchemy")
+        for rr_order in round_robin_order:
+            engine = create_engines[rr_order]()
+            with engine.connect() as conn:
+                conn.execute(sqlalchemy.text(teardown_db_string[rr_order]))
+            engine.dispose()
+    request.add_finalizer(take_care_of_orphan_dbs)
+
 
 
 @pytest.fixture(scope="session")
-def execute_db_command():
-    for i in range(len(create_engine_commands)):
-        engine=create_engines()[round_robin_order()[i]]()
-        connection = engine.connect()
-        connection.execute(sqlalchemy.text(create_db_string()))
+def build_and_teardown_dbs(create_engines, round_robin_order, build_db_string, teardown_db_string):
+    """
+    Gets each thread's round-robin order, and connects to the appropriate SQL engine with the
+    appropriate build db query string.
+    :return:    None
+    """
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    for rr_order in round_robin_order:
+        engine = create_engines[rr_order]()
+        with engine.connect() as conn:
+            conn.execute(sqlalchemy.text(build_db_string[rr_order]))
+        engine.dispose()
+    yield
+    # Teardown DBs
+    for rr_order in round_robin_order:
+        engine = create_engines[rr_order]()
+        with engine.connect() as conn:
+            conn.execute(sqlalchemy.text(teardown_db_string[rr_order]))
+        engine.dispose()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def prepare_db_setup(request, worker_name):
-    worker_number = worker_number
-    create_engine_commands = create_engines()
-    create_db_command = create_db_string()
-    assert len(create_engine_commands) == len(create_db_command)
-
-    round_robin_order = round_robin_ordering()
-
-    for i in range(len(create_engine_commands)):
-        engine = create_engine_commands[round_robin_order[i]]()
-        connection = engine.connect()
-        connection.execute(sqlalchemy.text(create_db_string[round_robin_order[i]]))
-        engine.dispose()
-    yield 
-    teardown_db_string = [
-        f"""DROP DATABASE IF EXISTS pandas{worker_name}""",
-        f"""DROP DATABASE IF EXISTS pandas{worker_name}"""
-    ]
-    
-    for i in range(len(create_engine_commands)):
-        engine = create_engine_commands[round_robin_order[i]]()
-        connection = engine.connect()
-        connection.execute(sqlalchemy.text(teardown_db_string[round_robin_order[i]]))
-        engine.dispose()
-    
-    
-
-
-# @pytest.fixture(scope="session")
-# def parallelize_mysql():
-#     sqlalchemy = pytest.importorskip("sqlalchemy")
-#     pymysql = pytest.importorskip("pymysql")
-#
-#     engine = sqlalchemy.create_engine(
-#         connection_string,
-#         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
-#         poolclass=sqlalchemy.pool.NullPool,
-#     )
-#     with engine.connect() as connection:
-#         connection.execute(sqlalchemy.text(
-#             f"""
-#         CREATE DATABASE IF NOT EXISTS pandas{worker_name};
-#         """
-#         ))
-#         # connection.commit()
-#         # connection.close()
-#     yield
-#     engine.dispose()
-#
-#     pass
-
-
-
-
-# @pytest.fixture(scope="session", autouse=True)
-# def set_up_dbs(parallelize_mysql_dbs, request):
-#     if hasattr(request.config, "workerinput"):
-#         # The tests are multi-threaded
-#         worker_name = xdist.get_xdist_worker_id(request)
-#         worker_count = request.config.workerinput["workercount"]
-#         print(worker_name, worker_count)
-#         parallelize_mysql_dbs(request, worker_name, worker_count)
-#     else:
-#         quit(1)
-    # parallelize_mysql_dbs
+def execution_point(build_and_teardown_dbs):
+    yield
 
 
 
@@ -1104,11 +1140,8 @@ all_connectable_types = (
     sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
 )
 
-#TODO fix
-@pytest.mark.parametrize("conn", [
-    #pytest.param("mysql_pymysql_engine", marks=pytest.mark.db),
-    pytest.param("mysql_pymysql_conn", marks=pytest.mark.db),
-])
+
+@pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
