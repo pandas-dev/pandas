@@ -13,7 +13,6 @@ from typing import (
     cast,
 )
 
-import numba
 import numpy as np
 
 from pandas._libs.internals import BlockValuesRefs
@@ -1149,16 +1148,31 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-            if not hasattr(numba.jit, "__pandas_udf__"):
-                numba.jit.__pandas_udf__ = NumbaExecutionEngine
-            result = numba.jit.__pandas_udf__.apply(
-                self.values,
-                self.func,
-                self.args,
-                self.kwargs,
-                engine_kwargs,
-                self.axis,
-            )
+            try:
+                import numba
+
+                if not hasattr(numba.jit, "__pandas_udf__"):
+                    numba.jit.__pandas_udf__ = NumbaExecutionEngine
+                    result = numba.jit.__pandas_udf__.apply(
+                        self.values,
+                        self.func,
+                        self.args,
+                        self.kwargs,
+                        engine_kwargs,
+                        self.axis,
+                    )
+                else:
+                    raise ImportError
+            except ImportError:
+                engine_obj = NumbaExecutionEngine()
+                result = engine_obj.apply(
+                        self.values,
+                        self.func,
+                        self.args,
+                        self.kwargs,
+                        engine_kwargs,
+                        self.axis,
+                    )
         else:
             result = np.apply_along_axis(
                 wrap_function(self.func),
