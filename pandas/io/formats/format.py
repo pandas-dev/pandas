@@ -455,7 +455,7 @@ class DataFrameFormatter:
         self.na_rep = na_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
-        self.float_format = float_format
+        self.float_format = self._validate_float_format(float_format)
         self.sparsify = self._initialize_sparsify(sparsify)
         self.show_index_names = index_names
         self.decimal = decimal
@@ -849,6 +849,34 @@ class DataFrameFormatter:
         else:
             names.append("" if columns.name is None else columns.name)
         return names
+
+    def _validate_float_format(
+        self, fmt: FloatFormatType | None
+    ) -> FloatFormatType | None:
+        """
+        Validates and processes the float_format argument.
+        Converts new-style format strings to callables.
+        """
+
+        if fmt is None:
+            return None
+
+        if callable(fmt):
+            return fmt
+
+        if isinstance(fmt, str):
+            if "%" in fmt:
+                # Keeps old-style format strings as they are (C code handles them)
+                return fmt
+            else:
+                try:
+                    _ = fmt.format(1.0)  # Test with an arbitrary float
+                    return lambda x: fmt.format(x)
+                except (ValueError, KeyError, IndexError) as e:
+                    raise ValueError(f"Invalid new-style format string {fmt!r}") from e
+
+        # If fmt is neither None, nor callable, nor a successfully processed string,
+        raise ValueError("float_format must be a string or callable")
 
 
 class DataFrameRenderer:
