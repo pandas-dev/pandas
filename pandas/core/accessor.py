@@ -407,9 +407,22 @@ class DataFrameAccessorLoader:
     def load(cls) -> None:
         """loads and registers accessors defined by 'pandas_dataframe_accessor'."""
         eps = entry_points(group=cls.ENTRY_POINT_GROUP)
+        names: set[str] = set()
 
         for ep in eps:
             name: str = ep.name
+
+            if name in names:  # Verifies duplicated package names
+                warnings.warn(
+                    f"Warning: you have two packages with the same name: '{name}'. "
+                    "Uninstall the package you don't want to use "
+                    "in order to remove this warning.\n",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+            else:
+                names.add(name)
 
             def make_property(ep):
                 def accessor(self) -> Any:
