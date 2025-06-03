@@ -10,7 +10,7 @@ runs:
       uses: mamba-org/setup-micromamba@v2
       with:
         # Pinning to due solver performance regressions
-        micromamba-version: '2.1.0'
+        micromamba-version: '2.1.0-0'
         environment-file: ${{ inputs.environment-file }}
         environment-name: test
         condarc-file: ci/.condarc
