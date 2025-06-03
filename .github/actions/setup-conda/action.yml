@@ -12,8 +12,8 @@ runs:
         environment-file: ${{ inputs.environment-file }}
         environment-name: test
         condarc-file: ci/.condarc
-        cache-environment: false
-        cache-downloads: false
+        cache-environment: true
+        cache-downloads: true
         cache-downloads-key: "foobar"
         cache-environment-key: "foobar1"
         log-level: trace
