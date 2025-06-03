@@ -1913,12 +1913,12 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
 
-        names : label or list of label or dict-like for MultiIndex
+        names : Hashable or a sequence of the previous or dict-like for MultiIndex
             Name(s) to set.
 
             .. versionchanged:: 1.3.0
 
-        level : int, label or list of int or label, optional
+        level : int, Hashable or a sequence of the previous, optional
             If the index is a MultiIndex and names is not dict-like, level(s) to set
             (None for all levels). Otherwise level must be None.
 
@@ -2023,7 +2023,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        name : label or list of labels
+        name : Hashable or a sequence of the previous
             Name(s) to set.
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
@@ -2967,10 +2967,14 @@ class Index(IndexOpsMixin, PandasObject):
             and self.tz is not None
             and other.tz is not None
         ):
-            # GH#39328, GH#45357
-            left = self.tz_convert("UTC")
-            right = other.tz_convert("UTC")
-            return left, right
+            # GH#39328, GH#45357, GH#60080
+            # If both timezones are the same, no need to convert to UTC
+            if self.tz == other.tz:
+                return self, other
+            else:
+                left = self.tz_convert("UTC")
+                right = other.tz_convert("UTC")
+                return left, right
         return self, other
 
     @final
