@@ -3835,7 +3835,8 @@ cdef class Week(SingleConstructorOffset):
         return cls(weekday=weekday)
 
 
-cdef class WeekOfMonth(WeekOfMonthMixin):
+cdef class pandas.tseries.offsets.WeekOfMonth(n=1, week=0, weekday=0, normalize=False, offset=timedelta(0))
+
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
