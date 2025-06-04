@@ -36,7 +36,7 @@ By specifying ``builddir="debug"`` all of the targets will be built and placed i
 +helpers straight from your host environment.
 +
 +1. Build pandas in *debug* mode (see the command in :ref:`Debugging locally
-+   <debugging_c_extensions>`).  
++   <debugging_c_extensions>`).
 +2. Install the helpers::
 +
 +      pip install cython cython-gdb
