@@ -7,7 +7,7 @@ dependencies:
   # build dependencies
   - setuptools
   - versioneer
-  - cython<4.0
+  - cython<4.0.0a0
   - meson=1.8.0
   - meson-python=0.18.0
 
