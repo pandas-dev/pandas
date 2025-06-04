@@ -102,6 +102,7 @@ def to_iceberg(
     *,
     catalog_properties: dict[str, Any] | None = None,
     location: str | None = None,
+    append: bool = False,
     snapshot_properties: dict[str, str] | None = None,
 ) -> None:
     """
@@ -119,6 +120,8 @@ def to_iceberg(
         The properties that are used next to the catalog configuration.
     location : str, optional
         Location for the table.
+    append : bool, default False
+        If ``True``, append data to the table, instead of replacing the content.
     snapshot_properties : dict of {str: str}, optional
         Custom properties to be added to the snapshot summary
 
@@ -142,4 +145,7 @@ def to_iceberg(
     )
     if snapshot_properties is None:
         snapshot_properties = {}
-    table.append(arrow_table, snapshot_properties=snapshot_properties)
+    if append:
+        table.append(arrow_table, snapshot_properties=snapshot_properties)
+    else:
+        table.overwrite(arrow_table, snapshot_properties=snapshot_properties)

@@ -178,7 +178,7 @@ class TestIceberg:
         )
         tm.assert_frame_equal(result, df)
 
-    def test_write_existing_table(self, catalog):
+    def test_write_existing_table_with_append_true(self, catalog):
         original = read_iceberg(
             "ns.my_table",
             catalog_properties={"uri": catalog.uri},
@@ -194,9 +194,29 @@ class TestIceberg:
             "ns.my_table",
             catalog_properties={"uri": catalog.uri},
             location=catalog.warehouse,
+            append=True,
         )
         result = read_iceberg(
             "ns.my_table",
             catalog_properties={"uri": catalog.uri},
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_write_existing_table_with_append_false(self, catalog):
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": ["foo", "foo", "foo"],
+            }
+        )
+        df.to_iceberg(
+            "ns.my_table",
+            catalog_properties={"uri": catalog.uri},
+            location=catalog.warehouse,
+            append=False,
+        )
+        result = read_iceberg(
+            "ns.my_table",
+            catalog_properties={"uri": catalog.uri},
+        )
+        tm.assert_frame_equal(result, df)

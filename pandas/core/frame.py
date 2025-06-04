@@ -3554,6 +3554,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         catalog_properties: dict[str, Any] | None = None,
         location: str | None = None,
+        append: bool = False,
         snapshot_properties: dict[str, str] | None = None,
     ) -> None:
         """
@@ -3575,6 +3576,8 @@ class DataFrame(NDFrame, OpsMixin):
             The properties that are used next to the catalog configuration.
         location : str, optional
             Location for the table.
+        append : bool, default False
+            If ``True``, append data to the table, instead of replacing the content.
         snapshot_properties : dict of {str: str}, optional
             Custom properties to be added to the snapshot summary
 
@@ -3596,6 +3599,7 @@ class DataFrame(NDFrame, OpsMixin):
             catalog_name,
             catalog_properties=catalog_properties,
             location=location,
+            append=append,
             snapshot_properties=snapshot_properties,
         )
 
