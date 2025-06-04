@@ -2188,11 +2188,11 @@ def test_enum_column_equality():
     [
         "string[python]",
         pytest.param(
-            pd.StringDtype(storage="pyarrow", na_value=pd.NA),
+            "string[pyarrow]",
             marks=td.skip_if_no("pyarrow"),
         ),
         pytest.param(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan),
+            "str",
             marks=td.skip_if_no("pyarrow"),
         ),
     ],
