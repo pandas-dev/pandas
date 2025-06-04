@@ -30,7 +30,6 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
 - :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
-- :meth:`pandas.api.interchange.from_dataframe` now uses the `PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_ if available, only falling back to the Dataframe Interchange Protocol if that fails (:issue:`60739`)
 - Added :meth:`.Styler.to_typst` to write Styler objects to file, buffer or string in Typst format (:issue:`57617`)
 - Added missing :meth:`pandas.Series.info` to API reference (:issue:`60926`)
 - :class:`pandas.api.typing.NoDefault` is available for typing ``no_default``
@@ -891,6 +890,7 @@ Other
 - Bug in :meth:`DataFrame.query` which raised an exception when querying integer column names using backticks. (:issue:`60494`)
 - Bug in :meth:`DataFrame.shift` where passing a ``freq`` on a DataFrame with no columns did not shift the index correctly. (:issue:`60102`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
+- Bug in :meth:`DataFrame.sort_values` where sorting by a column explicitly named ``None`` raised a ``KeyError`` instead of sorting by the column as expected. (:issue:`61512`)
 - Bug in :meth:`DataFrame.transform` that was returning the wrong order unless the index was monotonically increasing. (:issue:`57069`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
 - Bug in :meth:`Index.sort_values` when passing a key function that turns values into tuples, e.g. ``key=natsort.natsort_key``, would raise ``TypeError`` (:issue:`56081`)
