@@ -10399,11 +10399,13 @@ class DataFrame(NDFrame, OpsMixin):
             These only act when ``axis=1`` (columns):
 
             * 'expand' : list-like results will be turned into columns.
-              Note: The output type is inferred from the first function return value.
-              If the first return value is not list-like (e.g., None or NaN), expansion
-              will not occur, and the result may be a Series instead of a DataFrame.
-              To avoid inconsistent output types, ensure your function returns consistent
-              list-like objects (e.g., an empty dict {}) for missing or NaN-like values.
+            Note: The output type is inferred from the first function return value.  
+            If the first return value is not list-like (e.g., None or NaN), expansion  
+            will not occur, and the result may be a Series instead of a DataFrame.  
+            To avoid inconsistent output types, ensure your function returns  
+            consistent list-like objects (e.g., an empty dict {}) for missing or  
+            NaN-like values.
+
 
             * 'reduce' : returns a Series if possible rather than expanding
               list-like results. This is the opposite of 'expand'.
