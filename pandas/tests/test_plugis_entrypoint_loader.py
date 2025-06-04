@@ -1,6 +1,6 @@
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.accessor import DataFrameAccessorLoader
+from pandas.core.accessor import AccessorEntryPointLoader
 
 
 def test_no_accessors(monkeypatch):
@@ -13,7 +13,7 @@ def test_no_accessors(monkeypatch):
     # Patch entry_points in the correct module
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
-    DataFrameAccessorLoader.load()
+    AccessorEntryPointLoader.load()
 
 
 def test_load_dataframe_accessors(monkeypatch):
@@ -34,14 +34,14 @@ def test_load_dataframe_accessors(monkeypatch):
 
     # Mock entry_points
     def mock_entry_points(*, group):
-        if group == DataFrameAccessorLoader.ENTRY_POINT_GROUP:
+        if group == AccessorEntryPointLoader.ENTRY_POINT_GROUP:
             return [MockEntryPoint()]
         return []
 
     # Patch entry_points in the correct module
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
-    DataFrameAccessorLoader.load()
+    AccessorEntryPointLoader.load()
 
     # Create DataFrame and verify that the accessor was registered
     df = pd.DataFrame({"a": [1, 2, 3]})
@@ -80,7 +80,7 @@ def test_duplicate_accessor_names(monkeypatch):
             return Accessor2
 
     def mock_entry_points(*, group):
-        if group == DataFrameAccessorLoader.ENTRY_POINT_GROUP:
+        if group == AccessorEntryPointLoader.ENTRY_POINT_GROUP:
             return [MockEntryPoint1(), MockEntryPoint2()]
         return []
 
@@ -88,10 +88,10 @@ def test_duplicate_accessor_names(monkeypatch):
 
     # Check that the UserWarning is raised
     with tm.assert_produces_warning(UserWarning, match="duplicate_accessor") as record:
-        DataFrameAccessorLoader.load()
+        AccessorEntryPointLoader.load()
 
     messages = [str(w.message) for w in record]
-    assert any("two packages with the same name" in msg for msg in messages)
+    assert any("you have two packages with the same name:" in msg for msg in messages)
 
     df = pd.DataFrame({"x": [1, 2, 3]})
     assert hasattr(df, "duplicate_accessor")
@@ -129,7 +129,7 @@ def test_unique_accessor_names(monkeypatch):
             return Accessor2
 
     def mock_entry_points(*, group):
-        if group == DataFrameAccessorLoader.ENTRY_POINT_GROUP:
+        if group == AccessorEntryPointLoader.ENTRY_POINT_GROUP:
             return [MockEntryPoint1(), MockEntryPoint2()]
         return []
 
@@ -137,7 +137,7 @@ def test_unique_accessor_names(monkeypatch):
 
     # Check that no UserWarning is raised
     with tm.assert_produces_warning(None, check_stacklevel=False):
-        DataFrameAccessorLoader.load()
+        AccessorEntryPointLoader.load()
 
     df = pd.DataFrame({"x": [1, 2, 3]})
     assert hasattr(df, "accessor1"), "Accessor1 not registered"
@@ -191,7 +191,7 @@ def test_duplicate_and_unique_accessor_names(monkeypatch):
             return Accessor3
 
     def mock_entry_points(*, group):
-        if group == DataFrameAccessorLoader.ENTRY_POINT_GROUP:
+        if group == AccessorEntryPointLoader.ENTRY_POINT_GROUP:
             return [MockEntryPoint1(), MockEntryPoint2(), MockEntryPoint3()]
         return []
 
@@ -199,7 +199,7 @@ def test_duplicate_and_unique_accessor_names(monkeypatch):
 
     # Capture warnings
     with tm.assert_produces_warning(UserWarning, match="duplicate_accessor") as record:
-        DataFrameAccessorLoader.load()
+        AccessorEntryPointLoader.load()
 
     messages = [str(w.message) for w in record]
 

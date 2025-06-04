@@ -398,23 +398,23 @@ def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
     return _register_accessor(name, Index)
 
 
-class DataFrameAccessorLoader:
-    """Loader class for registering DataFrame accessors via entry points."""
+class AccessorEntryPointLoader:  # is this a good name for the class?
+    """Loader class for registering accessors via entry points."""
 
-    ENTRY_POINT_GROUP: str = "pandas_dataframe_accessor"
+    ENTRY_POINT_GROUP: str = "pandas_accessor"
 
     @classmethod
     def load(cls) -> None:
-        """loads and registers accessors defined by 'pandas_dataframe_accessor'."""
-        eps = entry_points(group=cls.ENTRY_POINT_GROUP)
-        names: set[str] = set()
+        """loads and registers accessors defined by 'pandas_accessor'."""
+        packages = entry_points(group=cls.ENTRY_POINT_GROUP)
+        unique_packages_names: set[str] = set()
 
-        for ep in eps:
-            name: str = ep.name
-
-            if name in names:  # Verifies duplicated package names
+        for package in packages:
+            # Verifies duplicated package names
+            if package.name in unique_packages_names:
                 warnings.warn(
-                    f"Warning: you have two packages with the same name: '{name}'. "
+                    "Warning: you have two packages with the same name:"
+                    f" '{package.name}'\n"
                     "Uninstall the package you don't want to use "
                     "in order to remove this warning.\n",
                     UserWarning,
@@ -422,7 +422,7 @@ class DataFrameAccessorLoader:
                 )
 
             else:
-                names.add(name)
+                unique_packages_names.add(package.name)
 
             def make_property(ep):
                 def accessor(self) -> Any:
@@ -431,4 +431,4 @@ class DataFrameAccessorLoader:
 
                 return accessor
 
-            register_dataframe_accessor(name)(make_property(ep))
+            register_dataframe_accessor(package.name)(make_property(package))

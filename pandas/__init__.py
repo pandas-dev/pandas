@@ -347,7 +347,7 @@ __all__ = [
     "wide_to_long",
 ]
 
-from pandas.core.accessor import DataFrameAccessorLoader
+from .core.accessor import AccessorEntryPointLoader
 
-DataFrameAccessorLoader.load()
-del DataFrameAccessorLoader
+AccessorEntryPointLoader.load()
+del AccessorEntryPointLoader
