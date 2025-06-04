@@ -17,7 +17,6 @@ import uuid
 
 import numpy as np
 import pytest
-import xdist
 
 from pandas._config import using_string_dtype
 
@@ -903,6 +902,7 @@ def worker_name(request):
     :return: Name to use for creating/accessing an isolated SQL database
     :rtype: str
     """
+    xdist = pytest.importorskip("xdist")
     return xdist.get_xdist_worker_id(request)
 
 
