@@ -1,6 +1,19 @@
 import pandas as pd
-from pandas._testing._warnings import assert_produces_warning
+import pandas._testing as tm
 from pandas.core.accessor import DataFrameAccessorLoader
+
+
+def test_no_accessors(monkeypatch):
+    # GH29076
+
+    # Mock entry_points
+    def mock_entry_points(*, group):
+        return []
+
+    # Patch entry_points in the correct module
+    monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
+
+    DataFrameAccessorLoader.load()
 
 
 def test_load_dataframe_accessors(monkeypatch):
@@ -74,7 +87,7 @@ def test_duplicate_accessor_names(monkeypatch):
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
     # Check that the UserWarning is raised
-    with assert_produces_warning(UserWarning, match="duplicate_accessor") as record:
+    with tm.assert_produces_warning(UserWarning, match="duplicate_accessor") as record:
         DataFrameAccessorLoader.load()
 
     messages = [str(w.message) for w in record]
@@ -123,7 +136,7 @@ def test_unique_accessor_names(monkeypatch):
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
     # Check that no UserWarning is raised
-    with assert_produces_warning(None, check_stacklevel=False):
+    with tm.assert_produces_warning(None, check_stacklevel=False):
         DataFrameAccessorLoader.load()
 
     df = pd.DataFrame({"x": [1, 2, 3]})
@@ -185,7 +198,7 @@ def test_duplicate_and_unique_accessor_names(monkeypatch):
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
     # Capture warnings
-    with assert_produces_warning(UserWarning, match="duplicate_accessor") as record:
+    with tm.assert_produces_warning(UserWarning, match="duplicate_accessor") as record:
         DataFrameAccessorLoader.load()
 
     messages = [str(w.message) for w in record]
