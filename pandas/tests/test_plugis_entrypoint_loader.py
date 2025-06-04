@@ -2,6 +2,8 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.accessor import AccessorEntryPointLoader
 
+# TODO: test for pkg names
+
 
 def test_no_accessors(monkeypatch):
     # GH29076
@@ -91,7 +93,7 @@ def test_duplicate_accessor_names(monkeypatch):
         AccessorEntryPointLoader.load()
 
     messages = [str(w.message) for w in record]
-    assert any("you have two packages with the same name:" in msg for msg in messages)
+    assert any("you have two accessors with the same name:" in msg for msg in messages)
 
     df = pd.DataFrame({"x": [1, 2, 3]})
     assert hasattr(df, "duplicate_accessor")
@@ -203,16 +205,16 @@ def test_duplicate_and_unique_accessor_names(monkeypatch):
 
     messages = [str(w.message) for w in record]
 
-    # Filter warnings for the specific message about duplicate packages
+    # Filter warnings for the specific message about duplicate accessors
     duplicate_package_warnings = [
         msg
         for msg in messages
-        if "you have two packages with the same name: 'duplicate_accessor'" in msg
+        if "you have two accessors with the same name: 'duplicate_accessor'" in msg
     ]
 
-    # Assert one warning about duplicate packages
+    # Assert one warning about duplicate accessors
     assert len(duplicate_package_warnings) == 1, (
-        f"Expected exactly one warning about duplicate packages, "
+        f"Expected exactly one warning about duplicate accessors, "
         f"got {len(duplicate_package_warnings)}: {duplicate_package_warnings}"
     )
 

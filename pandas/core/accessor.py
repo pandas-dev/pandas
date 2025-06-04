@@ -406,23 +406,29 @@ class AccessorEntryPointLoader:  # is this a good name for the class?
     @classmethod
     def load(cls) -> None:
         """loads and registers accessors defined by 'pandas_accessor'."""
-        packages = entry_points(group=cls.ENTRY_POINT_GROUP)
-        unique_packages_names: set[str] = set()
+        accessors = entry_points(group=cls.ENTRY_POINT_GROUP)
+        unique_accessors_names: set[str] = set()
 
-        for package in packages:
-            # Verifies duplicated package names
-            if package.name in unique_packages_names:
+        for accessor in accessors:
+            # Verifies duplicated accessor names
+            if accessor.name in unique_accessors_names:
+                try:
+                    pkg_name: str = accessor.dist.name
+                except Exception:
+                    pkg_name = "unknown"
                 warnings.warn(
-                    "Warning: you have two packages with the same name:"
-                    f" '{package.name}'\n"
-                    "Uninstall the package you don't want to use "
-                    "in order to remove this warning.\n",
+                    "Warning: you have two accessors with the same name:"
+                    f" '{accessor.name}' has already been registered"
+                    f" by the package '{pkg_name}'. So the '{accessor.name}' "
+                    f"provided by the package '{pkg_name}' is not "
+                    f"being used. Uninstall the package you don't want"
+                    "to use if you want to get rid of this warning.\n",
                     UserWarning,
                     stacklevel=2,
                 )
 
             else:
-                unique_packages_names.add(package.name)
+                unique_accessors_names.add(accessor.name)
 
             def make_property(ep):
                 def accessor(self) -> Any:
@@ -431,4 +437,5 @@ class AccessorEntryPointLoader:  # is this a good name for the class?
 
                 return accessor
 
-            register_dataframe_accessor(package.name)(make_property(package))
+            # _register_accessor()
+            register_dataframe_accessor(accessor.name)(make_property(accessor))
