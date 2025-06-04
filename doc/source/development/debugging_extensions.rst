@@ -27,31 +27,31 @@ By default building pandas from source will generate a release build. To generat
 
 By specifying ``builddir="debug"`` all of the targets will be built and placed in the debug directory relative to the project root. This helps to keep your debug and release artifacts separate; you are of course able to choose a different directory name or omit altogether if you do not care to separate build types.
 
-Using Docker
-------------
-
-To simplify the debugging process, pandas has created a Docker image with a debug build of Python and the gdb/Cython debuggers pre-installed. You may either ``docker pull pandas/pandas-debug`` to get access to this image or build it from the ``tooling/debug`` folder locally.
-
-You can then mount your pandas repository into this image via:
-
-.. code-block:: sh
-
-   docker run --rm -it -w /data -v ${PWD}:/data pandas/pandas-debug
-
-Inside the image, you can use meson to build/install pandas and place the build artifacts into a ``debug`` folder using a command as follows:
-
-.. code-block:: sh
-
-    python -m pip install -ve . --no-build-isolation -Cbuilddir="debug" -Csetup-args="-Dbuildtype=debug"
-
-If planning to use cygdb, the files required by that application are placed within the build folder. So you have to first ``cd`` to the build folder, then start that application.
-
-.. code-block:: sh
-
-   cd debug
-   cygdb
-
-Within the debugger you can use `cygdb commands <https://docs.cython.org/en/latest/src/userguide/debugging.html#using-the-debugger>`_ to navigate cython extensions.
++Using ``cygdb`` directly (recommended)
++--------------------------------------
++
++The previously advertised Docker image (``pandas/pandas-debug``) is **no longer
++maintained**; outdated versions of *pip* and *meson* inside the container lead
++to build errors.  Instead, create a local debug build and run the Cython GDB
++helpers straight from your host environment.
++
++1. Build pandas in *debug* mode (see the command in :ref:`Debugging locally
++   <debugging_c_extensions>`).  
++2. Install the helpers::
++
++      pip install cython cython-gdb
++
++3. Change to the build directory and start a Cython-aware GDB session::
++
++      cd debug
++      cygdb
++
++Inside ``cygdb`` you can set breakpoints, step through Cython code, and inspect
++variables with the commands documented in the `Cython debugging guide
++<https://docs.cython.org/en/latest/src/userguide/debugging.html#using-the-debugger>`_.
++
++If you need a full system debugger, ensure *gdb* (or *lldb* on macOS) is
++installed and on your ``PATH``.
 
 Editor support
 --------------
