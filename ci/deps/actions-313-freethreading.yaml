@@ -1,31 +1,29 @@
-name: pandas-dev
+name: pandas-dev-313-freethreading
 channels:
   - conda-forge
 dependencies:
-  - python=3.11
+  - python-freethreading
 
   # build dependencies
+  - setuptools
   - versioneer
-  - meson=1.2.1
   - cython<4.0.0a0
-  - meson-python=0.13.1
+  - meson=1.8.0
+  - meson-python=0.18.0
 
   # test dependencies
   - pytest>=7.3.2
-  - pytest-cov
   - pytest-xdist>=2.2.0
-  - hypothesis>=6.46.1
 
   # required dependencies
   - python-dateutil
   - numpy
-  # pytz 2024.2 timezones cause wrong results
-  - pytz<2024.2
-  - pip
+
+  # optional dependencies
+  - hypothesis>=6.46.1
 
   - pip:
+    # No free-threaded coveragepy (with the C-extension) on conda-forge yet
+    - pytest-cov
     - "tzdata>=2022.7"
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
-    - "--prefer-binary"
-    - "--pre"
-    - "pyarrow"
