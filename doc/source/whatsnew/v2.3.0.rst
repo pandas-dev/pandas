@@ -24,12 +24,12 @@ Other enhancements
 - The semantics for the ``copy`` keyword in ``__array__`` methods (i.e. called
   when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
   updated to work correctly with NumPy >= 2 (:issue:`57739`)
-- :meth:`Series.str.decode` result now has ``StringDtype`` when ``future.infer_string`` is True (:issue:`60709`)
-- :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
+- :meth:`Series.str.decode` result now has :class:`StringDtype` when ``future.infer_string`` is True (:issue:`60709`)
+- :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with :class:`StringDtype`  (:issue:`60663`)
 - Improved ``repr`` of :class:`.NumpyExtensionArray` to account for NEP51 (:issue:`61085`)
 - The :meth:`Series.str.decode` has gained the argument ``dtype`` to control the dtype of the result (:issue:`60940`)
-- The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns (:issue:`60633`)
-- The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
+- The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for :class:`StringDtype` columns (:issue:`60633`)
+- The :meth:`~Series.sum` reduction is now implemented for :class:`StringDtype` columns (:issue:`59853`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.notable_bug_fixes:
@@ -44,7 +44,7 @@ These are bug fixes that might have notable behavior changes.
 Comparisons between different string dtypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, comparing Series of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise. pandas will now use the hierarchy
+In previous versions, comparing :class:`Series` of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise. pandas will now use the hierarchy
 
     object < (python, NaN) < (pyarrow, NaN) < (python, NA) < (pyarrow, NA)
 
@@ -59,9 +59,9 @@ in determining the result dtype when there are different string dtypes compared.
 API changes
 ~~~~~~~~~~~
 
-- When enabling the ``future.infer_string`` option, Index set operations (like
-  union or intersection) will now ignore the dtype of an empty ``RangeIndex`` or
-  empty ``Index`` with object dtype when determining the dtype of the resulting
+- When enabling the ``future.infer_string`` option, :class:`Index` set operations (like
+  union or intersection) will now ignore the dtype of an empty :class:`RangeIndex` or
+  empty :class:`Index` with ``object`` dtype when determining the dtype of the resulting
   Index (:issue:`60797`)
 
 .. ---------------------------------------------------------------------------
