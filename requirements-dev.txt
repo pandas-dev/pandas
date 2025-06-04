@@ -60,7 +60,7 @@ pre-commit>=4.2.0
 gitpython
 natsort
 numpydoc
-pydata-sphinx-theme==0.16
+pydata-sphinx-theme @ git+https://github.com/pydata/pydata-sphinx-theme.git
 pytest-cython
 sphinx
 sphinx-design
