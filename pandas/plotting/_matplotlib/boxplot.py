@@ -123,8 +123,7 @@ class BoxPlot(LinePlot):
 
         if colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used "
-                "simultaneously. Using 'color'",
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
                 stacklevel=find_stack_level(),
             )
 

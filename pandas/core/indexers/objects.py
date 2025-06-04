@@ -131,8 +131,8 @@ class FixedWindowIndexer(BaseIndexer):
         if closed in ["left", "neither"]:
             end -= 1
 
-        end = np.clip(end, 0, num_values)
-        start = np.clip(start, 0, num_values)
+        end = np.clip(end, 0, num_values)  # type: ignore[assignment]
+        start = np.clip(start, 0, num_values)  # type: ignore[assignment]
 
         return start, end
 
@@ -402,7 +402,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
         start = np.arange(0, num_values, step, dtype="int64")
         end = start + self.window_size
         if self.window_size:
-            end = np.clip(end, 0, num_values)
+            end = np.clip(end, 0, num_values)  # type: ignore[assignment]
 
         return start, end
 
@@ -478,9 +478,9 @@ class GroupbyIndexer(BaseIndexer):
             )
             start = start.astype(np.int64)
             end = end.astype(np.int64)
-            assert len(start) == len(
-                end
-            ), "these should be equal in length from get_window_bounds"
+            assert len(start) == len(end), (
+                "these should be equal in length from get_window_bounds"
+            )
             # Cannot use groupby_indices as they might not be monotonic with the object
             # we're rolling over
             window_indices = np.arange(
@@ -488,7 +488,7 @@ class GroupbyIndexer(BaseIndexer):
             )
             window_indices_start += len(indices)
             # Extend as we'll be slicing window like [start, end)
-            window_indices = np.append(window_indices, [window_indices[-1] + 1]).astype(
+            window_indices = np.append(window_indices, [window_indices[-1] + 1]).astype(  # type: ignore[assignment]
                 np.int64, copy=False
             )
             start_arrays.append(window_indices.take(ensure_platform_int(start)))

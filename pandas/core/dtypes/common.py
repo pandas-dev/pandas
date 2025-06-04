@@ -655,24 +655,38 @@ def is_dtype_equal(source, target) -> bool:
 
     Parameters
     ----------
-    source : The first dtype to compare
-    target : The second dtype to compare
+    source : type or str
+        The first dtype to compare.
+    target : type or str
+        The second dtype to compare.
 
     Returns
     -------
     boolean
         Whether or not the two dtypes are equal.
 
+    See Also
+    --------
+    api.types.is_categorical_dtype : Check whether the provided array or dtype
+                                            is of the Categorical dtype.
+    api.types.is_string_dtype : Check whether the provided array or dtype
+                                       is of the string dtype.
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+                                       object dtype.
+
     Examples
     --------
+    >>> from pandas.api.types import is_dtype_equal
     >>> is_dtype_equal(int, float)
     False
     >>> is_dtype_equal("int", int)
     True
     >>> is_dtype_equal(object, "category")
     False
+    >>> from pandas.core.dtypes.dtypes import CategoricalDtype
     >>> is_dtype_equal(CategoricalDtype(), "category")
     True
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
@@ -1836,6 +1850,8 @@ def pandas_dtype(dtype) -> DtypeObj:
     # raise a consistent TypeError if failed
     try:
         with warnings.catch_warnings():
+            # TODO: warnings.catch_warnings can be removed when numpy>2.3.0
+            # is the minimum version
             # GH#51523 - Series.astype(np.integer) doesn't show
             # numpy deprecation warning of np.integer
             # Hence enabling DeprecationWarning

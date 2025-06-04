@@ -660,8 +660,7 @@ class TestIntervalDtype(Base):
     def test_construction_not_supported(self, subtype):
         # GH 19016
         msg = (
-            "category, object, and string subtypes are not supported "
-            "for IntervalDtype"
+            "category, object, and string subtypes are not supported for IntervalDtype"
         )
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)

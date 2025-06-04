@@ -198,7 +198,7 @@ In some cases you may be tempted to use ``cast`` from the typing module when you
            obj = cast(str, obj)  # Mypy complains without this!
            return obj.upper()
 
-The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_. While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
+The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_). While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
 
 .. code-block:: python
 
@@ -344,7 +344,7 @@ be located.
    - tests.scalar
    - tests.tseries.offsets
 
-2. Does your test depend only on code in pd._libs?
+2. Does your test depend only on code in ``pd._libs``?
    This test likely belongs in one of:
 
    - tests.libs
@@ -537,7 +537,7 @@ Preferred ``pytest`` idioms
     test and does not check if the test will fail. If this is the behavior you desire, use ``pytest.skip`` instead.
 
 If a test is known to fail but the manner in which it fails
-is not meant to be captured, use ``pytest.mark.xfail`` It is common to use this method for a test that
+is not meant to be captured, use ``pytest.mark.xfail``. It is common to use this method for a test that
 exhibits buggy behavior or a non-implemented feature. If
 the failing test has flaky behavior, use the argument ``strict=False``. This
 will make it so pytest does not fail if the test happens to pass. Using ``strict=False`` is highly undesirable, please use it only as a last resort.

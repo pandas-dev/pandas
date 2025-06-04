@@ -530,7 +530,7 @@ class TestSetOps:
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_setop_with_categorical(index_flat, sort, method):
+def test_setop_with_categorical(index_flat, sort, method, using_infer_string):
     # MultiIndex tested separately in tests.indexes.multi.test_setops
     index = index_flat
 
@@ -539,10 +539,22 @@ def test_setop_with_categorical(index_flat, sort, method):
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
+    if (
+        using_infer_string
+        and index.empty
+        and method in ("union", "symmetric_difference")
+    ):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
+    if (
+        using_infer_string
+        and index.empty
+        and method in ("union", "symmetric_difference")
+    ):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
 

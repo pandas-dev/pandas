@@ -67,7 +67,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.api import (
@@ -566,7 +565,7 @@ class DataFrameFormatter:
             result = {}
         elif isinstance(col_space, (int, str)):
             result = {"": col_space}
-            result.update({column: col_space for column in self.frame.columns})
+            result.update(dict.fromkeys(self.frame.columns, col_space))
         elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
@@ -897,9 +896,13 @@ class DataFrameRenderer:
             ``<table>`` tag, in addition to the default "dataframe".
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.display.html.border``.
+        border : int or bool
+            When an integer value is provided, it sets the border attribute in
+            the opening tag, specifying the thickness of the border.
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
+            The default value for this parameter is governed by
+            ``pd.options.display.html.border``.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
@@ -1214,8 +1217,6 @@ class _GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
-            elif isinstance(x, StringDtype):
-                return repr(x)
             else:
                 # object dtype
                 return str(formatter(x))
@@ -1561,6 +1562,9 @@ def format_percentiles(
     >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
     ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     """
+    if len(percentiles) == 0:
+        return []
+
     percentiles = np.asarray(percentiles)
 
     # It checks for np.nan as well

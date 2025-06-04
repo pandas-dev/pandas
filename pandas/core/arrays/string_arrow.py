@@ -281,7 +281,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         ]
 
         # short-circuit to return all False array.
-        if not len(value_set):
+        if not value_set:
             return np.zeros(len(self), dtype=bool)
 
         result = pc.is_in(
@@ -473,6 +473,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return result
 
     def _cmp_method(self, other, op):
+        if (
+            isinstance(other, (BaseStringArray, ArrowExtensionArray))
+            and self.dtype.na_value is not libmissing.NA
+            and other.dtype.na_value is libmissing.NA
+        ):
+            # NA has priority of NaN semantics
+            return NotImplemented
+
         result = super()._cmp_method(other, op)
         if self.dtype.na_value is np.nan:
             if op == operator.ne:

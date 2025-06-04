@@ -881,10 +881,10 @@ class Window(BaseWindow):
     Parameters
     ----------
     window : int, timedelta, str, offset, or BaseIndexer subclass
-        Size of the moving window.
+        Interval of the moving window.
 
-        If an integer, the fixed number of observations used for
-        each window.
+        If an integer, the delta between the start and end of each window.
+        The number of points in the window depends on the ``closed`` argument.
 
         If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
@@ -929,14 +929,22 @@ class Window(BaseWindow):
         an integer index is not used to calculate the rolling window.
 
     closed : str, default None
-        If ``'right'``, the first point in the window is excluded from calculations.
+        Determines the inclusivity of points in the window
 
-        If ``'left'``, the last point in the window is excluded from calculations.
+        If ``'right'``, uses the window (first, last] meaning the last point
+        is included in the calculations.
 
-        If ``'both'``, no point in the window is excluded from calculations.
+        If ``'left'``, uses the window [first, last) meaning the first point
+        is included in the calculations.
 
-        If ``'neither'``, the first and last points in the window are excluded
-        from calculations.
+        If ``'both'``, uses the window [first, last] meaning all points in
+        the window are included in the calculations.
+
+        If ``'neither'``, uses the window (first, last) meaning the first
+        and last points in the window are excluded from calculations.
+
+        () and [] are referencing open and closed set
+        notation respetively.
 
         Default ``None`` (``'right'``).
 
@@ -1790,6 +1798,16 @@ class RollingAndExpandingMixin(BaseWindow):
         )
 
         return self._apply(window_func, name="rank", numeric_only=numeric_only)
+
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        window_func = partial(
+            window_aggregations.roll_nunique,
+        )
+
+        return self._apply(window_func, name="nunique", numeric_only=numeric_only)
 
     def cov(
         self,
@@ -2844,6 +2862,43 @@ class Rolling(RollingAndExpandingMixin):
             method=method,
             ascending=ascending,
             pct=pct,
+            numeric_only=numeric_only,
+        )
+
+    @doc(
+        template_header,
+        ".. versionadded:: 3.0.0 \n\n",
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """
+        >>> s = pd.Series([1, 4, 2, np.nan, 3, 3, 4, 5])
+        >>> s.rolling(3).nunique()
+        0    NaN
+        1    NaN
+        2    3.0
+        3    NaN
+        4    NaN
+        5    NaN
+        6    2.0
+        7    3.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="nunique",
+        agg_method="nunique",
+    )
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        return super().nunique(
             numeric_only=numeric_only,
         )
 

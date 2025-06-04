@@ -891,6 +891,10 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQE``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
+    :class:`~pandas.tseries.offsets.HalfYearEnd`, ``'HYE'``, "calendar half year end"
+    :class:`~pandas.tseries.offsets.HalfYearBegin`, ``'HYS'``, "calendar half year begin"
+    :class:`~pandas.tseries.offsets.BHalfYearEnd`, ``'BHYE``, "business half year end"
+    :class:`~pandas.tseries.offsets.BHalfYearBegin`, ``'BHYS'``, "business half year begin"
     :class:`~pandas.tseries.offsets.YearEnd`, ``'YE'``, "calendar year end"
     :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
     :class:`~pandas.tseries.offsets.BYearEnd`, ``'BYE'``, "business year end"
@@ -1580,7 +1584,7 @@ the pandas objects.
    ts = ts[:5]
    ts.shift(1)
 
-The ``shift`` method accepts an ``freq`` argument which can accept a
+The ``shift`` method accepts a ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also an
 :ref:`offset alias <timeseries.offset_aliases>`.
 
@@ -2454,7 +2458,7 @@ you can use the ``tz_convert`` method.
 
     For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``.
+    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``).
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 
@@ -2570,7 +2574,7 @@ because daylight savings time (DST) in a local time zone causes some times to oc
 twice within one day ("clocks fall back"). The following options are available:
 
 * ``'raise'``: Raises a ``ValueError`` (the default behavior)
-* ``'infer'``: Attempt to determine the correct offset base on the monotonicity of the timestamps
+* ``'infer'``: Attempt to determine the correct offset based on the monotonicity of the timestamps
 * ``'NaT'``: Replaces ambiguous times with ``NaT``
 * ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool`` values is supported for a sequence of times.
 

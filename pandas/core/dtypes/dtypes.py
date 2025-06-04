@@ -161,6 +161,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness.
 
+    It is a dtype representation for categorical data, which allows users to define
+    a fixed set of values and optionally impose an ordering. This is particularly
+    useful for handling categorical variables efficiently, as it can significantly
+    reduce memory usage compared to using object dtypes.
+
     Parameters
     ----------
     categories : sequence, optional
@@ -605,8 +610,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return self
         elif not self.is_dtype(dtype):
             raise ValueError(
-                f"a CategoricalDtype must be passed to perform an update, "
-                f"got {dtype!r}"
+                f"a CategoricalDtype must be passed to perform an update, got {dtype!r}"
             )
         else:
             # from here on, dtype is a CategoricalDtype
@@ -1152,7 +1156,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
         """
-        Return a boolean if we if the passed type is an actual dtype that we
+        Return a boolean if the passed type is an actual dtype that we
         can match (via string or type)
         """
         if isinstance(dtype, str):
@@ -1432,7 +1436,7 @@ class IntervalDtype(PandasExtensionDtype):
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
         """
-        Return a boolean if we if the passed type is an actual dtype that we
+        Return a boolean if the passed type is an actual dtype that we
         can match (via string or type)
         """
         if isinstance(dtype, str):
@@ -2261,7 +2265,7 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
-        elif isinstance(pa_type, pa.ExtensionType):
+        elif isinstance(pa_type, pa.BaseExtensionType):
             return type(self)(pa_type.storage_type).type
         raise NotImplementedError(pa_type)
 

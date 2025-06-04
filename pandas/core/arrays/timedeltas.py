@@ -115,10 +115,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     ----------
     data : array-like
         The timedelta data.
-
     dtype : numpy.dtype
         Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
     freq : Offset, optional
+        Frequency of the data.
     copy : bool, default False
         Whether to copy the underlying array of data.
 
@@ -129,6 +129,12 @@ class TimedeltaArray(dtl.TimelikeOps):
     Methods
     -------
     None
+
+    See Also
+    --------
+    Timedelta : Represents a duration, the difference between two dates or times.
+    TimedeltaIndex : Immutable Index of timedelta64 data.
+    to_timedelta : Convert argument to timedelta.
 
     Examples
     --------
@@ -319,7 +325,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value._value, self.unit)
+            return np.timedelta64(value._value, self.unit)  # type: ignore[call-overload]
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 

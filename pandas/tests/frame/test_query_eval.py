@@ -791,7 +791,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(df_index)
-        expected.columns = expected.columns.astype(object)
         result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
@@ -1345,6 +1344,11 @@ class TestDataFrameQueryBacktickQuoting:
         res = df.eval("` A` + `  `")
         expect = df[" A"] + df["  "]
         tm.assert_series_equal(res, expect)
+
+    def test_ints(self, df):
+        res = df.query("`1` == 7")
+        expect = df[df[1] == 7]
+        tm.assert_frame_equal(res, expect)
 
     def test_lots_of_operators_string(self, df):
         res = df.query("`  &^ :!€$?(} >    <++*''  ` > 4")

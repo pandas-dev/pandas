@@ -33,7 +33,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
-    CategoricalDtype,
     is_array_like,
     is_bool_dtype,
     is_float_dtype,
@@ -730,9 +729,7 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(
-            other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
-        ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
+        if isinstance(other, (ExtensionArray, np.ndarray, list)):
             try:
                 result = pc_func(self._pa_array, self._box_pa(other))
             except pa.ArrowNotImplementedError:
@@ -1208,7 +1205,12 @@ class ArrowExtensionArray(
             data = data.cast(pa.int64())
 
         if pa.types.is_dictionary(data.type):
-            encoded = data
+            if null_encoding == "encode":
+                # dictionary encode does nothing if an already encoded array is given
+                data = data.cast(data.type.value_type)
+                encoded = data.dictionary_encode(null_encoding=null_encoding)
+            else:
+                encoded = data
         else:
             encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
@@ -1398,7 +1400,7 @@ class ArrowExtensionArray(
         np_dtype = np.dtype(f"M8[{pa_type.unit}]")
         dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
         np_array = self._pa_array.to_numpy()
-        np_array = np_array.astype(np_dtype)
+        np_array = np_array.astype(np_dtype, copy=False)
         return DatetimeArray._simple_new(np_array, dtype=dtype)
 
     def _to_timedeltaarray(self) -> TimedeltaArray:
@@ -1409,7 +1411,7 @@ class ArrowExtensionArray(
         assert pa.types.is_duration(pa_type)
         np_dtype = np.dtype(f"m8[{pa_type.unit}]")
         np_array = self._pa_array.to_numpy()
-        np_array = np_array.astype(np_dtype)
+        np_array = np_array.astype(np_dtype, copy=False)
         return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
 
     def _values_for_json(self) -> np.ndarray:
@@ -1933,7 +1935,10 @@ class ArrowExtensionArray(
         """
         # child class explode method supports only list types; return
         # default implementation for non list types.
-        if not pa.types.is_list(self.dtype.pyarrow_dtype):
+        if not (
+            pa.types.is_list(self.dtype.pyarrow_dtype)
+            or pa.types.is_large_list(self.dtype.pyarrow_dtype)
+        ):
             return super()._explode()
         values = self
         counts = pa.compute.list_value_length(values._pa_array)
@@ -2531,10 +2536,8 @@ class ArrowExtensionArray(
         else:
             dummies_dtype = np.bool_
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
-        if dtype == str:
-            dummies[:] = False
         dummies[indices] = True
-        dummies = dummies.reshape((n_rows, n_cols))
+        dummies = dummies.reshape((n_rows, n_cols))  # type: ignore[assignment]
         result = type(self)(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 

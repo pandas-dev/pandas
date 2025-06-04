@@ -88,12 +88,7 @@ def test_26395(indexer_al):
     df["D"] = 0
 
     indexer_al(df)["C", "D"] = 2
-    expected = DataFrame(
-        {"D": [0, 0, 2]},
-        index=["A", "B", "C"],
-        columns=pd.Index(["D"], dtype=object),
-        dtype=np.int64,
-    )
+    expected = DataFrame({"D": [0, 0, 2]}, index=["A", "B", "C"], dtype=np.int64)
     tm.assert_frame_equal(df, expected)
 
     with pytest.raises(TypeError, match="Invalid value"):

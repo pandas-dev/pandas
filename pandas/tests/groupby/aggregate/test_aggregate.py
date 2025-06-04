@@ -1807,3 +1807,20 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
         index=Index(["level1.1", "level1.2"]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_builtin_sum():
+    df = DataFrame(columns=["Group", "Data"])
+    result = df.groupby(["Group"], as_index=False)["Data"].agg("sum")
+    expected = DataFrame(columns=["Group", "Data"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_udf():
+    def func(x):
+        return sum(x)
+
+    df = DataFrame(columns=["Group", "Data"])
+    result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
+    expected = DataFrame(columns=["Group", "Data"])
+    tm.assert_frame_equal(result, expected)

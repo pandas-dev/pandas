@@ -40,7 +40,7 @@ jobs:
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -92,26 +92,29 @@ jobs:
         # GitHub Actions doesn't support pairing matrix values together, let's improvise
         # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
-        - [ubuntu-22.04, manylinux_x86_64]
-        - [ubuntu-22.04, musllinux_x86_64]
+        - [ubuntu-24.04, manylinux_x86_64]
+        - [ubuntu-24.04, musllinux_x86_64]
         - [ubuntu-24.04-arm, manylinux_aarch64]
         - [macos-13, macosx_x86_64]
         # Note: M1 images on Github Actions start from macOS 14
         - [macos-14, macosx_arm64]
         - [windows-2022, win_amd64]
+        - [windows-11-arm, win_arm64]
         # TODO: support PyPy?
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
-        # TODO: Remove this plus installing build deps in cibw_before_build.sh
-        # after pandas can be built with a released NumPy/Cython
-        - python: ["cp313t", "3.13"]
-          cibw_build_frontend: 'pip; args: --no-build-isolation'
         # Build Pyodide wheels and upload them to Anaconda.org
         # NOTE: this job is similar to the one in unit-tests.yml except for the fact
         # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
-        - buildplat: [ubuntu-22.04, pyodide_wasm32]
+        - buildplat: [ubuntu-24.04, pyodide_wasm32]
           python: ["cp312", "3.12"]
           cibw_build_frontend: 'build'
+        exclude:
+          - buildplat: [windows-11-arm, win_arm64]
+            python: ["cp310", "3.10"]
+        # BackendUnavailable: Cannot import 'mesonpy'
+          - buildplat: [windows-11-arm, win_arm64]
+            python: ["cp313t", "3.13"]
 
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
@@ -121,6 +124,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up MSVC environment for ARM64
+        if: matrix.buildplat[1] == 'win_arm64'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
 
       # TODO: Build wheels from sdist again
       # There's some sort of weird race condition?
@@ -153,15 +162,19 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.22.0
+        uses: pypa/cibuildwheel@v2.23.3
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
-          CIBW_PLATFORM: ${{ matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide' || 'auto' }}
+          CIBW_PLATFORM: ${{ (matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide') || (matrix.buildplat[1] == 'win_arm64' && 'windows') || 'auto' }}
+          CIBW_ARCHS: ${{ matrix.buildplat[1] == 'win_arm64' && 'ARM64' || 'auto' }}
+          CIBW_BEFORE_BUILD_WINDOWS: 'python -m pip install delvewheel'
 
-      - name: Set up Python
+      - name: Set up Python for validation/upload (non-ARM64 Windows & other OS)
+        # micromamba is not available for ARM64 Windows
+        if: matrix.buildplat[1] != 'win_arm64'
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: wheel-env
@@ -173,6 +186,12 @@ jobs:
             wheel
           cache-downloads: true
           cache-environment: true
+
+      - name: Install wheel for win_arm64
+        # installing wheel here because micromamba step was skipped
+        if: matrix.buildplat[1] == 'win_arm64'
+        shell: bash -el {0}
+        run: python -m pip install wheel
 
       - name: Validate wheel RECORD
         shell: bash -el {0}

@@ -18,6 +18,7 @@ from pandas.compat.pyarrow import (
     pa_version_under15p0,
     pa_version_under17p0,
     pa_version_under19p0,
+    pa_version_under20p0,
 )
 
 import pandas as pd
@@ -104,10 +105,7 @@ def fp(request):
 
 @pytest.fixture
 def df_compat():
-    # TODO(infer_string) should this give str columns?
-    return pd.DataFrame(
-        {"A": [1, 2, 3], "B": "foo"}, columns=pd.Index(["A", "B"], dtype=object)
-    )
+    return pd.DataFrame({"A": [1, 2, 3], "B": "foo"}, columns=pd.Index(["A", "B"]))
 
 
 @pytest.fixture
@@ -686,7 +684,11 @@ class TestBasic(Base):
         with open(datapath("io", "data", "parquet", "simple.parquet"), mode="rb") as f:
             httpserver.serve_content(content=f.read())
             df = read_parquet(httpserver.url, engine=engine)
-        tm.assert_frame_equal(df, df_compat)
+
+        expected = df_compat
+        if pa_version_under19p0:
+            expected.columns = expected.columns.astype(object)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestParquetPyArrow(Base):
@@ -1074,27 +1076,34 @@ class TestParquetPyArrow(Base):
             expected=expected,
         )
 
-    @pytest.mark.xfail(
-        pa_version_under17p0, reason="pa.pandas_compat passes 'datetime64' to .astype"
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [0, 1],
+            pytest.param(
+                [b"foo", b"bar"],
+                marks=pytest.mark.xfail(
+                    pa_version_under20p0,
+                    raises=NotImplementedError,
+                    reason="https://github.com/apache/arrow/pull/44171",
+                ),
+            ),
+            pytest.param(
+                [
+                    datetime.datetime(2011, 1, 1, 0, 0),
+                    datetime.datetime(2011, 1, 1, 1, 1),
+                ],
+                marks=pytest.mark.xfail(
+                    pa_version_under17p0,
+                    reason="pa.pandas_compat passes 'datetime64' to .astype",
+                ),
+            ),
+        ],
     )
-    def test_columns_dtypes_not_invalid(self, pa):
+    def test_columns_dtypes_not_invalid(self, pa, columns):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
-        # numeric
-        df.columns = [0, 1]
-        check_round_trip(df, pa)
-
-        # bytes
-        df.columns = [b"foo", b"bar"]
-        with pytest.raises(NotImplementedError, match="|S3"):
-            # Bytes fails on read_parquet
-            check_round_trip(df, pa)
-
-        # python object
-        df.columns = [
-            datetime.datetime(2011, 1, 1, 0, 0),
-            datetime.datetime(2011, 1, 1, 1, 1),
-        ]
+        df.columns = columns
         check_round_trip(df, pa)
 
     def test_empty_columns(self, pa):
