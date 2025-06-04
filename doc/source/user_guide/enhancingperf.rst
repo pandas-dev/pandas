@@ -81,6 +81,7 @@ Let's take a look and see where the time is spent during this operation
 using the `prun ipython magic function <https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-prun>`__:
 
 .. ipython:: python
+   :okexcept:
 
    # most time consuming 4 calls
    %prun -l 4 df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)  # noqa E999
@@ -163,6 +164,7 @@ the index and the series (three times for each row). These Python function calls
 can be improved by passing an ``np.ndarray``.
 
 .. ipython:: python
+   :okexcept:
 
    %prun -l 4 df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
 
@@ -217,6 +219,7 @@ The majority of the time is now spent in ``apply_integrate_f``. Disabling Cython
 and ``wraparound`` checks can yield more performance.
 
 .. ipython:: python
+   :okexcept:
 
    %prun -l 4 apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
