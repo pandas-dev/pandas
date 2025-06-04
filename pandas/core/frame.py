@@ -331,12 +331,12 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
       join; sort keys lexicographically.
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys.
-    * cross: creates the cartesian product from both frames, preserves the order
-      of the left keys.
-    * left_anti: use only keys from left frame that are not in right frame, similar
-      to SQL left anti join; preserve key order.
-    * right_anti: use only keys from right frame that are not in left frame, similar
-      to SQL right anti join; preserve key order.
+    * cross: creates the cartesian product from both frames, preserves the
+      order of the left keys.
+    * left_anti: use only keys from left frame that are not in right frame,
+      similar to SQL left anti join; preserve key order.
+    * right_anti: use only keys from right frame that are not in left frame,
+      similar to SQL right anti join; preserve key order.
 on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -523,11 +523,11 @@ class DataFrame(NDFrame, OpsMixin):
     Parameters
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, dataclass or list-like objects. If
-        data is a dict, column order follows insertion-order. If a dict contains Series
-        which have an index defined, it is aligned by its index. This alignment also
-        occurs if data is a Series or a DataFrame itself. Alignment is done on
-        Series/DataFrame inputs.
+        Dict can contain Series, arrays, constants, dataclass or list-like
+        objects. If data is a dict, column order follows insertion-order. If a
+        dict contains Series which have an index defined, it is aligned by its
+        index. This alignment also occurs if data is a Series or a DataFrame
+        itself. Alignment is done on Series/DataFrame inputs.
 
         If data is a list of dicts, column order follows insertion-order.
 
@@ -536,17 +536,18 @@ class DataFrame(NDFrame, OpsMixin):
         no indexing information part of input data and no index provided.
     columns : Index or array-like
         Column labels to use for resulting frame when data does not have them,
-        defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column labels,
-        will perform column selection instead.
+        defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column
+        labels, will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
         If ``data`` is DataFrame then is ignored.
     copy : bool or None, default None
         Copy data from inputs.
-        For dict data, the default of None behaves like ``copy=True``.  For DataFrame
-        or 2d ndarray input, the default of None behaves like ``copy=False``.
-        If data is a dict containing one or more Series (possibly of different dtypes),
-        ``copy=False`` will ensure that these inputs are not copied.
+        For dict data, the default of None behaves like ``copy=True``. For
+        DataFrame or 2d ndarray input, the default of None behaves like
+        ``copy=False``. If data is a dict containing one or more Series
+        (possibly of different dtypes), ``copy=False`` will ensure that these
+        inputs are not copied.
 
         .. versionchanged:: 1.3.0
 
@@ -560,7 +561,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     Notes
     -----
-    Please reference the :ref:`User Guide <basics.dataframe>` for more information.
+    Please reference the :ref:`User Guide <basics.dataframe>` for more
+    information.
 
     Examples
     --------
@@ -601,7 +603,10 @@ class DataFrame(NDFrame, OpsMixin):
     Constructing DataFrame from numpy ndarray:
 
     >>> df2 = pd.DataFrame(
-    ...     np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]), columns=["a", "b", "c"]
+    ...     data = np.array([[1, 2, 3],
+    ...                      [4, 5, 6],
+    ...                      [7, 8, 9]])
+    ...     columns = ["a", "b", "c"]
     ... )
     >>> df2
        a  b  c
@@ -802,8 +807,8 @@ class DataFrame(NDFrame, OpsMixin):
             elif isinstance(data, (ABCSeries, ABCIndex)) and data.name is not None:
                 # i.e. Series/Index with non-None name
                 mgr = dict_to_mgr(
-                    # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
-                    # attribute "name"
+                    # error: Item "ndarray" of "Union[ndarray, Series, Index]"
+                    # has no attribute "name"
                     {data.name: data},
                     index,
                     columns,
@@ -835,8 +840,9 @@ class DataFrame(NDFrame, OpsMixin):
                     if columns is not None:
                         columns = ensure_index(columns)
                     arrays, columns, index = nested_data_to_arrays(
-                        # error: Argument 3 to "nested_data_to_arrays" has incompatible
-                        # type "Optional[Collection[Any]]"; expected "Optional[Index]"
+                        # error: Argument 3 to "nested_data_to_arrays" has
+                        # incompatible type "Optional[Collection[Any]]";
+                        # expected "Optional[Index]"
                         data,
                         columns,
                         index,  # type: ignore[arg-type]
@@ -908,17 +914,19 @@ class DataFrame(NDFrame, OpsMixin):
         self, nan_as_null: bool = False, allow_copy: bool = True
     ) -> DataFrameXchg:
         """
-        Return the dataframe interchange object implementing the interchange protocol.
+        Return the dataframe interchange object implementing the interchange
+        protocol.
 
         .. note::
 
-           For new development, we highly recommend using the Arrow C Data Interface
-           alongside the Arrow PyCapsule Interface instead of the interchange protocol
+           For new development, we highly recommend using the Arrow C Data
+           Interface alongside the Arrow PyCapsule Interface instead of the
+           interchange protocol
 
         .. warning::
 
-            Due to severe implementation issues, we recommend only considering using the
-            interchange protocol in the following cases:
+            Due to severe implementation issues, we recommend only considering
+            using the interchange protocol in the following cases:
 
             - converting to pandas: for pandas >= 2.0.3
             - converting from pandas: for pandas >= 3.0.0
@@ -935,7 +943,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame interchange object
-            The object which consuming library can use to ingress the dataframe.
+            The object which consuming library can use to ingress the
+            dataframe.
 
         See Also
         --------
@@ -961,8 +970,9 @@ class DataFrame(NDFrame, OpsMixin):
         0    1
         1    2
 
-        These methods (``column_names``, ``select_columns_by_name``) should work
-        for any dataframe library which implements the interchange protocol.
+        These methods (``column_names``, ``select_columns_by_name``) should
+        work for any dataframe library which implements the interchange
+        protocol.
         """
 
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
@@ -974,9 +984,9 @@ class DataFrame(NDFrame, OpsMixin):
         Export the pandas DataFrame as an Arrow C stream PyCapsule.
 
         This relies on pyarrow to convert the pandas DataFrame to the Arrow
-        format (and follows the default behaviour of ``pyarrow.Table.from_pandas``
-        in its handling of the index, i.e. store the index as a column except
-        for RangeIndex).
+        format (and follows the default behaviour of
+        ``pyarrow.Table.from_pandas`` in its handling of the index, i.e. store
+        the index as a column except for RangeIndex).
         This conversion is not necessarily zero-copy.
 
         Parameters
@@ -1025,9 +1035,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
-        Unlike the `len()` method, which only returns the number of rows, `shape`
-        provides both row and column counts, making it a more informative method for
-        understanding dataset size.
+        Unlike the `len()` method, which only returns the number of rows,
+        `shape` provides both row and column counts, making it a more
+        informative method for understanding dataset size.
 
         See Also
         --------
@@ -1324,7 +1334,8 @@ class DataFrame(NDFrame, OpsMixin):
             The number of rows to display in the console in a truncated repr
             (when number of rows is above `max_rows`).
         max_colwidth : int, optional
-            Max width to truncate each column in characters. By default, no limit.
+            Max width to truncate each column in characters. By default, no
+            limit.
         encoding : str, default "utf-8"
             Set character encoding.
         %(returns)s
@@ -1395,12 +1406,13 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Returns a Styler object.
 
-        Contains methods for building a styled HTML representation of the DataFrame.
+        Contains methods for building a styled HTML representation of the
+        DataFrame.
 
         See Also
         --------
-        io.formats.style.Styler : Helps style a DataFrame or Series according to the
-            data with HTML and CSS.
+        io.formats.style.Styler : Helps style a DataFrame or Series according
+        to the data with HTML and CSS.
 
         Examples
         --------
@@ -1408,9 +1420,11 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.style  # doctest: +SKIP
 
         Please see
-        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more
+        examples.
         """
-        # Raise AttributeError so that inspect works even if jinja2 is not installed.
+        # Raise AttributeError so that inspect works even if jinja2 is not
+        # installed.
         has_jinja2 = import_optional_dependency("jinja2", errors="ignore")
         if not has_jinja2:
             raise AttributeError("The '.style' accessor requires jinja2")
@@ -1598,7 +1612,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if name is not None:
             # https://github.com/python/mypy/issues/9046
-            # error: namedtuple() expects a string literal as the first argument
+            # error: namedtuple() expects a string literal as the first
+            # argument
             itertuple = collections.namedtuple(  # type: ignore[misc]
                 name, fields, rename=True
             )
@@ -2143,10 +2158,10 @@ class DataFrame(NDFrame, OpsMixin):
         columns : sequence, default None
             Column names to use. If the passed data do not have names
             associated with them, this argument provides names for the
-            columns. Otherwise, this argument indicates the order of the columns
-            in the result (any names not found in the data will become all-NA
-            columns) and limits the data to these columns if not all column names
-            are provided.
+            columns. Otherwise, this argument indicates the order of the
+            columns in the result (any names not found in the data will become
+            all-NA columns) and limits the data to these columns if not all
+            column names are provided.
         coerce_float : bool, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets.
@@ -2571,8 +2586,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         path : str, path object, or buffer
-            String, path object (implementing ``os.PathLike[str]``), or file-like
-            object implementing a binary ``write()`` function.
+            String, path object (implementing ``os.PathLike[str]``), or
+            file-like object implementing a binary ``write()`` function.
 
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
@@ -2622,9 +2637,9 @@ class DataFrame(NDFrame, OpsMixin):
         {storage_options}
 
         value_labels : dict of dicts
-            Dictionary containing columns as keys and dictionaries of column value
-            to labels as values. Labels for a single variable must be 32,000
-            characters or smaller.
+            Dictionary containing columns as keys and dictionaries of column
+            value to labels as values. Labels for a single variable must be
+            32,000 characters or smaller.
 
             .. versionadded:: 1.4.0
 
@@ -2702,9 +2717,10 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         path : str, path object, file-like object
-            String, path object (implementing ``os.PathLike[str]``), or file-like
-            object implementing a binary ``write()`` function. If a string or a path,
-            it will be used as Root Directory path when writing a partitioned dataset.
+            String, path object (implementing ``os.PathLike[str]``), or
+            file-like object implementing a binary ``write()`` function. If a
+            string or a path, it will be used as Root Directory path when
+            writing a partitioned dataset.
         **kwargs :
             Additional keywords passed to :func:`pyarrow.feather.write_feather`.
             This includes the `compression`, `compression_level`, `chunksize`
@@ -2723,9 +2739,9 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         This function writes the dataframe as a `feather file
-        <https://arrow.apache.org/docs/python/feather.html>`_. Requires a default
-        index. For saving the DataFrame with your custom index use a method that
-        supports custom indices e.g. `to_parquet`.
+        <https://arrow.apache.org/docs/python/feather.html>`_. Requires a
+        default index. For saving the DataFrame with your custom index use a
+        method that supports custom indices e.g. `to_parquet`.
 
         Examples
         --------
@@ -2791,17 +2807,19 @@ class DataFrame(NDFrame, OpsMixin):
             Add index (row) labels.
 
         storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-            are forwarded to ``urllib.request.Request`` as header options. For other
-            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
-            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer `here
+            Extra options that make sense for a particular storage connection,
+            e.g. host, port, username, password, etc. For HTTP(S) URLs the
+            key-value pairs are forwarded to ``urllib.request.Request`` as
+            header options. For other URLs (e.g. starting with "s3://", and
+            "gcs://") the key-value pairs are forwarded to ``fsspec.open``.
+            Please see ``fsspec`` and ``urllib`` for more details, and for more
+            examples on storage options refer `here
             <https://pandas.pydata.org/docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`_.
 
         **kwargs
-            These parameters will be passed to `tabulate <https://pypi.org/project/tabulate>`_.
+            These parameters will be passed to `tabulate
+            <https://pypi.org/project/tabulate>`_.
 
         Returns
         -------
@@ -2903,9 +2921,10 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         path : str, path object, file-like object, or None, default None
-            String, path object (implementing ``os.PathLike[str]``), or file-like
-            object implementing a binary ``write()`` function. If None, the result is
-            returned as bytes. If a string or path, it will be used as Root Directory
+            String, path object (implementing ``os.PathLike[str]``), or
+            file-like object implementing a binary ``write()`` function. If
+            None, the result is returned as bytes. If a string or path, it will
+            be used as Root Directory
             path when writing a partitioned dataset.
         engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
             Parquet library to use. If 'auto', then the option
@@ -2936,9 +2955,10 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         bytes if no path argument is provided else None
-            Returns the DataFrame converted to the binary parquet format as bytes if no
-            path argument. Returns None and writes the DataFrame to the specified
-            location in the Parquet format if the path argument is provided.
+            Returns the DataFrame converted to the binary parquet format as
+            bytes if no path argument. Returns None and writes the DataFrame to
+            the specified location in the Parquet format if the path argument
+            is provided.
 
         See Also
         --------
@@ -2970,8 +2990,9 @@ class DataFrame(NDFrame, OpsMixin):
         0     1     3
         1     2     4
 
-        If you want to get a buffer to the parquet content you can use a io.BytesIO
-        object, as long as you don't use partition_cols, which creates multiple files.
+        If you want to get a buffer to the parquet content you can use a
+        io.BytesIO object, as long as you don't use partition_cols, which
+        creates multiple files.
 
         >>> import io
         >>> f = io.BytesIO()
@@ -3055,18 +3076,20 @@ class DataFrame(NDFrame, OpsMixin):
             doesn't require much space and is faster. Other indexes will
             be included as columns in the file output.
         engine_kwargs : dict[str, Any] or None, default None
-            Additional keyword arguments passed to :func:`pyarrow.orc.write_table`.
+            Additional keyword arguments passed to
+            :func:`pyarrow.orc.write_table`.
 
         Returns
         -------
         bytes if no ``path`` argument is provided else None
-            Bytes object with DataFrame data if ``path`` is not specified else None.
+            Bytes object with DataFrame data if ``path`` is not specified else
+            None.
 
         Raises
         ------
         NotImplementedError
-            Dtype of one or more columns is category, unsigned integers, interval,
-            period or sparse.
+            Dtype of one or more columns is category, unsigned integers,
+            interval, period or sparse.
         ValueError
             engine is not pyarrow.
 
@@ -3083,9 +3106,10 @@ class DataFrame(NDFrame, OpsMixin):
         * Find more information on ORC
           `here <https://en.wikipedia.org/wiki/Apache_ORC>`__.
         * Before using this function you should read the :ref:`user guide about
-          ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
-        * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
-          library.
+          ORC <io.orc>` and :ref:`install optional dependencies
+          <install.warn_orc>`.
+        * This function requires `pyarrow
+          <https://arrow.apache.org/docs/python/>`_library.
         * For supported dtypes please refer to `supported ORC features in Arrow
           <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
         * Currently timezones in datetime columns are not preserved when a
@@ -3100,7 +3124,8 @@ class DataFrame(NDFrame, OpsMixin):
         0     1     4
         1     2     3
 
-        If you want to get a buffer to the orc content you can write it to io.BytesIO
+        If you want to get a buffer to the orc content you can write it to
+        io.BytesIO
 
         >>> import io
         >>> b = io.BytesIO(df.to_orc())  # doctest: +SKIP
@@ -3370,10 +3395,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        path_or_buffer : str, path object, file-like object, or None, default None
-            String, path object (implementing ``os.PathLike[str]``), or file-like
-            object implementing a ``write()`` function. If None, the result is returned
-            as a string.
+        path_or_buffer : str, path object, file-like object, or None, default
+            None String, path object (implementing ``os.PathLike[str]``), or
+            file-like object implementing a ``write()`` function. If None, the
+            result is returned as a string.
         index : bool, default True
             Whether to include index in XML document.
         root_name : str, default 'data'
@@ -3696,12 +3721,13 @@ class DataFrame(NDFrame, OpsMixin):
                 `Copy-on-Write
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+                `copy` keyword will use a lazy copy mechanism to defer the copy
+                and ignore the `copy` keyword. The `copy` keyword will be
+                removed in a future version of pandas.
 
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+                You can already get the future behavior and improvements
+                through enabling copy on write
+                ``pd.options.mode.copy_on_write = True``
 
             .. deprecated:: 3.0.0
 
@@ -3792,7 +3818,8 @@ class DataFrame(NDFrame, OpsMixin):
         first_dtype = self.dtypes.iloc[0] if len(self.columns) else None
 
         if self._can_fast_transpose:
-            # Note: tests pass without this, but this improves perf quite a bit.
+            # Note: tests pass without this, but this improves perf quite a
+            # bit.
             new_vals = self._values.T
 
             result = self._constructor(
@@ -3812,7 +3839,8 @@ class DataFrame(NDFrame, OpsMixin):
         ):
             new_values: list
             if isinstance(first_dtype, BaseMaskedDtype):
-                # We have masked arrays with the same dtype. We can transpose faster.
+                # We have masked arrays with the same dtype. We can transpose
+                # faster.
                 from pandas.core.arrays.masked import (
                     transpose_homogeneous_masked_arrays,
                 )
@@ -3821,7 +3849,8 @@ class DataFrame(NDFrame, OpsMixin):
                     cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
                 )
             elif isinstance(first_dtype, ArrowDtype):
-                # We have arrow EAs with the same dtype. We can transpose faster.
+                # We have arrow EAs with the same dtype. We can transpose
+                # faster.
                 from pandas.core.arrays.arrow.array import (
                     ArrowExtensionArray,
                     transpose_homogeneous_pyarrow,
@@ -3831,7 +3860,8 @@ class DataFrame(NDFrame, OpsMixin):
                     cast(Sequence[ArrowExtensionArray], self._iter_column_arrays())
                 )
             else:
-                # We have other EAs with the same dtype. We preserve dtype in transpose.
+                # We have other EAs with the same dtype. We preserve dtype in
+                # transpose.
                 arr_typ = first_dtype.construct_array_type()
                 values = self.values
                 new_values = [
@@ -3927,7 +3957,8 @@ class DataFrame(NDFrame, OpsMixin):
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
         Iterate over the arrays of all columns in order.
-        This returns the values as stored in the Block (ndarray or ExtensionArray).
+        This returns the values as stored in the Block (ndarray or
+        ExtensionArray).
 
         Warning! The returned array is a view but doesn't handle Copy-on-Write,
         so this should be used with caution (for read-only purposes).
@@ -3942,7 +3973,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
             # is_iterator to exclude generator e.g. test_getitem_listlike
-            # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
+            # As of Python 3.12, slice is hashable which breaks MultiIndex
+            # (GH#57500)
 
             # shortcut if the key is in columns
             is_mi = isinstance(self.columns, MultiIndex)
@@ -4048,7 +4080,8 @@ class DataFrame(NDFrame, OpsMixin):
             # implied empty string from its name.
             if len(result.columns) == 1:
                 # e.g. test_frame_getitem_multicolumn_empty_level,
-                #  test_frame_mixed_depth_get, test_loc_setitem_single_column_slice
+                #  test_frame_mixed_depth_get, 
+                # test_loc_setitem_single_column_slice
                 top = result.columns[0]
                 if isinstance(top, tuple):
                     top = top[0]
@@ -4090,9 +4123,9 @@ class DataFrame(NDFrame, OpsMixin):
         series = self._get_item(col)
 
         if not isinstance(self.index, MultiIndex):
-            # CategoricalIndex: Trying to use the engine fastpath may give incorrect
-            #  results if our categories are integers that dont match our codes
-            # IntervalIndex: IntervalTree has no get_loc
+            # CategoricalIndex: Trying to use the engine fastpath may give
+            # incorrect results if our categories are integers that dont match
+            # our codes IntervalIndex: IntervalTree has no get_loc
             row = self.index.get_loc(index)
             return series._values[row]
 
@@ -4116,16 +4149,17 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        DataFrame.iloc : Purely integer-location based indexing for selection by
-            position.
+        DataFrame.iloc : Purely integer-location based indexing for selection
+            by position.
 
         Notes
         -----
         ``frame.isetitem(loc, value)`` is an in-place method as it will
-        modify the DataFrame in place (not returning a new object). In contrast to
-        ``frame.iloc[:, i] = value`` which will try to update the existing values in
-        place, ``frame.isetitem(loc, value)`` will not update the values of the column
-        itself in place, it will instead insert a new array.
+        modify the DataFrame in place (not returning a new object). In contrast
+        to ``frame.iloc[:, i] = value`` which will try to update the existing
+        values in place, ``frame.isetitem(loc, value)`` will not update the
+        values of the column itself in place, it will instead insert a new
+        array.
 
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
@@ -4538,8 +4572,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         .. warning::
 
-            This method can run arbitrary code which can make you vulnerable to code
-            injection if you pass user input to this function.
+            This method can run arbitrary code which can make you vulnerable to
+            code injection if you pass user input to this function.
 
         Parameters
         ----------
@@ -4552,10 +4586,10 @@ class DataFrame(NDFrame, OpsMixin):
             See the documentation for :meth:`DataFrame.eval` for details on
             referring to column names and variables in the query string.
         parser : {'pandas', 'python'}, default 'pandas'
-            The parser to use to construct the syntax tree from the expression. The
-            default of ``'pandas'`` parses code slightly different than standard
-            Python. Alternatively, you can parse an expression using the
-            ``'python'`` parser to retain strict Python semantics.  See the
+            The parser to use to construct the syntax tree from the expression.
+            The default of ``'pandas'`` parses code slightly different than
+            standard Python. Alternatively, you can parse an expression using
+            the ``'python'`` parser to retain strict Python semantics.  See the
             :ref:`enhancing performance <enhancingperf.eval>` documentation for
             more details.
         engine : {'python', 'numexpr'}, default 'numexpr'
@@ -4563,10 +4597,11 @@ class DataFrame(NDFrame, OpsMixin):
             The engine used to evaluate the expression. Supported engines are
 
             - None : tries to use ``numexpr``, falls back to ``python``
-            - ``'numexpr'`` : This default engine evaluates pandas objects using
-              numexpr for large speed ups in complex expressions with large frames.
-            - ``'python'`` : Performs operations as if you had ``eval``'d in top
-              level python. This engine is generally not that useful.
+            - ``'numexpr'`` : This default engine evaluates pandas objects
+              using numexpr for large speed ups in complex expressions with
+              large frames.
+            - ``'python'`` : Performs operations as if you had ``eval``'d in
+              top level python. This engine is generally not that useful.
 
             More backends may be available in the future.
         local_dict : dict or None, optional
@@ -4574,9 +4609,9 @@ class DataFrame(NDFrame, OpsMixin):
         global_dict : dict or None, optional
             A dictionary of global variables, taken from globals() by default.
         resolvers : list of dict-like or None, optional
-            A list of objects implementing the ``__getitem__`` special method that
-            you can use to inject an additional collection of namespaces to use for
-            variable lookup. For example, this is used in the
+            A list of objects implementing the ``__getitem__`` special method
+            that you can use to inject an additional collection of namespaces
+            to use for variable lookup. For example, this is used in the
             :meth:`~DataFrame.query` method to inject the
             ``DataFrame.index`` and ``DataFrame.columns``
             variables that refer to their respective :class:`~pandas.DataFrame`
@@ -4642,15 +4677,17 @@ class DataFrame(NDFrame, OpsMixin):
         This can lead to the following problems.
 
         During parsing a number of disallowed characters inside the backtick
-        quoted string are replaced by strings that are allowed as a Python identifier.
-        These characters include all operators in Python, the space character, the
-        question mark, the exclamation mark, the dollar sign, and the euro sign.
+        quoted string are replaced by strings that are allowed as a Python
+        identifier. These characters include all operators in Python, the space
+        character, the question mark, the exclamation mark, the dollar sign,
+        and the euro sign.
 
         A backtick can be escaped by double backticks.
 
         See also the `Python documentation about lexical analysis
         <https://docs.python.org/3/reference/lexical_analysis.html>`__
-        in combination with the source code in :mod:`pandas.core.computation.parsing`.
+        in combination with the source code in
+        :mod:`pandas.core.computation.parsing`.
 
         Examples
         --------
@@ -4735,8 +4772,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         .. warning::
 
-            This method can run arbitrary code which can make you vulnerable to code
-            injection if you pass user input to this function.
+            This method can run arbitrary code which can make you vulnerable to
+            code injection if you pass user input to this function.
 
         Operates on columns only, not specific rows or elements.  This allows
         `eval` to run arbitrary code, which can make you vulnerable to code
@@ -4751,12 +4788,13 @@ class DataFrame(NDFrame, OpsMixin):
             in the environment by prefixing them with an '@' character like
             ``@a + b``.
 
-            You can refer to column names that are not valid Python variable names
-            by surrounding them in backticks. Thus, column names containing spaces
-            or punctuation (besides underscores) or starting with digits must be
-            surrounded by backticks. (For example, a column named "Area (cm^2)" would
-            be referenced as ```Area (cm^2)```). Column names which are Python keywords
-            (like "if", "for", "import", etc) cannot be used.
+            You can refer to column names that are not valid Python variable
+            names by surrounding them in backticks. Thus, column names
+            containing spaces or punctuation (besides underscores) or starting
+            with digits must be surrounded by backticks. (For example, a column
+            named "Area (cm^2)" would be referenced as ```Area (cm^2)```).
+            Column names which are Python keywords (like "if", "for", "import",
+            etc) cannot be used.
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
@@ -4845,8 +4883,8 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4    7   8  0
         4  5   2    6   7  3
 
-        For columns with spaces or other disallowed characters in their name, you can
-        use backtick quoting.
+        For columns with spaces or other disallowed characters in their name,
+        you can use backtick quoting.
 
         >>> df.eval("B * `C&C`")
         0    100
@@ -4884,8 +4922,8 @@ class DataFrame(NDFrame, OpsMixin):
         Return a subset of the DataFrame's columns based on the column dtypes.
 
         This method allows for filtering columns based on their data types.
-        It is useful when working with heterogeneous DataFrames where operations
-        need to be performed on a specific subset of data types.
+        It is useful when working with heterogeneous DataFrames where
+        operations need to be performed on a specific subset of data types.
 
         Parameters
         ----------
@@ -5075,7 +5113,8 @@ class DataFrame(NDFrame, OpsMixin):
         0   100     1      99     3
         1   100     2      99     4
 
-        Notice that pandas uses index alignment in case of `value` from type `Series`:
+        Notice that pandas uses index alignment in case of `value` from type
+        `Series`:
 
         >>> df.insert(0, "col0", pd.Series([5, 6], index=[1, 2]))
         >>> df
@@ -5607,12 +5646,13 @@ class DataFrame(NDFrame, OpsMixin):
                 `Copy-on-Write
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+                `copy` keyword will use a lazy copy mechanism to defer the copy
+                and ignore the `copy` keyword. The `copy` keyword will be
+                removed in a future version of pandas.
 
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+                You can already get the future behavior and improvements
+                through enabling copy on write 
+                ``pd.options.mode.copy_on_write = True``
 
             .. deprecated:: 3.0.0
         inplace : bool, default False
@@ -5723,7 +5763,8 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.drop: Drop specified labels from rows or columns.
-        DataFrame.drop_duplicates: Return DataFrame with duplicate rows removed.
+        DataFrame.drop_duplicates: Return DataFrame with duplicate rows
+        removed.
 
         Examples
         --------
@@ -5962,7 +6003,8 @@ class DataFrame(NDFrame, OpsMixin):
         append : bool, default False
             Whether to append columns to existing index.
             Setting to True will add the new columns to existing index.
-            When set to False, the current index will be dropped from the DataFrame.
+            When set to False, the current index will be dropped from the
+            DataFrame.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
         verify_integrity : bool, default False
@@ -6241,9 +6283,9 @@ class DataFrame(NDFrame, OpsMixin):
             .. versionadded:: 1.5.0
 
         names : int, str or 1-dimensional list, default None
-            Using the given string, rename the DataFrame column which contains the
-            index data. If the DataFrame has a MultiIndex, this has to be a list
-            with length equal to the number of levels.
+            Using the given string, rename the DataFrame column which contains
+            the index data. If the DataFrame has a MultiIndex, this has to be a
+            list with length equal to the number of levels.
 
             .. versionadded:: 1.5.0
 
@@ -6548,7 +6590,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame or None
-            DataFrame with NA entries dropped from it or None if ``inplace=True``.
+            DataFrame with NA entries dropped from it or None if
+            ``inplace=True``.
 
         See Also
         --------
@@ -6703,8 +6746,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return DataFrame with duplicate rows removed.
 
-        Considering certain columns is optional. Indexes, including time indexes
-        are ignored.
+        Considering certain columns is optional. Indexes, including time
+        indexes are ignored.
 
         Parameters
         ----------
@@ -6734,8 +6777,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        This method requires columns specified by ``subset`` to be of hashable type.
-        Passing unhashable columns will raise a ``TypeError``.
+        This method requires columns specified by ``subset`` to be of hashable
+        type. Passing unhashable columns will raise a ``TypeError``.
 
         Examples
         --------
@@ -6814,8 +6857,10 @@ class DataFrame(NDFrame, OpsMixin):
         keep : {'first', 'last', False}, default 'first'
             Determines which duplicates (if any) to mark.
 
-            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - ``first`` : Mark duplicates as ``True`` except for the first
+              occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last
+              occurrence.
             - False : Mark all duplicates as ``True``.
 
         Returns
@@ -6993,11 +7038,11 @@ class DataFrame(NDFrame, OpsMixin):
              the by.
         inplace : bool, default False
              If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
-             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-             information. `mergesort` and `stable` are the only stable algorithms. For
-             DataFrames, this option is only applied when sorting on a single
-             column or label.
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default
+             'quicksort' Choice of sorting algorithm. See also
+             :func:`numpy.sort` for more information. `mergesort` and `stable`
+             are the only stable algorithms. For DataFrames, this option is
+             only applied when sorting on a single column or label.
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
@@ -7009,8 +7054,8 @@ class DataFrame(NDFrame, OpsMixin):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return a Series with the same shape as the input.
-            It will be applied to each column in `by` independently. The values in the
-            returned Series will be used as the keys for sorting.
+            It will be applied to each column in `by` independently. The values
+            in the returned Series will be used as the keys for sorting.
 
         Returns
         -------
@@ -7056,10 +7101,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         **Sort by multiple columns**
 
-        You can also provide multiple columns to ``by`` argument, as shown below.
-        In this example, the rows are first sorted according to ``col1``, and then
-        the rows that have an identical value in ``col1`` are sorted according
-        to ``col2``.
+        You can also provide multiple columns to ``by`` argument, as shown
+        below. In this example, the rows are first sorted according to
+        ``col1``, and then the rows that have an identical value in ``col1`` 
+        are sorted according to ``col2``.
 
         >>> df.sort_values(by=["col1", "col2"])
           col1  col2  col3 col4
@@ -7072,7 +7117,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         **Sort in a descending order**
 
-        The sort order can be reversed using ``ascending`` argument, as shown below:
+        The sort order can be reversed using ``ascending`` argument, as shown
+        below:
 
         >>> df.sort_values(by="col1", ascending=False)
           col1  col2  col3 col4
@@ -7085,9 +7131,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         **Placing any** ``NA`` **first**
 
-        Note that in the above example, the rows that contain an ``NA`` value in their
-        ``col1`` are placed at the end of the dataframe. This behavior can be modified
-        via ``na_position`` argument, as shown below:
+        Note that in the above example, the rows that contain an ``NA`` value
+        in their ``col1`` are placed at the end of the dataframe. This behavior
+        can be modified via ``na_position`` argument, as shown below:
 
         >>> df.sort_values(by="col1", ascending=False, na_position="first")
           col1  col2  col3 col4
@@ -7100,10 +7146,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         **Customized sort order**
 
-        The ``key`` argument allows for a further customization of sorting behaviour.
-        For example, you may want
-        to ignore the `letter's case <https://en.wikipedia.org/wiki/Letter_case>`__
-        when sorting strings:
+        The ``key`` argument allows for a further customization of sorting
+        behaviour. For example, you may want
+        to ignore the `letter's case
+        <https://en.wikipedia.org/wiki/Letter_case>`__ when sorting strings:
 
         >>> df.sort_values(by="col4", key=lambda col: col.str.lower())
            col1  col2  col3 col4
@@ -7303,11 +7349,11 @@ class DataFrame(NDFrame, OpsMixin):
             sort direction can be controlled for each level individually.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
-        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
-            Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information. `mergesort` and `stable` are the only stable algorithms. For
-            DataFrames, this option is only applied when sorting on a single
-            column or label.
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default
+            'quicksort' Choice of sorting algorithm. See also
+            :func:`numpy.sort` for more information. `mergesort` and `stable`
+            are the only stable algorithms. For DataFrames, this option is only
+            applied when sorting on a single column or label.
         na_position : {'first', 'last'}, default 'last'
             Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
             Not implemented for MultiIndex.
@@ -7327,7 +7373,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame or None
-            The original DataFrame sorted by the labels or None if ``inplace=True``.
+            The original DataFrame sorted by the labels or None if 
+            ``inplace=True``.
 
         See Also
         --------
@@ -7391,7 +7438,8 @@ class DataFrame(NDFrame, OpsMixin):
         dropna: bool = True,
     ) -> Series:
         """
-        Return a Series containing the frequency of each distinct row in the DataFrame.
+        Return a Series containing the frequency of each distinct row in the
+        DataFrame.
 
         Parameters
         ----------
@@ -7400,11 +7448,13 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Preserve the order of the data when False.
+            Sort by frequencies when True. Preserve the order of the data when
+            False.
 
             .. versionchanged:: 3.0.0
 
-                Prior to 3.0.0, ``sort=False`` would sort by the columns values.
+                Prior to 3.0.0, ``sort=False`` would sort by the columns
+                values.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -7415,7 +7465,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
-            Series containing the frequency of each distinct row in the DataFrame.
+            Series containing the frequency of each distinct row in the
+            DataFrame.
 
         See Also
         --------
@@ -7426,8 +7477,8 @@ class DataFrame(NDFrame, OpsMixin):
         The returned Series will have a MultiIndex with one level per input
         column but an Index (non-multi) for a single label. By default, rows
         that contain any NA values are omitted from the result. By default,
-        the resulting Series will be sorted by frequencies in descending order so that
-        the first element is the most frequently-occurring row.
+        the resulting Series will be sorted by frequencies in descending order
+        so that the first element is the most frequently-occurring row.
 
         Examples
         --------
@@ -7634,8 +7685,8 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
 
-        When using ``keep='all'``, the number of element kept can go beyond ``n``
-        if there are duplicate values for the smallest element, all the
+        When using ``keep='all'``, the number of element kept can go beyond
+        ``n`` if there are duplicate values for the smallest element, all the
         ties are kept:
 
         >>> df.nlargest(3, "population", keep="all")
@@ -7698,7 +7749,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
-            DataFrame with the first `n` rows ordered by `columns` in ascending order.
+            DataFrame with the first `n` rows ordered by `columns` in ascending
+            order.
 
         See Also
         --------
@@ -7766,8 +7818,8 @@ class DataFrame(NDFrame, OpsMixin):
         Tuvalu         11300   38      TV
         Nauru         337000  182      NR
 
-        When using ``keep='all'``, the number of element kept can go beyond ``n``
-        if there are duplicate values for the largest element, all the
+        When using ``keep='all'``, the number of element kept can go beyond
+        ``n`` if there are duplicate values for the largest element, all the
         ties are kept.
 
         >>> df.nsmallest(3, "population", keep="all")
@@ -7787,8 +7839,8 @@ class DataFrame(NDFrame, OpsMixin):
         Iceland       337000  17036      IS
         Nauru         337000    182      NR
 
-        To order by the smallest values in column "population" and then "GDP", we can
-        specify multiple columns like in the next example.
+        To order by the smallest values in column "population" and then "GDP",
+        we can specify multiple columns like in the next example.
 
         >>> df.nsmallest(3, ["population", "GDP"])
                   population  GDP alpha-2
@@ -7840,10 +7892,10 @@ class DataFrame(NDFrame, OpsMixin):
                     Geography   April        C
 
         In the following example, we will swap the levels of the indices.
-        Here, we will swap the levels column-wise, but levels can be swapped row-wise
-        in a similar manner. Note that column-wise is the default behaviour.
-        By not supplying any arguments for i and j, we swap the last and second to
-        last indices.
+        Here, we will swap the levels column-wise, but levels can be swapped
+        row-wise in a similar manner. Note that column-wise is the default
+        behaviour. By not supplying any arguments for i and j, we swap the last
+        and second to last indices.
 
         >>> df.swaplevel()
                                             Grade
@@ -7853,8 +7905,8 @@ class DataFrame(NDFrame, OpsMixin):
                     April       Geography       C
 
         By supplying one argument, we can choose which index to swap the last
-        index with. We can for example swap the first index with the last one as
-        follows.
+        index with. We can for example swap the first index with the last one
+        as follows.
 
         >>> df.swaplevel(0)
                                             Grade
@@ -7863,8 +7915,9 @@ class DataFrame(NDFrame, OpsMixin):
         March       History     Coursework      A
         April       Geography   Coursework      C
 
-        We can also define explicitly which indices we want to swap by supplying values
-        for both i and j. Here, we for example swap the first and second indices.
+        We can also define explicitly which indices we want to swap by
+        supplying values for both i and j. Here, we for example swap the first
+        and second indices.
 
         >>> df.swaplevel(0, 1)
                                             Grade
@@ -8093,8 +8146,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         # GH#60498 For MultiIndex column alignment
         if isinstance(cols, MultiIndex):
-            # When overwriting column names, make a shallow copy so as to not modify
-            # the input DFs
+            # When overwriting column names, make a shallow copy so as to not
+            # modify the input DFs
             new_left = new_left.copy(deep=False)
             new_right = new_right.copy(deep=False)
             new_left.columns = cols
@@ -8121,7 +8174,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _should_reindex_frame_op(self, right, op, axis: int, fill_value, level) -> bool:
         """
-        Check if this is an operation between DataFrames that will need to reindex.
+        Check if this is an operation between DataFrames that will need to
+        reindex.
         """
         if op is operator.pow or op is roperator.rpow:
             # GH#32685 pow has special semantics for operating with null values
@@ -8145,7 +8199,8 @@ class DataFrame(NDFrame, OpsMixin):
         if fill_value is None and level is None and axis == 1:
             # TODO: any other cases we should handle here?
 
-            # Intersection is always unique so we have to check the unique columns
+            # Intersection is always unique so we have to check the unique
+            # columns
             left_uniques = self.columns.unique()
             right_uniques = right.columns.unique()
             cols = left_uniques.intersection(right_uniques)
@@ -8189,12 +8244,12 @@ class DataFrame(NDFrame, OpsMixin):
                 "length must be {req_len}: given {given_len}"
             )
 
-            # pass dtype to avoid doing inference, which would break consistency
-            #  with Index/Series ops
+            # pass dtype to avoid doing inference, which would break
+            #  consistency with Index/Series ops
             dtype = None
             if getattr(right, "dtype", None) == object:
-                # can't pass right.dtype unconditionally as that would break on e.g.
-                #  datetime64[h] ndarray
+                # can't pass right.dtype unconditionally as that would break on
+                #  e.g., datetime64[h] ndarray
                 dtype = object
 
             if axis == 0:
@@ -8220,8 +8275,8 @@ class DataFrame(NDFrame, OpsMixin):
                 #  otherwise we lose consistency with Index and array ops
                 dtype = None
                 if right.dtype == object:
-                    # can't pass right.dtype unconditionally as that would break on e.g.
-                    #  datetime64[h] ndarray
+                    # can't pass right.dtype unconditionally as that would
+                    # break on e.g. datetime64[h] ndarray
                     dtype = object
 
                 if right.shape == left.shape:
@@ -8253,7 +8308,8 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         elif is_list_like(right) and not isinstance(right, (Series, DataFrame)):
-            # GH#36702. Raise when attempting arithmetic with list of array-like.
+            # GH#36702. Raise when attempting arithmetic with list of
+            # array-like.
             if any(is_array_like(el) for el in right):
                 raise ValueError(
                     f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
@@ -8292,8 +8348,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _maybe_align_series_as_frame(self, series: Series, axis: AxisInt):
         """
-        If the Series operand is not EA-dtype, we can broadcast to 2D and operate
-        blockwise.
+        If the Series operand is not EA-dtype, we can broadcast to 2D and
+        operate blockwise.
         """
         rvalues = series._values
         if not isinstance(rvalues, np.ndarray):
@@ -8848,10 +8904,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             arr = func(series, other_series)
             if isinstance(new_dtype, np.dtype):
-                # if new_dtype is an EA Dtype, then `func` is expected to return
-                # the correct dtype without any additional casting
-                # error: No overload variant of "maybe_downcast_to_dtype" matches
-                # argument types "Union[Series, Hashable]", "dtype[Any]"
+                # if new_dtype is an EA Dtype, then `func` is expected to
+                # return the correct dtype without any additional casting
+                # error: No overload variant of "maybe_downcast_to_dtype"
+                # matches argument types "Union[Series, Hashable]",
+                # "dtype[Any]"
                 arr = maybe_downcast_to_dtype(  # type: ignore[call-overload]
                     arr, new_dtype
                 )
@@ -8882,7 +8939,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
-            The result of combining the provided DataFrame with the other object.
+            The result of combining the provided DataFrame with the other
+            object.
 
         See Also
         --------
@@ -9001,7 +9059,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        1. Duplicate indices on `other` are not supported and raises `ValueError`.
+        1. Duplicate indices on `other` are not supported and raises
+        `ValueError`.
 
         Examples
         --------
@@ -9261,7 +9320,8 @@ class DataFrame(NDFrame, OpsMixin):
         columns : Hashable or a sequence of the previous
             Column to use to make new frame's columns.
         index : Hashable or a sequence of the previous, optional
-            Column to use to make new frame's index. If not given, uses existing index.
+            Column to use to make new frame's index. If not given, uses
+            existing index.
         values : Hashable or a sequence of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
@@ -9395,7 +9455,8 @@ class DataFrame(NDFrame, OpsMixin):
         Create a spreadsheet-style pivot table as a DataFrame.
 
         The levels in the pivot table will be stored in MultiIndex objects
-        (hierarchical indexes) on the index and columns of the result DataFrame.
+        (hierarchical indexes) on the index and columns of the result
+        DataFrame.
 
         Parameters
         ----------%s
@@ -9412,12 +9473,12 @@ class DataFrame(NDFrame, OpsMixin):
             passed, it must be the same length as the data and will be used in
             the same manner as column values.
         aggfunc : function, list of functions, dict, default "mean"
-            If a list of functions is passed, the resulting pivot table will have
-            hierarchical columns whose top level are the function names
+            If a list of functions is passed, the resulting pivot table will
+            have hierarchical columns whose top level are the function names
             (inferred from the function objects themselves).
-            If a dict is passed, the key is column to aggregate and the value is
-            function or list of functions. If ``margin=True``, aggfunc will be
-            used to calculate the partial aggregates.
+            If a dict is passed, the key is column to aggregate and the value
+            is function or list of functions. If ``margin=True``, aggfunc will
+            be used to calculate the partial aggregates.
         fill_value : scalar, default None
             Value to replace missing values with (in the resulting pivot table,
             after aggregation).
@@ -9428,10 +9489,10 @@ class DataFrame(NDFrame, OpsMixin):
         dropna : bool, default True
             Do not include columns whose entries are all NaN. If True,
 
-            * rows with an NA value in any column will be omitted before computing
-              margins,
-            * index/column keys containing NA values will be dropped (see ``dropna``
-              parameter in :meth:`DataFrame.groupby`).
+            * rows with an NA value in any column will be omitted before
+              computing margins,
+            * index/column keys containing NA values will be dropped (see
+              ``dropna`` parameter in :meth:`DataFrame.groupby`).
 
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals
@@ -9616,9 +9677,10 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to sort the levels of the resulting MultiIndex.
         future_stack : bool, default True
             Whether to use the new implementation that will replace the current
-            implementation in pandas 3.0. When True, dropna and sort have no impact
-            on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
-            notes <whatsnew_210.enhancements.new_stack>` for more details.
+            implementation in pandas 3.0. When True, dropna and sort have no
+            impact on the result and must remain unspecified. See :ref:`pandas
+            2.1.0 Release notes <whatsnew_210.enhancements.new_stack>` for more
+            details.
 
         Returns
         -------
@@ -9793,7 +9855,8 @@ class DataFrame(NDFrame, OpsMixin):
         ignore_index: bool = False,
     ) -> DataFrame:
         """
-        Transform each element of a list-like to a row, replicating index values.
+        Transform each element of a list-like to a row, replicating index
+        values.
 
         Parameters
         ----------
@@ -9828,15 +9891,16 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.unstack : Pivot a level of the (necessarily hierarchical)
             index labels.
         DataFrame.melt : Unpivot a DataFrame from wide format to long format.
-        Series.explode : Explode a DataFrame from list-like columns to long format.
+        Series.explode : Explode a DataFrame from list-like columns to long
+        format.
 
         Notes
         -----
         This routine will explode list-likes including lists, tuples, sets,
         Series, and np.ndarray. The result dtype of the subset rows will
-        be object. Scalars will be returned unchanged, and empty list-likes will
-        result in a np.nan for that row. In addition, the ordering of rows in the
-        output will be non-deterministic when exploding sets.
+        be object. Scalars will be returned unchanged, and empty list-likes
+        will result in a np.nan for that row. In addition, the ordering of rows
+        in the output will be non-deterministic when exploding sets.
 
         Reference :ref:`the user guide <reshaping.explode>` for more examples.
 
@@ -9925,8 +9989,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
-        Returns a DataFrame having a new level of column labels whose inner-most level
-        consists of the pivoted index labels.
+        Returns a DataFrame having a new level of column labels whose
+        inner-most level consists of the pivoted index labels.
 
         If the index is not a MultiIndex, the output will be a Series
         (the analogue of stack when the columns are not a MultiIndex).
@@ -9943,8 +10007,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series or DataFrame
-            If index is a MultiIndex: DataFrame with pivoted index labels as new
-            inner-most level column labels, else Series.
+            If index is a MultiIndex: DataFrame with pivoted index labels as
+            new inner-most level column labels, else Series.
 
         See Also
         --------
@@ -10003,13 +10067,14 @@ class DataFrame(NDFrame, OpsMixin):
         ignore_index: bool = True,
     ) -> DataFrame:
         """
-        Unpivot DataFrame from wide to long format, optionally leaving identifiers set.
+        Unpivot DataFrame from wide to long format, optionally leaving 
+        identifiers set.
 
         This function is useful to massage a DataFrame into a format where one
         or more columns are identifier variables (`id_vars`), while all other
-        columns, considered measured variables (`value_vars`), are "unpivoted" to
-        the row axis, leaving just two non-identifier columns, 'variable' and
-        'value'.
+        columns, considered measured variables (`value_vars`), are "unpivoted"
+        to the row axis, leaving just two non-identifier columns, 'variable'
+        and 'value'.
 
         Parameters
         ----------
@@ -10022,12 +10087,13 @@ class DataFrame(NDFrame, OpsMixin):
             Name to use for the 'variable' column. If None it uses
             ``frame.columns.name`` or 'variable'.
         value_name : scalar, default 'value'
-            Name to use for the 'value' column, can't be an existing column label.
+            Name to use for the 'value' column, can't be an existing column
+            label.
         col_level : scalar, optional
             If columns are a MultiIndex then use this level to melt.
         ignore_index : bool, default True
-            If True, original index is ignored. If False, original index is retained.
-            Index labels will be repeated as necessary.
+            If True, original index is ignored. If False, original index is
+            retained. Index labels will be repeated as necessary.
 
         Returns
         -------
@@ -10218,9 +10284,9 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
         if axis == 1:
             if periods != 0:
-                # in the periods == 0 case, this is equivalent diff of 0 periods
-                #  along axis=0, and the Manager method may be somewhat more
-                #  performant, so we dispatch in that case.
+                # in the periods == 0 case, this is equivalent diff of 0
+                #  periods along axis=0, and the Manager method may be somewhat
+                #  more performant, so we dispatch in that case.
                 return self - self.shift(periods, axis=axis)
             # With periods=0 this is equivalent to a diff with axis=0
             axis = 0
@@ -10267,8 +10333,8 @@ class DataFrame(NDFrame, OpsMixin):
     DataFrame.resample : Perform operations over resampled bins.
     DataFrame.rolling : Perform operations over rolling window.
     DataFrame.expanding : Perform operations over expanding window.
-    core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
-        weighted window.
+    core.window.ewm.ExponentialMovingWindow : Perform operation over
+        exponential weighted window.
     """
     )
 
@@ -10297,8 +10363,8 @@ class DataFrame(NDFrame, OpsMixin):
     min   1.0  2.0
     max   NaN  8.0
 
-    Aggregate different functions over the columns and rename the index of the resulting
-    DataFrame.
+    Aggregate different functions over the columns and rename the index of the
+    resulting DataFrame.
 
     >>> df.agg(x=('A', 'max'), y=('B', 'min'), z=('C', 'mean'))
          A    B    C
@@ -10370,9 +10436,9 @@ class DataFrame(NDFrame, OpsMixin):
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
         (``axis=1``). By default (``result_type=None``), the final return type
         is inferred from the return type of the applied function. Otherwise,
-        it depends on the `result_type` argument. The return type of the applied
-        function is inferred based on the first computed result obtained after
-        applying the function to a Series object.
+        it depends on the `result_type` argument. The return type of the
+        applied function is inferred based on the first computed result
+        obtained after applying the function to a Series object.
 
         Parameters
         ----------
@@ -10385,7 +10451,8 @@ class DataFrame(NDFrame, OpsMixin):
             * 1 or 'columns': apply function to each row.
 
         raw : bool, default False
-            Determines if row or column is passed as a Series or ndarray object:
+            Determines if row or column is passed as a Series or ndarray
+            object:
 
             * ``False`` : passes each row or column as a Series to the
               function.
@@ -10416,9 +10483,9 @@ class DataFrame(NDFrame, OpsMixin):
             and the func isn't a string.
             If "compat", will if possible first translate the func into pandas
             methods (e.g. ``Series().apply(np.sum)`` will be translated to
-            ``Series().sum()``). If that doesn't work, will try call to apply again with
-            ``by_row=True`` and if that fails, will call apply again with
-            ``by_row=False`` (backward compatible).
+            ``Series().sum()``). If that doesn't work, will try call to apply
+            again with ``by_row=True`` and if that fails, will call apply again
+            with ``by_row=False`` (backward compatible).
             If False, the funcs will be passed the whole Series at once.
 
             .. versionadded:: 2.1.0
@@ -10427,20 +10494,22 @@ class DataFrame(NDFrame, OpsMixin):
             Choose the execution engine to use. If not provided the function
             will be executed by the regular Python interpreter.
 
-            Other options include JIT compilers such Numba and Bodo, which in some
-            cases can speed up the execution. To use an executor you can provide
-            the decorators ``numba.jit``, ``numba.njit`` or ``bodo.jit``. You can
-            also provide the decorator with parameters, like ``numba.jit(nogit=True)``.
+            Other options include JIT compilers such Numba and Bodo, which in
+            some cases can speed up the execution. To use an executor you can
+            provide the decorators ``numba.jit``, ``numba.njit`` or
+            ``bodo.jit``. You can also provide the decorator with parameters,
+            like ``numba.jit(nogit=True)``.
 
-            Not all functions can be executed with all execution engines. In general,
-            JIT compilers will require type stability in the function (no variable
-            should change data type during the execution). And not all pandas and
-            NumPy APIs are supported. Check the engine documentation [1]_ and [2]_
-            for limitations.
+            Not all functions can be executed with all execution engines. In
+            general, JIT compilers will require type stability in the function
+            (no variable should change data type during the execution). And not
+            all pandas and NumPy APIs are supported. Check the engine
+            documentation [1]_ and [2]_ for limitations.
 
             .. warning::
 
-                String parameters will stop being supported in a future pandas version.
+                String parameters will stop being supported in a future pandas
+                version.
 
             .. versionadded:: 2.2.0
 
@@ -10468,8 +10537,8 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
-        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
-        for more details.
+        behavior or errors and are not supported. See
+        :ref:`gotchas.udf-mutation` for more details.
 
         References
         ----------
@@ -10547,18 +10616,18 @@ class DataFrame(NDFrame, OpsMixin):
         1  1  2
         2  1  2
 
-        Advanced users can speed up their code by using a Just-in-time (JIT) compiler
-        with ``apply``. The main JIT compilers available for pandas are Numba and Bodo.
-        In general, JIT compilation is only possible when the function passed to
-        ``apply`` has type stability (variables in the function do not change their
-        type during the execution).
+        Advanced users can speed up their code by using a Just-in-time (JIT)
+        compiler with ``apply``. The main JIT compilers available for pandas
+        are Numba and Bodo. In general, JIT compilation is only possible when
+        the function passed to ``apply`` has type stability (variables in the
+        function do not change their type during the execution).
 
         >>> import bodo
         >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)
 
         Note that JIT compilation is only recommended for functions that take a
-        significant amount of time to run. Fast functions are unlikely to run faster
-        with JIT compilation.
+        significant amount of time to run. Fast functions are unlikely to run
+        faster with JIT compilation.
         """
         if engine is None or isinstance(engine, str):
             from pandas.core.apply import frame_apply
@@ -10817,8 +10886,8 @@ class DataFrame(NDFrame, OpsMixin):
             values given, the `other` DataFrame must have a MultiIndex. Can
             pass an array as the join key if it is not already contained in
             the calling DataFrame. Like an Excel VLOOKUP operation.
-        how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
-            default 'left'
+        how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti',
+            'right_anti'}, default 'left'
             How to handle the operation of the two objects.
 
             * left: use calling frame's index (or column if on is specified)
@@ -10828,12 +10897,12 @@ class DataFrame(NDFrame, OpsMixin):
             * inner: form intersection of calling frame's index (or column if
               on is specified) with `other`'s index, preserving the order
               of the calling's one.
-            * cross: creates the cartesian product from both frames, preserves the order
-              of the left keys.
-            * left_anti: use set difference of calling frame's index and `other`'s
-              index.
-            * right_anti: use set difference of `other`'s index and calling frame's
-              index.
+            * cross: creates the cartesian product from both frames, preserves
+              the order of the left keys.
+            * left_anti: use set difference of calling frame's index and
+              `other`'s index.
+            * right_anti: use set difference of `other`'s index and calling
+              frame's index.
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
         rsuffix : str, default ''
@@ -10846,8 +10915,10 @@ class DataFrame(NDFrame, OpsMixin):
 
             * "one_to_one" or "1:1": check if join keys are unique in both left
               and right datasets.
-            * "one_to_many" or "1:m": check if join keys are unique in left dataset.
-            * "many_to_one" or "m:1": check if join keys are unique in right dataset.
+            * "one_to_many" or "1:m": check if join keys are unique in left
+              dataset.
+            * "many_to_one" or "m:1": check if join keys are unique in right
+              dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
 
             .. versionadded:: 1.5.0
@@ -11073,7 +11144,8 @@ class DataFrame(NDFrame, OpsMixin):
         self, decimals: int | dict[IndexLabel, int] | Series = 0, *args, **kwargs
     ) -> DataFrame:
         """
-        Round numeric columns in a DataFrame to a variable number of decimal places.
+        Round numeric columns in a DataFrame to a variable number of decimal
+        places.
 
         Parameters
         ----------
@@ -11106,9 +11178,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        For values exactly halfway between rounded decimal values, pandas rounds
-        to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5 and 2.5
-        round to 2.0, etc.).
+        For values exactly halfway between rounded decimal values, pandas
+        rounds to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5
+        and 2.5 round to 2.0, etc.).
 
         Examples
         --------
@@ -11249,7 +11321,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        Pearson, Kendall and Spearman correlation are currently computed using pairwise complete observations.
+        Pearson, Kendall and Spearman correlation are currently computed using
+        pairwise complete observations.
 
         * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
         * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
@@ -11353,7 +11426,8 @@ class DataFrame(NDFrame, OpsMixin):
         ddof : int, default 1
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
-            This argument is applicable only when no ``nan`` is in the dataframe.
+            This argument is applicable only when no ``nan`` is in the
+            dataframe.
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
@@ -11371,8 +11445,8 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         Series.cov : Compute covariance with another Series.
-        core.window.ewm.ExponentialMovingWindow.cov : Exponential weighted sample
-            covariance.
+        core.window.ewm.ExponentialMovingWindow.cov : Exponential weighted
+            sample covariance.
         core.window.expanding.Expanding.cov : Expanding sample covariance.
         core.window.rolling.Rolling.cov : Rolling sample covariance.
 
@@ -11479,8 +11553,8 @@ class DataFrame(NDFrame, OpsMixin):
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' to compute row-wise, 1 or 'columns' for
-            column-wise.
+            The axis to use. 0 or 'index' to compute row-wise, 1 or 'columns'
+            for column-wise.
         drop : bool, default False
             Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
@@ -11738,9 +11812,10 @@ class DataFrame(NDFrame, OpsMixin):
             return func(df.values)
         elif axis == 1:
             if len(df.index) == 0:
-                # Taking a transpose would result in no columns, losing the dtype.
-                # In the empty case, reducing along axis 0 or 1 gives the same
-                # result dtype, so reduce with axis=0 and ignore values
+                # Taking a transpose would result in no columns, losing the
+                # dtype. In the empty case, reducing along axis 0 or 1 gives
+                # the same result dtype, so reduce with axis=0 and ignore
+                # values.
                 result = df._reduce(
                     op,
                     name,
@@ -11760,10 +11835,11 @@ class DataFrame(NDFrame, OpsMixin):
                 )
                 if isinstance(dtype, ExtensionDtype):
                     # GH 54341: fastpath for EA-backed axis=1 reductions
-                    # This flattens the frame into a single 1D array while keeping
-                    # track of the row and column indices of the original frame. Once
-                    # flattened, grouping by the row indices and aggregating should
-                    # be equivalent to transposing the original frame and aggregating
+                    # This flattens the frame into a single 1D array while
+                    # keeping track of the row and column indices of the
+                    # original frame. Once flattened, grouping by the row
+                    # indices and aggregating should be equivalent to
+                    # transposing the original frame and aggregating
                     # with axis=0.
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
                     df = df.astype(dtype)
@@ -11772,8 +11848,8 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    # GroupBy will raise a warning with SeriesGroupBy as the object,
-                    # likely confusing users
+                    # GroupBy will raise a warning with SeriesGroupBy as the
+                    # object, likely confusing users.
                     with rewrite_warning(
                         target_message=(
                             f"The behavior of SeriesGroupBy.{name} with all-NA values"
@@ -11812,10 +11888,11 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """
-        Special case for _reduce to try to avoid a potentially-expensive transpose.
+        Special case for _reduce to try to avoid a potentially-expensive
+        transpose.
 
-        Apply the reduction block-wise along axis=1 and then reduce the resulting
-        1D arrays.
+        Apply the reduction block-wise along axis=1 and then reduce the
+        resulting 1D arrays.
         """
         if name == "all":
             result = np.ones(len(self), dtype=bool)
@@ -12048,18 +12125,21 @@ class DataFrame(NDFrame, OpsMixin):
             .. warning::
 
                 The behavior of DataFrame.sum with ``axis=None`` is deprecated,
-                in a future version this will reduce over both axes and return a scalar
-                To retain the old behavior, pass axis=0 (or do not pass axis).
+                in a future version this will reduce over both axes and return
+                a scalar. To retain the old behavior, pass axis=0 (or do not 
+                pass axis).
 
             .. versionadded:: 2.0.0
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
-            Include only float, int, boolean columns. Not implemented for Series.
+            Include only float, int, boolean columns. Not implemented for
+            Series.
         min_count : int, default 0
-            The required number of valid values to perform the operation. If fewer than
-            ``min_count`` non-NA values are present the result will be NA.
+            The required number of valid values to perform the operation. If
+            fewer than ``min_count`` non-NA values are present the result will
+            be NA.
         **kwargs
             Additional keyword arguments to be passed to the function.
 
@@ -12072,8 +12152,10 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         Series.sum : Return the sum over Series values.
         DataFrame.mean : Return the mean of the values over the requested axis.
-        DataFrame.median : Return the median of the values over the requested axis.
-        DataFrame.mode : Get the mode(s) of each element along the requested axis.
+        DataFrame.median : Return the median of the values over the requested
+            axis.
+        DataFrame.mode : Get the mode(s) of each element along the requested
+            axis.
         DataFrame.std : Return the standard deviation of the values over the
             requested axis.
 
@@ -12100,8 +12182,9 @@ class DataFrame(NDFrame, OpsMixin):
         >>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
         0.0
 
-        This can be controlled with the ``min_count`` parameter. For example, if
-        you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+        This can be controlled with the ``min_count`` parameter. For example,
+        if you'd like the sum of an empty series to be NaN, pass
+        ``min_count=1``.
 
         >>> pd.Series([], dtype="float64").sum(min_count=1)
         nan
@@ -12146,20 +12229,23 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. warning::
 
-                The behavior of DataFrame.prod with ``axis=None`` is deprecated,
-                in a future version this will reduce over both axes and return a scalar
-                To retain the old behavior, pass axis=0 (or do not pass axis).
+                The behavior of DataFrame.prod with ``axis=None`` is
+                deprecated, in a future version this will reduce over both axes
+                and return a scalar. To retain the old behavior, pass axis=0
+                (or do not pass axis).
 
             .. versionadded:: 2.0.0
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
-            Include only float, int, boolean columns. Not implemented for Series.
+            Include only float, int, boolean columns. Not implemented for
+            Series.
 
         min_count : int, default 0
-            The required number of valid values to perform the operation. If fewer than
-            ``min_count`` non-NA values are present the result will be NA.
+            The required number of valid values to perform the operation. If
+            fewer than ``min_count`` non-NA values are present the result will
+            be NA.
         **kwargs
             Additional keyword arguments to be passed to the function.
 
@@ -12178,8 +12264,10 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.sum : Return the sum over the requested axis.
         DataFrame.min : Return the minimum over the requested axis.
         DataFrame.max : Return the maximum over the requested axis.
-        DataFrame.idxmin : Return the index of the minimum over the requested axis.
-        DataFrame.idxmax : Return the index of the maximum over the requested axis.
+        DataFrame.idxmin : Return the index of the minimum over the requested
+          axis.
+        DataFrame.idxmax : Return the index of the maximum over the requested
+          axis.
 
         Examples
         --------
@@ -12353,7 +12441,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return unbiased standard error of the mean over requested axis.
 
-        Normalized by N-1 by default. This can be changed using the ddof argument
+        Normalized by N-1 by default. This can be changed using the ddof
+        argument
 
         Parameters
         ----------
@@ -12363,17 +12452,19 @@ class DataFrame(NDFrame, OpsMixin):
             .. warning::
 
                 The behavior of DataFrame.sem with ``axis=None`` is deprecated,
-                in a future version this will reduce over both axes and return a scalar
-                To retain the old behavior, pass axis=0 (or do not pass axis).
+                in a future version this will reduce over both axes and return
+                a scalar To retain the old behavior, pass axis=0 (or do not
+                pass axis).
 
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
         ddof : int, default 1
-            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
-            where N represents the number of elements.
+            Delta Degrees of Freedom. The divisor used in calculations is N -
+            ddof, where N represents the number of elements.
         numeric_only : bool, default False
-            Include only float, int, boolean columns. Not implemented for Series.
+            Include only float, int, boolean columns. Not implemented for
+            Series.
         **kwargs :
             Additional keywords passed.
 
@@ -12483,17 +12574,19 @@ class DataFrame(NDFrame, OpsMixin):
             .. warning::
 
                 The behavior of DataFrame.var with ``axis=None`` is deprecated,
-                in a future version this will reduce over both axes and return a scalar
-                To retain the old behavior, pass axis=0 (or do not pass axis).
+                in a future version this will reduce over both axes and return
+                a scalar. To retain the old behavior, pass axis=0 (or do not
+                pass axis).
 
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
         ddof : int, default 1
-            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
-            where N represents the number of elements.
+            Delta Degrees of Freedom. The divisor used in calculations is N -
+            ddof, where N represents the number of elements.
         numeric_only : bool, default False
-            Include only float, int, boolean columns. Not implemented for Series.
+            Include only float, int, boolean columns. Not implemented for
+            Series.
         **kwargs :
             Additional keywords passed.
 
@@ -12592,7 +12685,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return sample standard deviation over requested axis.
 
-        Normalized by N-1 by default. This can be changed using the ddof argument.
+        Normalized by N-1 by default. This can be changed using the ddof
+        argument.
 
         Parameters
         ----------
@@ -12602,17 +12696,19 @@ class DataFrame(NDFrame, OpsMixin):
             .. warning::
 
                 The behavior of DataFrame.std with ``axis=None`` is deprecated,
-                in a future version this will reduce over both axes and return a scalar
-                To retain the old behavior, pass axis=0 (or do not pass axis).
+                in a future version this will reduce over both axes and return
+                a scalar. To retain the old behavior, pass axis=0 (or do not
+                pass axis).
 
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
         ddof : int, default 1
-            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
-            where N represents the number of elements.
+            Delta Degrees of Freedom. The divisor used in calculations is N -
+            ddof, where N represents the number of elements.
         numeric_only : bool, default False
-            Include only float, int, boolean columns. Not implemented for Series.
+            Include only float, int, boolean columns. Not implemented for
+            Series.
         **kwargs : dict
             Additional keyword arguments to be passed to the function.
 
@@ -12625,8 +12721,10 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         Series.std : Return standard deviation over Series values.
         DataFrame.mean : Return the mean of the values over the requested axis.
-        DataFrame.median : Return the median of the values over the requested axis.
-        DataFrame.mode : Get the mode(s) of each element along the requested axis.
+        DataFrame.median : Return the median of the values over the requested
+          axis.
+        DataFrame.mode : Get the mode(s) of each element along the requested
+          axis.
         DataFrame.sum : Return the sum of the values over the requested axis.
 
         Notes
@@ -12987,7 +13085,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
-            Series with counts of unique values per row or column, depending on `axis`.
+            Series with counts of unique values per row or column, depending
+            on `axis`.
 
         See Also
         --------
@@ -13021,7 +13120,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         axis : {{0 or 'index', 1 or 'columns'}}, default 0
-            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for
+            column-wise.
         skipna : bool, default True
             Exclude NA/null values. If the entire DataFrame is NA,
             or if ``skipna=False`` and there is an NA value, this method
@@ -13076,7 +13176,8 @@ class DataFrame(NDFrame, OpsMixin):
         co2_emissions    Wheat Products
         dtype: object
 
-        To return the index for the minimum value in each row, use ``axis="columns"``.
+        To return the index for the minimum value in each row, use 
+        ``axis="columns"``.
 
         >>> df.idxmin(axis="columns")
         Pork                consumption
@@ -13128,7 +13229,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         axis : {{0 or 'index', 1 or 'columns'}}, default 0
-            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for
+            column-wise.
         skipna : bool, default True
             Exclude NA/null values. If the entire DataFrame is NA,
             or if ``skipna=False`` and there is an NA value, this method
@@ -13183,7 +13285,8 @@ class DataFrame(NDFrame, OpsMixin):
         co2_emissions             Beef
         dtype: object
 
-        To return the index for the maximum value in each row, use ``axis="columns"``.
+        To return the index for the maximum value in each row, use
+        ``axis="columns"``.
 
         >>> df.idxmax(axis="columns")
         Pork              co2_emissions
@@ -13395,9 +13498,9 @@ class DataFrame(NDFrame, OpsMixin):
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
         method : {'single', 'table'}, default 'single'
-            Whether to compute quantiles per-column ('single') or over all columns
-            ('table'). When 'table', the only allowed interpolation methods are
-            'nearest', 'lower', and 'higher'.
+            Whether to compute quantiles per-column ('single') or over all
+            columns ('table'). When 'table', the only allowed interpolation
+            methods are 'nearest', 'lower', and 'higher'.
 
         Returns
         -------
@@ -13459,9 +13562,11 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         if not is_list_like(q):
-            # BlockManager.quantile expects listlike, so we wrap and unwrap here
-            # error: List item 0 has incompatible type "float | ExtensionArray |
-            # ndarray[Any, Any] | Index | Series | Sequence[float]"; expected "float"
+            # BlockManager.quantile expects listlike, so we wrap and unwrap
+            # here.
+            # error: List item 0 has incompatible type "float | ExtensionArray
+            # | ndarray[Any, Any] | Index | Series | Sequence[float]"; expected
+            # "float"
             res_df = self.quantile(
                 [q],  # type: ignore[list-item]
                 axis=axis,
@@ -13547,9 +13652,11 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
-        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
+        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of
+        period.
 
-        This can be changed to the *end* of the period, by specifying `how="e"`.
+        This can be changed to the *end* of the period, by specifying
+        `how="e"`.
 
         Parameters
         ----------
@@ -13568,12 +13675,13 @@ class DataFrame(NDFrame, OpsMixin):
                 `Copy-on-Write
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+                `copy` keyword will use a lazy copy mechanism to defer the
+                copy and ignore the `copy` keyword. The `copy` keyword will be
+                removed in a future version of pandas.
 
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+                You can already get the future behavior and improvements
+                through enabling copy on write
+                ``pd.options.mode.copy_on_write = True``
 
             .. deprecated:: 3.0.0
 
@@ -13584,7 +13692,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        DataFrame.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
+        DataFrame.to_period: Inverse method to cast DatetimeIndex to
+          PeriodIndex.
         Series.to_timestamp: Equivalent method for Series.
 
         Examples
@@ -13597,7 +13706,8 @@ class DataFrame(NDFrame, OpsMixin):
         2023     1      3
         2024	 2      4
 
-        The resulting timestamps will be at the beginning of the year in this case
+        The resulting timestamps will be at the beginning of the year in this
+        case.
 
         >>> df1 = df1.to_timestamp()
         >>> df1
@@ -13641,8 +13751,8 @@ class DataFrame(NDFrame, OpsMixin):
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed). Either index of columns can be
-        converted, depending on `axis` argument.
+        frequency (inferred from index if not passed). Either index of columns
+        can be converted, depending on `axis` argument.
 
         Parameters
         ----------
@@ -13658,12 +13768,13 @@ class DataFrame(NDFrame, OpsMixin):
                 `Copy-on-Write
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+                `copy` keyword will use a lazy copy mechanism to defer the copy
+                and ignore the `copy` keyword. The `copy` keyword will be
+                removed in a future version of pandas.
 
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+                You can already get the future behavior and improvements
+                through enabling copy on write
+                ``pd.options.mode.copy_on_write = True``
 
             .. deprecated:: 3.0.0
 
@@ -13740,8 +13851,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-            ``__iter__`` is used (and not ``__contains__``) to iterate over values
-            when checking if it contains the elements in DataFrame.
+            ``__iter__`` is used (and not ``__contains__``) to iterate over
+            values when checking if it contains the elements in DataFrame.
 
         Examples
         --------
@@ -13761,7 +13872,8 @@ class DataFrame(NDFrame, OpsMixin):
         falcon      True       True
         dog        False       True
 
-        To check if ``values`` is *not* in the DataFrame, use the ``~`` operator:
+        To check if ``values`` is *not* in the DataFrame, use the ``~``
+        operator:
 
         >>> ~df.isin([0, 2])
                 num_legs  num_wings
@@ -13816,10 +13928,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             def isin_(x):
-                # error: Argument 2 to "isin" has incompatible type "Union[Series,
-                # DataFrame, Sequence[Any], Mapping[Any, Any]]"; expected
-                # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]], Index,
-                # Series], List[Any], range]"
+                # error: Argument 2 to "isin" has incompatible type
+                # "Union[Series, DataFrame, Sequence[Any], Mapping[Any, Any]]";
+                # expected "Union[Union[Union[ExtensionArray,
+                # ndarray[Any, Any]], Index, Series], List[Any], range]"
                 result = algorithms.isin(
                     x.ravel(),
                     values,  # type: ignore[arg-type]
@@ -13851,9 +13963,9 @@ class DataFrame(NDFrame, OpsMixin):
         The index (row labels) of the DataFrame.
 
         The index of a DataFrame is a series of labels that identify each row.
-        The labels can be integers, strings, or any other hashable type. The index
-        is used for label-based access and alignment, and can be accessed or
-        modified using this attribute.
+        The labels can be integers, strings, or any other hashable type. The
+        index is used for label-based access and alignment, and can be accessed
+        or modified using this attribute.
 
         Returns
         -------
@@ -13875,9 +13987,10 @@ class DataFrame(NDFrame, OpsMixin):
         Index([10, 20, 30], dtype='int64')
 
         In this example, we create a DataFrame with 3 rows and 3 columns,
-        including Name, Age, and Location information. We set the index labels to
-        be the integers 10, 20, and 30. We then access the `index` attribute of the
-        DataFrame, which returns an `Index` object containing the index labels.
+        including Name, Age, and Location information. We set the index labels
+        to be the integers 10, 20, and 30. We then access the `index` attribute
+        of the DataFrame, which returns an `Index` object containing the index
+        labels.
 
         >>> df.index = [100, 200, 300]
         >>> df
@@ -13886,9 +13999,10 @@ class DataFrame(NDFrame, OpsMixin):
         200    Bob   30 New York
         300  Aritra  35    Kona
 
-        In this example, we modify the index labels of the DataFrame by assigning
-        a new list of labels to the `index` attribute. The DataFrame is then
-        updated with the new labels, and the output shows the modified DataFrame.
+        In this example, we modify the index labels of the DataFrame by
+        assigning a new list of labels to the `index` attribute. The DataFrame
+        is then updated with the new labels, and the output shows the modified
+        DataFrame.
         """,
     )
     columns = properties.AxisProperty(
@@ -13898,7 +14012,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         This property holds the column names as a pandas ``Index`` object.
         It provides an immutable sequence of column labels that can be
-        used for data selection, renaming, and alignment in DataFrame operations.
+        used for data selection, renaming, and alignment in DataFrame
+        operations.
 
         Returns
         -------
