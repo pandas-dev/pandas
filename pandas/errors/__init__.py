@@ -98,7 +98,10 @@ class PandasChangeWarning(Warning):
 
     See Also
     --------
-    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
     errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
@@ -119,7 +122,9 @@ class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWar
 
     See Also
     --------
-    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
     errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
@@ -135,7 +140,9 @@ class PandasDeprecationWarning(PandasChangeWarning, DeprecationWarning):
 
     See Also
     --------
-    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
     errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
@@ -151,7 +158,11 @@ class PandasFutureWarning(PandasChangeWarning, FutureWarning):
 
     See Also
     --------
-    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
 
     Examples
     --------
@@ -166,6 +177,11 @@ class Pandas4Warning(PandasDeprecationWarning):
 
     See Also
     --------
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
     errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples
@@ -186,7 +202,11 @@ class Pandas5Warning(PandasPendingDeprecationWarning):
 
     See Also
     --------
-    errors.Pandas4Warning : Class for deprecations to be enforced in pandas 4.0.
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
     errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
 
     Examples

@@ -55,8 +55,8 @@ def test_four_arguments():
 
 def test_three_arguments_with_name_in_warning():
     msg = (
-        "Starting with pandas version 4.0 all arguments of f_add_inputs "
-        "except for the arguments 'a' and 'b' will be keyword-only."
+        f"Starting with pandas version {WARNING_CATEGORY.version()} all arguments of "
+        "f_add_inputs except for the arguments 'a' and 'b' will be keyword-only."
     )
     with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         assert f(6, 3, 3) == 12
@@ -84,7 +84,7 @@ def test_three_arguments_default_allowed_args():
 
 def test_three_positional_argument_with_warning_message_analysis():
     msg = (
-        "Starting with pandas version 4.0 all arguments of g "
+        f"Starting with pandas version {WARNING_CATEGORY.version()} all arguments of g "
         "except for the argument 'a' will be keyword-only."
     )
     with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
@@ -111,7 +111,10 @@ def test_one_positional_argument():
 
 
 def test_one_positional_argument_with_warning_message_analysis():
-    msg = "Starting with pandas version 4.0 all arguments of h will be keyword-only."
+    msg = (
+        f"Starting with pandas version {WARNING_CATEGORY.version()} all arguments "
+        "of h will be keyword-only."
+    )
     with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         assert h(19) == 19
 
@@ -141,8 +144,8 @@ def test_foo_signature():
 
 def test_class():
     msg = (
-        r"Starting with pandas version 4.0 all arguments of Foo\.baz "
-        r"except for the argument \'bar\' will be keyword-only"
+        rf"Starting with pandas version {WARNING_CATEGORY.version()} all arguments "
+        r"of Foo\.baz except for the argument \'bar\' will be keyword-only"
     )
     with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         Foo().baz("qux", "quox")
