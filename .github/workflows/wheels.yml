@@ -100,7 +100,7 @@ jobs:
         - [macos-14, macosx_arm64]
         - [windows-2022, win_amd64]
         # TODO: support PyPy?
-        python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
+        python: [["cp39", "3.9"], ["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
         # TODO: Remove this plus installing build deps in cibw_before_build.sh
         # after pandas can be built with a released NumPy/Cython
