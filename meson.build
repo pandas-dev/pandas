@@ -2,7 +2,7 @@
 project(
     'pandas',
     'c', 'cpp', 'cython',
-    version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
+    version: '2.3.0',
     license: 'BSD-3',
     meson_version: '>=1.2.1',
     default_options: [
