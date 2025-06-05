@@ -436,7 +436,7 @@ def accessor_entry_point_loader() -> None:
 
     Examples
     --------
-    >>> df.myplugin.do_something()  # Assuming such accessor was registered
+    df.myplugin.do_something()   # Assuming such accessor was registered
     """
 
     ENTRY_POINT_GROUP: str = "pandas.accessor"
@@ -445,14 +445,19 @@ def accessor_entry_point_loader() -> None:
     accessor_package_dict: dict[str, str] = {}
 
     for new_accessor in accessors:
-        try:
-            new_pkg_name: str = new_accessor.dist.name
-        except AttributeError:
+        if new_accessor.dist is not None:
+            # Try to get new_accessor.dist.name,
+            # if that's not possible: new_pkg_name = 'Unknown'
+            new_pkg_name: str = getattr(new_accessor.dist, "name", "Unknown")
+        else:
             new_pkg_name: str = "Unknown"
 
         # Verifies duplicated accessor names
         if new_accessor.name in accessor_package_dict:
             loaded_pkg_name: str = accessor_package_dict.get(new_accessor.name)
+
+            if loaded_pkg_name is None:
+                loaded_pkg_name = "Unknown"
 
             warnings.warn(
                 "Warning: you have two accessors with the same name:"

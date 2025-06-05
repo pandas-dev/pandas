@@ -2,47 +2,73 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.accessor import accessor_entry_point_loader
 
-# TODO: test for pkg names
-
 PANDAS_ENTRY_POINT_GROUP: str = "pandas.accessor"
 
 
-def test_no_accessors(monkeypatch):
-    # GH29076
+def create_mock_entry_points(entry_points):
+    """
+    Auxiliary function to create mock entry points for testing accessor loading.
 
-    # Mock entry_points
+    Parameters:
+    -----------
+    entry_points : list of tuple
+        List of (name, accessor_class, dist_name) where:
+        - name: str, the name of the accessor
+        - accessor_class: class, the accessor class to be returned by load()
+        - dist_name: str, the name of the distribution (package)
+
+    Returns:
+    --------
+    function
+        A mock_entry_points function that returns the mocked entry points.
+    """
+
+    class MockDistribution:
+        def __init__(self, name):
+            self.name = name
+
+    class MockEntryPoint:
+        def __init__(self, name, accessor_class, dist_name):
+            self.name = name
+            self._accessor_class = accessor_class
+            self.dist = MockDistribution(dist_name)
+
+        def load(self):
+            return self._accessor_class
+
+    # Create list of MockEntryPoint instances
+    mock_eps = [
+        MockEntryPoint(name, accessor_class, dist_name)
+        for name, accessor_class, dist_name in entry_points
+    ]
+
     def mock_entry_points(*, group):
+        if group == PANDAS_ENTRY_POINT_GROUP:
+            return mock_eps
         return []
 
-    # Patch entry_points in the correct module
+    return mock_entry_points
+
+
+def test_no_accessors(monkeypatch):
+    # No entry points
+    mock_entry_points = create_mock_entry_points([])
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
     accessor_entry_point_loader()
 
 
 def test_load_dataframe_accessors(monkeypatch):
-    # GH29076
-    # Mocked EntryPoint to simulate a plugin
-    class MockEntryPoint:
-        name = "test_accessor"
+    class TestAccessor:
+        def __init__(self, df):
+            self._df = df
 
-        def load(self):
-            class TestAccessor:
-                def __init__(self, df):
-                    self._df = df
+        def test_method(self):
+            return "success"
 
-                def test_method(self):
-                    return "success"
-
-            return TestAccessor
-
-    # Mock entry_points
-    def mock_entry_points(*, group):
-        if group == PANDAS_ENTRY_POINT_GROUP:
-            return [MockEntryPoint()]
-        return []
-
-    # Patch entry_points in the correct module
+    mock_entry_points = create_mock_entry_points(
+        [("test_accessor", TestAccessor, "TestPackage")]
+    )
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
     accessor_entry_point_loader()
@@ -54,40 +80,26 @@ def test_load_dataframe_accessors(monkeypatch):
 
 
 def test_duplicate_accessor_names(monkeypatch):
-    # GH29076
-    # Create plugin
-    class MockEntryPoint1:
-        name = "duplicate_accessor"
+    class Accessor1:
+        def __init__(self, df):
+            self._df = df
 
-        def load(self):
-            class Accessor1:
-                def __init__(self, df):
-                    self._df = df
+        def which(self):
+            return "Accessor1"
 
-                def which(self):
-                    return "Accessor1"
+    class Accessor2:
+        def __init__(self, df):
+            self._df = df
 
-            return Accessor1
+        def which(self):
+            return "Accessor2"
 
-    # Create plugin
-    class MockEntryPoint2:
-        name = "duplicate_accessor"
-
-        def load(self):
-            class Accessor2:
-                def __init__(self, df):
-                    self._df = df
-
-                def which(self):
-                    return "Accessor2"
-
-            return Accessor2
-
-    def mock_entry_points(*, group):
-        if group == PANDAS_ENTRY_POINT_GROUP:
-            return [MockEntryPoint1(), MockEntryPoint2()]
-        return []
-
+    mock_entry_points = create_mock_entry_points(
+        [
+            ("duplicate_accessor", Accessor1, "Package1"),
+            ("duplicate_accessor", Accessor2, "Package2"),
+        ]
+    )
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
     # Check that the UserWarning is raised
@@ -99,44 +111,27 @@ def test_duplicate_accessor_names(monkeypatch):
 
     df = pd.DataFrame({"x": [1, 2, 3]})
     assert hasattr(df, "duplicate_accessor")
-    assert df.duplicate_accessor.which() in {"Accessor1", "Accessor2"}
+    assert df.duplicate_accessor.which() == "Accessor2"  # Last registered accessor
 
 
 def test_unique_accessor_names(monkeypatch):
-    # GH29076
-    # Create plugin
-    class MockEntryPoint1:
-        name = "accessor1"
+    class Accessor1:
+        def __init__(self, df):
+            self._df = df
 
-        def load(self):
-            class Accessor1:
-                def __init__(self, df):
-                    self._df = df
+        def which(self):
+            return "Accessor1"
 
-                def which(self):
-                    return "Accessor1"
+    class Accessor2:
+        def __init__(self, df):
+            self._df = df
 
-            return Accessor1
+        def which(self):
+            return "Accessor2"
 
-    # Create plugin
-    class MockEntryPoint2:
-        name = "accessor2"
-
-        def load(self):
-            class Accessor2:
-                def __init__(self, df):
-                    self._df = df
-
-                def which(self):
-                    return "Accessor2"
-
-            return Accessor2
-
-    def mock_entry_points(*, group):
-        if group == PANDAS_ENTRY_POINT_GROUP:
-            return [MockEntryPoint1(), MockEntryPoint2()]
-        return []
-
+    mock_entry_points = create_mock_entry_points(
+        [("accessor1", Accessor1, "Package1"), ("accessor2", Accessor2, "Package2")]
+    )
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
     # Check that no UserWarning is raised
@@ -146,59 +141,40 @@ def test_unique_accessor_names(monkeypatch):
     df = pd.DataFrame({"x": [1, 2, 3]})
     assert hasattr(df, "accessor1"), "Accessor1 not registered"
     assert hasattr(df, "accessor2"), "Accessor2 not registered"
+    
     assert df.accessor1.which() == "Accessor1", "Accessor1 method incorrect"
     assert df.accessor2.which() == "Accessor2", "Accessor2 method incorrect"
 
 
 def test_duplicate_and_unique_accessor_names(monkeypatch):
-    # GH29076
-    # Create plugin
-    class MockEntryPoint1:
-        name = "duplicate_accessor"
+    class Accessor1:
+        def __init__(self, df):
+            self._df = df
 
-        def load(self):
-            class Accessor1:
-                def __init__(self, df):
-                    self._df = df
+        def which(self):
+            return "Accessor1"
 
-                def which(self):
-                    return "Accessor1"
+    class Accessor2:
+        def __init__(self, df):
+            self._df = df
 
-            return Accessor1
+        def which(self):
+            return "Accessor2"
 
-    # Create plugin
-    class MockEntryPoint2:
-        name = "duplicate_accessor"
+    class Accessor3:
+        def __init__(self, df):
+            self._df = df
 
-        def load(self):
-            class Accessor2:
-                def __init__(self, df):
-                    self._df = df
+        def which(self):
+            return "Accessor3"
 
-                def which(self):
-                    return "Accessor2"
-
-            return Accessor2
-
-    # Create plugin
-    class MockEntryPoint3:
-        name = "unique_accessor"
-
-        def load(self):
-            class Accessor3:
-                def __init__(self, df):
-                    self._df = df
-
-                def which(self):
-                    return "Accessor3"
-
-            return Accessor3
-
-    def mock_entry_points(*, group):
-        if group == PANDAS_ENTRY_POINT_GROUP:
-            return [MockEntryPoint1(), MockEntryPoint2(), MockEntryPoint3()]
-        return []
-
+    mock_entry_points = create_mock_entry_points(
+        [
+            ("duplicate_accessor", Accessor1, "Package1"),
+            ("duplicate_accessor", Accessor2, "Package2"),
+            ("unique_accessor", Accessor3, "Package3"),
+        ]
+    )
     monkeypatch.setattr("pandas.core.accessor.entry_points", mock_entry_points)
 
     # Capture warnings
@@ -222,10 +198,9 @@ def test_duplicate_and_unique_accessor_names(monkeypatch):
 
     df = pd.DataFrame({"x": [1, 2, 3]})
     assert hasattr(df, "duplicate_accessor"), "duplicate_accessor not registered"
-
     assert hasattr(df, "unique_accessor"), "unique_accessor not registered"
 
-    assert df.duplicate_accessor.which() in {"Accessor1", "Accessor2"}, (
-        "duplicate_accessor method incorrect"
+    assert df.duplicate_accessor.which() == "Accessor2", (
+        "duplicate_accessor should use Accessor2"
     )
     assert df.unique_accessor.which() == "Accessor3", "unique_accessor method incorrect"
