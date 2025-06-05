@@ -441,6 +441,16 @@ def main(
     For ``.md`` and ``.html`` files, render them with the context
     before copying them. ``.md`` files are transformed to HTML.
     """
+    # Sanity check: validate that versions.json is valid JSON
+    versions_path = os.path.join(source_path, "versions.json")
+    with open(versions_path, encoding="utf-8") as f:
+        try:
+            json.load(f)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(
+                f"Invalid versions.json: {e}. Ensure it is valid JSON."
+            ) from e
+
     config_fname = os.path.join(source_path, "config.yml")
 
     shutil.rmtree(target_path, ignore_errors=True)
