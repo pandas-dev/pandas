@@ -347,7 +347,7 @@ __all__ = [
     "wide_to_long",
 ]
 
-from .core.accessor import AccessorEntryPointLoader
+from .core.accessor import accessor_entry_point_loader
 
-AccessorEntryPointLoader.load()
-del AccessorEntryPointLoader
+accessor_entry_point_loader()
+del accessor_entry_point_loader

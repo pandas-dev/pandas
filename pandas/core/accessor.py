@@ -26,7 +26,10 @@ if TYPE_CHECKING:
     from pandas import Index
     from pandas.core.generic import NDFrame
 
-from importlib.metadata import entry_points
+from importlib.metadata import (
+    EntryPoints,
+    entry_points,
+)
 
 
 class DirNamesMixin:
@@ -398,44 +401,78 @@ def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
     return _register_accessor(name, Index)
 
 
-class AccessorEntryPointLoader:  # is this a good name for the class?
-    """Loader class for registering accessors via entry points."""
+def accessor_entry_point_loader() -> None:
+    """
+    Load and register pandas accessors declared via entry points.
 
-    ENTRY_POINT_GROUP: str = "pandas_accessor"
+    This function scans the 'pandas.accessor' entry point group for accessors
+    registered by third-party packages. Each entry point is expected to follow
+    the format:
 
-    @classmethod
-    def load(cls) -> None:
-        """loads and registers accessors defined by 'pandas_accessor'."""
-        accessors = entry_points(group=cls.ENTRY_POINT_GROUP)
-        unique_accessors_names: set[str] = set()
+        TODO
 
-        for accessor in accessors:
-            # Verifies duplicated accessor names
-            if accessor.name in unique_accessors_names:
-                try:
-                    pkg_name: str = accessor.dist.name
-                except Exception:
-                    pkg_name = "unknown"
-                warnings.warn(
-                    "Warning: you have two accessors with the same name:"
-                    f" '{accessor.name}' has already been registered"
-                    f" by the package '{pkg_name}'. So the '{accessor.name}' "
-                    f"provided by the package '{pkg_name}' is not "
-                    f"being used. Uninstall the package you don't want"
-                    "to use if you want to get rid of this warning.\n",
-                    UserWarning,
-                    stacklevel=2,
-                )
+    For example:
 
-            else:
-                unique_accessors_names.add(accessor.name)
+        TODO
+        TODO
+        TODO
 
-            def make_property(ep):
-                def accessor(self) -> Any:
-                    cls_ = ep.load()
-                    return cls_(self)
 
-                return accessor
+    For each valid entry point:
+    - The accessor class is dynamically imported and registered using
+      the appropriate registration decorator function
+      (e.g. register_dataframe_accessor).
+    - If two packages declare the same accessor name, a warning is issued,
+      and only the first one is used.
 
-            # _register_accessor()
-            register_dataframe_accessor(accessor.name)(make_property(accessor))
+    Notes
+    -----
+    - This function is only intended to be called at pandas startup.
+
+    Raises
+    ------
+    UserWarning
+        If two accessors share the same name, the second one is ignored.
+
+    Examples
+    --------
+    >>> df.myplugin.do_something()  # Assuming such accessor was registered
+    """
+
+    ENTRY_POINT_GROUP: str = "pandas.accessor"
+
+    accessors: EntryPoints = entry_points(group=ENTRY_POINT_GROUP)
+    accessor_package_dict: dict[str, str] = {}
+
+    for new_accessor in accessors:
+        try:
+            new_pkg_name: str = new_accessor.dist.name
+        except AttributeError:
+            new_pkg_name: str = "Unknown"
+
+        # Verifies duplicated accessor names
+        if new_accessor.name in accessor_package_dict:
+            loaded_pkg_name: str = accessor_package_dict.get(new_accessor.name)
+
+            warnings.warn(
+                "Warning: you have two accessors with the same name:"
+                f" '{new_accessor.name}' has already been registered"
+                f" by the package '{new_pkg_name}'. So the "
+                f"'{new_accessor.name}' provided by the package "
+                f"'{loaded_pkg_name}' is not being used. "
+                "Uninstall the package you don't want"
+                "to use if you want to get rid of this warning.\n",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        accessor_package_dict.update({new_accessor.name: new_pkg_name})
+
+        def make_accessor(ep):
+            def accessor(self) -> Any:
+                cls_ = ep.load()
+                return cls_(self)
+
+            return accessor
+
+        register_dataframe_accessor(new_accessor.name)(make_accessor(new_accessor))
