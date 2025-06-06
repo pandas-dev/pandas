@@ -834,7 +834,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.transform` and :meth:`SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
 - Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
-- Bug in :meth:`Series.resample` could raise when the the date range ended shortly before a non-existent time. (:issue:`58380`)
+- Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
 
 Reshaping
 ^^^^^^^^^
@@ -852,6 +852,7 @@ Reshaping
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
 - Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index = True`` drops the series name (:issue:`60723`, :issue:`56257`)
 - Bug in :func:`melt` where calling with duplicate column names in ``id_vars`` raised a misleading ``AttributeError`` (:issue:`61475`)
+- Bug in :meth:`DataFrame.merge` where user-provided suffixes could result in duplicate column names if the resulting names matched existing columns. Now raises a :class:`MergeError` in such cases. (:issue:`61402`)
 
 Sparse
 ^^^^^^
