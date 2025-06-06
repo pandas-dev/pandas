@@ -442,10 +442,12 @@ class TestBase:
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
 
-        if using_infer_string and (
-            index.dtype == "string" or index.dtype == "category"  # noqa: PLR1714
-        ):
-            msg = "loc must be an integer between"
+        if using_infer_string:
+            if index.dtype == "string" or index.dtype == "category":  # noqa: PLR1714
+                msg = "loc must be an integer between"
+            elif index.dtype == "object" and len(index) == 0:
+                msg = "loc must be an integer between"
+                err = TypeError
 
         with pytest.raises(err, match=msg):
             index.insert(0.5, "foo")
