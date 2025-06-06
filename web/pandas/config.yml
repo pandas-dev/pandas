@@ -82,15 +82,11 @@ maintainers:
   - simonjayhawkins
   - topper-123
   - alimcmaster1
-  - bashtage
   - Dr-Irv
   - rhshadrach
   - phofl
   - attack68
   - fangchenli
-  - lithomas1
-  - lukemanley
-  - noatamir
   inactive:
   - lodagro
   - jseabold
@@ -108,6 +104,10 @@ maintainers:
   - mzeitlin11
   - twoertwein
   - MarcoGorelli
+  - bashtage
+  - noatamir
+  - lithomas1
+  - lukemanley
 workgroups:
   coc:
     name: Code of Conduct
