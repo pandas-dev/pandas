@@ -1039,7 +1039,7 @@ Missing
 ^^^^^^^
 - Calling :meth:`fillna` on an empty :class:`Series` now correctly returns a shallow copied object. The behaviour is now consistent with :class:`Index`, :class:`DataFrame` and a non-empty :class:`Series` (:issue:`32543`).
 - Bug in :meth:`Series.replace` when argument ``to_replace`` is of type dict/list and is used on a :class:`Series` containing ``<NA>`` was raising a ``TypeError``. The method now handles this by ignoring ``<NA>`` values when doing the comparison for the replacement (:issue:`32621`)
-- Bug in :meth:`~Series.any` and :meth:`~Series.all` incorrectly returning ``<NA>`` for all ``False`` or all ``True`` values using the nulllable Boolean dtype and with ``skipna=False`` (:issue:`33253`)
+- Bug in :meth:`~Series.any` and :meth:`~Series.all` incorrectly returning ``<NA>`` for all ``False`` or all ``True`` values using the nullable Boolean dtype and with ``skipna=False`` (:issue:`33253`)
 - Clarified documentation on interpolate with ``method=akima``. The ``der`` parameter must be scalar or ``None`` (:issue:`33426`)
 - :meth:`DataFrame.interpolate` uses the correct axis convention now. Previously interpolating along columns lead to interpolation along indices and vice versa. Furthermore interpolating with methods ``pad``, ``ffill``, ``bfill`` and ``backfill`` are identical to using these methods with :meth:`DataFrame.fillna` (:issue:`12918`, :issue:`29146`)
 - Bug in :meth:`DataFrame.interpolate` when called on a :class:`DataFrame` with column names of string type was throwing a ValueError. The method is now independent of the type of the column names (:issue:`33956`)

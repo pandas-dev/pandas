@@ -1666,7 +1666,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Parameters
         ----------
         dtype : np.dtype or None
-            Specifies the the dtype for the array.
+            Specifies the dtype for the array.
 
         copy : bool or None, optional
             See :func:`numpy.asarray`.

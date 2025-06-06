@@ -319,7 +319,7 @@ to the original data.
 
 In the example, the ``warm_up_all_days`` function computes the ``max`` like an aggregation, but instead
 of returning just the maximum value, it returns a ``DataFrame`` with the same shape as the original one
-with the values of each day replaced by the the maximum temperature of the city.
+with the values of each day replaced by the maximum temperature of the city.
 
 ``transform`` is also available for :meth:`SeriesGroupBy.transform`, :meth:`DataFrameGroupBy.transform` and
 :meth:`Resampler.transform`, where it's more common. You can read more about ``transform`` in groupby

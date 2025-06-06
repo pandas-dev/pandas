@@ -1345,7 +1345,7 @@ def test_ea_dtypes(any_numeric_ea_dtype, parser):
     assert equalize_decl(result).strip() == expected
 
 
-def test_unsuported_compression(parser, geom_df):
+def test_unsupported_compression(parser, geom_df):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             geom_df.to_xml(path, parser=parser, compression="7z")
