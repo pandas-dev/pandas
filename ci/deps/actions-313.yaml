@@ -16,7 +16,7 @@ dependencies:
   - pytest-xdist>=3.4.0
   - pytest-localserver>=0.8.1
   - pytest-qt>=4.4.0
-  - boto3>=1.27.0
+  - boto3=1.37.3
 
   # required dependencies
   - python-dateutil
