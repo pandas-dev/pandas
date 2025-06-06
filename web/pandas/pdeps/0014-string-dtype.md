@@ -220,7 +220,7 @@ in pandas 2.3 and removed in pandas 3.0.
 
 The `storage` keyword of `StringDtype` is kept to disambiguate the underlying
 storage of the string data (using pyarrow or python objects), but an additional
-`na_value` is introduced to disambiguate the variants using NA semantics and 
+`na_value` is introduced to disambiguate the variants using NA semantics and
 NaN semantics.
 
 Overview of the different ways to specify a dtype and the resulting concrete
