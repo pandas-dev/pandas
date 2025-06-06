@@ -10406,7 +10406,6 @@ class DataFrame(NDFrame, OpsMixin):
             consistent list-like objects (e.g., an empty dict {}) for missing or
             NaN-like values.
 
-
             * 'reduce' : returns a Series if possible rather than expanding
               list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
