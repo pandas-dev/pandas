@@ -1725,11 +1725,11 @@ def test_is_monotonic_pyarrow_list_type():
     [
         "string[python]",
         pytest.param(
-            pd.StringDtype(storage="pyarrow", na_value=pd.NA),
+            "string[pyarrow]",
             marks=td.skip_if_no("pyarrow"),
         ),
         pytest.param(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan),
+            "str",
             marks=td.skip_if_no("pyarrow"),
         ),
     ],
@@ -1748,11 +1748,11 @@ def test_index_equals_different_string_dtype(dtype):
     [
         "string[python]",
         pytest.param(
-            pd.StringDtype(storage="pyarrow", na_value=pd.NA),
+            "string[pyarrow]",
             marks=td.skip_if_no("pyarrow"),
         ),
         pytest.param(
-            pd.StringDtype(storage="pyarrow", na_value=np.nan),
+            "str",
             marks=td.skip_if_no("pyarrow"),
         ),
     ],
