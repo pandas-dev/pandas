@@ -32,9 +32,6 @@ enhancement1
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- :func:`pandas.merge` propagates the ``attrs`` attribute to the result if all
-  inputs have identical ``attrs``, as has so far already been the case for
-  :func:`pandas.concat`.
 - :meth:`pandas.api.interchange.from_dataframe` now uses the `PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_ if available, only falling back to the Dataframe Interchange Protocol if that fails (:issue:`60739`)
 - The semantics for the ``copy`` keyword in ``__array__`` methods (i.e. called
   when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
