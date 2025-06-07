@@ -1005,6 +1005,9 @@ cdef class SingleConstructorOffset(BaseOffset):
 # Tick Offsets
 
 cdef class Tick(SingleConstructorOffset):
+    """
+    Represents ticks
+    """
     _adjust_dst = False
     _prefix = "undefined"
     _attributes = tuple(["n", "normalize"])
@@ -1878,6 +1881,14 @@ cdef class BusinessDay(BusinessMixin):
         elif "offset" in state:
             self._offset = state.pop("offset")
         self._cache = state.pop("_cache", {})
+
+    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
+        """
+        __init__(self, n=1, normalize=False, offset=timedelta(0))
+
+        This defines init
+        """
+        super().__init__(n, normalize, offset)
 
     def _offset_str(self) -> str:
         def get_str(td):
@@ -5108,8 +5119,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\'"
-            f" instead.",
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
             )
@@ -5122,8 +5133,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
-                f"\'{_name}\'"
-                f" instead.",
+                f"\'{_name}\' "
+                f"instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
                 )

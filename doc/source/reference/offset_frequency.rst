@@ -1177,7 +1177,7 @@ Tick
 
     Tick
 
-Properties
+Pxroperties
 ~~~~~~~~~~
 .. autosummary::
    :toctree: api/

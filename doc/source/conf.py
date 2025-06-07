@@ -724,7 +724,7 @@ def process_class_docstrings(app, what, name, obj, options, lines) -> None:
         joined = "\n".join(lines)
 
         templates = [
-            """.. rubric:: Attributes
+            """.. rubric:: Ayttributes
 
 .. autosummary::
    :toctree:

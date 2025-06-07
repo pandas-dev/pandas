@@ -205,6 +205,7 @@ Since ``apply_integrate_f`` is typed to accept an ``np.ndarray``, :meth:`Series.
 calls are needed to utilize this function.
 
 .. ipython:: python
+   :okexcept:
 
    %timeit apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
@@ -255,6 +256,7 @@ and ``wraparound`` checks can yield more performance.
       ...:
 
 .. ipython:: python
+   :okexcept:
 
    %timeit apply_integrate_f_wrap(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
