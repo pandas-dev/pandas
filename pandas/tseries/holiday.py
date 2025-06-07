@@ -4,7 +4,10 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 from dateutil.relativedelta import (
@@ -169,6 +172,7 @@ class Holiday:
         start_date=None,
         end_date=None,
         days_of_week: tuple | None = None,
+        exclude_dates: list[Any] | None = None,
     ) -> None:
         """
         Parameters
@@ -193,6 +197,9 @@ class Holiday:
         days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
             Provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
             Monday=0,..,Sunday=6
+        exclude_dates : list of datetime-likes or
+                        single datetime-like, default None
+            Specific dates to exclude e.g. skipping a specific year's holiday
 
         Examples
         --------
@@ -257,6 +264,11 @@ class Holiday:
         self.observance = observance
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
+        self.exclude_dates = (
+            [Timestamp(ex) for ex in exclude_dates]
+            if exclude_dates is not None
+            else exclude_dates
+        )
 
     def __repr__(self) -> str:
         info = ""
@@ -328,6 +340,12 @@ class Holiday:
         holiday_dates = holiday_dates[
             (holiday_dates >= filter_start_date) & (holiday_dates <= filter_end_date)
         ]
+
+        if self.exclude_dates:
+            holiday_dates = DatetimeIndex(
+                [hd for hd in holiday_dates if hd not in self.exclude_dates]
+            )
+
         if return_name:
             return Series(self.name, index=holiday_dates)
         return holiday_dates

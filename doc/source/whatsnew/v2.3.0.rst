@@ -27,6 +27,7 @@ Other enhancements
 - :meth:`Series.str.decode` result now has :class:`StringDtype` when ``future.infer_string`` is True (:issue:`60709`)
 - :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with :class:`StringDtype`  (:issue:`60663`)
 - Improved ``repr`` of :class:`.NumpyExtensionArray` to account for NEP51 (:issue:`61085`)
+- The :class:`Holiday` has gained the constructor argument and field ``exclude_dates`` to exclude specific datetimes from a custom holiday calendar (:issue:`54382`)
 - The :meth:`Series.str.decode` has gained the argument ``dtype`` to control the dtype of the result (:issue:`60940`)
 - The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for :class:`StringDtype` columns (:issue:`60633`)
 - The :meth:`~Series.sum` reduction is now implemented for :class:`StringDtype` columns (:issue:`59853`)
