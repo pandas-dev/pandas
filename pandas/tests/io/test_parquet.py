@@ -325,7 +325,7 @@ def test_get_engine_auto_error_message():
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
         else:
-            match = "Missing optional dependency .pyarrow."
+            match = "Import .pyarrow failed."
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
 
