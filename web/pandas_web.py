@@ -45,6 +45,7 @@ import markdown
 from packaging import version
 import requests
 import yaml
+from markdown.extensions.toc import TocExtension
 
 api_token = os.environ.get("GITHUB_TOKEN")
 if api_token is not None:
@@ -497,7 +498,15 @@ def main(
                     )
                 else:
                     body = markdown.markdown(
-                        content, extensions=context["main"]["markdown_extensions"]
+                        content,
+                        extensions= [
+                            TocExtension(toc_depth="2-3", permalink=" #"),
+                            "tables",
+                            "fenced_code",
+                            "meta",
+                            "footnotes",
+                            "codehilite",
+                        ]
                     )
                 # Apply Bootstrap's table formatting manually
                 # Python-Markdown doesn't let us config table attributes by hand
