@@ -10378,6 +10378,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         func : function
             Function to apply to each column or row.
+
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Axis along which the function is applied:
 
@@ -10398,6 +10399,13 @@ class DataFrame(NDFrame, OpsMixin):
             These only act when ``axis=1`` (columns):
 
             * 'expand' : list-like results will be turned into columns.
+            Note: The output type is inferred from the first function return value.
+            If the first return value is not list-like (e.g., None or NaN), expansion
+            will not occur, and the result may be a Series instead of a DataFrame.
+            To avoid inconsistent output types, ensure your function returns
+            consistent list-like objects (e.g., an empty dict {}) for missing or
+            NaN-like values.
+
             * 'reduce' : returns a Series if possible rather than expanding
               list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
@@ -10408,6 +10416,7 @@ class DataFrame(NDFrame, OpsMixin):
             applied function: list-like results will be returned as a Series
             of those. However if the apply function returns a Series these
             are expanded to columns.
+
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
