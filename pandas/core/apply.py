@@ -72,7 +72,7 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
-_ResType: TypeAlias = dict[int, Any]
+ResType: TypeAlias = dict[int, Any]
 
 
 class BaseExecutionEngine(abc.ABC):
@@ -935,7 +935,7 @@ class FrameApply(NDFrameApply):
 
     @abc.abstractmethod
     def wrap_results_for_axis(
-        self, results: _ResType, res_index: Index
+        self, results: ResType, res_index: Index
     ) -> DataFrame | Series:
         pass
 
@@ -1164,7 +1164,7 @@ class FrameApply(NDFrameApply):
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self) -> tuple[_ResType, Index]:
+    def apply_series_generator(self) -> tuple[ResType, Index]:
         assert callable(self.func)
 
         series_gen = self.series_generator
@@ -1194,7 +1194,7 @@ class FrameApply(NDFrameApply):
         results = self.apply_with_numba()
         return results, self.result_index
 
-    def wrap_results(self, results: _ResType, res_index: Index) -> DataFrame | Series:
+    def wrap_results(self, results: ResType, res_index: Index) -> DataFrame | Series:
         from pandas import Series
 
         # see if we can infer the results
@@ -1290,7 +1290,7 @@ class FrameRowApply(FrameApply):
         return self.index
 
     def wrap_results_for_axis(
-        self, results: _ResType, res_index: Index
+        self, results: ResType, res_index: Index
     ) -> DataFrame | Series:
         """return the results for the rows"""
 
@@ -1434,7 +1434,7 @@ class FrameColumnApply(FrameApply):
         return self.columns
 
     def wrap_results_for_axis(
-        self, results: _ResType, res_index: Index
+        self, results: ResType, res_index: Index
     ) -> DataFrame | Series:
         """return the results for the columns"""
         result: DataFrame | Series
@@ -1454,7 +1454,7 @@ class FrameColumnApply(FrameApply):
 
         return result
 
-    def infer_to_same_shape(self, results: _ResType, res_index: Index) -> DataFrame:
+    def infer_to_same_shape(self, results: ResType, res_index: Index) -> DataFrame:
         """infer the results to the same shape as the input object"""
         result = self.obj._constructor(data=results)
         result = result.T

@@ -27,7 +27,7 @@ from pandas.io.formats.console import get_console_size
 
 if TYPE_CHECKING:
     from pandas._typing import ListLike
-_EscapeChars: TypeAlias = Mapping[str, str] | Iterable[str]
+EscapeChars: TypeAlias = Mapping[str, str] | Iterable[str]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
@@ -174,7 +174,7 @@ def _pprint_dict(
 def pprint_thing(
     thing: object,
     _nest_lvl: int = 0,
-    escape_chars: _EscapeChars | None = None,
+    escape_chars: EscapeChars | None = None,
     default_escapes: bool = False,
     quote_strings: bool = False,
     max_seq_items: int | None = None,
@@ -203,7 +203,7 @@ def pprint_thing(
     """
 
     def as_escaped_string(
-        thing: Any, escape_chars: _EscapeChars | None = escape_chars
+        thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
         if isinstance(escape_chars, Mapping):

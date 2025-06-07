@@ -23,7 +23,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-from pandas.io.pytables import _Term as Term
+from pandas.io.pytables import Term
 
 pytestmark = [pytest.mark.single_cpu]
 
