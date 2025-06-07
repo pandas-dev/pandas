@@ -353,3 +353,57 @@ def test_holidays_with_timezone_specified_but_no_occurences():
     expected_results.index = expected_results.index.as_unit("ns")
 
     tm.assert_equal(test_case, expected_results)
+
+
+def test_holiday_with_exclusion():
+    # GH 54382
+    start = Timestamp("2020-05-01")
+    end = Timestamp("2025-05-31")
+    exclude = [Timestamp("2022-05-30")]  # Queen's platinum Jubilee
+    default_uk_spring_bank_holiday: Holiday = Holiday(
+        "UK Spring Bank Holiday",
+        month=5,
+        day=31,
+        offset=DateOffset(weekday=MO(-1)),
+    )
+
+    queens_jubilee_uk_spring_bank_holiday: Holiday = Holiday(
+        "Queen's Jubilee UK Spring Bank Holiday",
+        month=5,
+        day=31,
+        offset=DateOffset(weekday=MO(-1)),
+        exclude_dates=exclude,
+    )
+
+    original_dates = list(default_uk_spring_bank_holiday.dates(start, end))
+    exclusion_dates = list(queens_jubilee_uk_spring_bank_holiday.dates(start, end))
+
+    assert all(ex in original_dates for ex in exclude)
+    assert all(ex not in exclusion_dates for ex in exclude)
+    assert set(exclusion_dates).issubset(original_dates)
+
+
+def test_holiday_with_multiple_exclusions():
+    start = Timestamp("2000-01-01")
+    end = Timestamp("2100-05-31")
+    exclude = [
+        Timestamp("2025-01-01"),
+        Timestamp("2042-01-01"),
+        Timestamp("2061-01-01"),
+    ]  # Yakudoshi new year
+    default_japan_new_year: Holiday = Holiday(
+        "Japan New Year",
+        month=1,
+        day=1,
+    )
+
+    yakudoshi_new_year: Holiday = Holiday(
+        "Yakudoshi New Year", month=1, day=1, exclude_dates=exclude
+    )
+
+    original_dates = list(default_japan_new_year.dates(start, end))
+    exclusion_dates = list(yakudoshi_new_year.dates(start, end))
+
+    assert all(ex in original_dates for ex in exclude)
+    assert all(ex not in exclusion_dates for ex in exclude)
+    assert set(exclusion_dates).issubset(original_dates)
