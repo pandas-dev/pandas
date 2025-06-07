@@ -38,9 +38,9 @@ The proposal introduces a new extension type, tentatively named `"object_nullabl
     - All operations on a nullable object array will return a pandas nullable array except where requested, such as `astype`. Methods like `fillna` would still return a nullable object array even though there are no missing values to avoid introducing mixed-propagation behavior.
     - Ensure compatibility with pandas functions, like groupby, concatenation, and merging, where the semantics of missing values are critical.
 4. **Transition and Interoperability**:
-    - Users should be able to convert from the legacy object dtype to object_nullable using a constructor or an explicit method (e.g., `pd.array(old_array, dtype="object_nullable")`) using the exisiting api.
+    - Users should be able to convert from the legacy object dtype to object_nullable using a constructor or an explicit method (e.g., `pd.array(old_array, dtype="object_nullable")`) using the existing api.
     - Operations on existing pandas nullable dtypes that would normally produce an object dtype should be updated (or made configurable as a transition path) to yield "object_nullable" in all cases even when missing values are not present to avoid introducing mixed-propagation behavior.
-    - `ArrowDType` does not offer an `object` dtype for hetrogeneous Python objects and therefore a user requesting arrow dtypes could be given "object_nullable" arrays where appropriate to avoid mixed `pd.NA`/`np.nan` semantics when using `dtype_backend="pyarrow"`.
+    - `ArrowDType` does not offer an `object` dtype for heterogeneous Python objects and therefore a user requesting arrow dtypes could be given "object_nullable" arrays where appropriate to avoid mixed `pd.NA`/`np.nan` semantics when using `dtype_backend="pyarrow"`.
 
 
 ### Implementation Considerations
