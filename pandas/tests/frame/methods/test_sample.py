@@ -137,6 +137,17 @@ class TestSample:
         with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=weights_with_ninf)
 
+    def test_sample_replacement_weight_sum(self, obj):
+        # GH#61516
+        weights_large_total = [1] * 10
+        weights_large_total[0] = 100
+        msg = (
+            "Invalid weights: If `replace`=False,"
+            " unit probabilities have to be less than 1"
+        )
+        with pytest.raises(ValueError, match=msg):
+            obj.sample(n=3, weights=weights_large_total, replace=False)
+
     def test_sample_zero_weights(self, obj):
         # All zeros raises errors
 
