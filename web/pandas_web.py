@@ -100,20 +100,17 @@ class Preprocessors:
         posts = []
         # posts from the file system
         if context["blog"]["posts_path"]:
-            posts_path = os.path.join(
-                context["source_path"], *context["blog"]["posts_path"].split("/")
+            posts_path = pathlib.Path(context["source_path"]) / pathlib.Path(
+                context["blog"]["posts_path"]
             )
-            for fname in os.listdir(posts_path):
-                if fname.startswith("index."):
+            for fname in posts_path.iterdir():
+                if fname.name.startswith("index."):
                     continue
-                link = (
-                    f"/{context['blog']['posts_path']}"
-                    f"/{os.path.splitext(fname)[0]}.html"
-                )
+                link = f"/{context['blog']['posts_path']}/{fname.stem}.html"
                 md = markdown.Markdown(
                     extensions=context["main"]["markdown_extensions"]
                 )
-                with open(os.path.join(posts_path, fname), encoding="utf-8") as f:
+                with fname.open(encoding="utf-8") as f:
                     html = md.convert(f.read())
                 title = md.Meta["title"][0]
                 summary = re.sub(tag_expr, "", html)
@@ -394,7 +391,7 @@ def get_context(config_fname: str, **kwargs):
     with open(config_fname, encoding="utf-8") as f:
         context = yaml.safe_load(f)
 
-    context["source_path"] = os.path.dirname(config_fname)
+    context["source_path"] = pathlib.Path(config_fname).parent
     context.update(kwargs)
 
     preprocessors = (
@@ -414,9 +411,9 @@ def get_source_files(source_path: str) -> typing.Generator[str, None, None]:
     Generate the list of files present in the source directory.
     """
     for root, dirs, fnames in os.walk(source_path):
-        root_rel_path = os.path.relpath(root, source_path)
+        root_rel_path = pathlib.Path(root).relative_to(source_path)
         for fname in fnames:
-            yield os.path.join(root_rel_path, fname)
+            yield str(root_rel_path / fname)
 
 
 def extend_base_template(content: str, base_template: str) -> str:
@@ -442,8 +439,8 @@ def main(
     before copying them. ``.md`` files are transformed to HTML.
     """
     # Sanity check: validate that versions.json is valid JSON
-    versions_path = os.path.join(source_path, "versions.json")
-    with open(versions_path, encoding="utf-8") as f:
+    versions_path = pathlib.Path(source_path) / "versions.json"
+    with versions_path.open(encoding="utf-8") as f:
         try:
             json.load(f)
         except json.JSONDecodeError as e:
@@ -451,7 +448,7 @@ def main(
                 f"Invalid versions.json: {e}. Ensure it is valid JSON."
             ) from e
 
-    config_fname = os.path.join(source_path, "config.yml")
+    config_fname = pathlib.Path(source_path) / "config.yml"
 
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
@@ -460,20 +457,19 @@ def main(
     context = get_context(config_fname, target_path=target_path)
     sys.stderr.write("Context generated\n")
 
-    templates_path = os.path.join(source_path, context["main"]["templates_path"])
+    templates_path = pathlib.Path(source_path) / context["main"]["templates_path"]
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
     for fname in get_source_files(source_path):
-        if os.path.normpath(fname) in context["main"]["ignore"]:
+        if str(pathlib.Path(fname)) in context["main"]["ignore"]:
             continue
-
         sys.stderr.write(f"Processing {fname}\n")
-        dirname = os.path.dirname(fname)
-        os.makedirs(os.path.join(target_path, dirname), exist_ok=True)
+        dirname = pathlib.Path(fname).parent
+        (target_path / dirname).mkdir(parents=True, exist_ok=True)
 
-        extension = os.path.splitext(fname)[-1]
+        extension = pathlib.Path(fname).suffix
         if extension in (".html", ".md"):
-            with open(os.path.join(source_path, fname), encoding="utf-8") as f:
+            with (pathlib.Path(source_path) / fname).open(encoding="utf-8") as f:
                 content = f.read()
             if extension == ".md":
                 if "pdeps/" in fname:
@@ -503,17 +499,17 @@ def main(
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
-            context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
+            context["base_url"] = "".join(
+                ["../"] * pathlib.Path(fname).parts.count("/")
+            )
             content = jinja_env.from_string(content).render(**context)
-            fname_html = os.path.splitext(fname)[0] + ".html"
-            with open(
-                os.path.join(target_path, fname_html), "w", encoding="utf-8"
+            fname_html = pathlib.Path(fname).with_suffix(".html").name
+            with (pathlib.Path(target_path) / fname_html).open(
+                "w", encoding="utf-8"
             ) as f:
                 f.write(content)
         else:
-            shutil.copy(
-                os.path.join(source_path, fname), os.path.join(target_path, dirname)
-            )
+            shutil.copy(pathlib.Path(source_path) / fname, target_path / dirname)
 
 
 if __name__ == "__main__":
