@@ -440,11 +440,11 @@ class BaseSetitemTests:
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_invalid(self, data, invalid_scalar):
-        msg = ""  # messages vary by subclass, so we do not test it
-        with pytest.raises((ValueError, TypeError), match=msg):
+        # messages vary by subclass, so we do not test it
+        with pytest.raises((ValueError, TypeError), match=None):
             data[0] = invalid_scalar
 
-        with pytest.raises((ValueError, TypeError), match=msg):
+        with pytest.raises((ValueError, TypeError), match=None):
             data[:] = invalid_scalar
 
     def test_setitem_2d_values(self, data):
