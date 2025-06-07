@@ -16,6 +16,7 @@ from typing import (
     Any,
     Literal,
     cast,
+    overload,
 )
 import warnings
 
@@ -44,6 +45,15 @@ from pandas._typing import (
     Shape,
     npt,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+        ScalarLike_co,
+    )
+
+
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -3777,6 +3787,103 @@ class MultiIndex(Index):
         # Find the reordering using lexsort on the keys mapping
         ind = np.lexsort(keys)
         return indexer[ind]
+
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]
+        self,
+        value: ScalarLike_co,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> np.intp: ...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> npt.NDArray[np.intp]: ...
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: npt.NDArray[np.intp] | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        """
+        Find the indices where elements should be inserted to maintain order.
+
+        Parameters
+        ----------
+        value : Any
+            The value(s) to search for in the MultiIndex.
+        side : {'left', 'right'}, default 'left'
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index. Note that if `value` is
+            already present in the MultiIndex, the results will be different.
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort the MultiIndex.
+
+        Returns
+        -------
+        npt.NDArray[np.intp] or np.intp
+            The index or indices where the value(s) should be inserted to
+            maintain order.
+
+        See Also
+        --------
+        Index.searchsorted : Search for insertion point in a 1-D index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], ["x", "y", "z"]])
+        >>> mi.searchsorted(("b", "y"))
+        array([1])
+        """
+
+        if isinstance(value, tuple):
+            value = [value]
+        elif isinstance(value, (list, np.ndarray, ExtensionArray)):
+            if len(value) == 0:
+                raise ValueError("searchsorted requires a non-empty sequence")
+        else:
+            raise TypeError(
+                "value must be a tuple (scalar key), or a list/numpy"
+                "array/ExtensionArray of tuples"
+            )
+
+        if side not in ["left", "right"]:
+            raise ValueError("side must be either 'left' or 'right'")
+
+        indexer = self.get_indexer(value)
+        result = []
+
+        for v, i in zip(value, indexer):
+            if i != -1:
+                val = i if side == "left" else i + 1
+                result.append(np.intp(val))
+            else:
+                fields = []
+                for j, level in enumerate(self.levels):
+                    level_dtype = level.dtype
+                    if isinstance(level_dtype, ExtensionDtype):
+                        fields.append((f"level_{j}", object))
+                    else:
+                        fields.append((f"level_{j}", level_dtype))
+                dtype = np.dtype(fields)
+
+                val_array = np.array([v], dtype=dtype)
+                pos = np.searchsorted(
+                    np.asarray(self.values, dtype=dtype),
+                    val_array,
+                    side=side,
+                    sorter=sorter,
+                )
+                result.append(np.intp(pos[0]))
+
+        if len(result) == 1:
+            return result[0]
+        return np.array(result, dtype=np.intp)
 
     def truncate(self, before=None, after=None) -> MultiIndex:
         """
