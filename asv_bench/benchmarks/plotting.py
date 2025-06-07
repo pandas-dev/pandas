@@ -161,4 +161,42 @@ class BackendLoading:
         _get_plot_backend("pandas_dummy_backend")
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+class DataFramePlottingLarge:
+    """
+    Benchmarks for DataFrame plotting performance with large datasets
+    Addresses performance issues like #61398 and #61532
+    """
+    params = [
+        [(1000, 10), (1000, 50), (1000, 100), (5000, 20), (10000, 10)],
+        [True, False]  # DatetimeIndex or not
+    ]
+    param_names = ["size", "datetime_index"]
+
+    def setup(self, size, datetime_index):
+        rows, cols = size
+
+        if datetime_index:
+            # Create DataFrame with DatetimeIndex (problematic case #61398)
+            idx = date_range("2020-01-01", periods=rows, freq="min")
+            self.df = DataFrame(
+                np.random.randn(rows, cols), 
+                index=idx,
+                columns=[f"col_{i}" for i in range(cols)]
+            )
+        else:
+            # Regular integer index for comparison
+            self.df = DataFrame(
+                np.random.randn(rows, cols),
+                columns=[f"col_{i}" for i in range(cols)]
+            )
+
+    def time_plot_large_dataframe(self, size, datetime_index):
+        """Benchmark plotting large DataFrames (bottleneck #61398/#61532)"""
+        self.df.plot()
+
+    def time_plot_large_dataframe_single_column(self, size, datetime_index):
+        """Baseline: plotting single column for comparison"""
+        self.df.iloc[:, 0].plot()
+
+
+from .pandas_vb_common import setup  # noqa isort:skip
