@@ -90,9 +90,9 @@ class CSVFormatter:
         self.index_label = self._initialize_index_label(index_label)
         self.errors = errors
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
-        self.quotechar = self._initialize_quotechar(quotechar)
         self.doublequote = doublequote
         self.escapechar = escapechar
+        self.quotechar = self._initialize_quotechar(quotechar)
         self.lineterminator = lineterminator or os.linesep
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
@@ -141,7 +141,7 @@ class CSVFormatter:
         return [""] if index_label is None else [index_label]
 
     def _initialize_quotechar(self, quotechar: str | None) -> str | None:
-        if self.quoting != csvlib.QUOTE_NONE:
+        if self.quoting != csvlib.QUOTE_NONE or self.escapechar is not None:
             # prevents crash in _csv
             return quotechar
         return None

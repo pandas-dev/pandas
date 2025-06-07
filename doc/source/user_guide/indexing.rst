@@ -325,7 +325,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
 * A list or array of labels ``['a', 'b', 'c']``.
-* A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
+* A slice object with labels ``'a':'f'``. Note that contrary to usual Python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
@@ -1461,16 +1461,33 @@ Looking up values by index/column labels
 
 Sometimes you want to extract a set of values given a sequence of row labels
 and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing.
-For instance:
 
-.. ipython:: python
+For heterogeneous column types, we subset columns to avoid unnecessary NumPy conversions:
 
-    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
-                       'A': [80, 23, np.nan, 22],
-                       'B': [80, 55, 76, 67]})
-    df
-    idx, cols = pd.factorize(df['col'])
-    df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+.. code-block:: python
+
+   def pd_lookup_het(df, row_labels, col_labels):
+      rows = df.index.get_indexer(row_labels)
+      cols = df.columns.get_indexer(col_labels)
+      sub = df.take(np.unique(cols), axis=1)
+      sub = sub.take(np.unique(rows), axis=0)
+      rows = sub.index.get_indexer(row_labels)
+      values = sub.melt()["value"]
+      cols = sub.columns.get_indexer(col_labels)
+      flat_index = rows + cols * len(sub)
+      result = values[flat_index]
+      return result
+
+For homogeneous column types, it is fastest to skip column subsetting and go directly to NumPy:
+
+.. code-block:: python
+
+   def pd_lookup_hom(df, row_labels, col_labels):
+       rows = df.index.get_indexer(row_labels)
+       df = df.loc[:, sorted(set(col_labels))]
+       cols = df.columns.get_indexer(col_labels)
+       result = df.to_numpy()[rows, cols]
+       return result
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
 which was deprecated in version 1.2.0 and removed in version 2.0.0.

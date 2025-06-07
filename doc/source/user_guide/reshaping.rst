@@ -395,7 +395,7 @@ variables and the values representing the presence of those variables per row.
    pd.get_dummies(df["key"])
    df["key"].str.get_dummies()
 
-``prefix`` adds a prefix to the the column names which is useful for merging the result
+``prefix`` adds a prefix to the column names which is useful for merging the result
 with the original :class:`DataFrame`:
 
 .. ipython:: python

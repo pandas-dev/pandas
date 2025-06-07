@@ -441,6 +441,16 @@ def main(
     For ``.md`` and ``.html`` files, render them with the context
     before copying them. ``.md`` files are transformed to HTML.
     """
+    # Sanity check: validate that versions.json is valid JSON
+    versions_path = os.path.join(source_path, "versions.json")
+    with open(versions_path, encoding="utf-8") as f:
+        try:
+            json.load(f)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(
+                f"Invalid versions.json: {e}. Ensure it is valid JSON."
+            ) from e
+
     config_fname = os.path.join(source_path, "config.yml")
 
     shutil.rmtree(target_path, ignore_errors=True)
@@ -466,9 +476,29 @@ def main(
             with open(os.path.join(source_path, fname), encoding="utf-8") as f:
                 content = f.read()
             if extension == ".md":
-                body = markdown.markdown(
-                    content, extensions=context["main"]["markdown_extensions"]
-                )
+                if "pdeps/" in fname:
+                    from markdown.extensions.toc import TocExtension
+
+                    body = markdown.markdown(
+                        content,
+                        extensions=[
+                            # Ignore the title of the PDEP in the table of contents
+                            TocExtension(
+                                title="Table of Contents",
+                                toc_depth="2-3",
+                                permalink=" #",
+                            ),
+                            "tables",
+                            "fenced_code",
+                            "meta",
+                            "footnotes",
+                            "codehilite",
+                        ],
+                    )
+                else:
+                    body = markdown.markdown(
+                        content, extensions=context["main"]["markdown_extensions"]
+                    )
                 # Apply Bootstrap's table formatting manually
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')
