@@ -330,8 +330,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         Many operations that create new datasets will copy ``attrs``. Copies
         are always deep so that changing ``attrs`` will only affect the
-        present dataset. ``pandas.concat`` copies ``attrs`` only if all input
-        datasets have the same ``attrs``.
+        present dataset. :func:`pandas.concat` and :func:`pandas.merge` will
+        only copy ``attrs`` if all input datasets have the same ``attrs``.
 
         Examples
         --------
@@ -6090,11 +6090,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
-        if method == "concat":
-            objs = other.objs
-            # propagate attrs only if all concat arguments have the same attrs
+        elif hasattr(other, "input_objs"):
+            objs = other.input_objs
+            # propagate attrs only if all inputs have the same attrs
             if all(bool(obj.attrs) for obj in objs):
-                # all concatenate arguments have non-empty attrs
+                # all inputs have non-empty attrs
                 attrs = objs[0].attrs
                 have_same_attrs = all(obj.attrs == attrs for obj in objs[1:])
                 if have_same_attrs:
