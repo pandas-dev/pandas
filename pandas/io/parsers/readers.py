@@ -860,7 +860,7 @@ def read_csv(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-) -> DataFrame | TextFileReader:
+) -> DataFrame | TextFileReader | Generator[DataFrame] | Generator[TextFileReader]:
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -995,7 +995,7 @@ def read_table(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-) -> DataFrame | TextFileReader:
+) -> DataFrame | TextFileReader | Generator[DataFrame] | Generator[TextFileReader]:
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1065,7 +1065,7 @@ def read_fwf(
     iterator: bool = False,
     chunksize: int | None = None,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame | TextFileReader:
+) -> DataFrame | TextFileReader | Generator[DataFrame] | Generator[TextFileReader]:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
