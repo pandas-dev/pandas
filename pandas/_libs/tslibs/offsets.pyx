@@ -1,3 +1,5 @@
+# cython: embedsignature=True
+
 import re
 import time
 import warnings
@@ -1179,6 +1181,11 @@ cdef class Tick(SingleConstructorOffset):
 cdef class Day(Tick):
     """
     Offset ``n`` days.
+
+    Parameters
+    ----------
+    n : int
+        Number of multiples of the frequency.
 
     Attributes
     ----------
