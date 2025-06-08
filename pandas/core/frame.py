@@ -10,7 +10,7 @@ labeling information
 """
 
 from __future__ import annotations
-
+import pandas as pd
 import collections
 from collections import abc
 from collections.abc import (
@@ -9903,13 +9903,24 @@ class DataFrame(NDFrame, OpsMixin):
         df = self.reset_index(drop=True)
         if len(columns) == 1:
             result = df[columns[0]].explode()
+            orig_dtype = df[columns[0]].dtype
+            if pd.api.types.is_datetime64_dtype(orig_dtype):
+                result = result.astype(orig_dtype)
         else:
             mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
             counts0 = self[columns[0]].apply(mylen)
             for c in columns[1:]:
                 if not all(counts0 == self[c].apply(mylen)):
                     raise ValueError("columns must have matching element counts")
-            result = DataFrame({c: df[c].explode() for c in columns})
+            result_data = {}
+            for c in columns:
+                exploded_series = df[c].explode()
+                orig_dtype = df[c].dtype
+                if pd.api.types.is_datetime64_dtype(orig_dtype):
+                    exploded_series = exploded_series.astype(orig_dtype)
+                result_data[c] = exploded_series
+            result = DataFrame(result_data)
+
         result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = default_index(len(result))
