@@ -60,7 +60,7 @@ computation = ['scipy>=1.7.1', 'xarray>=0.21.0']
 fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
 gcp = ['gcsfs>=2021.07.0']
-excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
+excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.3.2', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
 parquet = ['pyarrow>=7.0.0']
 feather = ['pyarrow>=7.0.0']
 hdf5 = ['tables>=3.6.1']
@@ -95,7 +95,7 @@ all = ['beautifulsoup4>=5.9.3',
        'pyreadstat>=1.1.2',
        'pytest>=7.3.2',
        'pytest-xdist>=3.4.0',
-       'python-calamine>=0.1.7',
+       'python-calamine>=0.3.2',
        'pyxlsb>=1.0.8',
        'qtpy>=2.3.0',
        'scipy>=1.7.1',

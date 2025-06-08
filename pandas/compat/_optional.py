@@ -42,7 +42,7 @@ VERSIONS = {
     "pyiceberg": "0.7.1",
     "pyreadstat": "1.2.6",
     "pytest": "7.3.2",
-    "python-calamine": "0.1.7",
+    "python-calamine": "0.3.2",
     "pytz": "2023.4",
     "pyxlsb": "1.0.10",
     "s3fs": "2023.12.2",
