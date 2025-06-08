@@ -6,6 +6,8 @@ RUN apt-get update && \
     apt-get --no-install-recommends -y install \
     build-essential \
     bash-completion \
+    # Install Qt5 dependencies for pytest-qt, only for m chip Macs
+    #-y qt5-qmake qtbase5-dev\
     # hdf5 needed for pytables installation
     libhdf5-dev \
     # libgles2-mesa needed for pytest-qt
