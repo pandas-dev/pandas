@@ -1217,7 +1217,6 @@ cdef class Day(Tick):
 
     def __init__(self, n=1, normalize=False):
         super().__init__(n, normalize)
-        print("in Day init")
 
 cdef class Hour(Tick):
     """
