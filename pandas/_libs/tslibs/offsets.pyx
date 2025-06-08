@@ -1007,9 +1007,6 @@ cdef class SingleConstructorOffset(BaseOffset):
 # Tick Offsets
 
 cdef class Tick(SingleConstructorOffset):
-    """
-    Represents ticks
-    """
     _adjust_dst = False
     _prefix = "undefined"
     _attributes = tuple(["n", "normalize"])
@@ -1185,10 +1182,7 @@ cdef class Day(Tick):
     Parameters
     ----------
     n : int
-        Number of multiples of the frequency.
-
-    normalize: bool
-        Must be `False`
+        Number of multiples of the frequency (default 1).
 
     Attributes
     ----------
@@ -1221,6 +1215,9 @@ cdef class Day(Tick):
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
+    def __init__(self, n=1, normalize=False):
+        super().__init__(n, normalize)
+        print("in Day init")
 
 cdef class Hour(Tick):
     """
