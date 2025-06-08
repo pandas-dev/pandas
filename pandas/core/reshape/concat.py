@@ -823,8 +823,11 @@ def _get_sample_object(
     return objs[0], objs
 
 
-def _concat_indexes(indexes) -> Index:
-    return indexes[0].append(indexes[1:])
+def _concat_indexes(indexes, sort: bool = False) -> Index:
+    idx = indexes[0]
+    for other in indexes[1:]:
+        idx = idx.union(other, sort=sort)
+    return idx
 
 
 def validate_unique_levels(levels: list[Index]) -> None:

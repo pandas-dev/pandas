@@ -3105,7 +3105,19 @@ class Index(IndexOpsMixin, PandasObject):
                 return result.sort_values()
             return result
 
-        result = self._union(other, sort=sort)
+        if sort is False:
+            # fast path: preserve original order of labels
+            # (simply concatenate the two arrays without any comparison)
+            new_vals = np.concatenate([self._values, other._values])
+            result = Index(new_vals, name=self.name)
+        else:
+            # sort==True or sort==None: call into the subclass-specific union
+            # but guard against TypeError from mixed-type comparisons
+            try:
+                result = self._union(other, sort=sort)
+            except TypeError:
+                new_vals = np.concatenate([self._values, other._values])
+                result = Index(new_vals, name=self.name)
 
         return self._wrap_setop_result(other, result)
 

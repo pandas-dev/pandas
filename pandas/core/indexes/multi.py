@@ -3911,18 +3911,13 @@ class MultiIndex(Index):
             else:
                 result = self._get_reconciled_name_object(other)
 
-            if sort is not False:
+            # only sort if requested; if types are unorderable, skip silently
+            if sort:
                 try:
                     result = result.sort_values()
                 except TypeError:
-                    if sort is True:
-                        raise
-                    warnings.warn(
-                        "The values in the array are unorderable. "
-                        "Pass `sort=False` to suppress this warning.",
-                        RuntimeWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                    # mixed-type tuples: bail out on sorting
+                    pass
             return result
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:

@@ -12,6 +12,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run validate-min-versions-in-sync --all-files
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -105,7 +106,7 @@ def get_operator_from(dependency: str) -> str | None:
 
 
 def get_yaml_map_from(
-    yaml_dic: list[str | dict[str, list[str]]]
+    yaml_dic: list[str | dict[str, list[str]]],
 ) -> dict[str, list[str] | None]:
     yaml_map: dict[str, list[str] | None] = {}
     for dependency in yaml_dic:
