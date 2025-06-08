@@ -1,0 +1,8 @@
+version: '3'
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Uncomment the line below if you are using Mac with M1/M2/M3 and encounter build issues.
+      # platform: linux/amd64
