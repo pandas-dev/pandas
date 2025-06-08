@@ -176,16 +176,27 @@ def test_explode_pyarrow_non_list_type(ignore_index):
     expected = pd.Series([1, 2, 3], dtype="int64[pyarrow]", index=[0, 1, 2])
     tm.assert_series_equal(result, expected)
 
+
 def test_explode_preserves_datetime_unit():
     # Create datetime64[ms] array manually
-    dt64_ms = np.array(["2020-01-01T00:00:00.000", "2020-01-01T01:00:00.000", "2020-01-01T02:00:00.000"], dtype="datetime64[ms]")
+    dt64_ms = np.array(
+        [
+            "2020-01-01T00:00:00.000",
+            "2020-01-01T01:00:00.000",
+            "2020-01-01T02:00:00.000",
+        ],
+        dtype="datetime64[ms]",
+    )
     s = pd.Series([dt64_ms])
 
     # Explode the Series
     result = s.explode()
 
     # Ensure the dtype (including unit) is preserved
-    assert result.dtype == dt64_ms.dtype, f"Expected dtype {dt64_ms.dtype}, got {result.dtype}"
+    assert result.dtype == dt64_ms.dtype, (
+        f"Expected dtype {dt64_ms.dtype}, got {result.dtype}"
+    )
+
 
 def test_single_column_explode_preserves_datetime_unit():
     # Use freq in ms since unit='ms'
@@ -193,6 +204,7 @@ def test_single_column_explode_preserves_datetime_unit():
     s = pd.Series([rng])
     result = s.explode()
     assert result.dtype == rng.dtype
+
 
 def test_multi_column_explode_preserves_datetime_unit():
     rng1 = pd.date_range("2020-01-01", periods=2, freq="3600000ms", unit="ms")
