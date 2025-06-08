@@ -58,27 +58,6 @@ library, making their behavior more consistent with the handling of
 NumPy arrays. We'll do this by cleaning up pandas' internals and
 adding new methods to the extension array interface.
 
-### String data type
-
-Currently, pandas stores text data in an `object` -dtype NumPy array.
-The current implementation has two primary drawbacks: First, `object`
--dtype is not specific to strings: any Python object can be stored in an
-`object` -dtype array, not just strings. Second: this is not efficient.
-The NumPy memory model isn't especially well-suited to variable width
-text data.
-
-To solve the first issue, we propose a new extension type for string
-data. This will initially be opt-in, with users explicitly requesting
-`dtype="string"`. The array backing this string dtype may initially be
-the current implementation: an `object` -dtype NumPy array of Python
-strings.
-
-To solve the second issue (performance), we'll explore alternative
-in-memory array libraries (for example, Apache Arrow). As part of the
-work, we may need to implement certain operations expected by pandas
-users (for example the algorithm used in, `Series.str.upper`). That work
-may be done outside of pandas.
-
 ### Apache Arrow interoperability
 
 [Apache Arrow](https://arrow.apache.org) is a cross-language development
