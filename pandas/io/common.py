@@ -1356,8 +1356,9 @@ def iterdir(
 
     Returns
     ------
-    pathlib.Path or pathlib.PurePosixPath
-        File paths within the directory.
+    list of str or Path, BaseBuffer
+        If `path` is a file-like object, returns it directly.
+        Otherwise, returns list of file paths in the directory.
 
     Raises
     ------

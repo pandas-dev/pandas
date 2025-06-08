@@ -314,21 +314,21 @@ def test_invalid_file_buffer_class(all_parsers):
         pass
 
     parser = all_parsers
-    msg = "Invalid file path or buffer object type"
+    msg = "Expected file path name or file-like object"
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         parser.read_csv(InvalidBuffer())
 
 
 def test_invalid_file_buffer_mock(all_parsers):
     # see gh-15337
     parser = all_parsers
-    msg = "Invalid file path or buffer object type"
+    msg = "Expected file path name or file-like object"
 
     class Foo:
         pass
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         parser.read_csv(Foo())
 
 
