@@ -1335,7 +1335,7 @@ def iterdir(
     path: FilePath | BaseBuffer,
     extensions: str | Iterable[str] | None = None,
     glob: str | None = None,
-) -> list[Path | PurePosixPath] | BaseBuffer:
+) -> list[str | Path] | BaseBuffer:
     """Yield file paths in a directory (no nesting allowed).
 
     Supports:
@@ -1414,7 +1414,7 @@ def iterdir(
             extensions,
             glob,
         ):
-            return [PurePosixPath(path_without_scheme)]
+            return [path]
 
     result = []
     for file in fs.ls(path_without_scheme, detail=True):
@@ -1425,5 +1425,5 @@ def iterdir(
                 extensions,
                 glob,
             ):
-                result.append(path_obj)
+                result.append(f"{scheme}://{path_obj}")
     return result
