@@ -10,7 +10,7 @@ labeling information
 """
 
 from __future__ import annotations
-import pandas as pd
+
 import collections
 from collections import abc
 from collections.abc import (
@@ -121,6 +121,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+import pandas as pd
 from pandas.core import (
     algorithms,
     common as com,
