@@ -1187,6 +1187,9 @@ cdef class Day(Tick):
     n : int
         Number of multiples of the frequency.
 
+    normalize: bool
+        Must be `False`
+
     Attributes
     ----------
     n : int, default 1
@@ -1888,14 +1891,6 @@ cdef class BusinessDay(BusinessMixin):
         elif "offset" in state:
             self._offset = state.pop("offset")
         self._cache = state.pop("_cache", {})
-
-    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
-        """
-        __init__(self, n=1, normalize=False, offset=timedelta(0))
-
-        This defines init
-        """
-        super().__init__(n, normalize, offset)
 
     def _offset_str(self) -> str:
         def get_str(td):

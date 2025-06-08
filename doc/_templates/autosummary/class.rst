@@ -8,7 +8,7 @@
 
    {% block attributes %}
    {% if attributes %}
-   .. rubric:: {{ _('Axttributes') }}
+   .. rubric:: {{ _('Attributes') }}
 
    .. autosummary::
    {% for item in attributes %}
