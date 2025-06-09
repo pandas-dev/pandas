@@ -162,6 +162,7 @@ Iceberg
     :toctree: api/
 
     read_iceberg
+    DataFrame.to_iceberg
 
 .. warning:: ``read_iceberg`` is experimental and may change without warning.
 
