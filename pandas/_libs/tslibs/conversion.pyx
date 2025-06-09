@@ -797,7 +797,7 @@ cdef int64_t parse_pydatetime(
     dts : *npy_datetimestruct
         Needed to use in pydatetime_to_dt64, which writes to it.
     creso : NPY_DATETIMEUNIT
-        Resolution to store the the result.
+        Resolution to store the result.
 
     Raises
     ------
