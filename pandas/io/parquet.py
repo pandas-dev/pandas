@@ -184,7 +184,7 @@ class PyArrowImpl(BaseImpl):
         from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
-
+#ekleme yaptığım yer.
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
         if any(isinstance(dtype,pd.StringDtype) for dtype in df.dtype):
             string_dtype={
@@ -267,23 +267,35 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
-            pa_table = self.api.parquet.read_table(
-                metadata = pa_table.schema.metadata 
-                string_dtypes = {}
-            if metadata:
-                 for key, value in metadata.items():
-        if key.startswith(b"pandas_string_dtype_"):
-            col_name = key.replace(b"pandas_string_dtype_", b"").decode()
-            string_dtypes[col_name] = value.decode()
-                
-
-
+            pa_table = self.api.parquet.read_table( 
                 path_or_handle,
                 columns=columns,
                 filesystem=filesystem,
                 filters=filters,
                 **kwargs,
             )
+            
+        #eklediğim bölüm  pandas_string_dtype_* metadata'larını oku
+        string_dtypes = {}
+        metadata = pa_table.schema.metadata
+        if metadata:
+            for key, value in metadata.items():
+                if key.startswith(b"pandas_string_dtype_"):
+                    col_name = key.replace(b"pandas_string_dtype_", b"").decode()
+                    string_dtypes[col_name] = value.decode()
+
+        #  Eklediğim bölüm: types_mapper fonksiyonu
+        def types_mapper(pa_type):
+            for field in pa_table.schema:
+                if field.type == pa_type:
+                    colname = field.name
+                    if colname in string_dtypes:
+                        return pd.StringDtype(storage=string_dtypes[colname])
+            return None  # fallback to default mapper
+
+        if to_pandas_kwargs is None:
+            to_pandas_kwargs = {}
+        to_pandas_kwargs["types_mapper"] = types_mapper
             with catch_warnings():
                 filterwarnings(
                     "ignore",
