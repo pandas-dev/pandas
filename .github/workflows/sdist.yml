@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{matrix.python-version}}-sdist
@@ -86,6 +86,8 @@ jobs:
           pip install numpy==1.21.2 ;;
         3.11)
           pip install numpy==1.23.2 ;;
+        3.12)
+          pip install numpy==1.26.4 ;;
         esac
 
     - name: Import pandas
