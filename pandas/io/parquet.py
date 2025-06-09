@@ -186,6 +186,19 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        if any(isinstance(dtype,pd.StringDtype) for dtype in df.dtype):
+            string_dtype={
+                col:str(dtype.storage)
+                for col,dtype in df.dtypes.items()
+                if isinstance(dtype,pd.StringDtype) 
+            }
+            metadata = table.schema.metadata or{}
+            for col,storage in string_dtypes.items():
+                key=f"pandas_string_dtype_{col}".encode()
+                val= storage.encode()
+                metadata[key]= val
+                table= table.replace_schema_metadata(metadata)
+
 
         if df.attrs:
             df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}
@@ -255,6 +268,16 @@ class PyArrowImpl(BaseImpl):
         )
         try:
             pa_table = self.api.parquet.read_table(
+                metadata = pa_table.schema.metadata 
+                string_dtypes = {}
+            if metadata:
+                 for key, value in metadata.items():
+        if key.startswith(b"pandas_string_dtype_"):
+            col_name = key.replace(b"pandas_string_dtype_", b"").decode()
+            string_dtypes[col_name] = value.decode()
+                
+
+
                 path_or_handle,
                 columns=columns,
                 filesystem=filesystem,
