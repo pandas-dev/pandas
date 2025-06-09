@@ -1,6 +1,6 @@
 """
 Check that doc/source/reference/testing.rst documents
-all exceptions and warnings in pandas/errors/__init__.py.
+all exceptions and warning in pandas/errors/__init__.py.
 
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
