@@ -1,12 +1,14 @@
 # TODO(npdtypes): Many types specified here can be made more specific/accurate;
 #  the more specific versions are specified in comments
+from collections.abc import (
+    Callable,
+    Generator,
+    Hashable,
+)
 from decimal import Decimal
 from typing import (
     Any,
-    Callable,
     Final,
-    Generator,
-    Hashable,
     Literal,
     TypeAlias,
     overload,
@@ -67,7 +69,6 @@ def fast_multiget(
     default=...,
 ) -> ArrayLike: ...
 def fast_unique_multiple_list_gen(gen: Generator, sort: bool = ...) -> list: ...
-def fast_unique_multiple_list(lists: list, sort: bool | None = ...) -> list: ...
 @overload
 def map_infer(
     arr: np.ndarray,

@@ -3,7 +3,6 @@ import pytest
 
 from pandas import (
     Timedelta,
-    TimedeltaIndex,
     timedelta_range,
     to_timedelta,
 )
@@ -70,14 +69,12 @@ class TestTimedeltas:
         expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
 
-    def test_timedelta_range_H_deprecated(self):
+    def test_timedelta_range_H_raises(self):
         # GH#52536
-        msg = "'H' is deprecated and will be removed in a future version."
+        msg = "Invalid frequency: H"
 
-        result = timedelta_range(start="0 days", end="4 days", periods=6)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = timedelta_range(start="0 days", end="4 days", freq="19H12min")
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            timedelta_range(start="0 days", end="4 days", freq="19H12min")
 
     def test_timedelta_range_T_raises(self):
         msg = "Invalid frequency: T"
@@ -131,33 +128,6 @@ class TestTimedeltas:
         assert result.freq is None
 
     @pytest.mark.parametrize(
-        "freq_depr, start, end, expected_values, expected_freq",
-        [
-            (
-                "3.5S",
-                "05:03:01",
-                "05:03:10",
-                ["0 days 05:03:01", "0 days 05:03:04.500000", "0 days 05:03:08"],
-                "3500ms",
-            ),
-        ],
-    )
-    def test_timedelta_range_deprecated_freq(
-        self, freq_depr, start, end, expected_values, expected_freq
-    ):
-        # GH#52536
-        msg = (
-            f"'{freq_depr[-1]}' is deprecated and will be removed in a future version."
-        )
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = timedelta_range(start=start, end=end, freq=freq_depr)
-        expected = TimedeltaIndex(
-            expected_values, dtype="timedelta64[ns]", freq=expected_freq
-        )
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize(
         "freq_depr, start, end",
         [
             (
@@ -170,9 +140,15 @@ class TestTimedeltas:
                 "5 hours",
                 "5 hours 8 minutes",
             ),
+            (
+                "3.5S",
+                "05:03:01",
+                "05:03:10",
+            ),
         ],
     )
     def test_timedelta_range_removed_freq(self, freq_depr, start, end):
+        # GH#59143
         msg = f"Invalid frequency: {freq_depr}"
         with pytest.raises(ValueError, match=msg):
             timedelta_range(start=start, end=end, freq=freq_depr)

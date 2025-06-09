@@ -16,6 +16,17 @@ pytestmark = pytest.mark.filterwarnings(
 
 
 class TestDataFrameSubclassing:
+    def test_no_warning_on_mgr(self):
+        # GH#57032
+        df = tm.SubclassedDataFrame(
+            {"X": [1, 2, 3], "Y": [1, 2, 3]}, index=["a", "b", "c"]
+        )
+        with tm.assert_produces_warning(None):
+            # df.isna() goes through _constructor_from_mgr, which we want to
+            #  *not* pass a Manager do __init__
+            df.isna()
+            df["X"].isna()
+
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
         # In reference to PR 9632
@@ -731,18 +742,6 @@ class TestDataFrameSubclassing:
         assert df1.equals(df2)
         assert df2.equals(df1)
 
-    def test_replace_list_method(self):
-        # https://github.com/pandas-dev/pandas/pull/46018
-        df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
-        msg = "The 'method' keyword in SubclassedDataFrame.replace is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, raise_on_extra_warnings=False
-        ):
-            result = df.replace([1, 2], method="ffill")
-        expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
-        assert isinstance(result, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(result, expected)
-
 
 class MySubclassWithMetadata(DataFrame):
     _metadata = ["my_metadata"]
@@ -768,6 +767,13 @@ def test_constructor_with_metadata():
     )
     subset = df[["A", "B"]]
     assert isinstance(subset, MySubclassWithMetadata)
+
+
+def test_constructor_with_metadata_from_records():
+    # GH#57008
+    df = MySubclassWithMetadata.from_records([{"a": 1, "b": 2}])
+    assert df.my_metadata is None
+    assert type(df) is MySubclassWithMetadata
 
 
 class SimpleDataFrameSubClass(DataFrame):

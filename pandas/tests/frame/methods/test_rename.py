@@ -165,7 +165,7 @@ class TestRename:
         tm.assert_index_equal(renamed.index, new_index)
 
     def test_rename_nocopy(self, float_frame):
-        renamed = float_frame.rename(columns={"C": "foo"}, copy=False)
+        renamed = float_frame.rename(columns={"C": "foo"})
 
         assert np.shares_memory(renamed["foo"]._values, float_frame["C"]._values)
 

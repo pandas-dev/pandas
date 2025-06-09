@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
+import sys
 import tempfile
 from typing import (
     IO,
@@ -10,8 +11,6 @@ from typing import (
     Any,
 )
 import uuid
-
-from pandas._config import using_copy_on_write
 
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
@@ -31,7 +30,7 @@ if TYPE_CHECKING:
 @contextmanager
 def decompress_file(
     path: FilePath | BaseBuffer, compression: CompressionOptions
-) -> Generator[IO[bytes], None, None]:
+) -> Generator[IO[bytes]]:
     """
     Open a compressed file and return a file object.
 
@@ -52,7 +51,7 @@ def decompress_file(
 
 
 @contextmanager
-def set_timezone(tz: str) -> Generator[None, None, None]:
+def set_timezone(tz: str) -> Generator[None]:
     """
     Context manager for temporarily setting a timezone.
 
@@ -75,14 +74,17 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     import time
 
     def setTZ(tz) -> None:
-        if tz is None:
-            try:
-                del os.environ["TZ"]
-            except KeyError:
-                pass
-        else:
-            os.environ["TZ"] = tz
-            time.tzset()
+        if hasattr(time, "tzset"):
+            if tz is None:
+                try:
+                    del os.environ["TZ"]
+                except KeyError:
+                    pass
+            else:
+                os.environ["TZ"] = tz
+                # Next line allows typing checks to pass on Windows
+                if sys.platform != "win32":
+                    time.tzset()
 
     orig_tz = os.environ.get("TZ")
     setTZ(tz)
@@ -93,7 +95,7 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
 
 
 @contextmanager
-def ensure_clean(filename=None) -> Generator[Any, None, None]:
+def ensure_clean(filename=None) -> Generator[Any]:
     """
     Gets a temporary path and agrees to remove on close.
 
@@ -125,7 +127,7 @@ def ensure_clean(filename=None) -> Generator[Any, None, None]:
 
 
 @contextmanager
-def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
+def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -158,37 +160,28 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
         csv.unregister_dialect(name)
 
 
-def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()):
+def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
     from pandas._testing import assert_produces_warning
 
-    if not warn:
-        from contextlib import nullcontext
+    if PYPY:
+        if not extra_warnings:
+            from contextlib import nullcontext
 
-        return nullcontext()
-
-    if PYPY and not extra_warnings:
-        from contextlib import nullcontext
-
-        return nullcontext()
-    elif PYPY and extra_warnings:
-        return assert_produces_warning(
-            extra_warnings,
-            match="|".join(extra_match),
-        )
-    else:
-        if using_copy_on_write():
-            warning = ChainedAssignmentError
-            match = (
-                "A value is trying to be set on a copy of a DataFrame or Series "
-                "through chained assignment"
-            )
+            return nullcontext()
         else:
-            warning = FutureWarning  # type: ignore[assignment]
-            # TODO update match
-            match = "ChainedAssignmentError"
+            return assert_produces_warning(
+                extra_warnings,
+                match=extra_match,
+            )
+    else:
+        warning = ChainedAssignmentError
+        match = (
+            "A value is trying to be set on a copy of a DataFrame or Series "
+            "through chained assignment"
+        )
         if extra_warnings:
             warning = (warning, *extra_warnings)  # type: ignore[assignment]
         return assert_produces_warning(
             warning,
-            match="|".join((match, *extra_match)),
+            match=(match, *extra_match),
         )

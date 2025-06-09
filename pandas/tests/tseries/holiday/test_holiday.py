@@ -1,7 +1,9 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import pytest
-from pytz import utc
 
 from pandas import (
     DatetimeIndex,
@@ -128,9 +130,9 @@ def test_holiday_dates(holiday, start_date, end_date, expected):
     # Verify that timezone info is preserved.
     assert list(
         holiday.dates(
-            utc.localize(Timestamp(start_date)), utc.localize(Timestamp(end_date))
+            Timestamp(start_date, tz=timezone.utc), Timestamp(end_date, tz=timezone.utc)
         )
-    ) == [utc.localize(dt) for dt in expected]
+    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
 
 
 @pytest.mark.parametrize(
@@ -194,8 +196,10 @@ def test_holidays_within_dates(holiday, start, expected):
 
     # Verify that timezone info is preserved.
     assert list(
-        holiday.dates(utc.localize(Timestamp(start)), utc.localize(Timestamp(start)))
-    ) == [utc.localize(dt) for dt in expected]
+        holiday.dates(
+            Timestamp(start, tz=timezone.utc), Timestamp(start, tz=timezone.utc)
+        )
+    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
 
 
 @pytest.mark.parametrize(
@@ -268,6 +272,25 @@ def test_both_offset_observance_raises():
             day=1,
             offset=[DateOffset(weekday=SA(4))],
             observance=next_monday,
+        )
+
+
+def test_list_of_list_of_offsets_raises():
+    # see gh-29049
+    # Test that the offsets of offsets are forbidden
+    holiday1 = Holiday(
+        "Holiday1",
+        month=USThanksgivingDay.month,
+        day=USThanksgivingDay.day,
+        offset=[USThanksgivingDay.offset, DateOffset(1)],
+    )
+    msg = "Only BaseOffsets and flat lists of them are supported for offset."
+    with pytest.raises(ValueError, match=msg):
+        Holiday(
+            "Holiday2",
+            month=holiday1.month,
+            day=holiday1.day,
+            offset=[holiday1.offset, DateOffset(3)],
         )
 
 

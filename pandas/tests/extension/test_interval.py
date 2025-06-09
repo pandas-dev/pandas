@@ -84,12 +84,47 @@ class TestIntervalArray(base.ExtensionTests):
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max"]
 
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "
         "instead of just wrong-length listlikes"
     )
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_hash_pandas_object(self, data):
+        super().test_hash_pandas_object(data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_hash_pandas_object_works(self, data, as_frame):
+        super().test_hash_pandas_object_works(data, as_frame)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    def test_EA_types(self, engine, data, request):
+        super().test_EA_types(engine, data, request)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_astype_str(self, data):
+        super().test_astype_str(data)
 
 
 # TODO: either belongs in tests.arrays.interval or move into base tests.

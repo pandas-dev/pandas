@@ -148,12 +148,20 @@ class JSONArray(ExtensionArray):
         return NotImplemented
 
     def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         if dtype is None:
             dtype = object
         if dtype == object:
             # on py38 builds it looks like numpy is inferring to a non-1D array
             return construct_1d_object_array_from_listlike(list(self))
-        return np.asarray(self.data, dtype=dtype)
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            return np.asarray(self.data, dtype=dtype)
+        return np.asarray(self.data, dtype=dtype, copy=copy)
 
     @property
     def nbytes(self) -> int:
@@ -168,8 +176,7 @@ class JSONArray(ExtensionArray):
         # an ndarary.
         indexer = np.asarray(indexer)
         msg = (
-            "Index is out of bounds or cannot do a "
-            "non-empty take from an empty array."
+            "Index is out of bounds or cannot do a non-empty take from an empty array."
         )
 
         if allow_fill:
@@ -208,9 +215,8 @@ class JSONArray(ExtensionArray):
                 return self.copy()
             return self
         elif isinstance(dtype, StringDtype):
-            value = self.astype(str)  # numpy doesn't like nested dicts
             arr_cls = dtype.construct_array_type()
-            return arr_cls._from_sequence(value, dtype=dtype, copy=False)
+            return arr_cls._from_sequence(self, dtype=dtype, copy=False)
         elif not copy:
             return np.asarray([dict(x) for x in self], dtype=dtype)
         else:

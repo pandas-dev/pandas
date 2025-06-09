@@ -16,12 +16,13 @@ Reference for binary data compression:
 
 from __future__ import annotations
 
-from collections import abc
 from datetime import datetime
 import sys
 from typing import TYPE_CHECKING
 
 import numpy as np
+
+from pandas._config import get_option
 
 from pandas._libs.byteswap import (
     read_double_with_byteswap,
@@ -45,7 +46,7 @@ from pandas import (
 
 from pandas.io.common import get_handle
 import pandas.io.sas.sas_constants as const
-from pandas.io.sas.sasreader import ReaderBase
+from pandas.io.sas.sasreader import SASReader
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -116,7 +117,7 @@ class _Column:
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
-class SAS7BDATReader(ReaderBase, abc.Iterator):
+class SAS7BDATReader(SASReader):
     """
     Read SAS files in SAS7BDAT format.
 
@@ -517,7 +518,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 buf = self._read_bytes(offset1, self._lcs)
                 self.creator_proc = buf[0 : self._lcp]
             if hasattr(self, "creator_proc"):
-                self.creator_proc = self._convert_header_text(self.creator_proc)
+                self.creator_proc = self._convert_header_text(self.creator_proc)  # pyright: ignore[reportArgumentType]
 
     def _process_columnname_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length
@@ -700,6 +701,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         rslt = {}
 
         js, jb = 0, 0
+        infer_string = get_option("future.infer_string")
         for j in range(self.column_count):
             name = self.column_names[j]
 
@@ -716,6 +718,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = self._decode_string(rslt[name].str)
+                    if infer_string:
+                        rslt[name] = rslt[name].astype("str")
+
                 js += 1
             else:
                 self.close()

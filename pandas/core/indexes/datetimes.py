@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
-import pytz
 
 from pandas._libs import (
     NaT,
@@ -27,8 +26,8 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -128,6 +127,7 @@ def _new_DatetimeIndex(cls, d):
     + DatetimeArray._bool_ops,
     DatetimeArray,
 )
+@set_module("pandas")
 class DatetimeIndex(DatetimeTimedeltaMixin):
     """
     Immutable ndarray-like of datetime64 data.
@@ -148,19 +148,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
-    tz : pytz.timezone or dateutil.tz.tzfile or datetime.tzinfo or str
+    tz : zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or str
         Set the Timezone of the data.
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range.
-
-        .. deprecated:: 2.1.0
-
-    closed : {'left', 'right'}, optional
-        Set whether to include `start` and `end` that are on the
-        boundary. The default includes boundary points on either end.
-
-        .. deprecated:: 2.1.0
-
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
         For example in Central European Time (UTC+01), when going from 03:00
@@ -174,7 +163,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           non-DST time (note that this flag is only applicable for ambiguous
           times)
         - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times.
+        - 'raise' will raise a ValueError if there are ambiguous times.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
@@ -254,7 +243,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
     >>> idx
     DatetimeIndex(['2020-01-01 10:00:00+00:00', '2020-02-01 11:00:00+00:00'],
-    dtype='datetime64[ns, UTC]', freq=None)
+    dtype='datetime64[s, UTC]', freq=None)
     """
 
     _typ = "datetimeindex"
@@ -276,7 +265,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.strftime)
     def strftime(self, date_format) -> Index:
         arr = self._data.strftime(date_format)
-        return Index(arr, name=self.name, dtype=object)
+        return Index(arr, name=self.name, dtype=arr.dtype)
 
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> Self:
@@ -322,8 +311,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq: Frequency | lib.NoDefault = lib.no_default,
         tz=lib.no_default,
-        normalize: bool | lib.NoDefault = lib.no_default,
-        closed=lib.no_default,
         ambiguous: TimeAmbiguous = "raise",
         dayfirst: bool = False,
         yearfirst: bool = False,
@@ -331,23 +318,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         copy: bool = False,
         name: Hashable | None = None,
     ) -> Self:
-        if closed is not lib.no_default:
-            # GH#52628
-            warnings.warn(
-                f"The 'closed' keyword in {cls.__name__} construction is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if normalize is not lib.no_default:
-            # GH#52628
-            warnings.warn(
-                f"The 'normalize' keyword in {cls.__name__} construction is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
@@ -482,14 +452,30 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Snap time stamps to nearest occurring frequency.
 
+        Parameters
+        ----------
+        freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'S'
+            Frequency strings can have multiples, e.g. '5h'. See
+            :ref:`here <timeseries.offset_aliases>` for a list of
+            frequency aliases.
+
         Returns
         -------
         DatetimeIndex
+            Time stamps to nearest occurring `freq`.
+
+        See Also
+        --------
+        DatetimeIndex.round : Perform round operation on the data to the
+            specified `freq`.
+        DatetimeIndex.floor : Perform floor operation on the data to the
+            specified `freq`.
 
         Examples
         --------
         >>> idx = pd.DatetimeIndex(
-        ...     ["2023-01-01", "2023-01-02", "2023-02-01", "2023-02-02"]
+        ...     ["2023-01-01", "2023-01-02", "2023-02-01", "2023-02-02"],
+        ...     dtype="M8[ns]",
         ... )
         >>> idx
         DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
@@ -539,6 +525,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
         per = Period(parsed, freq=freq)
         start, end = per.start_time, per.end_time
+        start = start.as_unit(self.unit)
+        end = end.as_unit(self.unit)
 
         # GH 24076
         # If an incoming date string contained a UTC offset, need to localize
@@ -604,7 +592,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif isinstance(key, str):
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except (ValueError, pytz.NonExistentTimeError) as err:
+            except ValueError as err:
                 raise KeyError(key) from err
             self._disallow_mismatched_indexing(parsed)
 
@@ -725,10 +713,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             Time passed in either as object (datetime.time) or as string in
             appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p", "%I%M%S%p").
+        asof : bool, default False
+            This parameter is currently not supported.
 
         Returns
         -------
         np.ndarray[np.intp]
+            Index locations of values at given `time` of day.
 
         See Also
         --------
@@ -781,6 +772,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         np.ndarray[np.intp]
+            Index locations of values between particular times of day.
 
         See Also
         --------
@@ -824,6 +816,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return mask.nonzero()[0]
 
 
+@set_module("pandas")
 def date_range(
     start=None,
     end=None,
@@ -885,6 +878,7 @@ def date_range(
     Returns
     -------
     DatetimeIndex
+        A DatetimeIndex object of the generated dates.
 
     See Also
     --------
@@ -1027,6 +1021,7 @@ def date_range(
     return DatetimeIndex._simple_new(dtarr, name=name)
 
 
+@set_module("pandas")
 def bdate_range(
     start=None,
     end=None,
@@ -1079,6 +1074,13 @@ def bdate_range(
     Returns
     -------
     DatetimeIndex
+        Fixed frequency DatetimeIndex.
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    period_range : Return a fixed frequency PeriodIndex.
+    timedelta_range : Return a fixed frequency TimedeltaIndex.
 
     Notes
     -----

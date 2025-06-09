@@ -16,6 +16,7 @@ FUNCTIONS:
     strptime -- Calculates the time struct represented by the passed-in string
 """
 from datetime import timezone
+import zoneinfo
 
 from cpython.datetime cimport (
     PyDate_Check,
@@ -38,7 +39,6 @@ from _thread import allocate_lock as _thread_allocate_lock
 import re
 
 import numpy as np
-import pytz
 
 cimport numpy as cnp
 from numpy cimport (
@@ -252,7 +252,10 @@ cdef class DatetimeParseState:
         # found_naive_str refers to a string that was parsed to a timezone-naive
         #  datetime.
         self.found_naive_str = False
+        self.found_aware_str = False
         self.found_other = False
+
+        self.out_tzoffset_vals = set()
 
         self.creso = creso
         self.creso_ever_changed = False
@@ -292,6 +295,58 @@ cdef class DatetimeParseState:
                                  "tz-naive values")
         return tz
 
+    cdef tzinfo check_for_mixed_inputs(
+        self,
+        tzinfo tz_out,
+        bint utc,
+    ):
+        cdef:
+            bint is_same_offsets
+            float tz_offset
+
+        if self.found_aware_str and not utc:
+            # GH#17697, GH#57275
+            # 1) If all the offsets are equal, return one offset for
+            #    the parsed dates to (maybe) pass to DatetimeIndex
+            # 2) If the offsets are different, then do not force the parsing
+            #    and raise a ValueError: "cannot parse datetimes with
+            #    mixed time zones unless `utc=True`" instead
+            is_same_offsets = len(self.out_tzoffset_vals) == 1
+            if not is_same_offsets or (self.found_naive or self.found_other):
+                # e.g. test_to_datetime_mixed_awareness_mixed_types (array_to_datetime)
+                raise ValueError(
+                    "Mixed timezones detected. Pass utc=True in to_datetime "
+                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                )
+            elif tz_out is not None:
+                # GH#55693
+                tz_offset = self.out_tzoffset_vals.pop()
+                tz_out2 = timezone(timedelta(seconds=tz_offset))
+                if not tz_compare(tz_out, tz_out2):
+                    # e.g. (array_strptime)
+                    #  test_to_datetime_mixed_offsets_with_utc_false_removed
+                    # e.g. test_to_datetime_mixed_tzs_mixed_types (array_to_datetime)
+                    raise ValueError(
+                        "Mixed timezones detected. Pass utc=True in to_datetime "
+                        "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                    )
+                # e.g. (array_strptime)
+                #  test_guess_datetime_format_with_parseable_formats
+                # e.g. test_to_datetime_mixed_types_matching_tzs (array_to_datetime)
+            else:
+                # e.g. test_to_datetime_iso8601_with_timezone_valid (array_strptime)
+                tz_offset = self.out_tzoffset_vals.pop()
+                tz_out = timezone(timedelta(seconds=tz_offset))
+        elif not utc:
+            if tz_out and (self.found_other or self.found_naive_str):
+                # found_other indicates a tz-naive int, float, dt64, or date
+                # e.g. test_to_datetime_mixed_awareness_mixed_types (array_to_datetime)
+                raise ValueError(
+                    "Mixed timezones detected. Pass utc=True in to_datetime "
+                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                )
+        return tz_out
+
 
 def array_strptime(
     ndarray[object] values,
@@ -299,7 +354,7 @@ def array_strptime(
     bint exact=True,
     errors="raise",
     bint utc=False,
-    NPY_DATETIMEUNIT creso=NPY_FR_ns,
+    NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
 ):
     """
     Calculates the datetime structs represented by the passed array of strings
@@ -310,7 +365,7 @@ def array_strptime(
     fmt : string-like regex
     exact : matches must be exact if True, search if False
     errors : string specifying error handling, {'raise', 'coerce'}
-    creso : NPY_DATETIMEUNIT, default NPY_FR_ns
+    creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
         Set to NPY_FR_GENERIC to infer a resolution.
     """
 
@@ -319,11 +374,8 @@ def array_strptime(
         npy_datetimestruct dts
         int64_t[::1] iresult
         object val
-        bint seen_datetime_offset = False
         bint is_raise = errors=="raise"
         bint is_coerce = errors=="coerce"
-        bint is_same_offsets
-        set out_tzoffset_vals = set()
         tzinfo tz, tz_out = None
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit, item_reso
@@ -392,6 +444,9 @@ def array_strptime(
             else:
                 val = str(val)
 
+            out_local = 0
+            out_tzoffset = 0
+
             if fmt == "ISO8601":
                 string_to_dts_succeeded = not string_to_dts(
                     val, &dts, &out_bestunit, &out_local,
@@ -418,15 +473,15 @@ def array_strptime(
                     ) from err
                 if out_local == 1:
                     nsecs = out_tzoffset * 60
-                    out_tzoffset_vals.add(nsecs)
-                    seen_datetime_offset = True
+                    state.out_tzoffset_vals.add(nsecs)
+                    state.found_aware_str = True
                     tz = timezone(timedelta(minutes=out_tzoffset))
                     value = tz_localize_to_utc_single(
                         value, tz, ambiguous="raise", nonexistent=None, creso=creso
                     )
                 else:
                     tz = None
-                    out_tzoffset_vals.add("naive")
+                    state.out_tzoffset_vals.add("naive")
                     state.found_naive_str = True
                 iresult[i] = value
                 continue
@@ -475,16 +530,16 @@ def array_strptime(
                 elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
                     nsecs = nsecs // 10**3
 
-                out_tzoffset_vals.add(nsecs)
-                seen_datetime_offset = True
+                state.out_tzoffset_vals.add(nsecs)
+                state.found_aware_str = True
             else:
                 state.found_naive_str = True
                 tz = None
-                out_tzoffset_vals.add("naive")
+                state.out_tzoffset_vals.add("naive")
 
         except ValueError as ex:
             ex.args = (
-                f"{str(ex)}, at position {i}. You might want to try:\n"
+                f"{str(ex)}. You might want to try:\n"
                 "    - passing `format` if your strings have a consistent format;\n"
                 "    - passing `format='ISO8601'` if your strings are "
                 "all ISO8601 but not necessarily in exactly the same format;\n"
@@ -499,35 +554,7 @@ def array_strptime(
                 raise
             return values, None
 
-    if seen_datetime_offset and not utc:
-        is_same_offsets = len(out_tzoffset_vals) == 1
-        if not is_same_offsets or (state.found_naive or state.found_other):
-            raise ValueError(
-                "Mixed timezones detected. Pass utc=True in to_datetime "
-                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
-            )
-        elif tz_out is not None:
-            # GH#55693
-            tz_offset = out_tzoffset_vals.pop()
-            tz_out2 = timezone(timedelta(seconds=tz_offset))
-            if not tz_compare(tz_out, tz_out2):
-                # e.g. test_to_datetime_mixed_offsets_with_utc_false_removed
-                raise ValueError(
-                    "Mixed timezones detected. Pass utc=True in to_datetime "
-                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
-                )
-            # e.g. test_guess_datetime_format_with_parseable_formats
-        else:
-            # e.g. test_to_datetime_iso8601_with_timezone_valid
-            tz_offset = out_tzoffset_vals.pop()
-            tz_out = timezone(timedelta(seconds=tz_offset))
-    elif not utc:
-        if tz_out and (state.found_other or state.found_naive_str):
-            # found_other indicates a tz-naive int, float, dt64, or date
-            raise ValueError(
-                "Mixed timezones detected. Pass utc=True in to_datetime "
-                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
-            )
+    tz_out = state.check_for_mixed_inputs(tz_out, utc)
 
     if infer_reso:
         if state.creso_ever_changed:
@@ -688,7 +715,7 @@ cdef tzinfo _parse_with_format(
             elif len(s) <= 6:
                 item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_us
             else:
-                item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ns
+                item_reso[0] = NPY_FR_ns
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
             us = int(s)
@@ -723,7 +750,7 @@ cdef tzinfo _parse_with_format(
                 week_of_year_start = 0
         elif parse_code == 17:
             # e.g. val='2011-12-30T00:00:00.000000UTC'; fmt='%Y-%m-%dT%H:%M:%S.%f%Z'
-            tz = pytz.timezone(found_dict["Z"])
+            tz = zoneinfo.ZoneInfo(found_dict["Z"])
         elif parse_code == 19:
             # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
             tz = parse_timezone_directive(found_dict["z"])
@@ -813,7 +840,7 @@ class TimeRE(_TimeRE):
         if key == "Z":
             # lazy computation
             if self._Z is None:
-                self._Z = self.__seqToRE(pytz.all_timezones, "Z")
+                self._Z = self.__seqToRE(zoneinfo.available_timezones(), "Z")
             # Note: handling Z is the key difference vs using the stdlib
             # _strptime.TimeRE. test_to_datetime_parse_tzname_or_tzoffset with
             # fmt='%Y-%m-%d %H:%M:%S %Z' fails with the stdlib version.
@@ -900,6 +927,13 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
 
     correction = date(iso_year, 1, 4).isoweekday() + 3
     ordinal = (iso_week * 7) + iso_weekday - correction
+
+    if iso_week == 53:
+        now = date.fromordinal(date(iso_year, 1, 1).toordinal() + ordinal - iso_weekday)
+        jan_4th = date(iso_year+1, 1, 4)
+        if (jan_4th - now).days < 7:
+            raise ValueError(f"Week 53 does not exist in ISO year {iso_year}.")
+
     # ordinal may be negative or 0 now, which means the date is in the previous
     # calendar year
     if ordinal < 1:

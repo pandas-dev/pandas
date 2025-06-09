@@ -18,20 +18,24 @@ from typing import TYPE_CHECKING
 from pandas.compat._constants import (
     IS64,
     ISMUSL,
-    PY310,
     PY311,
     PY312,
     PYPY,
+    WASM,
 )
-import pandas.compat.compressors
 from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (
+    HAS_PYARROW,
     pa_version_under10p1,
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under14p1,
     pa_version_under16p0,
+    pa_version_under17p0,
+    pa_version_under18p0,
+    pa_version_under19p0,
+    pa_version_under20p0,
 )
 
 if TYPE_CHECKING:
@@ -122,6 +126,18 @@ def is_platform_power() -> bool:
     return platform.machine() in ("ppc64", "ppc64le")
 
 
+def is_platform_riscv64() -> bool:
+    """
+    Checking if the running platform use riscv64 architecture.
+
+    Returns
+    -------
+    bool
+        True if the running platform uses riscv64 architecture.
+    """
+    return platform.machine() == "riscv64"
+
+
 def is_ci_environment() -> bool:
     """
     Checking if running in a continuous integration environment by checking
@@ -135,53 +151,14 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file() -> type[pandas.compat.compressors.LZMAFile]:
-    """
-    Importing the `LZMAFile` class from the `lzma` module.
-
-    Returns
-    -------
-    class
-        The `LZMAFile` class from the `lzma` module.
-
-    Raises
-    ------
-    RuntimeError
-        If the `lzma` module was not imported correctly, or didn't exist.
-    """
-    if not pandas.compat.compressors.has_lzma:
-        raise RuntimeError(
-            "lzma module not available. "
-            "A Python re-install with the proper dependencies, "
-            "might be required to solve this issue."
-        )
-    return pandas.compat.compressors.LZMAFile
-
-
-def get_bz2_file() -> type[pandas.compat.compressors.BZ2File]:
-    """
-    Importing the `BZ2File` class from the `bz2` module.
-
-    Returns
-    -------
-    class
-        The `BZ2File` class from the `bz2` module.
-
-    Raises
-    ------
-    RuntimeError
-        If the `bz2` module was not imported correctly, or didn't exist.
-    """
-    if not pandas.compat.compressors.has_bz2:
-        raise RuntimeError(
-            "bz2 module not available. "
-            "A Python re-install with the proper dependencies, "
-            "might be required to solve this issue."
-        )
-    return pandas.compat.compressors.BZ2File
-
-
 __all__ = [
+    "HAS_PYARROW",
+    "IS64",
+    "ISMUSL",
+    "PY311",
+    "PY312",
+    "PYPY",
+    "WASM",
     "is_numpy_dev",
     "pa_version_under10p1",
     "pa_version_under11p0",
@@ -189,10 +166,8 @@ __all__ = [
     "pa_version_under14p0",
     "pa_version_under14p1",
     "pa_version_under16p0",
-    "IS64",
-    "ISMUSL",
-    "PY310",
-    "PY311",
-    "PY312",
-    "PYPY",
+    "pa_version_under17p0",
+    "pa_version_under18p0",
+    "pa_version_under19p0",
+    "pa_version_under20p0",
 ]

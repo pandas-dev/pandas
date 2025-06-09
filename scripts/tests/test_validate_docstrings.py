@@ -36,7 +36,7 @@ class BadDocstrings:
         >>> import pandas as pd
         >>> df = pd.DataFrame(np.ones((3, 3)),
         ...                   columns=('a', 'b', 'c'))
-        >>> df.all(1)
+        >>> df.all(axis=1)
         0    True
         1    True
         2    True

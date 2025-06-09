@@ -66,14 +66,14 @@ class BaseMethodsTests:
             expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
 
-        if getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
+        if isinstance(data.dtype, pd.StringDtype) and data.dtype.na_value is np.nan:
+            # TODO: avoid special-casing
+            expected = expected.astype("float64")
+        elif getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
             data.dtype, pd.ArrowDtype
         ):
             # TODO: avoid special-casing
             expected = expected.astype("double[pyarrow]")
-        elif getattr(data.dtype, "storage", "") == "pyarrow_numpy":
-            # TODO: avoid special-casing
-            expected = expected.astype("float64")
         elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
@@ -116,10 +116,8 @@ class BaseMethodsTests:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
-        msg = "The behavior of Series.argsort in the presence of NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
+        result = pd.Series(data_missing_for_sorting).argsort()
+        expected = pd.Series(np.array([2, 0, 1], dtype=np.intp))
         tm.assert_series_equal(result, expected)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
@@ -191,10 +189,10 @@ class BaseMethodsTests:
         # GH#38733
         data = data_missing_for_sorting
 
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             data.argmin(skipna=False)
 
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             data.argmax(skipna=False)
 
     @pytest.mark.parametrize(
@@ -298,6 +296,20 @@ class BaseMethodsTests:
 
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_extension_array_equal(uniques, expected_uniques)
+
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        df = pd.DataFrame({"A": data_missing.take([0, 1, 0, 1])})
+        expected = pd.DataFrame({"A": data_missing.take([1, 1, 0, 1])})
+        result = df.fillna(value=data_missing[1], limit=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        ser = pd.Series(data_missing.take([0, 1, 0, 1]))
+        expected = pd.Series(data_missing.take([1, 1, 0, 1]))
+        result = ser.fillna(value=data_missing[1], limit=1)
+        tm.assert_series_equal(result, expected)
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -537,7 +549,7 @@ class BaseMethodsTests:
         dtype = data_for_sorting.dtype
         data_for_sorting = pd.array([True, False], dtype=dtype)
         b, a = data_for_sorting
-        arr = type(data_for_sorting)._from_sequence([a, b])
+        arr = type(data_for_sorting)._from_sequence([a, b], dtype=dtype)
 
         if as_series:
             arr = pd.Series(arr)

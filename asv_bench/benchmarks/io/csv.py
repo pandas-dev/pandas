@@ -445,16 +445,6 @@ class ReadCSVParseDates(StringIORewind):
         data = data.format(*two_cols)
         self.StringIO_input = StringIO(data)
 
-    def time_multiple_date(self, engine):
-        read_csv(
-            self.data(self.StringIO_input),
-            engine=engine,
-            sep=",",
-            header=None,
-            names=list(string.digits[:9]),
-            parse_dates=[[1, 2], [1, 3]],
-        )
-
     def time_baseline(self, engine):
         read_csv(
             self.data(self.StringIO_input),
@@ -604,7 +594,7 @@ class ReadCSVIndexCol(StringIORewind):
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_index_col(self):
-        read_csv(self.StringIO_input, index_col="a")
+        read_csv(self.data(self.StringIO_input), index_col="a")
 
 
 class ReadCSVDatePyarrowEngine(StringIORewind):
@@ -615,7 +605,7 @@ class ReadCSVDatePyarrowEngine(StringIORewind):
 
     def time_read_csv_index_col(self):
         read_csv(
-            self.StringIO_input,
+            self.data(self.StringIO_input),
             parse_dates=["a"],
             engine="pyarrow",
             dtype_backend="pyarrow",

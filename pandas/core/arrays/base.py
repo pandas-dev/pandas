@@ -13,7 +13,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
     Literal,
     cast,
@@ -78,6 +77,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
@@ -157,6 +157,12 @@ class ExtensionArray:
     _reduce
     _values_for_argsort
     _values_for_factorize
+
+    See Also
+    --------
+    api.extensions.ExtensionDtype : A custom data type, to be paired with an
+        ExtensionArray.
+    api.extensions.ExtensionArray.dtype : An instance of ExtensionDtype.
 
     Notes
     -----
@@ -289,6 +295,13 @@ class ExtensionArray:
         -------
         ExtensionArray
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._from_sequence_of_strings : Construct a new
+            ExtensionArray from a sequence of strings.
+        api.extensions.ExtensionArray._hash_pandas_object : Hook for
+            hash_pandas_object.
+
         Examples
         --------
         >>> pd.arrays.IntegerArray._from_sequence([4, 5])
@@ -351,6 +364,16 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._from_sequence : Construct a new ExtensionArray
+            from a sequence of scalars.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an ExtensionArray
+            after factorization.
+        api.extensions.ExtensionArray._from_scalars : Strict analogue to _from_sequence,
+            allowing only sequences of scalars that should be specifically inferred to
+            the given dtype.
 
         Examples
         --------
@@ -573,7 +596,7 @@ class ExtensionArray:
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:
-            result[self.isna()] = na_value
+            result[self.isna()] = na_value  # type: ignore[index]
         return result
 
     # ------------------------------------------------------------------------
@@ -584,6 +607,14 @@ class ExtensionArray:
     def dtype(self) -> ExtensionDtype:
         """
         An instance of ExtensionDtype.
+
+        See Also
+        --------
+        api.extensions.ExtensionDtype : Base class for extension dtypes.
+        api.extensions.ExtensionArray : Base class for extension array types.
+        api.extensions.ExtensionArray.dtype : The dtype of an ExtensionArray.
+        Series.dtype : The dtype of a Series.
+        DataFrame.dtype : The dtype of a DataFrame.
 
         Examples
         --------
@@ -596,6 +627,13 @@ class ExtensionArray:
     def shape(self) -> Shape:
         """
         Return a tuple of the array dimensions.
+
+        See Also
+        --------
+        numpy.ndarray.shape : Similar attribute which returns the shape of an array.
+        DataFrame.shape : Return a tuple representing the dimensionality of the
+            DataFrame.
+        Series.shape : Return a tuple representing the dimensionality of the Series.
 
         Examples
         --------
@@ -619,6 +657,11 @@ class ExtensionArray:
         """
         Extension Arrays are only allowed to be 1-dimensional.
 
+        See Also
+        --------
+        ExtensionArray.shape: Return a tuple of the array dimensions.
+        ExtensionArray.size: The number of elements in the array.
+
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
@@ -631,6 +674,11 @@ class ExtensionArray:
     def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
+
+        See Also
+        --------
+        ExtensionArray.shape: Return a tuple of the array dimensions.
+        ExtensionArray.size: The number of elements in the array.
 
         Examples
         --------
@@ -672,6 +720,16 @@ class ExtensionArray:
         np.ndarray or pandas.api.extensions.ExtensionArray
             An ``ExtensionArray`` if ``dtype`` is ``ExtensionDtype``,
             otherwise a Numpy ndarray with ``dtype`` for its dtype.
+
+        See Also
+        --------
+        Series.astype : Cast a Series to a different dtype.
+        DataFrame.astype : Cast a DataFrame to a different dtype.
+        api.extensions.ExtensionArray : Base class for ExtensionArray objects.
+        core.arrays.DatetimeArray._from_sequence : Create a DatetimeArray from a
+            sequence.
+        core.arrays.TimedeltaArray._from_sequence : Create a TimedeltaArray from
+            a sequence.
 
         Examples
         --------
@@ -737,12 +795,18 @@ class ExtensionArray:
             an ndarray would be expensive, an ExtensionArray may be
             returned.
 
+        See Also
+        --------
+        ExtensionArray.dropna: Return ExtensionArray without NA values.
+        ExtensionArray.fillna: Fill NA/NaN values using the specified method.
+
         Notes
         -----
         If returning an ExtensionArray, then
 
         * ``na_values._is_boolean`` should be True
-        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values`` should implement :func:`ExtensionArray._reduce`
+        * ``na_values`` should implement :func:`ExtensionArray._accumulate`
         * ``na_values.any`` and ``na_values.all`` should be implemented
 
         Examples
@@ -877,7 +941,7 @@ class ExtensionArray:
         --------
         >>> arr = pd.array([3, 1, 2, 5, 4])
         >>> arr.argmin()
-        1
+        np.int64(1)
         """
         # Implementer note: You have two places to override the behavior of
         # argmin.
@@ -885,7 +949,7 @@ class ExtensionArray:
         # 2. argmin itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmin")
 
     def argmax(self, skipna: bool = True) -> int:
@@ -911,7 +975,7 @@ class ExtensionArray:
         --------
         >>> arr = pd.array([3, 1, 2, 5, 4])
         >>> arr.argmax()
-        3
+        np.int64(3)
         """
         # Implementer note: You have two places to override the behavior of
         # argmax.
@@ -919,7 +983,7 @@ class ExtensionArray:
         # 2. argmax itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmax")
 
     def interpolate(
@@ -935,16 +999,73 @@ class ExtensionArray:
         **kwargs,
     ) -> Self:
         """
-        See DataFrame.interpolate.__doc__.
+        Fill NaN values using an interpolation method.
+
+        Parameters
+        ----------
+        method : str, default 'linear'
+            Interpolation technique to use. One of:
+            * 'linear': Ignore the index and treat the values as equally spaced.
+            This is the only method supported on MultiIndexes.
+            * 'time': Works on daily and higher resolution data to interpolate
+            given length of interval.
+            * 'index', 'values': use the actual numerical values of the index.
+            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'barycentric',
+            'polynomial': Passed to scipy.interpolate.interp1d, whereas 'spline'
+            is passed to scipy.interpolate.UnivariateSpline. These methods use
+            the numerical values of the index.
+            Both 'polynomial' and 'spline' require that you also specify an
+            order (int), e.g. arr.interpolate(method='polynomial', order=5).
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
+            'cubicspline': Wrappers around the SciPy interpolation methods
+            of similar names. See Notes.
+            * 'from_derivatives': Refers to scipy.interpolate.BPoly.from_derivatives.
+        axis : int
+            Axis to interpolate along. For 1-dimensional data, use 0.
+        index : Index
+            Index to use for interpolation.
+        limit : int or None
+            Maximum number of consecutive NaNs to fill. Must be greater than 0.
+        limit_direction : {'forward', 'backward', 'both'}
+            Consecutive NaNs will be filled in this direction.
+        limit_area : {'inside', 'outside'} or None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+            * None: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+        copy : bool
+            If True, a copy of the object is returned with interpolated values.
+        **kwargs : optional
+            Keyword arguments to pass on to the interpolating function.
+
+        Returns
+        -------
+        ExtensionArray
+            An ExtensionArray with interpolated values.
+
+        See Also
+        --------
+        Series.interpolate : Interpolate values in a Series.
+        DataFrame.interpolate : Interpolate values in a DataFrame.
+
+        Notes
+        -----
+        - All parameters must be specified as keyword arguments.
+        - The 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
+          methods are wrappers around the respective SciPy implementations of
+          similar names. These use the actual numerical values of the index.
 
         Examples
         --------
+        Interpolating values in a NumPy array:
+
         >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, 1, np.nan, 3]))
         >>> arr.interpolate(
         ...     method="linear",
         ...     limit=3,
         ...     limit_direction="forward",
-        ...     index=pd.Index([1, 2, 3, 4]),
+        ...     index=pd.Index(range(len(arr))),
         ...     fill_value=1,
         ...     copy=False,
         ...     axis=0,
@@ -953,6 +1074,22 @@ class ExtensionArray:
         <NumpyExtensionArray>
         [0.0, 1.0, 2.0, 3.0]
         Length: 4, dtype: float64
+
+        Interpolating values in a FloatingArray:
+
+        >>> arr = pd.array([1.0, pd.NA, 3.0, 4.0, pd.NA, 6.0], dtype="Float64")
+        >>> arr.interpolate(
+        ...     method="linear",
+        ...     axis=0,
+        ...     index=pd.Index(range(len(arr))),
+        ...     limit=None,
+        ...     limit_direction="both",
+        ...     limit_area=None,
+        ...     copy=True,
+        ... )
+        <FloatingArray>
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+        Length: 6, dtype: Float64
         """
         # NB: we return type(self) even if copy=False
         raise NotImplementedError(
@@ -986,6 +1123,12 @@ class ExtensionArray:
             maximum number of entries along the entire axis where NaNs will be
             filled.
 
+        limit_area : {'inside', 'outside'} or None, default None
+            Specifies which area to limit filling.
+            - 'inside': Limit the filling to the area within the gaps.
+            - 'outside': Limit the filling to the area outside the gaps.
+            If `None`, no limitation is applied.
+
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
@@ -997,6 +1140,16 @@ class ExtensionArray:
         Returns
         -------
         Same type as self
+            The filled array with the same type as the original.
+
+        See Also
+        --------
+        Series.ffill : Forward fill missing values.
+        Series.bfill : Backward fill missing values.
+        DataFrame.ffill : Forward fill missing values in DataFrame.
+        DataFrame.bfill : Backward fill missing values in DataFrame.
+        api.types.isna : Check for missing values.
+        api.types.isnull : Check for missing values.
 
         Examples
         --------
@@ -1045,24 +1198,24 @@ class ExtensionArray:
             Alternatively, an array-like "value" can be given. It's expected
             that the array-like have the same length as 'self'.
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
+            The maximum number of entries where NA values will be filled.
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
             For ExtensionArray subclasses that cannot do this, it is at the
             author's discretion whether to ignore "copy=False" or to raise.
-            The base class implementation ignores the keyword in pad/backfill
-            cases.
 
         Returns
         -------
         ExtensionArray
             With NA/NaN filled.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray.dropna : Return ExtensionArray without
+            NA values.
+        api.extensions.ExtensionArray.isna : A 1-D array indicating if
+            each value is missing.
 
         Examples
         --------
@@ -1073,6 +1226,15 @@ class ExtensionArray:
         Length: 6, dtype: Int64
         """
         mask = self.isna()
+        if limit is not None and limit < len(self):
+            # isna can return an ExtensionArray, we're assuming that comparisons
+            # are implemented.
+            # mypy doesn't like that mask can be an EA which need not have `cumsum`
+            modify = mask.cumsum() > limit  # type: ignore[union-attr]
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
@@ -1101,6 +1263,16 @@ class ExtensionArray:
 
         Returns
         -------
+        Self
+            An ExtensionArray of the same type as the original but with all
+            NA values removed.
+
+        See Also
+        --------
+        Series.dropna : Remove missing values from a Series.
+        DataFrame.dropna : Remove missing values from a DataFrame.
+        api.extensions.ExtensionArray.isna : Check for missing values in
+            an ExtensionArray.
 
         Examples
         --------
@@ -1128,6 +1300,15 @@ class ExtensionArray:
         Returns
         -------
         ndarray[bool]
+            With true in indices where elements are duplicated and false otherwise.
+
+        See Also
+        --------
+        DataFrame.duplicated : Return boolean Series denoting
+            duplicate rows.
+        Series.duplicated : Indicate duplicate Series values.
+        api.extensions.ExtensionArray.unique : Compute the ExtensionArray
+            of unique values.
 
         Examples
         --------
@@ -1158,6 +1339,13 @@ class ExtensionArray:
         -------
         ExtensionArray
             Shifted.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray.transpose : Return a transposed view on
+            this array.
+        api.extensions.ExtensionArray.factorize : Encode the extension array as an
+            enumerated type.
 
         Notes
         -----
@@ -1204,6 +1392,13 @@ class ExtensionArray:
         Returns
         -------
         pandas.api.extensions.ExtensionArray
+            With unique values from the input array.
+
+        See Also
+        --------
+        Index.unique: Return unique values in the index.
+        Series.unique: Return unique values of Series object.
+        unique: Return unique values based on a hash table.
 
         Examples
         --------
@@ -1294,12 +1489,23 @@ class ExtensionArray:
         boolean
             Whether the arrays are equivalent.
 
+        See Also
+        --------
+        numpy.array_equal : Equivalent method for numpy array.
+        Series.equals : Equivalent method for Series.
+        DataFrame.equals : Equivalent method for DataFrame.
+
         Examples
         --------
         >>> arr1 = pd.array([1, 2, np.nan])
         >>> arr2 = pd.array([1, 2, np.nan])
         >>> arr1.equals(arr2)
         True
+
+        >>> arr1 = pd.array([1, 3, np.nan])
+        >>> arr2 = pd.array([1, 2, np.nan])
+        >>> arr1.equals(arr2)
+        False
         """
         if type(self) != type(other):
             return False
@@ -1326,10 +1532,18 @@ class ExtensionArray:
         Parameters
         ----------
         values : np.ndarray or ExtensionArray
+            Values to compare every element in the array against.
 
         Returns
         -------
         np.ndarray[bool]
+            With true at indices where value is in `values`.
+
+        See Also
+        --------
+        DataFrame.isin: Whether each element in the DataFrame is contained in values.
+        Index.isin: Return a boolean array where the index values are in values.
+        Series.isin: Whether elements in Series are contained in values.
 
         Examples
         --------
@@ -1356,6 +1570,10 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        See Also
+        --------
+        util.hash_pandas_object : Hash the pandas object.
 
         Notes
         -----
@@ -1529,6 +1747,7 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+            An array formed with selected `indices`.
 
         Raises
         ------
@@ -1572,9 +1791,11 @@ class ExtensionArray:
                # type for the array, to the physical storage type for
                # the data, before passing to take.
 
-               result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
+               result = take(
+                   data, indices, fill_value=fill_value, allow_fill=allow_fill
+               )
                return self._from_sequence(result, dtype=self.dtype)
-        """  # noqa: E501
+        """
         # Implementer note: The `fill_value` parameter should be a user-facing
         # value, an instance of self.dtype.type. When passed `fill_value=None`,
         # the default of `self.dtype.na_value` should be used.
@@ -1588,9 +1809,19 @@ class ExtensionArray:
         """
         Return a copy of the array.
 
+        This method creates a copy of the `ExtensionArray` where modifying the
+        data in the copy will not affect the original array. This is useful when
+        you want to manipulate data without altering the original dataset.
+
         Returns
         -------
         ExtensionArray
+            A new `ExtensionArray` object that is a copy of the current instance.
+
+        See Also
+        --------
+        DataFrame.copy : Return a copy of the DataFrame.
+        Series.copy : Return a copy of the Series.
 
         Examples
         --------
@@ -1618,11 +1849,17 @@ class ExtensionArray:
         ExtensionArray or np.ndarray
             A view on the :class:`ExtensionArray`'s data.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray.ravel: Return a flattened view on input array.
+        Index.view: Equivalent function for Index.
+        ndarray.view: New view of array with the same data.
+
         Examples
         --------
         This gives view on the underlying data of an ``ExtensionArray`` and is not a
         copy. Modifications on either the view or the original ``ExtensionArray``
-        will be reflectd on the underlying data:
+        will be reflected on the underlying data:
 
         >>> arr = pd.array([1, 2, 3])
         >>> arr2 = arr.view()
@@ -1707,14 +1944,25 @@ class ExtensionArray:
             when ``boxed=False`` and :func:`str` is used when
             ``boxed=True``.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
+        api.extensions.ExtensionArray._from_sequence : Construct a new
+            ExtensionArray from a sequence of scalars.
+
         Examples
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
         ...     def _formatter(self, boxed=False):
-        ...         return lambda x: "*" + str(x) + "*" if boxed else repr(x) + "*"
+        ...         return lambda x: "*" + str(x) + "*"
         >>> MyExtensionArray(np.array([1, 2, 3, 4]))
         <MyExtensionArray>
-        [1*, 2*, 3*, 4*]
+        [*1*, *2*, *3*, *4*]
         Length: 4, dtype: int64
         """
         if boxed:
@@ -1760,6 +2008,11 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+            A flattened view on the array.
+
+        See Also
+        --------
+        ExtensionArray.tolist: Return a list of the values.
 
         Notes
         -----
@@ -1783,10 +2036,20 @@ class ExtensionArray:
         Parameters
         ----------
         to_concat : sequence of this type
+            An array of the same dtype to concatenate.
 
         Returns
         -------
         ExtensionArray
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._formatter : Formatting function for
+            scalar values.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
 
         Examples
         --------
@@ -1838,10 +2101,19 @@ class ExtensionArray:
         Returns
         -------
         array
+            An array performing the accumulation operation.
 
         Raises
         ------
         NotImplementedError : subclass does not define accumulations
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray.view : Return a view on the array.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
 
         Examples
         --------
@@ -1870,38 +2142,62 @@ class ExtensionArray:
         keepdims : bool, default False
             If False, a scalar is returned.
             If True, the result has dimension with size one along the reduced axis.
-
-            .. versionadded:: 2.1
-
-               This parameter is not required in the _reduce signature to keep backward
-               compatibility, but will become required in the future. If the parameter
-               is not found in the method signature, a FutureWarning will be emitted.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
 
         Returns
         -------
-        scalar
+        scalar or ndarray:
+            The result of the reduction operation. The type of the result
+            depends on `keepdims`:
+            - If `keepdims` is `False`, a scalar value is returned.
+            - If `keepdims` is `True`, the result is wrapped in a numpy array with
+            a single element.
 
         Raises
         ------
-        TypeError : subclass does not define reductions
+        TypeError : subclass does not define operations
+
+        See Also
+        --------
+        Series.min : Return the minimum value.
+        Series.max : Return the maximum value.
+        Series.sum : Return the sum of values.
+        Series.mean : Return the mean of values.
+        Series.median : Return the median of values.
+        Series.std : Return the standard deviation.
+        Series.var : Return the variance.
+        Series.prod : Return the product of values.
+        Series.sem : Return the standard error of the mean.
+        Series.kurt : Return the kurtosis.
+        Series.skew : Return the skewness.
 
         Examples
         --------
         >>> pd.array([1, 2, 3])._reduce("min")
-        1
+        np.int64(1)
+        >>> pd.array([1, 2, 3])._reduce("max")
+        np.int64(3)
+        >>> pd.array([1, 2, 3])._reduce("sum")
+        np.int64(6)
+        >>> pd.array([1, 2, 3])._reduce("mean")
+        np.float64(2.0)
+        >>> pd.array([1, 2, 3])._reduce("median")
+        np.float64(2.0)
         """
         meth = getattr(self, name, None)
         if meth is None:
             raise TypeError(
                 f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support reduction '{name}'"
+                f"does not support operation '{name}'"
             )
         result = meth(skipna=skipna, **kwargs)
         if keepdims:
-            result = np.array([result])
+            if name in ["min", "max"]:
+                result = self._from_sequence([result], dtype=self.dtype)
+            else:
+                result = np.array([result])
 
         return result
 
@@ -1948,6 +2244,13 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray[uint64]
+            An array of hashed values.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._values_for_factorize : Return an array and
+            missing value suitable for factorization.
+        util.hash_array : Given a 1d array, return an array of hashed values.
 
         Examples
         --------
@@ -2010,6 +2313,12 @@ class ExtensionArray:
         Returns
         -------
         list
+            Python list of values in array.
+
+        See Also
+        --------
+        Index.to_list: Return a list of the values in the Index.
+        Series.to_list: Return a list of the values in the Series.
 
         Examples
         --------
@@ -2032,11 +2341,18 @@ class ExtensionArray:
         Parameters
         ----------
         loc : int
+            Index where the `item` needs to be inserted.
         item : scalar-like
+            Value to be inserted.
 
         Returns
         -------
-        same type as self
+        ExtensionArray
+            With `item` inserted at `loc`.
+
+        See Also
+        --------
+        Index.insert: Make new Index inserting new item at location.
 
         Notes
         -----
@@ -2110,25 +2426,6 @@ class ExtensionArray:
 
         result[~mask] = val
         return result
-
-    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _fill_mask_inplace(
-        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
-    ) -> None:
-        """
-        Replace values in locations specified by 'mask' using pad or backfill.
-
-        See also
-        --------
-        ExtensionArray.fillna
-        """
-        func = missing.get_fill_func(method)
-        npvalues = self.astype(object)
-        # NB: if we don't copy mask here, it may be altered inplace, which
-        #  would mess up the `self[mask] = ...` below.
-        func(npvalues, limit=limit, mask=mask.copy())
-        new_values = self._from_sequence(npvalues, dtype=self.dtype)
-        self[mask] = new_values[mask]
 
     def _rank(
         self,
@@ -2214,8 +2511,9 @@ class ExtensionArray:
             Sorted, if possible.
         """
         # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "Self")
-        return mode(self, dropna=dropna)  # type: ignore[return-value]
+        # Tuple[np.ndarray, npt.NDArray[np.bool_]]", expected "Self")
+        result, _ = mode(self, dropna=dropna)
+        return result  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
@@ -2243,7 +2541,7 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using an input mapping or function.
 
@@ -2313,10 +2611,33 @@ class ExtensionArray:
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
+            if op.how in [
+                "prod",
+                "mean",
+                "median",
+                "cumsum",
+                "cumprod",
+                "std",
+                "sem",
+                "var",
+                "skew",
+                "kurt",
+            ]:
+                raise TypeError(
+                    f"dtype '{self.dtype}' does not support operation '{how}'"
+                )
             if op.how not in ["any", "all"]:
                 # Fail early to avoid conversion to object
                 op._get_cython_function(op.kind, op.how, np.dtype(object), False)
-            npvalues = self.to_numpy(object, na_value=np.nan)
+
+            arr = self
+            if op.how == "sum":
+                # https://github.com/pandas-dev/pandas/issues/60229
+                # All NA should result in the empty string.
+                assert "skipna" in kwargs
+                if kwargs["skipna"] and min_count == 0:
+                    arr = arr.fillna("")
+            npvalues = arr.to_numpy(object, na_value=np.nan)
         else:
             raise NotImplementedError(
                 f"function is not implemented for this dtype: {self.dtype}"

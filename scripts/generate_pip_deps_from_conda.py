@@ -26,6 +26,8 @@ import yaml
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
 REMAP_VERSION = {"tzdata": "2022.7"}
 CONDA_TO_PIP = {
+    "versioneer": "versioneer[toml]",
+    "meson": "meson[ninja]",
     "pytables": "tables",
     "psycopg2": "psycopg2-binary",
     "dask-core": "dask",

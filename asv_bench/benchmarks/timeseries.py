@@ -29,7 +29,7 @@ class DatetimeIndex:
             "dst": date_range(
                 start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="s"
             ),
-            "repeated": date_range(start="2000", periods=N / 10, freq="s").repeat(10),
+            "repeated": date_range(start="2000", periods=N // 10, freq="s").repeat(10),
             "tz_aware": date_range(start="2000", periods=N, freq="s", tz="US/Eastern"),
             "tz_local": date_range(
                 start="2000", periods=N, freq="s", tz=dateutil.tz.tzlocal()

@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     DataFrame,
     Index,
@@ -13,8 +17,8 @@ from pandas.tests.copy_view.util import get_array
 
 
 def test_concat_frames():
-    df = DataFrame({"b": ["a"] * 3})
-    df2 = DataFrame({"a": ["a"] * 3})
+    df = DataFrame({"b": ["a"] * 3}, dtype=object)
+    df2 = DataFrame({"a": ["a"] * 3}, dtype=object)
     df_orig = df.copy()
     result = concat([df, df2], axis=1)
 
@@ -31,8 +35,8 @@ def test_concat_frames():
 
 
 def test_concat_frames_updating_input():
-    df = DataFrame({"b": ["a"] * 3})
-    df2 = DataFrame({"a": ["a"] * 3})
+    df = DataFrame({"b": ["a"] * 3}, dtype=object)
+    df2 = DataFrame({"a": ["a"] * 3}, dtype=object)
     result = concat([df, df2], axis=1)
 
     assert np.shares_memory(get_array(result, "b"), get_array(df, "b"))
@@ -139,12 +143,11 @@ def test_concat_mixed_series_frame():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("copy", [True, None, False])
-def test_concat_copy_keyword(copy):
+def test_concat_copy_keyword():
     df = DataFrame({"a": [1, 2]})
     df2 = DataFrame({"b": [1.5, 2.5]})
 
-    result = concat([df, df2], axis=1, copy=copy)
+    result = concat([df, df2], axis=1)
 
     assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
     assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
@@ -158,8 +161,8 @@ def test_concat_copy_keyword(copy):
     ],
 )
 def test_merge_on_key(func):
-    df1 = DataFrame({"key": ["a", "b", "c"], "a": [1, 2, 3]})
-    df2 = DataFrame({"key": ["a", "b", "c"], "b": [4, 5, 6]})
+    df1 = DataFrame({"key": Series(["a", "b", "c"], dtype=object), "a": [1, 2, 3]})
+    df2 = DataFrame({"key": Series(["a", "b", "c"], dtype=object), "b": [4, 5, 6]})
     df1_orig = df1.copy()
     df2_orig = df2.copy()
 
@@ -209,8 +212,8 @@ def test_merge_on_index():
     ],
 )
 def test_merge_on_key_enlarging_one(func, how):
-    df1 = DataFrame({"key": ["a", "b", "c"], "a": [1, 2, 3]})
-    df2 = DataFrame({"key": ["a", "b"], "b": [4, 5]})
+    df1 = DataFrame({"key": Series(["a", "b", "c"], dtype=object), "a": [1, 2, 3]})
+    df2 = DataFrame({"key": Series(["a", "b"], dtype=object), "b": [4, 5]})
     df1_orig = df1.copy()
     df2_orig = df2.copy()
 
@@ -234,19 +237,23 @@ def test_merge_on_key_enlarging_one(func, how):
     tm.assert_frame_equal(df2, df2_orig)
 
 
-@pytest.mark.parametrize("copy", [True, None, False])
-def test_merge_copy_keyword(copy):
+def test_merge_copy_keyword():
     df = DataFrame({"a": [1, 2]})
     df2 = DataFrame({"b": [3, 4.5]})
 
-    result = df.merge(df2, copy=copy, left_index=True, right_index=True)
+    result = df.merge(df2, left_index=True, right_index=True)
 
     assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
     assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and HAS_PYARROW,
+    reason="TODO(infer_string); result.index infers str dtype while both "
+    "df1 and df2 index are object.",
+)
 def test_join_on_key():
-    df_index = Index(["a", "b", "c"], name="key")
+    df_index = Index(["a", "b", "c"], name="key", dtype=object)
 
     df1 = DataFrame({"a": [1, 2, 3]}, index=df_index.copy(deep=True))
     df2 = DataFrame({"b": [4, 5, 6]}, index=df_index.copy(deep=True))
@@ -273,7 +280,7 @@ def test_join_on_key():
 
 
 def test_join_multiple_dataframes_on_key():
-    df_index = Index(["a", "b", "c"], name="key")
+    df_index = Index(["a", "b", "c"], name="key", dtype=object)
 
     df1 = DataFrame({"a": [1, 2, 3]}, index=df_index.copy(deep=True))
     dfs_list = [

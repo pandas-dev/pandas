@@ -3,17 +3,20 @@ from __future__ import annotations
 import abc
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
 )
 
-import numpy as np
+from pandas._libs import lib
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
     import re
 
     from pandas._typing import (
+        NpDtype,
         Scalar,
         Self,
     )
@@ -86,7 +89,11 @@ class BaseStringArrayMethods(abc.ABC):
 
     @abc.abstractmethod
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = np.nan
+        self,
+        pat: str,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ):
         pass
 
@@ -96,7 +103,7 @@ class BaseStringArrayMethods(abc.ABC):
         pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
-        na: Scalar = np.nan,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ):
         pass
 
@@ -161,7 +168,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         pass
 
     @abc.abstractmethod
@@ -170,6 +177,10 @@ class BaseStringArrayMethods(abc.ABC):
 
     @abc.abstractmethod
     def _str_isalpha(self):
+        pass
+
+    @abc.abstractmethod
+    def _str_isascii(self):
         pass
 
     @abc.abstractmethod

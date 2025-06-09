@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Mapping,
     Sequence,
 )
 import datetime
+from decimal import Decimal
 from functools import partial
 import os
 from textwrap import fill
@@ -14,7 +16,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypeVar,
@@ -43,6 +44,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_decimal,
     is_file_like,
     is_float,
     is_integer,
@@ -87,7 +89,7 @@ if TYPE_CHECKING:
     )
 _read_excel_doc = (
     """
-Read an Excel file into a ``pandas`` ``DataFrame``.
+Read an Excel file into a ``DataFrame``.
 
 Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
@@ -113,7 +115,7 @@ sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
     Lists of strings/integers are used to request multiple sheets.
-    Specify ``None`` to get all worksheets.
+    When ``None``, will return a dictionary containing DataFrames for each sheet.
 
     Available cases:
 
@@ -122,7 +124,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * ``None``: All worksheets.
+    * ``None``: Returns a dictionary containing DataFrames for each sheet..
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -195,7 +197,7 @@ skiprows : list-like, int, or callable, optional
     False otherwise. An example of a valid callable argument would be ``lambda
     x: x in [0, 2]``.
 nrows : int, default None
-    Number of rows to parse.
+    Number of rows to parse. Does not include header rows.
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
@@ -240,20 +242,6 @@ parse_dates : bool, list-like, or dict, default False
     For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
-date_parser : function, optional
-    Function to use for converting a sequence of string columns to an array of
-    datetime instances. The default uses ``dateutil.parser.parser`` to do the
-    conversion. Pandas will try to call `date_parser` in three different ways,
-    advancing to the next if an exception occurs: 1) Pass one or more arrays
-    (as defined by `parse_dates`) as arguments; 2) concatenate (row-wise) the
-    string values from the columns defined by `parse_dates` into a single array
-    and pass that; and 3) call `date_parser` once for each row using one or
-    more strings (corresponding to the columns defined by `parse_dates`) as
-    arguments.
-
-    .. deprecated:: 2.0.0
-       Use ``date_format`` instead, or read in as ``object`` and then apply
-       :func:`to_datetime` as-needed.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
@@ -281,14 +269,15 @@ skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 {storage_options}
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
-    (still experimental). Behaviour is as follows:
+    (still experimental). If not specified, the default behavior
+    is to not use nullable data types. If specified, the behavior
+    is as follows:
 
     * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-      (default).
-    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-      DataFrame.
+    * ``"pyarrow"``: returns pyarrow-backed nullable
+      :class:`ArrowDtype` :class:`DataFrame`
 
     .. versionadded:: 2.0
 
@@ -398,7 +387,6 @@ def read_excel(
     na_filter: bool = ...,
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
-    date_parser: Callable | lib.NoDefault = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -436,7 +424,6 @@ def read_excel(
     na_filter: bool = ...,
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
-    date_parser: Callable | lib.NoDefault = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -474,7 +461,6 @@ def read_excel(
     na_filter: bool = True,
     verbose: bool = False,
     parse_dates: list | dict | bool = False,
-    date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
@@ -521,7 +507,6 @@ def read_excel(
             na_filter=na_filter,
             verbose=verbose,
             parse_dates=parse_dates,
-            date_parser=date_parser,
             date_format=date_format,
             thousands=thousands,
             decimal=decimal,
@@ -726,7 +711,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
         na_values=None,
         verbose: bool = False,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | lib.NoDefault = lib.no_default,
         date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
@@ -780,135 +764,29 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 output[asheetname] = DataFrame()
                 continue
 
-            is_list_header = False
-            is_len_one_list_header = False
-            if is_list_like(header):
-                assert isinstance(header, Sequence)
-                is_list_header = True
-                if len(header) == 1:
-                    is_len_one_list_header = True
-
-            if is_len_one_list_header:
-                header = cast(Sequence[int], header)[0]
-
-            # forward fill and pull out names for MultiIndex column
-            header_names = None
-            if header is not None and is_list_like(header):
-                assert isinstance(header, Sequence)
-
-                header_names = []
-                control_row = [True] * len(data[0])
-
-                for row in header:
-                    if is_integer(skiprows):
-                        assert isinstance(skiprows, int)
-                        row += skiprows
-
-                    if row > len(data) - 1:
-                        raise ValueError(
-                            f"header index {row} exceeds maximum index "
-                            f"{len(data) - 1} of data.",
-                        )
-
-                    data[row], control_row = fill_mi_header(data[row], control_row)
-
-                    if index_col is not None:
-                        header_name, _ = pop_header_name(data[row], index_col)
-                        header_names.append(header_name)
-
-            # If there is a MultiIndex header and an index then there is also
-            # a row containing just the index name(s)
-            has_index_names = False
-            if is_list_header and not is_len_one_list_header and index_col is not None:
-                index_col_list: Sequence[int]
-                if isinstance(index_col, int):
-                    index_col_list = [index_col]
-                else:
-                    assert isinstance(index_col, Sequence)
-                    index_col_list = index_col
-
-                # We have to handle mi without names. If any of the entries in the data
-                # columns are not empty, this is a regular row
-                assert isinstance(header, Sequence)
-                if len(header) < len(data):
-                    potential_index_names = data[len(header)]
-                    potential_data = [
-                        x
-                        for i, x in enumerate(potential_index_names)
-                        if not control_row[i] and i not in index_col_list
-                    ]
-                    has_index_names = all(x == "" or x is None for x in potential_data)
-
-            if is_list_like(index_col):
-                # Forward fill values for MultiIndex index.
-                if header is None:
-                    offset = 0
-                elif isinstance(header, int):
-                    offset = 1 + header
-                else:
-                    offset = 1 + max(header)
-
-                # GH34673: if MultiIndex names present and not defined in the header,
-                # offset needs to be incremented so that forward filling starts
-                # from the first MI value instead of the name
-                if has_index_names:
-                    offset += 1
-
-                # Check if we have an empty dataset
-                # before trying to collect data.
-                if offset < len(data):
-                    assert isinstance(index_col, Sequence)
-
-                    for col in index_col:
-                        last = data[offset][col]
-
-                        for row in range(offset + 1, len(data)):
-                            if data[row][col] == "" or data[row][col] is None:
-                                data[row][col] = last
-                            else:
-                                last = data[row][col]
-
-            # GH 12292 : error when read one empty column from excel file
-            try:
-                parser = TextParser(
-                    data,
-                    names=names,
-                    header=header,
-                    index_col=index_col,
-                    has_index_names=has_index_names,
-                    dtype=dtype,
-                    true_values=true_values,
-                    false_values=false_values,
-                    skiprows=skiprows,
-                    nrows=nrows,
-                    na_values=na_values,
-                    skip_blank_lines=False,  # GH 39808
-                    parse_dates=parse_dates,
-                    date_parser=date_parser,
-                    date_format=date_format,
-                    thousands=thousands,
-                    decimal=decimal,
-                    comment=comment,
-                    skipfooter=skipfooter,
-                    usecols=usecols,
-                    dtype_backend=dtype_backend,
-                    **kwds,
-                )
-
-                output[asheetname] = parser.read(nrows=nrows)
-
-                if header_names:
-                    output[asheetname].columns = output[asheetname].columns.set_names(
-                        header_names
-                    )
-
-            except EmptyDataError:
-                # No Data, return an empty DataFrame
-                output[asheetname] = DataFrame()
-
-            except Exception as err:
-                err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
-                raise err
+            output = self._parse_sheet(
+                data=data,
+                output=output,
+                asheetname=asheetname,
+                header=header,
+                names=names,
+                index_col=index_col,
+                usecols=usecols,
+                dtype=dtype,
+                skiprows=skiprows,
+                nrows=nrows,
+                true_values=true_values,
+                false_values=false_values,
+                na_values=na_values,
+                parse_dates=parse_dates,
+                date_format=date_format,
+                thousands=thousands,
+                decimal=decimal,
+                comment=comment,
+                skipfooter=skipfooter,
+                dtype_backend=dtype_backend,
+                **kwds,
+            )
 
         if last_sheetname is None:
             raise ValueError("Sheet name is an empty list")
@@ -917,6 +795,160 @@ class BaseExcelReader(Generic[_WorkbookT]):
             return output
         else:
             return output[last_sheetname]
+
+    def _parse_sheet(
+        self,
+        data: list,
+        output: dict,
+        asheetname: str | int | None = None,
+        header: int | Sequence[int] | None = 0,
+        names: SequenceNotStr[Hashable] | range | None = None,
+        index_col: int | Sequence[int] | None = None,
+        usecols=None,
+        dtype: DtypeArg | None = None,
+        skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
+        nrows: int | None = None,
+        true_values: Iterable[Hashable] | None = None,
+        false_values: Iterable[Hashable] | None = None,
+        na_values=None,
+        parse_dates: list | dict | bool = False,
+        date_format: dict[Hashable, str] | str | None = None,
+        thousands: str | None = None,
+        decimal: str = ".",
+        comment: str | None = None,
+        skipfooter: int = 0,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+        **kwds,
+    ):
+        is_list_header = False
+        is_len_one_list_header = False
+        if is_list_like(header):
+            assert isinstance(header, Sequence)
+            is_list_header = True
+            if len(header) == 1:
+                is_len_one_list_header = True
+
+        if is_len_one_list_header:
+            header = cast(Sequence[int], header)[0]
+
+        # forward fill and pull out names for MultiIndex column
+        header_names = None
+        if header is not None and is_list_like(header):
+            assert isinstance(header, Sequence)
+
+            header_names = []
+            control_row = [True] * len(data[0])
+
+            for row in header:
+                if is_integer(skiprows):
+                    assert isinstance(skiprows, int)
+                    row += skiprows
+
+                if row > len(data) - 1:
+                    raise ValueError(
+                        f"header index {row} exceeds maximum index "
+                        f"{len(data) - 1} of data.",
+                    )
+
+                data[row], control_row = fill_mi_header(data[row], control_row)
+
+                if index_col is not None:
+                    header_name, _ = pop_header_name(data[row], index_col)
+                    header_names.append(header_name)
+
+        # If there is a MultiIndex header and an index then there is also
+        # a row containing just the index name(s)
+        has_index_names = False
+        if is_list_header and not is_len_one_list_header and index_col is not None:
+            index_col_set: set[int]
+            if isinstance(index_col, int):
+                index_col_set = {index_col}
+            else:
+                assert isinstance(index_col, Sequence)
+                index_col_set = set(index_col)
+
+            # We have to handle mi without names. If any of the entries in the data
+            # columns are not empty, this is a regular row
+            assert isinstance(header, Sequence)
+            if len(header) < len(data):
+                potential_index_names = data[len(header)]
+                has_index_names = all(
+                    x == "" or x is None
+                    for i, x in enumerate(potential_index_names)
+                    if not control_row[i] and i not in index_col_set
+                )
+
+        if is_list_like(index_col):
+            # Forward fill values for MultiIndex index.
+            if header is None:
+                offset = 0
+            elif isinstance(header, int):
+                offset = 1 + header
+            else:
+                offset = 1 + max(header)
+
+            # GH34673: if MultiIndex names present and not defined in the header,
+            # offset needs to be incremented so that forward filling starts
+            # from the first MI value instead of the name
+            if has_index_names:
+                offset += 1
+
+            # Check if we have an empty dataset
+            # before trying to collect data.
+            if offset < len(data):
+                assert isinstance(index_col, Sequence)
+
+                for col in index_col:
+                    last = data[offset][col]
+
+                    for row in range(offset + 1, len(data)):
+                        if data[row][col] == "" or data[row][col] is None:
+                            data[row][col] = last
+                        else:
+                            last = data[row][col]
+
+        # GH 12292 : error when read one empty column from excel file
+        try:
+            parser = TextParser(
+                data,
+                names=names,
+                header=header,
+                index_col=index_col,
+                has_index_names=has_index_names,
+                dtype=dtype,
+                true_values=true_values,
+                false_values=false_values,
+                skiprows=skiprows,
+                nrows=nrows,
+                na_values=na_values,
+                skip_blank_lines=False,  # GH 39808
+                parse_dates=parse_dates,
+                date_format=date_format,
+                thousands=thousands,
+                decimal=decimal,
+                comment=comment,
+                skipfooter=skipfooter,
+                usecols=usecols,
+                dtype_backend=dtype_backend,
+                **kwds,
+            )
+
+            output[asheetname] = parser.read(nrows=nrows)
+
+            if header_names:
+                output[asheetname].columns = output[asheetname].columns.set_names(
+                    header_names
+                )
+
+        except EmptyDataError:
+            # No Data, return an empty DataFrame
+            output[asheetname] = DataFrame()
+
+        except Exception as err:
+            err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
+            raise err
+
+        return output
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -928,7 +960,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
-    * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
+    * `odf <https://pypi.org/project/odfpy/>`__ for ods files
 
     See :meth:`DataFrame.to_excel` for typical usage.
 
@@ -975,9 +1007,15 @@ class ExcelWriter(Generic[_WorkbookT]):
         * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
         * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
         * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
-        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
+        * odf: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
+
+    See Also
+    --------
+    read_excel : Read an Excel sheet values (xlsx) file into DataFrame.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
     Notes
     -----
@@ -1312,6 +1350,8 @@ class ExcelWriter(Generic[_WorkbookT]):
             val = float(val)
         elif is_bool(val):
             val = bool(val)
+        elif is_decimal(val):
+            val = Decimal(val)
         elif isinstance(val, datetime.datetime):
             fmt = self._datetime_format
         elif isinstance(val, datetime.date):
@@ -1421,9 +1461,9 @@ def inspect_excel_format(
         with zipfile.ZipFile(stream) as zf:
             # Workaround for some third party files that use forward slashes and
             # lower case names.
-            component_names = [
+            component_names = {
                 name.replace("\\", "/").lower() for name in zf.namelist()
-            ]
+            }
 
         if "xl/workbook.xml" in component_names:
             return "xlsx"
@@ -1434,6 +1474,7 @@ def inspect_excel_format(
         return "zip"
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 class ExcelFile:
     """
     Class for parsing tabular Excel sheets into DataFrame objects.
@@ -1472,18 +1513,26 @@ class ExcelFile:
            - Otherwise if ``path_or_buffer`` is in xlsb format,
              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
-           .. versionadded:: 1.3.0
+        .. versionadded:: 1.3.0
 
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
 
-           .. warning::
+        .. warning::
 
-            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
-            This is not supported, switch to using ``openpyxl`` instead.
+           Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
+           This is not supported, switch to using ``openpyxl`` instead.
+    {storage_options}
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
+
+    See Also
+    --------
+    DataFrame.to_excel : Write DataFrame to an Excel file.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
     Examples
     --------
@@ -1581,7 +1630,6 @@ class ExcelFile:
         nrows: int | None = None,
         na_values=None,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | lib.NoDefault = lib.no_default,
         date_format: str | dict[Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,
@@ -1595,10 +1643,121 @@ class ExcelFile:
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters.
 
+        Parameters
+        ----------
+        sheet_name : str, int, list, or None, default 0
+            Strings are used for sheet names. Integers are used in zero-indexed
+            sheet positions (chart sheets do not count as a sheet position).
+            Lists of strings/integers are used to request multiple sheets.
+            When ``None``, will return a dictionary containing DataFrames for
+            each sheet.
+        header : int, list of int, default 0
+            Row (0-indexed) to use for the column labels of the parsed
+            DataFrame. If a list of integers is passed those row positions will
+            be combined into a ``MultiIndex``. Use None if there is no header.
+        names : array-like, default None
+            List of column names to use. If file contains no header row,
+            then you should explicitly pass header=None.
+        index_col : int, str, list of int, default None
+            Column (0-indexed) to use as the row labels of the DataFrame.
+            Pass None if there is no such column.  If a list is passed,
+            those columns will be combined into a ``MultiIndex``.  If a
+            subset of data is selected with ``usecols``, index_col
+            is based on the subset.
+
+            Missing values will be forward filled to allow roundtripping with
+            ``to_excel`` for ``merged_cells=True``. To avoid forward filling the
+            missing values use ``set_index`` after reading the data instead of
+            ``index_col``.
+        usecols : str, list-like, or callable, default None
+            * If None, then parse all columns.
+            * If str, then indicates comma separated list of Excel column letters
+              and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
+              both sides.
+            * If list of int, then indicates list of column numbers to be parsed
+              (0-indexed).
+            * If list of string, then indicates list of column names to be parsed.
+            * If callable, then evaluate each column name against it and parse the
+              column if the callable returns ``True``.
+
+            Returns a subset of the columns according to behavior above.
+        converters : dict, default None
+            Dict of functions for converting values in certain columns. Keys can
+            either be integers or column labels, values are functions that take one
+            input argument, the Excel cell content, and return the transformed
+            content.
+        true_values : list, default None
+            Values to consider as True.
+        false_values : list, default None
+            Values to consider as False.
+        skiprows : list-like, int, or callable, optional
+            Line numbers to skip (0-indexed) or number of lines to skip (int) at the
+            start of the file. If callable, the callable function will be evaluated
+            against the row indices, returning True if the row should be skipped and
+            False otherwise. An example of a valid callable argument would be ``lambda
+            x: x in [0, 2]``.
+        nrows : int, default None
+            Number of rows to parse.
+        na_values : scalar, str, list-like, or dict, default None
+            Additional strings to recognize as NA/NaN. If dict passed, specific
+            per-column NA values.
+        parse_dates : bool, list-like, or dict, default False
+            The behavior is as follows:
+
+            * ``bool``. If True -> try parsing the index.
+            * ``list`` of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+              each as a separate date column.
+            * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and
+              parse as a single date column.
+            * ``dict``, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+              result 'foo'
+
+            If a column or index contains an unparsable date, the entire column or
+            index will be returned unaltered as an object data type. If you
+            don`t want to parse some cells as date just change their type
+            in Excel to "Text".For non-standard datetime parsing, use
+            ``pd.to_datetime`` after ``pd.read_excel``.
+
+            Note: A fast-path exists for iso8601-formatted dates.
+        date_format : str or dict of column -> format, default ``None``
+           If used in conjunction with ``parse_dates``, will parse dates
+           according to this format. For anything more complex,
+           please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+        thousands : str, default None
+            Thousands separator for parsing string columns to numeric.  Note that
+            this parameter is only necessary for columns stored as TEXT in Excel,
+            any numeric columns will automatically be parsed, regardless of display
+            format.
+        comment : str, default None
+            Comments out remainder of line. Pass a character or characters to this
+            argument to indicate comments in the input file. Any data between the
+            comment string and the end of the current line is ignored.
+        skipfooter : int, default 0
+            Rows at the end to skip (0-indexed).
+        dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
+
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+            * ``"pyarrow"``: returns pyarrow-backed nullable
+              :class:`ArrowDtype` :class:`DataFrame`
+
+            .. versionadded:: 2.0
+        **kwds : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
+
         Returns
         -------
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
+
+        See Also
+        --------
+        read_excel : Read an Excel sheet values (xlsx) file into DataFrame.
+        read_csv : Read a comma-separated values (csv) file into DataFrame.
+        read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
         Examples
         --------
@@ -1620,7 +1779,6 @@ class ExcelFile:
             nrows=nrows,
             na_values=na_values,
             parse_dates=parse_dates,
-            date_parser=date_parser,
             date_format=date_format,
             thousands=thousands,
             comment=comment,

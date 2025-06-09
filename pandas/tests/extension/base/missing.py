@@ -27,7 +27,9 @@ class BaseMissingTests:
         expected = result.copy()
         mask = getattr(result, na_func)()
         if isinstance(mask.dtype, pd.SparseDtype):
+            # TODO: GH 57739
             mask = np.array(mask)
+            mask.flags.writeable = True
 
         mask[:] = True
         tm.assert_series_equal(result, expected)
@@ -66,6 +68,12 @@ class BaseMissingTests:
         valid = data_missing[1]
         result = data_missing.fillna(valid)
         expected = data_missing.fillna(valid)
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_fillna_with_none(self, data_missing):
+        # GH#57723
+        result = data_missing.fillna(None)
+        expected = data_missing
         tm.assert_extension_array_equal(result, expected)
 
     def test_fillna_limit_pad(self, data_missing):

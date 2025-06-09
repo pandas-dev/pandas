@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import timedelta
 import re
 
@@ -258,8 +259,7 @@ class TestGetIndexer:
     def test_get_indexer_nearest(self):
         midx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
         msg = (
-            "method='nearest' not implemented yet for MultiIndex; "
-            "see GitHub issue 9365"
+            "method='nearest' not implemented yet for MultiIndex; see GitHub issue 9365"
         )
         with pytest.raises(NotImplementedError, match=msg):
             midx.get_indexer(["a"], method="nearest")
@@ -919,30 +919,41 @@ def test_slice_indexer_with_missing_value(index_arr, expected, start_idx, end_id
     assert result == expected
 
 
-def test_pyint_engine():
+@pytest.mark.parametrize(
+    "N, expected_dtype",
+    [
+        (1, "uint8"),  # 2*4*N = 8
+        (2, "uint16"),  # 2*4*N = 16
+        (4, "uint32"),  # 2*4*N = 32
+        (8, "uint64"),  # 2*4*N = 64
+        (10, "object"),  # 2*4*N = 80
+    ],
+)
+def test_pyint_engine(N, expected_dtype):
     # GH#18519 : when combinations of codes cannot be represented in 64
     # bits, the index underlying the MultiIndex engine works with Python
     # integers, rather than uint64.
-    N = 5
     keys = [
         tuple(arr)
         for arr in [
-            [0] * 10 * N,
-            [1] * 10 * N,
-            [2] * 10 * N,
-            [np.nan] * N + [2] * 9 * N,
-            [0] * N + [2] * 9 * N,
-            [np.nan] * N + [2] * 8 * N + [0] * N,
+            [0] * 4 * N,
+            [1] * 4 * N,
+            [np.nan] * N + [0] * 3 * N,
+            [0] * N + [1] * 3 * N,
+            [np.nan] * N + [1] * 2 * N + [0] * N,
         ]
     ]
-    # Each level contains 4 elements (including NaN), so it is represented
-    # in 2 bits, for a total of 2*N*10 = 100 > 64 bits. If we were using a
-    # 64 bit engine and truncating the first levels, the fourth and fifth
-    # keys would collide; if truncating the last levels, the fifth and
-    # sixth; if rotating bits rather than shifting, the third and fifth.
+    # Each level contains 3 elements (NaN, 0, 1), and it's represented
+    # in 2 bits to store 4 possible values (0=notfound, 1=NaN, 2=0, 3=1), for
+    # a total of 2*N*4 = 80 > 64 bits where N=10 and the number of levels is N*4.
+    # If we were using a 64 bit engine and truncating the first levels, the
+    # fourth and fifth keys would collide; if truncating the last levels, the
+    # fifth and sixth; if rotating bits rather than shifting, the third and fifth.
+
+    index = MultiIndex.from_tuples(keys)
+    assert index._engine.values.dtype == expected_dtype
 
     for idx, key_value in enumerate(keys):
-        index = MultiIndex.from_tuples(keys)
         assert index.get_loc(key_value) == idx
 
         expected = np.arange(idx + 1, dtype=np.intp)
@@ -952,7 +963,7 @@ def test_pyint_engine():
     # With missing key:
     idces = range(len(keys))
     expected = np.array([-1] + list(idces), dtype=np.intp)
-    missing = tuple([0, 1] * 5 * N)
+    missing = tuple([0, 1, 0, 1] * N)
     result = index.get_indexer([missing] + [keys[i] for i in idces])
     tm.assert_numpy_array_equal(result, expected)
 
@@ -995,3 +1006,26 @@ def test_get_indexer_for_multiindex_with_nans(nulls_fixture):
     result = idx1.get_indexer(idx2)
     expected = np.array([-1, 1], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_loc_namedtuple_behaves_like_tuple():
+    # GH57922
+    NamedIndex = namedtuple("NamedIndex", ("a", "b"))
+    multi_idx = MultiIndex.from_tuples(
+        [NamedIndex("i1", "i2"), NamedIndex("i3", "i4"), NamedIndex("i5", "i6")]
+    )
+    for idx in (multi_idx, multi_idx.to_flat_index()):
+        assert idx.get_loc(NamedIndex("i1", "i2")) == 0
+        assert idx.get_loc(NamedIndex("i3", "i4")) == 1
+        assert idx.get_loc(NamedIndex("i5", "i6")) == 2
+        assert idx.get_loc(("i1", "i2")) == 0
+        assert idx.get_loc(("i3", "i4")) == 1
+        assert idx.get_loc(("i5", "i6")) == 2
+    multi_idx = MultiIndex.from_tuples([("i1", "i2"), ("i3", "i4"), ("i5", "i6")])
+    for idx in (multi_idx, multi_idx.to_flat_index()):
+        assert idx.get_loc(NamedIndex("i1", "i2")) == 0
+        assert idx.get_loc(NamedIndex("i3", "i4")) == 1
+        assert idx.get_loc(NamedIndex("i5", "i6")) == 2
+        assert idx.get_loc(("i1", "i2")) == 0
+        assert idx.get_loc(("i3", "i4")) == 1
+        assert idx.get_loc(("i5", "i6")) == 2

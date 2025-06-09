@@ -815,8 +815,8 @@ Conversion
 ^^^^^^^^^^
 - Bug in :meth:`DataFrame.astype` when called with ``str`` on unpickled array - the array might change in-place (:issue:`54654`)
 - Bug in :meth:`DataFrame.astype` where ``errors="ignore"`` had no effect for extension types (:issue:`54654`)
+- Bug in :meth:`DataFrame.loc` was not throwing "incompatible dtype warning" (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_) when assigning a ``Series`` with a different dtype using a full column setter (e.g. ``df.loc[:, 'a'] = incompatible_value``) (:issue:`39584`)
 - Bug in :meth:`Series.convert_dtypes` not converting all NA column to ``null[pyarrow]`` (:issue:`55346`)
-- Bug in :meth:``DataFrame.loc`` was not throwing "incompatible dtype warning" (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_) when assigning a ``Series`` with a different dtype using a full column setter (e.g. ``df.loc[:, 'a'] = incompatible_value``) (:issue:`39584`)
 
 Strings
 ^^^^^^^
@@ -826,7 +826,7 @@ Strings
 - Bug in :meth:`Index.str.cat` always casting result to object dtype (:issue:`56157`)
 - Bug in :meth:`Series.__mul__` for :class:`ArrowDtype` with ``pyarrow.string`` dtype and ``string[pyarrow]`` for the pyarrow backend (:issue:`51970`)
 - Bug in :meth:`Series.str.find` when ``start < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56411`)
-- Bug in :meth:`Series.str.fullmatch` when ``dtype=pandas.ArrowDtype(pyarrow.string()))`` allows partial matches when regex ends in literal //$ (:issue:`56652`)
+- Bug in :meth:`Series.str.fullmatch` when ``dtype=pandas.ArrowDtype(pyarrow.string())`` allows partial matches when regex ends in literal //$ (:issue:`56652`)
 - Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56404`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for :class:`ArrowDtype` with ``pyarrow.string`` dtype (:issue:`56579`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)

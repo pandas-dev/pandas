@@ -78,7 +78,7 @@ class HistPlot(LinePlot):
         self.xlabel = kwargs.get("xlabel")
         self.ylabel = kwargs.get("ylabel")
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
+        MPLPlot.__init__(self, data, **kwargs)
 
         self.bins = self._adjust_bins(bins)
 
@@ -95,11 +95,12 @@ class HistPlot(LinePlot):
     def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
         nd_values = data.infer_objects()._get_numeric_data()
-        values = np.ravel(nd_values)
+        values = nd_values.values
+        if nd_values.ndim == 2:
+            values = values.reshape(-1)
         values = values[~isna(values)]
 
-        hist, bins = np.histogram(values, bins=bins, range=self._bin_range)
-        return bins
+        return np.histogram_bin_edges(values, bins=bins, range=self._bin_range)
 
     # error: Signature of "_plot" incompatible with supertype "LinePlot"
     @classmethod
@@ -136,10 +137,7 @@ class HistPlot(LinePlot):
             if self.by is not None
             else self.data
         )
-
-        # error: Argument "data" to "_iter_data" of "MPLPlot" has incompatible
-        # type "object"; expected "DataFrame | dict[Hashable, Series | DataFrame]"
-        for i, (label, y) in enumerate(self._iter_data(data=data)):  # type: ignore[arg-type]
+        for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
@@ -236,7 +234,7 @@ class KdePlot(HistPlot):
         self, data, bw_method=None, ind=None, *, weights=None, **kwargs
     ) -> None:
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
+        MPLPlot.__init__(self, data, **kwargs)
         self.bw_method = bw_method
         self.ind = ind
         self.weights = weights
@@ -268,6 +266,7 @@ class KdePlot(HistPlot):
         y: np.ndarray,
         style=None,
         bw_method=None,
+        weights=None,
         ind=None,
         column_num=None,
         stacking_id: int | None = None,
@@ -276,7 +275,7 @@ class KdePlot(HistPlot):
         from scipy.stats import gaussian_kde
 
         y = remove_na_arraylike(y)
-        gkde = gaussian_kde(y, bw_method=bw_method)
+        gkde = gaussian_kde(y, bw_method=bw_method, weights=weights)
 
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
@@ -322,10 +321,7 @@ def _grouped_plot(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
-    _axes = flatten_axes(axes)
-
-    for i, (key, group) in enumerate(grouped):
-        ax = _axes[i]
+    for ax, (key, group) in zip(flatten_axes(axes), grouped):
         if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
@@ -557,12 +553,9 @@ def hist_frame(
         figsize=figsize,
         layout=layout,
     )
-    _axes = flatten_axes(axes)
-
     can_set_label = "label" not in kwds
 
-    for i, col in enumerate(data.columns):
-        ax = _axes[i]
+    for ax, col in zip(flatten_axes(axes), data.columns):
         if legend and can_set_label:
             kwds["label"] = col
         ax.hist(data[col].dropna().values, bins=bins, **kwds)

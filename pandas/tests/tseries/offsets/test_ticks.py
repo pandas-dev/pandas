@@ -16,7 +16,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import delta_to_tick
-from pandas.errors import OutOfBoundsTimedelta
 
 from pandas import (
     Timedelta,
@@ -239,16 +238,6 @@ def test_tick_addition(kls, expected):
         assert result == expected
 
 
-def test_tick_delta_overflow():
-    # GH#55503 raise OutOfBoundsTimedelta, not OverflowError
-    tick = offsets.Day(10**9)
-    msg = "Cannot cast 1000000000 days 00:00:00 to unit='ns' without overflow"
-    depr_msg = "Day.delta is deprecated"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            tick.delta
-
-
 @pytest.mark.parametrize("cls", tick_classes)
 def test_tick_division(cls):
     off = cls(10)
@@ -300,8 +289,7 @@ def test_tick_rdiv(cls):
     td64 = delta.to_timedelta64()
     instance__type = ".".join([cls.__module__, cls.__name__])
     msg = (
-        "unsupported operand type\\(s\\) for \\/: 'int'|'float' and "
-        f"'{instance__type}'"
+        f"unsupported operand type\\(s\\) for \\/: 'int'|'float' and '{instance__type}'"
     )
 
     with pytest.raises(TypeError, match=msg):

@@ -12,6 +12,7 @@ labeling information
 import collections
 from collections import abc
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Iterator,
@@ -19,7 +20,6 @@ from collections.abc import (
     Sequence,
 )
 import functools
-from inspect import signature
 from io import StringIO
 import itertools
 import operator
@@ -28,7 +28,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -62,6 +61,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
     set_module,
 )
@@ -110,6 +110,10 @@ from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     ExtensionDtype,
 )
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -122,7 +126,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
@@ -311,7 +315,8 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
+how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
+    default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -324,15 +329,19 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; preserve the order of the left keys.
     * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
-on : label or list
+    * left_anti: use only keys from left frame that are not in right frame, similar
+      to SQL left anti join; preserve key order.
+    * right_anti: use only keys from right frame that are not in left frame, similar
+      to SQL right anti join; preserve key order.
+on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
     to the intersection of the columns in both DataFrames.
-left_on : label or list, or array-like
+left_on : Hashable or a sequence of the previous, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
     These arrays are treated as if they are columns.
-right_on : label or list, or array-like
+right_on : Hashable or a sequence of the previous, or array-like
     Column or index level names to join on in the right DataFrame. Can also
     be an array or list of arrays of the length of the right DataFrame.
     These arrays are treated as if they are columns.
@@ -353,7 +362,7 @@ suffixes : list-like, default is ("_x", "_y")
     of a string to indicate that the column name from `left` or
     `right` should be left as-is, with no suffix. At least one of the
     values must not be None.
-copy : bool, default True
+copy : bool, default False
     If False, avoid copy if possible.
 
     .. note::
@@ -367,6 +376,8 @@ copy : bool, default True
 
         You can already get the future behavior and improvements through
         enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+    .. deprecated:: 3.0.0
 indicator : bool or str, default False
     If True, adds a column to the output DataFrame called "_merge" with
     information on the source of each row. The column can be given a different
@@ -554,6 +565,7 @@ class DataFrame(NDFrame, OpsMixin):
         will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
+        If ``data`` is DataFrame then is ignored.
     copy : bool or None, default None
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
@@ -677,67 +689,48 @@ class DataFrame(NDFrame, OpsMixin):
     def _constructor(self):
         return type(self)
 
-    @classmethod
-    def _constructor_from_mgr(cls, mgr, axes):
-        """
-        Create a new DataFrame from a BlockManager directly without triggering DeprecationWarning.
-        
-        Parameters
-        ----------
-        mgr : BlockManager
-            The BlockManager to use for the new DataFrame.
-        axes : list, optional
-            List containing the index and columns.
-            
-        Returns
-        -------
-        DataFrame
-            New DataFrame with the given BlockManager.
-        """
-        if axes is not None:
-            index, columns = axes
-        else:
-            index, columns = mgr.axes
-            
-        return cls._from_mgr(mgr, [index, columns])
-        
-    @classmethod
-    def _from_mgr(cls, mgr, axes):
-        """
-        Internal factory method to create a DataFrame from a BlockManager.
-        
-        This method is used internally to avoid triggering the DeprecationWarning
-        that is raised when a BlockManager is passed to the DataFrame constructor.
-        
-        Parameters
-        ----------
-        mgr : BlockManager
-            Block manager for the DataFrame.
-        axes : list
-            List containing the index and columns.
-            
-        Returns
-        -------
-        DataFrame
-            DataFrame constructed from the block manager.
-        """
-        obj = cls.__new__(cls)
-        from pandas.core.generic import NDFrame
-        NDFrame.__init__(obj, mgr)
-        return obj
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.DataFrame object.
+        return self._constructor(df)
 
     _constructor_sliced: Callable[..., Series] = Series
 
-    def _sliced_from_mgr(self, mgr, axes) -> Series:
-        return Series._from_mgr(mgr, axes)
-
     def _constructor_sliced_from_mgr(self, mgr, axes) -> Series:
-        if self._constructor_sliced is Series:
-            ser = self._sliced_from_mgr(mgr, axes)
-            ser._name = None  # caller is responsible for setting real name
+        ser = Series._from_mgr(mgr, axes)
+        ser._name = None  # caller is responsible for setting real name
+
+        if type(self) is DataFrame:
+            # This would also work `if self._constructor_sliced is Series`, but
+            #  this check is slightly faster, benefiting the most-common case.
             return ser
-        assert axes is mgr.axes
-        return self._constructor_sliced(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.Series object.
+        return self._constructor_sliced(ser)
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -770,7 +763,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
+                    stacklevel=2,
                 )
 
             data = data.copy(deep=False)
@@ -780,10 +773,6 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
                 return
-
-        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        data_dtype = getattr(data, "dtype", None)
-        original_dtype = dtype
 
         # GH47215
         if isinstance(index, set):
@@ -846,12 +835,12 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype,
                     copy,
                 )
-            elif getattr(data, "name", None) is not None:
+            elif isinstance(data, (ABCSeries, ABCIndex)) and data.name is not None:
                 # i.e. Series/Index with non-None name
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
-                    {data.name: data},  # type: ignore[union-attr]
+                    {data.name: data},
                     index,
                     columns,
                     dtype=dtype,
@@ -949,93 +938,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         NDFrame.__init__(self, mgr)
 
-        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
-            if self.dtypes.iloc[0] != data_dtype:
-                warnings.warn(
-                    "Dtype inference on a pandas object "
-                    "(Series, Index, ExtensionArray) is deprecated. The DataFrame "
-                    "constructor will keep the original dtype in the future. "
-                    "Call `infer_objects` on the result to get the old "
-                    "behavior.",
-                    FutureWarning,
-                    stacklevel=2,
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
                 )
 
-    @classmethod
-    def _from_data(cls, data, index=None, columns=None, dtype=None, copy=False):
-        """
-        Internal constructor that bypasses the deprecated BlockManager warning.
-        
-        This method is intended for internal use only.
-        
-        Parameters
-        ----------
-        data : BlockManager, array-like, Iterable, dict, or DataFrame
-            Data to be stored in DataFrame.
-        index : Index or array-like, optional
-            Index for the DataFrame.
-        columns : Index or array-like, optional
-            Column labels for the DataFrame.
-        dtype : dtype, optional
-            Data type for the DataFrame.
-        copy : bool, default False
-            Whether to copy the data.
-            
-        Returns
-        -------
-        DataFrame
-        """
-        if isinstance(data, BlockManager):
-            # Skip the deprecation warning for internal use
-            obj = cls.__new__(cls)
-            NDFrame.__init__(obj, data)
-            return obj
-        
-        # Use the regular constructor for other data types
-        return cls(data=data, index=index, columns=columns, dtype=dtype, copy=copy)
-    
-    @classmethod
-    def _create_with_data(cls, data, index=None, columns=None, dtype=None, copy=False):
-        """
-        Create a DataFrame from data for subclasses.
-        
-        This is a recommended helper method for subclasses to create new instances
-        from data without triggering deprecation warnings.
-        
-        Parameters
-        ----------
-        data : array-like, Iterable, dict, or DataFrame
-            Data to be stored in DataFrame.
-        index : Index or array-like, optional
-            Index for the DataFrame.
-        columns : Index or array-like, optional
-            Column labels for the DataFrame.
-        dtype : dtype, optional
-            Data type for the DataFrame.
-        copy : bool, default False
-            Whether to copy the data.
-            
-        Returns
-        -------
-        DataFrame or subclass
-            DataFrame of the subclass type.
-            
-        Notes
-        -----
-        This method is primarily intended for subclass authors to create
-        instances of their subclass from array-like data.
-        """
-        # Prepare the data safely avoiding internal manager passing
-        if isinstance(data, DataFrame):
-            if index is None:
-                index = data.index
-            if columns is None:
-                columns = data.columns
-        
-        # Create a dataframe using public APIs
-        df = cls(data, index=index, columns=columns, dtype=dtype, copy=copy)
-        return df
+        return correl
 
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
     # ----------------------------------------------------------------------
 
     def __dataframe__(
@@ -1043,6 +968,19 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         """
         Return the dataframe interchange object implementing the interchange protocol.
+
+        .. note::
+
+           For new development, we highly recommend using the Arrow C Data Interface
+           alongside the Arrow PyCapsule Interface instead of the interchange protocol
+
+        .. warning::
+
+            Due to severe implementation issues, we recommend only considering using the
+            interchange protocol in the following cases:
+
+            - converting to pandas: for pandas >= 2.0.3
+            - converting from pandas: for pandas >= 3.0.0
 
         Parameters
         ----------
@@ -1057,6 +995,11 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame interchange object
             The object which consuming library can use to ingress the dataframe.
+
+        See Also
+        --------
+        DataFrame.from_records : Constructor from tuples, also record arrays.
+        DataFrame.from_dict : From dicts of Series, arrays, or dicts.
 
         Notes
         -----
@@ -1122,6 +1065,11 @@ class DataFrame(NDFrame, OpsMixin):
         It has the row axis labels and column axis labels as the only members.
         They are returned in that order.
 
+        See Also
+        --------
+        DataFrame.index: The index (row labels) of the DataFrame.
+        DataFrame.columns: The column labels of the DataFrame.
+
         Examples
         --------
         >>> df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
@@ -1136,9 +1084,13 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
+        Unlike the `len()` method, which only returns the number of rows, `shape`
+        provides both row and column counts, making it a more informative method for
+        understanding dataset size.
+
         See Also
         --------
-        ndarray.shape : Tuple of array dimensions.
+        numpy.ndarray.shape : Tuple of array dimensions.
 
         Examples
         --------
@@ -1180,7 +1132,7 @@ class DataFrame(NDFrame, OpsMixin):
         False
         """
         # The "<" part of "<=" here is for empty DataFrame cases
-        return len({arr.dtype for arr in self._mgr.arrays}) <= 1
+        return len({block.values.dtype for block in self._mgr.blocks}) <= 1
 
     @property
     def _can_fast_transpose(self) -> bool:
@@ -1312,6 +1264,7 @@ class DataFrame(NDFrame, OpsMixin):
             min_rows = get_option("display.min_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
+            show_floats = get_option("display.float_format")
 
             formatter = fmt.DataFrameFormatter(
                 self,
@@ -1319,7 +1272,7 @@ class DataFrame(NDFrame, OpsMixin):
                 col_space=None,
                 na_rep="NaN",
                 formatters=None,
-                float_format=None,
+                float_format=show_floats,
                 sparsify=None,
                 justify=None,
                 index_names=True,
@@ -1516,6 +1469,11 @@ class DataFrame(NDFrame, OpsMixin):
         Please see
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
+        # Raise AttributeError so that inspect works even if jinja2 is not installed.
+        has_jinja2 = import_optional_dependency("jinja2", errors="ignore")
+        if not has_jinja2:
+            raise AttributeError("The '.style' accessor requires jinja2")
+
         from pandas.io.formats.style import Styler
 
         return Styler(self)
@@ -2227,8 +2185,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Convert structured or record ndarray to DataFrame.
 
-        Creates a DataFrame object from a structured ndarray, sequence of
-        tuples or dicts, or DataFrame.
+        Creates a DataFrame object from a structured ndarray, or sequence of
+        tuples or dicts.
 
         Parameters
         ----------
@@ -2242,9 +2200,10 @@ class DataFrame(NDFrame, OpsMixin):
         columns : sequence, default None
             Column names to use. If the passed data do not have names
             associated with them, this argument provides names for the
-            columns. Otherwise this argument indicates the order of the columns
+            columns. Otherwise, this argument indicates the order of the columns
             in the result (any names not found in the data will become all-NA
-            columns).
+            columns) and limits the data to these columns if not all column names
+            are provided.
         coerce_float : bool, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets.
@@ -2317,7 +2276,7 @@ class DataFrame(NDFrame, OpsMixin):
         ) -> tuple[list[ArrayLike], Index, Index | None]:
             """
             If our desired 'columns' do not match the data's pre-existing 'arr_columns',
-            we re-order our arrays.  This is like a pre-emptive (cheap) reindex.
+            we re-order our arrays.  This is like a preemptive (cheap) reindex.
             """
             if len(arrays):
                 length = len(arrays[0])
@@ -2415,14 +2374,17 @@ class DataFrame(NDFrame, OpsMixin):
                     exclude.update(index)
 
         if any(exclude):
-            arr_exclude = [x for x in exclude if x in arr_columns]
-            to_remove = [arr_columns.get_loc(col) for col in arr_exclude]
+            arr_exclude = (x for x in exclude if x in arr_columns)
+            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}  # pyright: ignore[reportUnhashable]
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
             columns = columns.drop(exclude)
 
         mgr = arrays_to_mgr(arrays, columns, result_index)
-        return cls._from_mgr(mgr, axes=mgr.axes)
+        df = DataFrame._from_mgr(mgr, axes=mgr.axes)
+        if cls is not DataFrame:
+            return cls(df, copy=False)
+        return df
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -2789,6 +2751,16 @@ class DataFrame(NDFrame, OpsMixin):
             This includes the `compression`, `compression_level`, `chunksize`
             and `version` keywords.
 
+        See Also
+        --------
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+        DataFrame.to_excel : Write object to an Excel sheet.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_json : Convert the object to a JSON string.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+        DataFrame.to_string : Convert DataFrame to a string.
+
         Notes
         -----
         This function writes the dataframe as a `feather file
@@ -2838,11 +2810,55 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> str | None: ...
 
-    @doc(
-        Series.to_markdown,
-        klass=_shared_doc_kwargs["klass"],
-        storage_options=_shared_docs["storage_options"],
-        examples="""Examples
+    def to_markdown(
+        self,
+        buf: FilePath | WriteBuffer[str] | None = None,
+        *,
+        mode: str = "wt",
+        index: bool = True,
+        storage_options: StorageOptions | None = None,
+        **kwargs,
+    ) -> str | None:
+        """
+        Print DataFrame in Markdown-friendly format.
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        mode : str, optional
+            Mode in which file is opened, "wt" by default.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
+
+        **kwargs
+            These parameters will be passed to `tabulate <https://pypi.org/project/tabulate>`_.
+
+        Returns
+        -------
+        str
+            DataFrame in Markdown-friendly format.
+
+        See Also
+        --------
+        DataFrame.to_html : Render DataFrame to HTML-formatted table.
+        DataFrame.to_latex : Render DataFrame to LaTeX-formatted table.
+
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
+
+        Examples
         --------
         >>> df = pd.DataFrame(
         ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
@@ -2862,17 +2878,8 @@ class DataFrame(NDFrame, OpsMixin):
         |  0 | elk        | dog        |
         +----+------------+------------+
         |  1 | pig        | quetzal    |
-        +----+------------+------------+""",
-    )
-    def to_markdown(
-        self,
-        buf: FilePath | WriteBuffer[str] | None = None,
-        *,
-        mode: str = "wt",
-        index: bool = True,
-        storage_options: StorageOptions | None = None,
-        **kwargs,
-    ) -> str | None:
+        +----+------------+------------+
+        """
         if "showindex" in kwargs:
             raise ValueError("Pass 'index' instead of 'showindex")
 
@@ -2957,6 +2964,9 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         bytes if no path argument is provided else None
+            Returns the DataFrame converted to the binary parquet format as bytes if no
+            path argument. Returns None and writes the DataFrame to the specified
+            location in the Parquet format if the path argument is provided.
 
         See Also
         --------
@@ -2968,9 +2978,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        This function requires either the `fastparquet
-        <https://pypi.org/project/fastparquet>`_ or `pyarrow
-        <https://arrow.apache.org/docs/python/>`_ library.
+        * This function requires either the `fastparquet
+          <https://pypi.org/project/fastparquet>`_ or `pyarrow
+          <https://arrow.apache.org/docs/python/>`_ library.
+        * When saving a DataFrame with categorical columns to parquet,
+          the file size may increase due to the inclusion of all possible
+          categories, not just those present in the data. This behavior
+          is expected and consistent with pandas' handling of categorical data.
+          To manage file size and ensure a more predictable roundtrip process,
+          consider using :meth:`Categorical.remove_unused_categories` on the
+          DataFrame before saving.
 
         Examples
         --------
@@ -3229,9 +3246,13 @@ class DataFrame(NDFrame, OpsMixin):
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            `<table>` tag. Default ``pd.options.display.html.border``.
+        border : int or bool
+            When an integer value is provided, it sets the border attribute in
+            the opening tag, specifying the thickness of the border.
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
+            The default value for this parameter is governed by
+            ``pd.options.display.html.border``.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
@@ -3675,7 +3696,11 @@ class DataFrame(NDFrame, OpsMixin):
             result = index_memory_usage._append(result)
         return result
 
-    def transpose(self, *args, copy: bool = False) -> DataFrame:
+    def transpose(
+        self,
+        *args,
+        copy: bool | lib.NoDefault = lib.no_default,
+    ) -> DataFrame:
         """
         Transpose index and columns.
 
@@ -3705,6 +3730,8 @@ class DataFrame(NDFrame, OpsMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -3786,10 +3813,11 @@ class DataFrame(NDFrame, OpsMixin):
         1    object
         dtype: object
         """
+        self._check_copy_deprecation(copy)
         nv.validate_transpose(args, {})
         # construct the args
 
-        dtypes = list(self.dtypes)
+        first_dtype = self.dtypes.iloc[0] if len(self.columns) else None
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
@@ -3807,11 +3835,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif (
             self._is_homogeneous_type
-            and dtypes
-            and isinstance(dtypes[0], ExtensionDtype)
+            and first_dtype is not None
+            and isinstance(first_dtype, ExtensionDtype)
         ):
             new_values: list
-            if isinstance(dtypes[0], BaseMaskedDtype):
+            if isinstance(first_dtype, BaseMaskedDtype):
                 # We have masked arrays with the same dtype. We can transpose faster.
                 from pandas.core.arrays.masked import (
                     transpose_homogeneous_masked_arrays,
@@ -3820,7 +3848,7 @@ class DataFrame(NDFrame, OpsMixin):
                 new_values = transpose_homogeneous_masked_arrays(
                     cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
                 )
-            elif isinstance(dtypes[0], ArrowDtype):
+            elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
                 from pandas.core.arrays.arrow.array import (
                     ArrowExtensionArray,
@@ -3832,10 +3860,11 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
-                dtyp = dtypes[0]
-                arr_typ = dtyp.construct_array_type()
+                arr_typ = first_dtype.construct_array_type()
                 values = self.values
-                new_values = [arr_typ._from_sequence(row, dtype=dtyp) for row in values]
+                new_values = [
+                    arr_typ._from_sequence(row, dtype=first_dtype) for row in values
+                ]
 
             result = type(self)._from_arrays(
                 new_values,
@@ -3939,15 +3968,16 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key) and not is_iterator(key):
+        if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
             # is_iterator to exclude generator e.g. test_getitem_listlike
+            # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
+
             # shortcut if the key is in columns
             is_mi = isinstance(self.columns, MultiIndex)
             # GH#45316 Return view if key is not duplicated
             # Only use drop_duplicates with duplicates for performance
             if not is_mi and (
-                self.columns.is_unique
-                and key in self.columns
+                (self.columns.is_unique and key in self.columns)
                 or key in self.columns.drop_duplicates(keep=False)
             ):
                 return self._get_item(key)
@@ -4086,7 +4116,6 @@ class DataFrame(NDFrame, OpsMixin):
             return series._values[index]
 
         series = self._get_item(col)
-        engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
             # CategoricalIndex: Trying to use the engine fastpath may give incorrect
@@ -4097,7 +4126,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
-        loc = engine.get_loc(index)
+        loc = self.index._engine.get_loc(index)
         return series._values[loc]
 
     def isetitem(self, loc, value) -> None:
@@ -4284,7 +4313,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict(), copy=False)
 
-        if key.size and not all(is_bool_dtype(dtype) for dtype in key.dtypes):
+        if key.size and not all(is_bool_dtype(blk.dtype) for blk in key._mgr.blocks):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -4481,195 +4510,29 @@ DataFrame
 An efficient 2D container for potentially mixed-type time series or other
 labeled data series.
 
-Similar to its R counterpart, data.frame, except providing automatic data
-alignment and a host of useful data manipulation methods having to do with the
-labeling information
-"""
+            idx_diff = result_index.difference(correl.index)
 
-import collections
-from collections import abc
-from collections.abc import (
-    Hashable,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
-import functools
-from inspect import signature
-from io import StringIO
-import itertools
-import operator
-import sys
-from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Literal,
-    cast,
-    overload,
-)
-import warnings
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-import numpy as np
-from numpy import ma
+        return correl
 
-from pandas._config import get_option
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
 
-from pandas._libs import (
-    algos as libalgos,
-    lib,
-    properties,
-)
-from pandas._libs.hashtable import duplicated
-from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
-from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    ChainedAssignmentError,
-    InvalidIndexError,
-)
-from pandas.errors.cow import (
-    _chained_assignment_method_msg,
-    _chained_assignment_msg,
-)
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-    set_module,
-)
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_warning,
-)
-from pandas.util._validators import (
-    validate_ascending,
-    validate_bool_kwarg,
-    validate_percentile,
-)
-
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    can_hold_element,
-    construct_1d_arraylike_from_scalar,
-    construct_2d_arraylike_from_scalar,
-    find_common_type,
-    infer_dtype_from_scalar,
-    invalidate_string_dtypes,
-    maybe_downcast_to_dtype,
-)
-from pandas.core.dtypes.common import (
-    infer_dtype_from_object,
-    is_1d_only_ea_dtype,
-    is_array_like,
-    is_bool_dtype,
-    is_dataclass,
-    is_dict_like,
-    is_float,
-    is_float_dtype,
-    is_hashable,
-    is_integer,
-    is_integer_dtype,
-    is_iterator,
-    is_list_like,
-    is_scalar,
-    is_sequence,
-    needs_i8_conversion,
-    pandas_dtype,
-)
-from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    BaseMaskedDtype,
-    ExtensionDtype,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
-
-from pandas.core import (
-    algorithms,
-    common as com,
-    nanops,
-    ops,
-    roperator,
-)
-from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import reconstruct_and_relabel_result
-from pandas.core.array_algos.take import take_2d_multi
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import (
-    BaseMaskedArray,
-    DatetimeArray,
-    ExtensionArray,
-    PeriodArray,
-    TimedeltaArray,
-)
-from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    sanitize_array,
-    sanitize_masked_array,
-)
-from pandas.core.generic import (
-    NDFrame,
-    make_doc,
-)
-from pandas.core.indexers import check_key_length
-from pandas.core.indexes.api import (
-    DatetimeIndex,
-    Index,
-    PeriodIndex,
-    default_index,
-    ensure_index,
-    ensure_index_from_sequences,
-)
-from pandas.core.indexes.multi import (
-    MultiIndex,
-    maybe_droplevels,
-)
-from pandas.core.indexing import (
-    check_bool_indexer,
-    check_dict_or_set_indexers,
-)
-from pandas.core.internals import BlockManager
-from pandas.core.internals.construction import (
-    arrays_to_mgr,
-    dataclasses_to_dicts,
-    dict_to_mgr,
-    ndarray_to_mgr,
-    nested_data_to_arrays,
-    rec_array_to_mgr,
-    reorder_arrays,
-    to_arrays,
-    treat_as_nested,
-)
-from pandas.core.methods import selectn
-from pandas.core.reshape.melt import melt
-from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import (
-    get_group_index,
-    lexsort_indexer,
-    nargsort,
-)
-
-from pandas.io.common import get_handle
-from pandas.io.formats import (
-    console,
-    format as fmt,
-)
-from pandas.io.formats.info import (
-    INFO_DOCSTRING,
-    DataFrameInfo,
-    frame_sub_kwargs,
-)
-import pandas.plotting
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
 if TYPE_CHECKING:
     import datetime
@@ -4779,69 +4642,29 @@ on indexes or indexes on a column or columns, the index will be passed on.
 When performing a cross merge, no column specifications to merge on are
 allowed.
 
-.. warning::
+            idx_diff = result_index.difference(correl.index)
 
-    If both key columns contain rows where the key is a null value, those
-    rows will be matched against each other. This is different from usual SQL
-    join behaviour and can lead to unexpected results.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-Parameters
-----------%s
-right : DataFrame or named Series
-    Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
-    Type of merge to be performed.
+        return correl
 
-    * left: use only keys from left frame, similar to a SQL left outer join;
-      preserve key order.
-    * right: use only keys from right frame, similar to a SQL right outer join;
-      preserve key order.
-    * outer: use union of keys from both frames, similar to a SQL full outer
-      join; sort keys lexicographically.
-    * inner: use intersection of keys from both frames, similar to a SQL inner
-      join; preserve the order of the left keys.
-    * cross: creates the cartesian product from both frames, preserves the order
-      of the left keys.
-on : label or list
-    Column or index level names to join on. These must be found in both
-    DataFrames. If `on` is None and not merging on indexes then this defaults
-    to the intersection of the columns in both DataFrames.
-left_on : label or list, or array-like
-    Column or index level names to join on in the left DataFrame. Can also
-    be an array or list of arrays of the length of the left DataFrame.
-    These arrays are treated as if they are columns.
-right_on : label or list, or array-like
-    Column or index level names to join on in the right DataFrame. Can also
-    be an array or list of arrays of the length of the right DataFrame.
-    These arrays are treated as if they are columns.
-left_index : bool, default False
-    Use the index from the left DataFrame as the join key(s). If it is a
-    MultiIndex, the number of keys in the other DataFrame (either the index
-    or a number of columns) must match the number of levels.
-right_index : bool, default False
-    Use the index from the right DataFrame as the join key. Same caveats as
-    left_index.
-sort : bool, default False
-    Sort the join keys lexicographically in the result DataFrame. If False,
-    the order of the join keys depends on the join type (how keyword).
-suffixes : list-like, default is ("_x", "_y")
-    A length-2 sequence where each element is optionally a string
-    indicating the suffix to add to overlapping column names in
-    `left` and `right` respectively. Pass a value of `None` instead
-    of a string to indicate that the column name from `left` or
-    `right` should be left as-is, with no suffix. At least one of the
-    values must not be None.
-copy : bool, default True
-    If False, avoid copy if possible.
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
 
-    .. note::
-        The `copy` keyword will change behavior in pandas 3.0.
-        `Copy-on-Write
-        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-        will be enabled by default, which means that all methods with a
-        `copy` keyword will use a lazy copy mechanism to defer the copy and
-        ignore the `copy` keyword. The `copy` keyword will be removed in a
-        future version of pandas.
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         You can already get the future behavior and improvements through
         enabling copy on write ``pd.options.mode.copy_on_write = True``
@@ -4854,8 +4677,29 @@ indicator : bool or str, default False
     whose merge key only appears in the right DataFrame, and "both"
     if the observation's merge key is found in both DataFrames.
 
-validate : str, optional
-    If specified, checks if merge is of specified type.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     * "one_to_one" or "1:1": check if merge keys are unique in both
       left and right datasets.
@@ -4865,10 +4709,29 @@ validate : str, optional
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
 
-Returns
--------
-DataFrame
-    A DataFrame of the two merged objects.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
 See Also
 --------
@@ -4910,18 +4773,29 @@ the default suffixes, _x and _y, appended.
 Merge DataFrames df1 and df2 with specified left and right suffixes
 appended to any overlapping columns.
 
->>> df1.merge(df2, left_on='lkey', right_on='rkey',
-...           suffixes=('_left', '_right'))
-  lkey  value_left rkey  value_right
-0  foo           1  foo            5
-1  foo           1  foo            8
-2  bar           2  bar            6
-3  baz           3  baz            7
-4  foo           5  foo            5
-5  foo           5  foo            8
+            idx_diff = result_index.difference(correl.index)
 
-Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
-any overlapping columns.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
 >>> df1.merge(df2, left_on='lkey', right_on='rkey', suffixes=(False, False))
 Traceback (most recent call last):
@@ -4944,10 +4818,29 @@ ValueError: columns overlap but no suffix specified:
       a  b  c
 0   foo  1  3
 
->>> df1.merge(df2, how='left', on='a')
-      a  b  c
-0   foo  1  3.0
-1   bar  2  NaN
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
 >>> df1 = pd.DataFrame({'left': ['foo', 'bar']})
 >>> df2 = pd.DataFrame({'right': [7, 8]})
@@ -4960,17 +4853,54 @@ ValueError: columns overlap but no suffix specified:
 0   7
 1   8
 
->>> df1.merge(df2, how='cross')
-   left  right
-0   foo      7
-1   foo      8
-2   bar      7
-3   bar      8
-"""
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
 
-# -----------------------------------------------------------------------
-# DataFrame class
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
 
 @set_module("pandas")
@@ -4983,42 +4913,81 @@ class DataFrame(NDFrame, OpsMixin):
     thought of as a dict-like container for Series objects. The primary
     pandas data structure.
 
-    Parameters
-    ----------
-    data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, dataclass or list-like objects. If
-        data is a dict, column order follows insertion-order. If a dict contains Series
-        which have an index defined, it is aligned by its index. This alignment also
-        occurs if data is a Series or a DataFrame itself. Alignment is done on
-        Series/DataFrame inputs.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         If data is a list of dicts, column order follows insertion-order.
 
-    index : Index or array-like
-        Index to use for resulting frame. Will default to RangeIndex if
-        no indexing information part of input data and no index provided.
-    columns : Index or array-like
-        Column labels to use for resulting frame when data does not have them,
-        defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column labels,
-        will perform column selection instead.
-    dtype : dtype, default None
-        Data type to force. Only a single dtype is allowed. If None, infer.
-    copy : bool or None, default None
-        Copy data from inputs.
-        For dict data, the default of None behaves like ``copy=True``.  For DataFrame
-        or 2d ndarray input, the default of None behaves like ``copy=False``.
-        If data is a dict containing one or more Series (possibly of different dtypes),
-        ``copy=False`` will ensure that these inputs are not copied.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         .. versionchanged:: 1.3.0
 
-    See Also
-    --------
-    DataFrame.from_records : Constructor from tuples, also record arrays.
-    DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    read_csv : Read a comma-separated values (csv) file into DataFrame.
-    read_table : Read general delimited file into DataFrame.
-    read_clipboard : Read text from clipboard into DataFrame.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     Notes
     -----
@@ -5147,8 +5116,29 @@ class DataFrame(NDFrame, OpsMixin):
         assert axes is mgr.axes
         return self._constructor_sliced(mgr)
 
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
     # ----------------------------------------------------------------------
-    # Constructors
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     def __init__(
         self,
@@ -5162,13 +5152,29 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        if isinstance(data, DataFrame):
-            data = data._mgr
-            allow_mgr = True
-            if not copy:
-                # if not copying data, ensure to still return a shallow copy
-                # to avoid the result sharing the same Manager
-                data = data.copy(deep=False)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         if isinstance(data, BlockManager):
             if not allow_mgr:
@@ -5491,7 +5497,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
 
-        return PandasDataFrameXchg(self, allow_copy=allow_copy)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     def __arrow_c_stream__(self, requested_schema=None):
         """
@@ -13696,6 +13724,29 @@ class DataFrame(NDFrame, OpsMixin):
           </doc:row>
         </doc:data>
         """
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         from pandas.io.formats.xml import (
             EtreeXMLFormatter,
@@ -13774,14 +13825,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        index : bool, default True
-            Specifies whether to include the memory usage of the DataFrame's
-            index in returned Series. If ``index=True``, the memory usage of
-            the index is the first item in the output.
-        deep : bool, default False
-            If True, introspect the data deeply by interrogating
-            `object` dtypes for system-level memory consumption, and include
-            it in the returned values.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Returns
         -------
@@ -13833,22 +13899,29 @@ class DataFrame(NDFrame, OpsMixin):
         bool           5000
         dtype: int64
 
-        The memory footprint of `object` dtype columns is ignored by default:
+            idx_diff = result_index.difference(correl.index)
 
-        >>> df.memory_usage(deep=True)
-        Index            128
-        int64          40000
-        float64        40000
-        complex128     80000
-        object        180000
-        bool            5000
-        dtype: int64
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        Use a Categorical for efficient storage of an object-dtype column with
-        many repeated values.
+        return correl
 
-        >>> df["object"].astype("category").memory_usage(deep=True)
-        5136
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -13872,14 +13945,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        *args : tuple, optional
-            Accepted for compatibility with NumPy.
-        copy : bool, default False
-            Whether to copy the data after transposing, even for DataFrames
-            with a single dtype.
+            idx_diff = result_index.difference(correl.index)
 
-            Note that a copy is always required for mixed dtype DataFrames,
-            or for DataFrames with any extension types.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             .. note::
                 The `copy` keyword will change behavior in pandas 3.0.
@@ -13892,6 +13980,29 @@ class DataFrame(NDFrame, OpsMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Returns
         -------
@@ -13982,65 +14093,29 @@ class DataFrame(NDFrame, OpsMixin):
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
 
-            result = self._constructor(
-                new_vals,
-                index=self.columns,
-                columns=self.index,
-                copy=False,
-                dtype=new_vals.dtype,
-            )
-            if len(self) > 0:
-                result._mgr.add_references(self._mgr)
+            idx_diff = result_index.difference(correl.index)
 
-        elif (
-            self._is_homogeneous_type
-            and dtypes
-            and isinstance(dtypes[0], ExtensionDtype)
-        ):
-            new_values: list
-            if isinstance(dtypes[0], BaseMaskedDtype):
-                # We have masked arrays with the same dtype. We can transpose faster.
-                from pandas.core.arrays.masked import (
-                    transpose_homogeneous_masked_arrays,
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
                 )
 
-                new_values = transpose_homogeneous_masked_arrays(
-                    cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
-                )
-            elif isinstance(dtypes[0], ArrowDtype):
-                # We have arrow EAs with the same dtype. We can transpose faster.
-                from pandas.core.arrays.arrow.array import (
-                    ArrowExtensionArray,
-                    transpose_homogeneous_pyarrow,
-                )
+        return correl
 
-                new_values = transpose_homogeneous_pyarrow(
-                    cast(Sequence[ArrowExtensionArray], self._iter_column_arrays())
-                )
-            else:
-                # We have other EAs with the same dtype. We preserve dtype in transpose.
-                dtyp = dtypes[0]
-                arr_typ = dtyp.construct_array_type()
-                values = self.values
-                new_values = [arr_typ._from_sequence(row, dtype=dtyp) for row in values]
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
 
-            result = type(self)._from_arrays(
-                new_values,
-                index=self.columns,
-                columns=self.index,
-                verify_integrity=False,
-            )
-
-        else:
-            new_arr = self.values.T
-            result = self._constructor(
-                new_arr,
-                index=self.columns,
-                columns=self.index,
-                dtype=new_arr.dtype,
-                # We already made a copy (more than one block)
-                copy=False,
-            )
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         return result.__finalize__(self, method="transpose")
 
@@ -14057,6 +14132,11 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.transpose : Transpose index and columns.
+
+        See Also
+        --------
+        DataFrame.drop: Drop specified labels from rows or columns.
+        DataFrame.drop_duplicates: Return DataFrame with duplicate rows removed.
 
         Examples
         --------
@@ -14115,11 +14195,29 @@ class DataFrame(NDFrame, OpsMixin):
         Iterate over the arrays of all columns in order.
         This returns the values as stored in the Block (ndarray or ExtensionArray).
 
-        Warning! The returned array is a view but doesn't handle Copy-on-Write,
-        so this should be used with caution (for read-only purposes).
-        """
-        for i in range(len(self.columns)):
-            yield self._get_column_array(i)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -14142,9 +14240,29 @@ class DataFrame(NDFrame, OpsMixin):
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
 
-        # Do we have a slicer (on rows)?
-        if isinstance(key, slice):
-            return self._getitem_slice(key)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
@@ -14154,9 +14272,29 @@ class DataFrame(NDFrame, OpsMixin):
         if com.is_bool_indexer(key):
             return self._getitem_bool_array(key)
 
-        # We are left with two options: a single key, and a collection of keys,
-        # We interpret tuples as collections only for non-MultiIndex
-        is_single_key = isinstance(key, tuple) or not is_list_like(key)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         if is_single_key:
             if self.columns.nlevels > 1:
@@ -14187,7 +14325,29 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#26490 using data[key] can cause RecursionError
                 return data._get_item(key)
 
-        return data
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     def _getitem_bool_array(self, key):
         # also raises Exception if object array with NA values
@@ -14263,10 +14423,29 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         scalar
 
-        Notes
-        -----
-        Assumes that both `self.index._index_as_unique` and
-        `self.columns._index_as_unique`; Caller is responsible for checking.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         """
         if takeable:
             series = self._ixs(col, axis=1)
@@ -14305,16 +14484,29 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.iloc : Purely integer-location based indexing for selection by
             position.
 
-        Notes
-        -----
-        ``frame.isetitem(loc, value)`` is an in-place method as it will
-        modify the DataFrame in place (not returning a new object). In contrast to
-        ``frame.iloc[:, i] = value`` which will try to update the existing values in
-        place, ``frame.isetitem(loc, value)`` will not update the values of the column
-        itself in place, it will instead insert a new array.
+            idx_diff = result_index.difference(correl.index)
 
-        In cases where ``frame.columns`` is unique, this is equivalent to
-        ``frame[frame.columns[i]] = value``.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Examples
         --------
@@ -14343,12 +14535,29 @@ class DataFrame(NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self) <= 3:
-                warnings.warn(
-                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
                 )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         key = com.apply_if_callable(key, self)
 
@@ -14416,8 +14625,29 @@ class DataFrame(NDFrame, OpsMixin):
                 value = DataFrame(value).values
                 self._setitem_array(key, value)
 
-            else:
-                self._iset_not_inplace(key, value)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     def _iset_not_inplace(self, key, value) -> None:
         # GH#39510 when setting with df[key] = obj with a list-like key and
@@ -14549,14 +14779,29 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             self._iset_item_mgr(loc, value, refs=refs)
 
-    def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
-        # We are only called from _replace_columnwise which guarantees that
-        # no reindex is necessary
-        self._iset_item_mgr(loc, value._values, inplace=inplace, refs=value._references)
+            idx_diff = result_index.difference(correl.index)
 
-    def _set_item(self, key, value) -> None:
-        """
-        Add series to DataFrame in specified column.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         If series is a numpy-array (not a Series/TimeSeries), it must be the
         same length as the DataFrames index or an error will be thrown.
@@ -14701,7 +14946,29 @@ class DataFrame(NDFrame, OpsMixin):
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
 
-        inplace : bool
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
             Whether to modify the DataFrame rather than creating a new one.
         **kwargs
             See the documentation for :func:`eval` for complete details
@@ -14837,12 +15104,29 @@ class DataFrame(NDFrame, OpsMixin):
             return result
 
     @overload
-    def eval(self, expr: str, *, inplace: Literal[False] = ..., **kwargs) -> Any: ...
+            idx_diff = result_index.difference(correl.index)
 
-    @overload
-    def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None: ...
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-    def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -14852,16 +15136,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        expr : str
-            The expression string to evaluate.
-        inplace : bool, default False
-            If the expression contains an assignment, whether to perform the
-            operation inplace and mutate the existing DataFrame. Otherwise,
-            a new DataFrame is returned.
-        **kwargs
-            See the documentation for :func:`eval` for complete details
-            on the keyword arguments accepted by
-            :meth:`~pandas.DataFrame.query`.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Returns
         -------
@@ -14947,15 +15244,57 @@ class DataFrame(NDFrame, OpsMixin):
 
         return _eval(expr, inplace=inplace, **kwargs)
 
-    def select_dtypes(self, include=None, exclude=None) -> DataFrame:
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
         Parameters
         ----------
-        include, exclude : scalar or list-like
-            A selection of dtypes or strings to be included/excluded. At least
-            one of these parameters must be supplied.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Returns
         -------
@@ -15040,21 +15379,29 @@ class DataFrame(NDFrame, OpsMixin):
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
-        # convert the myriad valid dtypes object to a single representation
-        def check_int_infer_dtype(dtypes):
-            converted_dtypes: list[type] = []
-            for dtype in dtypes:
-                # Numpy maps int to different types (int32, in64) on Windows and Linux
-                # see https://github.com/numpy/numpy/issues/9464
-                if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
-                    converted_dtypes.append(np.int32)
-                    converted_dtypes.append(np.int64)
-                elif dtype == "float" or dtype is float:
-                    # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
-                    converted_dtypes.extend([np.float64, np.float32])
-                else:
-                    converted_dtypes.append(infer_dtype_from_object(dtype))
-            return frozenset(converted_dtypes)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         include = check_int_infer_dtype(include)
         exclude = check_int_infer_dtype(exclude)
@@ -15062,9 +15409,29 @@ class DataFrame(NDFrame, OpsMixin):
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
 
-        # can't both include AND exclude!
-        if not include.isdisjoint(exclude):
-            raise ValueError(f"include and exclude overlap on {(include & exclude)}")
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
@@ -15105,14 +15472,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        loc : int
-            Insertion index. Must verify 0 <= loc <= len(columns).
-        column : str, number, or hashable object
-            Label of the inserted column.
-        value : Scalar, Series, or array-like
-            Content of the inserted column.
-        allow_duplicates : bool, optional, default lib.no_default
-            Allow duplicate column labels to be created.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         See Also
         --------
@@ -15252,31 +15634,29 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         tuple of numpy.ndarray or ExtensionArray and optional BlockValuesRefs
         """
-        self._ensure_valid_index(value)
+            idx_diff = result_index.difference(correl.index)
 
-        # Using a DataFrame would mean coercing values to one dtype
-        assert not isinstance(value, DataFrame)
-        if is_dict_like(value):
-            if not isinstance(value, Series):
-                value = Series(value)
-            return _reindex_for_setitem(value, self.index)
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        if is_list_like(value):
-            com.require_length_match(value, self.index)
-        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
-        if (
-            isinstance(value, Index)
-            and value.dtype == "object"
-            and arr.dtype != value.dtype
-        ):  #
-            # TODO: Remove kludge in sanitize_array for string mode when enforcing
-            # this deprecation
-            warnings.warn(
-                "Setting an Index with object dtype into a DataFrame will stop "
-                "inferring another dtype in a future version. Cast the Index "
-                "explicitly before setting it into the DataFrame.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
             )
         return arr, None
 
@@ -15469,26 +15849,29 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame or None
-            Returns DataFrame or None DataFrame with the specified
-            index or column labels removed or None if inplace=True.
+            idx_diff = result_index.difference(correl.index)
 
-        Raises
-        ------
-        KeyError
-            If any of the labels is not found in the selected axis.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        See Also
-        --------
-        DataFrame.loc : Label-location based indexer for selection by label.
-        DataFrame.dropna : Return DataFrame with labels on given axis omitted
-            where (all or any) data are missing.
-        DataFrame.drop_duplicates : Return DataFrame with duplicate rows
-            removed, optionally only considering certain columns.
-        Series.drop : Return Series with specified index labels removed.
+        return correl
 
-        Examples
-        --------
-        >>> df = pd.DataFrame(np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"])
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         >>> df
            A  B   C   D
         0  0  1   2   3
@@ -15572,24 +15955,29 @@ class DataFrame(NDFrame, OpsMixin):
                 weight  1.0
                 length  0.3
 
-        >>> df.drop(index="length", level=1)
-                        big     small
-        llama   speed   45.0    30.0
-                weight  200.0   100.0
-        cow     speed   30.0    20.0
-                weight  250.0   150.0
-        falcon  speed   320.0   250.0
-                weight  1.0     0.8
-        """
-        return super().drop(
-            labels=labels,
-            axis=axis,
-            index=index,
-            columns=columns,
-            level=level,
-            inplace=inplace,
-            errors=errors,
-        )
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     @overload
     def rename(
@@ -15656,31 +16044,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        mapper : dict-like or function
-            Dict-like or function transformations to apply to
-            that axis' values. Use either ``mapper`` and ``axis`` to
-            specify the axis to target with ``mapper``, or ``index`` and
-            ``columns``.
-        index : dict-like or function
-            Alternative to specifying axis (``mapper, axis=0``
-            is equivalent to ``index=mapper``).
-        columns : dict-like or function
-            Alternative to specifying axis (``mapper, axis=1``
-            is equivalent to ``columns=mapper``).
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Axis to target with ``mapper``. Can be either the axis name
-            ('index', 'columns') or number (0, 1). The default is 'index'.
-        copy : bool, default True
-            Also copy underlying data.
+            idx_diff = result_index.difference(correl.index)
 
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
@@ -15866,20 +16252,29 @@ class DataFrame(NDFrame, OpsMixin):
             return None
         return res.__finalize__(self)
 
-    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
-    def shift(
-        self,
-        periods: int | Sequence[int] = 1,
-        freq: Frequency | None = None,
-        axis: Axis = 0,
-        fill_value: Hashable = lib.no_default,
-        suffix: str | None = None,
-    ) -> DataFrame:
-        if freq is not None and fill_value is not lib.no_default:
-            # GH#53832
-            raise ValueError(
-                "Passing a 'freq' together with a 'fill_value' is not allowed."
-            )
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         if self.empty:
             return self.copy()
@@ -15919,8 +16314,29 @@ class DataFrame(NDFrame, OpsMixin):
             if fill_value is lib.no_default:
                 # We will infer fill_value to match the closest column
 
-                # Use a column that we know is valid for our column's dtype GH#38434
-                label = self.columns[0]
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
                 if periods > 0:
                     result = self.iloc[:, :-periods]
@@ -16043,6 +16459,10 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
 
+        See Also
+        --------
+            DataFrame.swaplevel : Swap levels i and j in a MultiIndex.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -16061,13 +16481,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Set the index to become the 'month' column:
 
-        >>> df.set_index("month")
-               year  sale
-        month
-        1      2012    55
-        4      2014    40
-        7      2013    84
-        10     2014    31
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Create a MultiIndex using columns 'year' and 'month':
 
@@ -16081,13 +16517,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Create a MultiIndex using an Index and a column:
 
-        >>> df.set_index([pd.Index([1, 2, 3, 4]), "year"])
-                 month  sale
-           year
-        1  2012  1      55
-        2  2014  4      40
-        3  2013  7      84
-        4  2014  10     31
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Create a MultiIndex using two Series:
 
@@ -16287,25 +16739,29 @@ class DataFrame(NDFrame, OpsMixin):
         If the DataFrame has a MultiIndex, this method can remove one or more
         levels.
 
-        Parameters
-        ----------
-        level : int, str, tuple, or list, default None
-            Only remove the given levels from the index. Removes all levels by
-            default.
-        drop : bool, default False
-            Do not try to insert index into dataframe columns. This resets
-            the index to the default integer index.
-        inplace : bool, default False
-            Whether to modify the DataFrame rather than creating a new one.
-        col_level : int or str, default 0
-            If the columns have multiple levels, determines which level the
-            labels are inserted into. By default it is inserted into the first
-            level.
-        col_fill : object, default ''
-            If the columns have multiple levels, determines how the other
-            levels are named. If None then the index name is repeated.
-        allow_duplicates : bool, optional, default lib.no_default
-            Allow duplicate column labels to be created.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             .. versionadded:: 1.5.0
 
@@ -16327,19 +16783,29 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
 
-        Examples
-        --------
-        >>> df = pd.DataFrame(
-        ...     [("bird", 389.0), ("bird", 24.0), ("mammal", 80.5), ("mammal", np.nan)],
-        ...     index=["falcon", "parrot", "lion", "monkey"],
-        ...     columns=("class", "max_speed"),
-        ... )
-        >>> df
-                 class  max_speed
-        falcon    bird      389.0
-        parrot    bird       24.0
-        lion    mammal       80.5
-        monkey  mammal        NaN
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         When we reset the index, the old index is added as a column, and a
         new sequential index is used:
@@ -16354,12 +16820,29 @@ class DataFrame(NDFrame, OpsMixin):
         We can use the `drop` parameter to avoid the old index being added as
         a column:
 
-        >>> df.reset_index(drop=True)
-            class  max_speed
-        0    bird      389.0
-        1    bird       24.0
-        2  mammal       80.5
-        3  mammal        NaN
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         You can also use `reset_index` with `MultiIndex`.
 
@@ -16460,31 +16943,58 @@ class DataFrame(NDFrame, OpsMixin):
             if len(level) < self.index.nlevels:
                 new_index = self.index.droplevel(level)
 
-        if not drop:
-            to_insert: Iterable[tuple[Any, Any | None]]
+            idx_diff = result_index.difference(correl.index)
 
-            default = "index" if "index" not in self else "level_0"
-            names = self.index._get_default_index_names(names, default)
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             if isinstance(self.index, MultiIndex):
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
                 to_insert = ((self.index, None),)
 
-            multi_col = isinstance(self.columns, MultiIndex)
-            for i, (lev, lab) in reversed(list(enumerate(to_insert))):
-                if level is not None and i not in level:
-                    continue
-                name = names[i]
-                if multi_col:
-                    col_name = list(name) if isinstance(name, tuple) else [name]
-                    if col_fill is None:
-                        if len(col_name) not in (1, self.columns.nlevels):
-                            raise ValueError(
-                                "col_fill=None is incompatible "
-                                f"with incomplete column name {name}"
-                            )
-                        col_fill = col_name[0]
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
                     lev_num = self.columns._get_level_number(col_level)
                     name_lst = [col_fill] * lev_num + col_name
@@ -16519,18 +17029,55 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
-    def isna(self) -> DataFrame:
-        res_mgr = self._mgr.isna(func=isna)
-        result = self._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
-        return result.__finalize__(self, method="isna")
+            idx_diff = result_index.difference(correl.index)
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
-    def isnull(self) -> DataFrame:
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         """
         DataFrame.isnull is an alias for DataFrame.isna.
         """
-        return self.isna()
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notna(self) -> DataFrame:
@@ -16543,17 +17090,29 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return ~self.isna()
 
-    @overload
-    def dropna(
-        self,
-        *,
-        axis: Axis = ...,
-        how: AnyAll | lib.NoDefault = ...,
-        thresh: int | lib.NoDefault = ...,
-        subset: IndexLabel = ...,
-        inplace: Literal[False] = ...,
-        ignore_index: bool = ...,
-    ) -> DataFrame: ...
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     @overload
     def dropna(
@@ -16835,10 +17394,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         To remove duplicates on specific column(s), use ``subset``.
 
-        >>> df.drop_duplicates(subset=["brand"])
-            brand style  rating
-        0  Yum Yum   cup     4.0
-        2  Indomie   cup     3.5
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         To remove duplicates and keep last occurrences, use ``keep``.
 
@@ -16851,8 +17429,29 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty:
             return self.copy(deep=False)
 
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         result = self[-self.duplicated(subset, keep=keep)]
         if ignore_index:
@@ -17156,9 +17755,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         **Placing any** ``NA`` **first**
 
-        Note that in the above example, the rows that contain an ``NA`` value in their
-        ``col1`` are placed at the end of the dataframe. This behavior can be modified
-        via ``na_position`` argument, as shown below:
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         >>> df.sort_values(by="col1", ascending=False, na_position="first")
           col1  col2  col3 col4
@@ -17255,11 +17874,29 @@ class DataFrame(NDFrame, OpsMixin):
 
             k = self._get_label_or_level_values(by[0], axis=axis)
 
-            # need to rewrap column in Series to apply key function
-            if key is not None:
-                # error: Incompatible types in assignment (expression has type
-                # "Series", variable has type "ndarray")
-                k = Series(k, name=by[0])  # type: ignore[assignment]
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
@@ -17283,9 +17920,29 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 return result
 
-        new_data = self._mgr.take(
-            indexer, axis=self._get_block_manager_axis(axis), verify=False
-        )
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         if ignore_index:
             new_data.set_axis(
@@ -17316,32 +17973,29 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def sort_index(
         self,
-        *,
-        axis: Axis = ...,
-        level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
-        inplace: Literal[False] = ...,
-        kind: SortKind = ...,
-        na_position: NaPosition = ...,
-        sort_remaining: bool = ...,
-        ignore_index: bool = ...,
-        key: IndexKeyFunc = ...,
-    ) -> DataFrame: ...
+            idx_diff = result_index.difference(correl.index)
 
-    @overload
-    def sort_index(
-        self,
-        *,
-        axis: Axis = ...,
-        level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
-        inplace: bool = ...,
-        kind: SortKind = ...,
-        na_position: NaPosition = ...,
-        sort_remaining: bool = ...,
-        ignore_index: bool = ...,
-        key: IndexKeyFunc = ...,
-    ) -> DataFrame | None: ...
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     def sort_index(
         self,
@@ -17529,14 +18183,29 @@ class DataFrame(NDFrame, OpsMixin):
         4         0            2
         Name: count, dtype: int64
 
-        >>> df.value_counts(normalize=True)
-        num_legs  num_wings
-        4         0            0.50
-        2         2            0.25
-        6         0            0.25
-        Name: proportion, dtype: float64
+            idx_diff = result_index.difference(correl.index)
 
-        With `dropna` set to `False` we can also count rows with NA values.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         >>> df = pd.DataFrame(
         ...     {
@@ -17940,11 +18609,55 @@ class DataFrame(NDFrame, OpsMixin):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         """
         Rearrange index or column levels using input ``order``.
 
-        May not drop or duplicate levels.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Parameters
         ----------
@@ -18001,42 +18714,57 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _cmp_method(self, other, op):
-        axis: Literal[1] = 1  # only relevant for Series other case
+            idx_diff = result_index.difference(correl.index)
 
-        self, other = self._align_for_op(other, axis, flex=False, level=None)
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        # See GH#4537 for discussion of scalar op behavior
-        new_data = self._dispatch_frame_op(other, op, axis=axis)
-        return self._construct_result(new_data)
+        return correl
 
-    def _arith_method(self, other, op):
-        if self._should_reindex_frame_op(other, op, 1, None, None):
-            return self._arith_method_with_reindex(other, op)
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
 
-        axis: Literal[1] = 1  # only relevant for Series other case
-        other = ops.maybe_prepare_scalar_for_op(other, (self.shape[axis],))
-
-        self, other = self._align_for_op(other, axis, flex=True, level=None)
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         with np.errstate(all="ignore"):
             new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
 
-    _logical_method = _arith_method
+            idx_diff = result_index.difference(correl.index)
 
-    def _dispatch_frame_op(
-        self, right, func: Callable, axis: AxisInt | None = None
-    ) -> DataFrame:
-        """
-        Evaluate the frame operation func(left, right) by evaluating
-        column-by-column, dispatching to the Series implementation.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        Parameters
-        ----------
-        right : scalar, Series, or DataFrame
-        func : arithmetic or comparison operator
-        axis : {None, 0, 1}
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Returns
         -------
@@ -18049,11 +18777,29 @@ class DataFrame(NDFrame, OpsMixin):
         # Get the appropriate array-op to apply to each column/block's values.
         array_op = ops.get_array_op(func)
 
-        right = lib.item_from_zerodim(right)
-        if not is_list_like(right):
-            # i.e. scalar, faster than checking np.ndim(right) == 0
-            bm = self._mgr.apply(array_op, right=right)
-            return self._constructor_from_mgr(bm, axes=bm.axes)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         elif isinstance(right, DataFrame):
             assert self.index.equals(right.index)
@@ -18105,25 +18851,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
 
-            def _arith_op(left, right):
-                # for the mixed_type case where we iterate over columns,
-                # _arith_op(left, right) is equivalent to
-                # left._binop(right, func, fill_value=fill_value)
-                left, right = ops.fill_binop(left, right, fill_value)
-                return func(left, right)
+            idx_diff = result_index.difference(correl.index)
 
-        new_data = self._dispatch_frame_op(other, _arith_op)
-        return new_data
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-    def _arith_method_with_reindex(self, right: DataFrame, op) -> DataFrame:
-        """
-        For DataFrame-with-DataFrame operations that require reindexing,
-        operate only on shared columns, then reindex.
+        return correl
 
-        Parameters
-        ----------
-        right : DataFrame
-        op : binary operator
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Returns
         -------
@@ -18279,40 +19029,29 @@ class DataFrame(NDFrame, OpsMixin):
                     f"dimension must be <= 2: {right.shape}"
                 )
 
-        elif is_list_like(right) and not isinstance(right, (Series, DataFrame)):
-            # GH#36702. Raise when attempting arithmetic with list of array-like.
-            if any(is_array_like(el) for el in right):
-                raise ValueError(
-                    f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
                 )
-            # GH#17901
-            right = to_series(right)
 
-        if flex is not None and isinstance(right, DataFrame):
-            if not left._indexed_same(right):
-                if flex:
-                    left, right = left.align(right, join="outer", level=level)
-                else:
-                    raise ValueError(
-                        "Can only compare identically-labeled (both index and columns) "
-                        "DataFrame objects"
-                    )
-        elif isinstance(right, Series):
-            # axis=1 is default for DataFrame-with-Series op
-            axis = axis if axis is not None else 1
-            if not flex:
-                if not left.axes[axis].equals(right.index):
-                    raise ValueError(
-                        "Operands are not aligned. Do "
-                        "`left, right = left.align(right, axis=1)` "
-                        "before operating."
-                    )
+        return correl
 
-            left, right = left.align(
-                right,
-                join="outer",
-                axis=axis,
-                level=level,
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
             )
             right = left._maybe_align_series_as_frame(right, axis)
 
@@ -18354,29 +19093,29 @@ class DataFrame(NDFrame, OpsMixin):
         if self._should_reindex_frame_op(other, op, axis, fill_value, level):
             return self._arith_method_with_reindex(other, op)
 
-        if isinstance(other, Series) and fill_value is not None:
-            # TODO: We could allow this in cases where we end up going
-            #  through the DataFrame path
-            raise NotImplementedError(f"fill_value {fill_value} not supported.")
+            idx_diff = result_index.difference(correl.index)
 
-        other = ops.maybe_prepare_scalar_for_op(other, self.shape)
-        self, other = self._align_for_op(other, axis, flex=True, level=level)
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        with np.errstate(all="ignore"):
-            if isinstance(other, DataFrame):
-                # Another DataFrame
-                new_data = self._combine_frame(other, op, fill_value)
+        return correl
 
-            elif isinstance(other, Series):
-                new_data = self._dispatch_frame_op(other, op, axis=axis)
-            else:
-                # in this case we always have `np.ndim(other) == 0`
-                if fill_value is not None:
-                    self = self.fillna(fill_value)
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
 
-                new_data = self._dispatch_frame_op(other)
-
-        return self._construct_result(new_data)
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     def _construct_result(self, result) -> DataFrame:
         """
@@ -18504,13 +19243,29 @@ class DataFrame(NDFrame, OpsMixin):
     div = truediv
     divide = truediv
 
-    @Appender(ops.make_flex_doc("rtruediv", "dataframe"))
-    def rtruediv(
-        self, other, axis: Axis = "columns", level=None, fill_value=None
-    ) -> DataFrame:
-        return self._flex_arith_method(
-            other, roperator.rtruediv, level=level, fill_value=fill_value, axis=axis
-        )
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     rdiv = rtruediv
 
@@ -18548,13 +19303,29 @@ class DataFrame(NDFrame, OpsMixin):
         ignore_index=True,
     ) -> DataFrame:
         """
-        Unpivot DataFrame from wide to long format, optionally leaving identifiers set.
+            idx_diff = result_index.difference(correl.index)
 
-        This function is useful to massage a DataFrame into a format where one
-        or more columns are identifier variables (`id_vars`), while all other
-        columns, considered measured variables (`value_vars`), are "unpivoted" to
-        the row axis, leaving just two non-identifier columns, 'variable' and
-        'value'.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Parameters
         ----------
@@ -18879,7 +19650,29 @@ class DataFrame(NDFrame, OpsMixin):
         result = reconstruct_and_relabel_result(result, func, **kwargs)
         return result
 
-    agg = aggregate
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
     @doc(
         _shared_docs["transform"],
@@ -18900,14 +19693,29 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         func: AggFuncType,
         axis: Axis = 0,
-        raw: bool = False,
-        result_type: Literal["expand", "reduce", "broadcast"] | None = None,
-        args=(),
-        by_row: Literal[False, "compat"] = "compat",
-        engine: Literal["python", "numba"] = "python",
-        engine_kwargs: dict[str, bool] | None = None,
-        **kwargs,
-    ):
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         """
         Apply a function along an axis of the DataFrame.
 
@@ -18922,7 +19730,29 @@ class DataFrame(NDFrame, OpsMixin):
         func : function
             Function to apply to each column or row.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            Axis along which the function is applied:
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             * 0 or 'index': apply function to each column.
             * 1 or 'columns': apply function to each row.
@@ -19041,12 +19871,29 @@ class DataFrame(NDFrame, OpsMixin):
         A    12
         B    27
         dtype: int64
+            idx_diff = result_index.difference(correl.index)
 
-        >>> df.apply(np.sum, axis=1)
-        0    13
-        1    13
-        2    13
-        dtype: int64
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Returning a list-like will result in a Series
 
@@ -19059,11 +19906,29 @@ class DataFrame(NDFrame, OpsMixin):
         Passing ``result_type='expand'`` will expand list-like results
         to columns of a Dataframe
 
-        >>> df.apply(lambda x: [1, 2], axis=1, result_type="expand")
-           0  1
-        0  1  2
-        1  1  2
-        2  1  2
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Returning a Series inside the function is similar to passing
         ``result_type='expand'``. The resulting column names
@@ -19080,25 +19945,29 @@ class DataFrame(NDFrame, OpsMixin):
         and broadcast it along the axis. The resulting column names will
         be the originals.
 
-        >>> df.apply(lambda x: [1, 2], axis=1, result_type="broadcast")
-           A  B
-        0  1  2
-        1  1  2
-        2  1  2
-        """
-        from pandas.core.apply import frame_apply
+            idx_diff = result_index.difference(correl.index)
 
-        op = frame_apply(
-            self,
-            func=func,
-            axis=axis,
-            raw=raw,
-            result_type=result_type,
-            by_row=by_row,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-            args=args,
-            kwargs=kwargs,
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         )
         return op.apply().__finalize__(self, method="apply")
 
@@ -19112,8 +19981,29 @@ class DataFrame(NDFrame, OpsMixin):
 
            DataFrame.applymap was deprecated and renamed to DataFrame.map.
 
-        This method applies a function that accepts and returns a scalar
-        to every element of a DataFrame.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Parameters
         ----------
@@ -19136,20 +20026,29 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.replace: Replace values given in `to_replace` with `value`.
         Series.map : Apply a function elementwise on a Series.
 
-        Examples
-        --------
-        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
-        >>> df
-               0      1
-        0  1.000  2.120
-        1  3.356  4.567
+            idx_diff = result_index.difference(correl.index)
 
-        >>> df.map(lambda x: len(str(x)))
-           0  1
-        0  3  4
-        1  5  5
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        Like Series.map, NA values can be ignored:
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
@@ -19166,8 +20065,29 @@ class DataFrame(NDFrame, OpsMixin):
         0  1.0  2.1
         1  3.4  4.6
 
-        Note that a vectorized version of `func` often exists, which will
-        be much faster. You could square each number elementwise.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         >>> df.map(lambda x: x**2)
                    0          1
@@ -19184,8 +20104,29 @@ class DataFrame(NDFrame, OpsMixin):
         if na_action not in {"ignore", None}:
             raise ValueError(f"na_action must be 'ignore' or None. Got {na_action!r}")
 
-        if self.empty:
-            return self.copy()
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         func = functools.partial(func, **kwargs)
 
@@ -19197,23 +20138,29 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def _append(
-        self,
-        other,
-        ignore_index: bool = False,
-        verify_integrity: bool = False,
-        sort: bool = False,
-    ) -> DataFrame:
-        if isinstance(other, (Series, dict)):
-            if isinstance(other, dict):
-                if not ignore_index:
-                    raise TypeError("Can only append a dict if ignore_index=True")
-                other = Series(other)
-            if other.name is None and not ignore_index:
-                raise TypeError(
-                    "Can only append a Series if ignore_index=True "
-                    "or if the Series has a name"
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
                 )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             index = Index(
                 [other.name],
@@ -19240,11 +20187,29 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             to_concat = [self, other]
 
-        result = concat(
-            to_concat,
-            ignore_index=ignore_index,
-            verify_integrity=verify_integrity,
-            sort=sort,
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         )
         return result.__finalize__(self, method="append")
 
@@ -19265,20 +20230,29 @@ class DataFrame(NDFrame, OpsMixin):
         column. Efficiently join multiple DataFrame objects by index at once by
         passing a list.
 
-        Parameters
-        ----------
-        other : DataFrame, Series, or a list containing any combination of them
-            Index should be similar to one of the columns in this one. If a
-            Series is passed, its name attribute must be set, and that will be
-            used as the column name in the resulting joined DataFrame.
-        on : str, list of str, or array-like, optional
-            Column or index level name(s) in the caller to join on the index
-            in `other`, otherwise joins index-on-index. If multiple
-            values given, the `other` DataFrame must have a MultiIndex. Can
-            pass an array as the join key if it is not already contained in
-            the calling DataFrame. Like an Excel VLOOKUP operation.
-        how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'left'
-            How to handle the operation of the two objects.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             * left: use calling frame's index (or column if on is specified)
             * right: use `other`'s index.
@@ -19307,10 +20281,29 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 1.5.0
 
-        Returns
-        -------
-        DataFrame
-            A dataframe containing columns from both the caller and `other`.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         See Also
         --------
@@ -19330,37 +20323,55 @@ class DataFrame(NDFrame, OpsMixin):
         ...     }
         ... )
 
-        >>> df
-          key   A
-        0  K0  A0
-        1  K1  A1
-        2  K2  A2
-        3  K3  A3
-        4  K4  A4
-        5  K5  A5
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         >>> other = pd.DataFrame({"key": ["K0", "K1", "K2"], "B": ["B0", "B1", "B2"]})
 
-        >>> other
-          key   B
-        0  K0  B0
-        1  K1  B1
-        2  K2  B2
+            idx_diff = result_index.difference(correl.index)
 
-        Join DataFrames using their indexes.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        >>> df.join(other, lsuffix="_caller", rsuffix="_other")
-          key_caller   A key_other    B
-        0         K0  A0        K0   B0
-        1         K1  A1        K1   B1
-        2         K2  A2        K2   B2
-        3         K3  A3       NaN  NaN
-        4         K4  A4       NaN  NaN
-        5         K5  A5       NaN  NaN
+        return correl
 
-        If we want to join using the key columns, we need to set key to be
-        the index in both `df` and `other`. The joined DataFrame will have
-        key as its index.
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         >>> df.set_index("key").join(other.set_index("key"))
               A    B
@@ -19413,8 +20424,29 @@ class DataFrame(NDFrame, OpsMixin):
         4  K0  A4   B0
         5  K1  A5   B1
         """
-        from pandas.core.reshape.concat import concat
-        from pandas.core.reshape.merge import merge
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         if isinstance(other, Series):
             if other.name is None:
@@ -19462,17 +20494,29 @@ class DataFrame(NDFrame, OpsMixin):
 
             can_concat = all(df.index.is_unique for df in frames)
 
-            # join indexes only using concat
-            if can_concat:
-                if how == "left":
-                    res = concat(
-                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
-                    )
-                    return res.reindex(self.index)
-                else:
-                    return concat(
-                        frames, axis=1, join=how, verify_integrity=True, sort=sort
-                    )
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             joined = frames[0]
 
@@ -19735,22 +20779,29 @@ class DataFrame(NDFrame, OpsMixin):
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
-        if method == "pearson":
-            correl = libalgos.nancorr(mat, minp=min_periods)
-        elif method == "spearman":
-            correl = libalgos.nancorr_spearman(mat, minp=min_periods)
-        elif method == "kendall" or callable(method):
-            if min_periods is None:
-                min_periods = 1
-            mat = mat.T
-            corrf = nanops.get_corr_func(method)
-            K = len(cols)
-            correl = np.empty((K, K), dtype=float)
-            mask = np.isfinite(mat)
-            for i, ac in enumerate(mat):
-                for j, bc in enumerate(mat):
-                    if i > j:
-                        continue
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
                     valid = mask[i] & mask[j]
                     if valid.sum() < min_periods:
@@ -19775,33 +20826,29 @@ class DataFrame(NDFrame, OpsMixin):
 
     def cov(
         self,
-        min_periods: int | None = None,
-        ddof: int | None = 1,
-        numeric_only: bool = False,
-    ) -> DataFrame:
-        """
-        Compute pairwise covariance of columns, excluding NA/null values.
+            idx_diff = result_index.difference(correl.index)
 
-        Compute the pairwise covariance among the series of a DataFrame.
-        The returned data frame is the `covariance matrix
-        <https://en.wikipedia.org/wiki/Covariance_matrix>`__ of the columns
-        of the DataFrame.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        Both NA and null values are automatically excluded from the
-        calculation. (See the note below about bias from missing values.)
-        A threshold can be set for the minimum number of
-        observations for each value created. Comparisons with observations
-        below this threshold will be returned as ``NaN``.
+        return correl
 
-        This method is generally used for the analysis of time series data to
-        understand the relationship between different measures
-        across time.
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
 
-        Parameters
-        ----------
-        min_periods : int, optional
-            Minimum number of observations required per pair of columns
-            to have a valid result.
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         ddof : int, default 1
             Delta degrees of freedom.  The divisor used in calculations
@@ -19816,37 +20863,33 @@ class DataFrame(NDFrame, OpsMixin):
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.
 
+            .. deprecated:: 3.0.0
+
         Returns
         -------
-        DataFrame
-            The covariance matrix of the series of the DataFrame.
+            idx_diff = result_index.difference(correl.index)
 
-        See Also
-        --------
-        Series.cov : Compute covariance with another Series.
-        core.window.ewm.ExponentialMovingWindow.cov : Exponential weighted sample
-            covariance.
-        core.window.expanding.Expanding.cov : Expanding sample covariance.
-        core.window.rolling.Rolling.cov : Rolling sample covariance.
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
-        Notes
-        -----
-        Returns the covariance matrix of the DataFrame's time series.
-        The covariance is normalized by N-ddof.
+        return correl
 
-        For DataFrames that have Series that are missing data (assuming that
-        data is `missing at random
-        <https://en.wikipedia.org/wiki/Missing_data#Missing_at_random>`__)
-        the returned covariance matrix will be an unbiased estimate
-        of the variance and covariance between the member Series.
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
 
-        However, for many applications this estimate may not be acceptable
-        because the estimate covariance matrix is not guaranteed to be positive
-        semi-definite. This could lead to estimate correlations having
-        absolute values which are greater than one, and/or a non-invertible
-        covariance matrix. See `Estimation of covariance matrices
-        <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_
-        matrices>`__ for more details.
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Examples
         --------
@@ -19886,10 +20929,29 @@ class DataFrame(NDFrame, OpsMixin):
         b       NaN  1.248003  0.191417
         c -0.150812  0.191417  0.895202
         """
-        data = self._get_numeric_data() if numeric_only else self
-        cols = data.columns
-        idx = cols.copy()
-        mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         if notna(mat).all():
             if min_periods is not None and min_periods > len(mat):
@@ -19904,33 +20966,84 @@ class DataFrame(NDFrame, OpsMixin):
         result = self._constructor(base_cov, index=idx, columns=cols, copy=False)
         return result.__finalize__(self, method="cov")
 
-    def corrwith(
-        self,
-        other: DataFrame | Series,
-        axis: Axis = 0,
-        drop: bool = False,
-        method: CorrelationMethod = "pearson",
-        numeric_only: bool = False,
-    ) -> Series:
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
         """
         Compute pairwise correlation.
 
-        Pairwise correlation is computed between rows or columns of
-        DataFrame with rows or columns of Series or DataFrame. DataFrames
-        are first aligned along both axes before computing the
-        correlations.
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
         Parameters
         ----------
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' to compute row-wise, 1 or 'columns' for
-            column-wise.
-        drop : bool, default False
-            Drop missing indices from result.
-        method : {'pearson', 'kendall', 'spearman'} or callable
-            Method of correlation:
+            idx_diff = result_index.difference(correl.index)
+
+            if len(idx_diff) > 0:
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
+        **NDFrame._AXIS_TO_AXIS_NUMBER,
+        1: 1,
+        "columns": 1,
+    }
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number: Literal[1] = 1
+    _info_axis_name: Literal["columns"] = "columns"
 
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
@@ -19954,6 +21067,11 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.corr : Compute pairwise correlation of columns.
+
+        Notes
+        -----
+            ``__iter__`` is used (and not ``__contains__``) to iterate over values
+            when checking if it contains the elements in DataFrame.
 
         Examples
         --------
@@ -20035,17 +21153,42 @@ class DataFrame(NDFrame, OpsMixin):
             # and append missing correlations (GH 22375)
             raxis: AxisInt = 1 if axis == 0 else 0
             result_index = this._get_axis(raxis).union(other._get_axis(raxis))
-            idx_diff = result_index.difference(correl.index)
+        DataFrame.axes: Return a list representing the axes of the DataFrame.
 
-            if len(idx_diff) > 0:
-                correl = correl._append(
-                    Series([np.nan] * len(idx_diff), index=idx_diff)
-                )
-
-        return correl
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df
+                A  B
+        0    1  3
+        1    2  4
+        >>> df.columns
+        Index(['A', 'B'], dtype='object')
+        """,
+    )
 
     # ----------------------------------------------------------------------
-    # ndarray-like stats methods
+    # Add plotting methods to DataFrame
+    plot = Accessor("plot", pandas.plotting.PlotAccessor)
+    hist = pandas.plotting.hist_frame
+    boxplot = pandas.plotting.boxplot_frame
+    sparse = Accessor("sparse", SparseFrameAccessor)
+
+    # ----------------------------------------------------------------------
+    # Internal Interface Methods
+
+    def _to_dict_of_blocks(self):
+        """
+        Return a dict of dtype -> Constructor Types that
+        each is a homogeneous dtype.
+
+        Internal ONLY.
+        """
+        mgr = self._mgr
+        return {
+            k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
+            for k, v in mgr.to_iter_dict()
+        }
 
     def count(self, axis: Axis = 0, numeric_only: bool = False) -> Series:
         """

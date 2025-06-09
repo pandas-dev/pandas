@@ -118,15 +118,15 @@ def test_dict_nested_renaming_depr(method):
 def test_missing_column(method, func):
     # GH 40004
     obj = DataFrame({"A": [1]})
-    match = re.escape("Column(s) ['B'] do not exist")
-    with pytest.raises(KeyError, match=match):
+    msg = r"Label\(s\) \['B'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
         getattr(obj, method)(func)
 
 
 def test_transform_mixed_column_name_dtypes():
     # GH39025
     df = DataFrame({"a": ["1"]})
-    msg = r"Column\(s\) \[1, 'b'\] do not exist"
+    msg = r"Label\(s\) \[1, 'b'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.transform({"a": int, 1: str, "b": int})
 
@@ -218,11 +218,13 @@ def test_apply_modify_traceback():
 def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_string):
     # GH 21224
     if using_infer_string:
-        import pyarrow as pa
+        expected = (expected, NotImplementedError)
 
-        expected = (expected, pa.lib.ArrowNotImplementedError)
-
-    msg = "can't multiply sequence by non-int of type 'str'|has no kernel"
+    msg = (
+        "can't multiply sequence by non-int of type 'str'"
+        "|cannot perform cumprod with type str"  # NotImplementedError python backend
+        "|operation 'cumprod' not supported for dtype 'str'"  # TypeError pyarrow
+    )
     warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
         with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
@@ -251,12 +253,12 @@ def test_agg_cython_table_raises_series(series, func, expected, using_infer_stri
     if func == "median" or func is np.nanmedian or func is np.median:
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
 
-    if using_infer_string:
-        import pyarrow as pa
+    if using_infer_string and func == "cumprod":
+        expected = (expected, NotImplementedError)
 
-        expected = (expected, pa.lib.ArrowNotImplementedError)
-
-    msg = msg + "|does not support|has no kernel"
+    msg = (
+        msg + "|does not support|has no kernel|Cannot perform|cannot perform|operation"
+    )
     warn = None if isinstance(func, str) else FutureWarning
 
     with pytest.raises(expected, match=msg):
@@ -359,3 +361,15 @@ def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
         obj.transform(op)
+
+
+def test_transform_missing_labels_raises():
+    # GH 58474
+    df = DataFrame({"foo": [2, 4, 6], "bar": [1, 2, 3]}, index=["A", "B", "C"])
+    msg = r"Label\(s\) \['A', 'B'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
+        df.transform({"A": lambda x: x + 2, "B": lambda x: x * 2}, axis=0)
+
+    msg = r"Label\(s\) \['bar', 'foo'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
+        df.transform({"foo": lambda x: x + 2, "bar": lambda x: x * 2}, axis=1)

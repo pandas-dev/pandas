@@ -6,13 +6,12 @@ from pandas.core.internals.managers import (
 )
 
 __all__ = [
-    "Block",  # pylint: disable=undefined-all-variable
-    "DatetimeTZBlock",  # pylint: disable=undefined-all-variable
-    "ExtensionBlock",  # pylint: disable=undefined-all-variable
-    "make_block",
+    "Block",  # pyright:ignore[reportUnsupportedDunderAll)]
     "BlockManager",
+    "ExtensionBlock",  # pyright:ignore[reportUnsupportedDunderAll)]
     "SingleBlockManager",
     "concatenate_managers",
+    "make_block",
 ]
 
 
@@ -25,7 +24,7 @@ def __getattr__(name: str):
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            DeprecationWarning,
+            FutureWarning,
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,
@@ -37,21 +36,16 @@ def __getattr__(name: str):
     if name in [
         "Block",
         "ExtensionBlock",
-        "DatetimeTZBlock",
     ]:
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            DeprecationWarning,
+            FutureWarning,
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,
         )
-        if name == "DatetimeTZBlock":
-            from pandas.core.internals.blocks import DatetimeTZBlock
-
-            return DatetimeTZBlock
-        elif name == "ExtensionBlock":
+        if name == "ExtensionBlock":
             from pandas.core.internals.blocks import ExtensionBlock
 
             return ExtensionBlock

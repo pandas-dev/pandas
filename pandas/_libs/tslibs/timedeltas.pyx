@@ -1,6 +1,7 @@
 import collections
 import warnings
 
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 cimport cython
@@ -43,7 +44,7 @@ from pandas._libs.tslibs.conversion cimport (
     precision_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    c_DEPR_ABBREVS,
+    c_DEPR_UNITS,
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
@@ -719,15 +720,15 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
-    elif unit in c_DEPR_ABBREVS:
+    elif unit in c_DEPR_UNITS:
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
-            f"future version. Please use \'{c_DEPR_ABBREVS.get(unit)}\' "
+            f"future version. Please use \'{c_DEPR_UNITS.get(unit)}\' "
             f"instead of \'{unit}\'.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        unit = c_DEPR_ABBREVS[unit]
+        unit = c_DEPR_UNITS[unit]
     try:
         return timedelta_abbrevs[unit.lower()]
     except KeyError:
@@ -997,8 +998,9 @@ class MinMaxReso:
     and Timedelta class.  On an instance, these depend on the object's _reso.
     On the class, we default to the values we would get with nanosecond _reso.
     """
-    def __init__(self, name):
+    def __init__(self, name, docstring):
         self._name = name
+        self.__doc__ = docstring
 
     def __get__(self, obj, type=None):
         if self._name == "min":
@@ -1011,9 +1013,13 @@ class MinMaxReso:
 
         if obj is None:
             # i.e. this is on the class, default to nanos
-            return Timedelta(val)
+            result = Timedelta(val)
         else:
-            return Timedelta._from_value_and_reso(val, obj._creso)
+            result = Timedelta._from_value_and_reso(val, obj._creso)
+
+        result.__doc__ = self.__doc__
+
+        return result
 
     def __set__(self, obj, value):
         raise AttributeError(f"{self._name} is not settable.")
@@ -1032,9 +1038,75 @@ cdef class _Timedelta(timedelta):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
-    min = MinMaxReso("min")
-    max = MinMaxReso("max")
-    resolution = MinMaxReso("resolution")
+
+    _docstring_min = """
+    Returns the minimum bound possible for Timedelta.
+
+    This property provides access to the smallest possible value that
+    can be represented by a Timedelta object.
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.max: Returns the maximum bound possible for Timedelta.
+    Timedelta.resolution: Returns the smallest possible difference between
+        non-equal Timedelta objects.
+
+    Examples
+    --------
+    >>> pd.Timedelta.min
+    -106752 days +00:12:43.145224193
+    """
+
+    _docstring_max = """
+    Returns the maximum bound possible for Timedelta.
+
+    This property provides access to the largest possible value that
+    can be represented by a Timedelta object.
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.min: Returns the minimum bound possible for Timedelta.
+    Timedelta.resolution: Returns the smallest possible difference between
+        non-equal Timedelta objects.
+
+    Examples
+    --------
+    >>> pd.Timedelta.max
+    106751 days 23:47:16.854775807
+    """
+
+    _docstring_reso = """
+    Returns the smallest possible difference between non-equal Timedelta objects.
+
+    The resolution value is determined by the underlying representation of time
+    units and is equivalent to Timedelta(nanoseconds=1).
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.max: Returns the maximum bound possible for Timedelta.
+    Timedelta.min: Returns the minimum bound possible for Timedelta.
+
+    Examples
+    --------
+    >>> pd.Timedelta.resolution
+    0 days 00:00:00.000000001
+    """
+
+    min = MinMaxReso("min", _docstring_min)
+    max = MinMaxReso("max", _docstring_max)
+    resolution = MinMaxReso("resolution", _docstring_reso)
 
     @property
     def value(self):
@@ -1078,9 +1150,21 @@ cdef class _Timedelta(timedelta):
         """
         Returns the days of the timedelta.
 
+        The `days` attribute of a `pandas.Timedelta` object provides the number
+        of days represented by the `Timedelta`. This is useful for extracting
+        the day component from a `Timedelta` that may also include hours, minutes,
+        seconds, and smaller time units. This attribute simplifies the process
+        of working with durations where only the day component is of interest.
+
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timedelta.seconds : Returns the seconds component of the timedelta.
+        Timedelta.microseconds : Returns the microseconds component of the timedelta.
+        Timedelta.total_seconds : Returns the total duration in seconds.
 
         Examples
         --------
@@ -1176,6 +1260,16 @@ cdef class _Timedelta(timedelta):
     def total_seconds(self) -> float:
         """
         Total seconds in the duration.
+
+        This method calculates the total duration in seconds by combining
+        the days, seconds, and microseconds of the `Timedelta` object.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta.
+        Timedelta : Represents a duration, the difference between two dates or times.
+        Timedelta.seconds : Returns the seconds component of the timedelta.
+        Timedelta.microseconds : Returns the microseconds component of the timedelta.
 
         Examples
         --------
@@ -1391,6 +1485,18 @@ cdef class _Timedelta(timedelta):
         """
         Return a numpy.timedelta64 object with 'ns' precision.
 
+        Since NumPy uses ``timedelta64`` objects for its time operations, converting
+        a pandas ``Timedelta`` into a NumPy ``timedelta64`` provides seamless
+        integration between the two libraries, especially when working in environments
+        that heavily rely on NumPy for array-based calculations.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta.
+        numpy.timedelta64 : A NumPy object for time duration.
+        Timedelta : Represents a duration, the difference between two dates
+            or times.
+
         Examples
         --------
         >>> td = pd.Timedelta('3D')
@@ -1409,9 +1515,16 @@ cdef class _Timedelta(timedelta):
         """
         Convert the Timedelta to a NumPy timedelta64.
 
-        This is an alias method for `Timedelta.to_timedelta64()`. The dtype and
-        copy parameters are available here only for compatibility. Their values
-        will not affect the return value.
+        This is an alias method for `Timedelta.to_timedelta64()`.
+
+        Parameters
+        ----------
+        dtype : NoneType
+            It is available here only for compatibility. Its value will not
+            affect the return value.
+        copy : bool, default False
+            It is available here only for compatibility. Its value will not
+            affect the return value.
 
         Returns
         -------
@@ -1439,10 +1552,26 @@ cdef class _Timedelta(timedelta):
         """
         Array view compatibility.
 
+        This method allows you to reinterpret the underlying data of a Timedelta
+        object as a different dtype. The `view` method provides a way to reinterpret
+        the internal representation of the `Timedelta` object without modifying its
+        data. This is particularly useful when you need to work with the underlying
+        data directly, such as for performance optimizations or interfacing with
+        low-level APIs. The returned value is typically the number of nanoseconds
+        since the epoch, represented as an integer or another specified dtype.
+
         Parameters
         ----------
         dtype : str or dtype
             The dtype to view the underlying data as.
+
+        See Also
+        --------
+        Timedelta.asm8 : Return a numpy timedelta64 array scalar view.
+        numpy.ndarray.view : Returns a view of an array with the same data.
+        Timedelta.to_numpy : Converts the Timedelta to a NumPy timedelta64.
+        Timedelta.total_seconds : Returns the total duration of the Timedelta
+            object in seconds.
 
         Examples
         --------
@@ -1458,6 +1587,17 @@ cdef class _Timedelta(timedelta):
     def components(self):
         """
         Return a components namedtuple-like.
+
+        Each component represents a different time unit, allowing you to access the
+        breakdown of the total duration in terms of days, hours, minutes, seconds,
+        milliseconds, microseconds, and nanoseconds.
+
+        See Also
+        --------
+        Timedelta.total_seconds : Returns the total duration of the Timedelta in
+            seconds.
+        to_timedelta : Convert argument to Timedelta.
+        Timedelta : Represents a duration, the difference between two dates or times.
 
         Examples
         --------
@@ -1485,6 +1625,12 @@ cdef class _Timedelta(timedelta):
         -------
         numpy timedelta64 array scalar view
             Array scalar view of the timedelta in nanoseconds.
+
+        See Also
+        --------
+            Timedelta.total_seconds : Return the total seconds in the duration.
+            Timedelta.components : Return a namedtuple of the Timedelta's components.
+            Timedelta.to_timedelta64 : Convert the Timedelta to a numpy.timedelta64.
 
         Examples
         --------
@@ -1665,7 +1811,8 @@ cdef class _Timedelta(timedelta):
         Format the Timedelta as ISO 8601 Duration.
 
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
-        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
+        values. See Wikipedia:
+        `ISO 8601 § Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_.
 
         Returns
         -------
@@ -1731,6 +1878,12 @@ cdef class _Timedelta(timedelta):
         -------
         Timedelta
 
+        See Also
+        --------
+        Timedelta : Represents a duration, the difference between two dates or times.
+        to_timedelta : Convert argument to timedelta.
+        Timedelta.asm8 : Return a numpy timedelta64 array scalar view.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -1774,7 +1927,7 @@ cdef class _Timedelta(timedelta):
 
 # Python front end to C extension type _Timedelta
 # This serves as the box for timedelta64
-
+@set_module("pandas")
 class Timedelta(_Timedelta):
     """
     Represents a duration, the difference between two dates or times.
@@ -1784,9 +1937,12 @@ class Timedelta(_Timedelta):
 
     Parameters
     ----------
-    value : Timedelta, timedelta, np.timedelta64, str, or int
+    value : Timedelta, timedelta, np.timedelta64, str, int or float
+        Input value.
     unit : str, default 'ns'
-        Denote the unit of the input, if input is an integer.
+        If input is an integer, denote the unit of the input.
+        If input is a float, denote the unit of the integer parts.
+        The decimal parts with resolution lower than 1 nanosecond are ignored.
 
         Possible values:
 
@@ -1799,16 +1955,25 @@ class Timedelta(_Timedelta):
         * 'microseconds', 'microsecond', 'micros', 'micro', or 'us'
         * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
 
-        .. deprecated:: 2.2.0
+        .. deprecated:: 3.0.0
 
-            Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour
-            of the values `h`, `min`, `s`, `ms`, `us`, and `ns`.
+            Allowing the values `w`, `d`, `MIN`, `MS`, `US` and `NS` to denote units
+            are deprecated in favour of the values `W`, `D`, `min`, `ms`, `us` and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
         milliseconds, minutes, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
+
+    See Also
+    --------
+    Timestamp : Represents a single timestamp in time.
+    TimedeltaIndex : Immutable Index of timedelta64 data.
+    DateOffset : Standard kind of date increment used for a date range.
+    to_timedelta : Convert argument to timedelta.
+    datetime.timedelta : Represents a duration in the datetime module.
+    numpy.timedelta64 : Represents a duration compatible with NumPy.
 
     Notes
     -----
@@ -1824,7 +1989,7 @@ class Timedelta(_Timedelta):
     --------
     Here we initialize Timedelta object with both value and unit
 
-    >>> td = pd.Timedelta(1, "d")
+    >>> td = pd.Timedelta(1, "D")
     >>> td
     Timedelta('1 days 00:00:00')
 
@@ -2033,6 +2198,12 @@ class Timedelta(_Timedelta):
         ------
         ValueError if the freq cannot be converted
 
+        See Also
+        --------
+            Timedelta.floor : Floor the Timedelta to the specified resolution.
+            Timedelta.round : Round the Timedelta to the nearest specified resolution.
+            Timestamp.ceil : Similar method for Timestamp objects.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -2053,6 +2224,16 @@ class Timedelta(_Timedelta):
             Frequency string indicating the flooring resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
+        Returns
+        -------
+        Timedelta
+            A new Timedelta object floored to the specified resolution.
+
+        See Also
+        --------
+            Timestamp.ceil : Round the Timestamp up to the nearest specified resolution.
+            Timestamp.round : Round the Timestamp to the nearest specified resolution.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -2070,8 +2251,20 @@ class Timedelta(_Timedelta):
         Parameters
         ----------
         freq : str
-            Frequency string indicating the ceiling resolution.
-            It uses the same units as class constructor :class:`~pandas.Timedelta`.
+            Frequency string indicating the ceiling resolution. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+
+        Returns
+        -------
+        Timedelta
+            A new Timedelta object ceiled to the specified resolution.
+
+        See Also
+        --------
+            Timedelta.floor : Floor the Timedelta to the specified resolution.
+            Timedelta.round : Round the Timedelta to the nearest specified resolution.
 
         Examples
         --------

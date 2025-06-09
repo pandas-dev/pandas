@@ -18,6 +18,7 @@ from cpython.object cimport (
     Py_LT,
     Py_NE,
 )
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from libc.stdint cimport INT64_MAX
 
 import_datetime()
@@ -44,7 +45,6 @@ from pandas._libs.tslibs.dtypes cimport (
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
 )
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 
 cdef extern from "pandas/datetime/pd_datetime.h":
@@ -176,6 +176,15 @@ class OutOfBoundsDatetime(ValueError):
     """
     Raised when the datetime is outside the range that can be represented.
 
+    This error occurs when attempting to convert or parse a datetime value
+    that exceeds the bounds supported by pandas' internal datetime
+    representation.
+
+    See Also
+    --------
+    to_datetime : Convert argument to datetime.
+    Timestamp : Pandas replacement for python ``datetime.datetime`` object.
+
     Examples
     --------
     >>> pd.to_datetime("08335394550")
@@ -191,6 +200,10 @@ class OutOfBoundsTimedelta(ValueError):
     Raised when encountering a timedelta value that cannot be represented.
 
     Representation should be within a timedelta64[ns].
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
 
     Examples
     --------
@@ -331,7 +344,7 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    format: str | None=None,
+    str format=None,
     bint exact=True,
 ) except? -1:
     cdef:
@@ -341,13 +354,13 @@ cdef int string_to_dts(
         const char* format_buf
         FormatRequirement format_requirement
 
-    buf = get_c_string_buf_and_size(val, &length)
+    buf = PyUnicode_AsUTF8AndSize(val, &length)
     if format is None:
         format_buf = b""
         format_length = 0
         format_requirement = INFER_FORMAT
     else:
-        format_buf = get_c_string_buf_and_size(format, &format_length)
+        format_buf = PyUnicode_AsUTF8AndSize(format, &format_length)
         format_requirement = <FormatRequirement>exact
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,

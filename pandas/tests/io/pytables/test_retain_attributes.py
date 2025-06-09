@@ -90,3 +90,16 @@ def test_retain_index_attributes2(tmp_path, setup_path):
         df2.to_hdf(path, key="data", append=True)
 
     assert read_hdf(path, "data").index.name is None
+
+
+def test_retain_datetime_attribute(tmp_path, setup_path):
+    path = tmp_path / setup_path
+    ser = Series(
+        ["2024-08-26 15:13:14", "2024-08-26 15:14:14"],
+        dtype="datetime64[us, UTC]",
+    )
+    dataframe = DataFrame(ser)
+    dataframe.to_hdf(path, key="Annotations", mode="w")
+
+    recovered_dataframe = read_hdf(path, key="Annotations")
+    tm.assert_frame_equal(dataframe, recovered_dataframe)

@@ -94,13 +94,14 @@ well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
 ``p.loc['a', :]``.
 
-.. csv-table::
-    :header: "Object Type", "Indexers"
-    :widths: 30, 50
-    :delim: ;
 
-    Series; ``s.loc[indexer]``
-    DataFrame; ``df.loc[row_indexer,column_indexer]``
+.. ipython:: python
+
+   ser = pd.Series(range(5), index=list("abcde"))
+   ser.loc[["a", "c", "e"]]
+
+   df = pd.DataFrame(np.arange(25).reshape(5, 5), index=list("abcde"), columns=list("abcde"))
+   df.loc[["a", "c", "e"], ["b", "d"]]
 
 .. _indexing.basics:
 
@@ -116,10 +117,9 @@ indexing pandas objects with ``[]``:
 .. csv-table::
     :header: "Object Type", "Selection", "Return Value Type"
     :widths: 30, 30, 60
-    :delim: ;
 
-    Series; ``series[label]``; scalar value
-    DataFrame; ``frame[colname]``; ``Series`` corresponding to colname
+    Series, ``series[label]``, scalar value
+    DataFrame, ``frame[colname]``, ``Series`` corresponding to colname
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:
@@ -262,6 +262,10 @@ The most robust and consistent way of slicing ranges along arbitrary axes is
 described in the :ref:`Selection by Position <indexing.integer>` section
 detailing the ``.iloc`` method. For now, we explain the semantics of slicing using the ``[]`` operator.
 
+    .. note::
+
+        When the :class:`Series` has float indices, slicing will select by position.
+
 With Series, the syntax works exactly as with an ndarray, returning a slice of
 the values and the corresponding labels:
 
@@ -321,7 +325,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
 * A list or array of labels ``['a', 'b', 'c']``.
-* A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
+* A slice object with labels ``'a':'f'``. Note that contrary to usual Python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
@@ -399,9 +403,9 @@ are returned:
    s = pd.Series(list('abcde'), index=[0, 3, 2, 5, 4])
    s.loc[3:5]
 
-If at least one of the two is absent, but the index is sorted, and can be
-compared against start and stop labels, then slicing will still work as
-expected, by selecting labels which *rank* between the two:
+If the index is sorted, and can be compared against start and stop labels,
+then slicing will still work as expected, by selecting labels which *rank*
+between the two:
 
 .. ipython:: python
 
@@ -854,9 +858,10 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 
 .. warning::
 
-   ``iloc`` supports two kinds of boolean indexing. If the indexer is a boolean ``Series``,
-   an error will be raised. For instance, in the following example, ``df.iloc[s.values, 1]`` is ok.
-   The boolean indexer is an array. But ``df.iloc[s, 1]`` would raise ``ValueError``.
+   While ``loc`` supports two kinds of boolean indexing, ``iloc`` only supports indexing with a
+   boolean array. If the indexer is a boolean ``Series``, an error will be raised. For instance,
+   in the following example, ``df.iloc[s.values, 1]`` is ok. The boolean indexer is an array.
+   But ``df.iloc[s, 1]`` would raise ``ValueError``.
 
    .. ipython:: python
 
@@ -948,7 +953,7 @@ To select a row where each column meets its own criterion:
 
   values = {'ids': ['a', 'b'], 'ids2': ['a', 'c'], 'vals': [1, 3]}
 
-  row_mask = df.isin(values).all(1)
+  row_mask = df.isin(values).all(axis=1)
 
   df[row_mask]
 
@@ -1456,16 +1461,33 @@ Looking up values by index/column labels
 
 Sometimes you want to extract a set of values given a sequence of row labels
 and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing.
-For instance:
 
-.. ipython:: python
+For heterogeneous column types, we subset columns to avoid unnecessary NumPy conversions:
 
-    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
-                       'A': [80, 23, np.nan, 22],
-                       'B': [80, 55, 76, 67]})
-    df
-    idx, cols = pd.factorize(df['col'])
-    df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
+.. code-block:: python
+
+   def pd_lookup_het(df, row_labels, col_labels):
+      rows = df.index.get_indexer(row_labels)
+      cols = df.columns.get_indexer(col_labels)
+      sub = df.take(np.unique(cols), axis=1)
+      sub = sub.take(np.unique(rows), axis=0)
+      rows = sub.index.get_indexer(row_labels)
+      values = sub.melt()["value"]
+      cols = sub.columns.get_indexer(col_labels)
+      flat_index = rows + cols * len(sub)
+      result = values[flat_index]
+      return result
+
+For homogeneous column types, it is fastest to skip column subsetting and go directly to NumPy:
+
+.. code-block:: python
+
+   def pd_lookup_hom(df, row_labels, col_labels):
+       rows = df.index.get_indexer(row_labels)
+       df = df.loc[:, sorted(set(col_labels))]
+       cols = df.columns.get_indexer(col_labels)
+       result = df.to_numpy()[rows, cols]
+       return result
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
 which was deprecated in version 1.2.0 and removed in version 2.0.0.
@@ -1707,6 +1729,6 @@ Why does assignment fail when using chained indexing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :ref:`Copy-on-Write <copy_on_write>` is the new default with pandas 3.0.
-This means than chained indexing will never work.
+This means that chained indexing will never work.
 See :ref:`this section <copy_on_write_chained_assignment>`
 for more context.
