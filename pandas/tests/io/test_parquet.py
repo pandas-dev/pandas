@@ -718,6 +718,26 @@ class TestParquetPyArrow(Base):
             expected=df[["string", "int"]],
             read_kwargs={"columns": ["string", "int"]},
         )
+        #ekleme yapılan yeni yer***
+        @pytest.mark.parametrize("string_storage", ["pyarrow", "python"])
+    def test_parquet_stringdtype_roundtrip(self, tmp_path, pa):
+        import pandas as pd
+        from pandas.testing import assert_frame_equal
+
+        df = pd.DataFrame({
+            "a": pd.Series(["x", "y", "z"], dtype=pd.StringDtype(storage=string_storage))
+        })
+
+        file_path = tmp_path / "stringdtype.parquet"
+        df.to_parquet(file_path, engine="pyarrow")
+
+        result = pd.read_parquet(file_path, engine="pyarrow")
+
+        expected_dtype = pd.StringDtype(storage=string_storage)
+        assert result["a"].dtype == expected_dtype, f"Dtype mismatch: got {result['a'].dtype}, expected {expected_dtype}"
+
+        assert_frame_equal(result, df)
+
 
     def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
         # GH 37105
