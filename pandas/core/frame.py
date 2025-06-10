@@ -3553,6 +3553,62 @@ class DataFrame(NDFrame, OpsMixin):
 
         return xml_formatter.write_output()
 
+    def to_iceberg(
+        self,
+        table_identifier: str,
+        catalog_name: str | None = None,
+        *,
+        catalog_properties: dict[str, Any] | None = None,
+        location: str | None = None,
+        append: bool = False,
+        snapshot_properties: dict[str, str] | None = None,
+    ) -> None:
+        """
+        Write a DataFrame to an Apache Iceberg table.
+
+        .. versionadded:: 3.0.0
+
+        .. warning::
+
+           to_iceberg is experimental and may change without warning.
+
+        Parameters
+        ----------
+        table_identifier : str
+            Table identifier.
+        catalog_name : str, optional
+            The name of the catalog.
+        catalog_properties : dict of {str: str}, optional
+            The properties that are used next to the catalog configuration.
+        location : str, optional
+            Location for the table.
+        append : bool, default False
+            If ``True``, append data to the table, instead of replacing the content.
+        snapshot_properties : dict of {str: str}, optional
+            Custom properties to be added to the snapshot summary
+
+        See Also
+        --------
+        read_iceberg : Read an Apache Iceberg table.
+        DataFrame.to_parquet : Write a DataFrame in Parquet format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
+        >>> df.to_iceberg("my_table", catalog_name="my_catalog")  # doctest: +SKIP
+        """
+        from pandas.io.iceberg import to_iceberg
+
+        to_iceberg(
+            self,
+            table_identifier,
+            catalog_name,
+            catalog_properties=catalog_properties,
+            location=location,
+            append=append,
+            snapshot_properties=snapshot_properties,
+        )
+
     # ----------------------------------------------------------------------
     @doc(INFO_DOCSTRING, **frame_sub_kwargs)
     def info(
