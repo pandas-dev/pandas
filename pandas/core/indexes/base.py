@@ -362,6 +362,9 @@ class Index(IndexOpsMixin, PandasObject):
     An Index instance can **only** contain hashable objects.
     An Index instance *can not* hold numpy float16 dtype.
 
+    The `names` argument is only relevant when the data results in a `MultiIndex`.
+    When constructing a regular `Index`, use `name=` to assign a name. Passing `names=` will have no effect unless a `MultiIndex` is created.
+
     Examples
     --------
     >>> pd.Index([1, 2, 3])
@@ -372,8 +375,15 @@ class Index(IndexOpsMixin, PandasObject):
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
     Index([1, 2, 3], dtype='uint8')
+
+    >>> pd.Index([], name='a').name
+    'a'
+    
+    >>> pd.Index([], names=['a']).name is None
+    True
     """
 
+    
     # similar to __array_priority__, positions Index after Series and DataFrame
     #  but before ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 2000
