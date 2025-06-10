@@ -3263,7 +3263,7 @@ class StataStrLWriter:
             bio.write(gso_type)
 
             # llll
-            if(type(strl) == str):
+            if(isinstance(strl, str)):
                 strl_convert = bytes(strl, "utf-8")
             else:
                 strl_convert = strl
