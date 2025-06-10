@@ -260,7 +260,7 @@ class Holiday:
         self.observance = observance
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
-        if exclude_dates is not None and type(exclude_dates) != DatetimeIndex:
+        if not (exclude_dates is None or isinstance(exclude_dates, DatetimeIndex)):
             raise ValueError("exclude_dates must be None or of type DatetimeIndex.")
         self.exclude_dates = exclude_dates
 
