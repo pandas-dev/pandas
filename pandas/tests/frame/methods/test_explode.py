@@ -300,6 +300,7 @@ def test_multi_columns_nan_empty():
 
 
 def test_str_dtype():
+    # https://github.com/pandas-dev/pandas/pull/61623
     df = pd.DataFrame({"a": ["x", "y"]}, dtype="str")
     result = df.explode(column="a")
     assert result is not df

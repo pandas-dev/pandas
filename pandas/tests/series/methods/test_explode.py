@@ -178,6 +178,7 @@ def test_explode_pyarrow_non_list_type(ignore_index):
 
 
 def test_str_dtype():
+    # https://github.com/pandas-dev/pandas/pull/61623
     ser = pd.Series(["x", "y"], dtype="str")
     result = ser.explode()
     assert result is not ser
