@@ -775,6 +775,7 @@ I/O
 - Bug in :meth:`DataFrame.to_stata` when exporting a column containing both long strings (Stata strL) and :class:`pd.NA` values (:issue:`23633`)
 - Bug in :meth:`DataFrame.to_stata` when writing :class:`DataFrame` and ``byteorder=`big```. (:issue:`58969`)
 - Bug in :meth:`DataFrame.to_stata` when writing more than 32,000 value labels. (:issue:`60107`)
+- Bug in :meth:`DataFrame.to_stata` when input encoded length and normal length are mismatched (:issue:`61583`)
 - Bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Bug in :meth:`HDFStore.get` was failing to save data of dtype datetime64[s] correctly (:issue:`59004`)
 - Bug in :meth:`HDFStore.select` causing queries on categorical string columns to return unexpected results (:issue:`57608`)
