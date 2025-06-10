@@ -1326,8 +1326,10 @@ def _match_file(
 
 def _resolve_local_path(path_str: str) -> Path:
     parsed = parse_url(path_str)
-    if is_platform_windows() and parsed.netloc:
-        return Path(f"{parsed.netloc}{parsed.path}")
+    if is_platform_windows():
+        if parsed.netloc:
+            return Path(f"//{parsed.netloc}{unquote(parsed.path)}")
+        return Path(unquote(parsed.path.lstrip("/")))
     return Path(unquote(parsed.path))
 
 
