@@ -1407,18 +1407,18 @@ def iterdir(
 
     # Remote paths
     fsspec = import_optional_dependency("fsspec", extra=scheme)
-    fs = fsspec.filesystem(scheme)
-    path_without_scheme = fsspec.core.strip_protocol(path_str)
-    if fs.isfile(path_without_scheme):
+    fs, inner_path = fsspec.core.url_to_fs(path_str)
+    if fs.isfile(inner_path):
+        path_obj = PurePosixPath(inner_path)
         if _match_file(
-            path_without_scheme,
+            inner_path,
             extensions,
             glob,
         ):
             return [path]
 
     result = []
-    for file in fs.ls(path_without_scheme, detail=True):
+    for file in fs.ls(inner_path, detail=True):
         if file["type"] == "file":
             path_obj = PurePosixPath(file["name"])
             if _match_file(
