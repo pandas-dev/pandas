@@ -252,3 +252,13 @@ def remote_csv_directory(monkeypatch):
 
     monkeypatch.setattr("fsspec.filesystem", lambda _: fs)
     return f"s3://{dir_name}"
+
+
+@pytest.fixture
+def empty_local_file(tmp_path):
+    """
+    Fixture to create an empty local file.
+    """
+    file_path = tmp_path / "empty_file.csv"
+    file_path.touch()
+    return file_path
