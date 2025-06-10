@@ -340,10 +340,7 @@ class Holiday:
         ]
 
         if self.exclude_dates:
-            holiday_dates = DatetimeIndex(
-                [hd for hd in holiday_dates if hd not in self.exclude_dates]
-            )
-
+            holiday_dates = holiday_dates.difference(self.exclude_dates)
         if return_name:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
