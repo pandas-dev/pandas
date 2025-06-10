@@ -5,8 +5,8 @@ requires = [
     "meson-python>=0.13.1",
     "meson>=1.2.1,<2",
     "wheel",
-    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Force numpy higher than 2.0, so that built wheels are compatible
+    "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    # Force numpy higher than 2.0rc1, so that built wheels are compatible
     # with both numpy 1 and 2
     "numpy>=2.0",
     "versioneer[toml]"

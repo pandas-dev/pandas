@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
@@ -651,7 +649,6 @@ def test_frame_select(setup_path):
         #     store.select('frame', [crit1, crit2])
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_frame_select_complex(setup_path):
     # select via complex criteria
 
@@ -965,7 +962,6 @@ def test_query_long_float_literal(setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_query_compare_column_type(setup_path):
     # GH 15492
     df = DataFrame(
