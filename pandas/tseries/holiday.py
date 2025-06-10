@@ -169,7 +169,7 @@ class Holiday:
         start_date=None,
         end_date=None,
         days_of_week: tuple | None = None,
-        exclude_dates: list[Timestamp] | None = None,
+        exclude_dates: DatetimeIndex | None = None,
     ) -> None:
         """
         Parameters
@@ -194,8 +194,7 @@ class Holiday:
         days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
             Provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
             Monday=0,..,Sunday=6
-        exclude_dates : list of datetime-likes or
-                        single datetime-like, default None
+        exclude_dates : DatetimeIndex or default None
             Specific dates to exclude e.g. skipping a specific year's holiday
 
         Examples
@@ -261,9 +260,7 @@ class Holiday:
         self.observance = observance
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
-        assert exclude_dates is None or all(
-            type(ex) == Timestamp for ex in exclude_dates
-        )
+        assert exclude_dates is None or type(exclude_dates) == DatetimeIndex
         self.exclude_dates = exclude_dates
 
     def __repr__(self) -> str:
