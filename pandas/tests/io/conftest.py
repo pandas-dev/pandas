@@ -237,12 +237,14 @@ def local_csv_directory(tmp_path):
 
 
 @pytest.fixture
-def remote_csv_directory(monkeypatch):
+def remote_csv_directory():
     _ = pytest.importorskip("fsspec", reason="fsspec is required for remote tests")
 
+    import fsspec
     from fsspec.implementations.memory import MemoryFileSystem
 
-    fs = MemoryFileSystem()
+    fsspec.register_implementation("s3", MemoryFileSystem)
+    fs = fsspec.filesystem("s3")
     fs.store.clear()
 
     dir_name = "remote-bucket"
@@ -250,7 +252,9 @@ def remote_csv_directory(monkeypatch):
     fs.pipe(f"{dir_name}/b.csv", b"a,b,c\n4,5,6\n")
     fs.pipe(f"{dir_name}/nested/ignored.csv", b"x,y,z\n")
 
-    monkeypatch.setattr("fsspec.filesystem", lambda _: fs)
+    assert fs.exists(dir_name), "Remote directory was not created"
+    assert fs.isdir(dir_name), "Remote path is not a directory"
+
     return f"s3://{dir_name}"
 
 

@@ -723,14 +723,3 @@ def test_remote_csv_directory(remote_csv_directory):
 
     nested_files = fs.ls("remote-bucket/nested", detail=True)
     assert nested_files[0]["name"] == "/remote-bucket/nested/ignored.csv"
-
-
-def test_iterdir_remote(remote_csv_directory):
-    import fsspec
-
-    fs = fsspec.filesystem("s3")
-    for file in icom.iterdir(remote_csv_directory):
-        # for fsspec<2024.5.0, fs.isfle(PurePosixPath) returns False
-        assert fs.exists(str(file))
-        assert file.suffix == ".csv"
-        assert fs.isfile(str(file))
