@@ -1148,31 +1148,19 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-            try:
-                import numba
+            numba = import_optional_dependency("numba")
 
-                if not hasattr(numba.jit, "__pandas_udf__"):
-                    numba.jit.__pandas_udf__ = NumbaExecutionEngine
-                    result = numba.jit.__pandas_udf__.apply(
-                        self.values,
-                        self.func,
-                        self.args,
-                        self.kwargs,
-                        engine_kwargs,
-                        self.axis,
-                    )
-                else:
-                    raise ImportError
-            except ImportError:
-                engine_obj = NumbaExecutionEngine()
-                result = engine_obj.apply(
-                        self.values,
-                        self.func,
-                        self.args,
-                        self.kwargs,
-                        engine_kwargs,
-                        self.axis,
-                    )
+            if not hasattr(numba.jit, "__pandas_udf__"):
+                numba.jit.__pandas_udf__ = NumbaExecutionEngine
+
+            result = numba.jit.__pandas_udf__.apply(
+                self.values,
+                self.func,
+                self.args,
+                self.kwargs,
+                engine_kwargs,
+                self.axis,
+            )
         else:
             result = np.apply_along_axis(
                 wrap_function(self.func),
