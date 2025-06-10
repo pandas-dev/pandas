@@ -10,7 +10,12 @@ labeling information
 """
 
 from __future__ import annotations
-
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_scalar,
+    is_datetime64_dtype,
+    isna,
+)
 import collections
 from collections import abc
 from collections.abc import (
@@ -9881,18 +9886,12 @@ class DataFrame(NDFrame, OpsMixin):
         3    3  1    d
         3    4  1    e
         """
-        if not self.columns.is_unique:
-            duplicate_cols = self.columns[self.columns.duplicated()].tolist()
-            raise ValueError(
-                f"DataFrame columns must be unique. Duplicate columns: {duplicate_cols}"
-            )
+        df = self.reset_index(drop=True)
 
         columns: list[Hashable]
         if is_scalar(column) or isinstance(column, tuple):
             columns = [column]
-        elif isinstance(column, list) and all(
-            is_scalar(c) or isinstance(c, tuple) for c in column
-        ):
+        elif isinstance(column, list) and all(is_scalar(c) or isinstance(c, tuple) for c in column):
             if not column:
                 raise ValueError("column must be nonempty")
             if len(column) > len(set(column)):
@@ -9900,33 +9899,73 @@ class DataFrame(NDFrame, OpsMixin):
             columns = column
         else:
             raise ValueError("column must be a scalar, tuple, or list thereof")
-
-        df = self.reset_index(drop=True)
         if len(columns) == 1:
-            result = df[columns[0]].explode()
-            orig_dtype = df[columns[0]].dtype
-            if pd.api.types.is_datetime64_dtype(orig_dtype):
-                result = result.astype(orig_dtype)
+            col = columns[0]
+            orig_dtype = df[col].dtype
+
+            exploded_values = []
+            exploded_index = []
+
+            for i, val in enumerate(df[col]):
+                if is_list_like(val) and not isinstance(val, (str, bytes)):
+                    for item in val:
+                        exploded_values.append(item)
+                        exploded_index.append(i)
+                elif isna(val):
+                    exploded_values.append(np.datetime64("NaT") if is_datetime64_dtype(orig_dtype) else np.nan)
+                    exploded_index.append(i)
+                else:
+                    exploded_values.append(val)
+                    exploded_index.append(i)
+
+            exploded_series = pd.Series(
+                np.array(exploded_values, dtype=orig_dtype if is_datetime64_dtype(orig_dtype) else None),
+                index=exploded_index,
+                name=col
+            )
+
+            result = df.drop(columns, axis=1).iloc[exploded_series.index]
+            result[col] = exploded_series.values
         else:
             mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
             counts0 = self[columns[0]].apply(mylen)
             for c in columns[1:]:
                 if not all(counts0 == self[c].apply(mylen)):
                     raise ValueError("columns must have matching element counts")
-            result_data = {}
-            for c in columns:
-                exploded_series = df[c].explode()
-                orig_dtype = df[c].dtype
-                if pd.api.types.is_datetime64_dtype(orig_dtype):
-                    exploded_series = exploded_series.astype(orig_dtype)
-                result_data[c] = exploded_series
-            result = DataFrame(result_data)
 
-        result = df.drop(columns, axis=1).join(result)
+            exploded_columns = {}
+            exploded_index = []
+
+            for i in range(len(df)):
+                row_counts = mylen(df[columns[0]].iloc[i])
+                for j in range(row_counts):
+                    exploded_index.append(i)
+
+            for col in columns:
+                orig_dtype = df[col].dtype
+                values = []
+                for val in df[col]:
+                    if is_list_like(val) and not isinstance(val, (str, bytes)):
+                        values.extend(val)
+                    elif isna(val):
+                        values.append(np.datetime64("NaT") if is_datetime64_dtype(orig_dtype) else np.nan)
+                    else:
+                        values.append(val)
+                exploded_columns[col] = pd.Series(
+                    np.array(values, dtype=orig_dtype if is_datetime64_dtype(orig_dtype) else None),
+                    index=exploded_index
+                )
+
+            result = df.drop(columns, axis=1).iloc[exploded_index].copy()
+            for col in columns:
+                result[col] = exploded_columns[col].values
+
+        # Handle index
         if ignore_index:
             result.index = default_index(len(result))
         else:
             result.index = self.index.take(result.index)
+
         result = result.reindex(columns=self.columns)
 
         return result.__finalize__(self, method="explode")
