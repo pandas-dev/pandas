@@ -6,7 +6,6 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
-    Any,
 )
 import warnings
 
@@ -172,7 +171,7 @@ class Holiday:
         start_date=None,
         end_date=None,
         days_of_week: tuple | None = None,
-        exclude_dates: list[Any] | None = None,
+        exclude_dates: list[Timestamp] | None = None,
     ) -> None:
         """
         Parameters
@@ -264,11 +263,10 @@ class Holiday:
         self.observance = observance
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
-        self.exclude_dates = (
-            [Timestamp(ex) for ex in exclude_dates]
-            if exclude_dates is not None
-            else exclude_dates
+        assert exclude_dates is None or all(
+            type(ex) == Timestamp for ex in exclude_dates
         )
+        self.exclude_dates = exclude_dates
 
     def __repr__(self) -> str:
         info = ""
