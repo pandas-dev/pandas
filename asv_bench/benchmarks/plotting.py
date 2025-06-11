@@ -189,6 +189,9 @@ class DataFramePlottingLarge:
                 np.random.randn(rows, cols),
                 columns=[f"col_{i}" for i in range(cols)]
             )
+        
+        # Pre-select single column for baseline comparison
+        self.single_column = self.df.iloc[:, 0]
 
     def time_plot_large_dataframe(self, size, datetime_index):
         """Benchmark plotting large DataFrames (bottleneck #61398/#61532)"""
@@ -196,7 +199,7 @@ class DataFramePlottingLarge:
 
     def time_plot_large_dataframe_single_column(self, size, datetime_index):
         """Baseline: plotting single column for comparison"""
-        self.df.iloc[:, 0].plot()
+        self.single_column.plot()
 
 
 from .pandas_vb_common import setup  # noqa isort:skip
