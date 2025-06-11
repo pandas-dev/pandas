@@ -1329,7 +1329,13 @@ def _resolve_local_path(path_str: str) -> Path:
     if is_platform_windows():
         if parsed.netloc:
             return Path(f"//{parsed.netloc}{unquote(parsed.path)}")
-        return Path(unquote(parsed.path.lstrip("/")))
+
+        path = unquote(parsed.path)
+        if path.startswith("\\") and not path.startswith("\\\\"):
+            drive = os.path.splitdrive(os.getcwd())[0]
+            return Path(drive + path)
+
+        return Path(path)
     return Path(unquote(parsed.path))
 
 
