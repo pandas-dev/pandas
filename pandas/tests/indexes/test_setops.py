@@ -64,7 +64,7 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2, request):
+def test_union_different_types(index_flat, index_flat2, request, using_infer_string):
     # This test only considers combinations of indices
     # GH 23525
     idx1 = index_flat
@@ -93,6 +93,13 @@ def test_union_different_types(index_flat, index_flat2, request):
         request.applymarker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
+    if using_infer_string:
+        if len(idx1) == 0 and (idx1.dtype.kind == "O" or isinstance(idx1, RangeIndex)):
+            common_dtype = idx2.dtype
+        elif len(idx2) == 0 and (
+            idx2.dtype.kind == "O" or isinstance(idx2, RangeIndex)
+        ):
+            common_dtype = idx1.dtype
 
     warn = None
     msg = "'<' not supported between"

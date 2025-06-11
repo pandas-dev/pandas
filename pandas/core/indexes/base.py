@@ -6397,6 +6397,18 @@ class Index(IndexOpsMixin, PandasObject):
             if len(self) == 0 and (
                 isinstance(self, RangeIndex) or self.dtype == np.object_
             ):
+                if target_dtype.kind == "M":
+                    if hasattr(target_dtype, "tz"):
+                        target_dtype_ns = DatetimeTZDtype("ns", tz=target_dtype.tz)
+                    else:
+                        target_dtype_ns = np.dtype("datetime64[ns]")
+                    try:
+                        Index(target, dtype=target_dtype_ns, copy=False)
+                    except OutOfBoundsDatetime:
+                        return np.dtype(object)
+                    except Exception:
+                        pass
+                    return target_dtype_ns
                 return target_dtype
             if (
                 isinstance(target, Index)
