@@ -533,7 +533,7 @@ def test_groupby_resample_empty_sum_string(
     # https://github.com/pandas-dev/pandas/issues/60229
     dtype = string_dtype_no_object
     test_frame = test_frame.assign(B=pd.array([pd.NA] * len(test_frame), dtype=dtype))
-    gbrs = test_frame.groupby("A").resample("40s")
+    gbrs = test_frame.groupby("A").resample("40s", include_groups=False)
     result = gbrs.sum(min_count=min_count)
 
     index = pd.MultiIndex(
