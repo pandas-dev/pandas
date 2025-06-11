@@ -359,7 +359,7 @@ def test_holiday_with_exclusion():
     # GH 54382
     start = Timestamp("2020-05-01")
     end = Timestamp("2025-05-31")
-    exclude = [Timestamp("2022-05-30")]  # Queen's platinum Jubilee
+    exclude = DatetimeIndex([Timestamp("2022-05-30")])  # Queen's platinum Jubilee
     default_uk_spring_bank_holiday: Holiday = Holiday(
         "UK Spring Bank Holiday",
         month=5,
@@ -375,22 +375,25 @@ def test_holiday_with_exclusion():
         exclude_dates=exclude,
     )
 
-    original_dates = list(default_uk_spring_bank_holiday.dates(start, end))
-    exclusion_dates = list(queens_jubilee_uk_spring_bank_holiday.dates(start, end))
+    original_dates = default_uk_spring_bank_holiday.dates(start, end)
+    actual_dates = queens_jubilee_uk_spring_bank_holiday.dates(start, end)
+    print(exclude.isin(original_dates).all())
 
-    assert all(ex in original_dates for ex in exclude)
-    assert all(ex not in exclusion_dates for ex in exclude)
-    assert set(exclusion_dates).issubset(original_dates)
+    assert exclude.isin(original_dates).all()
+    assert ~exclude.isin(actual_dates).all()
+    assert actual_dates.isin(original_dates).all()
 
 
 def test_holiday_with_multiple_exclusions():
     start = Timestamp("2000-01-01")
     end = Timestamp("2100-05-31")
-    exclude = [
-        Timestamp("2025-01-01"),
-        Timestamp("2042-01-01"),
-        Timestamp("2061-01-01"),
-    ]  # Yakudoshi new year
+    exclude = DatetimeIndex(
+        [
+            Timestamp("2025-01-01"),
+            Timestamp("2042-01-01"),
+            Timestamp("2061-01-01"),
+        ]
+    )  # Yakudoshi new year
     default_japan_new_year: Holiday = Holiday(
         "Japan New Year",
         month=1,
@@ -401,9 +404,20 @@ def test_holiday_with_multiple_exclusions():
         "Yakudoshi New Year", month=1, day=1, exclude_dates=exclude
     )
 
-    original_dates = list(default_japan_new_year.dates(start, end))
-    exclusion_dates = list(yakudoshi_new_year.dates(start, end))
+    original_dates = default_japan_new_year.dates(start, end)
+    actual_dates = yakudoshi_new_year.dates(start, end)
 
-    assert all(ex in original_dates for ex in exclude)
-    assert all(ex not in exclusion_dates for ex in exclude)
-    assert set(exclusion_dates).issubset(original_dates)
+    assert exclude.isin(original_dates).all()
+    assert ~exclude.isin(actual_dates).all()
+    assert actual_dates.isin(original_dates).all()
+
+
+def test_exclude_date_value_error():
+    msg = "exclude_dates must be None or of type DatetimeIndex."
+
+    with pytest.raises(ValueError, match=msg):
+        exclude = [
+            Timestamp("2025-06-10"),
+            Timestamp("2026-06-10"),
+        ]
+        Holiday("National Ice Tea Day", month=6, day=10, exclude_dates=exclude)

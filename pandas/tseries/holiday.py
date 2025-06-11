@@ -335,7 +335,7 @@ class Holiday:
             (holiday_dates >= filter_start_date) & (holiday_dates <= filter_end_date)
         ]
 
-        if self.exclude_dates:
+        if self.exclude_dates is not None:
             holiday_dates = holiday_dates.difference(self.exclude_dates)
         if return_name:
             return Series(self.name, index=holiday_dates)
