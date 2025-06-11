@@ -1295,7 +1295,7 @@ def _infer_protocol(path: str) -> str:
     if is_platform_windows() and re.match(r"^[a-zA-Z]:[\\/]", path):
         return "file"
 
-    if is_fsspec_url(path):
+    if is_fsspec_url(path) or path.startswith("http"):
         parsed = parse_url(path)
         return parsed.scheme
     return "file"
