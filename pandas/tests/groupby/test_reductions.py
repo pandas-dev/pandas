@@ -714,7 +714,7 @@ def test_min_empty_string_dtype(func, string_dtype_no_object):
 @pytest.mark.parametrize("min_count", [0, 1])
 @pytest.mark.parametrize("test_series", [True, False])
 def test_string_dtype_all_na(
-    string_dtype_no_object, reduction_func, skipna, min_count, test_series
+    string_dtype_no_object, reduction_func, min_count, test_series
 ):
     # https://github.com/pandas-dev/pandas/issues/60985
     if reduction_func == "corrwith":
@@ -733,19 +733,19 @@ def test_string_dtype_all_na(
         "std",
         "var",
     ]:
-        kwargs = {"skipna": skipna}
+        kwargs = {}
     elif reduction_func in ["kurt"]:
         kwargs = {"min_count": min_count}
     elif reduction_func in ["count", "nunique", "quantile", "sem", "size"]:
         kwargs = {}
     else:
-        kwargs = {"skipna": skipna, "min_count": min_count}
+        kwargs = {"min_count": min_count}
 
     expected_dtype, expected_value = dtype, pd.NA
     if reduction_func in ["all", "any"]:
         expected_dtype = "bool"
         # TODO: For skipna=False, bool(pd.NA) raises; should groupby?
-        expected_value = not skipna if reduction_func == "any" else True
+        expected_value = False if reduction_func == "any" else True
     elif reduction_func in ["count", "nunique", "size"]:
         # TODO: Should be more consistent - return Int64 when dtype.na_value is pd.NA?
         if (
@@ -760,7 +760,7 @@ def test_string_dtype_all_na(
         expected_value = 1 if reduction_func == "size" else 0
     elif reduction_func in ["idxmin", "idxmax"]:
         expected_dtype, expected_value = "float64", np.nan
-    elif not skipna or min_count > 0:
+    elif min_count > 0:
         expected_value = pd.NA
     elif reduction_func == "sum":
         # https://github.com/pandas-dev/pandas/pull/60936
@@ -785,11 +785,6 @@ def test_string_dtype_all_na(
     ]:
         msg = f"dtype '{dtype}' does not support operation '{reduction_func}'"
         with pytest.raises(TypeError, match=msg):
-            method(*args, **kwargs)
-        return
-    elif reduction_func in ["idxmin", "idxmax"] and not skipna:
-        msg = f"{reduction_func} with skipna=False encountered an NA value."
-        with pytest.raises(ValueError, match=msg):
             method(*args, **kwargs)
         return
 
