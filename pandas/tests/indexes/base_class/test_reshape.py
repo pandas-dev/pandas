@@ -34,7 +34,7 @@ class TestReshape:
 
         # test empty
         null_index = Index([])
-        tm.assert_index_equal(Index(["a"], dtype=object), null_index.insert(0, "a"))
+        tm.assert_index_equal(Index(["a"]), null_index.insert(0, "a"))
 
     def test_insert_missing(self, request, nulls_fixture, using_infer_string):
         if using_infer_string and nulls_fixture is pd.NA:

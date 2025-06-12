@@ -757,7 +757,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(df_index)
-        expected.columns = expected.columns.astype(object)
         result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 

@@ -9,7 +9,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
-    Index,
     MultiIndex,
     NaT,
     PeriodIndex,
@@ -148,6 +147,31 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method):
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
+
+
+@pytest.mark.parametrize("min_count", [0, 1])
+def test_resample_empty_sum_string(string_dtype_no_object, min_count):
+    # https://github.com/pandas-dev/pandas/issues/60229
+    dtype = string_dtype_no_object
+    ser = Series(
+        pd.NA,
+        index=DatetimeIndex(
+            [
+                "2000-01-01 00:00:00",
+                "2000-01-01 00:00:10",
+                "2000-01-01 00:00:20",
+                "2000-01-01 00:00:30",
+            ]
+        ),
+        dtype=dtype,
+    )
+    rs = ser.resample("20s")
+    result = rs.sum(min_count=min_count)
+
+    value = "" if min_count == 0 else pd.NA
+    index = date_range(start="2000-01-01", freq="20s", periods=2)
+    expected = Series(value, index=index, dtype=dtype)
+    tm.assert_series_equal(result, expected)
 
 
 @all_ts
@@ -293,7 +317,7 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = DataFrame(dtype="int64", index=index, columns=Index(["a"], dtype=object))
+    expected = DataFrame(dtype="int64", index=index, columns=["a"])
 
     tm.assert_frame_equal(result, expected)
 
