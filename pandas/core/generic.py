@@ -478,7 +478,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtype = pandas_dtype(dtype)
 
             # a compound dtype
-            if dtype.kind == "V":
+            if dtype.names is not None:
                 raise NotImplementedError(
                     "compound dtypes are not implemented "
                     f"in the {cls.__name__} constructor"
