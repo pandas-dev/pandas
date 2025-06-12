@@ -1340,11 +1340,10 @@ def _get_io_engine(name: str):
         for entry_point in entry_points().select(group="pandas.io_engine"):
             package_name = entry_point.dist.metadata["Name"]
             if entry_point.name in _io_engines:
-                _io_engines[entry_point.name]._other_providers.append(package_name)
+                _io_engines[entry_point.name]._packages.append(package_name)
             else:
                 _io_engines[entry_point.name] = entry_point.load()
-                _io_engines[entry_point.name]._provider_name = package_name
-                _io_engines[entry_point.name]._other_providers = []
+                _io_engines[entry_point.name]._packages = [package_name]
 
     try:
         engine = _io_engines[name]
@@ -1354,23 +1353,22 @@ def _get_io_engine(name: str):
             "after installing the package that provides them."
         ) from err
 
-    if engine._other_providers:
+    if len(engine._packages) > 1:
         msg = (
             f"The engine '{name}' has been registered by the package "
-            f"'{engine._provider_name}' and will be used. "
+            f"'{engine._packages[0]}' and will be used. "
         )
-        if len(engine._other_providers):
+        if len(engine._packages) == 2:
             msg += (
-                "The package '{engine._other_providers}' also tried to register "
+                f"The package '{engine._packages[1]}' also tried to register "
                 "the engine, but it couldn't because it was already registered."
             )
         else:
             msg += (
-                "Other packages that tried to register the engine, but they couldn't "
-                "because it was already registered are: "
-                f"{str(engine._other_providers)[1:-1]}."
+                "The packages {str(engine._packages[1:]}[1:-1] also tried to register "
+                "the engine, but they couldn't because it was already registered."
             )
-        warnings.warn(RuntimeWarning, msg, stacklevel=find_stack_level())
+        warnings.warn(msg, RuntimeWarning, stacklevel=find_stack_level())
 
     return engine
 

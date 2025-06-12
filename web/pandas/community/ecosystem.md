@@ -712,6 +712,18 @@ authors to coordinate on the namespace.
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
 
+## IO engines
+
+Table with the third-party [IO engines](https://pandas.pydata.org/docs/development/extending.html#io-engines)
+available to `read_*` functions and `DataFrame.to_*` methods.
+
+  | Engine name     | Library                                               | Supported formats               |
+  | ----------------|------------------------------------------------------ | ------------------------------- |
+  |                 |                                                       |                                 |
+
+IO engines can be used by specifying the engine when calling a reader or writer
+(e.g. `pd.read_csv("myfile.csv", engine="myengine")`).
+
 ## Development tools
 
 ### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
