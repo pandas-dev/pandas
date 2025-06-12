@@ -150,6 +150,14 @@ def sample(
         else:
             raise ValueError("Invalid weights: weights sum to zero")
 
+    if weights is not None:
+        is_max_weight_dominating = size * weights.max() > 1
+        if is_max_weight_dominating and not replace:
+            raise ValueError(
+                "Invalid weights: If `replace`=False, "
+                "total unit probabilities have to be less than 1"
+            )
+
     return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(
         np.intp, copy=False
     )
