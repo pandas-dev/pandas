@@ -57,6 +57,7 @@ if cy.version().version_compare('>=3.1.0')
         command: [
             cy,
             '-3',
+            '-Xfreethreading_compatible=true',
             '--fast-fail',
             '--generate-shared=' + meson.current_build_dir() / '_cyutility.c',
         ],
