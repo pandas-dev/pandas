@@ -19,7 +19,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy=2.2
   # pytz 2024.2 timezones cause wrong results
   - pytz<2024.2
 
