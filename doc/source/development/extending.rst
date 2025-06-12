@@ -489,7 +489,7 @@ registers the default "matplotlib" backend as follows.
 More information on how to implement a third-party plotting backend can be found at
 https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1.
 
-.. _extending.plotting-backends:
+.. _extending.io-engines:
 
 IO engines
 -----------

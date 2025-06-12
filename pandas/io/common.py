@@ -94,7 +94,7 @@ if TYPE_CHECKING:
 
 # registry of I/O engines. It is populated the first time a non-core
 # pandas engine is used
-_io_engines = None
+_io_engines: dict[str, Any] | None = None
 
 
 @dataclasses.dataclass
@@ -1290,7 +1290,7 @@ def dedup_names(
     return names
 
 
-def _get_io_engine(name: str):
+def _get_io_engine(name: str) -> Any:
     """
     Return an I/O engine by its name.
 
@@ -1338,7 +1338,10 @@ def _get_io_engine(name: str):
     if _io_engines is None:
         _io_engines = {}
         for entry_point in entry_points().select(group="pandas.io_engine"):
-            package_name = entry_point.dist.metadata["Name"]
+            if entry_point.dist:
+                package_name = entry_point.dist.metadata["Name"]
+            else:
+                package_name = None
             if entry_point.name in _io_engines:
                 _io_engines[entry_point.name]._packages.append(package_name)
             else:
@@ -1373,7 +1376,9 @@ def _get_io_engine(name: str):
     return engine
 
 
-def allow_third_party_engines(skip_engines: list[str] | Callable | None = None):
+def allow_third_party_engines(
+    skip_engines: list[str] | Callable | None = None,
+) -> Callable:
     """
     Decorator to avoid boilerplate code when allowing readers and writers to use
     third-party engines.
@@ -1403,10 +1408,10 @@ def allow_third_party_engines(skip_engines: list[str] | Callable | None = None):
     ...         pass
     """
 
-    def decorator(func):
+    def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            if callable(skip_engines):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            if callable(skip_engines) or skip_engines is None:
                 skip_engine = False
             else:
                 skip_engine = kwargs["engine"] in skip_engines
