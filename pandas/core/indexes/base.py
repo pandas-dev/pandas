@@ -6401,7 +6401,7 @@ class Index(IndexOpsMixin, PandasObject):
                     if hasattr(target_dtype, "tz"):
                         target_dtype_ns = DatetimeTZDtype("ns", tz=target_dtype.tz)
                     else:
-                        target_dtype_ns = np.dtype("datetime64[ns]")
+                        target_dtype_ns = np.dtype("datetime64[ns]")  # type: ignore[assignment]
                     try:
                         Index(target, dtype=target_dtype_ns, copy=False)
                     except OutOfBoundsDatetime:
