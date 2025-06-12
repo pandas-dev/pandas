@@ -6,6 +6,8 @@
 - Author: [Joris Van den Bossche](https://github.com/jorisvandenbossche)
 - Revision: 1
 
+[TOC]
+
 ## Abstract
 
 Short summary of the proposal:
@@ -525,7 +527,7 @@ following cases:
 * Selecting a single column (as a Series) out of a DataFrame is always a view
   (``df['a']``)
 * Slicing columns from a DataFrame creating a subset DataFrame (``df[['a':'b']]`` or
-  ``df.loc[:, 'a': 'b']``) is a view _if_ the the original DataFrame consists of a
+  ``df.loc[:, 'a': 'b']``) is a view _if_ the original DataFrame consists of a
   single block (single dtype, consolidated) and _if_ you are slicing (so not a list
   selection). In all other cases, getting a subset is always a copy.
 * Selecting rows _can_ return a view, when the row indexer is a `slice` object.

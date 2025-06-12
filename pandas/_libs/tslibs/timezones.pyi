@@ -1,8 +1,8 @@
+from collections.abc import Callable
 from datetime import (
     datetime,
     tzinfo,
 )
-from typing import Callable
 
 import numpy as np
 
