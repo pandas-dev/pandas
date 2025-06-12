@@ -6,7 +6,10 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame
 
+from pandas.io.common import allow_third_party_engines
 
+
+@allow_third_party_engines()
 def read_iceberg(
     table_identifier: str,
     catalog_name: str | None = None,
@@ -18,6 +21,7 @@ def read_iceberg(
     snapshot_id: int | None = None,
     limit: int | None = None,
     scan_properties: dict[str, Any] | None = None,
+    engine: str | None = None,
 ) -> DataFrame:
     """
     Read an Apache Iceberg table into a pandas DataFrame.
@@ -52,6 +56,10 @@ def read_iceberg(
     scan_properties : dict of {str: obj}, optional
         Additional Table properties as a dictionary of string key value pairs to use
         for this scan.
+    engine : str, optional
+        The engine to use. Engines can be installed via third-party packages. For an
+        updated list of existing pandas I/O engines check the I/O engines section of
+        our Ecosystem page.
 
     Returns
     -------
