@@ -360,12 +360,6 @@ def test_holiday_with_exclusion():
     start = Timestamp("2020-05-01")
     end = Timestamp("2025-05-31")
     exclude = DatetimeIndex([Timestamp("2022-05-30")])  # Queen's platinum Jubilee
-    default_uk_spring_bank_holiday: Holiday = Holiday(
-        "UK Spring Bank Holiday",
-        month=5,
-        day=31,
-        offset=DateOffset(weekday=MO(-1)),
-    )
 
     queens_jubilee_uk_spring_bank_holiday: Holiday = Holiday(
         "Queen's Jubilee UK Spring Bank Holiday",
@@ -374,13 +368,6 @@ def test_holiday_with_exclusion():
         offset=DateOffset(weekday=MO(-1)),
         exclude_dates=exclude,
     )
-
-    original_dates = default_uk_spring_bank_holiday.dates(start, end)
-    actual_dates = queens_jubilee_uk_spring_bank_holiday.dates(start, end)
-
-    assert exclude.isin(original_dates).all()
-    assert ~exclude.isin(actual_dates).all()
-    assert actual_dates.isin(original_dates).all()
 
     result = queens_jubilee_uk_spring_bank_holiday.dates(start, end)
     expected = DatetimeIndex(
@@ -406,22 +393,10 @@ def test_holiday_with_multiple_exclusions():
             Timestamp("2061-01-01"),
         ]
     )  # Yakudoshi new year
-    default_japan_new_year: Holiday = Holiday(
-        "Japan New Year",
-        month=1,
-        day=1,
-    )
 
     yakudoshi_new_year: Holiday = Holiday(
         "Yakudoshi New Year", month=1, day=1, exclude_dates=exclude
     )
-
-    original_dates = default_japan_new_year.dates(start, end)
-    actual_dates = yakudoshi_new_year.dates(start, end)
-
-    assert exclude.isin(original_dates).all()
-    assert ~exclude.isin(actual_dates).all()
-    assert actual_dates.isin(original_dates).all()
 
     result = yakudoshi_new_year.dates(start, end)
     expected = DatetimeIndex(
