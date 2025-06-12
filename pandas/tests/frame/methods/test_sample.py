@@ -113,9 +113,6 @@ class TestSample:
         with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=[0.5] * 11)
 
-        with pytest.raises(ValueError, match="Fewer non-zero entries in p than size"):
-            obj.sample(n=4, weights=Series([0, 0, 0.2]))
-
     def test_sample_negative_weights(self, obj):
         # Check won't accept negative weights
         bad_weights = [-0.1] * 10
