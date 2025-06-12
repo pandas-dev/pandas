@@ -1206,7 +1206,7 @@ class TestDataFrameIndexing:
         result = df.dtypes
         expected = Series(
             [np.dtype("timedelta64[ns]")] * 6 + [np.dtype("datetime64[ns]")] * 2,
-            index=Index(list("ABCDEFGH"), dtype=object),
+            index=list("ABCDEFGH"),
         )
         tm.assert_series_equal(result, expected)
 
