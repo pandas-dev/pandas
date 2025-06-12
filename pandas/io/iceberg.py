@@ -9,7 +9,7 @@ from pandas import DataFrame
 from pandas.io.common import allow_third_party_engines
 
 
-@allow_third_party_engines()
+@allow_third_party_engines
 def read_iceberg(
     table_identifier: str,
     catalog_name: str | None = None,

@@ -9,6 +9,7 @@ from abc import (
 import codecs
 from collections import defaultdict
 from collections.abc import (
+    Callable,
     Hashable,
     Mapping,
     Sequence,
@@ -16,6 +17,7 @@ from collections.abc import (
 import dataclasses
 import functools
 import gzip
+from importlib.metadata import entry_points
 from io import (
     BufferedIOBase,
     BytesIO,
@@ -50,8 +52,6 @@ from urllib.parse import (
 )
 import warnings
 import zipfile
-
-import pkg_resources
 
 from pandas._typing import (
     BaseBuffer,
@@ -1290,9 +1290,9 @@ def dedup_names(
     return names
 
 
-def _engine_func(format_name: str, engine_name: str, is_writer: bool):
+def _get_io_engine(name: str):
     """
-    Return the engine function for a given format and operation.
+    Return an I/O engine by its name.
 
     pandas I/O engines can be registered via entry points. The first time this
     function is called it will register all the entry points of the "pandas.io_engine"
@@ -1304,13 +1304,8 @@ def _engine_func(format_name: str, engine_name: str, is_writer: bool):
 
     Parameters
     ----------
-    format_name : str
-        The format such as 'csv', 'parquet', 'json', 'html', etc.
-    engine_name : str
+    name : str
         The engine name provided by the user in `engine=<value>`.
-    is_writer : bool
-        `True` to return the `to_<format>` function, `False` to return the
-        `read_<format>` one.
 
     Examples
     --------
@@ -1330,59 +1325,57 @@ def _engine_func(format_name: str, engine_name: str, is_writer: bool):
 
     ```
 
-    Then the `read_csv` method of the engine can be retrieved with:
+    Then the `read_csv` method of the engine can be used with:
 
-    >>> func = _engine_func(format_name="csv", engine_name="dummy", is_writer=False)
+    >>> _get_io_engine(engine_name="dummy").read_csv("myfile.csv")  # doctest: +SKIP
 
     This is used internally to dispatch the next pandas call to the engine caller:
 
-    >>> df = read_csv("myfile.csv", engine="dummy")
+    >>> df = read_csv("myfile.csv", engine="dummy")  # doctest: +SKIP
     """
     global _io_engines
 
     if _io_engines is None:
         _io_engines = {}
-        for entry_point in pkg_resources.iter_entry_points(group="pandas.io_engine"):
-            _io_engines[entry_point.name] = entry_point.load()
+        for entry_point in entry_points().select(group="pandas.io_engine"):
+            package_name = entry_point.dist.metadata["Name"]
+            if entry_point.name in _io_engines:
+                _io_engines[entry_point.name]._other_providers.append(package_name)
+            else:
+                _io_engines[entry_point.name] = entry_point.load()
+                _io_engines[entry_point.name]._provider_name = package_name
+                _io_engines[entry_point.name]._other_providers = []
 
     try:
-        engine_class = _io_engines[engine_name]
+        engine = _io_engines[name]
     except KeyError as err:
         raise ValueError(
-            f"'{engine_name}' is not a known engine. Some engines are only available "
+            f"'{name}' is not a known engine. Some engines are only available "
             "after installing the package that provides them."
         ) from err
 
-    func_name = f"to_{format_name}" if is_writer else f"read_{format_name}"
-    try:
-        engine_method = getattr(engine_class, func_name)
-    except AttributeError as err:
-        raise ValueError(
-            f"The engine '{engine_name}' does not provide a '{func_name}' function"
-        ) from err
-    else:
-        return engine_method
-
-
-def _extract_io_function_info(func_name):
-    """
-    Return the format and if it's a reader or writer from a function name like read_csv.
-    """
-    op_type, format_name = func_name.split("_", maxsplit=1)
-    if op_type == "read":
-        is_writer = False
-    elif op_type == "to":
-        is_writer = True
-    else:
-        raise ValueError(
-            "Unable to extract info from the function name '{func_name}'. "
-            "The expected format is `read_<format> or `to_<format>`."
+    if engine._other_providers:
+        msg = (
+            f"The engine '{name}' has been registered by the package "
+            f"'{engine._provider_name}' and will be used. "
         )
+        if len(engine._other_providers):
+            msg += (
+                "The package '{engine._other_providers}' also tried to register "
+                "the engine, but it couldn't because it was already registered."
+            )
+        else:
+            msg += (
+                "Other packages that tried to register the engine, but they couldn't "
+                "because it was already registered are: "
+                f"{str(engine._other_providers)[1:-1]}."
+            )
+        warnings.warn(RuntimeWarning, msg, stacklevel=find_stack_level())
 
-    return format_name, is_writer
+    return engine
 
 
-def allow_third_party_engines(skip_engines: list[str] | None = None):
+def allow_third_party_engines(skip_engines: list[str] | Callable | None = None):
     """
     Decorator to avoid boilerplate code when allowing readers and writers to use
     third-party engines.
@@ -1415,14 +1408,21 @@ def allow_third_party_engines(skip_engines: list[str] | None = None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            if "engine" in kwargs and kwargs["engine"] not in skip_engines:
-                format_name, is_writer = _extract_io_function_info(func.__name__)
-                engine_func = _engine_func(
-                    format_name=format_name,
-                    engine_name=kwargs.pop("engine"),
-                    is_writer=is_writer,
-                )
-                return engine_func(*args, **kwargs)
+            if callable(skip_engines):
+                skip_engine = False
+            else:
+                skip_engine = kwargs["engine"] in skip_engines
+
+            if "engine" in kwargs and not skip_engine:
+                engine_name = kwargs.pop("engine")
+                engine = _get_io_engine(engine_name)
+                try:
+                    return getattr(engine, func.__name__)(*args, **kwargs)
+                except AttributeError as err:
+                    raise ValueError(
+                        f"The engine '{engine_name}' does not provide a "
+                        f"'{func.__name__}' function"
+                    ) from err
             else:
                 return func(*args, **kwargs)
 
