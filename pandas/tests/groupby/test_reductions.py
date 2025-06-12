@@ -710,6 +710,20 @@ def test_min_empty_string_dtype(func, string_dtype_no_object):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("min_count", [0, 1])
+def test_string_dtype_empty_sum(string_dtype_no_object, min_count):
+    # https://github.com/pandas-dev/pandas/issues/60229
+    dtype = string_dtype_no_object
+    df = DataFrame({"a": ["x"], "b": [pd.NA]}, dtype=dtype)
+    gb = df.groupby("a")
+    result = gb.sum(min_count=min_count)
+    value = "" if min_count == 0 else pd.NA
+    expected = DataFrame(
+        {"b": value}, index=pd.Index(["x"], name="a", dtype=dtype), dtype=dtype
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_max_nan_bug():
     df = DataFrame(
         {
