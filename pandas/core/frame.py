@@ -4489,9 +4489,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        *args : hashable or tuple of hashable
-            The names or the columns to return. In general this will be strings,
+        *args : hashable or a single list arg of hashable
+            The names of the columns to return. In general this will be strings,
             but pandas supports other types of column names, if they are hashable.
+            If only one argument of type list is provided, the elements of the
+            list will be considered the named of the columns to be returned
 
         Returns
         -------
@@ -4520,9 +4522,17 @@ class DataFrame(NDFrame, OpsMixin):
         1      Alice   22
         2        Bob   35
 
+        A list can also be used to specify the names of the columns to return:
+
+        >>> df.select(["last_name", "age"])
+                  last_name  age
+        0     Smith   61
+        1    Cooper   22
+        2    Marley   35
+
         Selecting with a pattern can be done with Python expressions:
 
-        >>> df.select(*[col for col in df.columns if col.endswith("_name")])
+        >>> df.select([col for col in df.columns if col.endswith("_name")])
           first_name last_name
         0       John     Smith
         1      Alice    Cooper
@@ -4535,15 +4545,6 @@ class DataFrame(NDFrame, OpsMixin):
         0     Smith       John   61
         1    Cooper      Alice   22
         2    Marley        Bob   35
-
-        In case the columns are in a list, Python unpacking with star can be used:
-
-        >>> columns = ["last_name", "age"]
-        >>> df.select(*columns)
-                  last_name  age
-        0     Smith   61
-        1    Cooper   22
-        2    Marley   35
 
         Note that a DataFrame is always returned. If a single column is requested, a
         DataFrame with a single column is returned, not a Series:
@@ -4563,8 +4564,8 @@ class DataFrame(NDFrame, OpsMixin):
         ...     ),
         ... )
 
-        If just column names are provided, they will select from the first level of the
-        ``MultiIndex``:
+        If column names are provided, they will select from the first level of
+        the ``MultiIndex``:
 
         >>> df.select("names")
               names
@@ -4573,7 +4574,7 @@ class DataFrame(NDFrame, OpsMixin):
         1      Alice    Cooper
         2        Bob    Marley
 
-        To select from multiple or all levels, tuples can be provided:
+        To select from multiple or all levels, tuples can be used:
 
         >>> df.select(("names", "last_name"), ("other", "age"))
               names other
@@ -4583,11 +4584,16 @@ class DataFrame(NDFrame, OpsMixin):
         2    Marley    35
         """
         if args and isinstance(args[0], list):
-            raise ValueError(
-                "`DataFrame.select` does not support a list. Please use "
-                "`df.select('col1', 'col2',...)` or `df.select(*['col1', 'col2',...])` "
-                "instead"
-            )
+            if len(args) == 1:
+                args = args[0]
+            else:
+                raise ValueError(
+                    "`DataFrame.select` supports individual columns "
+                    "`df.select('col1', 'col2',...)` or a list "
+                    "`df.select(['col1', 'col2',...])`, but not both. "
+                    "You can unpack the list if you have a mix: "
+                    "`df.select(*['col1', 'col2'], 'col3')`."
+                )
 
         indexer = self.columns._get_indexer_strict(list(args), "columns")[1]
         return self.take(indexer, axis=1)

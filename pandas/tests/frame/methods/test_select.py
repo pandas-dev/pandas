@@ -44,9 +44,14 @@ class TestSelect:
         result = regular_df.select("a", "d", "a")
         assert result.columns.tolist() == expected
 
-    def test_select_list(self, regular_df):
-        with pytest.raises(ValueError, match="does not support a list"):
-            regular_df.select(["a", "b"])
+    def test_select_single_list(self, regular_df):
+        expected = DataFrame({"a": [1, 2], "c": [5, 6]})
+        result = regular_df.select(["a", "c"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_select_list_and_string(self, regular_df):
+        with pytest.raises(ValueError, match="supports individual columns"):
+            regular_df.select(["a", "c"], "b")
 
     def test_select_missing(self, regular_df):
         with pytest.raises(KeyError, match=r"None of .* are in the \[columns\]"):
@@ -78,6 +83,14 @@ class TestSelect:
             columns=pd.MultiIndex.from_tuples([("A", "c"), ("B", "e")]),
         )
         result = multiindex_df.select(("A", "c"), ("B", "e"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_select_multiindex_multiple_columns_as_list(self, multiindex_df):
+        expected = DataFrame(
+            [(0, 4), (1, 5)],
+            columns=pd.MultiIndex.from_tuples([("A", "c"), ("B", "e")]),
+        )
+        result = multiindex_df.select([("A", "c"), ("B", "e")])
         tm.assert_frame_equal(result, expected)
 
     def test_select_multiindex_missing(self, multiindex_df):
