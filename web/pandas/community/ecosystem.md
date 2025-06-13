@@ -156,21 +156,21 @@ pd.set_option("plotting.backend", "plotly")
 
 ## Domain specific pandas extensions
 
-### [Geopandas](https://github.com/geopandas/geopandas)
+#### [Geopandas](https://github.com/geopandas/geopandas)
 
 Geopandas extends pandas data objects to include geographic information
 which support geometric operations. If your work entails maps and
 geographical coordinates, and you love pandas, you should take a close
 look at Geopandas.
 
-### [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)
+#### [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)
 
 gurobipy-pandas provides a convenient accessor API to connect pandas with
 gurobipy. It enables users to more easily and efficiently build mathematical
 optimization models from data stored in DataFrames and Series, and to read
 solutions back directly as pandas objects.
 
-### [Hail Query](https://hail.is/)
+#### [Hail Query](https://hail.is/)
 
 An out-of-core, preemptible-safe, distributed, dataframe library serving
 the genetics community. Hail Query ships with on-disk data formats,
@@ -185,14 +185,14 @@ native import to and export from pandas DataFrames:
 - [`Table.from_pandas`](https://hail.is/docs/latest/hail.Table.html#hail.Table.from_pandas)
 - [`Table.to_pandas`](https://hail.is/docs/latest/hail.Table.html#hail.Table.to_pandas)
 
-### [staircase](https://github.com/staircase-dev/staircase)
+#### [staircase](https://github.com/staircase-dev/staircase)
 
 staircase is a data analysis package, built upon pandas and numpy, for modelling and
 manipulation of mathematical step functions. It provides a rich variety of arithmetic
 operations, relational operations, logical operations, statistical operations and
 aggregations for step functions defined over real numbers, datetime and timedelta domains.
 
-### [xarray](https://github.com/pydata/xarray)
+#### [xarray](https://github.com/pydata/xarray)
 
 xarray brings the labeled data power of pandas to the physical sciences
 by providing N-dimensional variants of the core pandas data structures.
@@ -203,7 +203,7 @@ which pandas excels.
 
 ## Data IO for pandas
 
-### [ArcticDB](https://github.com/man-group/ArcticDB)
+#### [ArcticDB](https://github.com/man-group/ArcticDB)
 
 ArcticDB is a serverless DataFrame database engine designed for the Python Data Science ecosystem.
 ArcticDB enables you to store, retrieve, and process pandas DataFrames at scale.
@@ -213,21 +213,21 @@ to object storage and can be installed in seconds.
 
 Please find full documentation [here](https://docs.arcticdb.io/latest/).
 
-### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
+#### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
 
 BCPandas provides high performance writes from pandas to Microsoft SQL Server,
 far exceeding the performance of the native ``df.to_sql`` method. Internally, it uses
 Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
 Rigorously tested, it is a complete replacement for ``df.to_sql``.
 
-### [Deltalake](https://pypi.org/project/deltalake)
+#### [Deltalake](https://pypi.org/project/deltalake)
 
 Deltalake python package lets you access tables stored in
 [Delta Lake](https://delta.io/) natively in Python without the need to use Spark or
 JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
 any Delta table into Pandas dataframe.
 
-### [fredapi](https://github.com/mortada/fredapi)
+#### [fredapi](https://github.com/mortada/fredapi)
 
 fredapi is a Python interface to the [Federal Reserve Economic Data
 (FRED)](https://fred.stlouisfed.org/) provided by the Federal Reserve
@@ -239,7 +239,7 @@ point-in-time data from ALFRED. fredapi makes use of pandas and returns
 data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
 
-### [Hugging Face](https://huggingface.co/datasets)
+#### [Hugging Face](https://huggingface.co/datasets)
 
 The Hugging Face Dataset Hub provides a large collection of ready-to-use
 datasets for machine learning shared by the community. The platform offers
@@ -274,7 +274,7 @@ df.to_parquet("hf://datasets/username/dataset_name/train.parquet")
 
 You can find more information about the Hugging Face Dataset Hub in the [documentation](https://huggingface.co/docs/hub/en/datasets).
 
-### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)
+#### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)
 
 NTV-pandas provides a JSON converter with more data types than the ones supported by pandas directly.
 
@@ -297,7 +297,7 @@ df  = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
 df.equals(npd.read_json(df.npd.to_json(df)))  # `True` in any case, whether `table=True` or not
 ```
 
-### [pandas-datareader](https://github.com/pydata/pandas-datareader)
+#### [pandas-datareader](https://github.com/pydata/pandas-datareader)
 
 `pandas-datareader` is a remote data access library for pandas
 (PyPI:`pandas-datareader`). It is based on functionality that was
@@ -324,14 +324,14 @@ The following data feeds are available:
 - Stooq Index Data
 - MOEX Data
 
-### [pandas-gbq](https://github.com/googleapis/python-bigquery-pandas)
+#### [pandas-gbq](https://github.com/googleapis/python-bigquery-pandas)
 
 pandas-gbq provides high performance reads and writes to and from
 [Google BigQuery](https://cloud.google.com/bigquery/). Previously (before version 2.2.0),
 these methods were exposed as `pandas.read_gbq` and `DataFrame.to_gbq`.
 Use `pandas_gbq.read_gbq` and `pandas_gbq.to_gbq`, instead.
 
-### [pandaSDMX](https://pandasdmx.readthedocs.io)
+#### [pandaSDMX](https://pandasdmx.readthedocs.io)
 
 pandaSDMX is a library to retrieve and acquire statistical data and
 metadata disseminated in [SDMX](https://sdmx.org) 2.1, an
@@ -344,7 +344,7 @@ MultiIndexed DataFrames.
 
 ## Scaling pandas
 
-### [Bodo](https://github.com/bodo-ai/Bodo)
+#### [Bodo](https://github.com/bodo-ai/Bodo)
 
 Bodo is a high-performance compute engine for Python data processing.
 Using an auto-parallelizing just-in-time (JIT) compiler, Bodo simplifies scaling Pandas
@@ -366,26 +366,26 @@ def process_data():
 process_data()
 ```
 
-### [Dask](https://docs.dask.org)
+#### [Dask](https://docs.dask.org)
 
 Dask is a flexible parallel computing library for analytics. Dask
 provides a familiar `DataFrame` interface for out-of-core, parallel and
 distributed computing.
 
-### [Ibis](https://ibis-project.org/docs/)
+#### [Ibis](https://ibis-project.org/docs/)
 
 Ibis offers a standard way to write analytics code, that can be run in
 multiple engines. It helps in bridging the gap between local Python environments
 (like pandas) and remote storage and execution systems like Hadoop components
 (like HDFS, Impala, Hive, Spark) and SQL databases (Postgres, etc.).
 
-### [Koalas](https://koalas.readthedocs.io/en/latest/)
+#### [Koalas](https://koalas.readthedocs.io/en/latest/)
 
 Koalas provides a familiar pandas DataFrame interface on top of Apache
 Spark. It enables users to leverage multi-cores on one machine or a
 cluster of machines to speed up or scale their DataFrame code.
 
-### [Modin](https://github.com/modin-project/modin)
+#### [Modin](https://github.com/modin-project/modin)
 
 The ``modin.pandas`` DataFrame is a parallel and distributed drop-in replacement
 for pandas. This means that you can use Modin with existing pandas code or write
@@ -404,21 +404,21 @@ df = pd.read_csv("big.csv")  # use all your cores!
 
 ## Data cleaning and validation for pandas
 
-### [Pandera](https://pandera.readthedocs.io/en/stable/)
+#### [Pandera](https://pandera.readthedocs.io/en/stable/)
 
 Pandera provides a flexible and expressive API for performing data validation on dataframes
 to make data processing pipelines more readable and robust.
 Dataframes contain information that pandera explicitly validates at runtime. This is useful in
 production-critical data pipelines or reproducible research settings.
 
-### [pyjanitor](https://github.com/pyjanitor-devs/pyjanitor)
+#### [pyjanitor](https://github.com/pyjanitor-devs/pyjanitor)
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
 
 
 ## Development tools for pandas
 
-### [Hamilton](https://github.com/dagworks-inc/hamilton)
+#### [Hamilton](https://github.com/dagworks-inc/hamilton)
 
 Hamilton is a declarative dataflow framework that came out of Stitch Fix. It was
 designed to help one manage a Pandas code base, specifically with respect to
@@ -436,13 +436,13 @@ This helps one to scale your pandas code base, at the same time, keeping mainten
 
 For more information, see [documentation](https://hamilton.readthedocs.io/).
 
-### [IPython](https://ipython.org/documentation.html)
+#### [IPython](https://ipython.org/documentation.html)
 
 IPython is an interactive command shell and distributed computing
 environment. IPython tab completion works with Pandas methods and also
 attributes like DataFrame columns.
 
-### [Jupyter Notebook / Jupyter Lab](https://jupyter.org)
+#### [Jupyter Notebook / Jupyter Lab](https://jupyter.org)
 
 Jupyter Notebook is a web application for creating Jupyter notebooks. A
 Jupyter notebook is a JSON document containing an ordered list of
@@ -460,7 +460,7 @@ or may not be compatible with non-HTML Jupyter output formats.)
 See [Options and Settings](https://pandas.pydata.org/docs/user_guide/options.html)
 for pandas `display.` settings.
 
-### [marimo](https://marimo.io)
+#### [marimo](https://marimo.io)
 
 marimo is a reactive notebook for Python and SQL that enhances productivity
 when working with dataframes. It provides several features to make data
@@ -479,7 +479,7 @@ manipulation and visualization more interactive and fun:
 6. SQL integration: marimo allows users to write SQL queries against any
    pandas dataframes existing in memory.
 
-### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
+#### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
 
 While pandas repository is partially typed, the package itself doesn't expose this information for external use.
 Install pandas-stubs to enable basic type coverage of pandas API.
@@ -489,7 +489,7 @@ Learn more by reading through these issues [14468](https://github.com/pandas-dev
 
 See installation and usage instructions on the [GitHub page](https://github.com/VirtusLab/pandas-stubs).
 
-### [Spyder](https://www.spyder-ide.org/)
+#### [Spyder](https://www.spyder-ide.org/)
 
 Spyder is a cross-platform PyQt-based IDE combining the editing,
 analysis, debugging and profiling functionality of a software
@@ -518,14 +518,14 @@ both automatically and on-demand.
 
 ## Other related libraries
 
-### [Compose](https://github.com/alteryx/compose)
+#### [Compose](https://github.com/alteryx/compose)
 
 Compose is a machine learning tool for labeling data and prediction engineering.
 It allows you to structure the labeling process by parameterizing
 prediction problems and transforming time-driven relational data into
 target values with cutoff times that can be used for supervised learning.
 
-### [D-Tale](https://github.com/man-group/dtale)
+#### [D-Tale](https://github.com/man-group/dtale)
 
 D-Tale is a lightweight web client for visualizing pandas data structures. It
 provides a rich spreadsheet-style grid which acts as a wrapper for a lot of
@@ -544,7 +544,7 @@ D-Tale integrates seamlessly with Jupyter notebooks, Python terminals, Kaggle
 & Google Colab. Here are some demos of the
 [grid](http://alphatechadmin.pythonanywhere.com/dtale/main/1).
 
-### [Featuretools](https://github.com/alteryx/featuretools/)
+#### [Featuretools](https://github.com/alteryx/featuretools/)
 
 Featuretools is a Python library for automated feature engineering built
 on top of pandas. It excels at transforming temporal and relational
@@ -552,12 +552,12 @@ datasets into feature matrices for machine learning using reusable
 feature engineering "primitives". Users can contribute their own
 primitives in Python and share them with the rest of the community.
 
-### [IPython Vega](https://github.com/vega/ipyvega)
+#### [IPython Vega](https://github.com/vega/ipyvega)
 
 [IPython Vega](https://github.com/vega/ipyvega) leverages
 [Vega](https://github.com/vega/vega) to create plots within Jupyter Notebook.
 
-### [plotnine](https://github.com/has2k1/plotnine/)
+#### [plotnine](https://github.com/has2k1/plotnine/)
 
 Hadley Wickham's [ggplot2](https://ggplot2.tidyverse.org/) is a
 foundational exploratory visualization package for the R language. Based
@@ -568,7 +568,7 @@ generate bespoke plots of any kind of data.
 Various implementations to other languages are available.
 A good implementation for Python users is [has2k1/plotnine](https://github.com/has2k1/plotnine/).
 
-### [pygwalker](https://github.com/Kanaries/pygwalker)
+#### [pygwalker](https://github.com/Kanaries/pygwalker)
 
 PyGWalker is an interactive data visualization and
 exploratory data analysis tool built upon Graphic Walker
@@ -582,7 +582,7 @@ import pygwalker as pyg
 pyg.walk(df)
 ```
 
-### [seaborn](https://seaborn.pydata.org)
+#### [seaborn](https://seaborn.pydata.org)
 
 Seaborn is a Python visualization library based on
 [matplotlib](https://matplotlib.org). It provides a high-level,
@@ -599,13 +599,13 @@ import seaborn as sns
 sns.set_theme()
 ```
 
-### [skrub](https://skrub-data.org)
+#### [skrub](https://skrub-data.org)
 
 Skrub facilitates machine learning on dataframes. It bridges pandas
 to scikit-learn and related. In particular it facilitates building
 features from dataframes.
 
-### [Statsmodels](https://www.statsmodels.org/)
+#### [Statsmodels](https://www.statsmodels.org/)
 
 Statsmodels is the prominent Python "statistics and econometrics
 library" and it has a long-standing special relationship with pandas.
@@ -614,7 +614,7 @@ modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
 
-### [STUMPY](https://github.com/TDAmeritrade/stumpy)
+#### [STUMPY](https://github.com/TDAmeritrade/stumpy)
 
 STUMPY is a powerful and scalable Python library for modern time series analysis.
 At its core, STUMPY efficiently computes something called a
