@@ -743,10 +743,15 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     #  pandas assumes they're there.
 
     @ravel_compat
-    def map(self, mapper, skipna: bool = False):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
+    ):
         from pandas import Index
 
-        result = map_array(self, mapper, skipna=skipna)
+        result = map_array(self, mapper, na_action=na_action, skipna=skipna)
         result = Index(result)
 
         if isinstance(result, ABCMultiIndex):

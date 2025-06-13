@@ -1477,11 +1477,18 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
-    def map(self, mapper, skipna: bool = False):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
+    ):
         if is_numeric_dtype(self.dtype):
-            return map_array(self.to_numpy(), mapper, skipna=skipna)
+            return map_array(
+                self.to_numpy(), mapper, na_action=na_action, skipna=skipna
+            )
         else:
-            return super().map(mapper, skipna=skipna)
+            return super().map(mapper, na_action=na_action, skipna=skipna)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
