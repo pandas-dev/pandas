@@ -1,5 +1,7 @@
 # Ecosystem
 
+[TOC]
+
 Increasingly, packages are being built on top of pandas to address
 specific needs in data preparation, analysis and visualization. This is
 encouraging because it means pandas is not only helping users to handle
@@ -148,20 +150,6 @@ convert figures into interactive web-based plots. Plots can be drawn in
 or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly
 is free for unlimited sharing, and has cloud, offline, or on-premise
 accounts for private use.
-
-### [Lux](https://github.com/lux-org/lux)
-
-Lux is a Python library that facilitates fast and easy experimentation with data by automating the visual data exploration process. To use Lux, simply add an extra import alongside pandas:
-
-```python
-import lux
-import pandas as pd
-
-df = pd.read_csv("data.csv")
-df  # discover interesting insights!
-```
-
-By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
 
 ### [D-Tale](https://github.com/man-group/dtale)
 
@@ -384,92 +372,14 @@ Use `pandas_gbq.read_gbq` and `pandas_gbq.to_gbq`, instead.
 
 ### [ArcticDB](https://github.com/man-group/ArcticDB)
 
-ArcticDB is a serverless DataFrame database engine designed for the Python Data Science ecosystem. ArcticDB enables you to store, retrieve, and process pandas DataFrames at scale. It is a storage engine designed for object storage and also supports local-disk storage using LMDB. ArcticDB requires zero additional infrastructure beyond a running Python environment and access to object storage and can be installed in seconds. Please find full documentation [here](https://docs.arcticdb.io/latest/).
+ArcticDB is a serverless DataFrame database engine designed for the Python Data Science ecosystem.
+ArcticDB enables you to store, retrieve, and process pandas DataFrames at scale.
+It is a storage engine designed for object storage and also supports local-disk storage using LMDB.
+ArcticDB requires zero additional infrastructure beyond a running Python environment and access
+to object storage and can be installed in seconds.
 
-#### ArcticDB Terminology
+Please find full documentation [here](https://docs.arcticdb.io/latest/).
 
-ArcticDB is structured to provide a scalable and efficient way to manage and retrieve DataFrames, organized into several key components:
-
-- `Object Store` Collections of libraries. Used to separate logical environments from each other. Analogous to a database server.
-- `Library` Contains multiple symbols which are grouped in a certain way (different users, markets, etc). Analogous to a database.
-- `Symbol` Atomic unit of data storage. Identified by a string name. Data stored under a symbol strongly resembles a pandas DataFrame. Analogous to tables.
-- `Version` Every modifying action (write, append, update) performed on a symbol creates a new version of that object.
-
-#### Installation
-
-To install, simply run:
-
-```console
-pip install arcticdb
-```
-
-To get started, we can import ArcticDB and instantiate it:
-
-```python
-import arcticdb as adb
-import numpy as np
-import pandas as pd
-# this will set up the storage using the local file system
-arctic = adb.Arctic("lmdb://arcticdb_test")
-```
-
-> **Note:** ArcticDB supports any S3 API compatible storage, including AWS. ArcticDB also supports Azure Blob storage.  
-> ArcticDB also supports LMDB for local/file based storage - to use LMDB, pass an LMDB path as the URI: `adb.Arctic('lmdb://path/to/desired/database')`.
-
-#### Library Setup
-
-ArcticDB is geared towards storing many (potentially millions) of tables. Individual tables (DataFrames) are called symbols and are stored in collections called libraries. A single library can store many symbols. Libraries must first be initialized prior to use:
-
-```python
-lib = arctic.get_library('sample', create_if_missing=True)
-```
-
-#### Writing Data to ArcticDB
-
-Now we have a library set up, we can get to reading and writing data. ArcticDB has a set of simple functions for DataFrame storage. Let's write a DataFrame to storage.
-
-```python
-df = pd.DataFrame(
-    {
-        "a": list("abc"),
-        "b": list(range(1, 4)),
-        "c": np.arange(3, 6).astype("u1"),
-        "d": np.arange(4.0, 7.0, dtype="float64"),
-        "e": [True, False, True],
-        "f": pd.date_range("20130101", periods=3)
-    }
-)
-
-df
-df.dtypes
-```
-
-Write to ArcticDB.
-
-```python
-write_record = lib.write("test", df)
-```
-
-> **Note:** When writing pandas DataFrames, ArcticDB supports the following index types:
->
-> - `pandas.Index` containing int64 (or the corresponding dedicated types Int64Index, UInt64Index)
-> - `RangeIndex`
-> - `DatetimeIndex`
-> - `MultiIndex` composed of above supported types
->
-> The "row" concept in `head`/`tail` refers to the row number ('iloc'), not the value in the `pandas.Index` ('loc').
-
-#### Reading Data from ArcticDB
-
-Read the data back from storage:
-
-```python
-read_record = lib.read("test")
-read_record.data
-df.dtypes
-```
-
-ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/processing/#arcticdb.QueryBuilder).
 
 ### [Hugging Face](https://huggingface.co/datasets)
 
@@ -522,35 +432,6 @@ def process_data():
 process_data()
 ```
 
-
-### [Cylon](https://cylondata.org/)
-
-Cylon is a fast, scalable, distributed memory parallel runtime with a pandas
-like Python DataFrame API. ”Core Cylon” is implemented with C++ using Apache
-Arrow format to represent the data in-memory. Cylon DataFrame API implements
-most of the core operators of pandas such as merge, filter, join, concat,
-group-by, drop_duplicates, etc. These operators are designed to work across
-thousands of cores to scale applications. It can interoperate with pandas
-DataFrame by reading data from pandas or converting data to pandas so users
-can selectively scale parts of their pandas DataFrame applications.
-
-```python
-from pycylon import read_csv, DataFrame, CylonEnv
-from pycylon.net import MPIConfig
-
-# Initialize Cylon distributed environment
-config: MPIConfig = MPIConfig()
-env: CylonEnv = CylonEnv(config=config, distributed=True)
-
-df1: DataFrame = read_csv('/tmp/csv1.csv')
-df2: DataFrame = read_csv('/tmp/csv2.csv')
-
-# Using 1000s of cores across the cluster to compute the join
-df3: Table = df1.join(other=df2, on=[0], algorithm="hash", env=env)
-
-print(df3)
-```
-
 ### [Dask](https://docs.dask.org)
 
 Dask is a flexible parallel computing library for analytics. Dask
@@ -589,36 +470,6 @@ import modin.pandas as pd
 
 df = pd.read_csv("big.csv")  # use all your cores!
 ```
-
-### [Pandarallel](https://github.com/nalepae/pandarallel)
-
-Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
-It also displays progress bars.
-
-```python
-from pandarallel import pandarallel
-
-pandarallel.initialize(progress_bar=True)
-
-# df.apply(func)
-df.parallel_apply(func)
-```
-
-### [Vaex](https://vaex.io/docs/)
-
-Increasingly, packages are being built on top of pandas to address
-specific needs in data preparation, analysis and visualization. Vaex is
-a python library for Out-of-Core DataFrames (similar to Pandas), to
-visualize and explore big tabular datasets. It can calculate statistics
-such as mean, sum, count, standard deviation etc, on an N-dimensional
-grid up to a billion (10^9) objects/rows per second. Visualization is
-done using histograms, density plots and 3d volume rendering, allowing
-interactive exploration of big data. Vaex uses memory mapping, zero
-memory copy policy and lazy computations for best performance (no memory
-wasted).
-
-- ``vaex.from_pandas``
-- ``vaex.to_pandas_df``
 
 ### [Hail Query](https://hail.is/)
 
