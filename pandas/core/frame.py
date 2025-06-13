@@ -4484,7 +4484,7 @@ class DataFrame(NDFrame, OpsMixin):
         Select a subset of columns from the DataFrame.
 
         Select can be used to return a DataFrame with some specific columns.
-        This can be used to remove unwanted columns, as well as to return a
+        This can be select a subset of the columns, as well as to return a
         DataFrame with the columns sorted in a specific order.
 
         Parameters
@@ -4493,7 +4493,7 @@ class DataFrame(NDFrame, OpsMixin):
             The names of the columns to return. In general this will be strings,
             but pandas supports other types of column names, if they are hashable.
             If only one argument of type list is provided, the elements of the
-            list will be considered the named of the columns to be returned
+            list will be considered the names of the columns to be returned
 
         Returns
         -------
