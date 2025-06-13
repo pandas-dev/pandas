@@ -42,6 +42,7 @@ import typing
 import feedparser
 import jinja2
 import markdown
+from markdown.extensions.toc import TocExtension
 from packaging import version
 import requests
 import yaml
@@ -470,29 +471,14 @@ def main(
             with (source_path / fname).open(encoding="utf-8") as f:
                 content = f.read()
             if extension == ".md":
-                if len(fname.parts) > 1 and fname.parts[1] == "pdeps":
-                    from markdown.extensions.toc import TocExtension
-
-                    body = markdown.markdown(
-                        content,
-                        extensions=[
-                            # Ignore the title of the PDEP in the table of contents
-                            TocExtension(
-                                title="Table of Contents",
-                                toc_depth="2-3",
-                                permalink=" #",
-                            ),
-                            "tables",
-                            "fenced_code",
-                            "meta",
-                            "footnotes",
-                            "codehilite",
-                        ],
-                    )
-                else:
-                    body = markdown.markdown(
-                        content, extensions=context["main"]["markdown_extensions"]
-                    )
+                toc = TocExtension(
+                    title="Table of Contents",
+                    toc_depth="2-3",
+                    permalink=" #",
+                )
+                body = markdown.markdown(
+                    content, extensions=context["main"]["markdown_extensions"] + [toc]
+                )
                 # Apply Bootstrap's table formatting manually
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')

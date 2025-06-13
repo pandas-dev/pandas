@@ -1,5 +1,7 @@
 # Ecosystem
 
+[TOC]
+
 Increasingly, packages are being built on top of pandas to address
 specific needs in data preparation, analysis and visualization. This is
 encouraging because it means pandas is not only helping users to handle
