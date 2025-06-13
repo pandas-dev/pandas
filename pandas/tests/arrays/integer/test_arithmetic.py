@@ -178,25 +178,9 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ops = getattr(s, op)
 
     # invalid scalars
-    msg = "|".join(
-        [
-            r"can only perform ops with numeric values",
-            r"IntegerArray cannot perform the operation mod",
-            r"unsupported operand type",
-            r"can only concatenate str \(not \"int\"\) to str",
-            "not all arguments converted during string",
-            "ufunc '.*' not supported for the input types, and the inputs could not",
-            "ufunc '.*' did not contain a loop with signature matching types",
-            "Addition/subtraction of integers and integer-arrays with Timestamp",
-            "has no kernel",
-            "not implemented",
-            "The 'out' kwarg is necessary. Use numpy.strings.multiply without it.",
-            "not supported for dtype",
-        ]
-    )
-    with pytest.raises(TypeError, match=msg):
+    with tm.external_error_raised(TypeError):
         ops("foo")
-    with pytest.raises(TypeError, match=msg):
+    with tm.external_error_raised(TypeError):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
@@ -214,25 +198,10 @@ def test_error_invalid_values(data, all_arithmetic_operators):
         #  more-correct than np.nan here.
         tm.assert_series_equal(res, expected)
     else:
-        with pytest.raises(TypeError, match=msg):
+        with tm.external_error_raised(TypeError):
             ops(str_ser)
 
-    msg = "|".join(
-        [
-            "can only perform ops with numeric values",
-            "cannot perform .* with this index type: DatetimeArray",
-            "Addition/subtraction of integers and integer-arrays "
-            "with DatetimeArray is no longer supported. *",
-            "unsupported operand type",
-            r"can only concatenate str \(not \"int\"\) to str",
-            "not all arguments converted during string",
-            "cannot subtract DatetimeArray from ndarray",
-            "has no kernel",
-            "not implemented",
-            "not supported for dtype",
-        ]
-    )
-    with pytest.raises(TypeError, match=msg):
+    with tm.external_error_raised(TypeError):
         ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
 
