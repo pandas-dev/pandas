@@ -79,8 +79,6 @@ maintainers:
   - jbrockmendel
   - datapythonista
   - simonjayhawkins
-  - topper-123
-  - alimcmaster1
   - Dr-Irv
   - rhshadrach
   - phofl
@@ -107,6 +105,8 @@ maintainers:
   - noatamir
   - lithomas1
   - lukemanley
+  - topper-123
+  - alimcmaster1
 workgroups:
   coc:
     name: Code of Conduct
