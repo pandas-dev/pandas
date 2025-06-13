@@ -74,6 +74,7 @@ maintainers:
   active:
   - jorisvandenbossche
   - TomAugspurger
+  - jreback
   - WillAyd
   - mroeschke
   - jbrockmendel
@@ -107,7 +108,6 @@ maintainers:
   - lukemanley
   - topper-123
   - alimcmaster1
-  - jreback
 workgroups:
   coc:
     name: Code of Conduct
