@@ -42,6 +42,25 @@ from pandas._config import (
 # let init-time option registration happen
 import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
 
+# Import the new factory functions
+from pandas.core.dtypes.factory import (
+    string,
+    datetime,
+    integer,
+    floating,
+    boolean,
+    list,
+    categorical,
+    interval,
+    period,
+    sparse,
+    map,
+    struct,
+    date,
+    duration,
+    decimal,
+)
+
 from pandas.core.api import (
     # dtype
     ArrowDtype,
