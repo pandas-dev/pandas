@@ -223,3 +223,46 @@ def compression_format(request):
 @pytest.fixture(params=_compression_formats_params)
 def compression_ext(request):
     return request.param[0]
+
+
+@pytest.fixture
+def local_csv_directory(tmp_path):
+    """
+    Fixture to create a directory with dummy CSV files for testing.
+    """
+    for i in range(3):
+        file_path = tmp_path / f"{i}.csv"
+        file_path.touch()
+    return tmp_path
+
+
+@pytest.fixture
+def remote_csv_directory():
+    _ = pytest.importorskip("fsspec", reason="fsspec is required for remote tests")
+
+    import fsspec
+    from fsspec.implementations.memory import MemoryFileSystem
+
+    fsspec.register_implementation("s3", MemoryFileSystem)
+    fs = fsspec.filesystem("s3")
+    fs.store.clear()
+
+    dir_name = "remote-bucket"
+    fs.pipe(f"{dir_name}/a.csv", b"a,b,c\n1,2,3\n")
+    fs.pipe(f"{dir_name}/b.csv", b"a,b,c\n4,5,6\n")
+    fs.pipe(f"{dir_name}/nested/ignored.csv", b"x,y,z\n")
+
+    assert fs.exists(dir_name), "Remote directory was not created"
+    assert fs.isdir(dir_name), "Remote path is not a directory"
+
+    return f"s3://{dir_name}"
+
+
+@pytest.fixture
+def empty_local_file(tmp_path):
+    """
+    Fixture to create an empty local file.
+    """
+    file_path = tmp_path / "empty_file.csv"
+    file_path.touch()
+    return file_path

@@ -695,3 +695,31 @@ def test_pyarrow_read_csv_datetime_dtype():
     expect = pd.DataFrame({"date": expect_data})
 
     tm.assert_frame_equal(expect, result)
+
+
+def test_iterdir_local(local_csv_directory):
+    for file in icom.iterdir(local_csv_directory):
+        assert file.is_file()
+        assert file.suffix == ".csv"
+
+
+def test_remote_csv_directory(remote_csv_directory):
+    import fsspec
+    from fsspec.implementations.memory import MemoryFileSystem
+
+    fs = fsspec.filesystem("s3")
+    assert isinstance(fs, MemoryFileSystem)
+
+    assert fs.exists("remote-bucket")
+    assert fs.isdir("remote-bucket")
+
+    files = fs.ls("remote-bucket", detail=True)
+
+    file_names = sorted(f["name"] for f in files if f["type"] == "file")
+    assert file_names == ["/remote-bucket/a.csv", "/remote-bucket/b.csv"]
+
+    dir_names = [f["name"] for f in files if f["type"] == "directory"]
+    assert "/remote-bucket/nested" in dir_names
+
+    nested_files = fs.ls("remote-bucket/nested", detail=True)
+    assert nested_files[0]["name"] == "/remote-bucket/nested/ignored.csv"
