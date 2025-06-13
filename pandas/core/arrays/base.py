@@ -2541,7 +2541,12 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def map(self, mapper, skipna: bool = False):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
+    ):
         """
         Map values using an input mapping or function.
 
@@ -2549,6 +2554,11 @@ class ExtensionArray:
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NaN values, without passing them to func.
+
+            .. deprecated:: 3.0.0
+                Use ``skipna`` instead.
         skipna : bool, default False
             If ``True``, propagate NA values, without passing them to the
             mapping correspondence. If ``True`` is not supported, a
@@ -2561,6 +2571,20 @@ class ExtensionArray:
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
+        if na_action != lib.no_default:
+            warnings.warn(
+                "The ``na_action`` parameter has been deprecated and it will be "
+                "removed in a future version of pandas. Use ``skipna`` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            if na_action == "ignore":
+                skipna = True
+            elif na_action not in (None, "ignore"):
+                raise ValueError(
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action!r} was passed"
+                )
         return map_array(self, mapper, skipna=skipna)
 
     # ------------------------------------------------------------------------

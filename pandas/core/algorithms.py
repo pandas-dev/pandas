@@ -1629,7 +1629,10 @@ def union_with_duplicates(
 
 
 def map_array(
-    arr: ArrayLike, mapper, skipna: bool = False
+    arr: ArrayLike,
+    mapper,
+    na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+    skipna: bool = False,
 ) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
@@ -1638,6 +1641,11 @@ def map_array(
     ----------
     mapper : function, dict, or Series
         Mapping correspondence.
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NaN values, without passing them to func.
+
+            .. deprecated:: 3.0.0
+                Use ``skipna`` instead.
     skipna : bool, default False
         If ``True``, propagate NA values, without passing them to the
         mapping correspondence.
@@ -1650,6 +1658,20 @@ def map_array(
         a MultiIndex will be returned.
     """
     from pandas import Index
+
+    if na_action != lib.no_default:
+        warnings.warn(
+            "The ``na_action`` parameter has been deprecated and it will be "
+            "removed in a future version of pandas. Use ``skipna`` instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        if na_action == "ignore":
+            skipna = True
+        elif na_action not in (None, "ignore"):
+            raise ValueError(
+                f"na_action must either be 'ignore' or None, {na_action!r} was passed"
+            )
 
     # we can fastpath dict/Series to an efficient map
     # as we know that we are not going to have to yield
