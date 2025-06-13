@@ -93,6 +93,7 @@ class TestSeriesToXArray:
             isinstance(index.dtype, StringDtype)
             and index.dtype.storage == "pyarrow"
             and Version(xarray.__version__) > Version("2024.9.0")
+            and Version(xarray.__version__) < Version("2025.6.0")
         ):
             request.applymarker(
                 pytest.mark.xfail(
