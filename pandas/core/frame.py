@@ -4585,7 +4585,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if args and isinstance(args[0], list):
             if len(args) == 1:
-                args = args[0]
+                columns = args[0]
             else:
                 raise ValueError(
                     "`DataFrame.select` supports individual columns "
@@ -4594,8 +4594,10 @@ class DataFrame(NDFrame, OpsMixin):
                     "You can unpack the list if you have a mix: "
                     "`df.select(*['col1', 'col2'], 'col3')`."
                 )
+        else:
+            columns = list(args)
 
-        indexer = self.columns._get_indexer_strict(list(args), "columns")[1]
+        indexer = self.columns._get_indexer_strict(columns, "columns")[1]
         return self.take(indexer, axis=1)
 
     @overload
