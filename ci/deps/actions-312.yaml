@@ -15,7 +15,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-qt>=4.2.0
-  - boto3
+  - boto3=1.37.3
 
   # required dependencies
   - python-dateutil
