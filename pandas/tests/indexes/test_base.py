@@ -617,7 +617,7 @@ class TestIndex:
     def test_map_na_exclusion(self):
         index = Index([1.5, np.nan, 3, np.nan, 5])
 
-        result = index.map(lambda x: x * 2, na_action="ignore")
+        result = index.map(lambda x: x * 2, skipna=True)
         expected = index * 2
         tm.assert_index_equal(result, expected)
 
@@ -1717,3 +1717,29 @@ def test_is_monotonic_pyarrow_list_type():
     idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     assert not idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing
+
+
+def test_map_na_action_none():
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        result = Index([1, np.nan]).map(lambda x: 10, na_action=None)
+    expected = Index([10, 10])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_na_action_ignore():
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        result = Index([1, np.nan]).map(lambda x: 10, na_action="ignore")
+    expected = Index([10, np.nan])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_invalid_na_action():
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        with pytest.raises(ValueError, match="na_action must .* 'abc' was passed"):
+            Index([1, 2]).map(lambda x: x, na_action="abc")

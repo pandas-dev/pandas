@@ -278,14 +278,14 @@ class TestArrowArray(base.ExtensionTests):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, data[0])
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data_missing, na_action):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_map(self, data_missing, skipna):
         if data_missing.dtype.kind in "mM":
-            result = data_missing.map(lambda x: x, na_action=na_action)
+            result = data_missing.map(lambda x: x, skipna=skipna)
             expected = data_missing.to_numpy(dtype=object)
             tm.assert_numpy_array_equal(result, expected)
         else:
-            result = data_missing.map(lambda x: x, na_action=na_action)
+            result = data_missing.map(lambda x: x, skipna=skipna)
             if data_missing.dtype == "float32[pyarrow]":
                 # map roundtrips through objects, which converts to float64
                 expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
@@ -3532,9 +3532,9 @@ def test_cast_dictionary_different_value_dtype(arrow_type):
     assert result.dtypes.iloc[0] == data_type
 
 
-def test_map_numeric_na_action():
+def test_map_numeric_skipna():
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
-    result = ser.map(lambda x: 42, na_action="ignore")
+    result = ser.map(lambda x: 42, skipna=True)
     expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
     tm.assert_series_equal(result, expected)
 
