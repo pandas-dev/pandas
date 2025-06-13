@@ -74,14 +74,11 @@ maintainers:
   active:
   - jorisvandenbossche
   - TomAugspurger
-  - jreback
   - WillAyd
   - mroeschke
   - jbrockmendel
   - datapythonista
   - simonjayhawkins
-  - topper-123
-  - alimcmaster1
   - Dr-Irv
   - rhshadrach
   - phofl
@@ -108,6 +105,9 @@ maintainers:
   - noatamir
   - lithomas1
   - lukemanley
+  - topper-123
+  - alimcmaster1
+  - jreback
 workgroups:
   coc:
     name: Code of Conduct
