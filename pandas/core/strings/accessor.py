@@ -1431,8 +1431,10 @@ class StringMethods(NoNewAttributesMixin):
         Determine if each string entirely matches a regular expression.
 
         Checks if each string in the Series or Index fully matches the
-        specified regular expression pattern. This function is useful when the
-        requirement is for an entire string to conform to a pattern, such as
+        specified regular expression pattern.
+        This function is useful when the
+        requirement is for an entire string to conform
+        to a pattern, such as
         validating formats like phone numbers or email addresses.
 
         Parameters
@@ -1458,19 +1460,88 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        match : Similar, but also returns `True` when only a *prefix* of the string
-            matches the regular expression.
-        extract : Extract matched groups.
+        re.fullmatch : Match the entire string using a regular expression.
+
+        Notes
+        -----
+        This method enforces consistent behavior between Python's string dtype
+        and PyArrow-backed string arrays when using regular expressions
+        containing alternation (|). For regex
+        patterns with alternation operators,
+        the method ensures proper grouping by
+        wrapping the pattern in parentheses
+        when using PyArrow-backed string arrays.
 
         Examples
         --------
-        >>> ser = pd.Series(["cat", "duck", "dove"])
-        >>> ser.str.fullmatch(r"d.+")
-        0   False
-        1    True
-        2    True
+        >>> s = pd.Series(["foo", "bar", "foobar", ""])
+        >>> s.str.fullmatch("foo")
+        0     True
+        1    False
+        2    False
+        3    False
+        dtype: bool
+
+        >>> s.str.fullmatch(".*")
+        0     True
+        1     True
+        2     True
+        3     True
+        dtype: bool
+
+        Using regular expressions with flags:
+
+        >>> import re
+        >>> s = pd.Series(["FOO", "foo", "FoO"])
+        >>> s.str.fullmatch("foo", flags=re.IGNORECASE)
+        0     True
+        1     True
+        2     True
         dtype: bool
         """
+        is_pyarrow = False
+        arr = self._data.array
+        arr_type = type(arr).__name__
+        is_pyarrow = arr_type == "ArrowStringArray"
+        if not is_pyarrow:
+            is_pyarrow = "Arrow" in arr_type
+            if not is_pyarrow and hasattr(arr, "dtype"):
+                dtype_str = str(arr.dtype)
+                is_pyarrow = (
+                    "pyarrow" in dtype_str.lower() or "arrow" in dtype_str.lower()
+                )
+        if is_pyarrow and "|" in pat:
+
+            def _is_fully_wrapped(pattern):
+                if not (pattern.startswith("(") and pattern.endswith(")")):
+                    return False
+                inner = pattern[1:-1]
+                level = 0
+                escape = False
+                in_char_class = False
+                for char in inner:
+                    if escape:
+                        escape = False
+                        continue
+                    if char == "\\":
+                        escape = True
+                    elif not in_char_class and char == "[":
+                        in_char_class = True
+                    elif in_char_class and char == "]":
+                        in_char_class = False
+                    elif not in_char_class:
+                        if char == "(":
+                            level += 1
+                        elif char == ")":
+                            if level == 0:
+                                return False
+                            level -= 1
+                return level == 0
+
+            if not (
+                pat.startswith("(") and pat.endswith(")") and _is_fully_wrapped(pat)
+            ):
+                pat = f"({pat})"
         result = self._data.array._str_fullmatch(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
