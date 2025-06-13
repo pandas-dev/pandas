@@ -1481,7 +1481,7 @@ class ArrowExtensionArray(
         if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, skipna=skipna)
         else:
-            return super().map(mapper, skipna)
+            return super().map(mapper, skipna=skipna)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
