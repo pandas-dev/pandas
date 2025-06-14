@@ -919,3 +919,14 @@ def test_coerce_pyarrow_backend():
     result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
     expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
+
+
+def test_to_numeric_arrow_decimal_with_na():
+    # GH 61641
+    pa = pytest.importorskip("pyarrow")
+    decimal_type = ArrowDtype(pa.decimal128(3, scale=2))
+    series = Series([1, None], dtype=decimal_type)
+    result = to_numeric(series, errors="coerce")
+
+    expected = Series([1.00, pd.NA], dtype=decimal_type)
+    tm.assert_series_equal(result, expected)
