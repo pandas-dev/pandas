@@ -227,7 +227,7 @@ Dependency                                                         Minimum Versi
 `xlsxwriter <https://github.com/jmcnamara/XlsxWriter>`__           3.2.0              excel           Writing for xlsx files
 `openpyxl <https://github.com/theorchard/openpyxl>`__              3.1.2              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
 `pyxlsb <https://github.com/willtrnr/pyxlsb>`__                    1.0.10             excel           Reading for xlsb files
-`python-calamine <https://github.com/dimastbk/python-calamine>`__  0.1.7              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
+`python-calamine <https://github.com/dimastbk/python-calamine>`__  0.3.2              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
 `odfpy <https://github.com/eea/odfpy>`__                           1.4.1              excel           Reading / writing for OpenDocument 1.2 files
 ================================================================== ================== =============== =============================================================
 
