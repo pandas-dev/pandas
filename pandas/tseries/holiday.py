@@ -192,8 +192,9 @@ class Holiday:
         end_date : datetime-like, default None
             Last date the holiday is observed
         days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
-            Provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
+            Provide a tuple of days e.g  (0,1,2,3,) for Monday through Thursday
             Monday=0,..,Sunday=6
+            Only instances of the holiday included in days_of_week will be computed
         exclude_dates : DatetimeIndex or default None
             Specific dates to exclude e.g. skipping a specific year's holiday
 
@@ -258,7 +259,8 @@ class Holiday:
         )
         self.end_date = Timestamp(end_date) if end_date is not None else end_date
         self.observance = observance
-        assert days_of_week is None or type(days_of_week) == tuple
+        if not (days_of_week is None or isinstance(days_of_week, tuple)):
+            raise ValueError("days_of_week must be None or tuple.")
         self.days_of_week = days_of_week
         if not (exclude_dates is None or isinstance(exclude_dates, DatetimeIndex)):
             raise ValueError("exclude_dates must be None or of type DatetimeIndex.")
