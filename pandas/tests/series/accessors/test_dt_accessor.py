@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -193,7 +194,7 @@ class TestSeriesDatetimeValues:
             tm.assert_index_equal(result.index, ser.index)
 
             msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
                 result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
