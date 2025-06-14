@@ -13,7 +13,7 @@ from typing import (
     Any,
     NamedTuple,
     SupportsInt,
-    Union,
+    TypeAlias,
 )
 
 __all__ = ["VERSION_PATTERN", "InvalidVersion", "Version", "parse"]
@@ -77,14 +77,14 @@ class NegativeInfinityType:
 NegativeInfinity = NegativeInfinityType()
 
 
-LocalType = tuple[Union[int, str], ...]
+LocalType: TypeAlias = tuple[int | str, ...]
 
-CmpPrePostDevType = Union[InfinityType, NegativeInfinityType, tuple[str, int]]
-CmpLocalType = Union[
-    NegativeInfinityType,
-    tuple[Union[tuple[int, str], tuple[NegativeInfinityType, Union[int, str]]], ...],
-]
-CmpKey = tuple[
+CmpPrePostDevType: TypeAlias = InfinityType | NegativeInfinityType | tuple[str, int]
+CmpLocalType: TypeAlias = (
+    NegativeInfinityType
+    | tuple[tuple[int, str] | tuple[NegativeInfinityType, int | str], ...]
+)
+CmpKey: TypeAlias = tuple[
     int,
     tuple[int, ...],
     CmpPrePostDevType,
@@ -92,7 +92,7 @@ CmpKey = tuple[
     CmpPrePostDevType,
     CmpLocalType,
 ]
-VersionComparisonMethod = Callable[[CmpKey, CmpKey], bool]
+VersionComparisonMethod: TypeAlias = Callable[[CmpKey, CmpKey], bool]
 
 
 class _Version(NamedTuple):
