@@ -1326,16 +1326,6 @@ def _match_file(
 
 def _resolve_local_path(path_str: str) -> Path:
     parsed = parse_url(path_str)
-    if is_platform_windows():
-        if parsed.netloc:
-            return Path(f"//{parsed.netloc}{unquote(parsed.path)}")
-
-        path = unquote(parsed.path)
-        if path.startswith("\\") and not path.startswith("\\\\"):
-            drive = os.path.splitdrive(os.getcwd())[0]
-            return Path(drive + path)
-
-        return Path(path)
     return Path(unquote(parsed.path))
 
 
