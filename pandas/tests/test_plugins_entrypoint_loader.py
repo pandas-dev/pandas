@@ -43,7 +43,7 @@ def create_mock_entry_points(entry_points: dict[str, list[tuple[str, Any, str]]]
             return self._accessor_class
 
     # Create a dictionary of MockEntryPoint instances
-    group_map = {g: [] for g in PD_OBJECTS_ENTRYPOINTS}
+    group_map: dict[str, list[MockEntryPoint]] = {g: [] for g in PD_OBJECTS_ENTRYPOINTS}
 
     for ep_group, ep_properties in entry_points.items():
         for name, accessor_class, dist_name in ep_properties:

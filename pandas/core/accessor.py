@@ -466,19 +466,15 @@ def accessor_entry_point_loader() -> None:
         df.myplugin.do_something() # Calls MyPluginAccessor.do_something()
     """
 
-    PD_OBJECTS_ENTRYPOINTS: list[str] = [
-        "pandas.DataFrame.accessor",
-        "pandas.Series.accessor",
-        "pandas.Index.accessor",
-    ]
-
     ACCESSOR_REGISTRY_FUNCTIONS: dict[str, Callable] = {
         "pandas.DataFrame.accessor": register_dataframe_accessor,
         "pandas.Series.accessor": register_series_accessor,
         "pandas.Index.accessor": register_index_accessor,
     }
 
-    for pd_obj_entrypoint in PD_OBJECTS_ENTRYPOINTS:
+    pd_objects_entrypoints: list[str] = ACCESSOR_REGISTRY_FUNCTIONS.keys()
+
+    for pd_obj_entrypoint in pd_objects_entrypoints:
         accessors: EntryPoints = entry_points(group=pd_obj_entrypoint)
         accessor_package_dict: dict[str, str] = {}
 
@@ -488,10 +484,9 @@ def accessor_entry_point_loader() -> None:
 
             # Verifies duplicated accessor names
             if new_accessor.name in accessor_package_dict:
-                loaded_pkg_name: str = accessor_package_dict.get(new_accessor.name)
-
-                if loaded_pkg_name is None:
-                    loaded_pkg_name: str = "Unknown"
+                loaded_pkg_name: str = accessor_package_dict.get(
+                    new_accessor.name, "Unknown"
+                )
 
                 warnings.warn(
                     "Warning: you have two accessors with the same name:"
