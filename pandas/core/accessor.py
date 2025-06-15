@@ -10,7 +10,6 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
-    Any,
     final,
 )
 import warnings
@@ -405,17 +404,31 @@ def accessor_entry_point_loader() -> None:
     """
     Load and register pandas accessors declared via entry points.
 
-    This function scans the 'pandas.accessor' entry point group for accessors
-    registered by third-party packages. Each entry point is expected to follow
-    the format:
+    This function scans the 'pandas.<pd_obj>.accessor' entry point group for
+    accessors registered by third-party packages. Each entry point is expected
+    to follow the format:
 
-        TODO
+        # setup.py
+        entry_points={
+            'pandas.DataFrame.accessor': [ <name> = <module>:<AccessorClass>, ... ],
+            'pandas.Series.accessor':    [ <name> = <module>:<AccessorClass>, ... ],
+            'pandas.Index.accessor':     [ <name> = <module>:<AccessorClass>, ... ],
+        }
 
-    For example:
+    OR for pyproject.toml file:
 
-        TODO
-        TODO
-        TODO
+        # pyproject.toml
+        [project.entry-points."pandas.DataFrame.accessor"]
+        <name> = "<module>:<AccessorClass>"
+
+        [project.entry-points."pandas.Series.accessor"]
+        <name> = "<module>:<AccessorClass>"
+
+        [project.entry-points."pandas.Index.accessor"]
+        <name> = "<module>:<AccessorClass>"
+
+    For more information about entrypoints:
+    https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#plugin-entry-points
 
 
     For each valid entry point:
@@ -428,6 +441,7 @@ def accessor_entry_point_loader() -> None:
     Notes
     -----
     - This function is only intended to be called at pandas startup.
+    - For more information about accessors read their documentation.
 
     Raises
     ------
@@ -436,48 +450,67 @@ def accessor_entry_point_loader() -> None:
 
     Examples
     --------
-    df.myplugin.do_something()   # Assuming such accessor was registered
+        # setup.py
+        entry_points={
+            'pandas.DataFrame.accessor': [
+                'myplugin = myplugin.accessor:MyPluginAccessor',
+            ],
+        }
+        # END setup.py
+
+        - That entrypoint would allow the following code:
+
+        import pandas as pd
+
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        df.myplugin.do_something() # Calls MyPluginAccessor.do_something()
     """
 
-    ENTRY_POINT_GROUP: str = "pandas.accessor"
+    PD_OBJECTS_ENTRYPOINTS: list[str] = [
+        "pandas.DataFrame.accessor",
+        "pandas.Series.accessor",
+        "pandas.Index.accessor",
+    ]
 
-    accessors: EntryPoints = entry_points(group=ENTRY_POINT_GROUP)
-    accessor_package_dict: dict[str, str] = {}
+    ACCESSOR_REGISTRY_FUNCTIONS: dict[str, Callable] = {
+        "pandas.DataFrame.accessor": register_dataframe_accessor,
+        "pandas.Series.accessor": register_series_accessor,
+        "pandas.Index.accessor": register_index_accessor,
+    }
 
-    for new_accessor in accessors:
-        if new_accessor.dist is not None:
-            # Try to get new_accessor.dist.name,
-            # if that's not possible: new_pkg_name = 'Unknown'
-            new_pkg_name: str = getattr(new_accessor.dist, "name", "Unknown")
-        else:
-            new_pkg_name: str = "Unknown"
+    for pd_obj_entrypoint in PD_OBJECTS_ENTRYPOINTS:
+        accessors: EntryPoints = entry_points(group=pd_obj_entrypoint)
+        accessor_package_dict: dict[str, str] = {}
 
-        # Verifies duplicated accessor names
-        if new_accessor.name in accessor_package_dict:
-            loaded_pkg_name: str = accessor_package_dict.get(new_accessor.name)
+        for new_accessor in accessors:
+            dist = getattr(new_accessor, "dist", None)
+            new_pkg_name = getattr(dist, "name", "Unknown") if dist else "Unknown"
 
-            if loaded_pkg_name is None:
-                loaded_pkg_name = "Unknown"
+            # Verifies duplicated accessor names
+            if new_accessor.name in accessor_package_dict:
+                loaded_pkg_name: str = accessor_package_dict.get(new_accessor.name)
 
-            warnings.warn(
-                "Warning: you have two accessors with the same name:"
-                f" '{new_accessor.name}' has already been registered"
-                f" by the package '{new_pkg_name}'. So the "
-                f"'{new_accessor.name}' provided by the package "
-                f"'{loaded_pkg_name}' is not being used. "
-                "Uninstall the package you don't want"
-                "to use if you want to get rid of this warning.\n",
-                UserWarning,
-                stacklevel=2,
-            )
+                if loaded_pkg_name is None:
+                    loaded_pkg_name: str = "Unknown"
 
-        accessor_package_dict.update({new_accessor.name: new_pkg_name})
+                warnings.warn(
+                    "Warning: you have two accessors with the same name:"
+                    f" '{new_accessor.name}' has already been registered"
+                    f" by the package '{new_pkg_name}'. The "
+                    f"'{new_accessor.name}' provided by the package "
+                    f"'{loaded_pkg_name}' is not being used. "
+                    "Uninstall the package you don't want"
+                    "to use if you want to get rid of this warning.\n",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
-        def make_accessor(ep):
-            def accessor(self) -> Any:
-                cls_ = ep.load()
-                return cls_(self)
+            accessor_package_dict.update({new_accessor.name: new_pkg_name})
 
-            return accessor
+            def make_accessor(ep):
+                return lambda self, ep=ep: ep.load()(self)
 
-        register_dataframe_accessor(new_accessor.name)(make_accessor(new_accessor))
+            register_fn = ACCESSOR_REGISTRY_FUNCTIONS.get(pd_obj_entrypoint)
+
+            if register_fn is not None:
+                register_fn(new_accessor.name)(make_accessor(new_accessor))
