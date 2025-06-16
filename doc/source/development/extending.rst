@@ -494,7 +494,7 @@ https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1.
 IO engines
 -----------
 
-pandas provides several IO connectors such as :func:`read_csv` or :meth:`to_parquet`, and many
+pandas provides several IO connectors such as :func:`read_csv` or :meth:`DataFrame.to_parquet`, and many
 of those support multiple engines. For example, :func:`read_csv` supports the ``python``, ``c``
 and ``pyarrow`` engines, each with its advantages and disadvantages, making each more appropriate
 for certain use cases.
