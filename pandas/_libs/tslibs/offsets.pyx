@@ -4523,7 +4523,7 @@ cdef class Easter(SingleConstructorOffset):
     method : int, default 3
         The method used to calculate the date of Easter. Valid options are:
         - 1 (EASTER_JULIAN): Original calculation in Julian calendar
-        - 2 (EASTER_ORTHODOX): Original method, with date converted to Gregorian calendar
+        - 2 (EASTER_ORTHODOX): Original method, date converted to Gregorian calendar
         - 3 (EASTER_WESTERN): Revised method, in Gregorian calendar
         These constants are defined in the `dateutil.easter` module.
 
