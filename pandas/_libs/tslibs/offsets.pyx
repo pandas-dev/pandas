@@ -4554,9 +4554,10 @@ cdef class Easter(SingleConstructorOffset):
             raise ValueError(f"Method must be 1<=method<=3, got {method}")
 
     cpdef __setstate__(self, state):
+        from dateutil.easter import EASTER_WESTERN
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
-        self.method = state.pop("method")
+        self.method = state.pop("method", EASTER_WESTERN)
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
