@@ -4550,6 +4550,9 @@ cdef class Easter(SingleConstructorOffset):
 
         self.method = method
 
+        if method < 1 or method > 3:
+            raise ValueError(f"Method must be 1<=method<=3, got {method}")
+
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
