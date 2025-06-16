@@ -1391,6 +1391,8 @@ def iterdir(
                 glob,
             ):
                 return [resolved_path]
+            else:
+                return []
 
         result = []
         for entry in resolved_path.iterdir():
