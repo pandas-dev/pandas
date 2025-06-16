@@ -10,9 +10,8 @@ from datetime import datetime
 import pytest
 
 from pandas.tests.tseries.offsets.common import assert_offset_equal
-
 from pandas.tseries.offsets import Easter
-from dateutil.easter import EASTER_WESTERN, EASTER_ORTHODOX
+from dateutil.easter import EASTER_ORTHODOX, EASTER_WESTERN
 
 
 class TestEaster:
