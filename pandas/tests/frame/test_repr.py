@@ -71,9 +71,12 @@ class TestDataFrameRepr:
         repr(df)
 
         # this travels an improper code path
+        # #60925 should raise when one of index's items is a list and others are not
         index[0] = ["faz", "boo"]
-        df.index = index
-        repr(df)
+        msg = "Index names must all be hashable, or all lists to make MultiIndex"
+        with pytest.raises(ValueError, match=msg):
+            df.index = index
+            repr(df)
 
     def test_repr_with_mi_nat(self):
         df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
