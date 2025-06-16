@@ -4520,6 +4520,12 @@ cdef class Easter(SingleConstructorOffset):
         The number of years represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
+    method : int, default 3
+        The method used to calculate the date of Easter. Valid options are:
+        - 1 (EASTER_JULIAN): Original calculation in Julian calendar
+        - 2 (EASTER_ORTHODOX): Original method, date converted to Gregorian calendar
+        - 3 (EASTER_WESTERN): Revised method, in Gregorian calendar
+        These constants are defined in the `dateutil.easter` module.
 
     See Also
     --------
@@ -4532,15 +4538,32 @@ cdef class Easter(SingleConstructorOffset):
     Timestamp('2022-04-17 00:00:00')
     """
 
+    _attributes = tuple(["n", "normalize", "method"])
+
+    cdef readonly:
+        int method
+
+    from dateutil.easter import EASTER_WESTERN
+
+    def __init__(self, n=1, normalize=False, method=EASTER_WESTERN):
+        BaseOffset.__init__(self, n, normalize)
+
+        self.method = method
+
+        if method < 1 or method > 3:
+            raise ValueError(f"Method must be 1<=method<=3, got {method}")
+
     cpdef __setstate__(self, state):
+        from dateutil.easter import EASTER_WESTERN
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
+        self.method = state.pop("method", EASTER_WESTERN)
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         from dateutil.easter import easter
 
-        current_easter = easter(other.year)
+        current_easter = easter(other.year, method=self.method)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
         )
@@ -4555,7 +4578,7 @@ cdef class Easter(SingleConstructorOffset):
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
         # other
-        new = easter(other.year + n)
+        new = easter(other.year + n, method=self.method)
         new = datetime(
             new.year,
             new.month,
@@ -4573,7 +4596,7 @@ cdef class Easter(SingleConstructorOffset):
 
         from dateutil.easter import easter
 
-        return date(dt.year, dt.month, dt.day) == easter(dt.year)
+        return date(dt.year, dt.month, dt.day) == easter(dt.year, method=self.method)
 
 
 # ----------------------------------------------------------------------
