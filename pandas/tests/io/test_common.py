@@ -202,10 +202,11 @@ Look,a snake,🐍"""
             rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg9 = rf"No such file or directory: '.+does_not_exist\.{fn_ext}'"
 
         with pytest.raises(
             error_class,
-            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8}|{msg9})",
         ):
             reader(path)
 
@@ -273,10 +274,11 @@ Look,a snake,🐍"""
             rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg9 = rf"No such file or directory: '.+does_not_exist\.{fn_ext}'"
 
         with pytest.raises(
             error_class,
-            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8}|{msg9})",
         ):
             reader(path)
 
@@ -627,8 +629,10 @@ def test_bad_encdoing_errors():
 @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_errno_attribute():
     # GH 13872
-    with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
-        pd.read_csv("doesnt_exist")
+    non_existent_file = "doesnt_exist"
+    msg = rf"No such file or directory: '{non_existent_file}'"
+    with pytest.raises(FileNotFoundError, match=msg) as err:
+        pd.read_csv(non_existent_file)
         assert err.errno == errno.ENOENT
 
 
