@@ -7,12 +7,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
-
 from dateutil.easter import (
     EASTER_ORTHODOX,
-    EASTER_WESTERN
+    EASTER_WESTERN,
 )
+import pytest
 
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
