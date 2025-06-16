@@ -2,6 +2,10 @@
 
 [TOC]
 
+This is a community-maintained list of projects that build on pandas in order to provide tools
+in the PyData space. The pandas core development team does not necessarily endorse any particular
+project on this list or have any knowledge of the maintenance status of any particular library.
+
 ## Extensions
 
 pandas has different ways to allow third-party packages to enhance its
