@@ -89,10 +89,9 @@ def test_nonexistent_path(all_parsers):
     parser = all_parsers
     path = f"{uuid.uuid4()}.csv"
 
-    msg = r"\[Errno 2\]"
-    with pytest.raises(FileNotFoundError, match=msg) as e:
+    msg = rf"No such file or directory: '{path}'"
+    with pytest.raises(FileNotFoundError, match=msg):
         parser.read_csv(path)
-    assert path == e.value.filename
 
 
 @pytest.mark.skipif(WASM, reason="limited file system access on WASM")

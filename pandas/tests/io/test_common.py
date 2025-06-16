@@ -703,6 +703,9 @@ def test_iterdir_local(local_csv_directory):
         assert file.suffix == ".csv"
 
 
+def test_iterdir_local_passthrough(local_csv_directory): ...
+
+
 def test_remote_csv_directory(remote_csv_directory):
     import fsspec
     from fsspec.implementations.memory import MemoryFileSystem

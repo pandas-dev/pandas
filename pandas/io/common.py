@@ -1384,26 +1384,33 @@ def iterdir(
 
     if scheme == "file":
         resolved_path = _resolve_local_path(path_str)
+        if not resolved_path.exists():
+            raise FileNotFoundError(f"No such file or directory: '{resolved_path}'")
+
+        result = []
         if resolved_path.is_file():
             if _match_file(
                 resolved_path,
                 extensions,
                 glob,
             ):
-                return [resolved_path]
-            else:
-                return []
+                result.append(resolved_path)
+                return result
 
-        result = []
-        for entry in resolved_path.iterdir():
-            if entry.is_file():
-                if _match_file(
-                    entry,
-                    extensions,
-                    glob,
-                ):
-                    result.append(entry)
-        return result
+        if resolved_path.is_dir():
+            for entry in resolved_path.iterdir():
+                if entry.is_file():
+                    if _match_file(
+                        entry,
+                        extensions,
+                        glob,
+                    ):
+                        result.append(entry)
+            return result
+
+        raise ValueError(
+            f"The path '{resolved_path}' is neither a file nor a directory."
+        )
 
     # Remote paths
     fsspec = import_optional_dependency("fsspec", extra=scheme)
