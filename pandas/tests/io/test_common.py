@@ -707,7 +707,13 @@ def test_iterdir_local(local_csv_directory):
         assert file.suffix == ".csv"
 
 
-def test_iterdir_local_passthrough(local_csv_directory): ...
+def test_iterdir_local_passthrough(local_csv_file):
+    result = icom.iterdir(local_csv_file)
+    assert isinstance(result, list)
+    assert len(result) == 1
+    file = result[0]
+    assert file.exists()
+    assert file.is_file()
 
 
 def test_remote_csv_directory(remote_csv_directory):
