@@ -550,7 +550,7 @@ look at the entry points, will find the ``EmptyDataEngine`` engine, and will cal
 method on it with the arguments provided by the user (except the ``engine`` parameter).
 
 To avoid conflicts in the names of engines, we keep an "IO engines" section in our
-[Ecosystem page](https://pandas.pydata.org/community/ecosystem.html#io-engines).
+`Ecosystem page <https://pandas.pydata.org/community/ecosystem.html#io-engines>`_.
 
 .. _extending.pandas_priority:
 
