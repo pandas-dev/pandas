@@ -40,54 +40,51 @@ class TestEaster:
     @pytest.mark.parametrize(
         "offset,date,expected",
         [
-            (
-                Easter(method=EASTER_WESTERN),
-                datetime(2010, 1, 1),
-                datetime(2010, 4, 4)
-            ),
+            (Easter(method=EASTER_WESTERN), datetime(2010, 1, 1), datetime(2010, 4, 4)),
             (
                 Easter(method=EASTER_WESTERN),
                 datetime(2010, 4, 5),
-                datetime(2011, 4, 24)),
+                datetime(2011, 4, 24),
+            ),
             (
                 Easter(2, method=EASTER_WESTERN),
                 datetime(2010, 1, 1),
-                datetime(2011, 4, 24)
+                datetime(2011, 4, 24),
             ),
             (
                 Easter(method=EASTER_WESTERN),
                 datetime(2010, 4, 4),
-                datetime(2011, 4, 24)
+                datetime(2011, 4, 24),
             ),
             (
                 Easter(2, method=EASTER_WESTERN),
                 datetime(2010, 4, 4),
-                datetime(2012, 4, 8)
+                datetime(2012, 4, 8),
             ),
             (
                 -Easter(method=EASTER_WESTERN),
                 datetime(2011, 1, 1),
-                datetime(2010, 4, 4)
+                datetime(2010, 4, 4),
             ),
             (
                 -Easter(method=EASTER_WESTERN),
                 datetime(2010, 4, 5),
-                datetime(2010, 4, 4)
+                datetime(2010, 4, 4),
             ),
             (
                 -Easter(2, method=EASTER_WESTERN),
                 datetime(2011, 1, 1),
-                datetime(2009, 4, 12)
+                datetime(2009, 4, 12),
             ),
             (
                 -Easter(method=EASTER_WESTERN),
                 datetime(2010, 4, 4),
-                datetime(2009, 4, 12)
+                datetime(2009, 4, 12),
             ),
             (
                 -Easter(2, method=EASTER_WESTERN),
                 datetime(2010, 4, 4),
-                datetime(2008, 3, 23)
+                datetime(2008, 3, 23),
             ),
         ],
     )
@@ -100,52 +97,52 @@ class TestEaster:
             (
                 Easter(method=EASTER_ORTHODOX),
                 datetime(2010, 1, 1),
-                datetime(2010, 4, 4)
+                datetime(2010, 4, 4),
             ),
             (
                 Easter(method=EASTER_ORTHODOX),
                 datetime(2010, 4, 5),
-                datetime(2011, 4, 24)
+                datetime(2011, 4, 24),
             ),
             (
                 Easter(2, method=EASTER_ORTHODOX),
                 datetime(2010, 1, 1),
-                datetime(2011, 4, 24)
+                datetime(2011, 4, 24),
             ),
             (
                 Easter(method=EASTER_ORTHODOX),
                 datetime(2010, 4, 4),
-                datetime(2011, 4, 24)
+                datetime(2011, 4, 24),
             ),
             (
                 Easter(2, method=EASTER_ORTHODOX),
                 datetime(2010, 4, 4),
-                datetime(2012, 4, 15)
+                datetime(2012, 4, 15),
             ),
             (
                 -Easter(method=EASTER_ORTHODOX),
                 datetime(2011, 1, 1),
-                datetime(2010, 4, 4)
+                datetime(2010, 4, 4),
             ),
             (
                 -Easter(method=EASTER_ORTHODOX),
                 datetime(2010, 4, 5),
-                datetime(2010, 4, 4)
+                datetime(2010, 4, 4),
             ),
             (
                 -Easter(2, method=EASTER_ORTHODOX),
                 datetime(2011, 1, 1),
-                datetime(2009, 4, 19)
+                datetime(2009, 4, 19),
             ),
             (
                 -Easter(method=EASTER_ORTHODOX),
                 datetime(2010, 4, 4),
-                datetime(2009, 4, 19)
+                datetime(2009, 4, 19),
             ),
             (
                 -Easter(2, method=EASTER_ORTHODOX),
                 datetime(2010, 4, 4),
-                datetime(2008, 4, 27)
+                datetime(2008, 4, 27),
             ),
         ],
     )
