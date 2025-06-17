@@ -749,6 +749,7 @@ Indexing
 - Bug in :meth:`MultiIndex.insert` when a new value inserted to a datetime-like level gets cast to ``NaT`` and fails indexing (:issue:`60388`)
 - Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 - Bug in reindexing of :class:`DataFrame` with :class:`PeriodDtype` columns in case of consolidated block (:issue:`60980`, :issue:`60273`)
+- Bug in creating :class:`Index` with one item being a ``list`` among others that aren't (should raise ValueError) (:issue:`60925`)
 
 Missing
 ^^^^^^^
