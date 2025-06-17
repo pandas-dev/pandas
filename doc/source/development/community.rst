@@ -77,7 +77,7 @@ Any community member can open issues to:
 - Ask questions, e.g. "I noticed the behavior of a certain function
   changed between versions. Is this expected?".
 
-    Ideally, your questions should be related to how pandas works rather
+  - Ideally, your questions should be related to how pandas works rather
     than how you use pandas. `StackOverflow <https://stackoverflow.com/>`_ is
     better suited for answering usage questions, and we ask that all usage
     questions are first asked on StackOverflow. Thank you for respecting our

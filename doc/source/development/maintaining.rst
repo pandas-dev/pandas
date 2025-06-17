@@ -218,11 +218,11 @@ pandas supports point releases (e.g. ``1.4.3``) that aim to:
 
 1. Fix bugs in new features introduced in the first minor version release.
 
-  * e.g. If a new feature was added in ``1.4`` and contains a bug, a fix can be applied in ``1.4.3``
+   * e.g. If a new feature was added in ``1.4`` and contains a bug, a fix can be applied in ``1.4.3``
 
 2. Fix bugs that used to work in a few minor releases prior. There should be agreement between core team members that a backport is appropriate.
 
-  * e.g. If a feature worked in ``1.2`` and stopped working since ``1.3``, a fix can be applied in ``1.4.3``.
+   * e.g. If a feature worked in ``1.2`` and stopped working since ``1.3``, a fix can be applied in ``1.4.3``.
 
 Since pandas minor releases are based on GitHub branches (e.g. point release of ``1.4`` are based off the ``1.4.x`` branch),
 "backporting" means merging a pull request fix to the ``main`` branch and correct minor branch associated with the next point release.
@@ -289,8 +289,8 @@ The required steps for adding a maintainer are:
 1. Contact the contributor and ask their interest to join.
 2. Add the contributor to the appropriate `GitHub Team <https://github.com/orgs/pandas-dev/teams>`_ if accepted the invitation.
 
-  * ``pandas-core`` is for core team members
-  * ``pandas-triage`` is for pandas triage members
+   * ``pandas-core`` is for core team members
+   * ``pandas-triage`` is for pandas triage members
 
 If adding to ``pandas-core``, there are two additional steps:
 
@@ -467,10 +467,10 @@ Post-Release
    patch releases. The exact instructions are (replace the example version numbers by
    the appropriate ones for the version you are releasing):
 
-    - Log in to the server and use the correct user.
-    - ``cd /var/www/html/pandas-docs/``
-    - ``ln -sfn version/2.1 stable`` (for a major or minor release)
-    - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
+   - Log in to the server and use the correct user.
+   - ``cd /var/www/html/pandas-docs/``
+   - ``ln -sfn version/2.1 stable`` (for a major or minor release)
+   - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation
@@ -487,8 +487,8 @@ Post-Release
 6. Announce the new release in the official channels (use previous announcements
    for reference):
 
-    - The pandas-dev and pydata mailing lists
-    - X, Mastodon, Telegram and LinkedIn
+   - The pandas-dev and pydata mailing lists
+   - X, Mastodon, Telegram and LinkedIn
 
 7. Update this release instructions to fix anything incorrect and to update about any
    change since the last release.

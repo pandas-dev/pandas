@@ -158,8 +158,8 @@ Option 1: using Liveserve
    file and click on **Open with Live Serve**. Alternatively, you can open the
    file in the editor and click on the **Go live** button on the status bar.
 
-    .. image:: ./gitpod-imgs/vscode-statusbar.png
-        :alt: Gitpod workspace VSCode start live serve screenshot
+   .. image:: ./gitpod-imgs/vscode-statusbar.png
+      :alt: Gitpod workspace VSCode start live serve screenshot
 
 #. A simple browser will open to the right-hand side of the editor. We recommend
    closing it and click on the **Open in browser** button in the pop-up.
@@ -182,13 +182,13 @@ uses the rst extension with docutils.
    :kbd:`Ctrl-Shift-P` in Linux and Windows. Start typing "restructured"
    and choose either "Open preview" or "Open preview to the Side".
 
-    .. image:: ./gitpod-imgs/vscode-rst.png
-        :alt: Gitpod workspace VSCode open rst screenshot
+   .. image:: ./gitpod-imgs/vscode-rst.png
+      :alt: Gitpod workspace VSCode open rst screenshot
 
 #. As you work on the document, you will see a live rendering of it on the editor.
 
-    .. image:: ./gitpod-imgs/rst-rendering.png
-        :alt: Gitpod workspace VSCode rst rendering screenshot
+   .. image:: ./gitpod-imgs/rst-rendering.png
+      :alt: Gitpod workspace VSCode rst rendering screenshot
 
 If you want to see the final output with the ``html`` theme you will need to
 rebuild the docs with ``make html`` and use Live Serve as described in option 1.

@@ -444,11 +444,11 @@ be located.
                result = ser.loc[[3, 4]]
                tm.assert_series_equal(result, expected)
 
-    In cases like this, the test location should be based on the *underlying*
-    method being tested.  Or in the case of a test for a bugfix, the location
-    of the actual bug.  So in this example, we know that ``Series.__getitem__``
-    calls ``Series.loc.__getitem__``, so this is *really* a test for
-    ``loc.__getitem__``.  So this test belongs in ``tests.indexing.test_loc``.
+      In cases like this, the test location should be based on the *underlying*
+      method being tested.  Or in the case of a test for a bugfix, the location
+      of the actual bug.  So in this example, we know that ``Series.__getitem__``
+      calls ``Series.loc.__getitem__``, so this is *really* a test for
+      ``loc.__getitem__``.  So this test belongs in ``tests.indexing.test_loc``.
 
 6. Is your test for a DataFrame or Series method?
 
