@@ -195,7 +195,7 @@ class TestIndexConstructorInference:
         data = ['a', ['b', 'c'], ['b', 'c']]
         with pytest.raises(ValueError, match=msg):
             Index(data)
-            
+
         data = [['b', 'c'], ('b', 'c')]
         with pytest.raises(ValueError, match=msg):
             Index(data)

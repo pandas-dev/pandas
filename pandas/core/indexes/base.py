@@ -568,9 +568,12 @@ class Index(IndexOpsMixin, PandasObject):
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
             #60925 should raise when one of index's items is a list and others are not
-            if any(isinstance(el, list) for el in data) and not all(isinstance(el, list) for el in data):
-                raise ValueError("Index names must all be hashable, or all lists to make MultiIndex")
-            
+            if (any(isinstance(el, list) for el in data) and
+                not all(isinstance(el, list) for el in data)):
+                raise ValueError(
+                    "Index names must all be hashable, or all lists to make MultiIndex"
+                )
+
         try:
             arr = sanitize_array(data, None, dtype=dtype, copy=copy)
         except ValueError as err:
