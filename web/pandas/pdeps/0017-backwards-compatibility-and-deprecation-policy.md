@@ -58,8 +58,12 @@ Additionally, when one introduces a deprecation, they should:
 
 ### Which warning class to use
 
-Deprecations should initially use ``DeprecationWarning``, and then be switched to ``FutureWarning`` for broader visibility in the last minor release before the major release they are planned to be removed in.  
-This implementation detail can be ignored by using the appropriate ``PandasDeprecationWarning`` variable, which will be aliased to the proper warning class based on the pandas version.
+Starting in pandas 3.0, pandas will provide version-specific warnings. For example, ``Pandas4Warnings`` for all deprecation warnings that will be enforced in pandas 4.0. In addition to these, pandas exposes four additional classes to give users more control over pandas deprecation warnings.
+
+- :class:`pandas.errors.PandasChangeWarning`: Base class of all pandas deprecation warnings.
+- :class:`pandas.errors.PandasPendingDeprecationWarning`: Base class of all warnings which emit a ``PendingDeprecationWarning``, independent of the version they will be enforced.
+- :class:`pandas.errors.PandasDeprecationWarning`: Base class of all warnings which emit a ``DeprecationWarning``, independent of the version they will be enforced.
+- :class:`pandas.errors.PandasFutureWarning`: Base class of all warnings which emit a ``PandasFutureWarning``, independent of the version they will be enforced.
 
 ### Enforcement of deprecations
 
