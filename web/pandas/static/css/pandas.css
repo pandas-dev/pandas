@@ -14,6 +14,7 @@ h2 {
     font-size: 1.8rem;
     font-weight: 700;
     color: #130654;
+    margin: 2.4rem 0 1.2rem;
 }
 h3 {
     font-size: 1.3rem;
@@ -21,6 +22,15 @@ h3 {
     color: black;
 }
 h3 a {
+    color: black;
+    text-decoration: underline dotted !important;
+}
+h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: black;
+}
+h4 a {
     color: black;
     text-decoration: underline dotted !important;
 }
