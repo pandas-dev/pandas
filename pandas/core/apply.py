@@ -209,6 +209,30 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         """
         Apply `func` along the given axis using Numba.
         """
+
+        if is_list_like(func):
+            raise NotImplementedError(
+                "the 'numba' engine doesn't support lists of callables yet"
+            )
+
+        if isinstance(func, str):
+            raise NotImplementedError(
+                "the 'numba' engine doesn't support using "
+                "a string as the callable function"
+            )
+
+        elif isinstance(func, np.ufunc):
+            raise NotImplementedError(
+                "the 'numba' engine doesn't support "
+                "using a numpy ufunc as the callable function"
+            )
+
+        # check for data typing
+        if not isinstance(data, np.ndarray):
+            if len(data.columns) == 0 and len(data.index) == 0:
+                return data.copy() # mimic apply_empty_result()
+            return FrameApply.apply_standard()
+
         engine_kwargs: dict[str, bool] | None = (
             decorator if isinstance(decorator, dict) else None
         )
@@ -1011,10 +1035,6 @@ class FrameApply(NDFrameApply):
 
         # dispatch to handle list-like or dict-like
         if is_list_like(self.func):
-            if self.engine == "numba":
-                raise NotImplementedError(
-                    "the 'numba' engine doesn't support lists of callables yet"
-                )
             return self.apply_list_or_dict_like()
 
         # all empty
@@ -1023,20 +1043,10 @@ class FrameApply(NDFrameApply):
 
         # string dispatch
         if isinstance(self.func, str):
-            if self.engine == "numba":
-                raise NotImplementedError(
-                    "the 'numba' engine doesn't support using "
-                    "a string as the callable function"
-                )
             return self.apply_str()
 
         # ufunc
         elif isinstance(self.func, np.ufunc):
-            if self.engine == "numba":
-                raise NotImplementedError(
-                    "the 'numba' engine doesn't support "
-                    "using a numpy ufunc as the callable function"
-                )
             with np.errstate(all="ignore"):
                 results = self.obj._mgr.apply("apply", func=self.func)
             # _constructor will retain self.index and self.columns
@@ -1044,10 +1054,6 @@ class FrameApply(NDFrameApply):
 
         # broadcasting
         if self.result_type == "broadcast":
-            if self.engine == "numba":
-                raise NotImplementedError(
-                    "the 'numba' engine doesn't support result_type='broadcast'"
-                )
             return self.apply_broadcast(self.obj)
 
         # one axis empty
