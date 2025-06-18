@@ -2295,7 +2295,7 @@ class ExtensionArray:
         # Implementers are encouraged to override this method to avoid
         # elementwise rounding.
         if self.dtype._is_boolean:
-            return self
+            return self.copy()
         if not self.dtype._is_numeric:
             raise TypeError(f"Cannot round {type(self)} dtype as it is non-numeric")
         return self._from_sequence(

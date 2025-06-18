@@ -731,7 +731,8 @@ class BaseMethodsTests:
 
     def test_round(self, data):
         if not data.dtype._is_numeric:
-            with pytest.raises(TypeError):
+            msg = "dtype as it is non-numeric"
+            with tm.assert_produces_warning(TypeError, match=msg):
                 data.round()
         elif data.dtype._is_boolean:
             result = pd.Series(data).round()
