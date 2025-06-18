@@ -231,7 +231,7 @@ def local_csv_file(tmp_path):
     Fixture to create a dummy CSV file for testing.
     """
     file_path = tmp_path / "dummy.csv"
-    with open(file_path, "w") as f:
+    with file_path.open(mode="x", encoding="utf-8") as f:
         f.write("A,B,C\n1,2,3\n4,5,6\n")
     return file_path
 
