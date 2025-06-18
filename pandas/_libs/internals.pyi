@@ -1,6 +1,8 @@
-from typing import (
+from collections.abc import (
     Iterator,
     Sequence,
+)
+from typing import (
     final,
     overload,
 )

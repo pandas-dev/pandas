@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from typing import (
     Any,
-    Callable,
 )
 
 def ujson_dumps(

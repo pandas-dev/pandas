@@ -412,7 +412,7 @@ def andrews_curves(
         >>> df = pd.read_csv(
         ...     "https://raw.githubusercontent.com/pandas-dev/"
         ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )
+        ... )  # doctest: +SKIP
         >>> pd.plotting.andrews_curves(df, "Name")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -551,7 +551,7 @@ def parallel_coordinates(
         >>> df = pd.read_csv(
         ...     "https://raw.githubusercontent.com/pandas-dev/"
         ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )
+        ... )  # doctest: +SKIP
         >>> pd.plotting.parallel_coordinates(
         ...     df, "Name", color=("#556270", "#4ECDC4", "#C7F464")
         ... )  # doctest: +SKIP
@@ -632,6 +632,15 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
 def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
     """
     Autocorrelation plot for time series.
+
+    This method generates an autocorrelation plot for a given time series,
+    which helps to identify any periodic structure or correlation within the
+    data across various lags. It shows the correlation of a time series with a
+    delayed copy of itself as a function of delay. Autocorrelation plots are useful for
+    checking randomness in a data set. If the data are random, the autocorrelations
+    should be near zero for any and all time-lag separations. If the data are not
+    random, then one or more of the autocorrelations will be significantly
+    non-zero.
 
     Parameters
     ----------

@@ -6,9 +6,9 @@ from pandas.core.internals.managers import (
 )
 
 __all__ = [
-    "Block",
+    "Block",  # pyright:ignore[reportUnsupportedDunderAll)]
     "BlockManager",
-    "ExtensionBlock",
+    "ExtensionBlock",  # pyright:ignore[reportUnsupportedDunderAll)]
     "SingleBlockManager",
     "concatenate_managers",
     "make_block",
