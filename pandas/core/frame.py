@@ -129,7 +129,10 @@ from pandas.core import (
     roperator,
 )
 from pandas.core.accessor import Accessor
-from pandas.core.apply import NumbaExecutionEngine, reconstruct_and_relabel_result
+from pandas.core.apply import (
+    NumbaExecutionEngine,
+    reconstruct_and_relabel_result,
+)
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
@@ -10625,8 +10628,11 @@ class DataFrame(NDFrame, OpsMixin):
             numba_jit.__pandas_udf__ = NumbaExecutionEngine
             engine = numba_jit
 
-        if engine is None or engine == "python":
+        if engine is None or isinstance(engine, str):
             from pandas.core.apply import frame_apply
+
+            if engine not in ["python"] and engine is not None:
+                raise ValueError(f"Unknown engine '{engine}'")
 
             op = frame_apply(
                 self,
@@ -10641,7 +10647,8 @@ class DataFrame(NDFrame, OpsMixin):
                 kwargs=kwargs,
             )
             return op.apply().__finalize__(self, method="apply")
-        elif hasattr(engine, "__pandas_udf__"):
+
+        if hasattr(engine, "__pandas_udf__"):
             if result_type is not None:
                 raise NotImplementedError(
                     f"{result_type=} only implemented for the default engine"

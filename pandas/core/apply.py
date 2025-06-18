@@ -230,8 +230,12 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         # check for data typing
         if not isinstance(data, np.ndarray):
             if len(data.columns) == 0 and len(data.index) == 0:
-                return data.copy() # mimic apply_empty_result()
-            return FrameApply.apply_standard()
+                return data.copy()  # mimic apply_empty_result()
+            # TODO:
+            # Rewrite FrameApply.apply_series_numba() logic without FrameApply object
+            raise NotImplementedError(
+                "raw=False is not yet supported in NumbaExecutionEngine."
+            )
 
         engine_kwargs: dict[str, bool] | None = (
             decorator if isinstance(decorator, dict) else None
@@ -780,12 +784,6 @@ class Apply(metaclass=abc.ABCMeta):
             Result when self.func is a list-like or dict-like, None otherwise.
         """
 
-        if self.engine == "numba":
-            raise NotImplementedError(
-                "The 'numba' engine doesn't support list-like/"
-                "dict likes of callables yet."
-            )
-
         if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
             return self.obj.T.apply(self.func, 0, args=self.args, **self.kwargs).T
 
@@ -1153,28 +1151,13 @@ class FrameApply(NDFrameApply):
 
             return wrapper
 
-        if engine == "numba":
-            numba = import_optional_dependency("numba")
-
-            if not hasattr(numba.jit, "__pandas_udf__"):
-                numba.jit.__pandas_udf__ = NumbaExecutionEngine
-
-            result = numba.jit.__pandas_udf__.apply(
-                self.values,
-                self.func,
-                self.args,
-                self.kwargs,
-                engine_kwargs,
-                self.axis,
-            )
-        else:
-            result = np.apply_along_axis(
-                wrap_function(self.func),
-                self.axis,
-                self.values,
-                *self.args,
-                **self.kwargs,
-            )
+        result = np.apply_along_axis(
+            wrap_function(self.func),
+            self.axis,
+            self.values,
+            *self.args,
+            **self.kwargs,
+        )
 
         # TODO: mixed type case
         if result.ndim == 2:
