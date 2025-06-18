@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
 
 env:
   ENV_FILE: environment.yml
@@ -23,7 +23,7 @@ permissions:
 jobs:
   web_and_docs:
     name: Doc Build and Upload
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -46,6 +46,10 @@ jobs:
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
+    - name: Extra installs
+      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+
     - name: Test website
       run: python -m pytest web/
 
@@ -54,6 +58,10 @@ jobs:
 
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
+
+    - name: Build the interactive terminal
+      working-directory: web/interactive_terminal
+      run: jupyter lite build
 
     - name: Build documentation zip
       run: doc/make.py zip_html

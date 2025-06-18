@@ -44,6 +44,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -360,8 +361,11 @@ class IndexOpsMixin(OpsMixin):
         # We need this defined here for mypy
         raise AbstractMethodError(self)
 
+    # Temporarily avoid using `-> Literal[1]:` because of an IPython (jedi) bug
+    # https://github.com/ipython/ipython/issues/14412
+    # https://github.com/davidhalter/jedi/issues/1990
     @property
-    def ndim(self) -> Literal[1]:
+    def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
 
@@ -501,6 +505,11 @@ class IndexOpsMixin(OpsMixin):
     def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
+
+        This property provides direct access to the underlying array data of a
+        Series or Index without requiring conversion to a NumPy array. It
+        returns an ExtensionArray, which is the native storage format for
+        pandas extension dtypes.
 
         Returns
         -------
@@ -795,9 +804,9 @@ class IndexOpsMixin(OpsMixin):
         dtype: float64
 
         >>> s.argmax()
-        2
+        np.int64(2)
         >>> s.argmin()
-        0
+        np.int64(0)
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -1049,6 +1058,34 @@ class IndexOpsMixin(OpsMixin):
         4.0    1
         NaN    1
         Name: count, dtype: int64
+
+        **Categorical Dtypes**
+
+        Rows with categorical type will be counted as one group
+        if they have same categories and order.
+        In the example below, even though ``a``, ``c``, and ``d``
+        all have the same data types of ``category``,
+        only ``c`` and ``d`` will be counted as one group
+        since ``a`` doesn't have the same categories.
+
+        >>> df = pd.DataFrame({"a": [1], "b": ["2"], "c": [3], "d": [3]})
+        >>> df = df.astype({"a": "category", "c": "category", "d": "category"})
+        >>> df
+           a  b  c  d
+        0  1  2  3  3
+
+        >>> df.dtypes
+        a    category
+        b      object
+        c    category
+        d    category
+        dtype: object
+
+        >>> df.dtypes.value_counts()
+        category    2
+        category    1
+        object      1
+        Name: count, dtype: int64
         """
         return algorithms.value_counts_internal(
             self,
@@ -1259,13 +1296,18 @@ class IndexOpsMixin(OpsMixin):
         if uniques.dtype == np.float16:
             uniques = uniques.astype(np.float32)
 
-        if isinstance(self, ABCIndex):
-            # preserve e.g. MultiIndex
+        if isinstance(self, ABCMultiIndex):
+            # preserve MultiIndex
             uniques = self._constructor(uniques)
         else:
             from pandas import Index
 
-            uniques = Index(uniques)
+            try:
+                uniques = Index(uniques, dtype=self.dtype)
+            except NotImplementedError:
+                # not all dtypes are supported in Index that are allowed for Series
+                # e.g. float16 or bytes
+                uniques = Index(uniques)
         return codes, uniques
 
     _shared_docs["searchsorted"] = """
@@ -1318,7 +1360,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: int64
 
         >>> ser.searchsorted(4)
-        3
+        np.int64(3)
 
         >>> ser.searchsorted([0, 4])
         array([0, 3])
@@ -1337,7 +1379,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: datetime64[s]
 
         >>> ser.searchsorted('3/14/2000')
-        3
+        np.int64(3)
 
         >>> ser = pd.Categorical(
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
@@ -1347,7 +1389,7 @@ class IndexOpsMixin(OpsMixin):
         Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
-        1
+        np.int64(1)
 
         >>> ser.searchsorted(['bread'], side='right')
         array([3])
@@ -1438,9 +1480,9 @@ class IndexOpsMixin(OpsMixin):
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
 
-        return self._construct_result(result, name=res_name)
+        return self._construct_result(result, name=res_name, other=other)
 
-    def _construct_result(self, result, name):
+    def _construct_result(self, result, name, other):
         """
         Construct an appropriately-wrapped result from the ArrayLike result
         of an arithmetic-like operation.

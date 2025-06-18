@@ -5,7 +5,7 @@
 
 -----------------
 
-# pandas: powerful Python data analysis toolkit
+# pandas: A Powerful Python Data Analysis Toolkit
 
 | | |
 | --- | --- |
@@ -96,7 +96,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://docs.conda.io/en/latest/).
+Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://anaconda.org/conda-forge/pandas).
 
 ```sh
 # conda
@@ -138,7 +138,7 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_in
 
 
 ```sh
-python -m pip install -ve . --no-build-isolation --config-settings=editable-verbose=true
+python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 ```
 
 See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).

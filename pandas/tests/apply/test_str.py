@@ -4,7 +4,9 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import WASM
+from pandas.compat import (
+    WASM,
+)
 
 from pandas.core.dtypes.common import is_number
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Sequence,
 )
@@ -8,7 +9,6 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     NoReturn,
     cast,
@@ -249,7 +249,7 @@ class BaseBlockManager(PandasObject):
     def make_empty(self, axes=None) -> Self:
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
-            axes = [Index([])] + self.axes[1:]
+            axes = [default_index(0)] + self.axes[1:]
 
         # preserve dtype if possible
         if self.ndim == 1:
@@ -263,11 +263,8 @@ class BaseBlockManager(PandasObject):
             blocks = []
         return type(self).from_blocks(blocks, axes)
 
-    def __nonzero__(self) -> bool:
+    def __bool__(self) -> bool:
         return True
-
-    # Python3 compat
-    __bool__ = __nonzero__
 
     def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
@@ -859,7 +856,7 @@ class BaseBlockManager(PandasObject):
         *,
         use_na_proxy: bool = False,
         ref_inplace_op: bool = False,
-    ) -> Generator[Block, None, None]:
+    ) -> Generator[Block]:
         """
         Slice/take blocks along axis=0.
 
@@ -1301,7 +1298,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     # Defer setting the new values to enable consolidation
                     self._iset_split_block(blkno_l, blk_locs, refs=refs)
 
-        if len(removed_blknos):
+        if removed_blknos:
             # Remove blocks & update blknos accordingly
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
@@ -1365,7 +1362,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """Removes columns from a block by splitting the block.
 
         Avoids copying the whole block through slicing and updates the manager
-        after determinint the new block structure. Optionally adds a new block,
+        after determining the new block structure. Optionally adds a new block,
         otherwise has to be done by the caller.
 
         Parameters
@@ -1734,7 +1731,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
 
-    def to_iter_dict(self) -> Generator[tuple[str, Self], None, None]:
+    def to_iter_dict(self) -> Generator[tuple[str, Self]]:
         """
         Yield a tuple of (str(dtype), BlockManager)
 
@@ -1803,6 +1800,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
+            if passed_nan and blk.dtype.kind in "mM":
+                arr[isna(blk.values)] = na_value
 
             if not copy:
                 arr = arr.view()
@@ -1868,6 +1867,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = blk.get_values(dtype)
             result[rl.indexer] = arr
+            if na_value is not lib.no_default and blk.dtype.kind in "mM":
+                result[rl.indexer][isna(arr)] = na_value
             itemmask[rl.indexer] = 1
 
         if not itemmask.all():
@@ -2157,7 +2158,7 @@ class SingleBlockManager(BaseBlockManager):
         """
         if not self._has_no_reference(0):
             self.blocks = (self._block.copy(),)
-            self._cache.clear()
+            self._reset_cache()
 
         arr = self.array
 
@@ -2182,7 +2183,7 @@ class SingleBlockManager(BaseBlockManager):
         nb = self._block.delete(indexer)[0]
         self.blocks = (nb,)
         self.axes[0] = self.axes[0].delete(indexer)
-        self._cache.clear()
+        self._reset_cache()
         return self
 
     def fast_xs(self, loc):

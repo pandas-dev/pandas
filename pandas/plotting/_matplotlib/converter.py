@@ -92,7 +92,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Generator[None, None, None]:
+def pandas_converters() -> Generator[None]:
     """
     Context manager registering pandas' converters for a plot.
 
@@ -225,16 +225,20 @@ class TimeFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAcc
 class PeriodConverter(mdates.DateConverter):
     @staticmethod
     def convert(values, units, axis):
+        if not hasattr(axis, "freq"):
+            raise TypeError("Axis must have `freq` set to convert to Periods")
+        return PeriodConverter.convert_from_freq(values, axis.freq)
+
+    @staticmethod
+    def convert_from_freq(values, freq):
         if is_nested_list_like(values):
-            values = [PeriodConverter._convert_1d(v, units, axis) for v in values]
+            values = [PeriodConverter._convert_1d(v, freq) for v in values]
         else:
-            values = PeriodConverter._convert_1d(values, units, axis)
+            values = PeriodConverter._convert_1d(values, freq)
         return values
 
     @staticmethod
-    def _convert_1d(values, units, axis):
-        if not hasattr(axis, "freq"):
-            raise TypeError("Axis must have `freq` set to convert to Periods")
+    def _convert_1d(values, freq):
         valid_types = (str, datetime, Period, pydt.date, pydt.time, np.datetime64)
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -248,17 +252,17 @@ class PeriodConverter(mdates.DateConverter):
                 or is_integer(values)
                 or is_float(values)
             ):
-                return get_datevalue(values, axis.freq)
+                return get_datevalue(values, freq)
             elif isinstance(values, PeriodIndex):
-                return values.asfreq(axis.freq).asi8
+                return values.asfreq(freq).asi8
             elif isinstance(values, Index):
-                return values.map(lambda x: get_datevalue(x, axis.freq))
+                return values.map(lambda x: get_datevalue(x, freq))
             elif lib.infer_dtype(values, skipna=False) == "period":
                 # https://github.com/pandas-dev/pandas/issues/24304
                 # convert ndarray[period] -> PeriodIndex
-                return PeriodIndex(values, freq=axis.freq).asi8
+                return PeriodIndex(values, freq=freq).asi8
             elif isinstance(values, (list, tuple, np.ndarray, Index)):
-                return [get_datevalue(x, axis.freq) for x in values]
+                return [get_datevalue(x, freq) for x in values]
         return values
 
 
@@ -527,7 +531,7 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
 
     ppd = -1  # placeholder for above-day freqs
 
-    if dtype_code >= FreqGroup.FR_HR.value:
+    if dtype_code >= FreqGroup.FR_HR.value:  # pyright: ignore[reportAttributeAccessIssue]
         # error: "BaseOffset" has no attribute "_creso"
         ppd = periods_per_day(freq._creso)  # type: ignore[attr-defined]
         ppm = 28 * ppd
@@ -684,7 +688,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     elif span <= periodsperyear // 4:
         month_start = _period_break(dates_, "month")
         info_maj[month_start] = True
-        if dtype_code < FreqGroup.FR_HR.value:
+        if dtype_code < FreqGroup.FR_HR.value:  # pyright: ignore[reportAttributeAccessIssue]
             info["min"] = True
         else:
             day_start = _period_break(dates_, "day")
@@ -910,7 +914,7 @@ def get_finder(freq: BaseOffset):
         return _quarterly_finder
     elif fgroup == FreqGroup.FR_MTH:
         return _monthly_finder
-    elif (dtype_code >= FreqGroup.FR_BUS.value) or fgroup == FreqGroup.FR_WK:
+    elif (dtype_code >= FreqGroup.FR_BUS.value) or fgroup == FreqGroup.FR_WK:  # pyright: ignore[reportAttributeAccessIssue]
         return _daily_finder
     else:  # pragma: no cover
         raise NotImplementedError(f"Unsupported frequency: {dtype_code}")

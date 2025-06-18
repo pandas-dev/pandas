@@ -21,7 +21,7 @@ cdef _Timestamp create_timestamp_from_ts(int64_t value,
 
 cdef class _Timestamp(ABCTimestamp):
     cdef readonly:
-        int64_t _value, nanosecond, year
+        int64_t _value, _nanosecond, _year
         NPY_DATETIMEUNIT _creso
 
     cdef bint _get_start_end_field(self, str field, freq)

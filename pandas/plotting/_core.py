@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
 )
 
@@ -27,6 +26,7 @@ from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
     )
@@ -247,11 +247,14 @@ def hist_frame(
     .. plot::
         :context: close-figs
 
-        >>> data = {"length": [1.5, 0.5, 1.2, 0.9, 3], "width": [0.7, 0.2, 0.15, 0.2, 1.1]}
+        >>> data = {
+        ...     "length": [1.5, 0.5, 1.2, 0.9, 3],
+        ...     "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+        ... }
         >>> index = ["pig", "rabbit", "duck", "chicken", "horse"]
         >>> df = pd.DataFrame(data, index=index)
         >>> hist = df.hist(bins=3)
-    """  # noqa: E501
+    """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.hist_frame(
         data,
@@ -428,7 +431,7 @@ is returned:
     >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
     ...                      return_type='axes')
     >>> type(boxplot)
-    <class 'pandas.core.series.Series'>
+    <class 'pandas.Series'>
 
 If ``return_type`` is `None`, a NumPy array of axes with the same shape
 as ``layout`` is returned:
@@ -570,18 +573,23 @@ def boxplot_frame_groupby(
 
     Parameters
     ----------
-    grouped : Grouped DataFrame
+    grouped : DataFrameGroupBy
+        The grouped DataFrame object over which to create the box plots.
     subplots : bool
         * ``False`` - no subplots will be used
         * ``True`` - create a subplot for each group.
-
     column : column name or list of names, or vector
         Can be any valid input to groupby.
     fontsize : float or str
-    rot : label rotation angle
-    grid : Setting this to True will show the grid
+        Font size for the labels.
+    rot : float
+        Rotation angle of labels (in degrees) on the x-axis.
+    grid : bool
+        Whether to show grid lines on the plot.
     ax : Matplotlib axis object, default None
-    figsize : A tuple (width, height) in inches
+        The axes on which to draw the plots. If None, uses the current axes.
+    figsize : tuple of (float, float)
+        The figure size in inches (width, height).
     layout : tuple (optional)
         The layout of the plot: (rows, columns).
     sharex : bool, default False
@@ -599,8 +607,15 @@ def boxplot_frame_groupby(
 
     Returns
     -------
-    dict of key/value = group key/DataFrame.boxplot return value
-    or DataFrame.boxplot return value in case subplots=figures=False
+    dict or DataFrame.boxplot return value
+        If ``subplots=True``, returns a dictionary of group keys to the boxplot
+        return values. If ``subplots=False``, returns the boxplot return value
+        of a single DataFrame.
+
+    See Also
+    --------
+    DataFrame.boxplot : Create a box plot from a DataFrame.
+    Series.plot : Plot a Series.
 
     Examples
     --------
@@ -652,6 +667,9 @@ class PlotAccessor(PandasObject):
     ----------
     data : Series or DataFrame
         The object for which the method is called.
+
+    Attributes
+    ----------
     x : label or position, default None
         Only used if data is a DataFrame.
     y : label, position or list of label, positions, default None
@@ -830,7 +848,10 @@ class PlotAccessor(PandasObject):
         :context: close-figs
 
         >>> df = pd.DataFrame(
-        ...     {"length": [1.5, 0.5, 1.2, 0.9, 3], "width": [0.7, 0.2, 0.15, 0.2, 1.1]},
+        ...     {
+        ...         "length": [1.5, 0.5, 1.2, 0.9, 3],
+        ...         "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+        ...     },
         ...     index=["pig", "rabbit", "duck", "chicken", "horse"],
         ... )
         >>> plot = df.plot(title="DataFrame Plot")
@@ -851,7 +872,7 @@ class PlotAccessor(PandasObject):
 
         >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
         >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
-    """  # noqa: E501
+    """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
     _series_kinds = ("pie",)
@@ -978,8 +999,7 @@ class PlotAccessor(PandasObject):
 
         if kind not in self._all_kinds:
             raise ValueError(
-                f"{kind} is not a valid plot kind "
-                f"Valid plot kinds: {self._all_kinds}"
+                f"{kind} is not a valid plot kind Valid plot kinds: {self._all_kinds}"
             )
 
         data = self._parent
@@ -1035,7 +1055,9 @@ class PlotAccessor(PandasObject):
                     label_name = label_kw or y
                     data.name = label_name
                 else:
-                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    # error: Argument 1 to "len" has incompatible type "Any | bool";
+                    # expected "Sized"  [arg-type]
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)  # type: ignore[arg-type]
                     if label_kw and not match:
                         raise ValueError(
                             "label should be list-like and same length as y"
@@ -1447,6 +1469,7 @@ class PlotAccessor(PandasObject):
         self,
         bw_method: Literal["scott", "silverman"] | float | Callable | None = None,
         ind: np.ndarray | int | None = None,
+        weights: np.ndarray | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1472,6 +1495,9 @@ class PlotAccessor(PandasObject):
             1000 equally spaced points are used. If `ind` is a NumPy array, the
             KDE is evaluated at the points passed. If `ind` is an integer,
             `ind` number of equally spaced points are used.
+        weights : NumPy array, optional
+            Weights of datapoints. This must be the same shape as datapoints.
+            If None (default), the samples are assumed to be equally weighted.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -1557,7 +1583,7 @@ class PlotAccessor(PandasObject):
 
             >>> ax = df.plot.kde(ind=[1, 2, 3, 4, 5, 6])
         """
-        return self(kind="kde", bw_method=bw_method, ind=ind, **kwargs)
+        return self(kind="kde", bw_method=bw_method, ind=ind, weights=weights, **kwargs)
 
     density = kde
 
@@ -1609,7 +1635,9 @@ class PlotAccessor(PandasObject):
             ...         "signups": [5, 5, 6, 12, 14, 13],
             ...         "visits": [20, 42, 28, 62, 81, 50],
             ...     },
-            ...     index=pd.date_range(start="2018/01/01", end="2018/07/01", freq="ME"),
+            ...     index=pd.date_range(
+            ...         start="2018/01/01", end="2018/07/01", freq="ME"
+            ...     ),
             ... )
             >>> ax = df.plot.area()
 
@@ -1641,7 +1669,7 @@ class PlotAccessor(PandasObject):
             ...     }
             ... )
             >>> ax = df.plot.area(x="day")
-        """  # noqa: E501
+        """
         return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
 
     def pie(self, y: IndexLabel | None = None, **kwargs) -> PlotAccessor:

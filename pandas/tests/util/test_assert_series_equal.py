@@ -137,7 +137,7 @@ def test_less_precise(data1, data2, any_float_dtype, decimals):
             DataFrame.from_records(
                 {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
             ).c,
-            "MultiIndex level \\[0\\] are different",
+            "Series\\.index level \\[0\\] are different",
         ),
     ],
 )
@@ -220,9 +220,9 @@ def test_series_equal_categorical_values_mismatch(rtol, using_infer_string):
 Series values are different \\(66\\.66667 %\\)
 \\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\['a', 'b', 'c'\\]
-Categories \\(3, string\\): \\[a, b, c\\]
+Categories \\(3, str\\): \\[a, b, c\\]
 \\[right\\]: \\['a', 'c', 'b'\\]
-Categories \\(3, string\\): \\[a, b, c\\]"""
+Categories \\(3, str\\): \\[a, b, c\\]"""
     else:
         msg = """Series are different
 
@@ -257,7 +257,7 @@ Series values are different \\(100.0 %\\)
 
 def test_series_equal_categorical_mismatch(check_categorical, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""Attributes of Series are different

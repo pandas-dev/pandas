@@ -60,7 +60,7 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 
 .. warning::
 
-   Equality compaisons between ``np.nan``, :class:`NaT`, and :class:`NA`
+   Equality comparisons between ``np.nan``, :class:`NaT`, and :class:`NA`
    do not act like ``None``
 
    .. ipython:: python
@@ -258,9 +258,6 @@ will convert your data to use the nullable data types supporting :class:`NA`,
 such as :class:`Int64Dtype` or :class:`ArrowDtype`. This is especially helpful after reading
 in data sets from IO methods where data types were inferred.
 
-In this example, while the dtypes of all columns are changed, we show the results for
-the first 10 columns.
-
 .. ipython:: python
 
    import io
@@ -319,7 +316,7 @@ Missing values propagate through arithmetic operations between pandas objects.
 
 The descriptive statistics and computational methods discussed in the
 :ref:`data structure overview <basics.stats>` (and listed :ref:`here
-<api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all
+<api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
 When summing data, NA values or empty data will be treated as zero.
@@ -434,7 +431,7 @@ where the index and column aligns between the original object and the filled obj
 
 .. note::
 
-   :meth:`DataFrame.where` can also be used to fill NA values.Same result as above.
+   :meth:`DataFrame.where` can also be used to fill NA values. Same result as above.
 
    .. ipython:: python
 

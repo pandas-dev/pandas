@@ -1,9 +1,9 @@
 from datetime import datetime
 from functools import partial
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import lib
 from pandas._typing import DatetimeNaTType
@@ -239,7 +239,9 @@ def test_resample_how_ohlc(unit):
 def test_resample_how_callables(unit):
     # GH#7929
     data = np.arange(5, dtype=np.int64)
-    ind = date_range(start="2014-01-01", periods=len(data), freq="d").as_unit(unit)
+    msg = "'d' is deprecated and will be removed in a future version."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ind = date_range(start="2014-01-01", periods=len(data), freq="d").as_unit(unit)
     df = DataFrame({"A": data, "B": data}, index=ind)
 
     def fn(x, a=1):
@@ -334,7 +336,9 @@ def test_resample_basic_from_daily(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to weekly
-    result = s.resample("w-sun").last()
+    msg = "'w-sun' is deprecated and will be removed in a future version."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.resample("w-sun").last()
 
     assert len(result) == 3
     assert (result.index.dayofweek == [6, 6, 6]).all()
@@ -954,6 +958,19 @@ def test_resample_origin_with_day_freq_on_dst(unit):
     tm.assert_series_equal(result, expected)
 
 
+def test_resample_dst_midnight_last_nonexistent():
+    # GH 58380
+    ts = Series(
+        1,
+        date_range("2024-04-19", "2024-04-20", tz="Africa/Cairo", freq="15min"),
+    )
+
+    expected = Series([len(ts)], index=DatetimeIndex([ts.index[0]], freq="7D"))
+
+    result = ts.resample("7D").sum()
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_daily_anchored(unit):
     rng = date_range("1/1/2000 0:00:00", periods=10000, freq="min").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
@@ -1005,12 +1022,8 @@ def test_resample_segfault(unit):
         all_wins_and_wagers, columns=("ID", "timestamp", "A", "B")
     ).set_index("timestamp")
     df.index = df.index.as_unit(unit)
-    msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = df.groupby("ID").resample("5min").sum()
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        expected = df.groupby("ID").apply(lambda x: x.resample("5min").sum())
+    result = df.groupby("ID").resample("5min").sum()
+    expected = df.groupby("ID").apply(lambda x: x.resample("5min").sum())
     tm.assert_frame_equal(result, expected)
 
 
@@ -1029,9 +1042,7 @@ def test_resample_dtype_preservation(unit):
     result = df.resample("1D").ffill()
     assert result.val.dtype == np.int32
 
-    msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = df.groupby("group").resample("1D").ffill()
+    result = df.groupby("group").resample("1D").ffill()
     assert result.val.dtype == np.int32
 
 
@@ -1190,7 +1201,9 @@ def test_anchored_lowercase_buglet(unit):
     dates = date_range("4/16/2012 20:00", periods=50000, freq="s").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
     # it works!
-    ts.resample("d").mean()
+    msg = "'d' is deprecated and will be removed in a future version."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ts.resample("d").mean()
 
 
 def test_upsample_apply_functions(unit):
@@ -1531,9 +1544,9 @@ def test_groupby_with_dst_time_change(unit):
     )
 
     df = DataFrame([1, 2], index=index)
-    result = df.groupby(Grouper(freq="1d")).last()
+    result = df.groupby(Grouper(freq="1D")).last()
     expected_index_values = date_range(
-        "2016-11-02", "2016-11-24", freq="d", tz="America/Chicago"
+        "2016-11-02", "2016-11-24", freq="D", tz="America/Chicago"
     ).as_unit(unit)
 
     index = DatetimeIndex(expected_index_values)
@@ -1655,13 +1668,13 @@ def test_resample_dst_anchor2(unit):
 
 def test_downsample_across_dst(unit):
     # GH 8531
-    tz = pytz.timezone("Europe/Berlin")
+    tz = zoneinfo.ZoneInfo("Europe/Berlin")
     dt = datetime(2014, 10, 26)
-    dates = date_range(tz.localize(dt), periods=4, freq="2h").as_unit(unit)
+    dates = date_range(dt.astimezone(tz), periods=4, freq="2h").as_unit(unit)
     result = Series(5, index=dates).resample("h").mean()
     expected = Series(
         [5.0, np.nan] * 3 + [5.0],
-        index=date_range(tz.localize(dt), periods=7, freq="h").as_unit(unit),
+        index=date_range(dt.astimezone(tz), periods=7, freq="h").as_unit(unit),
     )
     tm.assert_series_equal(result, expected)
 
@@ -1802,12 +1815,8 @@ def test_resample_apply_with_additional_args2():
     multiplier = 10
 
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
-    msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
-    msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        expected = df.groupby("A").resample("D").mean().multiply(multiplier)
+    result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
+    expected = df.groupby("A").resample("D").mean().multiply(multiplier)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2018,7 +2027,7 @@ def test_resample_empty_series_with_tz():
 def test_resample_M_Q_Y_raises(freq):
     msg = f"Invalid frequency: {freq}"
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
 
@@ -2027,9 +2036,30 @@ def test_resample_M_Q_Y_raises(freq):
 def test_resample_BM_BQ_raises(freq):
     msg = f"Invalid frequency: {freq}"
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+@pytest.mark.parametrize(
+    "freq,freq_depr,data",
+    [
+        ("1W-SUN", "1w-sun", ["2013-01-06"]),
+        ("1D", "1d", ["2013-01-01"]),
+        ("1B", "1b", ["2013-01-01"]),
+        ("1C", "1c", ["2013-01-01"]),
+    ],
+)
+def test_resample_depr_lowercase_frequency(freq, freq_depr, data):
+    msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+
+    s = Series(range(5), index=date_range("20130101", freq="h", periods=5))
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.resample(freq_depr).mean()
+
+    exp_dti = DatetimeIndex(data=data, dtype="datetime64[ns]", freq=freq)
+    expected = Series(2.0, index=exp_dti)
+    tm.assert_series_equal(result, expected)
 
 
 def test_resample_ms_closed_right(unit):
@@ -2125,10 +2155,20 @@ def test_arrow_timestamp_resample(tz):
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
+def test_arrow_timestamp_resample_keep_index_name():
+    # https://github.com/pandas-dev/pandas/issues/61222
+    idx = Series(date_range("2020-01-01", periods=5), dtype="timestamp[ns][pyarrow]")
+    expected = Series(np.arange(5, dtype=np.float64), index=idx)
+    expected.index.name = "index_name"
+    result = expected.resample("1D").mean()
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("freq", ["1A", "2A-MAR"])
 def test_resample_A_raises(freq):
     msg = f"Invalid frequency: {freq[1:]}"
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()

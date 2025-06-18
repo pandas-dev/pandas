@@ -170,7 +170,7 @@ def to_timedelta(
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
-    >>> pd.to_timedelta(np.arange(5), unit="d")
+    >>> pd.to_timedelta(np.arange(5), unit="D")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """

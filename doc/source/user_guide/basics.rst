@@ -36,7 +36,7 @@ of elements to display is five, but you may pass a custom number.
 Attributes and underlying data
 ------------------------------
 
-pandas objects have a number of attributes enabling you to access the metadata
+pandas objects have a number of attributes enabling you to access the metadata.
 
 * **shape**: gives the axis dimensions of the object, consistent with ndarray
 * Axis labels
@@ -59,7 +59,7 @@ NumPy's type system to add support for custom arrays
 (see :ref:`basics.dtypes`).
 
 To get the actual data inside a :class:`Index` or :class:`Series`, use
-the ``.array`` property
+the ``.array`` property.
 
 .. ipython:: python
 
@@ -88,18 +88,18 @@ NumPy doesn't have a dtype to represent timezone-aware datetimes, so there
 are two possibly useful representations:
 
 1. An object-dtype :class:`numpy.ndarray` with :class:`Timestamp` objects, each
-   with the correct ``tz``
+   with the correct ``tz``.
 2. A ``datetime64[ns]`` -dtype :class:`numpy.ndarray`, where the values have
-   been converted to UTC and the timezone discarded
+   been converted to UTC and the timezone discarded.
 
-Timezones may be preserved with ``dtype=object``
+Timezones may be preserved with ``dtype=object``:
 
 .. ipython:: python
 
    ser = pd.Series(pd.date_range("2000", periods=2, tz="CET"))
    ser.to_numpy(dtype=object)
 
-Or thrown away with ``dtype='datetime64[ns]'``
+Or thrown away with ``dtype='datetime64[ns]'``:
 
 .. ipython:: python
 
@@ -154,16 +154,6 @@ These libraries are especially useful when dealing with large data sets, and pro
 speedups. ``numexpr`` uses smart chunking, caching, and multiple cores. ``bottleneck`` is
 a set of specialized cython routines that are especially fast when dealing with arrays that have
 ``nans``.
-
-Here is a sample (using 100 column x 100,000 row ``DataFrames``):
-
-.. csv-table::
-    :header: "Operation", "0.11.0 (ms)", "Prior Version (ms)", "Ratio to Prior"
-    :widths: 25, 25, 25, 25
-
-    ``df1 > df2``, 13.32, 125.35,  0.1063
-    ``df1 * df2``, 21.71,  36.63,  0.5928
-    ``df1 + df2``, 22.04,  36.50,  0.6039
 
 You are highly encouraged to install both libraries. See the section
 :ref:`Recommended Dependencies <install.recommended_dependencies>` for more installation info.
@@ -1606,7 +1596,7 @@ For instance:
 This method does not convert the row to a Series object; it merely
 returns the values inside a namedtuple. Therefore,
 :meth:`~DataFrame.itertuples` preserves the data type of the values
-and is generally faster as :meth:`~DataFrame.iterrows`.
+and is generally faster than :meth:`~DataFrame.iterrows`.
 
 .. note::
 
@@ -2074,12 +2064,12 @@ different numeric dtypes will **NOT** be combined. The following example will gi
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(np.random.randn(8, 1), columns=["A"], dtype="float32")
+   df1 = pd.DataFrame(np.random.randn(8, 1), columns=["A"], dtype="float64")
    df1
    df1.dtypes
    df2 = pd.DataFrame(
        {
-           "A": pd.Series(np.random.randn(8), dtype="float16"),
+           "A": pd.Series(np.random.randn(8), dtype="float32"),
            "B": pd.Series(np.random.randn(8)),
            "C": pd.Series(np.random.randint(0, 255, size=8), dtype="uint8"),  # [0,255] (range of uint8)
        }

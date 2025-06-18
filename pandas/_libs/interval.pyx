@@ -209,6 +209,12 @@ cdef class IntervalMixin:
         """
         Indicates if an interval is empty, meaning it contains no points.
 
+        An interval is considered empty if its `left` and `right` endpoints
+        are equal, and it is not closed on both sides. This means that the
+        interval does not include any real points. In the case of an
+        :class:`pandas.arrays.IntervalArray` or :class:`IntervalIndex`, the
+        property returns a boolean array indicating the emptiness of each interval.
+
         Returns
         -------
         bool or ndarray

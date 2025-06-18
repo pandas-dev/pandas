@@ -112,6 +112,7 @@ def test_interp_fill_functions_inplace(func, dtype):
 
 def test_interpolate_cannot_with_object_dtype():
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
+    df["a"] = df["a"].astype(object)
 
     msg = "DataFrame cannot interpolate with object dtype"
     with pytest.raises(TypeError, match=msg):
@@ -120,6 +121,7 @@ def test_interpolate_cannot_with_object_dtype():
 
 def test_interpolate_object_convert_no_op():
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
+    df["a"] = df["a"].astype(object)
     arr_a = get_array(df, "a")
 
     # Now CoW makes a copy, it should not!

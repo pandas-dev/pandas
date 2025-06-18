@@ -374,7 +374,7 @@ class BaseSetitemTests:
 
     def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
-        df = expected = pd.DataFrame({0: pd.Series(data)})
+        df = expected = pd.DataFrame(pd.Series(data))
         result = pd.DataFrame(index=df.index)
 
         key = full_indexer(df)
@@ -440,11 +440,11 @@ class BaseSetitemTests:
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_invalid(self, data, invalid_scalar):
-        msg = ""  # messages vary by subclass, so we do not test it
-        with pytest.raises((ValueError, TypeError), match=msg):
+        # messages vary by subclass, so we do not test it
+        with pytest.raises((ValueError, TypeError), match=None):
             data[0] = invalid_scalar
 
-        with pytest.raises((ValueError, TypeError), match=msg):
+        with pytest.raises((ValueError, TypeError), match=None):
             data[:] = invalid_scalar
 
     def test_setitem_2d_values(self, data):

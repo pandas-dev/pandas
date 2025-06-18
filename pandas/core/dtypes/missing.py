@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -93,6 +94,7 @@ def isna(
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
+@set_module("pandas")
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect missing values for an array-like object.
@@ -307,6 +309,7 @@ def notna(
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
+@set_module("pandas")
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect non-missing values for an array-like object.
@@ -425,9 +428,9 @@ def array_equivalent(
     Examples
     --------
     >>> array_equivalent(np.array([1, 2, np.nan]), np.array([1, 2, np.nan]))
-    True
+    np.True_
     >>> array_equivalent(np.array([1, np.nan, 2]), np.array([1, 2, np.nan]))
-    False
+    np.False_
     """
     left, right = np.asarray(left), np.asarray(right)
 
@@ -618,10 +621,12 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     nan
     >>> na_value_for_dtype(np.dtype("float64"))
     nan
+    >>> na_value_for_dtype(np.dtype("complex128"))
+    nan
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
-    numpy.datetime64('NaT')
+    np.datetime64('NaT')
     """
 
     if isinstance(dtype, ExtensionDtype):
@@ -629,7 +634,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     elif dtype.kind in "mM":
         unit = np.datetime_data(dtype)[0]
         return dtype.type("NaT", unit)
-    elif dtype.kind == "f":
+    elif dtype.kind in "fc":
         return np.nan
     elif dtype.kind in "iu":
         if compat:

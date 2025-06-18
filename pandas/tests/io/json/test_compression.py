@@ -41,6 +41,7 @@ def test_read_zipped_json(datapath):
 
 @td.skip_if_not_us_locale
 @pytest.mark.single_cpu
+@pytest.mark.network
 def test_with_s3_url(compression, s3_public_bucket, s3so):
     # Bucket created in tests/io/conftest.py
     df = pd.read_json(StringIO('{"a": [1, 2, 3], "b": [4, 5, 6]}'))

@@ -33,7 +33,7 @@ from pandas.io.xml import read_xml
 # [X] - KeyError: "...is not included in namespaces"
 # [X] - KeyError: "no valid column"
 # [X] - ValueError: "To use stylesheet, you need lxml installed..."
-# []  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+# []  - OSError: (NEED PERMISSION ISSUE, DISK FULL, ETC.)
 # [X] - FileNotFoundError: "No such file or directory"
 # [X] - PermissionError: "Forbidden"
 
@@ -41,7 +41,7 @@ from pandas.io.xml import read_xml
 # [X] - TypeError: "...is not a valid type for attr_cols"
 # [X] - TypeError: "...is not a valid type for elem_cols"
 # [X] - LookupError: "unknown encoding"
-# []  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+# []  - OSError: (NEED PERMISSION ISSUE, DISK FULL, ETC.)
 # [X] - FileNotFoundError: "No such file or directory"
 # [X] - KeyError: "...is not included in namespaces"
 # [X] - KeyError: "no valid column"
@@ -1345,7 +1345,7 @@ def test_ea_dtypes(any_numeric_ea_dtype, parser):
     assert equalize_decl(result).strip() == expected
 
 
-def test_unsuported_compression(parser, geom_df):
+def test_unsupported_compression(parser, geom_df):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             geom_df.to_xml(path, parser=parser, compression="7z")

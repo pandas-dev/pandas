@@ -17,8 +17,7 @@ Installation
         :columns: 12 12 6 6
         :padding: 3
 
-        pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__
-        distribution and can be installed with Anaconda or Miniconda:
+        pandas can be installed via conda from `conda-forge <https://anaconda.org/conda-forge/pandas>`__.
 
         ++++++++++++++++++++++
 
@@ -613,7 +612,7 @@ the pandas-equivalent operations compared to software you already know:
 
         Users of `Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__
         or other spreadsheet programs will find that many of the concepts are
-        transferrable to pandas.
+        transferable to pandas.
 
         +++
 

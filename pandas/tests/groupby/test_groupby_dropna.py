@@ -123,7 +123,7 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d"])
     grouped = df.groupby("a", dropna=dropna).sum()
 
-    expected = pd.DataFrame(outputs, index=pd.Index(idx, dtype="object", name="a"))
+    expected = pd.DataFrame(outputs, index=pd.Index(idx, name="a"))
 
     tm.assert_frame_equal(grouped, expected)
 
@@ -323,9 +323,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
 
     df = pd.DataFrame(data)
     gb = df.groupby("groups", dropna=dropna)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
+    result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
 
     mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
     mi = pd.MultiIndex.from_tuples(mi_tuples, names=["groups", None])
@@ -420,7 +418,7 @@ def test_groupby_drop_nan_with_multi_index():
             ),
         ),
         "datetime64[ns]",
-        "period[d]",
+        "period[D]",
         "Sparse[float]",
     ],
 )
@@ -437,7 +435,7 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
     # Unique values to use for grouper, depends on dtype
     if dtype in ("string", "string[pyarrow]"):
         uniques = {"x": "x", "y": "y", "z": pd.NA}
-    elif dtype in ("datetime64[ns]", "period[d]"):
+    elif dtype in ("datetime64[ns]", "period[D]"):
         uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
     else:
         uniques = {"x": 1, "y": 2, "z": np.nan}

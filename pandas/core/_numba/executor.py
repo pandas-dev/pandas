@@ -4,10 +4,10 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pandas._typing import Scalar
 
 import numpy as np

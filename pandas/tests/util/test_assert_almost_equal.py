@@ -535,6 +535,10 @@ NESTED_CASES = [
         np.array([[1, 2, 3], [4, 5]], dtype=object),
     ),
     (
+        np.array([np.array([], dtype=object), None], dtype=object),
+        np.array([[], None], dtype=object),
+    ),
+    (
         np.array(
             [
                 np.array([np.array([1, 2, 3]), np.array([4, 5])], dtype=object),

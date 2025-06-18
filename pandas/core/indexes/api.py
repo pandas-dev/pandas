@@ -37,26 +37,26 @@ if TYPE_CHECKING:
 
 
 __all__ = [
-    "Index",
-    "MultiIndex",
     "CategoricalIndex",
-    "IntervalIndex",
-    "RangeIndex",
-    "InvalidIndexError",
-    "TimedeltaIndex",
-    "PeriodIndex",
     "DatetimeIndex",
-    "_new_Index",
+    "Index",
+    "IntervalIndex",
+    "InvalidIndexError",
+    "MultiIndex",
     "NaT",
+    "PeriodIndex",
+    "RangeIndex",
+    "TimedeltaIndex",
+    "_new_Index",
+    "all_indexes_same",
+    "default_index",
     "ensure_index",
     "ensure_index_from_sequences",
     "get_objs_combined_axis",
-    "union_indexes",
     "get_unanimous_names",
-    "all_indexes_same",
-    "default_index",
-    "safe_sort_index",
     "maybe_sequence_to_range",
+    "safe_sort_index",
+    "union_indexes",
 ]
 
 
@@ -130,7 +130,7 @@ def _get_combined_index(
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
-        index = Index([])
+        index: Index = default_index(0)
     elif len(indexes) == 1:
         index = indexes[0]
     elif intersect:
