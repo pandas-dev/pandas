@@ -958,3 +958,99 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_series_rshift():
+    s = Series([4, 8, 16])
+    result = s.rshift(1)
+    expected = Series([2, 4, 8])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_rshift_negative():
+    s = Series([4, 8, 16])
+    result = s.rshift(-1)
+    expected = Series([0, 0, 0])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_rshift_zero():
+    s = Series([4, 8, 16])
+    result = s.rshift(0)
+
+    tm.assert_series_equal(result, s)
+
+
+def test_series_rrshift():
+    s = Series([1, 2, 3])
+    result = s.rrshift(16)
+    expected = Series([8, 4, 2])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_lshift():
+    s = Series([1, 2, 3])
+    result = s.lshift(1)
+    expected = Series([2, 4, 6])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_lshift_negative():
+    s = Series([4, 8, 16])
+    result = s.lshift(-1)
+    expected = Series([0, 0, 0])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_lshift_zero():
+    s = Series([4, 8, 16])
+    result = s.lshift(0)
+
+    tm.assert_series_equal(result, s)
+
+
+def test_series_rlshift():
+    s = Series([0, 1, 2])
+    result = s.rlshift(1)
+    expected = Series([1, 2, 4])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_irshift():
+    s = Series([4, 8, 16])
+    s >>= 1
+    expected = Series([2, 4, 8])
+
+    tm.assert_series_equal(s, expected)
+
+
+def test_series_ilshift():
+    s = Series([1, 2, 3])
+    s <<= 1
+    expected = Series([2, 4, 6])
+
+    tm.assert_series_equal(s, expected)
+
+
+def test_series_rshift_series():
+    s1 = Series([8, 4, 2])
+    s2 = Series([2, 1, 0])
+    result = s1.rshift(s2)
+    expected = Series([2, 2, 2])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_lshift_series():
+    s1 = Series([4, 8, 16])
+    s2 = Series([2, 1, 0])
+    result = s1.lshift(s2)
+    expected = Series([16, 16, 16])
+
+    tm.assert_series_equal(result, expected)
