@@ -729,7 +729,7 @@ def is_implicit_conversion_to_float64(source, target) -> bool:
     boolean
         Whether or not there is an implicit conversion to float64.
 
-    See AlsoMore actions
+    See Also
     --------
     api.types.is_categorical_dtype : Check whether the provided array or dtype
                                             is of the Categorical dtype.
