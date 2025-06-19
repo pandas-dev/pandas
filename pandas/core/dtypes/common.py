@@ -777,9 +777,9 @@ def is_implicit_conversion_to_float64(source, target) -> bool:
         # should also work
         if (
             src.kind in "iu"
-            and src.itemsize == 8
+            and src.itemsize == 8  # type: ignore[union-attr]
             and tar.kind in "iu"
-            and tar.itemsize == 8
+            and tar.itemsize == 8  # type: ignore[union-attr]
         ):
             return src != tar
         else:
