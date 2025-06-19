@@ -3,7 +3,12 @@
 {
 	"name": "pandas",
 	"context": ".",
-	"dockerFile": "Dockerfile",
+	"service": "dev",
+	"workspaceFolder": "/home/pandas",
+	"dockerComposeFile": "docker-compose.yml",
+	// The 'dockerFile' property is optional and can be used instead of 'dockerComposeFile' if you want to use a single Dockerfile.
+	// If you use 'dockerFile', uncomment the line below and remove the 'dockerComposeFile' line above.
+	// "dockerFile": "Dockerfile",
 
 	// Use 'settings' to set *default* container specific settings.json values on container create.
 	// You can edit these settings after create using File > Preferences > Settings > Remote.
