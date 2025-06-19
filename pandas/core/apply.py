@@ -303,16 +303,16 @@ class NumbaExecutionEngine(BaseExecutionEngine):
     @staticmethod
     def validate_values_for_numba(obj: Series | DataFrame) -> None:
         from pandas import Series
+
         if isinstance(obj, Series):
             if not is_numeric_dtype(obj.dtype):
                 raise ValueError(
-                    f"Series must have a numeric dtype. "
-                    f"Found '{dtype}' instead"
+                    f"Series must have a numeric dtype. Found '{obj.dtype}' instead"
                 )
             if is_extension_array_dtype(obj.dtype):
                 raise ValueError(
-                    f"Series is backed by an extension array, "
-                    f"which is not supported by the numba engine."
+                    "Series is backed by an extension array, "
+                    "which is not supported by the numba engine."
                 )
         else:
             for colname, dtype in obj.dtypes.items():
