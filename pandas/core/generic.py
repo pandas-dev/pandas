@@ -1645,11 +1645,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis_int = self._get_axis_number(axis)
         other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis_int)
 
-        return (
-            key is not None
-            and is_hashable(key)
-            and any(key in self.axes[ax] for ax in other_axes)
-        )
+        return is_hashable(key) and any(key in self.axes[ax] for ax in other_axes)
 
     @final
     def _is_label_or_level_reference(self, key: Level, axis: AxisInt = 0) -> bool:
@@ -3568,6 +3564,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif formatters is None and float_format is not None:
             formatters_ = partial(_wrap, alt_format_=lambda v: v)
         format_index_ = [index_format_, column_format_]
+        format_index_names_ = [index_format_, column_format_]
 
         # Deal with hiding indexes and relabelling column names
         hide_: list[dict] = []
@@ -3616,6 +3613,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             relabel_index=relabel_index_,
             format={"formatter": formatters_, **base_format_},
             format_index=format_index_,
+            format_index_names=format_index_names_,
             render_kwargs=render_kwargs_,
         )
 
@@ -3628,6 +3626,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         relabel_index: dict | list[dict] | None = None,
         format: dict | list[dict] | None = None,
         format_index: dict | list[dict] | None = None,
+        format_index_names: dict | list[dict] | None = None,
         render_kwargs: dict | None = None,
     ):
         """
@@ -3672,7 +3671,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self = cast("DataFrame", self)
         styler = Styler(self, uuid="")
 
-        for kw_name in ["hide", "relabel_index", "format", "format_index"]:
+        for kw_name in [
+            "hide",
+            "relabel_index",
+            "format",
+            "format_index",
+            "format_index_names",
+        ]:
             kw = vars()[kw_name]
             if isinstance(kw, dict):
                 getattr(styler, kw_name)(**kw)
@@ -3955,7 +3960,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         indices : array-like
             An array of ints indicating which positions to take.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
             For `Series` this parameter is unused and defaults to 0.
@@ -6810,12 +6815,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  3  z   <NA>  <NA>    20  200.0
 
         >>> dfn.dtypes
-        a             Int32
-        b    string[python]
-        c           boolean
-        d    string[python]
-        e             Int64
-        f           Float64
+        a      Int32
+        b     string
+        c    boolean
+        d     string
+        e      Int64
+        f    Float64
         dtype: object
 
         Start with a Series of strings and missing data represented by ``np.nan``.

@@ -30,7 +30,7 @@ The [asv-runner](https://github.com/pandas-dev/asv-runner/) repository automatic
 for every (or almost every) commit to the `main` branch. It is run on GitHub actions.
 See the linked repository for more details. The results are available at:
 
-https://pandas-dev.github.io/asv-runner/
+[https://pandas-dev.github.io/asv-runner/](https://pandas-dev.github.io/asv-runner/)
 
 ## Community benchmarks
 
