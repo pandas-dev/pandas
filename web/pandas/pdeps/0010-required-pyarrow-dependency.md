@@ -8,6 +8,8 @@
           [Patrick Hoefler](https://github.com/phofl)
 - Revision: 1
 
+[TOC]
+
 ## Abstract
 
 This PDEP proposes that:
