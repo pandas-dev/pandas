@@ -10648,7 +10648,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
             return op.apply().__finalize__(self, method="apply")
 
-        if hasattr(engine, "__pandas_udf__"):
+        elif hasattr(engine, "__pandas_udf__"):
             if result_type is not None:
                 raise NotImplementedError(
                     f"{result_type=} only implemented for the default engine"
