@@ -745,7 +745,6 @@ def is_implicit_conversion_to_float64(source, target) -> bool:
     False
     >>> is_implicit_conversion_to_float64("int", int)
     False
-    >>> import numpy as np
     >>> is_implicit_conversion_to_float64(int, np.int64)
     False
     >>> is_implicit_conversion_to_float64(np.uint64, np.int64)
@@ -762,7 +761,6 @@ def is_implicit_conversion_to_float64(source, target) -> bool:
     False
     >>> is_implicit_conversion_to_float64(object, "category")
     False
-    import pandas as pd
     >>> is_implicit_conversion_to_float64(np.int64, pd.UInt64Dtype())
     True
     >>> from pandas.core.dtypes.dtypes import CategoricalDtype
