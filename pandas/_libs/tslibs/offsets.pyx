@@ -1836,7 +1836,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         BaseOffset.__setstate__(self, state)
 
 
-cdef class BusinessDay(BusinessMixin):
+cdef class pandas.tseries.offsets.BusinessDay( n=1, normalize=False, offset=timedelta(0)):
     """
     DateOffset subclass representing possibly n business days.
 
