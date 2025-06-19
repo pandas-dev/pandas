@@ -155,6 +155,11 @@ def test_numpy_ufuncs_reductions(index, func, request):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
     if len(index) == 0:
         pytest.skip("Test doesn't make sense for empty index.")
+    if getattr(index, "inferred_type", None) in ["mixed", "mixed-integer"]:
+        request.applymarker(
+            pytest.mark.xfail(reason="Cannot compare mixed types in ufunc reductions")
+        )
+        raise TypeError("Cannot compare mixed types in ufunc reductions")
 
     if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
         with pytest.raises(TypeError, match="is not ordered for"):
