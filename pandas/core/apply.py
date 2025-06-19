@@ -305,22 +305,25 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         if isinstance(obj, Series):
             if not is_numeric_dtype(obj.dtype):
                 raise ValueError(
-                    f"Series must have numeric dtype. Found '{dtype}'."
+                    f"Series must have a numeric dtype. "
+                    f"Found '{dtype}' instead"
                 )
             if is_extension_array_dtype(obj.dtype):
                 raise ValueError(
-                    f"Series uses extension array dtype, not supported by Numba."
+                    f"Series is backed by an extension array, "
+                    f"which is not supported by the numba engine."
                 )
         else:
             for colname, dtype in obj.dtypes.items():
                 if not is_numeric_dtype(dtype):
                     raise ValueError(
-                        f"Column {colname} must have numeric dtype. Found '{dtype}'."
+                        f"Column {colname} must have a numeric dtype. "
+                        f"Found '{dtype}' instead"
                     )
                 if is_extension_array_dtype(dtype):
                     raise ValueError(
-                        f"Column {colname} uses extension array dtype, "
-                        "not supported by Numba."
+                        f"Column {colname} is backed by an extension array, "
+                        f"which is not supported by the numba engine."
                     )
 
     @staticmethod
