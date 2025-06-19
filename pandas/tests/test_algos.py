@@ -1197,6 +1197,13 @@ class TestIsin:
         expected = Series(False)
         tm.assert_series_equal(result, expected)
 
+    def test_isin_unsigned_dtype_other_side(self):
+        # GH#46485
+        ser = Series([1378774140726870442], dtype=np.int64)
+        result = ser.isin([np.uint64(1378774140726870528)])
+        expected = Series(False)
+        tm.assert_series_equal(result, expected)
+
 
 class TestValueCounts:
     def test_value_counts(self):

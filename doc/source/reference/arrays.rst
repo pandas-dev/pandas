@@ -667,6 +667,7 @@ Data type introspection
     api.types.is_dtype_equal
     api.types.is_extension_array_dtype
     api.types.is_float_dtype
+    api.types.is_implicit_conversion_to_float64
     api.types.is_int64_dtype
     api.types.is_integer_dtype
     api.types.is_interval_dtype
