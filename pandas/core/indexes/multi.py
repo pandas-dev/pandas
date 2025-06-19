@@ -3808,7 +3808,7 @@ class MultiIndex(Index):
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: npt.NDArray[np.intp] | None = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         """
         Find the indices where elements should be inserted to maintain order.
