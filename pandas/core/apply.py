@@ -271,7 +271,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
             Series,
         )
 
-        engine_kwargs: dict[str, bool] | None = (
+        engine_kwargs: dict[str, bool] = (
             decorator if isinstance(decorator, dict) else {}
         )
 
@@ -301,17 +301,27 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         return DataFrame() if isinstance(data, DataFrame) else Series()
 
     @staticmethod
-    def validate_values_for_numba(df: DataFrame) -> None:
-        for colname, dtype in df.dtypes.items():
-            if not is_numeric_dtype(dtype):
+    def validate_values_for_numba(obj: Series | DataFrame) -> None:
+        if isinstance(obj, Series):
+            if not is_numeric_dtype(obj.dtype):
                 raise ValueError(
-                    f"Column {colname} must have numeric dtype. Found '{dtype}'."
+                    f"Series must have numeric dtype. Found '{dtype}'."
                 )
-            if is_extension_array_dtype(dtype):
+            if is_extension_array_dtype(obj.dtype):
                 raise ValueError(
-                    f"Column {colname} uses extension array dtype, "
-                    "not supported by Numba."
+                    f"Series uses extension array dtype, not supported by Numba."
                 )
+        else:
+            for colname, dtype in obj.dtypes.items():
+                if not is_numeric_dtype(dtype):
+                    raise ValueError(
+                        f"Column {colname} must have numeric dtype. Found '{dtype}'."
+                    )
+                if is_extension_array_dtype(dtype):
+                    raise ValueError(
+                        f"Column {colname} uses extension array dtype, "
+                        "not supported by Numba."
+                    )
 
     @staticmethod
     @functools.cache
