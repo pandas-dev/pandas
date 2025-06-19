@@ -776,8 +776,10 @@ def is_implicit_conversion_to_float64(source, target) -> bool:
         # other data types derived from 64-bit integers such as U/Int64Dtype
         # should also work
         if (
-            src.kind in "iu" and src.itemsize == 8
-            and tar.kind in "iu" and tar.itemsize == 8
+            src.kind in "iu"
+            and src.itemsize == 8
+            and tar.kind in "iu"
+            and tar.itemsize == 8
         ):
             return src != tar
         else:
