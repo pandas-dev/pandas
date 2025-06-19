@@ -1,7 +1,7 @@
 .. _whatsnew_231:
 
 What's new in 2.3.1 (Month XX, 2025)
----------------------------------------
+------------------------------------
 
 These are the changes in pandas 2.3.1. See :ref:`release` for a full changelog
 including other versions of pandas.
