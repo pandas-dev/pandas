@@ -671,7 +671,7 @@ def test_groupby_raises_category_on_category(
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
         "prod": (TypeError, "category type does not support prod operations"),
-        "quantile": (TypeError, ""),
+        "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
         "sem": (
             TypeError,
