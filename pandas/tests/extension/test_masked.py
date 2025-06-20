@@ -187,7 +187,6 @@ class TestMaskedArrays(base.ExtensionTests):
     def test_map_na_action_ignore(self, data_missing_for_sorting):
         zero = data_missing_for_sorting[2]
         result = data_missing_for_sorting.map(lambda x: zero, na_action="ignore")
-
         if data_missing_for_sorting.dtype.kind == "b":
             expected = np.array([False, pd.NA, False], dtype=object)
         else:
