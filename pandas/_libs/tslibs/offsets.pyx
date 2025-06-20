@@ -1,3 +1,5 @@
+# cython: embedsignature=True
+
 import re
 import time
 import warnings
@@ -1177,6 +1179,11 @@ cdef class Day(Tick):
     """
     Offset ``n`` days.
 
+    Parameters
+    ----------
+    n : int
+        Number of multiples of the frequency (default 1).
+
     Attributes
     ----------
     n : int, default 1
@@ -1208,6 +1215,8 @@ cdef class Day(Tick):
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
+    def __init__(self, n=1, normalize=False):
+        super().__init__(n, normalize)
 
 cdef class Hour(Tick):
     """
@@ -5131,8 +5140,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\'"
-            f" instead.",
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
             )
@@ -5145,8 +5154,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
-                f"\'{_name}\'"
-                f" instead.",
+                f"\'{_name}\' "
+                f"instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
                 )
