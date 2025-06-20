@@ -4479,7 +4479,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
-    def select(self, *args):
+    def select(self, *args: Hashable | list[Hashable]):
         """
         Select a subset of columns from the DataFrame.
 
