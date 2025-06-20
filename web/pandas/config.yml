@@ -14,7 +14,6 @@ main:
   - pandas_web.Preprocessors.home_add_releases
   - pandas_web.Preprocessors.roadmap_pdeps
   markdown_extensions:
-  - toc
   - tables
   - fenced_code
   - meta

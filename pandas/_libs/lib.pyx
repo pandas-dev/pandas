@@ -2,6 +2,7 @@ from collections import abc
 from decimal import Decimal
 from enum import Enum
 from sys import getsizeof
+from types import GenericAlias
 from typing import (
     Literal,
     _GenericAlias,
@@ -1298,7 +1299,7 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
         getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
         # exclude Generic types that have __iter__
-        and not isinstance(obj, (str, bytes, _GenericAlias))
+        and not isinstance(obj, (str, bytes, _GenericAlias, GenericAlias))
         # exclude zero-dimensional duck-arrays, effectively scalars
         and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # exclude sets if allow_sets is False
