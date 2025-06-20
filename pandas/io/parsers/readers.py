@@ -735,8 +735,8 @@ def _read(
             f"with extension(s) {extensions} and glob pattern {glob}"
         )
 
-    if isinstance(files, list) and len(files) == 1:
-        file = files[0]
+    if (isinstance(files, list) and len(files) == 1) or not isinstance(files, list):
+        file = files[0] if isinstance(files, list) else files
         parser = TextFileReader(file, **kwds)
 
         if chunksize or iterator:
