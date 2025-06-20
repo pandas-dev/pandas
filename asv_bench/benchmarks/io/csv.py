@@ -52,6 +52,7 @@ class ToCSV(BaseIO):
     def time_frame(self, kind):
         self.df.to_csv(self.fname)
 
+
 class ToCSVFloatFormatVariants(BaseIO):
     fname = "__test__.csv"
 
@@ -69,6 +70,7 @@ class ToCSVFloatFormatVariants(BaseIO):
 
     def time_callable_format(self):
         self.df.to_csv(self.fname, float_format=lambda x: f"{x:.6f}")
+
 
 class ToCSVMultiIndexUnusedLevels(BaseIO):
     fname = "__test__.csv"
