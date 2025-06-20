@@ -864,7 +864,6 @@ ExtensionArray
 - Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)
 - Bug in various :class:`DataFrame` reductions for pyarrow temporal dtypes returning incorrect dtype when result was null (:issue:`59234`)
 
-
 Styler
 ^^^^^^
 - Bug in :meth:`Styler.to_latex` where styling column headers when combined with a hidden index or hidden index-levels is fixed.

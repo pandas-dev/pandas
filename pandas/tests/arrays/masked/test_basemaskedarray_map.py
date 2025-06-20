@@ -1,18 +1,16 @@
-import pandas as pd
-
+from pandas import Series, NA, isna
+from pandas.testing import assert_series_equal
 
 def test_basemaskedarray_map():
-    for dtype, data, expected_data in [
-        ("Int32", [1, 2, None, 4], [2, 3, pd.NA, 5]),
-    ]:
-        s = pd.Series(data, dtype=dtype)
+    
+        s = Series([1, 2, None, 4], dtype="Int32")
 
         def transform(x):
-            if x is None:
+            if isna(x):
                 return x
             return x + 1
 
         result = s.map(transform)
-        expected = pd.Series(expected_data, dtype=result.dtype)
+        expected = Series([2, 3, NA, 5], dtype=result.dtype)
 
-        assert result.tolist() == expected.tolist()
+        assert_series_equal(result, expected)

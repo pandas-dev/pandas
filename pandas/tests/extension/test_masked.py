@@ -191,7 +191,7 @@ class TestMaskedArrays(base.ExtensionTests):
         if data_missing_for_sorting.dtype.kind == "b":
             expected = np.array([False, pd.NA, False], dtype=object)
         else:
-            expected = np.array([zero, np.nan, zero])
+            expected = np.array([zero, pd.NA, zero])
             for i in range(len(result)):
                 if result[i] is pd.NA:
                     result[i] = "nan"
