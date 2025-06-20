@@ -205,7 +205,7 @@ jobs:
       cancel-in-progress: true
     env:
       PANDAS_CI: 1
-      PYTEST_TARGET: pandas/tests/io/test_common.py
+      PYTEST_TARGET: pandas
       PATTERN: "not slow and not db and not network and not single_cpu"
       PYTEST_WORKERS: 'auto'
 
