@@ -4639,19 +4639,23 @@ class DataFrame(NDFrame, OpsMixin):
         1    Cooper    22
         2    Marley    35
         """
-        if args and isinstance(args[0], list):
+        err_msg = (
+            "`DataFrame.select` supports individual columns "
+            "`df.select('col1', 'col2',...)` or a list "
+            "`df.select(['col1', 'col2',...])`, but not both. "
+            "You can unpack the list if you have a mix: "
+            "`df.select(*['col1', 'col2'], 'col3')`."
+        )
+        list_or_star_args = list(args)
+        if args and isinstance(list_or_star_args[0], list):
             if len(args) == 1:
-                columns = args[0]
+                columns = list_or_star_args[0]
             else:
-                raise ValueError(
-                    "`DataFrame.select` supports individual columns "
-                    "`df.select('col1', 'col2',...)` or a list "
-                    "`df.select(['col1', 'col2',...])`, but not both. "
-                    "You can unpack the list if you have a mix: "
-                    "`df.select(*['col1', 'col2'], 'col3')`."
-                )
+                raise ValueError(err_msg)
+        elif any(isinstance(arg, list) for arg in args):
+            raise ValueError(err_msg)
         else:
-            columns = list(args)
+            columns = list_or_star_args  # type: ignore[assignment]
 
         indexer = self.columns._get_indexer_strict(columns, "columns")[1]
         return self.take(indexer, axis=1)
