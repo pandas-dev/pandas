@@ -4651,9 +4651,9 @@ class DataFrame(NDFrame, OpsMixin):
             if len(args) == 1:
                 columns = list_or_star_args[0]
             else:
-                raise ValueError(err_msg)
+                raise TypeError(err_msg)
         elif any(isinstance(arg, list) for arg in args):
-            raise ValueError(err_msg)
+            raise TypeError(err_msg)
         else:
             columns = list_or_star_args  # type: ignore[assignment]
 
