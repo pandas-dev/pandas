@@ -5,7 +5,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Series,
-    date_range,
 )
 import pandas._testing as tm
 
@@ -143,29 +142,6 @@ class TestDataFrameRound:
         expected = Series([2.0, np.nan, 0.0]).to_frame()
         tm.assert_frame_equal(result, expected)
 
-    def test_round_mixed_type(self):
-        # GH#11885
-        df = DataFrame(
-            {
-                "col1": [1.1, 2.2, 3.3, 4.4],
-                "col2": ["1", "a", "c", "f"],
-                "col3": date_range("20111111", periods=4),
-            }
-        )
-        round_0 = DataFrame(
-            {
-                "col1": [1.0, 2.0, 3.0, 4.0],
-                "col2": ["1", "a", "c", "f"],
-                "col3": date_range("20111111", periods=4),
-            }
-        )
-        tm.assert_frame_equal(df.round(), round_0)
-        tm.assert_frame_equal(df.round(1), df)
-        tm.assert_frame_equal(df.round({"col1": 1}), df)
-        tm.assert_frame_equal(df.round({"col1": 0}), round_0)
-        tm.assert_frame_equal(df.round({"col1": 0, "col2": 1}), round_0)
-        tm.assert_frame_equal(df.round({"col3": 1}), df)
-
     def test_round_with_duplicate_columns(self):
         # GH#11611
 
@@ -223,3 +199,15 @@ class TestDataFrameRound:
         result = df.round()
         tm.assert_frame_equal(df, result)
         assert df is not result
+
+    def test_round_non_numeric_columns(self):
+        # GH#61679
+        df = DataFrame(
+            {
+                "a": [1.2234242333234, 323432.3243423, np.nan],
+                "b": ["a", "b", "c"],
+            }
+        )
+        msg = "All columns must be numeric dtype, but got object dtype column\\(s\\)"
+        with pytest.raises(TypeError, match=msg):
+            df.round()

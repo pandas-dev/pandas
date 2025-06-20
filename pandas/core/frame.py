@@ -11152,7 +11152,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
-            A DataFrame with the affected columns rounded to the specified
+            A DataFrame with columns rounded to the specified
             number of decimal places.
 
         See Also
@@ -11227,7 +11227,10 @@ class DataFrame(NDFrame, OpsMixin):
             return ser
 
         nv.validate_round(args, kwargs)
-
+        if "object" in self.dtypes.values:
+            raise TypeError(
+                "All columns must be numeric dtype, but got object dtype column(s)"
+            )
         if isinstance(decimals, (dict, Series)):
             if isinstance(decimals, Series) and not decimals.index.is_unique:
                 raise ValueError("Index of decimals must be unique")
