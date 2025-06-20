@@ -202,12 +202,7 @@ class TestDataFrameRound:
 
     def test_round_non_numeric_columns(self):
         # GH#61679
-        df = DataFrame(
-            {
-                "a": [1.2234242333234, 323432.3243423, np.nan],
-                "b": ["a", "b", "c"],
-            }
-        )
-        msg = "All columns must be numeric dtype, but got object dtype column\\(s\\)"
+        df = DataFrame({"col1": [1.22, 10.32, 3.54], "col2": ["a", "b", "c"]})
+        msg = "All columns must be numeric dtype, but got object dtype column"
         with pytest.raises(TypeError, match=msg):
             df.round()

@@ -11229,7 +11229,7 @@ class DataFrame(NDFrame, OpsMixin):
         nv.validate_round(args, kwargs)
         if "object" in self.dtypes.values:
             raise TypeError(
-                "All columns must be numeric dtype, but got object dtype column(s)"
+                "All columns must be numeric dtype, but got object dtype column"
             )
         if isinstance(decimals, (dict, Series)):
             if isinstance(decimals, Series) and not decimals.index.is_unique:
