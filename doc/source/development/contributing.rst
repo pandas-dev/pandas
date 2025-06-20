@@ -41,6 +41,12 @@ so nobody else duplicates the work on it. On the Github issue, a comment with th
 text ``take`` to automatically assign you the issue
 (this will take seconds and may require refreshing the page to see it).
 
+.. note::
+
+   You can only be assigned to a maximum of two open issues at a time using the take command.
+   If you attempt to take a third issue, it will not be assigned to you.
+   If you need more than two, please request approval from a maintainer.
+
 If for whatever reason you are not able to continue working with the issue, please
 unassign it, so other people know it's available again. You can check the list of
 assigned issues, since people may not be working in them anymore. If you want to work on one
