@@ -33,7 +33,7 @@ def test_map_float_object_conversion(val):
     assert result == object
 
 
-def test_map_keeps_dtype(na_action):
+def test_map_keeps_dtype(skipna):
     # GH52219
     arr = Series(["a", np.nan, "b"])
     sparse_arr = arr.astype(pd.SparseDtype(object))
@@ -42,7 +42,7 @@ def test_map_keeps_dtype(na_action):
     def func(x):
         return str.upper(x) if not pd.isna(x) else x
 
-    result = df.map(func, na_action=na_action)
+    result = df.map(func, skipna=skipna)
 
     expected_sparse = pd.array(["A", np.nan, "B"], dtype=pd.SparseDtype(object))
     expected_arr = expected_sparse.astype(object)
@@ -50,7 +50,7 @@ def test_map_keeps_dtype(na_action):
 
     tm.assert_frame_equal(result, expected)
 
-    result_empty = df.iloc[:0, :].map(func, na_action=na_action)
+    result_empty = df.iloc[:0, :].map(func, skipna=skipna)
     expected_empty = expected.iloc[:0, :]
     tm.assert_frame_equal(result_empty, expected_empty)
 
@@ -109,9 +109,7 @@ def test_map_na_ignore(float_frame):
     float_frame_with_na = float_frame.copy()
     mask = np.random.default_rng(2).integers(0, 2, size=float_frame.shape, dtype=bool)
     float_frame_with_na[mask] = pd.NA
-    strlen_frame_na_ignore = float_frame_with_na.map(
-        lambda x: len(str(x)), na_action="ignore"
-    )
+    strlen_frame_na_ignore = float_frame_with_na.map(lambda x: len(str(x)), skipna=True)
     # Set float64 type to avoid upcast when setting NA below
     strlen_frame_with_na = strlen_frame.copy().astype("float64")
     strlen_frame_with_na[mask] = pd.NA
@@ -202,7 +200,28 @@ def test_map_type():
     tm.assert_frame_equal(result, expected)
 
 
+def test_map_na_action_none(float_frame):
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        result = DataFrame({"a": [1, np.nan]}).map(lambda x: 10, na_action=None)
+    expected = DataFrame({"a": [10, 10]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_map_na_action_ignore(float_frame):
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        result = DataFrame({"a": [1, np.nan]}).map(lambda x: 10, na_action="ignore")
+    expected = DataFrame({"a": [10, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_map_invalid_na_action(float_frame):
     # GH 23803
-    with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
-        float_frame.map(lambda x: len(str(x)), na_action="abc")
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        with pytest.raises(ValueError, match="na_action must .* 'abc' was passed"):
+            float_frame.map(lambda x: len(str(x)), na_action="abc")
