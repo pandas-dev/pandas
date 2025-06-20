@@ -190,7 +190,7 @@ class TestMaskedArrays(base.ExtensionTests):
         if data_missing_for_sorting.dtype.kind == "b":
             expected = np.array([False, pd.NA, False], dtype=object)
         else:
-            expected = np.array([zero, pd.NA, zero]) 
+            expected = np.array([zero, pd.NA, zero])
         tm.assert_numpy_array_equal(result, expected)
 
     def _get_expected_exception(self, op_name, obj, other):
