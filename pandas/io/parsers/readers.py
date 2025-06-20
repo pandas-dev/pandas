@@ -729,13 +729,13 @@ def _read(
     glob = kwds.get("glob", None)
     files = iterdir(filepath_or_buffer, extensions, glob)
 
-    if not files:
+    if isinstance(files, list) and not files:
         raise FileNotFoundError(
             f"No files found in {filepath_or_buffer}, "
             f"with extension(s) {extensions} and glob pattern {glob}"
         )
 
-    if len(files) == 1:
+    if isinstance(files, list) and len(files) == 1:
         file = files[0]
         parser = TextFileReader(file, **kwds)
 
