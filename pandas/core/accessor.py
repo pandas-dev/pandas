@@ -480,7 +480,7 @@ def accessor_entry_point_loader() -> None:
         "pandas.Index.accessor": register_index_accessor,
     }
 
-    PD_OBJ_ENTRYPOINTS: tuple[str] = tuple(ACCESSOR_REGISTRY_FUNCTIONS.keys())
+    PD_OBJ_ENTRYPOINTS: tuple[str, ...] = tuple(ACCESSOR_REGISTRY_FUNCTIONS.keys())
 
     for pd_obj_entrypoint in PD_OBJ_ENTRYPOINTS:
         accessors: EntryPoints = entry_points(group=pd_obj_entrypoint)

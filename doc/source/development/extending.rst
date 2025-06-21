@@ -89,7 +89,7 @@ To register the entry point for your accessor, follow the format shown below:
 
 Alternatively, if you are using a ``pyproject.toml``-based build:
 
-.. code-block:: toml
+.. code-block:: none
 
     # pyproject.toml
     [project.entry-points."pandas.DataFrame.accessor"]
