@@ -53,6 +53,25 @@ class ToCSV(BaseIO):
         self.df.to_csv(self.fname)
 
 
+class ToCSVFloatFormatVariants(BaseIO):
+    fname = "__test__.csv"
+
+    def setup(self):
+        self.df = DataFrame(np.random.default_rng(seed=42).random((1000, 1000)))
+
+    def time_old_style_percent_format(self):
+        self.df.to_csv(self.fname, float_format="%.6f")
+
+    def time_new_style_brace_format(self):
+        self.df.to_csv(self.fname, float_format="{:.6f}")
+
+    def time_new_style_thousands_format(self):
+        self.df.to_csv(self.fname, float_format="{:,.2f}")
+
+    def time_callable_format(self):
+        self.df.to_csv(self.fname, float_format=lambda x: f"{x:.6f}")
+
+
 class ToCSVMultiIndexUnusedLevels(BaseIO):
     fname = "__test__.csv"
 
