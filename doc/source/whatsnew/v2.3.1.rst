@@ -26,7 +26,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug in :meth:`DataFrame.explode` and :meth:`Series.explode` where methods would fail with ``dtype="str"`` (:issue:`61623`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_231.other:
