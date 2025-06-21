@@ -10621,10 +10621,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if engine == "numba":
             numba = import_optional_dependency("numba")
-            engine = numba.jit(**engine_kwargs or {})
-            engine.__pandas_udf__ = NumbaExecutionEngine
+            numba_jit = numba.jit(**engine_kwargs or {})
+            numba_jit.__pandas_udf__ = NumbaExecutionEngine
+            engine = numba_jit
 
-        if engine is None or isinstance(engine, str):
+        elif engine is None or isinstance(engine, str):
             from pandas.core.apply import frame_apply
 
             if engine not in ["python", None]:

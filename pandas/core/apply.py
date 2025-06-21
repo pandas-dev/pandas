@@ -194,7 +194,9 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         """
         Elementwise map for the Numba engine. Currently not supported.
         """
-        raise NotImplementedError("The Numba engine is not implemented for the map method yet.")
+        raise NotImplementedError(
+            "The Numba engine is not implemented for the map method yet."
+        )
 
     @staticmethod
     def apply(
@@ -222,9 +224,8 @@ class NumbaExecutionEngine(BaseExecutionEngine):
             if data.empty:
                 return data.copy()  # mimic apply_empty_result()
             NumbaExecutionEngine.validate_values_for_numba_raw_false(
-                data,
-                decorator if isinstance(decorator, dict) else {}
-                )
+                data, decorator if isinstance(decorator, dict) else {}
+            )
 
             return NumbaExecutionEngine.apply_raw_false(
                 data, func, args, kwargs, decorator, axis
@@ -298,7 +299,9 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         return DataFrame() if isinstance(data, DataFrame) else Series()
 
     @staticmethod
-    def validate_values_for_numba_raw_false(data: Series | DataFrame, engine_kwargs: dict[str, bool]) -> None:
+    def validate_values_for_numba_raw_false(
+        data: Series | DataFrame, engine_kwargs: dict[str, bool]
+    ) -> None:
         from pandas import Series
 
         if engine_kwargs.get("parallel", False):
@@ -344,7 +347,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
 
         jitted_udf = numba.extending.register_jitable(func)
 
-        @decorator # type: ignore
+        @decorator
         def numba_func(values, col_names_index, index, *args):
             results = {}
             for i in range(values.shape[1 - axis]):
@@ -368,16 +371,12 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         return numba_func
 
     @staticmethod
-    def apply_with_numba(
-        data, func, args, kwargs, decorator, axis=0
-    ) -> dict[int, Any]:
+    def apply_with_numba(data, func, args, kwargs, decorator, axis=0) -> dict[int, Any]:
         func = cast(Callable, func)
         args, kwargs = prepare_function_arguments(
             func, args, kwargs, num_required_args=1
         )
-        nb_func = NumbaExecutionEngine.generate_numba_apply_func(
-            func, axis, decorator
-        )
+        nb_func = NumbaExecutionEngine.generate_numba_apply_func(func, axis, decorator)
 
         from pandas.core._numba.extensions import set_numba_data
 
