@@ -10,6 +10,7 @@ import codecs
 from collections import defaultdict
 from collections.abc import (
     Hashable,
+    Iterable,
     Mapping,
     Sequence,
 )
@@ -26,7 +27,10 @@ from io import (
 )
 import mmap
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+    PurePosixPath,
+)
 import re
 import tarfile
 from typing import (
@@ -42,6 +46,7 @@ from typing import (
     overload,
 )
 from urllib.parse import (
+    unquote,
     urljoin,
     urlparse as parse_url,
     uses_netloc,
@@ -55,6 +60,7 @@ from pandas._typing import (
     BaseBuffer,
     ReadCsvBuffer,
 )
+from pandas.compat import is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -1282,3 +1288,160 @@ def dedup_names(
         counts[col] = cur_count + 1
 
     return names
+
+
+def _infer_protocol(path: str) -> str:
+    # Treat Windows drive letters like C:\ as local file paths
+    if is_platform_windows() and re.match(r"^[a-zA-Z]:[\\/]", path):
+        return "file"
+
+    if is_fsspec_url(path) or path.startswith("http"):
+        parsed = parse_url(path)
+        return parsed.scheme
+    return "file"
+
+
+def _match_file(
+    path: Path | PurePosixPath, extensions: set[str] | None, glob: str | None
+) -> bool:
+    """
+    Check if the file matches the given extensions and glob pattern.
+    Parameters
+    ----------
+    path : Path or PurePosixPath
+        The file path to check.
+    extensions : set[str]
+        A set of file extensions to match against.
+    glob : str
+        A glob pattern to match against.
+    Returns
+    -------
+    bool
+        True if the file matches the extensions and glob pattern, False otherwise.
+    """
+    return (extensions is None or path.suffix.lower() in extensions) and (
+        glob is None or path.match(glob)
+    )
+
+
+def _resolve_local_path(path_str: str) -> Path:
+    parsed = parse_url(path_str)
+
+    if is_platform_windows():
+        if parsed.scheme == "file":
+            if parsed.netloc:
+                return Path(f"//{parsed.netloc}{unquote(parsed.path)}")
+            return Path(unquote(parsed.path.lstrip("/")))
+
+        if re.match(r"^[a-zA-Z]:[\\/]", path_str):
+            return Path(unquote(path_str))
+
+    return Path(unquote(parsed.path))
+
+
+def iterdir(
+    path: FilePath | BaseBuffer,
+    extensions: str | Iterable[str] | None = None,
+    glob: str | None = None,
+) -> list[str | Path] | BaseBuffer:
+    """Yield file paths in a directory (no nesting allowed).
+
+    Supports:
+    - Local paths (str, os.PathLike)
+    - file:// URLs
+    - Remote paths (e.g., s3://) via fsspec (if installed)
+
+    Parameters
+    ----------
+    path : FilePath
+        Path to the directory (local or remote).
+    extensions : str or list of str, optional
+        Only yield files with the given extension(s). Case-insensitive.
+        If None, all files are yielded.
+    glob : str, optional
+        Only yield files matching the given glob pattern.
+        If None, all files are yielded.
+
+    Returns
+    ------
+    list of str or Path, BaseBuffer
+        If `path` is a file-like object, returns it directly.
+        Otherwise, returns list of file paths in the directory.
+
+    Raises
+    ------
+    NotADirectoryError
+        If the given path is not a directory.
+    ImportError
+        If fsspec is required but not installed.
+    """
+    if hasattr(path, "read") or hasattr(path, "write"):
+        return path
+
+    if not isinstance(path, (str, os.PathLike)):
+        raise TypeError(
+            f"Expected file path name or file-like object, got {type(path)} type"
+        )
+
+    if extensions is not None:
+        if isinstance(extensions, str):
+            extensions = {extensions.lower()}
+        else:
+            extensions = {ext.lower() for ext in extensions}
+
+    path_str = os.fspath(path)
+    scheme = _infer_protocol(path_str)
+
+    if scheme == "file":
+        resolved_path = _resolve_local_path(path_str)
+        if not resolved_path.exists():
+            raise FileNotFoundError(f"No such file or directory: '{resolved_path}'")
+
+        result = []
+        if resolved_path.is_file():
+            if _match_file(
+                resolved_path,
+                extensions,
+                glob,
+            ):
+                result.append(resolved_path)
+                return result
+
+        if resolved_path.is_dir():
+            for entry in resolved_path.iterdir():
+                if entry.is_file():
+                    if _match_file(
+                        entry,
+                        extensions,
+                        glob,
+                    ):
+                        result.append(entry)
+            return result
+
+        raise ValueError(
+            f"The path '{resolved_path}' is neither a file nor a directory."
+        )
+
+    # Remote paths
+    fsspec = import_optional_dependency("fsspec", extra=scheme)
+    fs, inner_path = fsspec.core.url_to_fs(path_str)
+    if fs.isfile(inner_path):
+        path_obj = PurePosixPath(inner_path)
+        if _match_file(
+            inner_path,
+            extensions,
+            glob,
+        ):
+            return [path]
+
+    result = []
+    for file in fs.ls(inner_path, detail=True):
+        if file["type"] == "file":
+            path_obj = PurePosixPath(file["name"])
+            if _match_file(
+                path_obj,
+                extensions,
+                glob,
+            ):
+                result.append(f"{scheme}://{path_obj}")
+    return result
