@@ -69,6 +69,62 @@ For a ``Series`` accessor, you should validate the ``dtype`` if the accessor
 applies only to certain dtypes.
 
 
+Registering accessors via entry points
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can create a custom accessor for a pandas object and expose it via Python's
+entry point system. Once installed using pip, the accessor can be automatically
+discovered and registered by pandas at runtime, without requiring manual import.
+
+To register the entry point for your accessor, follow the format shown below:
+
+.. code-block:: python
+
+    # setup.py
+    entry_points={
+        'pandas.DataFrame.accessor': [ '<name> = <module>:<AccessorClass>', ... ],
+        'pandas.Series.accessor':    [ '<name> = <module>:<AccessorClass>', ... ],
+        'pandas.Index.accessor':     [ '<name> = <module>:<AccessorClass>', ... ],
+    }
+
+Alternatively, if you are using a ``pyproject.toml``-based build:
+
+.. code-block:: toml
+
+    # pyproject.toml
+    [project.entry-points."pandas.DataFrame.accessor"]
+    <name> = "<module>:<AccessorClass>"
+
+    [project.entry-points."pandas.Series.accessor"]
+    <name> = "<module>:<AccessorClass>"
+
+    [project.entry-points."pandas.Index.accessor"]
+    <name> = "<module>:<AccessorClass>"
+
+
+Assuming the accessor class ``GeoAccessor`` is defined in the module
+``geoPlugin.geo_accessor``, and using the accessor name ``geo`` as in the
+example above:
+
+.. code-block:: python
+
+    # setup.py
+    entry_points={
+        'pandas.DataFrame.accessor': [ 'geo = geoPlugin.geo_accessor:GeoAccessor' ],
+    }
+
+Or, for a ``pyproject.toml``-based build:
+
+.. code-block:: toml
+
+    # pyproject.toml
+    [project.entry-points."pandas.DataFrame.accessor"]
+    geo = "geoPlugin.geo_accessor:GeoAccessor"
+
+
+For background on Python's Entry Point system and Plugins:
+https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#plugin-entry-points
+
 .. _extending.extension-types:
 
 Extension types

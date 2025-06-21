@@ -405,8 +405,10 @@ def accessor_entry_point_loader() -> None:
     Load and register pandas accessors declared via entry points.
 
     This function scans the 'pandas.<pd_obj>.accessor' entry point group for
-    accessors registered by third-party packages. Each entry point is expected
-    to follow the format:
+    accessors registered by third-party packages. These accessors extend
+    core pandas objects (`DataFrame`, `Series`, `Index`).
+
+    Each entry point is expected to follow the format:
 
         # setup.py
         entry_points={
@@ -415,7 +417,7 @@ def accessor_entry_point_loader() -> None:
             'pandas.Index.accessor':     [ <name> = <module>:<AccessorClass>, ... ],
         }
 
-    OR for pyproject.toml file:
+    OR using pyproject.toml file:
 
         # pyproject.toml
         [project.entry-points."pandas.DataFrame.accessor"]
@@ -426,9 +428,6 @@ def accessor_entry_point_loader() -> None:
 
         [project.entry-points."pandas.Index.accessor"]
         <name> = "<module>:<AccessorClass>"
-
-    For more information about entrypoints:
-    https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#plugin-entry-points
 
 
     For each valid entry point:
@@ -441,7 +440,16 @@ def accessor_entry_point_loader() -> None:
     Notes
     -----
     - This function is only intended to be called at pandas startup.
-    - For more information about accessors read their documentation.
+    - For more information about accessors, refer to:
+        - Pandas documentation on extending accessors:
+          https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors
+        - Series accessor API reference:
+          https://pandas.pydata.org/docs/reference/series.html#accessors
+        - Note: DataFrame and Index accessors (e.g., `.sparse`, `.str`) use the same
+          mechanism but are not listed in separate reference pages as of now.
+
+    - For background on Python plugin entry points:
+    https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#plugin-entry-points
 
     Raises
     ------
