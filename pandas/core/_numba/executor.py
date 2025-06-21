@@ -18,14 +18,14 @@ from pandas.core.util.numba_ import jit_user_function
 
 
 @functools.cache
-def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
+def generate_apply_looper(func, decorator: Callable):
     if TYPE_CHECKING:
         import numba
     else:
         numba = import_optional_dependency("numba")
     nb_compat_func = jit_user_function(func)
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @decorator # type: ignore
     def nb_looper(values, axis, *args):
         # Operate on the first row/col in order to get
         # the output shape
