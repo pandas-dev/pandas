@@ -1327,7 +1327,7 @@ def _match_file(
 def _resolve_local_path(path_str: str) -> Path:
     parsed = parse_url(path_str)
     if is_platform_windows() and parsed.scheme != "file":
-        return Path(unquote(path_str.lstrip("/")))
+        return Path(unquote(path_str.lstrip("/\\")))
     return Path(unquote(parsed.path))
 
 
