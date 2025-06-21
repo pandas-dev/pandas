@@ -1,5 +1,4 @@
 import numpy as np
-import pyarrow as pa
 import pytest
 
 from pandas.core.dtypes.dtypes import (
@@ -47,6 +46,7 @@ def test_string_default():
 
 
 def test_string_with_mode():
+    pa = pytest.importorskip("pyarrow")
     result = string(mode="binary", backend="pyarrow")
     assert result == ArrowDtype(pa.binary())
     assert str(result) == "binary[pyarrow]"
@@ -165,12 +165,14 @@ def test_list_default():
 
 
 def test_list_pyarrow():
+    pa = pytest.importorskip("pyarrow")
     result = list(backend="pyarrow", value_type=pa.int64())
     assert isinstance(result, ArrowDtype)
     assert str(result) == "list<item: int64>[pyarrow]"
 
 
 def test_list_large():
+    pa = pytest.importorskip("pyarrow")
     result = list(backend="pyarrow", value_type=pa.string(), large=True)
     assert isinstance(result, ArrowDtype)
     assert str(result) == "large_list<item: string>[pyarrow]"
@@ -243,12 +245,14 @@ def test_duration_pyarrow():
 
 # Map
 def test_map_default():
+    pa = pytest.importorskip("pyarrow")
     result = map(index_type=pa.string(), value_type=pa.int64())
     assert isinstance(result, ArrowDtype)
     assert str(result) == "map<string, int64>[pyarrow]"
 
 
 def test_map_custom_types():
+    pa = pytest.importorskip("pyarrow")
     result = map(index_type=pa.string(), value_type=pa.float64())
     assert isinstance(result, ArrowDtype)
     assert str(result) == "map<string, double>[pyarrow]"
@@ -256,12 +260,14 @@ def test_map_custom_types():
 
 # Struct
 def test_struct_default():
+    pa = pytest.importorskip("pyarrow")
     result = struct(fields=[("a", pa.int64()), ("b", pa.string())])
     assert isinstance(result, ArrowDtype)
     assert str(result) == "struct<a: int64, b: string>[pyarrow]"
 
 
 def test_struct_custom_fields():
+    pa = pytest.importorskip("pyarrow")
     fields = [("x", pa.float32()), ("y", pa.int16())]
     result = struct(fields=fields)
     assert isinstance(result, ArrowDtype)
