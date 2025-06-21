@@ -40,5 +40,3 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
-
-.. contributors:: v2.3.0..v2.3.1
