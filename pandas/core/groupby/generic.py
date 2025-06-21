@@ -17,8 +17,8 @@ from typing import (
     Any,
     Literal,
     NamedTuple,
+    TypeAlias,
     TypeVar,
-    Union,
     cast,
 )
 import warnings
@@ -102,7 +102,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
-AggScalar = Union[str, Callable[..., Any]]
+AggScalar: TypeAlias = str | Callable[..., Any]
 # TODO: validate types on ScalarResult and move to _typing
 # Blocked from using by https://github.com/python/mypy/issues/1484
 # See note at _mangle_lambda_list
