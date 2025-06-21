@@ -10,7 +10,6 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow as pa
 
 from pandas._libs import missing as libmissing
 
@@ -77,6 +76,8 @@ def string(
     if mode not in valid_modes:
         raise ValueError(f"mode must be one of {valid_modes}, got {mode}")
     if backend == "pyarrow":
+        import pyarrow as pa
+
         if mode == "string":
             pa_type = pa.large_string() if large else pa.string()
         else:  # mode == "binary"
@@ -128,6 +129,8 @@ def datetime(
             return DatetimeTZDtype(unit=unit, tz=tz)
         return np.dtype(f"datetime64[{unit}]")
     else:  # pyarrow
+        import pyarrow as pa
+
         return ArrowDtype(pa.timestamp(unit, tz=tz))
 
 
@@ -167,24 +170,25 @@ def integer(
 
     if backend == "numpy":
         return np.dtype(f"int{bits}")
-
-    if backend == "pandas":
+    elif backend == "pandas":
         if bits == 8:
             return Int8Dtype()
         elif bits == 16:
             return Int16Dtype()
         elif bits == 32:
             return Int32Dtype()
-        elif bits == 64:
+        else:  # bits == 64
             return Int64Dtype()
     elif backend == "pyarrow":
+        import pyarrow as pa
+
         if bits == 8:
             return ArrowDtype(pa.int8())
         elif bits == 16:
             return ArrowDtype(pa.int16())
         elif bits == 32:
             return ArrowDtype(pa.int32())
-        elif bits == 64:
+        else:  # bits == 64
             return ArrowDtype(pa.int64())
     else:
         raise ValueError(f"Unsupported backend: {backend!r}")
@@ -224,16 +228,17 @@ def floating(
 
     if backend == "numpy":
         return np.dtype(f"float{bits}")
-
-    if backend == "pandas":
+    elif backend == "pandas":
         if bits == 32:
             return Float32Dtype()
-        elif bits == 64:
+        else:  # bits == 64
             return Float64Dtype()
     elif backend == "pyarrow":
+        import pyarrow as pa
+
         if bits == 32:
             return ArrowDtype(pa.float32())
-        elif bits == 64:
+        else:  # bits == 64
             return ArrowDtype(pa.float64())
     else:
         raise ValueError(f"Unsupported backend: {backend!r}")
@@ -270,6 +275,8 @@ def decimal(
     decimal256[40, 5][pyarrow]
     """
     if backend == "pyarrow":
+        import pyarrow as pa
+
         if precision <= 38:
             return ArrowDtype(pa.decimal128(precision, scale))
         return ArrowDtype(pa.decimal256(precision, scale))
@@ -302,6 +309,8 @@ def boolean(
     if backend == "numpy":
         return BooleanDtype()
     else:  # pyarrow
+        import pyarrow as pa
+
         return ArrowDtype(pa.bool_())
 
 
@@ -344,6 +353,8 @@ def list(
     if backend == "numpy":
         return np.dtype("object")
     else:  # pyarrow
+        import pyarrow as pa
+
         if value_type is None:
             value_type = pa.int64()
         pa_type = pa.large_list(value_type) if large else pa.list_(value_type)
@@ -396,6 +407,8 @@ def categorical(
     if backend == "numpy":
         return CategoricalDtype(categories=categories, ordered=ordered)
     else:  # pyarrow
+        import pyarrow as pa
+
         index_type = pa.int32() if index_type is None else index_type
         value_type = pa.string() if value_type is None else value_type
         return ArrowDtype(pa.dictionary(index_type, value_type))
@@ -437,6 +450,8 @@ def interval(
     if backend == "numpy":
         return IntervalDtype(subtype=subtype, closed=closed)
     else:  # pyarrow
+        import pyarrow as pa
+
         if subtype is not None:
             return ArrowDtype(
                 pa.struct(
@@ -491,6 +506,8 @@ def period(
     if backend == "numpy":
         return PeriodDtype(freq=freq)
     else:  # pyarrow
+        import pyarrow as pa
+
         return ArrowDtype(pa.month_day_nano_interval())
 
 
@@ -590,6 +607,8 @@ def date(
 
     if backend != "pyarrow":
         raise ValueError("Date types are only supported with PyArrow backend.")
+    import pyarrow as pa
+
     return ArrowDtype(pa.date32() if unit == "day" else pa.date64())
 
 
@@ -629,6 +648,8 @@ def duration(
     if backend == "numpy":
         return np.dtype(f"timedelta64[{unit}]")
     else:  # pyarrow
+        import pyarrow as pa
+
         return ArrowDtype(pa.duration(unit))
 
 
@@ -677,6 +698,8 @@ def map(
     """
     if backend != "pyarrow":
         raise ValueError("Map types are only supported with PyArrow backend.")
+    import pyarrow as pa
+
     return ArrowDtype(pa.map_(index_type, value_type))
 
 
@@ -724,14 +747,10 @@ def struct(
     1     (2, Bob)
     dtype: struct<id: int32, name: string>[pyarrow]
     """
-    if backend != "pyarrow":
-        raise ValueError("Struct types are only supported with PyArrow backend.")
-    # Validate that fields is a list of (str, type) tuples
-    for field in fields:
-        if (
-            not isinstance(field, tuple)
-            or len(field) != 2
-            or not isinstance(field[0], str)
-        ):
-            raise ValueError("Each field must be a tuple of (str, type), got {field}")
-    return ArrowDtype(pa.struct(fields))
+    if backend == "pyarrow":
+        import pyarrow as pa
+
+        pa_fields = [(name, getattr(typ, "pyarrow_dtype", typ)) for name, typ in fields]
+        return ArrowDtype(pa.struct(pa_fields))
+    else:
+        raise ValueError(f"Unsupported backend: {backend!r}")
