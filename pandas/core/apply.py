@@ -49,7 +49,6 @@ from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.util.numba_ import (
-    get_jit_arguments,
     prepare_function_arguments,
 )
 
@@ -195,7 +194,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         """
         Elementwise map for the Numba engine. Currently not supported.
         """
-        raise NotImplementedError("Numba map is not implemented yet.")
+        raise NotImplementedError("The Numba engine is not implemented for the map method yet.")
 
     @staticmethod
     def apply(
@@ -210,34 +209,26 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         Apply `func` along the given axis using Numba.
         """
 
-        if is_list_like(func):
-            raise NotImplementedError(
-                "the 'numba' engine doesn't support lists of callables yet"
-            )
+        NumbaExecutionEngine.check_numba_support(func)
 
-        if isinstance(func, str):
-            raise NotImplementedError(
-                "the 'numba' engine doesn't support using "
-                "a string as the callable function"
-            )
-
-        elif isinstance(func, np.ufunc):
-            raise NotImplementedError(
-                "the 'numba' engine doesn't support "
-                "using a numpy ufunc as the callable function"
-            )
+        # normalize axis values
+        if axis in (0, "index"):
+            axis = 0
+        else:
+            axis = 1
 
         # check for data typing
         if not isinstance(data, np.ndarray):
-            if len(data.columns) == 0 and len(data.index) == 0:
+            if data.empty:
                 return data.copy()  # mimic apply_empty_result()
+            NumbaExecutionEngine.validate_values_for_numba_raw_false(
+                data,
+                decorator if isinstance(decorator, dict) else {}
+                )
+
             return NumbaExecutionEngine.apply_raw_false(
                 data, func, args, kwargs, decorator, axis
             )
-
-        engine_kwargs: dict[str, bool] | None = (
-            decorator if isinstance(decorator, dict) else None
-        )
 
         looper_args, looper_kwargs = prepare_function_arguments(
             func,
@@ -249,13 +240,32 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         # incompatible type "Callable[..., Any] | str | list[Callable
         # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
         # list[Callable[..., Any] | str]]"; expected "Hashable"
-        nb_looper = generate_apply_looper(
+        numba_looper = generate_apply_looper(
             func,
-            **get_jit_arguments(engine_kwargs),
+            decorator,
         )
-        result = nb_looper(data, axis, *looper_args)
+        result = numba_looper(data, axis, *looper_args)
         # If we made the result 2-D, squeeze it back to 1-D
         return np.squeeze(result)
+
+    @staticmethod
+    def check_numba_support(func):
+        if is_list_like(func):
+            raise NotImplementedError(
+                "the 'numba' engine doesn't support lists of callables yet"
+            )
+
+        elif isinstance(func, str):
+            raise NotImplementedError(
+                "the 'numba' engine doesn't support using "
+                "a string as the callable function"
+            )
+
+        elif isinstance(func, np.ufunc):
+            raise NotImplementedError(
+                "the 'numba' engine doesn't support "
+                "using a numpy ufunc as the callable function"
+            )
 
     @staticmethod
     def apply_raw_false(
@@ -271,21 +281,8 @@ class NumbaExecutionEngine(BaseExecutionEngine):
             Series,
         )
 
-        engine_kwargs: dict[str, bool] = (
-            decorator if isinstance(decorator, dict) else {}
-        )
-
-        if engine_kwargs.get("parallel", False):
-            raise NotImplementedError(
-                "Parallel apply is not supported when raw=False and engine='numba'"
-            )
-        if not data.index.is_unique or not data.columns.is_unique:
-            raise NotImplementedError(
-                "The index/columns must be unique when raw=False and engine='numba'"
-            )
-        NumbaExecutionEngine.validate_values_for_numba(data)
         results = NumbaExecutionEngine.apply_with_numba(
-            data, func, args, kwargs, engine_kwargs, axis
+            data, func, args, kwargs, decorator, axis
         )
 
         if results:
@@ -301,21 +298,30 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         return DataFrame() if isinstance(data, DataFrame) else Series()
 
     @staticmethod
-    def validate_values_for_numba(obj: Series | DataFrame) -> None:
+    def validate_values_for_numba_raw_false(data: Series | DataFrame, engine_kwargs: dict[str, bool]) -> None:
         from pandas import Series
 
-        if isinstance(obj, Series):
-            if not is_numeric_dtype(obj.dtype):
+        if engine_kwargs.get("parallel", False):
+            raise NotImplementedError(
+                "Parallel apply is not supported when raw=False and engine='numba'"
+            )
+        if not data.index.is_unique or not data.columns.is_unique:
+            raise NotImplementedError(
+                "The index/columns must be unique when raw=False and engine='numba'"
+            )
+
+        if isinstance(data, Series):
+            if not is_numeric_dtype(data.dtype):
                 raise ValueError(
-                    f"Series must have a numeric dtype. Found '{obj.dtype}' instead"
+                    f"Series must have a numeric dtype. Found '{data.dtype}' instead"
                 )
-            if is_extension_array_dtype(obj.dtype):
+            if is_extension_array_dtype(data.dtype):
                 raise ValueError(
                     "Series is backed by an extension array, "
                     "which is not supported by the numba engine."
                 )
         else:
-            for colname, dtype in obj.dtypes.items():
+            for colname, dtype in data.dtypes.items():
                 if not is_numeric_dtype(dtype):
                     raise ValueError(
                         f"Column {colname} must have a numeric dtype. "
@@ -330,7 +336,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
     @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, axis, nogil=True, nopython=True, parallel=False
+        func, axis, decorator: Callable
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -338,7 +344,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
 
         jitted_udf = numba.extending.register_jitable(func)
 
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @decorator # type: ignore
         def numba_func(values, col_names_index, index, *args):
             results = {}
             for i in range(values.shape[1 - axis]):
@@ -363,14 +369,14 @@ class NumbaExecutionEngine(BaseExecutionEngine):
 
     @staticmethod
     def apply_with_numba(
-        data, func, args, kwargs, engine_kwargs, axis=0
+        data, func, args, kwargs, decorator, axis=0
     ) -> dict[int, Any]:
         func = cast(Callable, func)
         args, kwargs = prepare_function_arguments(
             func, args, kwargs, num_required_args=1
         )
         nb_func = NumbaExecutionEngine.generate_numba_apply_func(
-            func, axis, **get_jit_arguments(engine_kwargs)
+            func, axis, decorator
         )
 
         from pandas.core._numba.extensions import set_numba_data
