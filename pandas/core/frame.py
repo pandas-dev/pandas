@@ -11293,7 +11293,7 @@ class DataFrame(NDFrame, OpsMixin):
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.
 
-        parallel : bool, default False
+        use_parallel : bool, default False
             Use parallel computation for Pearson correlation.
             Only effective for large matrices where parallelization overhead
             is justified by compute time savings.
