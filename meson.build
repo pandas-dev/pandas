@@ -15,6 +15,18 @@ py = import('python').find_installation(pure: false)
 tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
 
+# Find OpenMP dependency
+openmp_dep = dependency('openmp', required: false)
+if not openmp_dep.found()
+    # Try to find OpenMP using compiler flags
+    cc = meson.get_compiler('c')
+    if cc.has_argument('-fopenmp')
+        openmp_dep = declare_dependency(
+            compile_args: ['-fopenmp'],
+            link_args: ['-fopenmp'],
+        )
+    endif
+endif
 
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'c')
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'cpp')
@@ -28,6 +40,14 @@ add_project_arguments(
     language: 'cpp',
 )
 
+# Add OpenMP compile args if available
+if openmp_dep.found()
+    add_project_arguments('-DHAVE_OPENMP', language: 'c')
+    add_project_arguments('-DHAVE_OPENMP', language: 'cpp')
+    message('OpenMP support enabled')
+else
+    message('OpenMP not found - parallel code will run sequentially')
+endif
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', subdir: 'pandas')

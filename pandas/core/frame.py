@@ -11264,6 +11264,7 @@ class DataFrame(NDFrame, OpsMixin):
         method: CorrelationMethod = "pearson",
         min_periods: int = 1,
         numeric_only: bool = False,
+        parallel: bool = False,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -11291,6 +11292,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.
+
+        parallel : bool, default False
+            Use parallel computation for Pearson correlation.
+            Only effective for large matrices where parallelization overhead
+            is justified by compute time savings.
 
         Returns
         -------
@@ -11332,6 +11338,10 @@ class DataFrame(NDFrame, OpsMixin):
               dogs  cats
         dogs   1.0   NaN
         cats   NaN   1.0
+
+        >>> # Use parallel computation for large DataFrames
+        >>> large_df = pd.DataFrame(np.random.randn(10000, 100))
+        >>> corr_matrix = large_df.corr(parallel=True)
         """  # noqa: E501
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
@@ -11339,7 +11349,7 @@ class DataFrame(NDFrame, OpsMixin):
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
-            correl = libalgos.nancorr(mat, minp=min_periods)
+            correl = libalgos.nancorr(mat, minp=min_periods, parallel=parallel)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
         elif method == "kendall" or callable(method):

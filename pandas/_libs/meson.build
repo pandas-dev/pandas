@@ -1,3 +1,15 @@
+# Add OpenMP dependency detection at the top of the file
+openmp_dep = dependency('openmp', required: false)
+if not openmp_dep.found()
+    cc = meson.get_compiler('c')
+    if cc.has_argument('-fopenmp')
+        openmp_dep = declare_dependency(
+            compile_args: ['-fopenmp'],
+            link_args: ['-fopenmp'],
+        )
+    endif
+endif
+
 _algos_take_helper = custom_target(
     'algos_take_helper_pxi',
     output: 'algos_take_helper.pxi',
@@ -70,7 +82,7 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {
         'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': _khash_primitive_helper_dep,
+        'deps': [_khash_primitive_helper_dep, openmp_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx']},

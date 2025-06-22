@@ -1,5 +1,8 @@
 cimport cython
 from cython cimport Py_ssize_t
+from cython.parallel cimport (
+    prange,
+)
 from libc.math cimport (
     fabs,
     sqrt,
@@ -346,61 +349,101 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
+def nancorr(
+    const float64_t[:, :] mat,
+    bint cov=False,
+    minp=None,
+    bint use_parallel=False,
+):
     cdef:
         Py_ssize_t i, xi, yi, N, K
         int64_t minpv
         float64_t[:, ::1] result
         uint8_t[:, :] mask
-        int64_t nobs = 0
-        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
+        int64_t nobs
+        float64_t vx, vy, dx, dy, meanx, meany
+        float64_t prev_meanx, prev_meany
+        float64_t ssqdmx, ssqdmy, covxy, divisor, val
 
     N, K = (<object>mat).shape
-    if minp is None:
-        minpv = 1
-    else:
-        minpv = <int64_t>minp
+    minpv = 1 if minp is None else <int64_t>minp
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
 
-    with nogil:
-        for xi in range(K):
+    # Welford's method for the variance-calculation
+    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+
+    if use_parallel:
+        for xi in prange(K, schedule="dynamic", nogil=True):
             for yi in range(xi + 1):
-                # Welford's method for the variance-calculation
-                # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
                 nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        nobs += 1
+                        nobs = nobs + 1
                         dx = vx - meanx
                         dy = vy - meany
-                        meanx += 1. / nobs * dx
-                        meany += 1. / nobs * dy
-                        ssqdmx += (vx - meanx) * dx
-                        ssqdmy += (vy - meany) * dy
-                        covxy += (vx - meanx) * dy
+                        meanx = meanx + dx / nobs
+                        meany = meany + dy / nobs
+                        ssqdmx = ssqdmx + (vx - meanx) * dx
+                        ssqdmy = ssqdmy + (vy - meany) * dy
+                        covxy = covxy + (vx - meanx) * dy
 
                 if nobs < minpv:
-                    result[xi, yi] = result[yi, xi] = NaN
+                    val = NaN
                 else:
-                    divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
-
-                    # clip `covxy / divisor` to ensure coeff is within bounds
-                    if divisor != 0:
+                    if cov:
+                        divisor = nobs - 1.0
+                    else:
+                        divisor = sqrt(ssqdmx * ssqdmy)
+                    if divisor == 0.0:
+                        val = NaN
+                    else:
                         val = covxy / divisor
                         if not cov:
                             if val > 1.0:
                                 val = 1.0
-                            elif val < -1.0:
+                            if val < -1.0:
                                 val = -1.0
-                        result[xi, yi] = result[yi, xi] = val
-                    else:
-                        result[xi, yi] = result[yi, xi] = NaN
 
-    return result.base
+                result[xi, yi] = result[yi, xi] = val
+    else:
+        # Sequential version
+        with nogil:
+            for xi in range(K):
+                for yi in range(xi + 1):
+                    nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
+                    for i in range(N):
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            nobs += 1
+                            prev_meanx = meanx
+                            prev_meany = meany
+                            meanx = meanx + 1 / nobs * (vx - meanx)
+                            meany = meany + 1 / nobs * (vy - meany)
+                            ssqdmx = ssqdmx + (vx - meanx) * (vx - prev_meanx)
+                            ssqdmy = ssqdmy + (vy - meany) * (vy - prev_meany)
+                            covxy = covxy + (vx - meanx) * (vy - prev_meany)
+
+                    if nobs < minpv:
+                        result[xi, yi] = result[yi, xi] = NaN
+                    else:
+                        divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
+                        if divisor != 0:
+                            val = covxy / divisor
+                            if not cov:
+                                if val > 1.0:
+                                    val = 1.0
+                                if val < -1.0:
+                                    val = -1.0
+                            result[xi, yi] = result[yi, xi] = val
+                        else:
+                            result[xi, yi] = result[yi, xi] = NaN
+
+    return result
 
 # ----------------------------------------------------------------------
 # Pairwise Spearman correlation
