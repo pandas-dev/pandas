@@ -529,6 +529,7 @@ name in an expression.
    isn't defined in that context.
 
    .. ipython:: python
+      :okexcept:
 
       a, b = 1, 2
       pd.eval("@a + b")
