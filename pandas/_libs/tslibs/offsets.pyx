@@ -1208,8 +1208,6 @@ cdef class Day(Tick):
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
-    def __init__(self, n=1, normalize=False):
-        super().__init__(n, normalize)
 
 cdef class Hour(Tick):
     """
