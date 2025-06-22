@@ -1,7 +1,5 @@
 from datetime import (
-    date as date_,
     datetime,
-    time as time_,
     timedelta,
     tzinfo as _tzinfo,
 )
@@ -99,7 +97,6 @@ class NaTType:
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> NaTType: ...
-    def combine(cls, date: date_, time: time_) -> NoReturn: ...
     @property
     def tzinfo(self) -> None: ...
     @property

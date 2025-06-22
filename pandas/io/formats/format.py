@@ -67,7 +67,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.api import (
@@ -115,7 +114,7 @@ common_docstring: Final = """
         columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
-            %(col_space)s.
+            %(col_space)s
         header : %(header_type)s, optional
             %(header)s.
         index : bool, optional, default True
@@ -566,7 +565,7 @@ class DataFrameFormatter:
             result = {}
         elif isinstance(col_space, (int, str)):
             result = {"": col_space}
-            result.update({column: col_space for column in self.frame.columns})
+            result.update(dict.fromkeys(self.frame.columns, col_space))
         elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
@@ -1218,8 +1217,6 @@ class _GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
-            elif isinstance(x, StringDtype):
-                return repr(x)
             else:
                 # object dtype
                 return str(formatter(x))

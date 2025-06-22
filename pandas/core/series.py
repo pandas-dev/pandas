@@ -52,6 +52,9 @@ from pandas.util._decorators import (
     doc,
     set_module,
 )
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -2511,6 +2514,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
+        if self.dtype == "object":
+            raise TypeError("Expected numeric dtype, got object instead.")
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
@@ -2948,8 +2953,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
 
         if isinstance(other, ABCDataFrame):
+            common_type = find_common_type([self.dtypes] + list(other.dtypes))
             return self._constructor(
-                np.dot(lvals, rvals), index=other.columns, copy=False
+                np.dot(lvals, rvals), index=other.columns, copy=False, dtype=common_type
             ).__finalize__(self, method="dot")
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
@@ -4320,8 +4326,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def map(
         self,
-        arg: Callable | Mapping | Series,
+        func: Callable | Mapping | Series | None = None,
         na_action: Literal["ignore"] | None = None,
+        engine: Callable | None = None,
         **kwargs,
     ) -> Series:
         """
@@ -4333,11 +4340,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        arg : function, collections.abc.Mapping subclass or Series
-            Mapping correspondence.
+        func : function, collections.abc.Mapping subclass or Series
+            Function or mapping correspondence.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
+        engine : decorator, optional
+            Choose the execution engine to use to run the function. Only used for
+            functions. If ``map`` is called with a mapping or ``Series``, an
+            exception will be raised. If ``engine`` is not provided the function will
+            be executed by the regular Python interpreter.
+
+            Options include JIT compilers such as Numba, Bodo or Blosc2, which in some
+            cases can speed up the execution. To use an executor you can provide the
+            decorators ``numba.jit``, ``numba.njit``, ``bodo.jit`` or ``blosc2.jit``.
+            You can also provide the decorator with parameters, like
+            ``numba.jit(nogit=True)``.
+
+            Not all functions can be executed with all execution engines. In general,
+            JIT compilers will require type stability in the function (no variable
+            should change data type during the execution). And not all pandas and
+            NumPy APIs are supported. Check the engine documentation for limitations.
+
+            .. versionadded:: 3.0.0
+
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `arg`.
@@ -4404,9 +4430,41 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3  I am a rabbit
         dtype: object
         """
-        if callable(arg):
-            arg = functools.partial(arg, **kwargs)
-        new_values = self._map_values(arg, na_action=na_action)
+        if func is None:
+            if "arg" in kwargs:
+                # `.map(arg=my_func)`
+                func = kwargs.pop("arg")
+                warnings.warn(
+                    "The parameter `arg` has been renamed to `func`, and it "
+                    "will stop being supported in a future version of pandas.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                raise ValueError("The `func` parameter is required")
+
+        if engine is not None:
+            if not callable(func):
+                raise ValueError(
+                    "The engine argument can only be specified when func is a function"
+                )
+            if not hasattr(engine, "__pandas_udf__"):
+                raise ValueError(f"Not a valid engine: {engine!r}")
+            result = engine.__pandas_udf__.map(  # type: ignore[attr-defined]
+                data=self,
+                func=func,
+                args=(),
+                kwargs=kwargs,
+                decorator=engine,
+                skip_na=na_action == "ignore",
+            )
+            if not isinstance(result, Series):
+                result = Series(result, index=self.index, name=self.name)
+            return result.__finalize__(self, method="map")
+
+        if callable(func):
+            func = functools.partial(func, **kwargs)
+        new_values = self._map_values(func, na_action=na_action)
         return self._constructor(new_values, index=self.index, copy=False).__finalize__(
             self, method="map"
         )
@@ -5858,7 +5916,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         res_values = ops.comparison_op(lvalues, rvalues, op)
 
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     def _logical_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)
@@ -5868,7 +5926,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     def _arith_method(self, other, op):
         self, other = self._align_for_op(other)
@@ -5930,11 +5988,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        out = this._construct_result(result, name)
+
+        out = this._construct_result(result, name, other)
         return cast(Series, out)
 
     def _construct_result(
-        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
+        self,
+        result: ArrayLike | tuple[ArrayLike, ArrayLike],
+        name: Hashable,
+        other: AnyArrayLike | DataFrame,
     ) -> Series | tuple[Series, Series]:
         """
         Construct an appropriately-labelled Series from the result of an op.
@@ -5943,6 +6005,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         result : ndarray or ExtensionArray
         name : Label
+        other : Series, DataFrame or array-like
 
         Returns
         -------
@@ -5952,8 +6015,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(result, tuple):
             # produced by divmod or rdivmod
 
-            res1 = self._construct_result(result[0], name=name)
-            res2 = self._construct_result(result[1], name=name)
+            res1 = self._construct_result(result[0], name=name, other=other)
+            res2 = self._construct_result(result[1], name=name, other=other)
 
             # GH#33427 assertions to keep mypy happy
             assert isinstance(res1, Series)
@@ -5965,6 +6028,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype = getattr(result, "dtype", None)
         out = self._constructor(result, index=self.index, dtype=dtype, copy=False)
         out = out.__finalize__(self)
+        out = out.__finalize__(other)
 
         # Set the result's name after __finalize__ is called because __finalize__
         #  would set it back to self.name

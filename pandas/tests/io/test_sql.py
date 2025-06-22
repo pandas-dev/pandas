@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-from contextlib import closing
 import csv
 from datetime import (
     date,
@@ -2498,10 +2497,8 @@ def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
             sql.SQLTable("test_type", db, frame=df)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
-def test_database_uri_string(conn, request, test_frame1):
+def test_database_uri_string(request, test_frame1):
     pytest.importorskip("sqlalchemy")
-    conn = request.getfixturevalue(conn)
     # Test read_sql and .to_sql method with a database URI (GH10654)
     # db_uri = 'sqlite:///:memory:' # raises
     # sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) near
@@ -2520,10 +2517,8 @@ def test_database_uri_string(conn, request, test_frame1):
 
 
 @td.skip_if_installed("pg8000")
-@pytest.mark.parametrize("conn", all_connectable)
-def test_pg8000_sqlalchemy_passthrough_error(conn, request):
+def test_pg8000_sqlalchemy_passthrough_error(request):
     pytest.importorskip("sqlalchemy")
-    conn = request.getfixturevalue(conn)
     # using driver that will not be installed on CI to trigger error
     # in sqlalchemy.create_engine -> test passing of this error to user
     db_uri = "postgresql+pg8000://user:pass@host/dbname"
@@ -2584,10 +2579,10 @@ def test_sql_open_close(test_frame3):
     # between the writing and reading (as in many real situations).
 
     with tm.ensure_clean() as name:
-        with closing(sqlite3.connect(name)) as conn:
+        with contextlib.closing(sqlite3.connect(name)) as conn:
             assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
 
-        with closing(sqlite3.connect(name)) as conn:
+        with contextlib.closing(sqlite3.connect(name)) as conn:
             result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
 
     tm.assert_frame_equal(test_frame3, result)
@@ -2731,25 +2726,26 @@ def test_delete_rows_is_atomic(conn_name, request):
     replacing_df = DataFrame({"a": [5, 6, 7], "b": [8, 8, 8]}, dtype="int32")
 
     conn = request.getfixturevalue(conn_name)
-    pandasSQL = pandasSQL_builder(conn)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(table_stmt)
 
-    with pandasSQL.run_transaction() as cur:
-        cur.execute(table_stmt)
-
-    with pandasSQL.run_transaction():
-        pandasSQL.to_sql(original_df, table_name, if_exists="append", index=False)
-
-    # inserting duplicated values in a UNIQUE constraint column
-    with pytest.raises(pd.errors.DatabaseError):
         with pandasSQL.run_transaction():
-            pandasSQL.to_sql(
-                replacing_df, table_name, if_exists="delete_rows", index=False
-            )
+            pandasSQL.to_sql(original_df, table_name, if_exists="append", index=False)
 
-    # failed "delete_rows" is rolled back preserving original data
-    with pandasSQL.run_transaction():
-        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name}", dtype="int32")
-        tm.assert_frame_equal(result_df, original_df)
+        # inserting duplicated values in a UNIQUE constraint column
+        with pytest.raises(pd.errors.DatabaseError):
+            with pandasSQL.run_transaction():
+                pandasSQL.to_sql(
+                    replacing_df, table_name, if_exists="delete_rows", index=False
+                )
+
+        # failed "delete_rows" is rolled back preserving original data
+        with pandasSQL.run_transaction():
+            result_df = pandasSQL.read_query(
+                f"SELECT * FROM {table_name}", dtype="int32"
+            )
+            tm.assert_frame_equal(result_df, original_df)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -2759,10 +2755,10 @@ def test_roundtrip(conn, request, test_frame1):
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    with pandasSQL.run_transaction():
-        assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
-        result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
+            result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
     if "adbc" in conn_name:
         result = result.rename(columns={"__index_level_0__": "level_0"})
@@ -3456,13 +3452,6 @@ def test_to_sql_with_negative_npinf(conn, request, input):
         # GH 36465
         # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
         # for pymysql version >= 0.10
-        # TODO(GH#36465): remove this version check after GH 36465 is fixed
-        pymysql = pytest.importorskip("pymysql")
-
-        if Version(pymysql.__version__) < Version("1.0.3") and "infe0" in df.columns:
-            mark = pytest.mark.xfail(reason="GH 36465")
-            request.applymarker(mark)
-
         msg = "Execution failed on sql"
         with pytest.raises(pd.errors.DatabaseError, match=msg):
             df.to_sql(name="foobar", con=conn, index=False)
@@ -3582,13 +3571,6 @@ def test_options_get_engine():
     with pd.option_context("io.sql.engine", "auto"):
         assert isinstance(get_engine("auto"), SQLAlchemyEngine)
         assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
-
-
-def test_get_engine_auto_error_message():
-    # Expect different error messages from get_engine(engine="auto")
-    # if engines aren't installed vs. are installed but bad version
-    pass
-    # TODO(GH#36893) fill this in when we add more engines
 
 
 @pytest.mark.parametrize("conn", all_connectable)

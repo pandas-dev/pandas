@@ -504,11 +504,13 @@ class SeriesGroupBy(GroupBy[Series]):
                 #  inference. We default to using the existing dtype.
                 #  xref GH#51445
                 obj = self._obj_with_exclusions
-                return self.obj._constructor(
-                    [],
-                    name=self.obj.name,
-                    index=self._grouper.result_index,
-                    dtype=obj.dtype,
+                return self._wrap_aggregated_output(
+                    self.obj._constructor(
+                        [],
+                        name=self.obj.name,
+                        index=self._grouper.result_index,
+                        dtype=obj.dtype,
+                    )
                 )
             return self._python_agg_general(func, *args, **kwargs)
 
@@ -2505,7 +2507,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         results = [func(sgb) for sgb in sgbs]
 
-        if not len(results):
+        if not results:
             # concat would raise
             res_df = DataFrame([], columns=columns, index=self._grouper.result_index)
         else:

@@ -26,9 +26,10 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text, Local clipboard, :ref:`read_clipboard<io.clipboard>`, :ref:`to_clipboard<io.clipboard>`
     binary,`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__ , :ref:`read_excel<io.excel_reader>`, :ref:`to_excel<io.excel_writer>`
     binary,`OpenDocument <http://opendocumentformat.org>`__, :ref:`read_excel<io.ods>`, NA
-    binary,`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__, :ref:`read_hdf<io.hdf5>`, :ref:`to_hdf<io.hdf5>`
+    binary,`HDF5 Format <https://support.hdfgroup.org/documentation/hdf5/latest/_intro_h_d_f5.html>`__, :ref:`read_hdf<io.hdf5>`, :ref:`to_hdf<io.hdf5>`
     binary,`Feather Format <https://github.com/wesm/feather>`__, :ref:`read_feather<io.feather>`, :ref:`to_feather<io.feather>`
     binary,`Parquet Format <https://parquet.apache.org/>`__, :ref:`read_parquet<io.parquet>`, :ref:`to_parquet<io.parquet>`
+    binary,`Apache Iceberg <https://iceberg.apache.org/>`__, :ref:`read_iceberg<io.iceberg>` , :ref:`to_iceberg<io.iceberg>`
     binary,`ORC Format <https://orc.apache.org/>`__, :ref:`read_orc<io.orc>`, :ref:`to_orc<io.orc>`
     binary,`Stata <https://en.wikipedia.org/wiki/Stata>`__, :ref:`read_stata<io.stata_reader>`, :ref:`to_stata<io.stata_writer>`
     binary,`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__, :ref:`read_sas<io.sas_reader>` , NA
@@ -1414,7 +1415,7 @@ of multi-columns indices.
 
 .. note::
    If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-   with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will
+   with ``df.to_csv(..., index=False)``), then any ``names`` on the columns index will
    be *lost*.
 
 .. ipython:: python
@@ -5402,6 +5403,125 @@ The above example creates a partitioned dataset that may look like:
        rmtree("test")
    except OSError:
        pass
+
+.. _io.iceberg:
+
+Iceberg
+-------
+
+.. versionadded:: 3.0.0
+
+Apache Iceberg is a high performance open-source format for large analytic tables.
+Iceberg enables the use of SQL tables for big data while making it possible for different
+engines to safely work with the same tables at the same time.
+
+Iceberg support predicate pushdown and column pruning, which are available to pandas
+users via the ``row_filter`` and ``selected_fields`` parameters of the :func:`~pandas.read_iceberg`
+function. This is convenient to extract from large tables a subset that fits in memory as a
+pandas ``DataFrame``.
+
+Internally, pandas uses PyIceberg_ to query Iceberg.
+
+.. _PyIceberg: https://py.iceberg.apache.org/
+
+A simple example loading all data from an Iceberg table ``my_table`` defined in the
+``my_catalog`` catalog.
+
+.. code-block:: python
+
+    df = pd.read_iceberg("my_table", catalog_name="my_catalog")
+
+Catalogs must be defined in the ``.pyiceberg.yaml`` file, usually in the home directory.
+It is possible to to change properties of the catalog definition with the
+``catalog_properties`` parameter:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        catalog_properties={"s3.secret-access-key": "my_secret"},
+    )
+
+It is also possible to fully specify the catalog in ``catalog_properties`` and not provide
+a ``catalog_name``:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_properties={
+            "uri": "http://127.0.0.1:8181",
+            "s3.endpoint": "http://127.0.0.1:9000",
+        },
+    )
+
+To create the ``DataFrame`` with only a subset of the columns:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        selected_fields=["my_column_3", "my_column_7"]
+    )
+
+This will execute the function faster, since other columns won't be read. And it will also
+save memory, since the data from other columns won't be loaded into the underlying memory of
+the ``DataFrame``.
+
+To fetch only a subset of the rows, we can do it with the ``limit`` parameter:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        limit=100,
+    )
+
+This will create a ``DataFrame`` with 100 rows, assuming there are at least this number in
+the table.
+
+To fetch a subset of the rows based on a condition, this can be done using the ``row_filter``
+parameter:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        row_filter="distance > 10.0",
+    )
+
+Reading a particular snapshot is also possible providing the snapshot ID as an argument to
+``snapshot_id``.
+
+To save a ``DataFrame`` to Iceberg, it can be done with the :meth:`DataFrame.to_iceberg`
+method:
+
+.. code-block:: python
+
+    df.to_iceberg("my_table", catalog_name="my_catalog")
+
+To specify the catalog, it works in the same way as for :func:`read_iceberg` with the
+``catalog_name`` and ``catalog_properties`` parameters.
+
+The location of the table can be specified with the ``location`` parameter:
+
+.. code-block:: python
+
+    df.to_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        location="s://my-data-lake/my-iceberg-tables",
+    )
+
+It is possible to add properties to the table snapshot by passing a dictionary to the
+``snapshot_properties`` parameter.
+
+More information about the Iceberg format can be found in the `Apache Iceberg official
+page <https://iceberg.apache.org/>`__.
 
 .. _io.orc:
 

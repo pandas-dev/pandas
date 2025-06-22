@@ -198,15 +198,15 @@ def merge(
           to SQL left anti join; preserve key order.
         * right_anti: use only keys from right frame that are not in left frame, similar
           to SQL right anti join; preserve key order.
-    on : label or list
+    on : Hashable or a sequence of the previous
         Column or index level names to join on. These must be found in both
         DataFrames. If `on` is None and not merging on indexes then this defaults
         to the intersection of the columns in both DataFrames.
-    left_on : label or list, or array-like
+    left_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the left DataFrame. Can also
         be an array or list of arrays of the length of the left DataFrame.
         These arrays are treated as if they are columns.
-    right_on : label or list, or array-like
+    right_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the right DataFrame. Can also
         be an array or list of arrays of the length of the right DataFrame.
         These arrays are treated as if they are columns.
@@ -536,13 +536,13 @@ def merge_ordered(
         First pandas object to merge.
     right : DataFrame or named Series
         Second pandas object to merge.
-    on : label or list
+    on : Hashable or a sequence of the previous
         Field names to join on. Must be found in both DataFrames.
-    left_on : label or list, or array-like
+    left_on : Hashable or a sequence of the previous, or array-like
         Field names to join on in left DataFrame. Can be a vector or list of
         vectors of the length of the DataFrame to use a particular vector as
         the join key instead of columns.
-    right_on : label or list, or array-like
+    right_on : Hashable or a sequence of the previous, or array-like
         Field names to join on in right DataFrame or vector/list of vectors per
         left_on docs.
     left_by : column name or list of column names
@@ -2921,9 +2921,7 @@ def _convert_arrays_and_get_rizer_klass(
                 lk = lk.astype(dtype, copy=False)
                 rk = rk.astype(dtype, copy=False)
         if isinstance(lk, BaseMaskedArray):
-            #  Invalid index type "type" for "Dict[Type[object], Type[Factorizer]]";
-            #  expected type "Type[object]"
-            klass = _factorizers[lk.dtype.type]  # type: ignore[index]
+            klass = _factorizers[lk.dtype.type]
         elif isinstance(lk.dtype, ArrowDtype):
             klass = _factorizers[lk.dtype.numpy_dtype.type]
         else:
@@ -3064,13 +3062,16 @@ def _items_overlap_with_suffix(
     if not llabels.is_unique:
         # Only warn when duplicates are caused because of suffixes, already duplicated
         # columns in origin should not warn
-        dups = llabels[(llabels.duplicated()) & (~left.duplicated())].tolist()
+        dups.extend(llabels[(llabels.duplicated()) & (~left.duplicated())].tolist())
     if not rlabels.is_unique:
         dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
+    # Suffix addition creates duplicate to pre-existing column name
+    dups.extend(llabels.intersection(right.difference(to_rename)).tolist())
+    dups.extend(rlabels.intersection(left.difference(to_rename)).tolist())
     if dups:
         raise MergeError(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
-            f"not allowed.",
+            "not allowed.",
         )
 
     return llabels, rlabels

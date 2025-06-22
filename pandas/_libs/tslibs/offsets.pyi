@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from datetime import (
     datetime,
     time,
@@ -5,7 +6,6 @@ from datetime import (
 )
 from typing import (
     Any,
-    Collection,
     Literal,
     TypeVar,
     overload,
@@ -230,7 +230,13 @@ class FY5253Quarter(FY5253Mixin):
         variation: Literal["nearest", "last"] = ...,
     ) -> None: ...
 
-class Easter(SingleConstructorOffset): ...
+class Easter(SingleConstructorOffset):
+    def __init__(
+        self,
+        n: int = ...,
+        normalize: bool = ...,
+        method: int = ...,
+    ) -> None: ...
 
 class _CustomBusinessMonth(BusinessMixin):
     def __init__(

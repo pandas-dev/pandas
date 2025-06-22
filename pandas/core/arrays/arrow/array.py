@@ -33,7 +33,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
-    CategoricalDtype,
     is_array_like,
     is_bool_dtype,
     is_float_dtype,
@@ -730,9 +729,7 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(
-            other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
-        ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
+        if isinstance(other, (ExtensionArray, np.ndarray, list)):
             try:
                 result = pc_func(self._pa_array, self._box_pa(other))
             except pa.ArrowNotImplementedError:
@@ -2540,7 +2537,7 @@ class ArrowExtensionArray(
             dummies_dtype = np.bool_
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
         dummies[indices] = True
-        dummies = dummies.reshape((n_rows, n_cols))
+        dummies = dummies.reshape((n_rows, n_cols))  # type: ignore[assignment]
         result = type(self)(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 

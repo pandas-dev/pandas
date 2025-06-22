@@ -1,6 +1,6 @@
 .. _whatsnew_230:
 
-What's new in 2.3.0 (Month XX, 2024)
+What's new in 2.3.0 (June 4, 2025)
 ------------------------------------
 
 These are the changes in pandas 2.3.0. See :ref:`release` for a full changelog
@@ -10,37 +10,26 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_230.upcoming_changes:
-
-Upcoming changes in pandas 3.0
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 .. _whatsnew_230.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
-
-.. _whatsnew_230.enhancements.enhancement1:
-
-enhancement1
-^^^^^^^^^^^^
-
 
 .. _whatsnew_230.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :meth:`pandas.api.interchange.from_dataframe` now uses the `PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_ if available, only falling back to the Dataframe Interchange Protocol if that fails (:issue:`60739`)
 - The semantics for the ``copy`` keyword in ``__array__`` methods (i.e. called
   when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
   updated to work correctly with NumPy >= 2 (:issue:`57739`)
-- :meth:`Series.str.decode` result now has ``StringDtype`` when ``future.infer_string`` is True (:issue:`60709`)
-- :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with ``StringDtype``  (:issue:`60663`)
+- :meth:`Series.str.decode` result now has :class:`StringDtype` when ``future.infer_string`` is True (:issue:`60709`)
+- :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with :class:`StringDtype`  (:issue:`60663`)
 - Improved ``repr`` of :class:`.NumpyExtensionArray` to account for NEP51 (:issue:`61085`)
 - The :meth:`Series.str.decode` has gained the argument ``dtype`` to control the dtype of the result (:issue:`60940`)
-- The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for ``StringDtype`` columns (:issue:`60633`)
-- The :meth:`~Series.sum` reduction is now implemented for ``StringDtype`` columns (:issue:`59853`)
+- The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for :class:`StringDtype` columns (:issue:`60633`)
+- The :meth:`~Series.sum` reduction is now implemented for :class:`StringDtype` columns (:issue:`59853`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_230.notable_bug_fixes:
@@ -50,19 +39,29 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_230.notable_bug_fixes.string_comparisons:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Comparisons between different string dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, comparing :class:`Series` of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise. pandas will now use the hierarchy
+
+    object < (python, NaN) < (pyarrow, NaN) < (python, NA) < (pyarrow, NA)
+
+in determining the result dtype when there are different string dtypes compared. Some examples:
+
+- When ``pd.StringDtype("pyarrow", na_value=pd.NA)`` is compared against any other string dtype, the result will always be ``boolean[pyarrow]``.
+- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("pyarrow", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
+- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("python", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
 
 .. _whatsnew_230.api_changes:
 
 API changes
 ~~~~~~~~~~~
 
-- When enabling the ``future.infer_string`` option: Index set operations (like
-  union or intersection) will now ignore the dtype of an empty ``RangeIndex`` or
-  empty ``Index`` with object dtype when determining the dtype of the resulting
+- When enabling the ``future.infer_string`` option, :class:`Index` set operations (like
+  union or intersection) will now ignore the dtype of an empty :class:`RangeIndex` or
+  empty :class:`Index` with ``object`` dtype when determining the dtype of the resulting
   Index (:issue:`60797`)
 
 .. ---------------------------------------------------------------------------
@@ -74,118 +73,34 @@ Deprecations
 - Deprecated the ``"pyarrow_numpy"`` storage option for :class:`StringDtype` (:issue:`60152`)
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.performance:
-
-Performance improvements
-~~~~~~~~~~~~~~~~~~~~~~~~
--
--
-
-.. ---------------------------------------------------------------------------
 .. _whatsnew_230.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
 
-Categorical
-^^^^^^^^^^^
--
--
-
-Datetimelike
-^^^^^^^^^^^^
--
--
-
-Timedelta
-^^^^^^^^^
--
--
-
-Timezones
-^^^^^^^^^
--
--
-
 Numeric
 ^^^^^^^
-- Enabled :class:`Series.mode` and :class:`DataFrame.mode` with ``dropna=False`` to sort the result for all dtypes in the presence of NA values; previously only certain dtypes would sort (:issue:`60702`)
--
-
-Conversion
-^^^^^^^^^^
--
--
+- Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` where not all dtypes would sort in the presence of ``NA`` values (:issue:`60702`)
+- Bug in :meth:`Series.round` where a ``TypeError`` would always raise with ``object`` dtype (:issue:`61206`)
 
 Strings
 ^^^^^^^
-- Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` on :class:`StringDtype` with all NA values resulted in ``0`` and is now the empty string ``""`` (:issue:`60229`)
-- Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` did not raise for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
-- Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` incorrectly returning integer results in case of ``method="average"`` and raising an error if it would truncate results (:issue:`59768`)
+- Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.max`, :meth:`.Resampler.min`, :meth:`.Resampler.max` where all NA values of string dtype would return float instead of string dtype (:issue:`60810`)
+- Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` with all NA values of :class:`StringDtype` resulted in ``0`` instead of the empty string ``""`` (:issue:`60229`)
+- Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` where an ``Exception`` was not raised for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
+- Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` that incorrectly returned integer results with ``method="average"`` and raised an error if it would truncate results (:issue:`59768`)
 - Bug in :meth:`Series.replace` with :class:`StringDtype` when replacing with a non-string value was not upcasting to ``object`` dtype (:issue:`60282`)
+- Bug in :meth:`Series.str.center` with :class:`StringDtype` with ``storage="pyarrow"`` not matching the python behavior in corner cases with an odd number of fill characters (:issue:`54792`)
 - Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`59628`)
-- Bug in ``ser.str.slice`` with negative ``step`` with :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"`` giving incorrect results (:issue:`59710`)
-- Bug in the ``center`` method on :class:`Series` and :class:`Index` object ``str`` accessors with pyarrow-backed dtype not matching the python behavior in corner cases with an odd number of fill characters (:issue:`54792`)
-
-Interval
-^^^^^^^^
--
--
+- Bug in :meth:`Series.str.slice` with negative ``step`` with :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"`` giving incorrect results (:issue:`59710`)
 
 Indexing
 ^^^^^^^^
-- Fixed bug in :meth:`Index.get_indexer` round-tripping through string dtype when ``infer_string`` is enabled (:issue:`55834`)
--
-
-Missing
-^^^^^^^
--
--
-
-MultiIndex
-^^^^^^^^^^
--
--
+- Bug in :meth:`Index.get_indexer` round-tripping through string dtype when ``infer_string`` is enabled (:issue:`55834`)
 
 I/O
 ^^^
-- :meth:`DataFrame.to_excel` was storing decimals as strings instead of numbers (:issue:`49598`)
--
-
-Period
-^^^^^^
--
--
-
-Plotting
-^^^^^^^^
--
--
-
-Groupby/resample/rolling
-^^^^^^^^^^^^^^^^^^^^^^^^
--
--
-
-Reshaping
-^^^^^^^^^
--
--
-
-Sparse
-^^^^^^
--
--
-
-ExtensionArray
-^^^^^^^^^^^^^^
--
--
-
-Styler
-^^^^^^
--
--
+- Bug in :meth:`DataFrame.to_excel` which stored decimals as strings instead of numbers (:issue:`49598`)
 
 Other
 ^^^^^
@@ -197,3 +112,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.2.3..v2.3.0|HEAD

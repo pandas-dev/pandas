@@ -76,12 +76,12 @@ def pivot_table(
         Input pandas DataFrame object.
     values : list-like or scalar, optional
         Column or columns to aggregate.
-    index : column, Grouper, array, or list of the previous
+    index : column, Grouper, array, or sequence of the previous
         Keys to group by on the pivot table index. If a list is passed,
         it can contain any of the other types (except list). If an array is
         passed, it must be the same length as the data and will be used in
         the same manner as column values.
-    columns : column, Grouper, array, or list of the previous
+    columns : column, Grouper, array, or sequence of the previous
         Keys to group by on the pivot table column. If a list is passed,
         it can contain any of the other types (except list). If an array is
         passed, it must be the same length as the data and will be used in
@@ -102,8 +102,11 @@ def pivot_table(
         on the rows and columns.
     dropna : bool, default True
         Do not include columns whose entries are all NaN. If True,
-        rows with a NaN value in any column will be omitted before
-        computing margins.
+
+        * rows with an NA value in any column will be omitted before computing margins,
+        * index/column keys containing NA values will be dropped (see ``dropna``
+          parameter in :meth:``DataFrame.groupby``).
+
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
         when margins is True.
@@ -333,6 +336,11 @@ def __internal_pivot_table(
         values = list(values)
 
     grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
+    if values_passed:
+        # GH#57876 and GH#61292
+        # mypy is not aware `grouped[values]` will always be a DataFrameGroupBy
+        grouped = grouped[values]  # type: ignore[assignment]
+
     agged = grouped.agg(aggfunc, **kwargs)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
@@ -700,11 +708,11 @@ def pivot(
     ----------
     data : DataFrame
         Input pandas DataFrame object.
-    columns : str or object or a list of str
+    columns : Hashable or a sequence of the previous
         Column to use to make new frame's columns.
-    index : str or object or a list of str, optional
+    index : Hashable or a sequence of the previous, optional
         Column to use to make new frame's index. If not given, uses existing index.
-    values : str, object or a list of the previous, optional
+    values : Hashable or a sequence of the previous, optional
         Column(s) to use for populating new frame's values. If not
         specified, all remaining columns will be used and the result will
         have hierarchically indexed columns.
