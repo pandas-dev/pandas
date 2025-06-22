@@ -1,5 +1,3 @@
-# cython: embedsignature=True
-
 import re
 import time
 import warnings
@@ -79,6 +77,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_datetime_to_datetimestruct,
     pydate_to_dtstruct,
 )
+from pandas.util._decorators import set_module
 
 import_pandas_datetime()
 
@@ -622,6 +621,7 @@ cdef class BaseOffset:
     @cache_readonly
     def freqstr(self) -> str:
         """
+
         Return a string representing the frequency.
 
         See Also
@@ -648,6 +648,7 @@ cdef class BaseOffset:
 
         >>> pd.offsets.Nano(-3).freqstr
         '-3ns'
+
         """
         try:
             code = self.rule_code
@@ -2690,13 +2691,29 @@ cdef class BYearBegin(YearOffset):
     _day_opt = "business_start"
 
 
-cdef class YearEnd(YearOffset):
+cdef class _YearEnd(YearOffset):
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+
+
+@set_module("pandas.tseries.offsets")
+class YearEnd(_YearEnd):
     """
     DateOffset increments between calendar year end dates.
 
     YearEnd goes to the next date which is the end of the year.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
@@ -2730,18 +2747,9 @@ cdef class YearEnd(YearOffset):
     Timestamp('2022-12-31 00:00:00')
     """
 
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+    def __new__(cls, fuck=None, normalize=False, month=None):
+        # this is a comment
+        return _YearEnd.__new__(cls, fuck, normalize, month)
 
 
 cdef class YearBegin(YearOffset):
