@@ -347,7 +347,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
 
         jitted_udf = numba.extending.register_jitable(func)
 
-        @decorator
+        @decorator  # pyright: ignore[reportUntypedFunctionDecorator]
         def numba_func(values, col_names_index, index, *args):
             results = {}
             for i in range(values.shape[1 - axis]):

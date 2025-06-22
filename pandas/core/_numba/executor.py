@@ -25,7 +25,7 @@ def generate_apply_looper(func, decorator: Callable):
         numba = import_optional_dependency("numba")
     nb_compat_func = jit_user_function(func)
 
-    @decorator
+    @decorator  # pyright: ignore[reportUntypedFunctionDecorator]
     def nb_looper(values, axis, *args):
         # Operate on the first row/col in order to get
         # the output shape
