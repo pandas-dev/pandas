@@ -11264,7 +11264,7 @@ class DataFrame(NDFrame, OpsMixin):
         method: CorrelationMethod = "pearson",
         min_periods: int = 1,
         numeric_only: bool = False,
-        parallel: bool = False,
+        use_parallel: bool = False,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -11349,7 +11349,7 @@ class DataFrame(NDFrame, OpsMixin):
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
-            correl = libalgos.nancorr(mat, minp=min_periods, parallel=parallel)
+            correl = libalgos.nancorr(mat, minp=min_periods, use_parallel=use_parallel)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
         elif method == "kendall" or callable(method):
