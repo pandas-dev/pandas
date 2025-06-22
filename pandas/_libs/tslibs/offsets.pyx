@@ -77,7 +77,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_datetime_to_datetimestruct,
     pydate_to_dtstruct,
 )
-from pandas.util._decorators import set_module
 
 import_pandas_datetime()
 
@@ -2706,7 +2705,6 @@ cdef class _YearEnd(YearOffset):
         self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
 
 
-@set_module("pandas.tseries.offsets")
 class YearEnd(_YearEnd):
     """
     DateOffset increments between calendar year end dates.
@@ -2747,9 +2745,8 @@ class YearEnd(_YearEnd):
     Timestamp('2022-12-31 00:00:00')
     """
 
-    def __new__(cls, fuck=None, normalize=False, month=None):
-        # this is a comment
-        return _YearEnd.__new__(cls, fuck, normalize, month)
+    def __new__(cls, n=1, normalize=False, month=None):
+        return _YearEnd.__new__(cls, n, normalize, month)
 
 
 cdef class YearBegin(YearOffset):
