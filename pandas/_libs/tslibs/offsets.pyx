@@ -620,7 +620,6 @@ cdef class BaseOffset:
     @cache_readonly
     def freqstr(self) -> str:
         """
-
         Return a string representing the frequency.
 
         See Also
@@ -647,7 +646,6 @@ cdef class BaseOffset:
 
         >>> pd.offsets.Nano(-3).freqstr
         '-3ns'
-
         """
         try:
             code = self.rule_code
@@ -1178,11 +1176,6 @@ cdef class Tick(SingleConstructorOffset):
 cdef class Day(Tick):
     """
     Offset ``n`` days.
-
-    Parameters
-    ----------
-    n : int
-        Number of multiples of the frequency (default 1).
 
     Attributes
     ----------
