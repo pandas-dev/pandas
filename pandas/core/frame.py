@@ -10625,7 +10625,7 @@ class DataFrame(NDFrame, OpsMixin):
             numba_jit.__pandas_udf__ = NumbaExecutionEngine
             engine = numba_jit
 
-        elif engine is None or isinstance(engine, str):
+        if engine is None or isinstance(engine, str):
             from pandas.core.apply import frame_apply
 
             if engine not in ["python", None]:
