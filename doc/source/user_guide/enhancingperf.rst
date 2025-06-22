@@ -50,7 +50,7 @@ We have a :class:`DataFrame` to which we want to apply a function row-wise.
        {
            "a": np.random.randn(1000),
            "b": np.random.randn(1000),
-           "N": np.random.randint(100, 1000, (1000)),
+           "N": np.random.randint(100, 1000, (1000), dtype="int64"),
            "x": "x",
        }
    )
@@ -84,7 +84,7 @@ using the `prun ipython magic function <https://ipython.readthedocs.io/en/stable
    :okexcept:
 
    # most time consuming 4 calls
-   %prun -l 4 df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)  # noqa E999
+   %prun -l 4 df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
 
 By far the majority of time is spend inside either ``integrate_f`` or ``f``,
 hence we'll concentrate our efforts cythonizing these two functions.
@@ -166,7 +166,7 @@ can be improved by passing an ``np.ndarray``.
 .. ipython:: python
    :okexcept:
 
-   %prun -l 4 df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
+   %prun -l 4 df.apply(lambda x: integrate_f_typed(x['a'], x['b'], x['N']), axis=1)
 
 .. ipython::
 
@@ -207,7 +207,7 @@ calls are needed to utilize this function.
 .. ipython:: python
    :okexcept:
 
-   %timeit apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
+   %timeit apply_integrate_f(df['a'].to_numpy(), df['b'].to_numpy(), df['N'].to_numpy())
 
 Performance has improved from the prior implementation by almost ten times.
 
@@ -222,7 +222,7 @@ and ``wraparound`` checks can yield more performance.
 .. ipython:: python
    :okexcept:
 
-   %prun -l 4 apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
+   %prun -l 4 apply_integrate_f(df['a'].to_numpy(), df['b'].to_numpy(), df['N'].to_numpy())
 
 .. ipython::
 
@@ -258,7 +258,7 @@ and ``wraparound`` checks can yield more performance.
 .. ipython:: python
    :okexcept:
 
-   %timeit apply_integrate_f_wrap(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
+   %timeit apply_integrate_f_wrap(df['a'].to_numpy(), df['b'].to_numpy(), df['N'].to_numpy())
 
 However, a loop indexer ``i`` accessing an invalid location in an array would cause a segfault because memory access isn't checked.
 For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
