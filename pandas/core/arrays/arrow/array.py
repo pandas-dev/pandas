@@ -311,13 +311,15 @@ class ArrowExtensionArray(
 
     @classmethod
     def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
+        inferred_dtype = lib.infer_dtype(scalars, skipna=True)
         try:
             pa_array = cls._from_sequence(scalars, dtype=dtype)
-        except pa.ArrowNotImplementedError:
+        except pa.ArrowNotImplementedError as err:
             # _from_scalars should only raise ValueError or TypeError.
-            raise ValueError
+            raise ValueError from err
 
-        if lib.infer_dtype(scalars, skipna=True) != lib.infer_dtype(pa_array, skipna=True):
+        same_dtype = lib.infer_dtype(pa_array, skipna=True) == inferred_dtype
+        if not same_dtype:
             raise ValueError
         return pa_array
 
