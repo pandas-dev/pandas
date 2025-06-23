@@ -1670,6 +1670,17 @@ class _MergeOperation:
             lk = extract_array(lk, extract_numpy=True)
             rk = extract_array(rk, extract_numpy=True)
 
+            # Explicitly disallow merging int64 and uint64 (or vice versa)
+            if (
+                (lk.dtype == np.dtype("int64") and rk.dtype == np.dtype("uint64"))
+                or (lk.dtype == np.dtype("uint64") and rk.dtype == np.dtype("int64"))
+            ):
+                raise ValueError(
+                    f"You are trying to merge on int64 and uint64 columns for key '{name}'. "
+                    "This is not allowed as it can lead to incorrect results. "
+                    "Please cast both columns to the same signedness before merging."
+                )
+
             lk_is_cat = isinstance(lk.dtype, CategoricalDtype)
             rk_is_cat = isinstance(rk.dtype, CategoricalDtype)
             lk_is_object_or_string = is_object_dtype(lk.dtype) or is_string_dtype(
