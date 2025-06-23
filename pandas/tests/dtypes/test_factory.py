@@ -71,6 +71,7 @@ def test_datetime_with_tz():
 
 
 def test_datetime_pyarrow():
+    pytest.importorskip("pyarrow")
     result = datetime(backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "timestamp[ns][pyarrow]"
@@ -101,6 +102,7 @@ def test_integer_numpy():
 
 
 def test_integer_pyarrow():
+    pytest.importorskip("pyarrow")
     result = integer(bits=64, backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "int64[pyarrow]"
@@ -126,6 +128,7 @@ def test_floating_numpy():
 
 
 def test_floating_pyarrow():
+    pytest.importorskip("pyarrow")
     result = floating(bits=64, backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "double[pyarrow]"
@@ -133,12 +136,14 @@ def test_floating_pyarrow():
 
 # Decimal
 def test_decimal_default():
+    pytest.importorskip("pyarrow")
     result = decimal(precision=38, scale=10)
     assert isinstance(result, ArrowDtype)
     assert str(result) == "decimal128(38, 10)[pyarrow]"
 
 
 def test_decimal_with_precision_scale():
+    pytest.importorskip("pyarrow")
     result = decimal(precision=10, scale=2)
     assert isinstance(result, ArrowDtype)
     assert str(result) == "decimal128(10, 2)[pyarrow]"
@@ -152,6 +157,7 @@ def test_boolean_default():
 
 
 def test_boolean_pyarrow():
+    pytest.importorskip("pyarrow")
     result = boolean(backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "bool[pyarrow]"
@@ -186,6 +192,7 @@ def test_categorical_default():
 
 
 def test_categorical_pyarrow():
+    pytest.importorskip("pyarrow")
     result = categorical(backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "dictionary<values=string, indices=int32, ordered=0>[pyarrow]"
@@ -199,6 +206,7 @@ def test_interval_default():
 
 
 def test_interval_pyarrow():
+    pytest.importorskip("pyarrow")
     result = interval(backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "struct<left: double, right: double>[pyarrow]"
@@ -212,6 +220,7 @@ def test_period_default():
 
 
 def test_period_pyarrow():
+    pytest.importorskip("pyarrow")
     result = period(backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "month_day_nano_interval[pyarrow]"
@@ -219,12 +228,14 @@ def test_period_pyarrow():
 
 # Date
 def test_date_default():
+    pytest.importorskip("pyarrow")
     result = date()
     assert isinstance(result, ArrowDtype)
     assert str(result) == "date32[day][pyarrow]"
 
 
 def test_date_pyarrow():
+    pytest.importorskip("pyarrow")
     result = date(backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "date32[day][pyarrow]"
@@ -232,12 +243,14 @@ def test_date_pyarrow():
 
 # Duration
 def test_duration_default():
+    pytest.importorskip("pyarrow")
     result = duration()
     assert isinstance(result, ArrowDtype)
     assert str(result) == "duration[ns][pyarrow]"
 
 
 def test_duration_pyarrow():
+    pytest.importorskip("pyarrow")
     result = duration(backend="pyarrow")
     assert isinstance(result, ArrowDtype)
     assert str(result) == "duration[ns][pyarrow]"
