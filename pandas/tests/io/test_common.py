@@ -33,6 +33,7 @@ import pandas.io.common as icom
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    "ignore:pyarrow requires pandas:UserWarning:pyarrow.lib",
 )
 
 
