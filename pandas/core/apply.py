@@ -49,6 +49,7 @@ from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.util.numba_ import (
+    get_jit_arguments,
     prepare_function_arguments,
 )
 
@@ -224,7 +225,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
             if data.empty:
                 return data.copy()  # mimic apply_empty_result()
             NumbaExecutionEngine.validate_values_for_numba_raw_false(
-                data, decorator if isinstance(decorator, dict) else {}
+                data, get_jit_arguments(decorator.engine_kwargs)
             )
 
             return NumbaExecutionEngine.apply_raw_false(
