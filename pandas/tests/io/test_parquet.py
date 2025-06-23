@@ -334,7 +334,7 @@ def test_get_engine_auto_error_message():
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
         else:
-            match = "Missing optional dependency .fastparquet."
+            match = "Use pip or conda to install the fastparquet package"
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
 
