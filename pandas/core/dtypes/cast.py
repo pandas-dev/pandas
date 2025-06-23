@@ -1086,7 +1086,7 @@ def convert_dtypes(
             elif (
                 infer_objects
                 and input_array.dtype == object
-                and inferred_dtype == "floating"
+                and (isinstance(inferred_dtype, str) and inferred_dtype == "floating")
             ):
                 inferred_dtype = pandas_dtype_func("Float64")
 
