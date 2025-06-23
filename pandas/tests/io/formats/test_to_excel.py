@@ -358,6 +358,21 @@ def test_css_to_excel_bad_colors(input_color):
         convert = CSSToExcelConverter()
         assert expected == convert(css)
 
+@pytest.mark.parametrize("input_color", ["#", "#1234567"])
+def test_css_to_excel_invalid_color_raises(input_color):
+    """Test that invalid colors raise a ValueError."""
+    css = (
+        f"border-top-color: {input_color}; "
+        f"border-right-color: {input_color}; "
+        f"border-bottom-color: {input_color}; "
+        f"border-left-color: {input_color}; "
+        f"background-color: {input_color}; "
+        f"color: {input_color}"
+    )
+
+    convert = CSSToExcelConverter()
+    with pytest.raises(ValueError, match=f"Unexpected color {input_color}"):
+        convert(css)
 
 def tests_css_named_colors_valid():
     upper_hexs = set(map(str.upper, string.hexdigits))
