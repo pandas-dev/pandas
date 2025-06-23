@@ -18,7 +18,7 @@ from pandas.core.dtypes.factory import (
     floating,
     integer,
     interval,
-    list,
+    list_dtype,
     map,
     period,
     sparse,
@@ -165,21 +165,21 @@ def test_boolean_pyarrow():
 
 # List
 def test_list_default():
-    result = list()
+    result = list_dtype()
     assert result == np.dtype("object")
     assert isinstance(result, np.dtype)
 
 
 def test_list_pyarrow():
     pa = pytest.importorskip("pyarrow")
-    result = list(backend="pyarrow", value_type=pa.int64())
+    result = list_dtype(backend="pyarrow", value_type=pa.int64())
     assert isinstance(result, ArrowDtype)
     assert str(result) == "list<item: int64>[pyarrow]"
 
 
 def test_list_large():
     pa = pytest.importorskip("pyarrow")
-    result = list(backend="pyarrow", value_type=pa.string(), large=True)
+    result = list_dtype(backend="pyarrow", value_type=pa.string(), large=True)
     assert isinstance(result, ArrowDtype)
     assert str(result) == "large_list<item: string>[pyarrow]"
 

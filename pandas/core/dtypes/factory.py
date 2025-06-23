@@ -314,7 +314,7 @@ def boolean(
         return ArrowDtype(pa.bool_())
 
 
-def list(
+def list_dtype(
     value_type: Any = None,
     large: bool = False,
     backend: Literal["numpy", "pyarrow"] = "numpy",
@@ -339,13 +339,13 @@ def list(
 
     Examples
     --------
-    >>> list()  # Default numpy backend
+    >>> list_dtype()  # Default numpy backend
     object
-    >>> list(backend="pyarrow")  # PyArrow backend with default int64
+    >>> list_dtype(backend="pyarrow")  # PyArrow backend with default int64
     list[int64][pyarrow]
-    >>> list(value_type=pa.string(), backend="pyarrow")  # PyArrow with string
+    >>> list_dtype(value_type=pa.string(), backend="pyarrow")  # PyArrow with string
     list[string][pyarrow]
-    >>> list(
+    >>> list_dtype(
     ...     value_type=pa.string(), large=True, backend="pyarrow"
     ... )  # PyArrow large list
     large_list[string][pyarrow]

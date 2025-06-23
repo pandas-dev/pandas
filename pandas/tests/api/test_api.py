@@ -128,7 +128,7 @@ class TestPDApi(Base):
         "interval_range",
         "isna",
         "isnull",
-        "list",
+        "list_dtype",
         "lreshape",
         "map",
         "melt",
