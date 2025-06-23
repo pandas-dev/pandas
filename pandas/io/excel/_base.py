@@ -1254,6 +1254,11 @@ class ExcelWriter(Generic[_WorkbookT]):
             ext = os.path.splitext(path)[-1]
             self.check_extension(ext)
 
+        # If file does not exist, and in append mode, switch to write mode.
+        if isinstance(path, str) and "a" in mode and not os.path.exists(path):
+            mode = mode.replace("a", "w")
+            if_sheet_exists = None
+
         # use mode to open the file
         if "b" not in mode:
             mode += "b"
