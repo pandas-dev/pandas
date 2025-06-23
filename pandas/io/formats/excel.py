@@ -303,13 +303,13 @@ class CSSToExcelConverter:
         #       'slantDashDot'
         #       'thick'
         #       'thin'
-        if width is None and style is None and color is None:
-            # Return None will remove "border" from style dictionary
-            return None
-
         if width is None and style is None:
-            # Return "none" will keep "border" in style dictionary
-            return "none"
+            if color is None:
+                # Return None will remove "border" from style dictionary
+                return None
+            else:
+                # Return "none" will keep "border" in style dictionary
+                return "none"
 
         if style in ("none", "hidden"):
             return "none"

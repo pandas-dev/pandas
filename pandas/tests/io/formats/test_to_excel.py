@@ -156,6 +156,14 @@ from pandas.io.formats.excel import (
             "border-top-style: solid; border-top-width: 4pt",
             {"border": {"top": {"style": "thick"}}},
         ),
+                (
+            "border-top-style: solid; border-top-width: none",
+            {"border": {"top": {"style": "none"}}},
+        ),
+        (
+            "border-top-style: solid; border-top-width: 0.000001pt",
+            {"border": {"top": {"style": "none"}}},
+        ),
         (
             "border-top-style: dotted",
             {"border": {"top": {"style": "mediumDashDotDot"}}},
@@ -194,6 +202,12 @@ from pandas.io.formats.excel import (
             "border-top-color: blue",
             {"border": {"top": {"color": "0000FF", "style": "none"}}},
         ),
+        (
+            "border-top-style: slantDashDot; border-top-color: blue",
+            {"border": {"top": {"style": "slantDashDot", "color": "0000FF"}}},
+        ),
+        
+        
         # ALIGNMENT
         # - horizontal
         ("text-align: center", {"alignment": {"horizontal": "center"}}),
@@ -247,6 +261,21 @@ def test_css_to_excel_multiple():
         },
         "alignment": {"horizontal": "center", "vertical": "top"},
     } == actual
+
+
+@pytest.mark.parametrize(
+    "css",
+    [
+        "border-top-style: unhandled-border-style",
+        "border-style: another-unhandled-style",
+    ],
+)
+
+def test_css_to_excel_unhandled_border_style_warns(css):
+    """Test that unhandled border styles raise a CSSWarning."""
+    convert = CSSToExcelConverter()
+    with tm.assert_produces_warning(CSSWarning, match="Unhandled border style format"):
+        convert(css)
 
 
 @pytest.mark.parametrize(
