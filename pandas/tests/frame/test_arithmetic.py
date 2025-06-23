@@ -11,8 +11,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -2183,28 +2181,14 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        "string[python]",
-        pytest.param(
-            "string[pyarrow]",
-            marks=td.skip_if_no("pyarrow"),
-        ),
-        pytest.param(
-            "str",
-            marks=td.skip_if_no("pyarrow"),
-        ),
-    ],
-)
-def test_mixed_col_index_dtype(dtype):
+def test_mixed_col_index_dtype(string_dtype_no_object):
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
     df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
-    df1.columns = df2.columns.astype(dtype)
+    df1.columns = df2.columns.astype(string_dtype_no_object)
     result = df1 + df2
     expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
 
-    expected.columns = expected.columns.astype(dtype)
+    expected.columns = expected.columns.astype(string_dtype_no_object)
 
     tm.assert_frame_equal(result, expected)

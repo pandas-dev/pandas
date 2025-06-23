@@ -1720,49 +1720,25 @@ def test_is_monotonic_pyarrow_list_type():
     assert not idx.is_monotonic_decreasing
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        "string[python]",
-        pytest.param(
-            "string[pyarrow]",
-            marks=td.skip_if_no("pyarrow"),
-        ),
-        pytest.param(
-            "str",
-            marks=td.skip_if_no("pyarrow"),
-        ),
-    ],
-)
-def test_index_equals_different_string_dtype(dtype):
+def test_index_equals_different_string_dtype(string_dtype_no_object):
     # GH 61099
     idx_obj = Index(["a", "b", "c"])
-    idx_str = Index(["a", "b", "c"], dtype=dtype)
+    idx_str = Index(["a", "b", "c"], dtype=string_dtype_no_object)
 
     assert idx_obj.equals(idx_str)
     assert idx_str.equals(idx_obj)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        "string[python]",
-        pytest.param(
-            "string[pyarrow]",
-            marks=td.skip_if_no("pyarrow"),
-        ),
-        pytest.param(
-            "str",
-            marks=td.skip_if_no("pyarrow"),
-        ),
-    ],
-)
-def test_index_comparison_different_string_dtype(dtype):
+def test_index_comparison_different_string_dtype(string_dtype_no_object):
     # GH 61099
     idx = Index(["a", "b", "c"])
     s_obj = Series([1, 2, 3], index=idx)
-    s_str = Series([4, 5, 6], index=idx.astype(dtype))
+    s_str = Series([4, 5, 6], index=idx.astype(string_dtype_no_object))
 
     expected = Series([True, True, True], index=["a", "b", "c"])
     result = s_obj < s_str
+    assert_series_equal(result, expected)
+
+    result = s_str > s_obj
+    expected.index = idx.astype(string_dtype_no_object)
     assert_series_equal(result, expected)
