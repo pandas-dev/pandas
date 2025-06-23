@@ -156,7 +156,7 @@ from pandas.io.formats.excel import (
             "border-top-style: solid; border-top-width: 4pt",
             {"border": {"top": {"style": "thick"}}},
         ),
-                (
+        (
             "border-top-style: solid; border-top-width: none",
             {"border": {"top": {"style": "none"}}},
         ),
@@ -206,8 +206,6 @@ from pandas.io.formats.excel import (
             "border-top-style: slantDashDot; border-top-color: blue",
             {"border": {"top": {"style": "slantDashDot", "color": "0000FF"}}},
         ),
-        
-        
         # ALIGNMENT
         # - horizontal
         ("text-align: center", {"alignment": {"horizontal": "center"}}),
@@ -270,7 +268,6 @@ def test_css_to_excel_multiple():
         "border-style: another-unhandled-style",
     ],
 )
-
 def test_css_to_excel_unhandled_border_style_warns(css):
     """Test that unhandled border styles raise a CSSWarning."""
     convert = CSSToExcelConverter()
@@ -358,6 +355,7 @@ def test_css_to_excel_bad_colors(input_color):
         convert = CSSToExcelConverter()
         assert expected == convert(css)
 
+
 @pytest.mark.parametrize("input_color", ["#", "#1234567"])
 def test_css_to_excel_invalid_color_raises(input_color):
     """Test that invalid colors raise a ValueError."""
@@ -373,6 +371,7 @@ def test_css_to_excel_invalid_color_raises(input_color):
     convert = CSSToExcelConverter()
     with pytest.raises(ValueError, match=f"Unexpected color {input_color}"):
         convert(css)
+
 
 def tests_css_named_colors_valid():
     upper_hexs = set(map(str.upper, string.hexdigits))
