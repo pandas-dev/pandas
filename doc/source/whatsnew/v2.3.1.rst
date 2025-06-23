@@ -1,0 +1,42 @@
+.. _whatsnew_231:
+
+What's new in 2.3.1 (Month XX, 2025)
+------------------------------------
+
+These are the changes in pandas 2.3.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_231.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+-
+
+.. _whatsnew_231.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_231.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_231.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_231.contributors:
+
+Contributors
+~~~~~~~~~~~~
