@@ -61,15 +61,19 @@ def string(
 
     Examples
     --------
-    >>> string()  # Default python backend with pd.NA
-    string[python]
-    >>> string(backend="pyarrow", mode="string")  # PyArrow string backend
+    >>> print(string())  # Default python backend with pd.NA
+    string
+    >>> print(string(backend="pyarrow", mode="string"))  # PyArrow string backend
     string[pyarrow]
-    >>> string(backend="pyarrow", mode="string", large=True)  # PyArrow large string
+    >>> print(
+    ...     string(backend="pyarrow", mode="string", large=True)
+    ... )  # PyArrow large string
     large_string[pyarrow]
-    >>> string(backend="pyarrow", mode="binary")  # PyArrow binary
+    >>> print(string(backend="pyarrow", mode="binary"))  # PyArrow binary
     binary[pyarrow]
-    >>> string(backend="pyarrow", mode="binary", large=True)  # PyArrow large binary
+    >>> print(
+    ...     string(backend="pyarrow", mode="binary", large=True)
+    ... )  # PyArrow large binary
     large_binary[pyarrow]
     """
     valid_modes = ["string", "binary"]
@@ -112,13 +116,13 @@ def datetime(
 
     Examples
     --------
-    >>> pd.datetime()  # Default numpy backend with ns unit
+    >>> print(datetime())  # Default numpy backend with ns unit
     datetime64[ns]
-    >>> pd.datetime(unit="us")  # Microsecond precision
+    >>> print(datetime(unit="us"))  # Microsecond precision
     datetime64[us]
-    >>> pd.datetime(tz="UTC")  # Timezone-aware datetime
+    >>> print(datetime(tz="UTC"))  # Timezone-aware datetime
     datetime64[ns, UTC]
-    >>> pd.datetime(backend="pyarrow")  # PyArrow backend
+    >>> print(datetime(backend="pyarrow"))  # PyArrow backend
     timestamp[ns][pyarrow]
     """
     valid_units = ["D", "h", "m", "s", "ms", "us", "ns"]
@@ -155,13 +159,15 @@ def integer(
 
     Examples
     --------
-    >>> integer()  # Default: 64 bits with pandas backend
+    >>> print(integer())  # Default: 64 bits with pandas backend
     Int64
-    >>> integer(bits=32)  # 32-bit integer with pandas backend
+    >>> print(integer(bits=32))  # 32-bit integer with pandas backend
     Int32
-    >>> integer(bits=64, backend="numpy")  # 64-bit integer with NumPy backend
-    dtype('int64')
-    >>> integer(bits=64, backend="pyarrow")  # 64-bit integer with PyArrow backend
+    >>> print(integer(bits=64, backend="numpy"))  # 64-bit integer with NumPy backend
+    int64
+    >>> print(
+    ...     integer(bits=64, backend="pyarrow")
+    ... )  # 64-bit integer with PyArrow backend
     int64[pyarrow]
     """
     valid_bits = [8, 16, 32, 64]
@@ -215,12 +221,12 @@ def floating(
 
     Examples
     --------
-    >>> floating()  # Default: 64 bits with NumPy backend
+    >>> print(floating())  # Default: 64 bits with NumPy backend
     Float64
-    >>> floating(bits=32)  # 32-bit float with NumPy backend
+    >>> print(floating(bits=32))  # 32-bit float with NumPy backend
     Float32
-    >>> floating(bits=64, backend="pyarrow")  # 64-bit float with PyArrow backend
-    float64[pyarrow]
+    >>> print(floating(bits=64, backend="pyarrow"))  # 64-bit float with PyArrow backend
+    double[pyarrow]
     """
     valid_bits = [32, 64]
     if bits not in valid_bits:
@@ -268,11 +274,11 @@ def decimal(
 
     Examples
     --------
-    >>> decimal(precision=10, scale=2)  # Decimal with 10 digits,
+    >>> print(decimal(precision=10, scale=2))  # Decimal with 10 digits,
     ... # 2 after the decimal point
-    decimal128[10, 2][pyarrow]
-    >>> decimal(precision=40, scale=5)  # Larger precision, uses decimal256
-    decimal256[40, 5][pyarrow]
+    decimal128(10, 2)[pyarrow]
+    >>> print(decimal(precision=40, scale=5))  # Larger precision, uses decimal256
+    decimal256(40, 5)[pyarrow]
     """
     if backend == "pyarrow":
         import pyarrow as pa
@@ -301,9 +307,9 @@ def boolean(
 
     Examples
     --------
-    >>> boolean()  # Default: NumPy backend
+    >>> print(boolean())  # Default: NumPy backend
     boolean
-    >>> boolean(backend="pyarrow")  # PyArrow backend
+    >>> print(boolean(backend="pyarrow"))  # PyArrow backend
     bool[pyarrow]
     """
     if backend == "numpy":
@@ -339,16 +345,19 @@ def list_dtype(
 
     Examples
     --------
-    >>> list_dtype()  # Default numpy backend
+    >>> print(list_dtype())  # Default numpy backend
     object
-    >>> list_dtype(backend="pyarrow")  # PyArrow backend with default int64
-    list[int64][pyarrow]
-    >>> list_dtype(value_type=pa.string(), backend="pyarrow")  # PyArrow with string
-    list[string][pyarrow]
-    >>> list_dtype(
-    ...     value_type=pa.string(), large=True, backend="pyarrow"
+    >>> print(list_dtype(backend="pyarrow"))  # PyArrow backend with default int64
+    list<item: int64>[pyarrow]
+    >>> import pyarrow as pa
+    >>> print(
+    ...     list_dtype(value_type=pa.string(), backend="pyarrow")
+    ... )  # PyArrow with string
+    list<item: string>[pyarrow]
+    >>> print(
+    ...     list_dtype(value_type=pa.string(), large=True, backend="pyarrow")
     ... )  # PyArrow large list
-    large_list[string][pyarrow]
+    large_list<item: string>[pyarrow]
     """
     if backend == "numpy":
         return np.dtype("object")
@@ -393,16 +402,19 @@ def categorical(
 
     Examples
     --------
-    >>> categorical()  # Default numpy backend
+    >>> print(categorical())  # Default numpy backend
     category
-    >>> categorical(categories=["a", "b", "c"])  # With categories
+    >>> print(categorical(categories=["a", "b", "c"]))  # With categories
     category
-    >>> categorical(ordered=True)  # Ordered categories
+    >>> print(categorical(ordered=True))  # Ordered categories
     category
-    >>> categorical(backend="pyarrow")  # PyArrow backend
-    dictionary<values=string, indices=int32>[pyarrow]
-    >>> categorical(index_type=pa.int64(), value_type=pa.int32(), backend="pyarrow")
-    dictionary<values=int32, indices=int64>[pyarrow]
+    >>> import pyarrow as pa
+    >>> print(categorical(backend="pyarrow"))  # PyArrow backend
+    dictionary<values=string, indices=int32, ordered=0>[pyarrow]
+    >>> print(
+    ...     categorical(index_type=pa.int64(), value_type=pa.int32(), backend="pyarrow")
+    ... )
+    dictionary<values=int32, indices=int64, ordered=0>[pyarrow]
     """
     if backend == "numpy":
         return CategoricalDtype(categories=categories, ordered=ordered)
@@ -438,14 +450,14 @@ def interval(
 
     Examples
     --------
-    >>> interval()  # Default numpy backend
+    >>> print(interval())  # Default numpy backend
     interval
-    >>> interval(subtype="int64")  # With specific subtype
-    interval[int64]
-    >>> interval(closed="both")  # Closed on both sides
-    interval[both]
-    >>> interval(backend="pyarrow")  # PyArrow backend
-    interval[pyarrow]
+    >>> print(interval(subtype="int64"))  # With specific subtype
+    interval[int64, right]
+    >>> print(interval(closed="both"))  # Closed on both sides
+    interval
+    >>> print(interval(backend="pyarrow"))  # PyArrow backend
+    struct<left: double, right: double>[pyarrow]
     """
     if backend == "numpy":
         return IntervalDtype(subtype=subtype, closed=closed)
@@ -496,11 +508,11 @@ def period(
 
     Examples
     --------
-    >>> period()  # Default numpy backend with daily frequency
+    >>> print(period())  # Default numpy backend with daily frequency
     period[D]
-    >>> period(freq="M")  # Monthly frequency
+    >>> print(period(freq="M"))  # Monthly frequency
     period[M]
-    >>> period(backend="pyarrow")  # PyArrow backend
+    >>> print(period(backend="pyarrow"))  # PyArrow backend
     month_day_nano_interval[pyarrow]
     """
     if backend == "numpy":
@@ -537,12 +549,12 @@ def sparse(
 
     Examples
     --------
-    >>> sparse()  # Default numpy backend
+    >>> print(sparse())  # Default numpy backend
     Sparse[float64, nan]
-    >>> sparse(dtype="int64")  # With specific dtype
+    >>> print(sparse(dtype="int64"))  # With specific dtype
     Sparse[int64, 0]
-    >>> sparse(fill_value=-1)  # With specific fill value
-    Sparse[float64, -1.0]
+    >>> print(sparse(fill_value=-1))  # With specific fill value
+    Sparse[float64, -1]
     """
     if backend != "numpy":
         raise ValueError(
@@ -592,17 +604,17 @@ def date(
 
     Examples
     --------
-    >>> date()  # Default day precision with PyArrow
-    date32[pyarrow]
-    >>> date(unit="ms")  # Millisecond precision with PyArrow
-    date64[pyarrow]
+    >>> print(date())  # Default day precision with PyArrow
+    date32[day][pyarrow]
+    >>> print(date(unit="ms"))  # Millisecond precision with PyArrow
+    date64[ms][pyarrow]
     >>> import pandas as pd
     >>> pd.Series(
     ...     [pd.Timestamp("2023-01-01"), pd.Timestamp("2023-01-02")], dtype=date()
     ... )
     0    2023-01-01
     1    2023-01-02
-    dtype: date32[pyarrow]
+    dtype: date32[day][pyarrow]
     """
 
     if backend != "pyarrow":
@@ -637,9 +649,9 @@ def duration(
 
     Examples
     --------
-    >>> duration()  # Default PyArrow backend
+    >>> print(duration())  # Default PyArrow backend
     duration[ns][pyarrow]
-    >>> duration(unit="s", backend="numpy")  # NumPy backend
+    >>> print(duration(unit="s", backend="numpy"))  # NumPy backend
     timedelta64[s]
     """
     valid_units = ["ns", "us", "ms", "s"]
@@ -687,13 +699,14 @@ def map(
 
     Examples
     --------
-    >>> map(index_type=pa.int32(), value_type=pa.string())
+    >>> import pyarrow as pa
+    >>> print(map(index_type=pa.int32(), value_type=pa.string()))
     map<int32, string>[pyarrow]
     >>> import pandas as pd
     >>> data = [[(1, "a"), (2, "b")], [(3, "c")]]
     >>> pd.Series(data, dtype=map(pa.int32(), pa.string()))
-    0    [(1, a), (2, b)]
-    1           [(3, c)]
+    0    [(1, 'a'), (2, 'b')]
+    1              [(3, 'c')]
     dtype: map<int32, string>[pyarrow]
     """
     if backend != "pyarrow":
@@ -738,13 +751,14 @@ def struct(
 
     Examples
     --------
-    >>> struct([("id", pa.int32()), ("name", pa.string())])
+    >>> import pyarrow as pa
+    >>> print(struct([("id", pa.int32()), ("name", pa.string())]))
     struct<id: int32, name: string>[pyarrow]
     >>> import pandas as pd
     >>> data = [(1, "Alice"), (2, "Bob")]
     >>> pd.Series(data, dtype=struct([("id", pa.int32()), ("name", pa.string())]))
-    0    (1, Alice)
-    1     (2, Bob)
+    0    {'id': 1, 'name': 'Alice'}
+    1      {'id': 2, 'name': 'Bob'}
     dtype: struct<id: int32, name: string>[pyarrow]
     """
     if backend == "pyarrow":
