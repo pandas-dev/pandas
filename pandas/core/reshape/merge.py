@@ -370,7 +370,7 @@ def merge(
     left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
     if how == "cross":
-        return _cross_merge(
+        result = _cross_merge(
             left_df,
             right_df,
             on=on,
@@ -398,7 +398,14 @@ def merge(
             indicator=indicator,
             validate=validate,
         )
-        return op.get_result()
+        result = op.get_result()
+
+    # ADDED: Apply __finalize__ to propagate metadata
+    # Use left DataFrame as the primary source for metadata
+    if hasattr(left, "__finalize__"):
+        result = result.__finalize__(left, method="merge")
+
+    return result
 
 
 def _cross_merge(
@@ -927,7 +934,12 @@ def merge_asof(
         allow_exact_matches=allow_exact_matches,
         direction=direction,
     )
-    return op.get_result()
+    result = op.get_result()
+    # ADDED: Apply __finalize__ to propagate metadata
+    if hasattr(left, "__finalize__"):
+        result = result.__finalize__(left, method="merge_asof")
+
+    return result
 
 
 # TODO: transformations??
@@ -1143,7 +1155,9 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        return result.__finalize__(self, method="merge")
+        # NOTE: __finalize__ is now called in the higher-level merge functions
+        # rather than here, to ensure it's called consistently across all entry points
+        return result
 
     @final
     @cache_readonly

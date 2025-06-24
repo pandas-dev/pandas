@@ -11110,7 +11110,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         from pandas.core.reshape.merge import merge
 
-        return merge(
+        result = merge(
             self,
             right,
             how=how,
@@ -11124,6 +11124,8 @@ class DataFrame(NDFrame, OpsMixin):
             indicator=indicator,
             validate=validate,
         )
+        # ADDED: Apply __finalize__ to propagate metadata from left DataFrame
+        return result.__finalize__(self, method="merge")
 
     def round(
         self, decimals: int | dict[IndexLabel, int] | Series = 0, *args, **kwargs
@@ -11211,6 +11213,18 @@ class DataFrame(NDFrame, OpsMixin):
         1   0.0   1.0
         2   0.7   0.0
         3   0.2   0.0
+
+        >>> df1 = pd.DataFrame({"key": [1, 2], "A": [1, 2]})
+        >>> df2 = pd.DataFrame({"key": [1, 2], "B": [3, 4]})
+        >>> df1.attrs["source"] = "dataset1"
+        >>> result = df1.merge(df2, on="key")
+        >>> result.attrs["source"]  # Metadata is preserved
+        'dataset1'
+
+        Note
+        ----
+        The merge operation propagates metadata (attrs, flags) from the left DataFrame
+        to the result using the __finalize__ method.
         """
         from pandas.core.reshape.concat import concat
 

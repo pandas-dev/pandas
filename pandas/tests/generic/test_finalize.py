@@ -13,7 +13,7 @@ import pandas as pd
 # TODO:
 # * Binary methods (mul, div, etc.)
 # * Binary outputs (align, etc.)
-# * top-level methods (concat, merge, get_dummies, etc.)
+# * top-level methods (concat, get_dummies, etc.)
 # * window
 # * cumulative reductions
 
@@ -154,7 +154,7 @@ _all_methods = [
             frame_data,
             operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
         ),
-        marks=not_implemented_mark,
+        # marks=not_implemented_mark,
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
     (pd.DataFrame, frame_data, operator.methodcaller("corr")),
@@ -675,3 +675,71 @@ def test_finalize_frame_series_name():
     df = pd.DataFrame({"name": [1, 2]})
     result = pd.Series([1, 2]).__finalize__(df)
     assert result.name is None
+
+
+def test_merge_finalize():
+    """Test that DataFrame.merge calls __finalize__."""
+    # Create test DataFrames
+    df1 = pd.DataFrame({"key": [1, 2, 3], "A": [1, 2, 3]})
+    df2 = pd.DataFrame({"key": [1, 2, 4], "B": [4, 5, 6]})
+
+    # Add metadata
+    df1.attrs["source"] = "left"
+    df1.attrs["version"] = "1.0"
+
+    # Test different merge types
+    for how in ["inner", "outer", "left", "right"]:
+        result = df1.merge(df2, on="key", how=how)
+
+        # Check that attrs were propagated from left DataFrame
+        assert result.attrs["source"] == "left"
+        assert result.attrs["version"] == "1.0"
+
+
+def test_merge_asof_finalize():
+    """Test that merge_asof calls __finalize__."""
+    df1 = pd.DataFrame({"time": [1, 2, 3], "A": [1, 2, 3]})
+    df2 = pd.DataFrame({"time": [1, 2, 4], "B": [4, 5, 6]})
+
+    df1.attrs["source"] = "quotes"
+
+    result = pd.merge_asof(df1, df2, on="time")
+
+    # Check that attrs were propagated
+    assert result.attrs["source"] == "quotes"
+
+
+def test_merge_index_finalize():
+    """Test that index-based merge calls __finalize__."""
+    df1 = pd.DataFrame({"A": [1, 2]}, index=[1, 2])
+    df2 = pd.DataFrame({"B": [3, 4]}, index=[1, 2])
+
+    df1.attrs["index_merge"] = True
+
+    result = df1.merge(df2, left_index=True, right_index=True)
+
+    assert result.attrs["index_merge"] is True
+
+
+def test_merge_suffixes_finalize():
+    """Test merge with suffixes calls __finalize__."""
+    df1 = pd.DataFrame({"key": [1, 2], "value": [1, 2]})
+    df2 = pd.DataFrame({"key": [1, 2], "value": [3, 4]})
+
+    df1.attrs["has_suffixes"] = True
+
+    result = df1.merge(df2, on="key", suffixes=("_left", "_right"))
+
+    assert result.attrs["has_suffixes"] is True
+
+
+def test_merge_series_finalize():
+    """Test that merging with a Series calls __finalize__."""
+    df = pd.DataFrame({"key": [1, 2, 3], "A": [1, 2, 3]})
+    s = pd.Series([4, 5, 6], index=[1, 2, 3], name="B")
+
+    df.attrs["merged_with_series"] = True
+
+    result = df.merge(s, left_on="key", right_index=True)
+
+    assert result.attrs["merged_with_series"] is True
