@@ -1375,7 +1375,13 @@ def iterdir(
     ImportError
         If fsspec is required but not installed.
     """
-    if hasattr(path, "read") or hasattr(path, "write"):
+
+    # file-like objects and urls are returned directly
+    if (
+        hasattr(path, "read")
+        or hasattr(path, "write")
+        or (isinstance(path, str) and is_url(path))
+    ):
         return path
 
     if not isinstance(path, (str, os.PathLike)):
