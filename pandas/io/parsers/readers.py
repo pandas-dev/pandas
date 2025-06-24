@@ -671,7 +671,7 @@ def _validate_names(names: Sequence[Hashable] | None) -> None:
 
 
 def _multi_file_generator(
-    list_of_files: list[str], kwds
+    list_of_files: list[FilePath], kwds
 ) -> Generator[DataFrame] | Generator[TextFileReader]:
     """Generator for multiple files."""
     for file in list_of_files:

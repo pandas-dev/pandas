@@ -1340,10 +1340,10 @@ def _resolve_local_path(path_str: str) -> Path:
 
 
 def iterdir(
-    path: FilePath | BaseBuffer,
+    path: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     extensions: str | Iterable[str] | None = None,
     glob: str | None = None,
-) -> list[str | Path] | BaseBuffer:
+) -> list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:
     """Yield file paths in a directory (no nesting allowed).
 
     Supports:
