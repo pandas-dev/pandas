@@ -10639,8 +10639,6 @@ class DataFrame(NDFrame, OpsMixin):
                 raw=raw,
                 result_type=result_type,
                 by_row=by_row,
-                engine="python",
-                engine_kwargs=engine_kwargs,
                 args=args,
                 kwargs=kwargs,
             )

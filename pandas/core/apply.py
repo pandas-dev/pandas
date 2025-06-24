@@ -224,8 +224,11 @@ class NumbaExecutionEngine(BaseExecutionEngine):
         if not isinstance(data, np.ndarray):
             if data.empty:
                 return data.copy()  # mimic apply_empty_result()
+            engine_kwargs = (
+                decorator.engine_kwargs if hasattr(decorator, "engine_kwargs") else {}
+            )
             NumbaExecutionEngine.validate_values_for_numba_raw_false(
-                data, get_jit_arguments(decorator.engine_kwargs)
+                data, get_jit_arguments(engine_kwargs)
             )
 
             return NumbaExecutionEngine.apply_raw_false(
@@ -407,8 +410,6 @@ def frame_apply(
     raw: bool = False,
     result_type: str | None = None,
     by_row: Literal[False, "compat"] = "compat",
-    engine: str = "python",
-    engine_kwargs: dict[str, bool] | None = None,
     args=None,
     kwargs=None,
 ) -> FrameApply:
@@ -432,8 +433,6 @@ def frame_apply(
         raw=raw,
         result_type=result_type,
         by_row=by_row,
-        engine=engine,
-        engine_kwargs=engine_kwargs,
         args=args,
         kwargs=kwargs,
     )
@@ -450,8 +449,6 @@ class Apply(metaclass=abc.ABCMeta):
         result_type: str | None,
         *,
         by_row: Literal[False, "compat", "_compat"] = "compat",
-        engine: str = "python",
-        engine_kwargs: dict[str, bool] | None = None,
         args,
         kwargs,
     ) -> None:
@@ -463,9 +460,6 @@ class Apply(metaclass=abc.ABCMeta):
 
         self.args = args or ()
         self.kwargs = kwargs or {}
-
-        self.engine = engine
-        self.engine_kwargs = {} if engine_kwargs is None else engine_kwargs
 
         if result_type not in [None, "reduce", "broadcast", "expand"]:
             raise ValueError(
@@ -1085,8 +1079,6 @@ class FrameApply(NDFrameApply):
         result_type: str | None,
         *,
         by_row: Literal[False, "compat"] = False,
-        engine: str = "python",
-        engine_kwargs: dict[str, bool] | None = None,
         args,
         kwargs,
     ) -> None:
@@ -1098,8 +1090,6 @@ class FrameApply(NDFrameApply):
             raw,
             result_type,
             by_row=by_row,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
             args=args,
             kwargs=kwargs,
         )
@@ -1174,7 +1164,7 @@ class FrameApply(NDFrameApply):
 
         # raw
         elif self.raw:
-            return self.apply_raw(engine=self.engine, engine_kwargs=self.engine_kwargs)
+            return self.apply_raw()
 
         return self.apply_standard()
 
@@ -1247,7 +1237,7 @@ class FrameApply(NDFrameApply):
         else:
             return self.obj.copy()
 
-    def apply_raw(self, engine="python", engine_kwargs=None):
+    def apply_raw(self):
         """apply to the values as a numpy array"""
 
         def wrap_function(func):
@@ -1674,11 +1664,6 @@ class GroupByApply(Apply):
     def agg_or_apply_dict_like(
         self, op_name: Literal["agg", "apply"]
     ) -> DataFrame | Series:
-        from pandas.core.groupby.generic import (
-            DataFrameGroupBy,
-            SeriesGroupBy,
-        )
-
         assert op_name in ["agg", "apply"]
 
         obj = self.obj
@@ -1692,14 +1677,6 @@ class GroupByApply(Apply):
 
         selected_obj = obj._selected_obj
         selection = obj._selection
-
-        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
-
-        # Numba Groupby engine/engine-kwargs passthrough
-        if is_groupby:
-            engine = self.kwargs.get("engine", None)
-            engine_kwargs = self.kwargs.get("engine_kwargs", None)
-            kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
 
         with com.temp_setattr(
             obj, "as_index", True, condition=hasattr(obj, "as_index")
