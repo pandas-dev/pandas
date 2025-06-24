@@ -43,7 +43,7 @@ def test_read_zipped_json(datapath):
 @td.skip_if_not_us_locale
 @pytest.mark.single_cpu
 @pytest.mark.network
-def test_with_s3_url(compression, s3_bucket_public):
+def test_with_s3_url(compression, s3_bucket_public, s3so):
     # Bucket created in tests/io/conftest.py
     df = pd.read_json(StringIO('{"a": [1, 2, 3], "b": [4, 5, 6]}'))
 
@@ -53,11 +53,6 @@ def test_with_s3_url(compression, s3_bucket_public):
         with open(path, "rb") as f:
             s3_bucket_public.put_object(Key=key, Body=f)
 
-    s3so = {
-        "client_kwargs": {
-            "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url
-        }
-    }
     roundtripped_df = pd.read_json(
         f"s3://{s3_bucket_public.name}/{key}",
         compression=compression,

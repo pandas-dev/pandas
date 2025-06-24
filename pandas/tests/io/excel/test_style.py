@@ -323,11 +323,6 @@ def test_styler_to_s3(s3_bucket_public, s3so):
     mock_bucket_name = s3_bucket_public.name
     target_file = f"{uuid.uuid4()}.xlsx"
     df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-    s3so = {
-        "client_kwargs": {
-            "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url
-        }
-    }
     styler = df.style.set_sticky(axis="index")
     styler.to_excel(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
     timeout = 5

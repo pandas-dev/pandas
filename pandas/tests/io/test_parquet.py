@@ -809,13 +809,8 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_bucket_public, pa):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_bucket_public, s3so, pa):
         s3fs = pytest.importorskip("s3fs")
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url,
-            }
-        }
         s3 = s3fs.S3FileSystem(**s3so)
         kw = {"filesystem": s3}
         check_round_trip(
@@ -827,13 +822,8 @@ class TestParquetPyArrow(Base):
         )
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_bucket_public, pa):
+    def test_s3_roundtrip(self, df_compat, s3_bucket_public, s3so, pa):
         # GH #19134
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url,
-            }
-        }
         s3so = {"storage_options": s3so}
         check_round_trip(
             df_compat,
@@ -1316,13 +1306,8 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_bucket_public, fp):
+    def test_s3_roundtrip(self, df_compat, s3_bucket_public, s3so, fp):
         # GH #19134
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url,
-            }
-        }
         check_round_trip(
             df_compat,
             fp,

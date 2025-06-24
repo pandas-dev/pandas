@@ -89,16 +89,18 @@ class TestS3:
     @pytest.mark.parametrize("nrows", [None, 10])
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_parse_public_s3_bucket(
-        self, s3_bucket_public_with_data, tips_df, suffix, compression, nrows, engine
+        self,
+        s3_bucket_public_with_data,
+        s3so,
+        tips_df,
+        suffix,
+        compression,
+        nrows,
+        engine,
     ):
         # more of an integration test due to the not-public contents portion
         # can probably mock this though.
         pytest.importorskip("s3fs")
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-            }
-        }
         df = read_csv(
             f"s3://{s3_bucket_public_with_data.name}/tips.csv{suffix}",
             nrows=nrows,
@@ -108,17 +110,9 @@ class TestS3:
         )
         tm.assert_frame_equal(df, tips_df.iloc[:nrows])
 
-    def test_parse_private_s3_bucket(self, s3_bucket_private_with_data, tips_df):
+    def test_parse_private_s3_bucket(self, s3_bucket_private_with_data, s3so, tips_df):
         # Read public file from bucket with not-public contents
         pytest.importorskip("s3fs")
-
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": (
-                    s3_bucket_private_with_data.meta.client.meta.endpoint_url
-                )
-            }
-        }
         df = read_csv(
             f"s3://{s3_bucket_private_with_data.name}/tips.csv", storage_options=s3so
         )
@@ -126,14 +120,9 @@ class TestS3:
 
     @pytest.mark.parametrize("scheme", ["s3n", "s3a"])
     def test_parse_public_bucket_s3n_s3a(
-        self, s3_bucket_public_with_data, tips_df, scheme
+        self, s3_bucket_public_with_data, s3so, tips_df, scheme
     ):
         nrows = 10
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-            }
-        }
         df = read_csv(
             f"{scheme}://{s3_bucket_public_with_data.name}/tips.csv",
             nrows=nrows,
@@ -151,15 +140,10 @@ class TestS3:
     )
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_parse_public_s3_bucket_chunked(
-        self, s3_bucket_public_with_data, tips_df, suffix, compression, engine
+        self, s3_bucket_public_with_data, s3so, tips_df, suffix, compression, engine
     ):
         # Read with a chunksize
         chunksize = 5
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-            }
-        }
         with read_csv(
             f"s3://{s3_bucket_public_with_data.name}/tips.csv{suffix}",
             chunksize=chunksize,
@@ -178,12 +162,9 @@ class TestS3:
                 tm.assert_frame_equal(true_df, df)
 
     @pytest.mark.parametrize("suffix", ["", ".gz", ".bz2"])
-    def test_infer_s3_compression(self, s3_bucket_public_with_data, tips_df, suffix):
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-            }
-        }
+    def test_infer_s3_compression(
+        self, s3_bucket_public_with_data, s3so, tips_df, suffix
+    ):
         df = read_csv(
             f"s3://{s3_bucket_public_with_data.name}/tips.csv{suffix}",
             engine="python",
@@ -192,25 +173,13 @@ class TestS3:
         )
         tm.assert_frame_equal(df, tips_df)
 
-    def test_read_s3_fails(self, s3_bucket_public_with_data):
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-            }
-        }
+    def test_read_s3_fails(self, s3_bucket_public_with_data, s3so):
         msg = "The specified bucket does not exist"
         with pytest.raises(OSError, match=msg):
             read_csv("s3://nyqpug/asdf.csv", storage_options=s3so)
 
-    def test_read_s3_fails_private(self, s3_bucket_private_with_data):
+    def test_read_s3_fails_private(self, s3_bucket_private_with_data, s3so):
         s3_url = f"{s3_bucket_private_with_data.name}/file.csv"
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": (
-                    s3_bucket_private_with_data.meta.client.meta.endpoint_url
-                )
-            }
-        }
         msg = rf"{s3_url}"
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
@@ -237,14 +206,9 @@ class TestS3:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.single_cpu
-    def test_read_csv_chunked_download(self, s3_bucket_public, caplog):
+    def test_read_csv_chunked_download(self, s3_bucket_public, s3so, caplog):
         # 8 MB, S3FS uses 5MB chunks
         df = DataFrame(np.zeros((100000, 4)), columns=list("abcd"))
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url
-            }
-        }
         with BytesIO(df.to_csv().encode("utf-8")) as buf:
             s3_bucket_public.put_object(Key="large-file.csv", Body=buf)
             uri = f"{s3_bucket_public.name}/large-file.csv"
@@ -260,26 +224,18 @@ class TestS3:
                         # Less than 8 MB
                         assert int(match.group("stop")) < 8000000
 
-    def test_read_s3_with_hash_in_key(self, s3_bucket_public_with_data, tips_df):
+    def test_read_s3_with_hash_in_key(self, s3_bucket_public_with_data, s3so, tips_df):
         # GH 25945
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-            }
-        }
         result = read_csv(
             f"s3://{s3_bucket_public_with_data.name}/tips#1.csv", storage_options=s3so
         )
         tm.assert_frame_equal(tips_df, result)
 
-    def test_read_feather_s3_file_path(self, s3_bucket_public_with_data, feather_file):
+    def test_read_feather_s3_file_path(
+        self, s3_bucket_public_with_data, s3so, feather_file
+    ):
         # GH 29055
         pytest.importorskip("pyarrow")
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-            }
-        }
         expected = read_feather(feather_file)
         res = read_feather(
             f"s3://{s3_bucket_public_with_data.name}/simple_dataset.feather",

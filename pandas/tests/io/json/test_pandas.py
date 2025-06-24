@@ -1412,15 +1412,8 @@ class TestPandasContainer:
     @pytest.mark.single_cpu
     @pytest.mark.network
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_bucket_public_with_data):
+    def test_read_s3_jsonl(self, s3_bucket_public_with_data, s3so):
         # GH17200
-
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-            }
-        }
-
         result = read_json(
             f"s3n://{s3_bucket_public_with_data.name}/items.jsonl",
             lines=True,
@@ -2018,16 +2011,11 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     @pytest.mark.network
-    def test_to_s3(self, s3_bucket_public):
+    def test_to_s3(self, s3_bucket_public, s3so):
         # GH 28375
         mock_bucket_name = s3_bucket_public.name
         target_file = f"{uuid.uuid4()}.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url
-            }
-        }
         df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5
         while True:

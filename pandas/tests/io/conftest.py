@@ -69,6 +69,15 @@ def moto_s3_resource(moto_server):
 
 
 @pytest.fixture
+def s3so(moto_server):
+    return {
+        "client_kwargs": {
+            "endpoint_url": moto_server,
+        }
+    }
+
+
+@pytest.fixture
 def s3_bucket_public(moto_s3_resource):
     """
     Create a public S3 bucket using moto.

@@ -934,12 +934,7 @@ class TestReaders:
 
     @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
-    def test_read_from_s3_url(self, read_ext, s3_bucket_public):
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url,
-            }
-        }
+    def test_read_from_s3_url(self, read_ext, s3_bucket_public, s3so):
         with open("test1" + read_ext, "rb") as f:
             s3_bucket_public.put_object(Key="test1" + read_ext, Body=f)
 
@@ -950,13 +945,8 @@ class TestReaders:
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.single_cpu
-    def test_read_from_s3_object(self, read_ext, s3_bucket_public):
+    def test_read_from_s3_object(self, read_ext, s3_bucket_public, s3so):
         # GH 38788
-        s3so = {
-            "client_kwargs": {
-                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url,
-            }
-        }
         with open("test1" + read_ext, "rb") as f:
             s3_bucket_public.put_object(Key="test1" + read_ext, Body=f)
 

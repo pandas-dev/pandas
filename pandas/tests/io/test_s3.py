@@ -18,14 +18,9 @@ def test_streaming_s3_objects():
 
 
 @pytest.mark.single_cpu
-def test_read_without_creds_from_pub_bucket(s3_bucket_public_with_data):
+def test_read_without_creds_from_pub_bucket(s3_bucket_public_with_data, s3so):
     # GH 34626
     pytest.importorskip("s3fs")
-    s3so = {
-        "client_kwargs": {
-            "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-        }
-    }
     result = read_csv(
         f"s3://{s3_bucket_public_with_data.name}/tips.csv",
         nrows=3,
@@ -35,15 +30,10 @@ def test_read_without_creds_from_pub_bucket(s3_bucket_public_with_data):
 
 
 @pytest.mark.single_cpu
-def test_read_with_creds_from_pub_bucket(s3_bucket_public_with_data):
+def test_read_with_creds_from_pub_bucket(s3_bucket_public_with_data, s3so):
     # Ensure we can read from a public bucket with credentials
     # GH 34626
     pytest.importorskip("s3fs")
-    s3so = {
-        "client_kwargs": {
-            "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
-        }
-    }
     df = read_csv(
         f"s3://{s3_bucket_public_with_data.name}/tips.csv",
         nrows=5,
