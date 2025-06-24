@@ -15,6 +15,42 @@ Enhancements
 ~~~~~~~~~~~~
 -
 
+.. ---------------------------------------------------------------------------
+.. _whatsnew_231.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+
+.. _whatsnew_231.notable_bug_fixes.string_comparisons:
+
+Comparisons between different string dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, comparing :class:`Series` of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise. pandas will now use the hierarchy
+
+    object < (python, NaN) < (pyarrow, NaN) < (python, NA) < (pyarrow, NA)
+
+in determining the result dtype when there are different string dtypes compared. Some examples:
+
+- When ``pd.StringDtype("pyarrow", na_value=pd.NA)`` is compared against any other string dtype, the result will always be ``boolean[pyarrow]``.
+- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("pyarrow", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
+- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("python", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
+
+
+.. _whatsnew_231.api_changes:
+
+API changes
+~~~~~~~~~~~
+
+- When enabling the ``future.infer_string`` option, :class:`Index` set operations (like
+  union or intersection) will now ignore the dtype of an empty :class:`RangeIndex` or
+  empty :class:`Index` with ``object`` dtype when determining the dtype of the resulting
+  Index (:issue:`60797`)
+
+
 .. _whatsnew_231.regressions:
 
 Fixed regressions
@@ -26,6 +62,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.max`, :meth:`.Resampler.min`, :meth:`.Resampler.max` where all NA values of string dtype would return float instead of string dtype (:issue:`60810`)
+- Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` with all NA values of :class:`StringDtype` resulted in ``0`` instead of the empty string ``""`` (:issue:`60229`)
 - Fixed bug in :meth:`DataFrame.explode` and :meth:`Series.explode` where methods would fail with ``dtype="str"`` (:issue:`61623`)
 
 .. ---------------------------------------------------------------------------
