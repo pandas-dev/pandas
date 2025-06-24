@@ -1972,11 +1972,15 @@ def test_unsuported_compression(parser):
 
 @pytest.mark.network
 @pytest.mark.single_cpu
-def test_s3_parser_consistency(s3_public_bucket_with_data, s3so):
+def test_s3_parser_consistency(s3_bucket_public_with_data, s3so):
     pytest.importorskip("s3fs")
     pytest.importorskip("lxml")
-    s3 = f"s3://{s3_public_bucket_with_data.name}/books.xml"
-
+    s3 = f"s3://{s3_bucket_public_with_data.name}/books.xml"
+    s3so = {
+        "client_kwargs": {
+            "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
+        }
+    }
     df_lxml = read_xml(s3, parser="lxml", storage_options=s3so)
 
     df_etree = read_xml(s3, parser="etree", storage_options=s3so)
