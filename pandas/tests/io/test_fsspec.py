@@ -231,16 +231,16 @@ def test_fastparquet_options(fsspectest):
 
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("compression_suffix", ["", ".gz", ".bz2"])
-def test_from_s3_csv(s3_public_bucket_with_data, tips_file, compression_suffix):
+def test_from_s3_csv(s3_bucket_public_with_data, tips_file, compression_suffix):
     pytest.importorskip("s3fs")
 
     s3so = {
         "client_kwargs": {
-            "endpoint_url": s3_public_bucket_with_data.meta.client.meta.endpoint_url
+            "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
         }
     }
     df_from_s3 = read_csv(
-        f"s3://{s3_public_bucket_with_data.name}/tips.csv{compression_suffix}",
+        f"s3://{s3_bucket_public_with_data.name}/tips.csv{compression_suffix}",
         storage_options=s3so,
     )
     df_from_local = read_csv(tips_file)
@@ -249,16 +249,16 @@ def test_from_s3_csv(s3_public_bucket_with_data, tips_file, compression_suffix):
 
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
-def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol):
+def test_s3_protocols(s3_bucket_public_with_data, tips_file, protocol):
     pytest.importorskip("s3fs")
 
     s3so = {
         "client_kwargs": {
-            "endpoint_url": s3_public_bucket_with_data.meta.client.meta.endpoint_url
+            "endpoint_url": s3_bucket_public_with_data.meta.client.meta.endpoint_url
         }
     }
     df_from_s3 = read_csv(
-        f"{protocol}://{s3_public_bucket_with_data.name}/tips.csv",
+        f"{protocol}://{s3_bucket_public_with_data.name}/tips.csv",
         storage_options=s3so,
     )
     df_from_local = read_csv(tips_file)
@@ -267,14 +267,14 @@ def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol):
 
 @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 @pytest.mark.single_cpu
-def test_s3_parquet(s3_public_bucket, df1):
+def test_s3_parquet(s3_bucket_public, df1):
     pytest.importorskip("fastparquet")
     pytest.importorskip("s3fs")
 
-    fn = f"s3://{s3_public_bucket.name}/test.parquet"
+    fn = f"s3://{s3_bucket_public.name}/test.parquet"
     s3so = {
         "client_kwargs": {
-            "endpoint_url": s3_public_bucket.meta.client.meta.endpoint_url
+            "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url
         }
     }
     df1.to_parquet(

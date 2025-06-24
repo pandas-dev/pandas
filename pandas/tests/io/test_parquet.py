@@ -809,26 +809,36 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_public_bucket, pa, s3so):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_bucket_public, pa):
         s3fs = pytest.importorskip("s3fs")
+        s3so = {
+            "client_kwargs": {
+                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url,
+            }
+        }
         s3 = s3fs.S3FileSystem(**s3so)
         kw = {"filesystem": s3}
         check_round_trip(
             df_compat,
             pa,
-            path=f"{s3_public_bucket.name}/pyarrow.parquet",
+            path=f"{s3_bucket_public.name}/pyarrow.parquet",
             read_kwargs=kw,
             write_kwargs=kw,
         )
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_public_bucket, pa, s3so):
+    def test_s3_roundtrip(self, df_compat, s3_bucket_public, pa):
         # GH #19134
+        s3so = {
+            "client_kwargs": {
+                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url,
+            }
+        }
         s3so = {"storage_options": s3so}
         check_round_trip(
             df_compat,
             pa,
-            path=f"s3://{s3_public_bucket.name}/pyarrow.parquet",
+            path=f"s3://{s3_bucket_public.name}/pyarrow.parquet",
             read_kwargs=s3so,
             write_kwargs=s3so,
         )
@@ -836,7 +846,7 @@ class TestParquetPyArrow(Base):
     @pytest.mark.single_cpu
     @pytest.mark.parametrize("partition_col", [["A"], []])
     def test_s3_roundtrip_for_dir(
-        self, df_compat, s3_public_bucket, pa, partition_col, s3so
+        self, df_compat, s3_bucket_public, pa, partition_col, s3so
     ):
         pytest.importorskip("s3fs")
         # GH #26388
@@ -855,7 +865,7 @@ class TestParquetPyArrow(Base):
             df_compat,
             pa,
             expected=expected_df,
-            path=f"s3://{s3_public_bucket.name}/parquet_dir",
+            path=f"s3://{s3_bucket_public.name}/parquet_dir",
             read_kwargs={"storage_options": s3so},
             write_kwargs={
                 "partition_cols": partition_col,
@@ -1306,12 +1316,17 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_public_bucket, fp, s3so):
+    def test_s3_roundtrip(self, df_compat, s3_bucket_public, fp):
         # GH #19134
+        s3so = {
+            "client_kwargs": {
+                "endpoint_url": s3_bucket_public.meta.client.meta.endpoint_url,
+            }
+        }
         check_round_trip(
             df_compat,
             fp,
-            path=f"s3://{s3_public_bucket.name}/fastparquet.parquet",
+            path=f"s3://{s3_bucket_public.name}/fastparquet.parquet",
             read_kwargs={"storage_options": s3so},
             write_kwargs={"compression": None, "storage_options": s3so},
         )
