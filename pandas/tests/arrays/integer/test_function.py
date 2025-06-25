@@ -22,11 +22,14 @@ def test_ufuncs_single_int(ufunc):
 
 
 @pytest.mark.parametrize("ufunc", [np.log, np.exp, np.sin, np.cos, np.sqrt])
-def test_ufuncs_single_float(ufunc):
+def test_ufuncs_single_float(ufunc, pdep16_nan_behavior):
     a = pd.array([1, 2, -3, np.nan])
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
-        expected = FloatingArray(ufunc(a.astype(float)), mask=a._mask)
+        if pdep16_nan_behavior:
+            expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
+        else:
+            expected = FloatingArray(ufunc(a.astype(float)), mask=a._mask)
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
