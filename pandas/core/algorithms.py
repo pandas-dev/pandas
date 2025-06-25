@@ -525,7 +525,7 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             # invalid comparison
             is_implicit_conversion_to_float64 = False
 
-        if (is_implicit_conversion_to_float64):
+        if is_implicit_conversion_to_float64:
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
             values = construct_1d_object_array_from_listlike(orig_values)
