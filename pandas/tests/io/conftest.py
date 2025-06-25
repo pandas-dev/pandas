@@ -68,7 +68,7 @@ def moto_s3_resource(moto_server):
     return s3
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def s3so(moto_server):
     return {
         "client_kwargs": {
