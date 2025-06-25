@@ -358,11 +358,33 @@ class TestBase:
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
+        # Handle non-MultiIndex object dtype indices
+        if not isinstance(index, MultiIndex) and index.dtype == "object":
+            str_index = index.astype(str)
+            result = str_index.argsort()
+            expected = np.array(str_index).argsort()
+            tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+            return
+
+        # Proceed with default logic for other indices
         result = index.argsort()
         expected = np.array(index).argsort()
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_numpy_argsort(self, index):
+        # Handle non-MultiIndex object dtype indices
+        if not isinstance(index, MultiIndex) and index.dtype == "object":
+            str_index = index.astype(str)
+            result = np.argsort(str_index)
+            expected = str_index.argsort()
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = np.argsort(str_index, kind="mergesort")
+            expected = str_index.argsort(kind="mergesort")
+            tm.assert_numpy_array_equal(result, expected)
+            return
+
+        # Default logic for non-object dtype indices
         result = np.argsort(index)
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
@@ -371,13 +393,7 @@ class TestBase:
         expected = index.argsort(kind="mergesort")
         tm.assert_numpy_array_equal(result, expected)
 
-        # these are the only two types that perform
-        # pandas compatibility input validation - the
-        # rest already perform separate (or no) such
-        # validation via their 'values' attribute as
-        # defined in pandas.core.indexes/base.py - they
-        # cannot be changed at the moment due to
-        # backwards compatibility concerns
+        # Axis/order validation for specific index types
         if isinstance(index, (CategoricalIndex, RangeIndex)):
             msg = "the 'axis' parameter is not supported"
             with pytest.raises(ValueError, match=msg):

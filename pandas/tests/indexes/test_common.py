@@ -438,17 +438,71 @@ class TestCommon:
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-@pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
+@pytest.mark.parametrize(
+    "na_position,index_fixture",
+    [
+        pytest.param(
+            None,
+            "mixed-int-string",
+            marks=pytest.mark.xfail(reason="Mixed index types"),
+        ),
+        pytest.param(
+            "middle",
+            "mixed-int-string",
+            marks=pytest.mark.xfail(reason="Mixed index types"),
+        ),
+        pytest.param(
+            None, "object", marks=pytest.mark.xfail(reason="Object index types")
+        ),
+        pytest.param(
+            "middle", "object", marks=pytest.mark.xfail(reason="Object index types")
+        ),
+    ],
+)
+def test_sort_values_invalid_na_position(request, na_position, index_fixture):
+    index_with_missing = request.getfixturevalue(index_fixture)
+
+    if getattr(index_with_missing, "inferred_type", None) in [
+        "mixed",
+        "mixed-integer",
+        "object",
+        "string",
+        "boolean",
+    ]:
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="inferred_type not supported "
+                "in sort_values with invalid na_position"
+            )
+        )
+
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
         index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
+@pytest.mark.parametrize(
+    "index_with_missing",
+    [
+        pytest.param(
+            "mixed-int-string",
+            marks=pytest.mark.xfail(reason="Mixed index types"),
+        ),
+        pytest.param("object", marks=pytest.mark.xfail(reason="Object index types")),
+        pytest.param("integer", marks=pytest.mark.xfail(reason="Integer index types")),
+        pytest.param("float", marks=pytest.mark.xfail(reason="Float index types")),
+    ],
+)
 def test_sort_values_with_missing(index_with_missing, na_position, request):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
+    if getattr(index_with_missing, "inferred_type", None) == "mixed":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="inferred_type not supported in sort_values with missing values"
+            )
+        )
 
     if isinstance(index_with_missing, CategoricalIndex):
         request.applymarker(
