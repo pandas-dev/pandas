@@ -2,6 +2,12 @@ import uuid
 
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_arm,
+    is_platform_mac,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas.io.common as icom
@@ -53,6 +59,11 @@ def aws_credentials(monkeysession):
 
 @pytest.fixture(scope="session")
 def moto_server(aws_credentials):
+    # use service container for Linux on GitHub Actions
+    if is_ci_environment() and not (
+        is_platform_mac() or is_platform_arm() or is_platform_windows()
+    ):
+        return "http://localhost:5000"
     moto_server = pytest.importorskip("moto.server")
     server = moto_server.ThreadedMotoServer(port=0)
     server.start()
