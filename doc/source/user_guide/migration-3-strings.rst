@@ -232,7 +232,7 @@ context (for example, ``if pd.isna(..): ..``) be sure to only pass a scalar to
 it.
 
 "setitem" operations will now raise an error for non-string data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 With the new string dtype, any attempt to set a non-string value in a Series or
 DataFrame will raise an error:
