@@ -713,80 +713,6 @@ def is_dtype_equal(source, target) -> bool:
         return False
 
 
-def is_implicit_conversion_to_float64(source, target) -> bool:
-    """
-    Check if there is an implicit conversion to float64 with both dtypes.
-
-    Parameters
-    ----------
-    source : type or str
-        The first dtype to compare.
-    target : type or str
-        The second dtype to compare.
-
-    Returns
-    -------
-    boolean
-        Whether or not there is an implicit conversion to float64.
-
-    See Also
-    --------
-    api.types.is_categorical_dtype : Check whether the provided array or dtype
-                                            is of the Categorical dtype.
-    api.types.is_string_dtype : Check whether the provided array or dtype
-                                       is of the string dtype.
-    api.types.is_object_dtype : Check whether an array-like or dtype is of the
-                                       object dtype.
-
-    Examples
-    --------
-    >>> from pandas.api.types import is_implicit_conversion_to_float64
-    >>> is_implicit_conversion_to_float64(int, float)
-    False
-    >>> is_implicit_conversion_to_float64("int", int)
-    False
-    >>> is_implicit_conversion_to_float64(int, np.int64)
-    False
-    >>> is_implicit_conversion_to_float64(np.uint64, np.int64)
-    True
-    >>> is_implicit_conversion_to_float64(np.uint64, np.float64)
-    False
-    >>> is_implicit_conversion_to_float64(np.uint64, np.uint64)
-    False
-    >>> is_implicit_conversion_to_float64(np.uint32, np.uint32)
-    False
-    >>> is_implicit_conversion_to_float64(np.uint32, np.int32)
-    False
-    >>> is_implicit_conversion_to_float64(np.int32, np.int32)
-    False
-    >>> is_implicit_conversion_to_float64(object, "category")
-    False
-    >>> is_implicit_conversion_to_float64(np.int64, pd.UInt64Dtype())
-    True
-    >>> from pandas.core.dtypes.dtypes import CategoricalDtype
-    >>> is_implicit_conversion_to_float64(CategoricalDtype(), "category")
-    False
-    """
-    try:
-        src = _get_dtype(source)
-        tar = _get_dtype(target)
-        # check only valid dtypes related to implicit conversion to float64
-        # other data types derived from 64-bit integers such as U/Int64Dtype
-        # should also work
-        if (
-            src.kind in "iu"
-            and src.itemsize == 8  # type: ignore[union-attr]
-            and tar.kind in "iu"
-            and tar.itemsize == 8  # type: ignore[union-attr]
-        ):
-            return src != tar
-        else:
-            return False
-    except (TypeError, AttributeError, ImportError):
-        # invalid comparison
-        return False
-
-
 def is_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of an integer dtype.
@@ -2008,7 +1934,6 @@ __all__ = [
     "is_extension_array_dtype",
     "is_file_like",
     "is_float_dtype",
-    "is_implicit_conversion_to_float64",
     "is_int64_dtype",
     "is_integer_dtype",
     "is_interval_dtype",

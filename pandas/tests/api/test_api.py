@@ -295,7 +295,6 @@ class TestApi(Base):
         "is_float",
         "is_float_dtype",
         "is_hashable",
-        "is_implicit_conversion_to_float64",
         "is_int64_dtype",
         "is_integer",
         "is_integer_dtype",

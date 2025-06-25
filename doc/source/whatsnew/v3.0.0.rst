@@ -404,7 +404,6 @@ Other API changes
 - Index set operations (like union or intersection) will now ignore the dtype of
   an empty ``RangeIndex`` or empty ``Index`` with object dtype when determining
   the dtype of the resulting Index (:issue:`60797`)
-- Added :func:`pandas.api.types.is_implicit_conversion_to_float64` to check if there is a silent conversion to float64 between two dtypes(:issue:`61676`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:

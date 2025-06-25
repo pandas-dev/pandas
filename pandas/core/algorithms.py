@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
-    is_implicit_conversion_to_float64,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -507,11 +506,26 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         orig_values = list(values)
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
 
-        if (
-            len(values) > 0
-            and values.dtype.kind in "iufcb"
-            and is_implicit_conversion_to_float64(values, comps)
-        ):
+        try:
+            src = comps.dtype
+            tar = values.dtype
+            # check only valid dtypes related to implicit conversion to float64
+            # other data types derived from 64-bit integers such as U/Int64Dtype
+            # should also work
+            if (
+                src.kind in "iu"
+                and src.itemsize == 8  # type: ignore[union-attr]
+                and tar.kind in "iu"
+                and tar.itemsize == 8  # type: ignore[union-attr]
+            ):
+                is_implicit_conversion_to_float64 = src != tar
+            else:
+                is_implicit_conversion_to_float64 = False
+        except (TypeError, AttributeError, ImportError):
+            # invalid comparison
+            is_implicit_conversion_to_float64 = False
+
+        if (is_implicit_conversion_to_float64):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
             values = construct_1d_object_array_from_listlike(orig_values)
