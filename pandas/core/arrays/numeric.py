@@ -8,6 +8,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     lib,
     missing as libmissing,
@@ -101,6 +103,8 @@ class NumericDtype(BaseMaskedDtype):
                 array = array.combine_chunks()
 
         data, mask = pyarrow_array_to_numpy_and_mask(array, dtype=self.numpy_dtype)
+        if data.dtype.kind == "f" and get_option("mode.PDEP16_nan_behavior"):
+            mask[np.isnan(data)] = False
         return array_class(data.copy(), ~mask, copy=False)
 
     @classmethod
@@ -261,9 +265,18 @@ class NumericArray(BaseMaskedArray):
                 f"values should be {descr} numpy array. Use "
                 "the 'pd.array' function instead"
             )
+        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool):
+            raise TypeError(
+                "mask should be bool numpy array. Use the 'pd.array' function instead"
+            )
+
         if values.dtype == np.float16:
             # If we don't raise here, then accessing self.dtype would raise
             raise TypeError("FloatingArray does not support np.float16 dtype.")
+
+        # NB: if get_option("mode.PDEP16_nan_behavior") is True
+        #  then caller is responsible for ensuring
+        #  assert mask[np.isnan(values)].all()
 
         super().__init__(values, mask, copy=copy)
 

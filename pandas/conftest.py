@@ -2122,3 +2122,10 @@ def temp_file(tmp_path):
 def monkeysession():
     with pytest.MonkeyPatch.context() as mp:
         yield mp
+
+
+@pytest.fixture(params=[True, False])
+def pdep16_nan_behavior(request):
+    opt = request.param
+    with pd.option_context("mode.pdep16_nan_behavior", opt):
+        yield opt

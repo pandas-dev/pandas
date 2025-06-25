@@ -427,6 +427,17 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([True, False, "warn"]),
     )
 
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "PDEP16_nan_behavior",
+        True,
+        # TODO: set the default to False before merging;
+        #  True is just to find the tests that break with it enabled.
+        "Whether to enable the PDEP-16 behavior *consistently* treating NaN "
+        "and NA as interchangeable for the purposes of numpy-nullable dtypes.",
+        validator=is_one_of_factory([True, False]),
+    )
+
 
 # user warnings
 chained_assignment = """
