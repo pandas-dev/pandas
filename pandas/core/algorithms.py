@@ -507,8 +507,8 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
 
         try:
-            src = comps.dtype
-            tar = values.dtype
+            src = comps.dtype  # type: ignore[union-attr]
+            tar = values.dtype  # type: ignore[union-attr]
             # check only valid dtypes related to implicit conversion to float64
             # other data types derived from 64-bit integers such as U/Int64Dtype
             # should also work
