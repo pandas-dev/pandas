@@ -3257,6 +3257,27 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "func, func_dtype",
+    [
+        [lambda x: x.to_dict(), "object"],
+        [lambda x: 1, "int64"],
+        [lambda x: "s", ArrowDtype(pa.string())],
+    ],
+)
+def test_groupby_aggregate_coersion(func, func_dtype):
+    # GH 61636
+    df = pd.DataFrame(
+        {
+            "b": pd.array([0, 1]),
+            "c": pd.array(["X", "Y"], dtype=ArrowDtype(pa.string())),
+        },
+        index=pd.Index(["A", "B"], name="a"),
+    )
+    result = df.groupby("b").agg(func)
+    assert result["c"].dtype == func_dtype
+
+
 def test_fixed_size_list():
     # GH#55000
     ser = pd.Series(

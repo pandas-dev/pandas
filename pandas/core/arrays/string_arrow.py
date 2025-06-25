@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         Dtype,
+        DtypeObj,
         NpDtype,
         Self,
         npt,
@@ -179,6 +180,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         length : int
         """
         return len(self._pa_array)
+
+    @classmethod
+    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
+        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
 
     @classmethod
     def _from_sequence(
