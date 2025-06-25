@@ -12,7 +12,7 @@ import pandas._testing as tm
 
 
 def test_import_optional():
-    match = "Missing .*notapackage.* pip .* conda .* notapackage"
+    match = "Import .*notapackage.* pip .* conda .* notapackage"
     with pytest.raises(ImportError, match=match) as exc_info:
         import_optional_dependency("notapackage")
     # The original exception should be there as context:
