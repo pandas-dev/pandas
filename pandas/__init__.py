@@ -93,6 +93,8 @@ from pandas.core.api import (
     to_numeric,
     to_datetime,
     to_timedelta,
+    # diagnostics
+    check,
     # misc
     Flags,
     Grouper,
@@ -281,6 +283,7 @@ __all__ = [
     "array",
     "arrays",
     "bdate_range",
+    "check",
     "concat",
     "crosstab",
     "cut",
