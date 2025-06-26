@@ -6584,6 +6584,15 @@ class Index(IndexOpsMixin, PandasObject):
         If we have a float key and are not a floating index, then try to cast
         to an int if equivalent.
         """
+        if (
+            is_float(key)
+            and np.isnan(key)
+            and isinstance(self.dtype, ExtensionDtype)
+            and self.dtype.kind == "f"
+            and get_option("mode.pdep16_nan_behavior")
+        ):
+            # TODO: better place to do this?
+            key = self.dtype.na_value
         return key
 
     def _maybe_cast_listlike_indexer(self, target) -> Index:

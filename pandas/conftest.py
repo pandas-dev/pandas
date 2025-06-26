@@ -2116,3 +2116,10 @@ def temp_file(tmp_path):
     file_path = tmp_path / str(uuid.uuid4())
     file_path.touch()
     return file_path
+
+
+@pytest.fixture(params=[True, False])
+def pdep16_nan_behavior(request):
+    opt = request.param
+    with pd.option_context("mode.pdep16_nan_behavior", opt):
+        yield opt
