@@ -5866,7 +5866,9 @@ class DataFrame(NDFrame, OpsMixin):
         freq: Frequency | None = None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
+        prefix: str | None = None,
         suffix: str | None = None,
+        sep: str ="_",
     ) -> DataFrame:
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
@@ -5899,11 +5901,17 @@ class DataFrame(NDFrame, OpsMixin):
                 shifted_dataframes.append(
                     super()
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
+                    .add_prefix(f"{prefix}{sep}" if prefix else "")
                     .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
+                    .rename(
+                        columns=lambda col: col.replace(f"{sep}{sep}", sep)
+                    )
                 )
             return concat(shifted_dataframes, axis=1)
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
+        elif prefix:
+            raise ValueError("Cannot specify `prefix` if `periods` is an int.")
         periods = cast(int, periods)
 
         ncols = len(self.columns)

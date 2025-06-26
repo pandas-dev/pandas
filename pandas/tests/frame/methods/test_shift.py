@@ -725,6 +725,16 @@ class TestDataFrameShift:
         expected = DataFrame({"a_suffix_0": [1, 2], "a_suffix_1": [np.nan, 1.0]})
         tm.assert_frame_equal(shifted, expected)
 
+        # test prefix and sep
+        shifted = df[["a"]].shift(shifts, prefix="pre", suffix="suf", sep="-")
+        expected = DataFrame(
+            {
+                "pre-a-suf-0": [1, 2],
+                "pre-a-suf-1": [np.nan, 1.0]
+            }
+        )
+        tm.assert_frame_equal(shifted, expected)
+
         # check bad inputs when doing multiple shifts
         msg = "If `periods` contains multiple shifts, `axis` cannot be 1."
         with pytest.raises(ValueError, match=msg):
