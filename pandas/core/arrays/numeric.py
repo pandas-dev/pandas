@@ -265,7 +265,7 @@ class NumericArray(BaseMaskedArray):
                 f"values should be {descr} numpy array. Use "
                 "the 'pd.array' function instead"
             )
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool):
+        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
             raise TypeError(
                 "mask should be bool numpy array. Use the 'pd.array' function instead"
             )
