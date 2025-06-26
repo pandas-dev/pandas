@@ -100,7 +100,7 @@ jobs:
         # Note: M1 images on Github Actions start from macOS 14
         - [macos-14, macosx_arm64]
         - [windows-2022, win_amd64]
-        # - [windows-11-arm, win_arm64]
+        - [windows-11-arm, win_arm64]
         # TODO: support PyPy?
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
@@ -110,13 +110,12 @@ jobs:
         - buildplat: [ubuntu-24.04, pyodide_wasm32]
           python: ["cp312", "3.12"]
           cibw_build_frontend: 'build'
-        # TEMP: exclude block no longer needed when win_arm64 is commented
-        # exclude:
-        #   - buildplat: [windows-11-arm, win_arm64]
-        #     python: ["cp310", "3.10"]
-        # # BackendUnavailable: Cannot import 'mesonpy'
-        #   - buildplat: [windows-11-arm, win_arm64]
-        #     python: ["cp313t", "3.13"]
+        exclude:
+          - buildplat: [windows-11-arm, win_arm64]
+            python: ["cp310", "3.10"]
+        # BackendUnavailable: Cannot import 'mesonpy'
+          - buildplat: [windows-11-arm, win_arm64]
+            python: ["cp313t", "3.13"]
 
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
@@ -228,12 +227,8 @@ jobs:
       - build_wheels
     runs-on: ubuntu-latest
 
-    # ---------- current TEST settings ----------
     environment:
-      name: testpypi                # keep while testing
-    # ---------- FINAL settings (uncomment) ----------
-    # environment:
-    #   name: pypi                  # ← enable for PyPI
+      name: pypi                    # ← enable for PyPI
 
     permissions:
       id-token: write               # OIDC token for Trusted Publishing
@@ -255,18 +250,9 @@ jobs:
                     -name '*.whl'   -exec mv {} upload/ \;
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
-      # 3. Publish to TestPyPI using Trusted Publishing
-      - name: Publish to TestPyPI (Trusted Publishing)
+      # 3. Publish to PyPI using Trusted Publishing
+      - name: Publish to PyPI (Trusted Publishing)      # ← enable for PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/legacy/   # test endpoint
+          repository-url: https://upload.pypi.org/legacy/  # ← production endpoint
           packages-dir: upload
-          skip-existing: true
-
-      # ---------- FINAL publish block (uncomment, remove test one above) ----------
-      # - name: Publish to PyPI (Trusted Publishing)      # ← enable for PyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     repository-url: https://upload.pypi.org/legacy/  # ← production endpoint
-      #     packages-dir: upload
-      #     # skip-existing: true    # ← remove for production
