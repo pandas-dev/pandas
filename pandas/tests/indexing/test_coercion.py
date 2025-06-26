@@ -99,14 +99,14 @@ class TestSetitemCoercion(CoercionBase):
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
         tm.assert_series_equal(temp, exp)
         # check dtype explicitly for sure
-        assert temp.index.dtype == expected_dtype
+        assert temp.index.dtype == tm.to_dtype(expected_dtype)
 
         temp = original_series.copy()
         temp.loc[loc_key] = 5
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
         tm.assert_series_equal(temp, exp)
         # check dtype explicitly for sure
-        assert temp.index.dtype == expected_dtype
+        assert temp.index.dtype == tm.to_dtype(expected_dtype)
 
     @pytest.mark.parametrize(
         "val,exp_dtype", [("x", object), (5, IndexError), (1.1, object)]
@@ -123,7 +123,7 @@ class TestSetitemCoercion(CoercionBase):
     )
     def test_setitem_index_int64(self, val, exp_dtype):
         obj = pd.Series([1, 2, 3, 4])
-        assert obj.index.dtype == np.int64
+        assert obj.index.dtype == tm.to_dtype(np.int64)
 
         exp_index = pd.Index([0, 1, 2, 3, val])
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
@@ -133,7 +133,7 @@ class TestSetitemCoercion(CoercionBase):
     )
     def test_setitem_index_float64(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.1, 4.1])
-        assert obj.index.dtype == np.float64
+        assert obj.index.dtype == tm.to_dtype(np.float64)
 
         exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
@@ -176,7 +176,7 @@ class TestInsertIndexCoercion(CoercionBase):
         target = original.copy()
         res = target.insert(1, value)
         tm.assert_index_equal(res, expected)
-        assert res.dtype == expected_dtype
+        assert res.dtype == tm.to_dtype(expected_dtype)
 
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
@@ -827,7 +827,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         index = pd.Index([3, 4], name="xxx")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         obj = obj.astype(from_key)
-        assert obj.dtype == from_key
+        assert obj.dtype == tm.to_dtype(from_key)
 
         if from_key.startswith("datetime") and to_key.startswith("datetime"):
             # tested below
@@ -870,7 +870,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         if using_infer_string and to_key == "object":
             assert exp.dtype == "string"
         else:
-            assert exp.dtype == to_key
+            assert exp.dtype == tm.to_dtype(to_key)
 
         result = obj.replace(replacer)
         tm.assert_series_equal(result, exp, check_dtype=False)

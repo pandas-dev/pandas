@@ -1777,7 +1777,7 @@ class SparseDtype(ExtensionDtype):
         )
         from pandas.core.dtypes.missing import na_value_for_dtype
 
-        dtype = pandas_dtype(dtype)
+        dtype = pandas_dtype(dtype, allow_numpy_dtypes=True)
         if is_string_dtype(dtype):
             dtype = np.dtype("object")
         if not isinstance(dtype, np.dtype):

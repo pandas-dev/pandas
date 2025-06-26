@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_signed_integer_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
@@ -441,7 +442,7 @@ class RangeIndex(Index):
 
     @property
     def dtype(self) -> np.dtype:
-        return _dtype_int64
+        return pandas_dtype(_dtype_int64)
 
     @property
     def is_unique(self) -> bool:
@@ -1409,7 +1410,7 @@ class RangeIndex(Index):
                 raise IndexError(
                     f"index {ind_min} is out of bounds for axis 0 with size {len(self)}"
                 )
-            taken = indices.astype(self.dtype, casting="safe")
+            taken = indices.astype("int64", casting="safe")
             if ind_min < 0:
                 taken %= len(self)
             if self.step != 1:
@@ -1417,7 +1418,8 @@ class RangeIndex(Index):
             if self.start != 0:
                 taken += self.start
 
-        return self._shallow_copy(taken, name=self.name)
+        # TODO(PDEP16): prevent shallow_copy from allowing int64?
+        return self._shallow_copy(taken, name=self.name).astype(self.dtype, copy=False)
 
     def value_counts(
         self,

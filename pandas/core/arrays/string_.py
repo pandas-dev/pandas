@@ -837,7 +837,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             arr_ea = self.copy()
             mask = self.isna()
             arr_ea[mask] = "0"
-            values = arr_ea.astype(dtype.numpy_dtype)
+            values = arr_ea.to_numpy(dtype=dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
             # Skip the NumpyExtensionArray.astype method

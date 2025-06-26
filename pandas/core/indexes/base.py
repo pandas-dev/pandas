@@ -172,6 +172,7 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
@@ -576,6 +577,8 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError("Index data must be 1-dimensional") from err
             raise
         arr = ensure_wrapped_if_datetimelike(arr)
+        if arr.dtype.kind in "iufb" and get_option("mode.pdep16_data_types"):
+            arr = pd_array(arr, copy=False)
 
         klass = cls._dtype_to_subclass(arr.dtype)
 
@@ -5391,6 +5394,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             # See also: Block.coerce_to_target_dtype
             dtype = self._find_common_type_compat(value)
+            assert self.dtype != dtype, (self.dtype, value)
+            # FIXME: should raise with useful message to report a bug!
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()

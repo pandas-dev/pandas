@@ -14,7 +14,7 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_string_dtype
+from pandas._config import get_option
 
 from pandas._libs import lib
 
@@ -31,7 +31,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_named_tuple,
-    is_object_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -63,14 +62,7 @@ from pandas.core.indexes.api import (
     maybe_sequence_to_range,
     union_indexes,
 )
-from pandas.core.internals.blocks import (
-    BlockPlacement,
-    ensure_block_shape,
-    new_block,
-    new_block_2d,
-)
 from pandas.core.internals.managers import (
-    create_block_manager_from_blocks,
     create_block_manager_from_column_arrays,
 )
 
@@ -136,6 +128,10 @@ def arrays_to_mgr(
                     "Arrays must be 1-dimensional np.ndarray or ExtensionArray "
                     "with length matching len(index)"
                 )
+    if get_option("mode.pdep16_data_types"):
+        arrays = [
+            pd_array(x, copy=False) if x.dtype.kind in "iufb" else x for x in arrays
+        ]
 
     columns = ensure_index(columns)
     if len(columns) != len(arrays):
@@ -192,7 +188,6 @@ def ndarray_to_mgr(
 ) -> Manager:
     # used in DataFrame.__init__
     # input must be a ndarray, list, Series, Index, ExtensionArray
-    infer_object = not isinstance(values, (ABCSeries, Index, ExtensionArray))
 
     if isinstance(values, ABCSeries):
         if columns is None:
@@ -208,7 +203,6 @@ def ndarray_to_mgr(
             values = np.empty((0, 1), dtype=object)
 
     vdtype = getattr(values, "dtype", None)
-    refs = None
     if is_1d_only_ea_dtype(vdtype) or is_1d_only_ea_dtype(dtype):
         # GH#19157
 
@@ -241,9 +235,6 @@ def ndarray_to_mgr(
             values = values.reshape(-1, 1)
 
     elif isinstance(values, (ABCSeries, Index)):
-        if not copy and (dtype is None or astype_is_view(values.dtype, dtype)):
-            refs = values._references
-
         if copy:
             values = values._values.copy()
         else:
@@ -283,49 +274,12 @@ def ndarray_to_mgr(
 
     _check_values_indices_shape_match(values, index, columns)
 
-    values = values.T
-
-    # if we don't have a dtype specified, then try to convert objects
-    # on the entire block; this is to convert if we have datetimelike's
-    # embedded in an object type
-    if dtype is None and infer_object and is_object_dtype(values.dtype):
-        obj_columns = list(values)
-        maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
-        # don't convert (and copy) the objects if no type inference occurs
-        if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
-            block_values = [
-                new_block_2d(ensure_block_shape(dval, 2), placement=BlockPlacement(n))
-                for n, dval in enumerate(maybe_datetime)
-            ]
-        else:
-            bp = BlockPlacement(slice(len(columns)))
-            nb = new_block_2d(values, placement=bp, refs=refs)
-            block_values = [nb]
-    elif dtype is None and values.dtype.kind == "U" and using_string_dtype():
-        dtype = StringDtype(na_value=np.nan)
-
-        obj_columns = list(values)
-        block_values = [
-            new_block(
-                dtype.construct_array_type()._from_sequence(data, dtype=dtype),
-                BlockPlacement(slice(i, i + 1)),
-                ndim=2,
-            )
-            for i, data in enumerate(obj_columns)
-        ]
-
+    col_values = [values[:, n] for n in range(values.shape[1])]
+    if columns is None:
+        columns = Index(range(len(col_values)))
     else:
-        bp = BlockPlacement(slice(len(columns)))
-        nb = new_block_2d(values, placement=bp, refs=refs)
-        block_values = [nb]
-
-    if len(columns) == 0:
-        # TODO: check len(values) == 0?
-        block_values = []
-
-    return create_block_manager_from_blocks(
-        block_values, [columns, index], verify_integrity=False
-    )
+        columns = ensure_index(columns)
+    return arrays_to_mgr(col_values, columns, index, dtype=dtype)
 
 
 def _check_values_indices_shape_match(
@@ -964,7 +918,10 @@ def convert_object_array(
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
-                    convert_to_nullable_dtype = dtype_backend != "numpy"
+                    convert_to_nullable_dtype = dtype_backend != "numpy" or get_option(
+                        "mode.pdep16_data_types"
+                    )
+
                     arr = maybe_infer_to_datetimelike(arr, convert_to_nullable_dtype)
                     if convert_to_nullable_dtype and arr.dtype == np.dtype("O"):
                         new_dtype = StringDtype()

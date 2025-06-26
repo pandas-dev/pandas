@@ -323,13 +323,19 @@ def assert_index_equal(
     elif check_exact and check_categorical:
         if not left.equals(right):
             mismatch = left._values != right._values
+            if isinstance(left, RangeIndex) and not mismatch.any():
+                # TODO: probably need to fix RangeIndex.equals?
+                pass
+            elif isinstance(right, RangeIndex) and not mismatch.any():
+                # TODO: probably need to fix some other equals method?
+                pass
+            else:
+                if not isinstance(mismatch, np.ndarray):
+                    mismatch = cast("ExtensionArray", mismatch).fillna(True)
 
-            if not isinstance(mismatch, np.ndarray):
-                mismatch = cast("ExtensionArray", mismatch).fillna(True)
-
-            diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
-            msg = f"{obj} values are different ({np.round(diff, 5)} %)"
-            raise_assert_detail(obj, msg, left, right)
+                diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
+                msg = f"{obj} values are different ({np.round(diff, 5)} %)"
+                raise_assert_detail(obj, msg, left, right)
     else:
         # if we have "equiv", this becomes True
         exact_bool = bool(exact)

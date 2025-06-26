@@ -89,6 +89,9 @@ if TYPE_CHECKING:
         NpDtype,
     )
 
+# Alias so we can update old `assert obj.dtype == np_dtype` checks to PDEP16
+#  behavior.
+to_dtype = pd.core.dtypes.common.pandas_dtype
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
