@@ -27,6 +27,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     lib,
     properties,
@@ -508,6 +510,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.copy()
         else:
             data = sanitize_array(data, index, dtype, copy)
+            if data.dtype.kind in "iufb" and get_option("mode.pdep16_data_types"):
+                data = pd_array(data, copy=False)
             data = SingleBlockManager.from_array(data, index, refs=refs)
 
         NDFrame.__init__(self, data)
