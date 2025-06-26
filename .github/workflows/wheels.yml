@@ -93,16 +93,17 @@ jobs:
         # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
         - [ubuntu-24.04, manylinux_x86_64]
-        - [ubuntu-24.04, musllinux_x86_64]
-        - [ubuntu-24.04-arm, manylinux_aarch64]
-        - [ubuntu-24.04-arm, musllinux_aarch64]
-        - [macos-13, macosx_x86_64]
-        # Note: M1 images on Github Actions start from macOS 14
-        - [macos-14, macosx_arm64]
-        - [windows-2022, win_amd64]
+        # - [ubuntu-24.04, musllinux_x86_64]
+        # - [ubuntu-24.04-arm, manylinux_aarch64]
+        # - [ubuntu-24.04-arm, musllinux_aarch64]
+        # - [macos-13, macosx_x86_64]
+        # # Note: M1 images on Github Actions start from macOS 14
+        # - [macos-14, macosx_arm64]
+        # - [windows-2022, win_amd64]
         # - [windows-11-arm, win_arm64]
         # TODO: support PyPy?
-        python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
+        # python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
+        python: [["cp312", "3.12"]]
         include:
         # Build Pyodide wheels and upload them to Anaconda.org
         # NOTE: this job is similar to the one in unit-tests.yml except for the fact
@@ -256,3 +257,4 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: upload
+          skip-existing: true
