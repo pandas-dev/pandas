@@ -10112,13 +10112,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @doc(klass=_shared_doc_kwargs["klass"])
+    if self.ndim == 1 and (prefix or suffix):
+        raise ValueError("`prefix` and `suffix` are only supported on DataFrame.shift when `periods` is a list. ")
     def shift(
         self,
         periods: int | Sequence[int] = 1,
         freq=None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
+        prefix: str | None = None,
         suffix: str | None = None,
+        sep: str = "_"
     ) -> Self | DataFrame:
         """
         Shift index by desired number of periods with an optional time `freq`.
