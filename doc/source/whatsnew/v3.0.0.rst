@@ -31,7 +31,7 @@ pandas 3.0.0 introduces a new 3-stage deprecation policy: using ``DeprecationWar
 All warnings for upcoming changes in pandas will have the base class :class:`pandas.errors.PandasChangeWarning`. Users may also use the following subclasses to control warnings.
 
 - :class:`pandas.errors.Pandas4Warning`: Warnings which will be enforced in pandas 4.0.
-- :class:`pandas.errors.Pandas4Warning`: Warnings which will be enforced in pandas 5.0.
+- :class:`pandas.errors.Pandas5Warning`: Warnings which will be enforced in pandas 5.0.
 - :class:`pandas.errors.PandasPendingDeprecationWarning`: Base class of all warnings which emit a ``PendingDeprecationWarning``, independent of the version they will be enforced.
 - :class:`pandas.errors.PandasDeprecationWarning`: Base class of all warnings which emit a ``DeprecationWarning``, independent of the version they will be enforced.
 - :class:`pandas.errors.PandasFutureWarning`: Base class of all warnings which emit a ``PandasFutureWarning``, independent of the version they will be enforced.
