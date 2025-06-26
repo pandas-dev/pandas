@@ -127,3 +127,16 @@ def test_numba_unsupported_dtypes(apply_axis):
         "which is not supported by the numba engine.",
     ):
         df["c"].to_frame().apply(f, engine="numba", axis=apply_axis)
+
+@pytest.mark.parametrize("axis, expected", [
+    ("index", pd.Series([5.0, 7.0, 9.0], index=["a", "b", "c"])),
+    ("columns", pd.Series([6.0, 15.0], index=[0, 1]))
+])
+def test_numba_apply_with_string_axis(axis, expected):
+    df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
+
+    def f(x):
+        return x.sum()
+
+    result = df.apply(f, engine="numba", axis=axis, raw=True)
+    tm.assert_series_equal(result, expected)
