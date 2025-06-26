@@ -20,7 +20,7 @@ class TestCategoricalSubclassing:
 
     def test_map(self):
         sc = SubclassedCategorical(["a", "b", "c"])
-        res = sc.map(lambda x: x.upper(), na_action=None)
+        res = sc.map(lambda x: x.upper(), skipna=False)
         assert isinstance(res, SubclassedCategorical)
         exp = Categorical(["A", "B", "C"])
         tm.assert_categorical_equal(res, exp)
