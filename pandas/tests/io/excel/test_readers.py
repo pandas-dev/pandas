@@ -934,29 +934,27 @@ class TestReaders:
 
     @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
-    def test_read_from_s3_url(self, read_ext, s3_public_bucket, s3so):
-        # Bucket created in tests/io/conftest.py
+    def test_read_from_s3_url(self, read_ext, s3_bucket_public, s3so):
         with open("test1" + read_ext, "rb") as f:
-            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
+            s3_bucket_public.put_object(Key="test1" + read_ext, Body=f)
 
-        url = f"s3://{s3_public_bucket.name}/test1" + read_ext
+        url = f"s3://{s3_bucket_public.name}/test1" + read_ext
 
         url_table = pd.read_excel(url, storage_options=s3so)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.single_cpu
-    def test_read_from_s3_object(self, read_ext, s3_public_bucket, s3so):
+    def test_read_from_s3_object(self, read_ext, s3_bucket_public, s3so):
         # GH 38788
-        # Bucket created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
-            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
+            s3_bucket_public.put_object(Key="test1" + read_ext, Body=f)
 
         import s3fs
 
         s3 = s3fs.S3FileSystem(**s3so)
 
-        with s3.open(f"s3://{s3_public_bucket.name}/test1" + read_ext) as f:
+        with s3.open(f"s3://{s3_bucket_public.name}/test1" + read_ext) as f:
             url_table = pd.read_excel(f)
 
         local_table = pd.read_excel("test1" + read_ext)
