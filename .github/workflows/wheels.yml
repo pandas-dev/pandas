@@ -231,8 +231,13 @@ jobs:
       - build_wheels
     runs-on: ubuntu-latest
 
+    # ---------- current TEST settings ----------
     environment:
-      name: testpypi                # ← keep for dry-run; change to pypi before PR
+      name: testpypi                # keep while testing
+    # ---------- FINAL settings (uncomment) ----------
+    # environment:
+    #   name: pypi                  # ← enable for PyPI
+
     permissions:
       id-token: write               # OIDC token for Trusted Publishing
       contents: read
@@ -244,17 +249,26 @@ jobs:
         with:
           path: dist                # all files land in ./dist/**
 
-      # 2. Move wheels & sdist into a flat 'upload' dir (action expects that)
+      # 2. Move wheels & sdist into a flat 'upload' dir (skip Pyodide wheels)
       - name: Collect files
         run: |
           mkdir -p upload
-          find dist -name '*.whl'   -exec mv {} upload/ \;
+          # skip anything containing 'pyodide' in the filename
+          find dist -name '*pyodide*.whl' -prune -o \
+                    -name '*.whl'   -exec mv {} upload/ \;
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
-      # 3. Publish to **Test PyPI** using Trusted Publishing
+      # 3. Publish to TestPyPI using Trusted Publishing
       - name: Publish to TestPyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/   # test endpoint
           packages-dir: upload
           skip-existing: true
+
+      # ---------- FINAL publish block (uncomment, remove test one above) ----------
+      # - name: Publish to PyPI (Trusted Publishing)      # ← enable for PyPI
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     repository-url: https://upload.pypi.org/legacy/  # ← production endpoint
+      #     packages-dir: upload
