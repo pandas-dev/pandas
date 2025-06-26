@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import pandas as pd
 
 from pandas import (
     Series,
@@ -89,3 +90,12 @@ class TestSeriesDiff:
         result = ser.diff()
         expected = ser - ser.shift(1)
         tm.assert_series_equal(result, expected)
+
+def test_series_shift_rejects_prefix_suffix():
+    s = pd.Series([1, 2, 3])
+    
+    with pytest.raises(ValueError, match="prefix.*DataFrame.shift"):
+        s.shift(1, prefix="PRE")
+
+    with pytest.raises(ValueError, match="suffix.*DataFrame.shift"):
+        s.shift(1, suffix="POST")
