@@ -94,12 +94,15 @@ Alternatively, if you are using a ``pyproject.toml``-based build:
     # pyproject.toml
     [project.entry-points."pandas.DataFrame.accessor"]
     <name> = "<module>:<AccessorClass>"
+    ...
 
     [project.entry-points."pandas.Series.accessor"]
     <name> = "<module>:<AccessorClass>"
+    ...
 
     [project.entry-points."pandas.Index.accessor"]
     <name> = "<module>:<AccessorClass>"
+    ...
 
 
 Assuming the accessor class ``GeoAccessor`` is defined in the module
@@ -115,7 +118,7 @@ example above:
 
 Or, for a ``pyproject.toml``-based build:
 
-.. code-block:: toml
+.. code-block:: none
 
     # pyproject.toml
     [project.entry-points."pandas.DataFrame.accessor"]
