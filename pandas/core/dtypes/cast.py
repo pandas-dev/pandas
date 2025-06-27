@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_complex,
+    is_datetime64_dtype,
     is_float,
     is_integer,
     is_object_dtype,
@@ -1357,6 +1358,24 @@ def find_result_type(left_dtype: DtypeObj, right: Any) -> DtypeObj:
     else:
         dtype, _ = infer_dtype_from(right)
         new_dtype = find_common_type([left_dtype, dtype])
+
+        # GH#61671: datetime64[ns] inferred but the value may be out of bounds
+        if (
+            is_datetime64_dtype(new_dtype)
+            and lib.is_scalar(right)
+            and isinstance(right, (np.datetime64, dt.datetime))
+        ):
+            try:
+                ts = Timestamp(right)
+                casted = ts.as_unit("ns")
+                if Timestamp(casted) != ts:
+                    raise OutOfBoundsDatetime(
+                        f"{right!r} overflows datetime64[ns] during dtype inference"
+                    )
+            except (OverflowError, ValueError) as err:
+                raise OutOfBoundsDatetime(
+                    f"Cannot safely store {right!r} in inferred dtype 'datetime64[ns]'"
+                ) from err
 
     return new_dtype
 

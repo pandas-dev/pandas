@@ -6,6 +6,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1429,6 +1431,23 @@ class TestDataFrameReplace:
         expected = DataFrame({"a": ["anything else", pd.NA]}, index=[0, 1])
         result = ser.replace("nil", "anything else")
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_replace_outofbounds_datetime_raises(self, tz):
+        # GH 61671
+        df = DataFrame([np.nan], dtype="datetime64[ns]")
+        too_big = Timestamp(datetime(3000, 1, 1), tz=tz)
+
+        if tz is None:
+            with pytest.raises(
+                OutOfBoundsDatetime,
+                match="Cannot safely store .* in inferred dtype 'datetime64\\[ns\\]'",
+            ):
+                df.replace(np.nan, too_big)
+        else:
+            # tz-aware datetimes are handled separately and don't trigger OOB as of now.
+            result = df.replace(np.nan, too_big)
+            assert result.iloc[0, 0] == too_big
 
 
 class TestDataFrameReplaceRegex:
