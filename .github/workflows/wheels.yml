@@ -220,6 +220,9 @@ jobs:
           set_upload_vars
           upload_wheels
 
+################################################
+# Publish Wheels and Source Distribution to PyPI
+################################################
   publish:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs:
@@ -228,7 +231,7 @@ jobs:
     runs-on: ubuntu-latest
 
     environment:
-      name: pypi                    # ← enable for PyPI
+      name: pypi
 
     permissions:
       id-token: write               # OIDC token for Trusted Publishing
@@ -251,8 +254,8 @@ jobs:
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
       # 3. Publish to PyPI using Trusted Publishing
-      - name: Publish to PyPI (Trusted Publishing)      # ← enable for PyPI
+      - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://upload.pypi.org/legacy/  # ← production endpoint
+          repository-url: https://upload.pypi.org/legacy/
           packages-dir: upload
