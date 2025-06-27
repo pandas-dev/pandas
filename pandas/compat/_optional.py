@@ -38,7 +38,7 @@ VERSIONS = {
     "openpyxl": "3.1.2",
     "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.1.0",
-    "pyarrow": "10.0.1",
+    "pyarrow": "12.0.1",
     "pyiceberg": "0.7.1",
     "pyreadstat": "1.2.6",
     "pytest": "7.3.2",
