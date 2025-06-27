@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under10p1
-
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
@@ -411,12 +409,7 @@ def test_groupby_drop_nan_with_multi_index():
         "Float64",
         "category",
         "string",
-        pytest.param(
-            "string[pyarrow]",
-            marks=pytest.mark.skipif(
-                pa_version_under10p1, reason="pyarrow is not installed"
-            ),
-        ),
+        "string[pyarrow]",
         "datetime64[ns]",
         "period[D]",
         "Sparse[float]",

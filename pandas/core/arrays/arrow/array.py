@@ -22,8 +22,9 @@ from pandas._libs.tslibs import (
     timezones,
 )
 from pandas.compat import (
-    pa_version_under10p1,
+    HAS_PYARROW,
     pa_version_under11p0,
+    pa_version_under12p1,
     pa_version_under13p0,
 )
 from pandas.util._decorators import doc
@@ -74,7 +75,7 @@ from pandas.core.strings.base import BaseStringArrayMethods
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -300,7 +301,7 @@ class ArrowExtensionArray(
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under10p1:
+        if pa_version_under12p1:
             msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):

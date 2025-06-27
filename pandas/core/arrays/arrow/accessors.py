@@ -12,13 +12,13 @@ from typing import (
 )
 
 from pandas.compat import (
-    pa_version_under10p1,
+    HAS_PYARROW,
     pa_version_under11p0,
 )
 
 from pandas.core.dtypes.common import is_list_like
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -46,7 +46,7 @@ class ArrowAccessor(metaclass=ABCMeta):
 
     def _validate(self, data) -> None:
         dtype = data.dtype
-        if pa_version_under10p1 or not isinstance(dtype, ArrowDtype):
+        if not HAS_PYARROW or not isinstance(dtype, ArrowDtype):
             # Raise AttributeError so that inspect can handle non-struct Series.
             raise AttributeError(self._validation_msg.format(dtype=dtype))
 

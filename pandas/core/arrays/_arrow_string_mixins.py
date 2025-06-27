@@ -12,13 +12,13 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas.compat import (
-    pa_version_under10p1,
+    HAS_PYARROW,
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under17p0,
 )
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
