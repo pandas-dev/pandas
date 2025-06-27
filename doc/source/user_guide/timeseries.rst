@@ -197,6 +197,7 @@ a ``Series``, this returns a ``Series`` (with the same index), while a list-like
 is converted to a ``DatetimeIndex``:
 
 .. ipython:: python
+    :okwarning:
 
     pd.to_datetime(pd.Series(["Jul 31, 2009", "Jan 10, 2010", None]))
 

@@ -462,11 +462,6 @@ def option_context(*args) -> Generator[None]:
         interpreted as (pattern, value) pairs. Alternatively, a single
         dictionary of {pattern: value} may be provided.
 
-    Returns
-    -------
-    None
-        No return value.
-
     Yields
     ------
     None
