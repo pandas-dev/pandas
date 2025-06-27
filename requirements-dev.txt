@@ -59,7 +59,7 @@ tokenize-rt
 pre-commit>=4.2.0
 gitpython
 natsort
-numpydoc
+numpydoc==1.8.0
 pydata-sphinx-theme==0.16
 pytest-cython
 sphinx
