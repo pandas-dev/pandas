@@ -220,11 +220,8 @@ jobs:
           set_upload_vars
           upload_wheels
 
-################################################
-# Publish Wheels and Source Distribution to PyPI
-################################################
   publish:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.repository == 'pandas-dev/pandas' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs:
       - build_sdist
       - build_wheels
@@ -238,13 +235,11 @@ jobs:
       contents: read
 
     steps:
-      # 1. Pull every artifact produced by the two upstream jobs
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist                # all files land in ./dist/**
 
-      # 2. Move wheels & sdist into a flat 'upload' dir (skip Pyodide wheels)
       - name: Collect files
         run: |
           mkdir -p upload
@@ -253,9 +248,9 @@ jobs:
                     -name '*.whl'   -exec mv {} upload/ \;
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
-      # 3. Publish to PyPI using Trusted Publishing
       - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://upload.pypi.org/legacy/
           packages-dir: upload
+          skip-existing: true
