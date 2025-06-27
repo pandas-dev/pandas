@@ -84,7 +84,7 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - natsort  # DataFrame.sort_values doctest
-  - numpydoc
+  - numpydoc<1.7
   - pydata-sphinx-theme=0.16
   - pytest-cython  # doctest
   - sphinx
