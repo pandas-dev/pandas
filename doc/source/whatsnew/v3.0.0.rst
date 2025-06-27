@@ -666,6 +666,14 @@ Performance improvements
 - Performance improvement in unary methods on a :class:`RangeIndex` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57825`)
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_300.build:
+
+Build / CI
+~~~~~~~~~~
+
+- Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`<PR_NUMBER>`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_300.bug_fixes:
 
 Bug fixes
