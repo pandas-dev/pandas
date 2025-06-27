@@ -86,7 +86,7 @@ It can also be specified explicitly using the ``"str"`` alias:
    2    NaN
    dtype: str
 
-Similarly, functions like :func:`read_csv`, :func:`read_parquet`, and otherwise
+Similarly, functions like :func:`read_csv`, :func:`read_parquet`, and others
 will now use the new string dtype when reading string data.
 
 In contrast to the current object dtype, the new string dtype will only store
@@ -267,6 +267,118 @@ the :meth:`~pandas.Series.astype` method:
 
 This ``astype("object")`` call will be redundant when using pandas 2.x, but
 this code will work for all versions.
+
+Invalid unicode input
+~~~~~~~~~~~~~~~~~~~~~
+
+Python allows to have a built-in ``str`` object that represents invalid unicode
+data. And since the ``object`` dtype can hold any Python object, you can have a
+pandas Series with such invalid unicode data:
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["\u2600", "\ud83d"], dtype=object)
+   >>> ser
+   0    ☀
+   1    \ud83d
+   dtype: object
+
+However, when using the string dtype using ``pyarrow`` under the hood, this can
+only store valid unicode data, and otherwise it will raise an error:
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["\u2600", "\ud83d"])
+   ---------------------------------------------------------------------------
+   UnicodeEncodeError                        Traceback (most recent call last)
+   ...
+   UnicodeEncodeError: 'utf-8' codec can't encode character '\ud83d' in position 0: surrogates not allowed
+
+If you want to keep the previous behaviour, you can explicitly specify
+``dtype=object`` to keep working with object dtype.
+
+When you have byte data that you want to convert to strings using ``decode()``,
+the :meth:`~pandas.Series.str.decode` method now has a ``dtype`` parameter to be
+able to specify object dtype instead of the default of string dtype for this use
+case.
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+``astype(str)`` preserving missing values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This is a long standing "bug" or misfeature, as discussed in https://github.com/pandas-dev/pandas/issues/25353.
+
+With pandas < 3, when using ``astype(str)`` (using the built-in :func:`str`, not
+``astype("str")``!), the operation would convert every element to a string,
+including the missing values:
+
+.. code-block:: python
+
+   # OLD behavior in pandas < 3
+   >>> ser = pd.Series(["a", np.nan], dtype=object)
+   >>> ser
+   0      a
+   1    NaN
+   dtype: object
+   >>> ser.astype(str)
+   0      a
+   1    nan
+   dtype: object
+   >>> ser.astype(str).to_numpy()
+   array(['a', 'nan'], dtype=object)
+
+Note how ``NaN`` (``np.nan``) was converted to the string ``"nan"``. This was
+not the intended behavior, and it was inconsistent with how other dtypes handled
+missing values.
+
+With pandas 3, this behavior has been fixed, and now ``astype(str)`` is an alias
+for ``astype("str")``, i.e. casting to the new string dtype, which will preserve
+the missing values:
+
+.. code-block:: python
+
+   # NEW behavior in pandas 3
+   >>> pd.options.future.infer_string = True
+   >>> ser = pd.Series(["a", np.nan], dtype=object)
+   >>> ser.astype(str)
+   0      a
+   1    NaN
+   dtype: str
+   >>> ser.astype(str).values
+   array(['a', nan], dtype=object)
+
+If you want to preserve the old behaviour of converting every object to a
+string, you can use ``ser.map(str)`` instead.
+
+
+``prod()`` raising for string data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In pandas < 3, calling the :meth:`~pandas.Series.prod` method on a Series with
+string data would generally raise an error, except when the Series was empty or
+contained only a single string (potentially with missing values):
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["a", None], dtype=object)
+   >>> ser.prod()
+   'a'
+
+When the Series contains multiple strings, it will raise a ``TypeError``. This
+behaviour stays the same in pandas 3 when using the flexible ``object`` dtype.
+But by virtue of using the new string dtype, this will generally consistently
+raise an error regardless of the number of strings:
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["a", None], dtype="str")
+   >>> ser.prod()
+   ---------------------------------------------------------------------------
+   TypeError                                 Traceback (most recent call last)
+   ...
+   TypeError: Cannot perform reduction 'prod' with string dtype
 
 For existing users of the nullable ``StringDtype``
 --------------------------------------------------
