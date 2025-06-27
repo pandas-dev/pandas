@@ -1430,6 +1430,18 @@ class TestDataFrameReplace:
         result = ser.replace("nil", "anything else")
         tm.assert_frame_equal(expected, result)
 
+    def test_replace_outofbounds_datetime_raises(self):
+        # GH 61671
+        df = DataFrame([np.nan], dtype="datetime64[ns]")
+        too_big = datetime(3000, 1, 1)
+        from pandas.errors import OutOfBoundsDatetime
+
+        with pytest.raises(
+            OutOfBoundsDatetime,
+            match="Cannot safely store .* in inferred dtype 'datetime64\\[ns\\]'",
+        ):
+            df.replace(np.nan, too_big)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
