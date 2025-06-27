@@ -86,14 +86,17 @@ It can also be specified explicitly using the ``"str"`` alias:
    2    NaN
    dtype: str
 
+Similarly, functions like :func:`read_csv`, :func:`read_parquet`, and otherwise
+will now use the new string dtype when reading string data.
+
 In contrast to the current object dtype, the new string dtype will only store
 strings. This also means that it will raise an error if you try to store a
 non-string value in it (see below for more details).
 
-Missing values with the new string dtype are always represented as ``NaN``, and
-the missing value behaviour is similar to other default dtypes.
+Missing values with the new string dtype are always represented as ``NaN`` (``np.nan``),
+and the missing value behavior is similar to other default dtypes.
 
-This new string dtype should work the same as how you have been
+This new string dtype should otherwise work the same as how you have been
 using pandas with string data today. For example, all string-specific methods
 through the ``str`` accessor will work the same:
 
@@ -112,13 +115,13 @@ through the ``str`` accessor will work the same:
    class. The dtype can be constructed as ``pd.StringDtype(na_value=np.nan)``,
    but for general usage we recommend to use the shorter ``"str"`` alias.
 
-Overview of behaviour differences and how to address them
+Overview of behavior differences and how to address them
 ---------------------------------------------------------
 
 The dtype is no longer object dtype
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When inferring string data, the data type of the resulting DataFrame column or
+When inferring or reading string data, the data type of the resulting DataFrame column or
 Series will silently start being the new ``"str"`` dtype instead of ``"object"``
 dtype, and this can have some impact on your code.
 
@@ -209,7 +212,7 @@ the missing value sentinel is always NaN (``np.nan``):
    >>> print(ser[2])
    nan
 
-Generally this should be no problem when relying on missing value behaviour in
+Generally this should be no problem when relying on missing value behavior in
 pandas methods (for example, ``ser.isna()`` will give the same result as before).
 But when you relied on the exact value of ``None`` being present, that can
 impact your code.
@@ -227,9 +230,8 @@ the dtype and the exact missing value sentinel:
    True
 
 One caveat: this function works both on scalars and on array-likes, and in the
-latter case it will return an array of boolean dtype. When using it in a boolean
-context (for example, ``if pd.isna(..): ..``) be sure to only pass a scalar to
-it.
+latter case it will return an array of bools. When using it in a Boolean context
+(for example, ``if pd.isna(..): ..``) be sure to only pass a scalar to it.
 
 "setitem" operations will now raise an error for non-string data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
