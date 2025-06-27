@@ -58,7 +58,7 @@ for more background and details.
 ..    - setitem raises an error for non-string data
 
 Brief introduction to the new default string dtype
--------------------------------------------
+--------------------------------------------------
 
 By default, pandas will infer this new string dtype instead of object dtype for
 string data (when creating pandas objects, such as in constructors or IO
@@ -121,9 +121,9 @@ Overview of behavior differences and how to address them
 The dtype is no longer object dtype
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When inferring or reading string data, the data type of the resulting DataFrame column or
-Series will silently start being the new ``"str"`` dtype instead of ``"object"``
-dtype, and this can have some impact on your code.
+When inferring or reading string data, the data type of the resulting DataFrame
+column or Series will silently start being the new ``"str"`` dtype instead of
+``"object"`` dtype, and this can have some impact on your code.
 
 Checking the dtype
 ^^^^^^^^^^^^^^^^^^
