@@ -15,7 +15,7 @@ requires = [
 build-backend = "mesonpy"
 
 [project]
-name = 'evgmosme-pandas'
+name = 'pandas'
 dynamic = [
   'version'
 ]
