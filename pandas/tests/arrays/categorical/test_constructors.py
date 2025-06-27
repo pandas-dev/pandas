@@ -6,10 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -444,13 +440,12 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="Unknown dtype"):
             Categorical([1, 2], dtype="foo")
 
-    @pytest.mark.xfail(
-        using_string_dtype() and HAS_PYARROW, reason="Can't be NumPy strings"
-    )
     def test_constructor_np_strs(self):
         # GH#31499 Hashtable.map_locations needs to work on np.str_ objects
-        cat = Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
-        assert all(isinstance(x, np.str_) for x in cat.categories)
+        #  We can't pass all-strings because the constructor would cast
+        #  those to StringDtype post-PDEP14
+        cat = Categorical(["1", "0", "1", 2], [np.str_("0"), np.str_("1"), 2])
+        assert all(isinstance(x, (np.str_, int)) for x in cat.categories)
 
     def test_constructor_from_categorical_with_dtype(self):
         dtype = CategoricalDtype(["a", "b", "c"], ordered=True)
