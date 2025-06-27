@@ -671,7 +671,7 @@ Performance improvements
 Build / CI
 ~~~~~~~~~~
 
-- Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`<PR_NUMBER>`)
+- Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.bug_fixes:
