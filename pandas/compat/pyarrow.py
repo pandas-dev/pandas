@@ -19,7 +19,7 @@ try:
     pa_version_under18p0 = _palv < Version("18.0.0")
     pa_version_under19p0 = _palv < Version("19.0.0")
     pa_version_under20p0 = _palv < Version("20.0.0")
-    HAS_PYARROW = True
+    HAS_PYARROW = _palv >= Version("12.0.1")
 except ImportError:
     pa_version_under11p0 = True
     pa_version_under12p1 = True
