@@ -381,8 +381,10 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     df = DataFrame(
         {
             "a": [2, 1, 1, 2, 3, 3],
-            "b": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
-            "c": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
+            # TODO: test that has mixed na_value and NaN either working for
+            #  float or raising for int?
+            "b": [na_value, 3.0, na_value, 4.0, na_value, na_value],
+            "c": [na_value, 3.0, na_value, 4.0, na_value, na_value],
         },
         dtype=any_real_nullable_dtype,
     )
