@@ -1334,9 +1334,15 @@ def diff(arr, n: int, axis: AxisInt = 0):
     # added a check on the integer value of period
     # see https://github.com/pandas-dev/pandas/issues/56607
     if not lib.is_integer(n):
-        if not (is_float(n) and n.is_integer()):
+        try:
+            if is_float(n) and n.is_integer():
+                n = int(n)
+            else:
+                raise ValueError("periods must be an integer")
+        except (AttributeError, TypeError):
+            # Handle cases where n doesn't have is_integer method
+            # or other type-related errors
             raise ValueError("periods must be an integer")
-        n = int(n)
     na = np.nan
     dtype = arr.dtype
 
