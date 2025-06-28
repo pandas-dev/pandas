@@ -1453,7 +1453,7 @@ def _maybe_upcast(
         if isinstance(arr, IntegerArray) and arr.isna().all():
             # use null instead of int64 in pyarrow
             arr = arr.to_numpy(na_value=None)
-        arr = ArrowExtensionArray(pa.array(arr, from_pandas=True))
+        arr = ArrowExtensionArray(pa.array(arr))
 
     return arr
 

@@ -276,6 +276,13 @@ class TestSeriesRank:
 
         ser = ser if dtype is None else ser.astype(dtype)
         result = ser.rank(method=method)
+        if dtype == "float64[pyarrow]":
+            # the NaNs are not treated as NA
+            exp = exp.copy()
+            if method == "average":
+                exp[np.isnan(ser)] = 9.5
+            elif method == "dense":
+                exp[np.isnan(ser)] = 6
         tm.assert_series_equal(result, Series(exp, dtype=expected_dtype(dtype, method)))
 
     @pytest.mark.parametrize("na_option", ["top", "bottom", "keep"])
@@ -321,6 +328,8 @@ class TestSeriesRank:
             order = [ranks[1], ranks[0], ranks[2]]
         elif na_option == "bottom":
             order = [ranks[0], ranks[2], ranks[1]]
+        elif dtype == "float64[pyarrow]":
+            order = [ranks[0], [NA] * chunk, ranks[1]]
         else:
             order = [ranks[0], [np.nan] * chunk, ranks[1]]
         expected = order if ascending else order[::-1]

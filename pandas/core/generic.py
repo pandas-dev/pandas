@@ -9873,7 +9873,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         *,
         inplace: bool = False,
         axis: Axis | None = None,
@@ -10030,6 +10030,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+
+        if other is lib.no_default:
+            if self.ndim == 1:
+                if isinstance(self.dtype, ExtensionDtype):
+                    other = self.dtype.na_value
+                else:
+                    other = np.nan
+            else:
+                if self._mgr.nblocks == 1 and isinstance(
+                    self._mgr.blocks[0].values.dtype, ExtensionDtype
+                ):
+                    # FIXME: checking this is kludgy!
+                    other = self._mgr.blocks[0].values.dtype.na_value
+                else:
+                    # FIXME: the same problem we had with Series will now
+                    #  show up column-by-column!
+                    other = np.nan
 
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace=inplace, axis=axis, level=level)
