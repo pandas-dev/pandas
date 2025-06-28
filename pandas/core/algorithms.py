@@ -1339,10 +1339,10 @@ def diff(arr, n: int, axis: AxisInt = 0):
                 n = int(n)
             else:
                 raise ValueError("periods must be an integer")
-        except (AttributeError, TypeError):
+        except (AttributeError, TypeError) as err:
             # Handle cases where n doesn't have is_integer method
             # or other type-related errors
-            raise ValueError("periods must be an integer")
+            raise ValueError("periods must be an integer") from err
     na = np.nan
     dtype = arr.dtype
 
