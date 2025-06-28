@@ -721,7 +721,7 @@ class TestArrowArray(base.ExtensionTests):
                 pytest.mark.xfail(reason="CSV parsers don't correctly handle binary")
             )
         df = pd.DataFrame({"with_dtype": pd.Series(data, dtype=str(data.dtype))})
-        csv_output = df.to_csv(index=False, na_rep=np.nan)
+        csv_output = df.to_csv(index=False, na_rep=np.nan)  # should be NA?
         if pa.types.is_binary(pa_dtype):
             csv_output = BytesIO(csv_output)
         else:
