@@ -307,6 +307,8 @@ def box_expected(expected, box_cls, transpose: bool = True):
             expected = pd.concat([expected] * 2, ignore_index=True)
     elif box_cls is np.ndarray or box_cls is np.array:
         expected = np.array(expected)
+        if expected.dtype.kind in "iufb" and pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected, copy=False)
     elif box_cls is to_array:
         expected = to_array(expected)
     else:

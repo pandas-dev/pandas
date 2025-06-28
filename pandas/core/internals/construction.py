@@ -130,7 +130,10 @@ def arrays_to_mgr(
                 )
     if get_option("mode.pdep16_data_types"):
         arrays = [
-            pd_array(x, copy=False) if x.dtype.kind in "iufb" else x for x in arrays
+            pd_array(x, copy=False)
+            if x.dtype.kind in "iufb" and x.dtype != np.float16
+            else x
+            for x in arrays
         ]
 
     columns = ensure_index(columns)

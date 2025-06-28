@@ -577,7 +577,11 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError("Index data must be 1-dimensional") from err
             raise
         arr = ensure_wrapped_if_datetimelike(arr)
-        if arr.dtype.kind in "iufb" and get_option("mode.pdep16_data_types"):
+        if (
+            arr.dtype.kind in "iufb"
+            and arr.dtype != np.float16
+            and get_option("mode.pdep16_data_types")
+        ):
             arr = pd_array(arr, copy=False)
 
         klass = cls._dtype_to_subclass(arr.dtype)
@@ -6937,7 +6941,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return self.astype(dtype).insert(loc, item)
 
         try:
-            if isinstance(arr, ExtensionArray):
+            if isinstance(arr, ExtensionArray) and not isinstance(self, ABCRangeIndex):
+                # RangeIndex's _simple_new expects a range object
                 res_values = arr.insert(loc, item)
                 return type(self)._simple_new(res_values, name=self.name)
             else:

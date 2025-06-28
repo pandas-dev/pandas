@@ -399,7 +399,7 @@ class TestDivisionByZero:
     @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
-        if numeric_idx.dtype == np.uint64:
+        if numeric_idx.dtype == tm.to_dtype(np.uint64):
             pytest.skip(f"Div by negative 0 not relevant for {numeric_idx.dtype}")
         idx = numeric_idx - 3
 
@@ -687,7 +687,7 @@ class TestMultiplicationDivision:
         result = idx * np.array(5, dtype="int64")
         tm.assert_index_equal(result, idx * 5)
 
-        arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
+        arr_dtype = "uint64" if idx.dtype == tm.to_dtype(np.uint64) else "int64"
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
@@ -695,7 +695,7 @@ class TestMultiplicationDivision:
         idx = numeric_idx
         didx = idx * idx
 
-        arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
+        arr_dtype = "uint64" if idx.dtype == tm.to_dtype(np.uint64) else "int64"
         result = idx * Series(np.arange(5, dtype=arr_dtype))
         tm.assert_series_equal(result, Series(didx))
 

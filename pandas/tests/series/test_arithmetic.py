@@ -448,7 +448,7 @@ class TestSeriesComparison:
         const = 2
         result = getattr(ser, opname)(const).dtypes
         expected = np.dtype("bool")
-        assert result == expected
+        assert result == tm.to_dtype(expected)
 
     @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
     def test_ser_flex_cmp_return_dtypes_empty(self, opname):
@@ -458,7 +458,7 @@ class TestSeriesComparison:
         const = 2
         result = getattr(empty, opname)(const).dtypes
         expected = np.dtype("bool")
-        assert result == expected
+        assert result == tm.to_dtype(expected)
 
     @pytest.mark.parametrize(
         "names", [(None, None, None), ("foo", "bar", None), ("baz", "baz", "baz")]
