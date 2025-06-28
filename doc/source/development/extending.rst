@@ -545,7 +545,7 @@ If a user has the package of the example installed, them it would be possible to
 
     pd.read_json("myfile.json", engine="empty")
 
-When pandas detects that no ``empty`` engine exists for the ``read_json`` reader in pandas, will
+When pandas detects that no ``empty`` engine exists for the ``read_json`` reader in pandas, it will
 look at the entry points, will find the ``EmptyDataEngine`` engine, and will call the ``read_json``
 method on it with the arguments provided by the user (except the ``engine`` parameter).
 
