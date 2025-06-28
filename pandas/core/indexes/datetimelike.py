@@ -557,7 +557,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # because test_setops_preserve_freq fails with _validate_frequency raising.
         # This raising is incorrect, as 'on_freq' is incorrect. This will
         # be fixed by GH#41493
-        res_values = res_i8.values.view(self._data._ndarray.dtype)
+        res_values = np.asarray(res_i8.values).view(self._data._ndarray.dtype)
         result = type(self._data)._simple_new(
             # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
             # incompatible type "Union[dtype[Any], ExtensionDtype]"; expected

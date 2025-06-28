@@ -18,6 +18,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     index as libindex,
     lib,
@@ -44,7 +46,10 @@ from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    array as pd_array,
+    extract_array,
+)
 from pandas.core.indexers import check_array_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
@@ -278,7 +283,10 @@ class RangeIndex(Index):
 
         The constructed array is saved in ``_cache``.
         """
-        return np.arange(self.start, self.stop, self.step, dtype=np.int64)
+        data = np.arange(self.start, self.stop, self.step, dtype=np.int64)
+        if get_option("mode.pdep16_data_types"):
+            return pd_array(data)
+        return data
 
     def _get_data_as_items(self) -> list[tuple[str, int]]:
         """return a list of tuples of start, stop, step"""
