@@ -89,6 +89,9 @@ if TYPE_CHECKING:
         NpDtype,
     )
 
+# Alias so we can update old `assert obj.dtype == np_dtype` checks to PDEP16
+#  behavior.
+to_dtype = pd.core.dtypes.common.pandas_dtype
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
@@ -304,6 +307,8 @@ def box_expected(expected, box_cls, transpose: bool = True):
             expected = pd.concat([expected] * 2, ignore_index=True)
     elif box_cls is np.ndarray or box_cls is np.array:
         expected = np.array(expected)
+        if expected.dtype.kind in "iufb" and pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected, copy=False)
     elif box_cls is to_array:
         expected = to_array(expected)
     else:

@@ -12,7 +12,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs import (
     Interval,
@@ -1793,7 +1796,27 @@ def validate_all_hashable(*args, error_name: str | None = None) -> None:
         raise TypeError("All elements must be hashable")
 
 
-def pandas_dtype(dtype) -> DtypeObj:
+def _map_np_dtype(dtype: np.dtype) -> DtypeObj:
+    if dtype.kind in "iu":
+        from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
+
+        return NUMPY_INT_TO_DTYPE[dtype]
+    elif dtype.kind == "f":
+        from pandas.core.arrays.floating import NUMPY_FLOAT_TO_DTYPE
+
+        if dtype.itemsize != 2:
+            # TODO: What do we do for float16?  float128?
+            return NUMPY_FLOAT_TO_DTYPE[dtype]
+
+    elif dtype.kind == "b":
+        from pandas import BooleanDtype
+
+        return BooleanDtype()
+
+    return dtype
+
+
+def pandas_dtype(dtype, allow_numpy_dtypes: bool = False) -> DtypeObj:
     """
     Convert input into a pandas only dtype object or a numpy dtype object.
 
@@ -1801,6 +1824,8 @@ def pandas_dtype(dtype) -> DtypeObj:
     ----------
     dtype : object
         The object to be converted into a dtype.
+    allow_numpy_dtypes : bool, default False
+        Whether to return pre-PDEP16 numpy dtypes for ints, floats, and bools.
 
     Returns
     -------
@@ -1820,10 +1845,18 @@ def pandas_dtype(dtype) -> DtypeObj:
     >>> pd.api.types.pandas_dtype(int)
     dtype('int64')
     """
+    allow_numpy_dtypes = allow_numpy_dtypes or not get_option("mode.pdep16_data_types")
+
     # short-circuit
     if isinstance(dtype, np.ndarray):
-        return dtype.dtype
-    elif isinstance(dtype, (np.dtype, ExtensionDtype)):
+        if allow_numpy_dtypes:
+            return dtype.dtype
+        return _map_np_dtype(dtype.dtype)
+    elif isinstance(dtype, np.dtype):
+        if allow_numpy_dtypes:
+            return dtype
+        return _map_np_dtype(dtype)
+    elif isinstance(dtype, ExtensionDtype):
         return dtype
 
     # builtin aliases
@@ -1879,7 +1912,9 @@ def pandas_dtype(dtype) -> DtypeObj:
     elif npdtype.kind == "O":
         raise TypeError(f"dtype '{dtype}' not understood")
 
-    return npdtype
+    if allow_numpy_dtypes:
+        return npdtype
+    return _map_np_dtype(npdtype)
 
 
 def is_all_strings(value: ArrayLike) -> bool:

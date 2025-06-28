@@ -18,7 +18,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs import (
     Interval,
@@ -135,7 +138,9 @@ def maybe_convert_platform(
 
     if arr.dtype == _dtype_obj:
         arr = cast(np.ndarray, arr)
-        arr = lib.maybe_convert_objects(arr)
+        arr = lib.maybe_convert_objects(
+            arr, convert_to_nullable_dtype=get_option("mode.pdep16_data_types")
+        )
 
     return arr
 

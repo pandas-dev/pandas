@@ -457,9 +457,9 @@ class BaseMethodsTests:
         df = pd.DataFrame({"A": data, "B": [1.0] * 5})
         result = df.diff(periods)
         if periods == 1:
-            b = [np.nan, 0, 0, 0, 0]
+            b = [np.nan, 0.0, 0.0, 0.0, 0.0]
         else:
-            b = [0, 0, 0, np.nan, np.nan]
+            b = [0.0, 0.0, 0.0, np.nan, np.nan]
         expected = pd.DataFrame({"A": expected, "B": b})
         tm.assert_frame_equal(result, expected)
 

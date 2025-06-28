@@ -427,6 +427,15 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([True, False, "warn"]),
     )
 
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "pdep16_data_types",
+        True,
+        "Whether to default to numpy-nullable dtypes for integer, float, "
+        "and bool dtypes",
+        validator=is_one_of_factory([True, False]),
+    )
+
 
 # user warnings
 chained_assignment = """
