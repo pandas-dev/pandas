@@ -2033,6 +2033,61 @@ class TestDiff:
         expected = np.array([np.nan, 1, 0, -1, 0], dtype="float32")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_diff_invalid_type_handling(self):
+        """Test that diff function properly handles invalid input types"""
+        # Test for the bug fix where non-numeric types would raise AttributeError
+        # instead of ValueError
+        
+        # Create a simple array for testing
+        arr = np.array([1, 2, 3, 4, 5])
+        
+        # Test cases that should raise ValueError (not AttributeError)
+        invalid_inputs = [
+            "hello",  # string
+            None,     # None
+            [1, 2],   # list
+            {"key": "value"},  # dict
+            object(), # generic object
+        ]
+        
+        for invalid_input in invalid_inputs:
+            with pytest.raises(ValueError, match="periods must be an integer"):
+                algos.diff(arr, invalid_input)
+    
+    def test_diff_valid_float_handling(self):
+        """Test that diff function properly handles valid float inputs"""
+        
+        # Create a simple array for testing
+        arr = np.array([1, 2, 3, 4, 5])
+        
+        # Test cases that should work (float values that are integers)
+        valid_inputs = [
+            1.0,   # float that is an integer
+            2.0,   # another float that is an integer
+            -1.0,  # negative float that is an integer
+        ]
+        
+        for valid_input in valid_inputs:
+            # Should not raise an exception
+            result = algos.diff(arr, valid_input)
+            assert result.shape == arr.shape
+    
+    def test_diff_invalid_float_handling(self):
+        """Test that diff function properly handles invalid float inputs"""
+        
+        # Create a simple array for testing
+        arr = np.array([1, 2, 3, 4, 5])
+        
+        # Test cases that should raise ValueError (float values that are not integers)
+        invalid_float_inputs = [
+            1.5,   # float that is not an integer
+            2.7,   # another float that is not an integer
+            -1.3,  # negative float that is not an integer
+        ]
+        
+        for invalid_input in invalid_float_inputs:
+            with pytest.raises(ValueError, match="periods must be an integer"):
+                algos.diff(arr, invalid_input)
 
 @pytest.mark.parametrize("op", [np.array, pd.array])
 def test_union_with_duplicates(op):
