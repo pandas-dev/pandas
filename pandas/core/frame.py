@@ -3588,7 +3588,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine : str, optional
             The engine to use. Engines can be installed via third-party packages. For an
             updated list of existing pandas I/O engines check the I/O engines section of
-            our Ecosystem page.
+            the pandas Ecosystem page.
 
         See Also
         --------
