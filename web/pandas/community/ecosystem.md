@@ -158,6 +158,19 @@ Plotly can be used as a pandas plotting backend via:
 pd.set_option("plotting.backend", "plotly")
 ```
 
+### IO engines
+
+Table with the third-party [IO engines](https://pandas.pydata.org/docs/development/extending.html#io-engines)
+available to `read_*` functions and `DataFrame.to_*` methods.
+
+  | Engine name     | Library                                               | Supported formats               |
+  | ----------------|------------------------------------------------------ | ------------------------------- |
+  |                 |                                                       |                                 |
+
+IO engines can be used by specifying the engine when calling a reader or writer
+(e.g. `pd.read_csv("myfile.csv", engine="myengine")`).
+
+
 ## Domain specific pandas extensions
 
 #### [Geopandas](https://github.com/geopandas/geopandas)

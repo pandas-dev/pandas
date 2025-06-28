@@ -489,6 +489,69 @@ registers the default "matplotlib" backend as follows.
 More information on how to implement a third-party plotting backend can be found at
 https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1.
 
+.. _extending.io-engines:
+
+IO engines
+-----------
+
+pandas provides several IO connectors such as :func:`read_csv` or :meth:`DataFrame.to_parquet`, and many
+of those support multiple engines. For example, :func:`read_csv` supports the ``python``, ``c``
+and ``pyarrow`` engines, each with its advantages and disadvantages, making each more appropriate
+for certain use cases.
+
+Third-party package developers can implement engines for any of the pandas readers and writers.
+When a ``pandas.read_*`` function or ``DataFrame.to_*`` method are called with an ``engine="<name>"``
+that is not known to pandas, pandas will look into the entry points registered in the group
+``pandas.io_engine`` by the packages in the environment, and will call the corresponding method.
+
+An engine is a simple Python class which implements one or more of the pandas readers and writers
+as class methods:
+
+.. code-block:: python
+
+    class EmptyDataEngine:
+        @classmethod
+        def read_json(cls, path_or_buf=None, **kwargs):
+            return pd.DataFrame()
+
+        @classmethod
+        def to_json(cls, path_or_buf=None, **kwargs):
+            with open(path_or_buf, "w") as f:
+                f.write()
+
+        @classmethod
+        def read_clipboard(cls, sep='\\s+', dtype_backend=None, **kwargs):
+            return pd.DataFrame()
+
+A single engine can support multiple readers and writers. When possible, it is a good practice for
+a reader to provide both a reader and writer for the supported formats. But it is possible to
+provide just one of them.
+
+The package implementing the engine needs to create an entry point for pandas to be able to discover
+it. This is done in ``pyproject.toml``:
+
+```toml
+[project.entry-points."pandas.io_engine"]
+empty = empty_data:EmptyDataEngine
+```
+
+The first line should always be the same, creating the entry point in the ``pandas.io_engine`` group.
+In the second line, ``empty`` is the name of the engine, and ``empty_data:EmptyDataEngine`` is where
+to find the engine class in the package (``empty_data`` is the module name in this case).
+
+If a user has the package of the example installed, them it would be possible to use:
+
+.. code-block:: python
+
+    pd.read_json("myfile.json", engine="empty")
+
+When pandas detects that no ``empty`` engine exists for the ``read_json`` reader in pandas, it will
+look at the entry points, will find the ``EmptyDataEngine`` engine, and will call the ``read_json``
+method on it with the arguments provided by the user (except the ``engine`` parameter).
+
+To avoid conflicts in the names of engines, we keep an "IO engines" section in our
+`Ecosystem page <https://pandas.pydata.org/community/ecosystem.html#io-engines>`_.
+
 .. _extending.pandas_priority:
 
 Arithmetic with 3rd party types
