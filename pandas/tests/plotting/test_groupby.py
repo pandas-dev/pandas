@@ -152,3 +152,34 @@ class TestDataFrameGroupByPlots:
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             g.hist(legend=True, label="d")
+
+    def test_groupby_scatter_colors_differ(self):
+        # GH 59846 - Test that scatter plots use different colors for different groups
+        # similar to how line plots do
+        import matplotlib.pyplot as plt
+
+        df = DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                "y": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                "group": ["A", "A", "A", "B", "B", "B", "C", "C", "C"],
+            }
+        )
+
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+        df.groupby("group").plot(x="x", y="y", ax=ax1, kind="line")
+        df.groupby("group").plot(x="x", y="y", ax=ax2, kind="scatter")
+
+        line_colors = [line.get_color() for line in ax1.get_lines()]
+        scatter_colors = [
+            tuple(tuple(fc) for fc in scatter.get_facecolor())
+            for scatter in ax2.collections
+        ]
+
+        assert len(line_colors) == 3
+        assert len(scatter_colors) == 3
+
+        assert len(set(line_colors)) == 3
+        assert len(set(scatter_colors)) == 3
+
+        plt.close(fig)
