@@ -539,7 +539,7 @@ The first line should always be the same, creating the entry point in the ``pand
 In the second line, ``empty`` is the name of the engine, and ``empty_data:EmptyDataEngine`` is where
 to find the engine class in the package (``empty_data`` is the module name in this case).
 
-If a user have the package of the example installed, them it would be possible to use:
+If a user has the package of the example installed, them it would be possible to use:
 
 .. code-block:: python
 
