@@ -10,6 +10,8 @@ from unittest.mock import (
 import numpy as np
 import pytest
 
+pytest.importorskip("jinja2")
+
 from pandas.errors import CSSWarning
 
 from pandas import (
