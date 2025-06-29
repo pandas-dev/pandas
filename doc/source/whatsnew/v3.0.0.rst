@@ -748,7 +748,7 @@ Indexing
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` and :meth:`Series.fillna` that would ignore the ``limit`` argument on :class:`.ExtensionArray` dtypes (:issue:`58001`)
--
+- Bug in :meth:`DataFrame.fillna` where filling from another ``DataFrame`` of the same dtype could incorrectly cast the result to ``object`` dtype. (:issue:`61568`)
 
 MultiIndex
 ^^^^^^^^^^

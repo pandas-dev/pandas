@@ -7145,7 +7145,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
         elif isinstance(value, ABCDataFrame) and self.ndim == 2:
-            new_data = self.where(self.notna(), value)._mgr
+            filled_columns = {}
+            for col in self.columns:
+                lhs = self[col]
+                if col in value.columns:
+                    rhs = value[col]
+                    filled = lhs.where(notna(lhs), rhs)
+
+                    # restore original dtype if fallback to object occurred
+                    if lhs.dtype == rhs.dtype and filled.dtype == object:
+                        try:
+                            filled = filled.astype(lhs.dtype)
+                        except Exception:
+                            pass
+                else:
+                    filled = lhs
+                filled_columns[col] = filled
+
+            new_data = type(self)(filled_columns, index=self.index)._mgr
         else:
             raise ValueError(f"invalid fill value with a {type(value)}")
 
