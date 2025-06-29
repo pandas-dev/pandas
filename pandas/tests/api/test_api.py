@@ -252,6 +252,7 @@ class TestApi(Base):
         "indexers",
         "interchange",
         "typing",
+        "internals",
     ]
     allowed_typing = [
         "DataFrameGroupBy",
