@@ -106,6 +106,7 @@ Conversion
    Index.to_frame
    Index.to_numpy
    Index.view
+   Index.infer_objects
 
 Sorting
 ~~~~~~~
