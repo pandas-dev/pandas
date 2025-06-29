@@ -98,6 +98,7 @@ Conversion
    :toctree: api/
 
    Index.astype
+   Index.infer_objects
    Index.item
    Index.map
    Index.ravel
@@ -106,7 +107,6 @@ Conversion
    Index.to_frame
    Index.to_numpy
    Index.view
-   Index.infer_objects
 
 Sorting
 ~~~~~~~
