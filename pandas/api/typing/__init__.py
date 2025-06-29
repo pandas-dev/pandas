@@ -6,7 +6,6 @@ from pandas._libs import NaTType
 from pandas._libs.lib import NoDefault
 from pandas._libs.missing import NAType
 
-from pandas.api.typing import aliases
 from pandas.core.groupby import (
     DataFrameGroupBy,
     SeriesGroupBy,
@@ -57,5 +56,4 @@ __all__ = [
     "TimeGrouper",
     "TimedeltaIndexResamplerGroupby",
     "Window",
-    "aliases",
 ]
