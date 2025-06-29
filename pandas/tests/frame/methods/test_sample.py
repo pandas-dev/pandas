@@ -139,18 +139,23 @@ class TestSample:
         high_variance_weights = [1] * 10
         high_variance_weights[0] = 100
         msg = (
-            "Invalid weights: If `replace`=False, "
-            "total unit probabilities have to be less than 1"
+            "Weighted sampling cannot be achieved with replace=False. Either "
+            "set replace=True or use smaller weights. See the docstring of "
+            "sample for details."
         )
         with pytest.raises(ValueError, match=msg):
             obj.sample(n=2, weights=high_variance_weights, replace=False)
 
+    def test_sample_unit_probabilities_edge_case_do_not_raise(self, obj):
+        # GH#61516
         # edge case, n*max(weights)/sum(weights) == 1
         edge_variance_weights = [1] * 10
         edge_variance_weights[0] = 9
         # should not raise
         obj.sample(n=2, weights=edge_variance_weights, replace=False)
 
+    def test_sample_unit_normal_probabilities_do_not_raise(self, obj):
+        # GH#61516
         low_variance_weights = [1] * 10
         low_variance_weights[0] = 8
         # should not raise
