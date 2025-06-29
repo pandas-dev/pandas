@@ -1,11 +1,6 @@
 """Tests formatting as writer-agnostic ExcelCells"""
 
 import string
-from unittest.mock import (
-    Mock,
-    call,
-    patch,
-)
 
 import numpy as np
 import pytest
@@ -26,7 +21,6 @@ import pandas._testing as tm
 from pandas.io.formats.excel import (
     CssExcelCell,
     CSSToExcelConverter,
-    ExcelCell,
     ExcelFormatter,
 )
 from pandas.io.formats.style import Styler
