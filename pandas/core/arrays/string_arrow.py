@@ -17,6 +17,7 @@ from pandas._libs import (
 from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
+    pa_version_under16p0,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -69,6 +70,10 @@ def _chk_pyarrow_available() -> None:
     if pa_version_under10p1:
         msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
+
+
+def _is_string_view(typ):
+    return not pa_version_under16p0 and pa.types.is_string_view(typ)
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
@@ -128,11 +133,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         _chk_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
             pa.types.is_string(values.type)
+            or _is_string_view(values.type)
             or (
                 pa.types.is_dictionary(values.type)
                 and (
                     pa.types.is_string(values.type.value_type)
                     or pa.types.is_large_string(values.type.value_type)
+                    or _is_string_view(values.type.value_type)
                 )
             )
         ):
@@ -216,7 +223,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if self.dtype.na_value is np.nan and item is np.nan:
             item = libmissing.NA
         if not isinstance(item, str) and item is not libmissing.NA:
-            raise TypeError("Scalar must be NA or str")
+            raise TypeError(
+                f"Invalid value '{item}' for dtype 'str'. Value should be a "
+                f"string or missing value, got '{type(item).__name__}' instead."
+            )
         return super().insert(loc, item)
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
@@ -248,13 +258,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             if isna(value):
                 value = None
             elif not isinstance(value, str):
-                raise TypeError("Scalar must be NA or str")
+                raise TypeError(
+                    f"Invalid value '{value}' for dtype 'str'. Value should be a "
+                    f"string or missing value, got '{type(value).__name__}' instead."
+                )
         else:
             value = np.array(value, dtype=object, copy=True)
             value[isna(value)] = None
             for v in value:
                 if not (v is None or isinstance(v, str)):
-                    raise TypeError("Must provide strings")
+                    raise TypeError(
+                        "Invalid value for dtype 'str'. Value should be a "
+                        "string or missing value (or array of those)."
+                    )
         return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
@@ -265,7 +281,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         ]
 
         # short-circuit to return all False array.
-        if not len(value_set):
+        if not value_set:
             return np.zeros(len(self), dtype=bool)
 
         result = pc.is_in(
@@ -435,7 +451,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 return result.astype(np.bool_)
             return result
 
-        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("min", "max", "sum", "argmin", "argmax"):
+            result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        else:
+            raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
             return self._convert_int_result(result)
         elif isinstance(result, pa.Array):
@@ -453,6 +473,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return result
 
     def _cmp_method(self, other, op):
+        if (
+            isinstance(other, (BaseStringArray, ArrowExtensionArray))
+            and self.dtype.na_value is not libmissing.NA
+            and other.dtype.na_value is libmissing.NA
+        ):
+            # NA has priority of NaN semantics
+            return NotImplemented
+
         result = super()._cmp_method(other, op)
         if self.dtype.na_value is np.nan:
             if op == operator.ne:
@@ -460,6 +488,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             else:
                 return result.to_numpy(np.bool_, na_value=False)
         return result
+
+    def __pos__(self) -> Self:
+        raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):

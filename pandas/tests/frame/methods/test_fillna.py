@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
+from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
     Categorical,
@@ -65,15 +65,20 @@ class TestFillNA:
         with pytest.raises(TypeError, match=msg):
             datetime_frame.fillna()
 
-    # TODO(infer_string) test as actual error instead of xfail
-    @pytest.mark.xfail(using_string_dtype(), reason="can't fill 0 in string")
-    def test_fillna_mixed_type(self, float_string_frame):
+    def test_fillna_mixed_type(self, float_string_frame, using_infer_string):
         mf = float_string_frame
         mf.loc[mf.index[5:20], "foo"] = np.nan
         mf.loc[mf.index[-10:], "A"] = np.nan
-        # TODO: make stronger assertion here, GH 25640
-        mf.fillna(value=0)
-        mf.ffill()
+
+        result = mf.ffill()
+        assert (
+            result.loc[result.index[-10:], "A"] == result.loc[result.index[-11], "A"]
+        ).all()
+        assert (result.loc[result.index[5:20], "foo"] == "bar").all()
+
+        result = mf.fillna(value=0)
+        assert (result.loc[result.index[-10:], "A"] == 0).all()
+        assert (result.loc[result.index[5:20], "foo"] == 0).all()
 
     def test_fillna_mixed_float(self, mixed_float_frame):
         # mixed numeric (but no float16)
@@ -84,28 +89,21 @@ class TestFillNA:
         result = mf.ffill()
         _check_mixed_float(result, dtype={"C": None})
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_fillna_different_dtype(self, using_infer_string):
+    def test_fillna_different_dtype(self):
         # with different dtype (GH#3386)
         df = DataFrame(
             [["a", "a", np.nan, "a"], ["b", "b", np.nan, "b"], ["c", "c", np.nan, "c"]]
         )
 
-        if using_infer_string:
-            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
-                result = df.fillna({2: "foo"})
-        else:
-            result = df.fillna({2: "foo"})
+        result = df.fillna({2: "foo"})
         expected = DataFrame(
             [["a", "a", "foo", "a"], ["b", "b", "foo", "b"], ["c", "c", "foo", "c"]]
         )
+        # column is originally float (all-NaN) -> filling with string gives object dtype
+        expected[2] = expected[2].astype("object")
         tm.assert_frame_equal(result, expected)
 
-        if using_infer_string:
-            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
-                return_value = df.fillna({2: "foo"}, inplace=True)
-        else:
-            return_value = df.fillna({2: "foo"}, inplace=True)
+        return_value = df.fillna({2: "foo"}, inplace=True)
         tm.assert_frame_equal(df, expected)
         assert return_value is None
 
@@ -276,8 +274,7 @@ class TestFillNA:
         expected["A"] = 0.0
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_fillna_dtype_conversion(self, using_infer_string):
+    def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
         result = df.dtypes
@@ -292,7 +289,7 @@ class TestFillNA:
         # empty block
         df = DataFrame(index=range(3), columns=["A", "B"], dtype="float64")
         result = df.fillna("nan")
-        expected = DataFrame("nan", index=range(3), columns=["A", "B"])
+        expected = DataFrame("nan", dtype="object", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("val", ["", 1, np.nan, 1.0])
@@ -540,18 +537,10 @@ class TestFillNA:
         filled = df.ffill()
         assert df.columns.tolist() == filled.columns.tolist()
 
-    # TODO(infer_string) test as actual error instead of xfail
-    @pytest.mark.xfail(using_string_dtype(), reason="can't fill 0 in string")
-    def test_fill_corner(self, float_frame, float_string_frame):
-        mf = float_string_frame
-        mf.loc[mf.index[5:20], "foo"] = np.nan
-        mf.loc[mf.index[-10:], "A"] = np.nan
-
-        filled = float_string_frame.fillna(value=0)
-        assert (filled.loc[filled.index[5:20], "foo"] == 0).all()
-        del float_string_frame["foo"]
-
-        float_frame.reindex(columns=[]).fillna(value=0)
+    def test_fill_empty(self, float_frame):
+        df = float_frame.reindex(columns=[])
+        result = df.fillna(value=0)
+        tm.assert_frame_equal(result, df)
 
     def test_fillna_with_columns_and_limit(self):
         # GH40989
@@ -794,3 +783,15 @@ def test_fillna_with_none_object(test_frame, dtype):
     if test_frame:
         expected = expected.to_frame()
     tm.assert_equal(result, expected)
+
+
+def test_fillna_out_of_bounds_datetime():
+    # GH#61208
+    df = DataFrame(
+        {"datetime": date_range("1/1/2011", periods=3, freq="h"), "value": [1, 2, 3]}
+    )
+    df.iloc[0, 0] = None
+
+    msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        df.fillna(Timestamp("0001-01-01"))

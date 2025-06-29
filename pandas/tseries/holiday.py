@@ -169,6 +169,7 @@ class Holiday:
         start_date=None,
         end_date=None,
         days_of_week: tuple | None = None,
+        exclude_dates: DatetimeIndex | None = None,
     ) -> None:
         """
         Parameters
@@ -191,8 +192,11 @@ class Holiday:
         end_date : datetime-like, default None
             Last date the holiday is observed
         days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
-            Provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
+            Provide a tuple of days e.g  (0,1,2,3,) for Monday through Thursday
             Monday=0,..,Sunday=6
+            Only instances of the holiday included in days_of_week will be computed
+        exclude_dates : DatetimeIndex or default None
+            Specific dates to exclude e.g. skipping a specific year's holiday
 
         Examples
         --------
@@ -255,8 +259,12 @@ class Holiday:
         )
         self.end_date = Timestamp(end_date) if end_date is not None else end_date
         self.observance = observance
-        assert days_of_week is None or type(days_of_week) == tuple
+        if not (days_of_week is None or isinstance(days_of_week, tuple)):
+            raise ValueError("days_of_week must be None or tuple.")
         self.days_of_week = days_of_week
+        if not (exclude_dates is None or isinstance(exclude_dates, DatetimeIndex)):
+            raise ValueError("exclude_dates must be None or of type DatetimeIndex.")
+        self.exclude_dates = exclude_dates
 
     def __repr__(self) -> str:
         info = ""
@@ -328,6 +336,9 @@ class Holiday:
         holiday_dates = holiday_dates[
             (holiday_dates >= filter_start_date) & (holiday_dates <= filter_end_date)
         ]
+
+        if self.exclude_dates is not None:
+            holiday_dates = holiday_dates.difference(self.exclude_dates)
         if return_name:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
@@ -636,12 +647,17 @@ def HolidayCalendarFactory(name: str, base, other, base_class=AbstractHolidayCal
 
 
 __all__ = [
+    "FR",
+    "MO",
+    "SA",
+    "SU",
+    "TH",
+    "TU",
+    "WE",
+    "HolidayCalendarFactory",
     "after_nearest_workday",
     "before_nearest_workday",
-    "FR",
     "get_calendar",
-    "HolidayCalendarFactory",
-    "MO",
     "nearest_workday",
     "next_monday",
     "next_monday_or_tuesday",
@@ -649,11 +665,6 @@ __all__ = [
     "previous_friday",
     "previous_workday",
     "register",
-    "SA",
-    "SU",
     "sunday_to_monday",
-    "TH",
-    "TU",
-    "WE",
     "weekend_to_monday",
 ]

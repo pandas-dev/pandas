@@ -1211,11 +1211,6 @@ for x and y axis. By default, pandas will pick up index name as xlabel, while le
 it empty for ylabel.
 
 .. ipython:: python
-   :suppress:
-
-   plt.figure();
-
-.. ipython:: python
 
    df.plot();
 

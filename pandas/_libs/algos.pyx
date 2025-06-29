@@ -353,10 +353,9 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         float64_t[:, ::1] result
         uint8_t[:, :] mask
         int64_t nobs = 0
-        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
+        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
 
     N, K = (<object>mat).shape
-
     if minp is None:
         minpv = 1
     else:
@@ -389,8 +388,15 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 else:
                     divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
 
+                    # clip `covxy / divisor` to ensure coeff is within bounds
                     if divisor != 0:
-                        result[xi, yi] = result[yi, xi] = covxy / divisor
+                        val = covxy / divisor
+                        if not cov:
+                            if val > 1.0:
+                                val = 1.0
+                            elif val < -1.0:
+                                val = -1.0
+                        result[xi, yi] = result[yi, xi] = val
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
 
@@ -818,33 +824,7 @@ def is_monotonic(const numeric_object_t[:] arr, bint timelike):
     if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, False
 
-    if numeric_object_t is not object:
-        with nogil:
-            prev = arr[0]
-            for i in range(1, n):
-                cur = arr[i]
-                if timelike and <int64_t>cur == NPY_NAT:
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                if cur < prev:
-                    is_monotonic_inc = 0
-                elif cur > prev:
-                    is_monotonic_dec = 0
-                elif cur == prev:
-                    is_unique = 0
-                else:
-                    # cur or prev is NaN
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                if not is_monotonic_inc and not is_monotonic_dec:
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                prev = cur
-    else:
-        # object-dtype, identical to above except we cannot use `with nogil`
+    with nogil(numeric_object_t is not object):
         prev = arr[0]
         for i in range(1, n):
             cur = arr[i]

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -326,7 +324,6 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_quantile_datetime(self, unit):
         dti = pd.to_datetime(["2010", "2011"]).as_unit(unit)
         df = DataFrame({"a": dti, "b": [0, 5]})
@@ -373,14 +370,13 @@ class TestDataFrameQuantile:
 
         # empty when numeric_only=True
         result = df[["a", "c"]].quantile(0.5, numeric_only=True)
-        expected = Series([], index=[], dtype=np.float64, name=0.5)
+        expected = Series([], index=Index([], dtype="str"), dtype=np.float64, name=0.5)
         tm.assert_series_equal(result, expected)
 
         result = df[["a", "c"]].quantile([0.5], numeric_only=True)
-        expected = DataFrame(index=[0.5], columns=[])
+        expected = DataFrame(index=[0.5], columns=Index([], dtype="str"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -398,7 +394,7 @@ class TestDataFrameQuantile:
         res = df.quantile(
             0.5, axis=1, numeric_only=False, interpolation=interpolation, method=method
         )
-        expected = Series([], index=[], name=0.5, dtype=dtype)
+        expected = Series([], index=Index([], dtype="str"), name=0.5, dtype=dtype)
         tm.assert_series_equal(res, expected)
 
         # no columns in result, so no dtype preservation
@@ -409,7 +405,7 @@ class TestDataFrameQuantile:
             interpolation=interpolation,
             method=method,
         )
-        expected = DataFrame(index=[0.5], columns=[])
+        expected = DataFrame(index=[0.5], columns=Index([], dtype="str"))
         tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize("invalid", [-1, 2, [0.5, -1], [0.5, 2]])
@@ -645,7 +641,6 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_quantile_empty_no_rows_floats(self, interp_method):
         interpolation, method = interp_method
 
@@ -660,11 +655,11 @@ class TestDataFrameQuantile:
         tm.assert_frame_equal(res, exp)
 
         res = df.quantile(0.5, axis=1, interpolation=interpolation, method=method)
-        exp = Series([], index=[], dtype="float64", name=0.5)
+        exp = Series([], index=Index([], dtype="str"), dtype="float64", name=0.5)
         tm.assert_series_equal(res, exp)
 
         res = df.quantile([0.5], axis=1, interpolation=interpolation, method=method)
-        exp = DataFrame(columns=[], index=[0.5])
+        exp = DataFrame(columns=Index([], dtype="str"), index=[0.5])
         tm.assert_frame_equal(res, exp)
 
     def test_quantile_empty_no_rows_ints(self, interp_method):
@@ -874,7 +869,6 @@ class TestQuantileExtensionDtype:
         else:
             tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "dtype, expected_data, expected_index, axis",
         [
@@ -889,11 +883,13 @@ class TestQuantileExtensionDtype:
         df = DataFrame(columns=["a", "b"], dtype=dtype)
         result = df.quantile(0.5, axis=axis)
         expected = Series(
-            expected_data, name=0.5, index=Index(expected_index), dtype="float64"
+            expected_data,
+            name=0.5,
+            index=Index(expected_index, dtype="str"),
+            dtype="float64",
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "dtype, expected_data, expected_index, axis, expected_dtype",
         [
@@ -908,11 +904,13 @@ class TestQuantileExtensionDtype:
         df = DataFrame(columns=["a", "b"], dtype=dtype)
         result = df.quantile(0.5, axis=axis, numeric_only=False)
         expected = Series(
-            expected_data, name=0.5, index=Index(expected_index), dtype=expected_dtype
+            expected_data,
+            name=0.5,
+            index=Index(expected_index, dtype="str"),
+            dtype=expected_dtype,
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "expected_data, expected_index, axis",
         [
@@ -931,7 +929,10 @@ class TestQuantileExtensionDtype:
         )
         result = df[["a", "c"]].quantile(0.5, axis=axis, numeric_only=True)
         expected = Series(
-            expected_data, name=0.5, index=Index(expected_index), dtype=np.float64
+            expected_data,
+            name=0.5,
+            index=Index(expected_index, dtype="str" if axis == 0 else "int64"),
+            dtype=np.float64,
         )
         tm.assert_series_equal(result, expected)
 

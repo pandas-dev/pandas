@@ -482,10 +482,7 @@ $1$,$2$
             # case 3: CRLF as line terminator
             # 'lineterminator' should not change inner element
             expected_crlf = (
-                b"int,str_crlf\r\n"
-                b"1,abc\r\n"
-                b'2,"d\r\nef"\r\n'
-                b'3,"g\r\nh\r\n\r\ni"\r\n'
+                b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
             )
             df.to_csv(path, lineterminator="\r\n", index=False)
             with open(path, "rb") as f:

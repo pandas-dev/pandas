@@ -488,9 +488,11 @@ class TestStyler:
     def test_repr_html_mathjax(self, styler):
         # gh-19824 / 41395
         assert "tex2jax_ignore" not in styler._repr_html_()
+        assert "mathjax_ignore" not in styler._repr_html_()
 
         with option_context("styler.html.mathjax", False):
             assert "tex2jax_ignore" in styler._repr_html_()
+            assert "mathjax_ignore" in styler._repr_html_()
 
     def test_update_ctx(self, styler):
         styler._update_ctx(DataFrame({"A": ["color: red", "color: blue"]}))
@@ -931,7 +933,7 @@ class TestStyler:
 
     def test_export(self, df, styler):
         f = lambda x: "color: red" if x > 0 else "color: blue"
-        g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
+        g = lambda x, z: f"color: {z}"
         style1 = styler
         style1.map(f).map(g, z="b").highlight_max()._compute()  # = render
         result = style1.export()

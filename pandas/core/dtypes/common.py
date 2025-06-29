@@ -430,7 +430,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
     Check whether an array-like or dtype is of the Period dtype.
 
     .. deprecated:: 2.2.0
-        Use isinstance(dtype, pd.Period) instead.
+        Use isinstance(dtype, pd.PeriodDtype) instead.
 
     Parameters
     ----------
@@ -655,24 +655,38 @@ def is_dtype_equal(source, target) -> bool:
 
     Parameters
     ----------
-    source : The first dtype to compare
-    target : The second dtype to compare
+    source : type or str
+        The first dtype to compare.
+    target : type or str
+        The second dtype to compare.
 
     Returns
     -------
     boolean
         Whether or not the two dtypes are equal.
 
+    See Also
+    --------
+    api.types.is_categorical_dtype : Check whether the provided array or dtype
+                                            is of the Categorical dtype.
+    api.types.is_string_dtype : Check whether the provided array or dtype
+                                       is of the string dtype.
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+                                       object dtype.
+
     Examples
     --------
+    >>> from pandas.api.types import is_dtype_equal
     >>> is_dtype_equal(int, float)
     False
     >>> is_dtype_equal("int", int)
     True
     >>> is_dtype_equal(object, "category")
     False
+    >>> from pandas.core.dtypes.dtypes import CategoricalDtype
     >>> is_dtype_equal(CategoricalDtype(), "category")
     True
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
@@ -1785,15 +1799,21 @@ def pandas_dtype(dtype) -> DtypeObj:
 
     Parameters
     ----------
-    dtype : object to be converted
+    dtype : object
+        The object to be converted into a dtype.
 
     Returns
     -------
     np.dtype or a pandas dtype
+        The converted dtype, which can be either a numpy dtype or a pandas dtype.
 
     Raises
     ------
     TypeError if not a dtype
+
+    See Also
+    --------
+    api.types.is_dtype : Return true if the condition is satisfied for the arr_or_dtype.
 
     Examples
     --------
@@ -1830,6 +1850,8 @@ def pandas_dtype(dtype) -> DtypeObj:
     # raise a consistent TypeError if failed
     try:
         with warnings.catch_warnings():
+            # TODO: warnings.catch_warnings can be removed when numpy>2.3.0
+            # is the minimum version
             # GH#51523 - Series.astype(np.integer) doesn't show
             # numpy deprecation warning of np.integer
             # Hence enabling DeprecationWarning
@@ -1883,13 +1905,14 @@ def is_all_strings(value: ArrayLike) -> bool:
 
 
 __all__ = [
-    "classes",
     "DT64NS_DTYPE",
+    "INT64_DTYPE",
+    "TD64NS_DTYPE",
+    "classes",
     "ensure_float64",
     "ensure_python_int",
     "ensure_str",
     "infer_dtype_from_object",
-    "INT64_DTYPE",
     "is_1d_only_ea_dtype",
     "is_all_strings",
     "is_any_real_numeric_dtype",
@@ -1934,6 +1957,5 @@ __all__ = [
     "is_unsigned_integer_dtype",
     "needs_i8_conversion",
     "pandas_dtype",
-    "TD64NS_DTYPE",
     "validate_all_hashable",
 ]

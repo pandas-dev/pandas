@@ -9,8 +9,6 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import SpecificationError
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -161,6 +159,7 @@ def test_agg_apply_corner(ts, tsframe):
     tm.assert_frame_equal(grouped.agg("sum"), exp_df)
 
     res = grouped.apply(np.sum, axis=0)
+    exp_df = exp_df.reset_index(drop=True)
     tm.assert_frame_equal(res, exp_df)
 
 
@@ -296,12 +295,11 @@ def test_aggregate_item_by_item(df):
     assert len(result) == 0
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == object:
+        if ser.dtype == object or ser.dtype == "string":
             raise TypeError("Test error message")
         return ser.sum()
 
@@ -1117,7 +1115,6 @@ def test_lambda_named_agg(func):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_aggregate_mixed_types():
     # GH 16916
     df = DataFrame(
@@ -1129,7 +1126,7 @@ def test_aggregate_mixed_types():
     expected = DataFrame(
         expected_data,
         index=Index([2, "group 1"], dtype="object", name="grouping"),
-        columns=Index(["X", "Y", "Z"], dtype="object"),
+        columns=Index(["X", "Y", "Z"]),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1809,4 +1806,21 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
         ),
         index=Index(["level1.1", "level1.2"]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_builtin_sum():
+    df = DataFrame(columns=["Group", "Data"])
+    result = df.groupby(["Group"], as_index=False)["Data"].agg("sum")
+    expected = DataFrame(columns=["Group", "Data"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_udf():
+    def func(x):
+        return sum(x)
+
+    df = DataFrame(columns=["Group", "Data"])
+    result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
+    expected = DataFrame(columns=["Group", "Data"])
     tm.assert_frame_equal(result, expected)

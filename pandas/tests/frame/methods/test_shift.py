@@ -747,3 +747,22 @@ class TestDataFrameShift:
         df = DataFrame()
         result = df.shift(1, axis=1)
         tm.assert_frame_equal(result, df)
+
+    def test_shift_with_offsets_freq_empty(self):
+        # GH#60102
+        dates = date_range("2020-01-01", periods=3, freq="D")
+        offset = offsets.Day()
+        shifted_dates = dates + offset
+        df = DataFrame(index=dates)
+        df_shifted = DataFrame(index=shifted_dates)
+        result = df.shift(freq=offset)
+        tm.assert_frame_equal(result, df_shifted)
+
+    def test_series_shift_interval_preserves_closed(self):
+        # GH#60389
+        ser = Series(
+            [pd.Interval(1, 2, closed="right"), pd.Interval(2, 3, closed="right")]
+        )
+        result = ser.shift(1)
+        expected = Series([np.nan, pd.Interval(1, 2, closed="right")])
+        tm.assert_series_equal(result, expected)

@@ -13,8 +13,8 @@ class Render:
     def setup(self, cols, rows):
         self.df = DataFrame(
             np.random.randn(rows, cols),
-            columns=[f"float_{i+1}" for i in range(cols)],
-            index=[f"row_{i+1}" for i in range(rows)],
+            columns=[f"float_{i + 1}" for i in range(cols)],
+            index=[f"row_{i + 1}" for i in range(rows)],
         )
 
     def time_apply_render(self, cols, rows):

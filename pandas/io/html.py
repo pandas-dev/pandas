@@ -454,15 +454,26 @@ class _HtmlFrameParser:
             while body_rows and row_is_all_th(body_rows[0]):
                 header_rows.append(body_rows.pop(0))
 
-        header = self._expand_colspan_rowspan(header_rows, section="header")
-        body = self._expand_colspan_rowspan(body_rows, section="body")
-        footer = self._expand_colspan_rowspan(footer_rows, section="footer")
+        header, rem = self._expand_colspan_rowspan(header_rows, section="header")
+        body, rem = self._expand_colspan_rowspan(
+            body_rows,
+            section="body",
+            remainder=rem,
+            overflow=len(footer_rows) > 0,
+        )
+        footer, _ = self._expand_colspan_rowspan(
+            footer_rows, section="footer", remainder=rem, overflow=False
+        )
 
         return header, body, footer
 
     def _expand_colspan_rowspan(
-        self, rows, section: Literal["header", "footer", "body"]
-    ) -> list[list]:
+        self,
+        rows,
+        section: Literal["header", "footer", "body"],
+        remainder: list[tuple[int, str | tuple, int]] | None = None,
+        overflow: bool = True,
+    ) -> tuple[list[list], list[tuple[int, str | tuple, int]]]:
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -471,12 +482,20 @@ class _HtmlFrameParser:
         rows : list of node-like
             List of <tr>s
         section : the section that the rows belong to (header, body or footer).
+        remainder: list[tuple[int, str | tuple, int]] | None
+            Any remainder from the expansion of previous section
+        overflow: bool
+            If true, return any partial rows as 'remainder'. If not, use up any
+            partial rows. True by default.
 
         Returns
         -------
         list of list
             Each returned row is a list of str text, or tuple (text, link)
             if extract_links is not None.
+        remainder
+            Remaining partial rows if any. If overflow is False, an empty list
+            is returned.
 
         Notes
         -----
@@ -485,9 +504,7 @@ class _HtmlFrameParser:
         """
         all_texts = []  # list of rows, each a list of str
         text: str | tuple
-        remainder: list[
-            tuple[int, str | tuple, int]
-        ] = []  # list of (index, text, nrows)
+        remainder = remainder if remainder is not None else []
 
         for tr in rows:
             texts = []  # the output for this row
@@ -528,19 +545,20 @@ class _HtmlFrameParser:
             all_texts.append(texts)
             remainder = next_remainder
 
-        # Append rows that only appear because the previous row had non-1
-        # rowspan
-        while remainder:
-            next_remainder = []
-            texts = []
-            for prev_i, prev_text, prev_rowspan in remainder:
-                texts.append(prev_text)
-                if prev_rowspan > 1:
-                    next_remainder.append((prev_i, prev_text, prev_rowspan - 1))
-            all_texts.append(texts)
-            remainder = next_remainder
+        if not overflow:
+            # Append rows that only appear because the previous row had non-1
+            # rowspan
+            while remainder:
+                next_remainder = []
+                texts = []
+                for prev_i, prev_text, prev_rowspan in remainder:
+                    texts.append(prev_text)
+                    if prev_rowspan > 1:
+                        next_remainder.append((prev_i, prev_text, prev_rowspan - 1))
+                all_texts.append(texts)
+                remainder = next_remainder
 
-        return all_texts
+        return all_texts, remainder
 
     def _handle_hidden_tables(self, tbl_list, attr_name: str):
         """

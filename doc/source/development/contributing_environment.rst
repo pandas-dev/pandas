@@ -35,6 +35,10 @@ You will need `Build Tools for Visual Studio 2022
         scrolling down to "All downloads" -> "Tools for Visual Studio".
         In the installer, select the "Desktop development with C++" Workloads.
 
+        If you encounter an error indicating ``cl.exe`` is not found when building with Meson,
+        reopen the installer and also select the optional component
+        **MSVC v142 - VS 2019 C++ x64/x86 build tools** in the right pane for installation.
+
 Alternatively, you can install the necessary components on the commandline using
 `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_
 
@@ -247,7 +251,7 @@ This option allows you to configure where meson stores your built C extensions, 
 Sometimes, it might be useful to compile pandas with debugging symbols, when debugging C extensions.
 Appending ``-Csetup-args="-Ddebug=true"`` will do the trick.
 
-With pip, it is possible to chain together multiple config settings (for example specifying both a build directory
+With pip, it is possible to chain together multiple config settings. For example, specifying both a build directory
 and building with debug symbols would look like
 ``-Cbuilddir="your builddir here" -Csetup-args="-Dbuildtype=debug"``.
 

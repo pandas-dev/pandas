@@ -390,8 +390,19 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         if dtype == "i8":
-            return self.asi8
-        elif dtype == bool:
+            # For NumPy 1.x compatibility we cannot use copy=None.  And
+            # `copy=False` has the meaning of `copy=None` here:
+            if not copy:
+                return np.asarray(self.asi8, dtype=dtype)
+            else:
+                return np.array(self.asi8, dtype=dtype)
+
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        if dtype == bool:
             return ~self._isnan
 
         # This will raise TypeError for non-object dtypes

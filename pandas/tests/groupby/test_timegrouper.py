@@ -76,6 +76,8 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
+    # TODO(infer_string) resample sum introduces 0's
+    # https://github.com/pandas-dev/pandas/issues/60229
     @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_groupby_with_timegrouper(self):
         # GH 4161
@@ -481,12 +483,8 @@ class TestGroupBy:
         def sumfunc_series(x):
             return Series([x["value"].sum()], ("sum",))
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_series)
+        expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
+        result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_series)
         tm.assert_frame_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -502,11 +500,8 @@ class TestGroupBy:
         def sumfunc_value(x):
             return x.value.sum()
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_value)
+        expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
+        result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_value)
         tm.assert_series_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -932,9 +927,7 @@ class TestGroupBy:
         assert gb._selected_obj.index.nlevels == 1
 
         # function that returns a Series
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            res = gb.apply(lambda x: x["Quantity"] * 2)
+        res = gb.apply(lambda x: x["Quantity"] * 2)
 
         dti = Index([Timestamp("2013-12-31")], dtype=df["Date"].dtype, name="Date")
         expected = DataFrame(

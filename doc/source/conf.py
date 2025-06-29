@@ -114,6 +114,8 @@ if pattern:
                 ):
                     exclude_patterns.append(rel_fname)
                 elif single_doc and rel_fname != pattern:
+                    if "\\" in rel_fname:
+                        rel_fname = rel_fname.replace("\\", "/")
                     exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
@@ -242,7 +244,6 @@ html_theme_options = {
     "external_links": [],
     "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
-    "twitter_url": "https://twitter.com/pandas_dev",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",
         "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
@@ -258,6 +259,11 @@ html_theme_options = {
     # patch version doesn't compare as equal (e.g. 2.2.1 != 2.2.0 but it should be)
     "show_version_warning_banner": False,
     "icon_links": [
+        {
+            "name": "X",
+            "url": "https://x.com/pandas_dev",
+            "icon": "fa-brands fa-square-x-twitter",
+        },
         {
             "name": "Mastodon",
             "url": "https://fosstodon.org/@pandas_dev",

@@ -18,17 +18,18 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :widths: 30, 100, 60, 60
 
     text,`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__, :ref:`read_csv<io.read_csv_table>`, :ref:`to_csv<io.store_in_csv>`
-    text,Fixed-Width Text File, :ref:`read_fwf<io.fwf_reader>` , NA
+    text,Fixed-Width Text File, :ref:`read_fwf<io.fwf_reader>`, NA
     text,`JSON <https://www.json.org/>`__, :ref:`read_json<io.json_reader>`, :ref:`to_json<io.json_writer>`
     text,`HTML <https://en.wikipedia.org/wiki/HTML>`__, :ref:`read_html<io.read_html>`, :ref:`to_html<io.html>`
-    text,`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__, :ref:`Styler.to_latex<io.latex>` , NA
+    text,`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__, NA, :ref:`Styler.to_latex<io.latex>`
     text,`XML <https://www.w3.org/standards/xml/core>`__, :ref:`read_xml<io.read_xml>`, :ref:`to_xml<io.xml>`
     text, Local clipboard, :ref:`read_clipboard<io.clipboard>`, :ref:`to_clipboard<io.clipboard>`
     binary,`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__ , :ref:`read_excel<io.excel_reader>`, :ref:`to_excel<io.excel_writer>`
     binary,`OpenDocument <http://opendocumentformat.org>`__, :ref:`read_excel<io.ods>`, NA
-    binary,`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__, :ref:`read_hdf<io.hdf5>`, :ref:`to_hdf<io.hdf5>`
+    binary,`HDF5 Format <https://support.hdfgroup.org/documentation/hdf5/latest/_intro_h_d_f5.html>`__, :ref:`read_hdf<io.hdf5>`, :ref:`to_hdf<io.hdf5>`
     binary,`Feather Format <https://github.com/wesm/feather>`__, :ref:`read_feather<io.feather>`, :ref:`to_feather<io.feather>`
     binary,`Parquet Format <https://parquet.apache.org/>`__, :ref:`read_parquet<io.parquet>`, :ref:`to_parquet<io.parquet>`
+    binary,`Apache Iceberg <https://iceberg.apache.org/>`__, :ref:`read_iceberg<io.iceberg>` , :ref:`to_iceberg<io.iceberg>`
     binary,`ORC Format <https://orc.apache.org/>`__, :ref:`read_orc<io.orc>`, :ref:`to_orc<io.orc>`
     binary,`Stata <https://en.wikipedia.org/wiki/Stata>`__, :ref:`read_stata<io.stata_reader>`, :ref:`to_stata<io.stata_writer>`
     binary,`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__, :ref:`read_sas<io.sas_reader>` , NA
@@ -990,7 +991,7 @@ Thousand separators
 
 For large numbers that have been written with a thousands separator, you can
 set the ``thousands`` keyword to a string of length 1 so that integers will be parsed
-correctly:
+correctly.
 
 By default, numbers with a thousands separator will be parsed as strings:
 
@@ -1414,7 +1415,7 @@ of multi-columns indices.
 
 .. note::
    If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-   with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will
+   with ``df.to_csv(..., index=False)``), then any ``names`` on the columns index will
    be *lost*.
 
 .. ipython:: python
@@ -2340,6 +2341,7 @@ Read a URL with no options:
 .. code-block:: ipython
 
    In [320]: url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+
    In [321]: pd.read_html(url)
    Out[321]:
    [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
@@ -2366,6 +2368,7 @@ Read a URL while passing headers alongside the HTTP request:
 .. code-block:: ipython
 
    In [322]: url = 'https://www.sump.org/notes/request/' # HTTP request reflector
+
    In [323]: pd.read_html(url)
    Out[323]:
    [                   0                    1
@@ -2378,14 +2381,16 @@ Read a URL while passing headers alongside the HTTP request:
     1              Host:         www.sump.org
     2        User-Agent:    Python-urllib/3.8
     3        Connection:                close]
+
    In [324]: headers = {
-   In [325]:    'User-Agent':'Mozilla Firefox v14.0',
-   In [326]:    'Accept':'application/json',
-   In [327]:    'Connection':'keep-alive',
-   In [328]:    'Auth':'Bearer 2*/f3+fe68df*4'
-   In [329]: }
-   In [340]: pd.read_html(url, storage_options=headers)
-   Out[340]:
+      .....:    'User-Agent':'Mozilla Firefox v14.0',
+      .....:    'Accept':'application/json',
+      .....:    'Connection':'keep-alive',
+      .....:    'Auth':'Bearer 2*/f3+fe68df*4'
+      .....: }
+
+   In [325]: pd.read_html(url, storage_options=headers)
+   Out[325]:
    [                   0                    1
     0     Remote Socket:  51.15.105.256:51760
     1  Protocol Version:             HTTP/1.1
@@ -5399,6 +5404,125 @@ The above example creates a partitioned dataset that may look like:
    except OSError:
        pass
 
+.. _io.iceberg:
+
+Iceberg
+-------
+
+.. versionadded:: 3.0.0
+
+Apache Iceberg is a high performance open-source format for large analytic tables.
+Iceberg enables the use of SQL tables for big data while making it possible for different
+engines to safely work with the same tables at the same time.
+
+Iceberg support predicate pushdown and column pruning, which are available to pandas
+users via the ``row_filter`` and ``selected_fields`` parameters of the :func:`~pandas.read_iceberg`
+function. This is convenient to extract from large tables a subset that fits in memory as a
+pandas ``DataFrame``.
+
+Internally, pandas uses PyIceberg_ to query Iceberg.
+
+.. _PyIceberg: https://py.iceberg.apache.org/
+
+A simple example loading all data from an Iceberg table ``my_table`` defined in the
+``my_catalog`` catalog.
+
+.. code-block:: python
+
+    df = pd.read_iceberg("my_table", catalog_name="my_catalog")
+
+Catalogs must be defined in the ``.pyiceberg.yaml`` file, usually in the home directory.
+It is possible to to change properties of the catalog definition with the
+``catalog_properties`` parameter:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        catalog_properties={"s3.secret-access-key": "my_secret"},
+    )
+
+It is also possible to fully specify the catalog in ``catalog_properties`` and not provide
+a ``catalog_name``:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_properties={
+            "uri": "http://127.0.0.1:8181",
+            "s3.endpoint": "http://127.0.0.1:9000",
+        },
+    )
+
+To create the ``DataFrame`` with only a subset of the columns:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        selected_fields=["my_column_3", "my_column_7"]
+    )
+
+This will execute the function faster, since other columns won't be read. And it will also
+save memory, since the data from other columns won't be loaded into the underlying memory of
+the ``DataFrame``.
+
+To fetch only a subset of the rows, we can do it with the ``limit`` parameter:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        limit=100,
+    )
+
+This will create a ``DataFrame`` with 100 rows, assuming there are at least this number in
+the table.
+
+To fetch a subset of the rows based on a condition, this can be done using the ``row_filter``
+parameter:
+
+.. code-block:: python
+
+    df = pd.read_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        row_filter="distance > 10.0",
+    )
+
+Reading a particular snapshot is also possible providing the snapshot ID as an argument to
+``snapshot_id``.
+
+To save a ``DataFrame`` to Iceberg, it can be done with the :meth:`DataFrame.to_iceberg`
+method:
+
+.. code-block:: python
+
+    df.to_iceberg("my_table", catalog_name="my_catalog")
+
+To specify the catalog, it works in the same way as for :func:`read_iceberg` with the
+``catalog_name`` and ``catalog_properties`` parameters.
+
+The location of the table can be specified with the ``location`` parameter:
+
+.. code-block:: python
+
+    df.to_iceberg(
+        "my_table",
+        catalog_name="my_catalog",
+        location="s://my-data-lake/my-iceberg-tables",
+    )
+
+It is possible to add properties to the table snapshot by passing a dictionary to the
+``snapshot_properties`` parameter.
+
+More information about the Iceberg format can be found in the `Apache Iceberg official
+page <https://iceberg.apache.org/>`__.
+
 .. _io.orc:
 
 ORC
@@ -5996,7 +6120,7 @@ Full documentation can be found `here <https://pandas-gbq.readthedocs.io/en/late
 
 .. _io.stata:
 
-Stata format
+STATA format
 ------------
 
 .. _io.stata_writer:

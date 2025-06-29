@@ -9,16 +9,13 @@ from typing import (
     Literal,
 )
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._validators import check_dtype_backend
 
-import pandas as pd
 from pandas.core.indexes.api import default_index
 
-from pandas.io._util import arrow_string_types_mapper
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
@@ -47,6 +44,13 @@ def read_orc(
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
+
+    This method reads an ORC (Optimized Row Columnar) file into a pandas
+    DataFrame using the `pyarrow.orc` library. ORC is a columnar storage format
+    that provides efficient compression and fast retrieval for analytical workloads.
+    It allows reading specific columns, handling different filesystem
+    types (such as local storage, cloud storage via fsspec, or pyarrow filesystem),
+    and supports different data type backends, including `numpy_nullable` and `pyarrow`.
 
     Parameters
     ----------
@@ -127,21 +131,7 @@ def read_orc(
         pa_table = orc.read_table(
             source=source, columns=columns, filesystem=filesystem, **kwargs
         )
-    if dtype_backend is not lib.no_default:
-        if dtype_backend == "pyarrow":
-            df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
-        else:
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping()
-            df = pa_table.to_pandas(types_mapper=mapping.get)
-        return df
-    else:
-        if using_string_dtype():
-            types_mapper = arrow_string_types_mapper()
-        else:
-            types_mapper = None
-        return pa_table.to_pandas(types_mapper=types_mapper)
+    return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
 
 def to_orc(
@@ -228,7 +218,6 @@ def to_orc(
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
-    pyarrow = import_optional_dependency(engine, min_version="10.0.1")
     pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
@@ -239,7 +228,7 @@ def to_orc(
     with get_handle(path, "wb", is_text=False) as handles:
         try:
             orc.write_table(
-                pyarrow.Table.from_pandas(df, preserve_index=index),
+                pa.Table.from_pandas(df, preserve_index=index),
                 handles.handle,
                 **engine_kwargs,
             )

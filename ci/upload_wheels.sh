@@ -1,3 +1,4 @@
+#!/bin/bash
 # Modified from numpy's https://github.com/numpy/numpy/blob/main/tools/wheels/upload_wheels.sh
 
 set_upload_vars() {
@@ -19,20 +20,20 @@ set_upload_vars() {
     fi
 }
 upload_wheels() {
-    echo ${PWD}
+    echo "${PWD}"
     if [[ ${ANACONDA_UPLOAD} == true ]]; then
-        if [ -z ${TOKEN} ]; then
+        if [ -z "${TOKEN}" ]; then
             echo no token set, not uploading
         else
             # sdists are located under dist folder when built through setup.py
             if compgen -G "./dist/*.gz"; then
                 echo "Found sdist"
-                anaconda -q -t ${TOKEN} upload --skip -u ${ANACONDA_ORG} ./dist/*.gz
+                anaconda -q -t "${TOKEN}" upload --skip -u "${ANACONDA_ORG}" ./dist/*.gz
                 echo "Uploaded sdist"
             fi
             if compgen -G "./wheelhouse/*.whl"; then
                 echo "Found wheel"
-                anaconda -q -t ${TOKEN} upload --skip -u ${ANACONDA_ORG} ./wheelhouse/*.whl
+                anaconda -q -t "${TOKEN}" upload --skip -u "${ANACONDA_ORG}" ./wheelhouse/*.whl
                 echo "Uploaded wheel"
             fi
             echo "PyPI-style index: https://pypi.anaconda.org/$ANACONDA_ORG/simple"

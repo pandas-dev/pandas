@@ -321,7 +321,7 @@ The missing value can be filled with a specific value with the ``fill_value`` ar
 .. image:: ../_static/reshaping_melt.png
 
 The top-level :func:`~pandas.melt` function and the corresponding :meth:`DataFrame.melt`
-are useful to massage a :class:`DataFrame` into a format where one or more columns
+are useful to reshape a :class:`DataFrame` into a format where one or more columns
 are *identifier variables*, while all other columns, considered *measured
 variables*, are "unpivoted" to the row axis, leaving just two non-identifier
 columns, "variable" and "value". The names of those columns can be customized
@@ -395,7 +395,7 @@ variables and the values representing the presence of those variables per row.
    pd.get_dummies(df["key"])
    df["key"].str.get_dummies()
 
-``prefix`` adds a prefix to the the column names which is useful for merging the result
+``prefix`` adds a prefix to the column names which is useful for merging the result
 with the original :class:`DataFrame`:
 
 .. ipython:: python

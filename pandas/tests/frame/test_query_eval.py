@@ -159,6 +159,25 @@ class TestDataFrameEval:
         with pytest.raises(ValueError, match=msg):
             df.query("")
 
+    def test_query_duplicate_column_name(self, engine, parser):
+        df = DataFrame(
+            {
+                "A": range(3),
+                "B": range(3),
+                "C": range(3)
+            }
+        ).rename(columns={"B": "A"})
+
+        res = df.query('C == 1', engine=engine, parser=parser)
+
+        expect = DataFrame(
+            [[1, 1, 1]],
+            columns=["A", "A", "C"],
+            index=[1]
+        )
+
+        tm.assert_frame_equal(res, expect)
+
     def test_eval_resolvers_as_list(self):
         # GH 14095
         df = DataFrame(
@@ -772,7 +791,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(df_index)
-        expected.columns = expected.columns.astype(object)
         result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
@@ -1326,6 +1344,11 @@ class TestDataFrameQueryBacktickQuoting:
         res = df.eval("` A` + `  `")
         expect = df[" A"] + df["  "]
         tm.assert_series_equal(res, expect)
+
+    def test_ints(self, df):
+        res = df.query("`1` == 7")
+        expect = df[df[1] == 7]
+        tm.assert_frame_equal(res, expect)
 
     def test_lots_of_operators_string(self, df):
         res = df.query("`  &^ :!€$?(} >    <++*''  ` > 4")

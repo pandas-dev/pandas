@@ -1503,8 +1503,7 @@ def test_bad_xml(parser):
         with pytest.raises(
             SyntaxError,
             match=(
-                "Extra content at the end of the document|"
-                "junk after document element"
+                "Extra content at the end of the document|junk after document element"
             ),
         ):
             read_xml(
@@ -1962,7 +1961,7 @@ def test_wrong_compression(parser, compression, compression_only):
             read_xml(path, parser=parser, compression=attempted_compression)
 
 
-def test_unsuported_compression(parser):
+def test_unsupported_compression(parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             read_xml(path, parser=parser, compression="7z")

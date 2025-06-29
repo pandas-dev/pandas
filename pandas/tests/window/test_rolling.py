@@ -1326,6 +1326,82 @@ def test_rolling_corr_timedelta_index(index, window):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [float("nan"), float("nan"), 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [float("nan")] * 10,
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [float("nan"), float("nan"), 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [float("nan")] * 10,
+        ),
+    ],
+)
+def test_rolling_first_last(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.rolling(3), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.rolling(3), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [1.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [1.0, 1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0],
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0, 9.0],
+        ),
+    ],
+)
+def test_rolling_first_last_no_minp(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.rolling(3, min_periods=0), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.rolling(3, min_periods=0), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
 def test_groupby_rolling_nan_included():
     # GH 35542
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
@@ -1506,6 +1582,43 @@ def test_rank(window, method, pct, ascending, test_data):
         lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]
     )
     result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("window", [1, 3, 10, 20])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans", "precision"])
+def test_nunique(window, test_data):
+    length = 20
+    if test_data == "default":
+        ser = Series(data=np.random.default_rng(2).random(length))
+    elif test_data == "duplicates":
+        ser = Series(data=np.random.default_rng(2).choice(3, length))
+    elif test_data == "nans":
+        ser = Series(
+            data=np.random.default_rng(2).choice(
+                [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
+            )
+        )
+    elif test_data == "precision":
+        ser = Series(
+            data=[
+                0.3,
+                0.1 * 3,  # Not necessarily exactly 0.3
+                0.6,
+                0.2 * 3,  # Not necessarily exactly 0.6
+                0.9,
+                0.3 * 3,  # Not necessarily exactly 0.9
+                0.5,
+                0.1 * 5,  # Not necessarily exactly 0.5
+                0.8,
+                0.2 * 4,  # Not necessarily exactly 0.8
+            ],
+            dtype=np.float64,
+        )
+
+    expected = ser.rolling(window).apply(lambda x: x.nunique())
+    result = ser.rolling(window).nunique()
 
     tm.assert_series_equal(result, expected)
 
@@ -1833,3 +1946,66 @@ def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     df.index = df.index.as_unit("ns")
 
     tm.assert_frame_equal(ref_df, df)
+
+
+class PrescribedWindowIndexer(BaseIndexer):
+    def __init__(self, start, end):
+        self._start = start
+        self._end = end
+        super().__init__()
+
+    def get_window_bounds(
+        self, num_values=None, min_periods=None, center=None, closed=None, step=None
+    ):
+        if num_values is None:
+            num_values = len(self._start)
+        start = np.clip(self._start, 0, num_values)
+        end = np.clip(self._end, 0, num_values)
+        return start, end
+
+
+class TestMinMax:
+    @pytest.mark.parametrize(
+        "is_max, has_nan, exp_list",
+        [
+            (True, False, [3.0, 5.0, 2.0, 5.0, 1.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
+            (True, True, [3.0, 4.0, 2.0, 4.0, 1.0, 4.0, 6.0, 7.0, 7.0, 9.0]),
+            (False, False, [3.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 7.0, 0.0]),
+            (False, True, [3.0, 2.0, 2.0, 1.0, 1.0, 1.0, 6.0, 6.0, 7.0, 1.0]),
+        ],
+    )
+    def test_minmax(self, is_max, has_nan, exp_list):
+        nan_idx = [0, 5, 8]
+        df = DataFrame(
+            {
+                "data": [5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 6.0, 7.0, 8.0, 9.0],
+                "start": [2, 0, 3, 0, 4, 0, 5, 5, 7, 3],
+                "end": [3, 4, 4, 5, 5, 6, 7, 8, 9, 10],
+            }
+        )
+        if has_nan:
+            df.loc[nan_idx, "data"] = np.nan
+        expected = Series(exp_list, name="data")
+        r = df.data.rolling(
+            PrescribedWindowIndexer(df.start.to_numpy(), df.end.to_numpy())
+        )
+        if is_max:
+            result = r.max()
+        else:
+            result = r.min()
+
+        tm.assert_series_equal(result, expected)
+
+    def test_wrong_order(self):
+        start = np.array(range(5), dtype=np.int64)
+        end = start + 1
+        end[3] = end[2]
+        start[3] = start[2] - 1
+
+        df = DataFrame({"data": start * 1.0, "start": start, "end": end})
+
+        r = df.data.rolling(PrescribedWindowIndexer(start, end))
+        with pytest.raises(
+            ValueError, match="Start/End ordering requirement is violated at index 3"
+        ):
+            r.max()

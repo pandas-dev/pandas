@@ -32,6 +32,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -108,6 +109,7 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
+@set_module("pandas")
 class NamedAgg(NamedTuple):
     """
     Helper for column specific aggregation with control over output column names.
@@ -142,6 +144,7 @@ class NamedAgg(NamedTuple):
     aggfunc: AggScalar
 
 
+@set_module("pandas.api.typing")
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
         out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
@@ -501,11 +504,13 @@ class SeriesGroupBy(GroupBy[Series]):
                 #  inference. We default to using the existing dtype.
                 #  xref GH#51445
                 obj = self._obj_with_exclusions
-                return self.obj._constructor(
-                    [],
-                    name=self.obj.name,
-                    index=self._grouper.result_index,
-                    dtype=obj.dtype,
+                return self._wrap_aggregated_output(
+                    self.obj._constructor(
+                        [],
+                        name=self.obj.name,
+                        index=self._grouper.result_index,
+                        dtype=obj.dtype,
+                    )
                 )
             return self._python_agg_general(func, *args, **kwargs)
 
@@ -580,6 +585,8 @@ class SeriesGroupBy(GroupBy[Series]):
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex
                 res_index = data.index
+            elif not self.group_keys:
+                res_index = None
             else:
                 res_index = self._grouper.result_index
 
@@ -1267,13 +1274,86 @@ class SeriesGroupBy(GroupBy[Series]):
         Name: Max Speed, dtype: float64
         """
 
+        return self._cython_agg_general(
+            "skew", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
+
+    def kurt(
+        self,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ) -> Series:
+        """
+        Return unbiased kurtosis within groups.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series
+            Unbiased kurtosis within groups.
+
+        See Also
+        --------
+        Series.kurt : Return unbiased kurtosis over requested axis.
+
+        Examples
+        --------
+        >>> ser = pd.Series(
+        ...     [390.0, 350.0, 357.0, 333.0, np.nan, 22.0, 20.0, 30.0, 40.0, 41.0],
+        ...     index=[
+        ...         "Falcon",
+        ...         "Falcon",
+        ...         "Falcon",
+        ...         "Falcon",
+        ...         "Falcon",
+        ...         "Parrot",
+        ...         "Parrot",
+        ...         "Parrot",
+        ...         "Parrot",
+        ...         "Parrot",
+        ...     ],
+        ...     name="Max Speed",
+        ... )
+        >>> ser
+        Falcon    390.0
+        Falcon    350.0
+        Falcon    357.0
+        Falcon    333.0
+        Falcon      NaN
+        Parrot     22.0
+        Parrot     20.0
+        Parrot     30.0
+        Parrot     40.0
+        Parrot     41.0
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).kurt()
+        Falcon    1.622109
+        Parrot   -2.878714
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).kurt(skipna=False)
+        Falcon         NaN
+        Parrot   -2.878714
+        Name: Max Speed, dtype: float64
+        """
+
         def alt(obj):
             # This should not be reached since the cython path should raise
             #  TypeError and not NotImplementedError.
-            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
+            raise TypeError(f"'kurt' is not supported for dtype={obj.dtype}")
 
         return self._cython_agg_general(
-            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "kurt", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
     @property
@@ -1318,8 +1398,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        Index
-            Label of the minimum value.
+        Series
+            Indexes of minima in each group.
 
         Raises
         ------
@@ -1371,8 +1451,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        Index
-            Label of the maximum value.
+        Series
+            Indexes of maxima in each group.
 
         Raises
         ------
@@ -1440,6 +1520,11 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         Series
 
+        See Also
+        --------
+        SeriesGroupBy.is_monotonic_decreasing : Return whether each group's values
+            are monotonically decreasing.
+
         Examples
         --------
         >>> s = pd.Series([2, 1, 3, 4], index=["Falcon", "Falcon", "Parrot", "Parrot"])
@@ -1458,6 +1543,11 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+
+        See Also
+        --------
+        SeriesGroupBy.is_monotonic_increasing : Return whether each group's values
+            are monotonically increasing.
 
         Examples
         --------
@@ -1555,6 +1645,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
 
+@set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
     _agg_examples_doc = dedent(
         """
@@ -1953,6 +2044,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex
                 res_index = data.index
+            elif not self.group_keys:
+                res_index = None
             else:
                 res_index = self._grouper.result_index
 
@@ -2414,7 +2507,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         results = [func(sgb) for sgb in sgbs]
 
-        if not len(results):
+        if not results:
             # concat would raise
             res_df = DataFrame([], columns=columns, index=self._grouper.result_index)
         else:
@@ -2438,6 +2531,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -------
         nunique: DataFrame
             Counts of unique elements in each position.
+
+        See Also
+        --------
+        DataFrame.nunique : Count number of distinct elements in specified axis.
 
         Examples
         --------
@@ -2494,8 +2591,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        Series
-            Indexes of maxima in each group.
+        DataFrame
+            Indexes of maxima in each column according to the group.
 
         Raises
         ------
@@ -2505,6 +2602,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         Series.idxmax : Return index of the maximum element.
+        DataFrame.idxmax : Indexes of maxima along the specified axis.
 
         Notes
         -----
@@ -2518,6 +2616,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ...     {
         ...         "consumption": [10.51, 103.11, 55.48],
         ...         "co2_emissions": [37.2, 19.66, 1712],
+        ...         "food_type": ["meat", "plant", "meat"],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -2528,12 +2627,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Wheat Products       103.11         19.66
         Beef                  55.48       1712.00
 
-        By default, it returns the index for the maximum value in each column.
+        By default, it returns the index for the maximum value in each column
+        according to the group.
 
-        >>> df.idxmax()
-        consumption     Wheat Products
-        co2_emissions             Beef
-        dtype: object
+        >>> df.groupby("food_type").idxmax()
+                        consumption   co2_emissions
+        food_type
+        animal                 Beef            Beef
+        plant        Wheat Products  Wheat Products
         """
         return self._idxmax_idxmin("idxmax", numeric_only=numeric_only, skipna=skipna)
 
@@ -2556,8 +2657,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        Series
-            Indexes of minima in each group.
+        DataFrame
+            Indexes of minima in each column according to the group.
 
         Raises
         ------
@@ -2567,6 +2668,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         Series.idxmin : Return index of the minimum element.
+        DataFrame.idxmin : Indexes of minima along the specified axis.
 
         Notes
         -----
@@ -2580,6 +2682,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ...     {
         ...         "consumption": [10.51, 103.11, 55.48],
         ...         "co2_emissions": [37.2, 19.66, 1712],
+        ...         "food_type": ["meat", "plant", "meat"],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -2590,12 +2693,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Wheat Products       103.11         19.66
         Beef                  55.48       1712.00
 
-        By default, it returns the index for the minimum value in each column.
+        By default, it returns the index for the minimum value in each column
+        according to the group.
 
-        >>> df.idxmin()
-        consumption                Pork
-        co2_emissions    Wheat Products
-        dtype: object
+        >>> df.groupby("food_type").idxmin()
+                        consumption   co2_emissions
+        food_type
+        animal                 Pork            Pork
+        plant        Wheat Products  Wheat Products
         """
         return self._idxmax_idxmin("idxmin", numeric_only=numeric_only, skipna=skipna)
 
@@ -2889,6 +2994,111 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self._cython_agg_general(
             "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
+        )
+
+    def kurt(
+        self,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ) -> DataFrame:
+        """
+        Return unbiased kurtosis within groups.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        DataFrame
+            Unbiased kurtosis within groups.
+
+        See Also
+        --------
+        DataFrame.kurt : Return unbiased kurtosis over requested axis.
+
+        Examples
+        --------
+        >>> arrays = [
+        ...     [
+        ...         "falcon",
+        ...         "parrot",
+        ...         "cockatoo",
+        ...         "kiwi",
+        ...         "eagle",
+        ...         "lion",
+        ...         "monkey",
+        ...         "rabbit",
+        ...         "dog",
+        ...         "wolf",
+        ...     ],
+        ...     [
+        ...         "bird",
+        ...         "bird",
+        ...         "bird",
+        ...         "bird",
+        ...         "bird",
+        ...         "mammal",
+        ...         "mammal",
+        ...         "mammal",
+        ...         "mammal",
+        ...         "mammal",
+        ...     ],
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("name", "class"))
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "max_speed": [
+        ...             389.0,
+        ...             24.0,
+        ...             70.0,
+        ...             np.nan,
+        ...             350.0,
+        ...             80.5,
+        ...             21.5,
+        ...             15.0,
+        ...             40.0,
+        ...             50.0,
+        ...         ]
+        ...     },
+        ...     index=index,
+        ... )
+        >>> df
+                         max_speed
+        name     class
+        falcon   bird        389.0
+        parrot   bird         24.0
+        cockatoo bird         70.0
+        kiwi     bird          NaN
+        eagle    bird        350.0
+        lion     mammal       80.5
+        monkey   mammal       21.5
+        rabbit   mammal       15.0
+        dog      mammal       40.0
+        wolf     mammal       50.0
+        >>> gb = df.groupby(["class"])
+        >>> gb.kurt()
+                max_speed
+        class
+        bird    -5.493277
+        mammal   0.204125
+        >>> gb.kurt(skipna=False)
+                max_speed
+        class
+        bird          NaN
+        mammal   0.204125
+        """
+
+        return self._cython_agg_general(
+            "kurt", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
     @property

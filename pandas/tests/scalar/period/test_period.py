@@ -991,7 +991,6 @@ class TestPeriodProperties:
         qedec_date = Period(freq="Q-DEC", year=2007, quarter=1)
         qejan_date = Period(freq="Q-JAN", year=2007, quarter=1)
         qejun_date = Period(freq="Q-JUN", year=2007, quarter=1)
-        #
         for x in range(3):
             for qd in (qedec_date, qejan_date, qejun_date):
                 assert (qd + x).qyear == 2007
@@ -1016,7 +1015,6 @@ class TestPeriodProperties:
     def test_properties_weekly(self):
         # Test properties on Periods with daily frequency.
         w_date = Period(freq="W", year=2007, month=1, day=7)
-        #
         assert w_date.year == 2007
         assert w_date.quarter == 1
         assert w_date.month == 1
@@ -1046,7 +1044,6 @@ class TestPeriodProperties:
         # Test properties on Periods with daily frequency.
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             b_date = Period(freq="B", year=2007, month=1, day=1)
-        #
         assert b_date.year == 2007
         assert b_date.quarter == 1
         assert b_date.month == 1
@@ -1089,7 +1086,6 @@ class TestPeriodProperties:
     def test_properties_minutely(self):
         # Test properties on Periods with minutely frequency.
         t_date = Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
-        #
         assert t_date.quarter == 1
         assert t_date.month == 1
         assert t_date.day == 1
@@ -1108,7 +1104,6 @@ class TestPeriodProperties:
         s_date = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        #
         assert s_date.year == 2007
         assert s_date.quarter == 1
         assert s_date.month == 1

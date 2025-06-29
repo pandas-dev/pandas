@@ -13,6 +13,7 @@ from pandas._libs import index as libindex
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_scalar
@@ -76,6 +77,7 @@ if TYPE_CHECKING:
     Categorical,
     wrap=True,
 )
+@set_module("pandas")
 class CategoricalIndex(NDArrayBackedExtensionIndex):
     """
     Index based on an underlying :class:`Categorical`.

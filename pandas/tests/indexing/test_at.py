@@ -13,7 +13,6 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -67,11 +66,7 @@ class TestAtSetItem:
         df.at[0, "x"] = 4
         df.at[0, "cost"] = 789
 
-        expected = DataFrame(
-            {"x": [4], "cost": 789},
-            index=[0],
-            columns=Index(["x", "cost"], dtype=object),
-        )
+        expected = DataFrame({"x": [4], "cost": 789}, index=[0])
         tm.assert_frame_equal(df, expected)
 
         # And in particular, check that the _item_cache has updated correctly.

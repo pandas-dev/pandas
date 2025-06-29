@@ -18,9 +18,9 @@
                     <div class="col-md-4">
                         <h5>Getting started</h5>
                         <ul>
-                            <!-- <li><a href="{{ base_url }}/try.html">Try pandas online</a></li> -->
                             <li><a href="{{ base_url }}getting_started.html">Install pandas</a></li>
                             <li><a href="{{ base_url }}docs/getting_started/index.html">Getting started</a></li>
+                            <li><a href="{{ base_url }}try.html">Try pandas online</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
@@ -46,10 +46,10 @@
                     {% for row in sponsors.active | batch(6, "") %}
                         <div class="row mx-auto h-100">
                             {% for company in row %}
-                                <div class="col-6 col-md-2">
+                                <div class="col-6 col-md-2 d-flex align-items-center justify-content-center">
                                     {% if company %}
                                         <a href="{{ company.url }}" target="_blank">
-                                            <img class="img-fluid img-thumbnail py-5 mx-auto" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
+                                            <img class="img-fluid w-100" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
                                         </a>
                                     {% endif %}
                                 </div>
@@ -83,8 +83,8 @@
                             </a>
                         </li>
                         <li class="list-inline-item">
-                            <a href="https://twitter.com/pandas_dev/">
-                                <i class="follow-us-button fab bi bi-twitter"></i>
+                            <a href="https://x.com/pandas_dev">
+                                <i class="follow-us-button fab bi bi-twitter-x"></i>
                             </a>
                         </li>
                     </ul>
@@ -96,6 +96,11 @@
 						<img class="img-fluid" alt="Python for Data Analysis" src="{{ base_url }}static/img/books/pydata_book.gif"/>
 					</a>
 				</p>
+                                <p class="book">
+                                        <a href="https://www.packtpub.com/en-us/product/pandas-cookbook-9781836205876?utm_medium=affiliate&utm_campaign=d6d8585f-f475-a1ee-3989-67f3faf1238a&utm_term=5b056f65-afab-5c56-1f0a-5fd88167b4b5&utm_content=B31091">
+                                                <img class="img-fluid" alt="Pandas Cookbook, Third Edition" src="{{ base_url}}static/img/books/pandas_cookbook_3.gif"/>
+                                        </a>
+                                </p>
 				<p class="book">
 					<a href="https://store.metasnake.com/effective-pandas-book/lhte7">
 						<img class="img-fluid" alt="Effective pandas 2" src="{{ base_url }}static/img/books/effective_pandas_2.gif"/>
@@ -121,7 +126,7 @@
                     <ul id="show-more-releases" class="collapse">
                         {% for release in releases[5:] %}
                             <li class="small">
-                                {{ release.name }} ({{ release.published.strftime("%Y-%m-%d") }})<br/>
+                                {{ release.name }} ({{ release.published.strftime("%b %d, %Y") }})<br/>
                                 <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
                                 <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
                                 <a href="{{ release.url }}">code</a>

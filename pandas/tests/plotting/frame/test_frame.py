@@ -774,6 +774,16 @@ class TestDataFramePlots:
         expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
         assert result == expected
 
+    def test_bar_stacked_label_position_with_zero_height(self):
+        # GH 59429
+        df = DataFrame({"A": [3, 0, 1], "B": [0, 2, 4], "C": [5, 0, 2]})
+        ax = df.plot.bar(stacked=True)
+        ax.bar_label(ax.containers[-1])
+        expected = [8.0, 2.0, 7.0]
+        result = [text.xy[1] for text in ax.texts]
+        tm.assert_almost_equal(result, expected)
+        plt.close("all")
+
     @pytest.mark.parametrize("idx", [Index, pd.CategoricalIndex])
     def test_bar_categorical(self, idx):
         # GH 13019
@@ -830,14 +840,26 @@ class TestDataFramePlots:
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
-    def test_raise_error_on_datetime_time_data(self):
-        # GH 8113, datetime.time type is not supported by matplotlib in scatter
+    def test_scatter_on_datetime_time_data(self):
+        # datetime.time type is now supported in scatter, since a converter
+        # is implemented in ScatterPlot
         df = DataFrame(np.random.default_rng(2).standard_normal(10), columns=["a"])
         df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
-        msg = "must be a string or a (real )?number, not 'datetime.time'"
+        df.plot(kind="scatter", x="dtime", y="a")
 
-        with pytest.raises(TypeError, match=msg):
-            df.plot(kind="scatter", x="dtime", y="a")
+    def test_scatter_line_xticks(self):
+        # GH#61005
+        df = DataFrame(
+            [(datetime(year=2025, month=1, day=1, hour=n), n) for n in range(3)],
+            columns=["datetime", "y"],
+        )
+        fig, ax = plt.subplots(2, sharex=True)
+        df.plot.scatter(x="datetime", y="y", ax=ax[0])
+        scatter_xticks = ax[0].get_xticks()
+        df.plot(x="datetime", y="y", ax=ax[1])
+        line_xticks = ax[1].get_xticks()
+        assert scatter_xticks[0] == line_xticks[0]
+        assert scatter_xticks[-1] == line_xticks[-1]
 
     @pytest.mark.parametrize("x, y", [("dates", "vals"), (0, 1)])
     def test_scatterplot_datetime_data(self, x, y):
@@ -1060,28 +1082,43 @@ class TestDataFramePlots:
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), positions)
         assert len(ax.lines) == 7 * len(numeric_cols)
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
+    @pytest.mark.xfail(
+        Version(mpl.__version__) >= Version("3.10"),
+        reason="Fails starting with matplotlib 3.10",
+    )
     def test_boxplot_vertical(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
 
         # if horizontal, yticklabels are rotated
-        ax = df.plot.box(rot=50, fontsize=8, vert=False)
+        kwargs = (
+            {"vert": False}
+            if Version(mpl.__version__) < Version("3.10")
+            else {"orientation": "horizontal"}
+        )
+        ax = df.plot.box(rot=50, fontsize=8, **kwargs)
         _check_ticks_props(ax, xrot=0, yrot=50, ylabelsize=8)
         _check_text_labels(ax.get_yticklabels(), labels)
         assert len(ax.lines) == 7 * len(numeric_cols)
 
-    @pytest.mark.filterwarnings("ignore:Attempt:UserWarning")
+    @pytest.mark.filterwarnings("ignore::UserWarning")
+    @pytest.mark.xfail(
+        Version(mpl.__version__) >= Version("3.10"),
+        reason="Fails starting with matplotlib version 3.10",
+    )
     def test_boxplot_vertical_subplots(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
+        kwargs = (
+            {"vert": False}
+            if Version(mpl.__version__) < Version("3.10")
+            else {"orientation": "horizontal"}
+        )
         axes = _check_plot_works(
-            df.plot.box,
-            default_axes=True,
-            subplots=True,
-            vert=False,
-            logx=True,
+            df.plot.box, default_axes=True, subplots=True, logx=True, **kwargs
         )
         _check_axes_shape(axes, axes_num=3, layout=(1, 3))
         _check_ax_scales(axes, xaxis="log")
@@ -1089,12 +1126,22 @@ class TestDataFramePlots:
             _check_text_labels(ax.get_yticklabels(), [label])
             assert len(ax.lines) == 7
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
+    @pytest.mark.xfail(
+        Version(mpl.__version__) >= Version("3.10"),
+        reason="Fails starting with matplotlib 3.10",
+    )
     def test_boxplot_vertical_positions(self, hist_df):
         df = hist_df
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
         positions = np.array([3, 2, 8])
-        ax = df.plot.box(positions=positions, vert=False)
+        kwargs = (
+            {"vert": False}
+            if Version(mpl.__version__) < Version("3.10")
+            else {"orientation": "horizontal"}
+        )
+        ax = df.plot.box(positions=positions, **kwargs)
         _check_text_labels(ax.get_yticklabels(), labels)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), positions)
         assert len(ax.lines) == 7 * len(numeric_cols)
@@ -2578,6 +2625,14 @@ class TestDataFramePlots:
         ax = df.plot()
         result = ax.get_lines()[0].get_xdata()
         assert all(str(result[i]) == str(expected[i]) for i in range(4))
+
+    def test_plot_display_xlabel_and_xticks(self):
+        # GH#44050
+        df = DataFrame(np.random.default_rng(2).random((10, 2)), columns=["a", "b"])
+        ax = df.plot.hexbin(x="a", y="b")
+
+        _check_visible([ax.xaxis.get_label()], visible=True)
+        _check_visible(ax.get_xticklabels(), visible=True)
 
 
 def _generate_4_axes_via_gridspec():

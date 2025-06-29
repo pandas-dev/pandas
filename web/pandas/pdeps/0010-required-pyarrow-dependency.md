@@ -8,6 +8,8 @@
           [Patrick Hoefler](https://github.com/phofl)
 - Revision: 1
 
+[TOC]
+
 ## Abstract
 
 This PDEP proposes that:
@@ -185,7 +187,6 @@ Additionally, if a user is installing pandas in an environment where wheels are 
 the user will need to also build Arrow C++ and related dependencies when installing from source. These environments include
 
 - Alpine linux (commonly used as a base for Docker containers)
-- WASM (pyodide and pyscript)
 - Python development versions
 
 Lastly, pandas development and releases will need to be mindful of PyArrow's development and release cadance. For example when

@@ -180,6 +180,10 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def _str_isascii(self):
+        pass
+
+    @abc.abstractmethod
     def _str_isdecimal(self):
         pass
 

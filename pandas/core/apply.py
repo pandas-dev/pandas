@@ -74,6 +74,110 @@ if TYPE_CHECKING:
 ResType = dict[int, Any]
 
 
+class BaseExecutionEngine(abc.ABC):
+    """
+    Base class for execution engines for map and apply methods.
+
+    An execution engine receives all the parameters of a call to
+    ``apply`` or ``map``, such as the data container, the function,
+    etc. and takes care of running the execution.
+
+    Supporting different engines allows functions to be JIT compiled,
+    run in parallel, and others. Besides the default executor which
+    simply runs the code with the Python interpreter and pandas.
+    """
+
+    @staticmethod
+    @abc.abstractmethod
+    def map(
+        data: Series | DataFrame | np.ndarray,
+        func: AggFuncType,
+        args: tuple,
+        kwargs: dict[str, Any],
+        decorator: Callable | None,
+        skip_na: bool,
+    ):
+        """
+        Executor method to run functions elementwise.
+
+        In general, pandas uses ``map`` for running functions elementwise,
+        but ``Series.apply`` with the default ``by_row='compat'`` will also
+        call this executor function.
+
+        Parameters
+        ----------
+        data : Series, DataFrame or NumPy ndarray
+            The object to use for the data. Some methods implement a ``raw``
+            parameter which will convert the original pandas object to a
+            NumPy array, which will then be passed here to the executor.
+        func : function or NumPy ufunc
+            The function to execute.
+        args : tuple
+            Positional arguments to be passed to ``func``.
+        kwargs : dict
+            Keyword arguments to be passed to ``func``.
+        decorator : function, optional
+            For JIT compilers and other engines that need to decorate the
+            function ``func``, this is the decorator to use. While the
+            executor may already know which is the decorator to use, this
+            is useful as for a single executor the user can specify for
+            example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
+            decorator parameter will contain the exact decorator from the
+            executor the user wants to use.
+        skip_na : bool
+            Whether the function should be called for missing values or not.
+            This is specified by the pandas user as ``map(na_action=None)``
+            or ``map(na_action='ignore')``.
+        """
+
+    @staticmethod
+    @abc.abstractmethod
+    def apply(
+        data: Series | DataFrame | np.ndarray,
+        func: AggFuncType,
+        args: tuple,
+        kwargs: dict[str, Any],
+        decorator: Callable,
+        axis: Axis,
+    ):
+        """
+        Executor method to run functions by an axis.
+
+        While we can see ``map`` as executing the function for each cell
+        in a ``DataFrame`` (or ``Series``), ``apply`` will execute the
+        function for each column (or row).
+
+        Parameters
+        ----------
+        data : Series, DataFrame or NumPy ndarray
+            The object to use for the data. Some methods implement a ``raw``
+            parameter which will convert the original pandas object to a
+            NumPy array, which will then be passed here to the executor.
+        func : function or NumPy ufunc
+            The function to execute.
+        args : tuple
+            Positional arguments to be passed to ``func``.
+        kwargs : dict
+            Keyword arguments to be passed to ``func``.
+        decorator : function, optional
+            For JIT compilers and other engines that need to decorate the
+            function ``func``, this is the decorator to use. While the
+            executor may already know which is the decorator to use, this
+            is useful as for a single executor the user can specify for
+            example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
+            decorator parameter will contain the exact decorator from the
+            executor the user wants to use.
+        axis : {0 or 'index', 1 or 'columns'}
+            0 or 'index' should execute the function passing each column as
+            parameter. 1 or 'columns' should execute the function passing
+            each row as parameter. The default executor engine passes rows
+            as pandas ``Series``. Other executor engines should probably
+            expect functions to be implemented this way for compatibility.
+            But passing rows as other data structures is technically possible
+            as far as the function ``func`` is implemented accordingly.
+        """
+
+
 def frame_apply(
     obj: DataFrame,
     func: AggFuncType,
@@ -223,7 +327,7 @@ class Apply(metaclass=abc.ABCMeta):
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
             else:
-                func = {col: func for col in obj}
+                func = dict.fromkeys(obj, func)
 
         if is_dict_like(func):
             func = cast(AggFuncTypeDict, func)
@@ -994,6 +1098,7 @@ class FrameApply(NDFrameApply):
                 self.func,  # type: ignore[arg-type]
                 self.args,
                 self.kwargs,
+                num_required_args=1,
             )
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
@@ -1001,7 +1106,7 @@ class FrameApply(NDFrameApply):
             # list[Callable[..., Any] | str]]"; expected "Hashable"
             nb_looper = generate_apply_looper(
                 self.func,  # type: ignore[arg-type]
-                **get_jit_arguments(engine_kwargs, kwargs),
+                **get_jit_arguments(engine_kwargs),
             )
             result = nb_looper(self.values, self.axis, *args)
             # If we made the result 2-D, squeeze it back to 1-D
@@ -1158,9 +1263,11 @@ class FrameRowApply(FrameApply):
 
     def apply_with_numba(self) -> dict[int, Any]:
         func = cast(Callable, self.func)
-        args, kwargs = prepare_function_arguments(func, self.args, self.kwargs)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
-            func, **get_jit_arguments(self.engine_kwargs, kwargs)
+            func, **get_jit_arguments(self.engine_kwargs)
         )
         from pandas.core._numba.extensions import set_numba_data
 
@@ -1298,9 +1405,11 @@ class FrameColumnApply(FrameApply):
 
     def apply_with_numba(self) -> dict[int, Any]:
         func = cast(Callable, self.func)
-        args, kwargs = prepare_function_arguments(func, self.args, self.kwargs)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
-            func, **get_jit_arguments(self.engine_kwargs, kwargs)
+            func, **get_jit_arguments(self.engine_kwargs)
         )
 
         from pandas.core._numba.extensions import set_numba_data
@@ -1640,8 +1749,7 @@ def reconstruct_func(
             # GH 28426 will raise error if duplicated function names are used and
             # there is no reassigned name
             raise SpecificationError(
-                "Function names must be unique if there is no new column names "
-                "assigned"
+                "Function names must be unique if there is no new column names assigned"
             )
         if func is None:
             # nicer error message

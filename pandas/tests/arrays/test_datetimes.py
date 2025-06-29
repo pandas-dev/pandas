@@ -769,8 +769,10 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("freq_depr", ["2MIN", "2nS", "2Us"])
     def test_date_range_uppercase_frequency_deprecated(self, freq_depr):
         # GH#9586, GH#54939
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
-        f"future version. Please use '{freq_depr.lower()[1:]}' instead."
+        depr_msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+            f"future version, please use '{freq_depr.lower()[1:]}' instead."
+        )
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq_depr.lower())
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):

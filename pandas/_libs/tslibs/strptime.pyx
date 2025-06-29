@@ -444,6 +444,9 @@ def array_strptime(
             else:
                 val = str(val)
 
+            out_local = 0
+            out_tzoffset = 0
+
             if fmt == "ISO8601":
                 string_to_dts_succeeded = not string_to_dts(
                     val, &dts, &out_bestunit, &out_local,
@@ -924,6 +927,13 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
 
     correction = date(iso_year, 1, 4).isoweekday() + 3
     ordinal = (iso_week * 7) + iso_weekday - correction
+
+    if iso_week == 53:
+        now = date.fromordinal(date(iso_year, 1, 1).toordinal() + ordinal - iso_weekday)
+        jan_4th = date(iso_year+1, 1, 4)
+        if (jan_4th - now).days < 7:
+            raise ValueError(f"Week 53 does not exist in ISO year {iso_year}.")
+
     # ordinal may be negative or 0 now, which means the date is in the previous
     # calendar year
     if ordinal < 1:

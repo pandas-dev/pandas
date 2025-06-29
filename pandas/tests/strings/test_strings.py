@@ -95,6 +95,7 @@ def test_repeat_with_null(any_string_dtype, arg, repeat):
 
 def test_empty_str_methods(any_string_dtype):
     empty_str = empty = Series(dtype=any_string_dtype)
+    empty_inferred_str = Series(dtype="str")
     if is_object_or_nan_string_dtype(any_string_dtype):
         empty_int = Series(dtype="int64")
         empty_bool = Series(dtype=bool)
@@ -154,11 +155,12 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_series_equal(empty_str, empty.str.rstrip())
     tm.assert_series_equal(empty_str, empty.str.wrap(42))
     tm.assert_series_equal(empty_str, empty.str.get(0))
-    tm.assert_series_equal(empty_object, empty_bytes.str.decode("ascii"))
+    tm.assert_series_equal(empty_inferred_str, empty_bytes.str.decode("ascii"))
     tm.assert_series_equal(empty_bytes, empty.str.encode("ascii"))
     # ismethods should always return boolean (GH 29624)
     tm.assert_series_equal(empty_bool, empty.str.isalnum())
     tm.assert_series_equal(empty_bool, empty.str.isalpha())
+    tm.assert_series_equal(empty_bool, empty.str.isascii())
     tm.assert_series_equal(empty_bool, empty.str.isdigit())
     tm.assert_series_equal(empty_bool, empty.str.isspace())
     tm.assert_series_equal(empty_bool, empty.str.islower())
@@ -177,6 +179,7 @@ def test_empty_str_methods(any_string_dtype):
 @pytest.mark.parametrize(
     "method, expected",
     [
+        ("isascii", [True, True, True, True, True, True, True, True, True, True]),
         ("isalnum", [True, True, True, True, True, False, True, True, False, False]),
         ("isalpha", [True, True, True, False, False, False, True, False, False, False]),
         (
@@ -564,7 +567,7 @@ def test_string_slice_out_of_bounds(any_string_dtype):
 def test_encode_decode(any_string_dtype):
     ser = Series(["a", "b", "a\xe4"], dtype=any_string_dtype).str.encode("utf-8")
     result = ser.str.decode("utf-8")
-    expected = ser.map(lambda x: x.decode("utf-8")).astype(object)
+    expected = Series(["a", "b", "a\xe4"], dtype="str")
     tm.assert_series_equal(result, expected)
 
 
@@ -594,8 +597,32 @@ def test_decode_errors_kwarg():
         ser.str.decode("cp1252")
 
     result = ser.str.decode("cp1252", "ignore")
-    expected = ser.map(lambda x: x.decode("cp1252", "ignore")).astype(object)
+    expected = ser.map(lambda x: x.decode("cp1252", "ignore")).astype("str")
     tm.assert_series_equal(result, expected)
+
+
+def test_decode_string_dtype(string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/60940
+    ser = Series([b"a", b"b"])
+    result = ser.str.decode("utf-8", dtype=string_dtype)
+    expected = Series(["a", "b"], dtype=string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_decode_object_dtype(object_dtype):
+    # https://github.com/pandas-dev/pandas/pull/60940
+    ser = Series([b"a", rb"\ud800"])
+    result = ser.str.decode("utf-8", dtype=object_dtype)
+    expected = Series(["a", r"\ud800"], dtype=object_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_decode_bad_dtype():
+    # https://github.com/pandas-dev/pandas/pull/60940
+    ser = Series([b"a", b"b"])
+    msg = "dtype must be string or object, got dtype='int64'"
+    with pytest.raises(ValueError, match=msg):
+        ser.str.decode("utf-8", dtype="int64")
 
 
 @pytest.mark.parametrize(
@@ -749,5 +776,5 @@ def test_get_with_dict_label():
 def test_series_str_decode():
     # GH 22613
     result = Series([b"x", b"y"]).str.decode(encoding="UTF-8", errors="strict")
-    expected = Series(["x", "y"], dtype="object")
+    expected = Series(["x", "y"], dtype="str")
     tm.assert_series_equal(result, expected)

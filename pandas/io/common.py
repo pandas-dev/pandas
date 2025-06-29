@@ -71,7 +71,7 @@ from pandas.core.shared_docs import _shared_docs
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
-_RFC_3986_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
+_FSSPEC_URL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*(::[A-Za-z0-9+\-+.]+)*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
 
@@ -291,7 +291,7 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     """
     return (
         isinstance(url, str)
-        and bool(_RFC_3986_PATTERN.match(url))
+        and bool(_FSSPEC_URL_PATTERN.match(url))
         and not url.startswith(("http://", "https://"))
     )
 
@@ -584,6 +584,9 @@ def infer_compression(
     # Infer compression
     if compression == "infer":
         # Convert all path types (e.g. pathlib.Path) to strings
+        if isinstance(filepath_or_buffer, str) and "::" in filepath_or_buffer:
+            # chained URLs contain ::
+            filepath_or_buffer = filepath_or_buffer.split("::")[0]
         filepath_or_buffer = stringify_path(filepath_or_buffer, convert_file_like=True)
         if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
@@ -910,10 +913,10 @@ def get_handle(
             or not hasattr(handle, "seekable")
         ):
             handle = _IOWrapper(handle)
-        # error: Argument 1 to "TextIOWrapper" has incompatible type
-        # "_IOWrapper"; expected "IO[bytes]"
+        # error: Value of type variable "_BufferT_co" of "TextIOWrapper" cannot
+        # be "_IOWrapper | BaseBuffer" [type-var]
         handle = TextIOWrapper(
-            handle,  # type: ignore[arg-type]
+            handle,  # type: ignore[type-var]
             encoding=ioargs.encoding,
             errors=errors,
             newline="",

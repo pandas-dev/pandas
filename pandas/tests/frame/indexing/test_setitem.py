@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import (
@@ -146,14 +144,31 @@ class TestDataFrameSetItem:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_setitem_empty_columns(self):
-        # GH 13522
+    def test_setitem_overwrite_index(self):
+        # GH 13522 - assign the index as a column and then overwrite the values
+        # -> should not affect the index
         df = DataFrame(index=["A", "B", "C"])
         df["X"] = df.index
         df["X"] = ["x", "y", "z"]
-        exp = DataFrame(data={"X": ["x", "y", "z"]}, index=["A", "B", "C"])
+        exp = DataFrame(
+            data={"X": ["x", "y", "z"]}, index=["A", "B", "C"], columns=["X"]
+        )
         tm.assert_frame_equal(df, exp)
+
+    def test_setitem_empty_columns(self):
+        # Starting from an empty DataFrame and setting a column should result
+        # in a default string dtype for the columns' Index
+        # https://github.com/pandas-dev/pandas/issues/60338
+
+        df = DataFrame()
+        df["foo"] = [1, 2, 3]
+        expected = DataFrame({"foo": [1, 2, 3]})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame(columns=Index([]))
+        df["foo"] = [1, 2, 3]
+        expected = DataFrame({"foo": [1, 2, 3]})
+        tm.assert_frame_equal(df, expected)
 
     def test_setitem_dt64_index_empty_columns(self):
         rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
@@ -162,7 +177,6 @@ class TestDataFrameSetItem:
         df["A"] = rng
         assert df["A"].dtype == np.dtype("M8[ns]")
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
@@ -202,14 +216,13 @@ class TestDataFrameSetItem:
         expected = Series(SparseArray([1, 0, 0]), name="new_column")
         tm.assert_series_equal(df["new_column"], expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_period_preserves_dtype(self):
         # GH: 26861
         data = [Period("2003-12", "D")]
         result = DataFrame([])
         result["a"] = data
 
-        expected = DataFrame({"a": data})
+        expected = DataFrame({"a": data}, columns=["a"])
 
         tm.assert_frame_equal(result, expected)
 
@@ -672,11 +685,10 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1, 2, 3], "b": [4, 1, 1]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_dtypes_bytes_type_to_object(self):
         # GH 20734
         index = Series(name="id", dtype="S24")
-        df = DataFrame(index=index)
+        df = DataFrame(index=index, columns=Index([], dtype="str"))
         df["a"] = Series(name="a", index=index, dtype=np.uint32)
         df["b"] = Series(name="b", index=index, dtype="S64")
         df["c"] = Series(name="c", index=index, dtype="S64")
@@ -705,7 +717,6 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1, 2]}, dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_npmatrix_2d(self):
         # GH#42376
         # for use-case df["x"] = sparse.random((10, 10)).mean(axis=1)
@@ -714,7 +725,7 @@ class TestDataFrameSetItem:
         )
 
         a = np.ones((10, 1))
-        df = DataFrame(index=np.arange(10))
+        df = DataFrame(index=np.arange(10), columns=Index([], dtype="str"))
         df["np-array"] = a
 
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
@@ -927,7 +938,6 @@ class TestDataFrameSetItemWithExpansion:
         ser.name = "E"
         tm.assert_series_equal(result2.sort_index(), ser.sort_index())
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_scalars_no_index(self):
         # GH#16823 / GH#17894
         df = DataFrame()

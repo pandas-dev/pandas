@@ -42,6 +42,8 @@ from pandas.compat import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
+    pa_version_under19p0,
+    pa_version_under20p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -393,12 +395,11 @@ class TestArrowArray(base.ExtensionTests):
         # attribute "pyarrow_dtype"
         pa_type = ser.dtype.pyarrow_dtype  # type: ignore[union-attr]
 
-        if (
-            pa.types.is_string(pa_type)
-            or pa.types.is_binary(pa_type)
-            or pa.types.is_decimal(pa_type)
-        ):
+        if pa.types.is_binary(pa_type) or pa.types.is_decimal(pa_type):
             if op_name in ["cumsum", "cumprod", "cummax", "cummin"]:
+                return False
+        elif pa.types.is_string(pa_type):
+            if op_name == "cumprod":
                 return False
         elif pa.types.is_boolean(pa_type):
             if op_name in ["cumprod", "cummax", "cummin"]:
@@ -414,6 +415,12 @@ class TestArrowArray(base.ExtensionTests):
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna, request):
         pa_type = data.dtype.pyarrow_dtype
         op_name = all_numeric_accumulations
+
+        if pa.types.is_string(pa_type) and op_name in ["cumsum", "cummin", "cummax"]:
+            # https://github.com/pandas-dev/pandas/pull/60633
+            # Doesn't fit test structure, tested in series/test_cumulative.py instead.
+            return
+
         ser = pd.Series(data)
 
         if not self._supports_accumulation(ser, op_name):
@@ -441,37 +448,31 @@ class TestArrowArray(base.ExtensionTests):
             request.applymarker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
-                    raises=NotImplementedError,
+                    raises=TypeError,
                 )
             )
 
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if op_name in ["kurt", "skew"]:
+        if op_name == "kurt" or (pa_version_under20p0 and op_name == "skew"):
             return False
 
         dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
-        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod"]:
+        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod", "skew"]:
             if pa.types.is_duration(pa_dtype) and op_name in ["sum"]:
                 # summing timedeltas is one case that *is* well-defined
                 pass
             else:
                 return False
+        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew"]:
+            return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and op_name in [
-            "sum",
-            "mean",
-            "median",
-            "prod",
-            "std",
-            "sem",
-            "var",
-        ]:
+        ) and op_name in ["mean", "median", "prod", "std", "sem", "var", "skew"]:
             return False
 
         if (
@@ -555,7 +556,7 @@ class TestArrowArray(base.ExtensionTests):
             else:
                 cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
-            if op_name not in ["median", "var", "std", "sem"]:
+            if op_name not in ["median", "var", "std", "sem", "skew"]:
                 cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
@@ -563,6 +564,8 @@ class TestArrowArray(base.ExtensionTests):
             cmp_dtype = "float64[pyarrow]"
         elif op_name in ["sum", "prod"] and pa.types.is_boolean(pa_type):
             cmp_dtype = "uint64[pyarrow]"
+        elif op_name == "sum" and pa.types.is_string(pa_type):
+            cmp_dtype = arr.dtype
         else:
             cmp_dtype = {
                 "i": "int64[pyarrow]",
@@ -571,10 +574,29 @@ class TestArrowArray(base.ExtensionTests):
             }[arr.dtype.kind]
         return cmp_dtype
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if (
+            not pa_version_under20p0
+            and skipna
+            and all_numeric_reductions == "skew"
+            and (
+                pa.types.is_integer(data.dtype.pyarrow_dtype)
+                or pa.types.is_floating(data.dtype.pyarrow_dtype)
+            )
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="https://github.com/apache/arrow/issues/45733",
+                )
+            )
+        return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
-        if op_name == "skew":
+        if op_name == "skew" and pa_version_under20p0:
             if data.dtype._is_numeric:
                 mark = pytest.mark.xfail(reason="skew not implemented")
                 request.applymarker(mark)
@@ -593,26 +615,6 @@ class TestArrowArray(base.ExtensionTests):
         # GH 52679
         result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
         assert result == 1.5
-
-    def test_in_numeric_groupby(self, data_for_grouping):
-        dtype = data_for_grouping.dtype
-        if is_string_dtype(dtype):
-            df = pd.DataFrame(
-                {
-                    "A": [1, 1, 2, 2, 3, 3, 1, 4],
-                    "B": data_for_grouping,
-                    "C": [1, 1, 1, 1, 1, 1, 1, 1],
-                }
-            )
-
-            expected = pd.Index(["C"])
-            msg = re.escape(f"agg function failed [how->sum,dtype->{dtype}")
-            with pytest.raises(TypeError, match=msg):
-                df.groupby("A").sum()
-            result = df.groupby("A").sum(numeric_only=True).columns
-            tm.assert_index_equal(result, expected)
-        else:
-            super().test_in_numeric_groupby(data_for_grouping)
 
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
@@ -913,9 +915,7 @@ class TestArrowArray(base.ExtensionTests):
                 )
             )
             and pa.types.is_duration(pa_dtype)
-            or opname in ("__sub__", "__rsub__")
-            and pa.types.is_temporal(pa_dtype)
-        )
+        ) or (opname in ("__sub__", "__rsub__") and pa.types.is_temporal(pa_dtype))
 
     def _get_expected_exception(
         self, op_name: str, obj, other
@@ -978,8 +978,7 @@ class TestArrowArray(base.ExtensionTests):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(
-                    f"{opname} not supported between"
-                    f"pd.NA and {pa_dtype} Python scalar"
+                    f"{opname} not supported betweenpd.NA and {pa_dtype} Python scalar"
                 ),
             )
         elif opname == "__rfloordiv__" and (
@@ -1666,7 +1665,7 @@ def test_from_arrow_respecting_given_dtype():
 
 def test_from_arrow_respecting_given_dtype_unsafe():
     array = pa.array([1.5, 2.5], type=pa.float64())
-    with pytest.raises(pa.ArrowInvalid, match="Float value 1.5 was truncated"):
+    with tm.external_error_raised(pa.ArrowInvalid):
         array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
 
 
@@ -3344,6 +3343,18 @@ def test_factorize_chunked_dictionary():
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
+def test_factorize_dictionary_with_na():
+    # GH#60567
+    arr = pd.array(
+        ["a1", pd.NA], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+    )
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([0, 1], dtype=np.intp)
+    expected_uniques = pd.array(["a1", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
 def test_dictionary_astype_categorical():
     # GH#56672
     arrs = [
@@ -3470,7 +3481,9 @@ def test_string_to_datetime_parsing_cast():
 )
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
-        with pytest.raises(ValueError, match="Values must be numeric."):
+        ser = pd.Series(data)
+        msg = re.escape(f"Cannot interpolate with {ser.dtype} dtype")
+        with pytest.raises(TypeError, match=msg):
             pd.Series(data).interpolate()
 
 
@@ -3524,3 +3537,30 @@ def test_map_numeric_na_action():
     result = ser.map(lambda x: 42, na_action="ignore")
     expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
     tm.assert_series_equal(result, expected)
+
+
+def test_categorical_from_arrow_dictionary():
+    # GH 60563
+    df = pd.DataFrame(
+        {"A": ["a1", "a2"]}, dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+    )
+    result = df.value_counts(dropna=False)
+    expected = pd.Series(
+        [1, 1],
+        index=pd.MultiIndex.from_arrays(
+            [pd.Index(["a1", "a2"], dtype=ArrowDtype(pa.string()), name="A")]
+        ),
+        name="count",
+        dtype="int64",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    pa_version_under19p0, reason="pa.json_ was introduced in pyarrow v19.0"
+)
+def test_arrow_json_type():
+    # GH 60958
+    dtype = ArrowDtype(pa.json_(pa.string()))
+    result = dtype.type
+    assert result == str

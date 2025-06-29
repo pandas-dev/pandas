@@ -324,12 +324,9 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        warn = DeprecationWarning if groupby == "column" else None
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = gp.apply(
-                _frame_value_counts, ["gender", "education"], normalize, sort, ascending
-            )
+        expected = gp.apply(
+            _frame_value_counts, ["gender", "education"], normalize, sort, ascending
+        )
 
         if as_index:
             tm.assert_series_equal(result, expected)

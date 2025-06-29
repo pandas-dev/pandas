@@ -24,11 +24,14 @@ import pytest
 
 from pandas.compat import HAS_PYARROW
 
+from pandas.core.dtypes.base import StorageExtensionDtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.tests.arrays.string_.test_string import string_dtype_highest_priority
 from pandas.tests.extension import base
 
 
@@ -105,8 +108,8 @@ class TestStringArray(base.ExtensionTests):
             # only the NA-variant supports parametrized string alias
             assert dtype == f"string[{dtype.storage}]"
         elif dtype.storage == "pyarrow":
-            # TODO(infer_string) deprecate this
-            assert dtype == "string[pyarrow_numpy]"
+            with tm.assert_produces_warning(FutureWarning):
+                assert dtype == "string[pyarrow_numpy]"
 
     def test_is_not_string_type(self, dtype):
         # Different from BaseDtypeTests.test_is_not_string_type
@@ -187,20 +190,26 @@ class TestStringArray(base.ExtensionTests):
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        return (
-            op_name in ["min", "max"]
-            or ser.dtype.na_value is np.nan  # type: ignore[union-attr]
+        return op_name in ["min", "max", "sum"] or (
+            ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
+
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        assert isinstance(ser.dtype, StorageExtensionDtype)
+        return op_name in ["cummin", "cummax", "cumsum"]
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         dtype = cast(StringDtype, tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
+            dtype_other = tm.get_dtype(other) if not isinstance(other, str) else None
+            if isinstance(dtype_other, StringDtype):
+                cast_to = string_dtype_highest_priority(dtype, dtype_other)
         elif dtype.na_value is np.nan:
             cast_to = np.bool_  # type: ignore[assignment]
         elif dtype.storage == "pyarrow":
-            cast_to = "boolean[pyarrow]"  # type: ignore[assignment]
+            cast_to = "bool[pyarrow]"  # type: ignore[assignment]
         else:
             cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)
@@ -231,10 +240,10 @@ class TestStringArray(base.ExtensionTests):
         if (
             using_infer_string
             and all_arithmetic_operators == "__radd__"
-            and (
-                (dtype.na_value is pd.NA) or (dtype.storage == "python" and HAS_PYARROW)
-            )
+            and dtype.na_value is pd.NA
+            and (HAS_PYARROW or dtype.storage == "pyarrow")
         ):
+            # TODO(infer_string)
             mark = pytest.mark.xfail(
                 reason="The pointwise operation result will be inferred to "
                 "string[nan, pyarrow], which does not match the input dtype"

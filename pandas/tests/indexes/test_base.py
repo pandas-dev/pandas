@@ -8,12 +8,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import (
-    HAS_PYARROW,
-    IS64,
-)
+from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
@@ -356,14 +351,11 @@ class TestIndex:
             msg = "When changing to a larger dtype"
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
-        elif index.dtype == "str" and not index.dtype.storage == "python":
-            # TODO(infer_string): Make the errors consistent
-            with pytest.raises(NotImplementedError, match="i8"):
-                index.view("i8")
         else:
             msg = (
-                "Cannot change data-type for array of references.|"
-                "Cannot change data-type for object array.|"
+                r"Cannot change data-type for array of references\.|"
+                r"Cannot change data-type for object array\.|"
+                r"Cannot change data-type for array of strings\.|"
             )
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
@@ -823,11 +815,6 @@ class TestIndex:
         expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     def test_isin_nan_common_object(
         self, nulls_fixture, nulls_fixture2, using_infer_string
     ):
@@ -1125,8 +1112,7 @@ class TestIndex:
     def test_take_fill_value_none_raises(self):
         index = Index(list("ABC"), name="xxx")
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
 
         with pytest.raises(ValueError, match=msg):

@@ -46,7 +46,7 @@ class ArrowAccessor(metaclass=ABCMeta):
 
     def _validate(self, data) -> None:
         dtype = data.dtype
-        if not isinstance(dtype, ArrowDtype):
+        if pa_version_under10p1 or not isinstance(dtype, ArrowDtype):
             # Raise AttributeError so that inspect can handle non-struct Series.
             raise AttributeError(self._validation_msg.format(dtype=dtype))
 
@@ -117,7 +117,10 @@ class ListAccessor(ArrowAccessor):
 
         value_lengths = pc.list_value_length(self._pa_array)
         return Series(
-            value_lengths, dtype=ArrowDtype(value_lengths.type), index=self._data.index
+            value_lengths,
+            dtype=ArrowDtype(value_lengths.type),
+            index=self._data.index,
+            name=self._data.name,
         )
 
     def __getitem__(self, key: int | slice) -> Series:
@@ -162,7 +165,10 @@ class ListAccessor(ArrowAccessor):
             #     key = pc.add(key, pc.list_value_length(self._pa_array))
             element = pc.list_element(self._pa_array, key)
             return Series(
-                element, dtype=ArrowDtype(element.type), index=self._data.index
+                element,
+                dtype=ArrowDtype(element.type),
+                index=self._data.index,
+                name=self._data.name,
             )
         elif isinstance(key, slice):
             if pa_version_under11p0:
@@ -181,7 +187,12 @@ class ListAccessor(ArrowAccessor):
             if step is None:
                 step = 1
             sliced = pc.list_slice(self._pa_array, start, stop, step)
-            return Series(sliced, dtype=ArrowDtype(sliced.type), index=self._data.index)
+            return Series(
+                sliced,
+                dtype=ArrowDtype(sliced.type),
+                index=self._data.index,
+                name=self._data.name,
+            )
         else:
             raise ValueError(f"key must be an int or slice, got {type(key).__name__}")
 
@@ -223,7 +234,12 @@ class ListAccessor(ArrowAccessor):
         counts = pa.compute.list_value_length(self._pa_array)
         flattened = pa.compute.list_flatten(self._pa_array)
         index = self._data.index.repeat(counts.fill_null(pa.scalar(0, counts.type)))
-        return Series(flattened, dtype=ArrowDtype(flattened.type), index=index)
+        return Series(
+            flattened,
+            dtype=ArrowDtype(flattened.type),
+            index=index,
+            name=self._data.name,
+        )
 
 
 class StructAccessor(ArrowAccessor):
