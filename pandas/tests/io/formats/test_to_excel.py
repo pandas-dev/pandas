@@ -1,12 +1,18 @@
-"""Tests formatting as writer-agnostic ExcelCells
+"""Tests formatting as writer-agnostic ExcelCells"""
 
-ExcelFormatter is tested implicitly in pandas/tests/io/excel
-"""
+import numpy as np
 
 import string
 
 import pytest
 
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Timestamp,
+    NaT
+)
 from pandas.errors import CSSWarning
 
 import pandas._testing as tm
@@ -14,8 +20,13 @@ import pandas._testing as tm
 from pandas.io.formats.excel import (
     CssExcelCell,
     CSSToExcelConverter,
+    ExcelCell,
+    ExcelFormatter,
 )
 
+from pandas.io.formats.style import Styler
+
+from unittest.mock import Mock, patch, call
 
 @pytest.mark.parametrize(
     "css,expected",
@@ -471,3 +482,544 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
 
     assert cache_info.hits == cache_hits
     assert cache_info.misses == cache_misses
+
+
+class TestExcelFormatter:
+    def test_excel_sheet_size_error(self, tmp_path):
+        """Testing that we throw an error when the sheet input is too large"""
+        breaking_row_count = 2**20 + 1
+        breaking_col_count = 2**14 + 1
+
+        # Test for too many rows
+        row_df = DataFrame(np.zeros(shape=(breaking_row_count, 1)))
+        formatter_rows = ExcelFormatter(row_df)
+
+        # Test for too many columns
+        col_df = DataFrame(np.zeros(shape=(1, breaking_col_count)))
+        formatter_cols = ExcelFormatter(col_df)
+
+        msg = "This sheet is too large!"
+        dummy_path = tmp_path / "dummy.xlsx"
+
+        with pytest.raises(ValueError, match=msg):
+            formatter_rows.write(writer=dummy_path)
+
+        with pytest.raises(ValueError, match=msg):
+            formatter_cols.write(writer=dummy_path)
+
+    @pytest.mark.parametrize(
+        "formatter_kwargs",
+        [
+            {},
+            {"style_converter": CSSToExcelConverter()},
+        ],
+    )
+    def test_styler_input_recognized(self, formatter_kwargs):
+        # GH 48567
+        """
+        Testing that when the df input is a Styler, it is recognized and
+        written to self.style_converter.
+        """
+        df = DataFrame({"A": [1, 2]})
+        styler = Styler(df)
+        formatter = ExcelFormatter(styler, **formatter_kwargs)
+
+        assert formatter.styler is styler
+        assert formatter.df is df
+        assert isinstance(formatter.style_converter, CSSToExcelConverter)
+
+    @pytest.mark.parametrize("columns", [
+        ["A","C"],
+        ["A","B","C"]
+    ])
+    def test_column_missmatch(self, columns):
+        """Testing that we throw an error when the specified columns are not found"""
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        msg="Not all names specified in 'columns' are found"
+        with pytest.raises(KeyError, match=msg):
+            ExcelFormatter(df, cols=columns)
+
+    @pytest.mark.parametrize("columns",[
+    ["C"],
+    ["D"],
+    ["C","D"]
+    ])
+    def test_column_full_miss(self,columns):
+        """Testing that we throw an error when all of the columns are not in"""
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        msg="Passed columns are not ALL present dataframe"
+        with pytest.raises(KeyError, match=msg):
+            ExcelFormatter(df, cols=columns)
+
+    @pytest.mark.parametrize("merge_cells", [
+        "1",
+        "invalid",
+        1,
+        0
+    ])
+    def test_merge_cells_not_bool_throws(self, merge_cells):
+        """Testing that we throw an error when merge_cells is not a boolean"""
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        msg = f"Unexpected value for {merge_cells=}."
+        with pytest.raises(ValueError, match=msg):
+            ExcelFormatter(df, merge_cells=merge_cells)
+
+
+    @pytest.mark.parametrize(
+        "val, na_rep, expected",
+        [
+            (np.nan, "missing", "missing"),
+            (None, "missing", "missing"),
+            (np.nan, "", ""),
+        ],
+    )
+    def test_format_value_handles_na(self, val, na_rep, expected):
+        """
+        Test that _format_value correctly handles scalar missing values.
+        """
+        df = DataFrame()
+        formatter = ExcelFormatter(df, na_rep=na_rep)
+        result = formatter._format_value(val)
+        assert result == expected
+    
+    @pytest.mark.parametrize(
+        "val, float_format, inf_rep, expected",
+        [
+            (1.12345, "%.2f", "inf", 1.12),
+            (np.inf, None, "inf_string", "inf_string"),
+            (-np.inf, None, "inf_string", "-inf_string"),
+            (1.123, None, "inf", 1.123),
+        ],
+    )
+    def test_format_value_handles_float(self, val, float_format, inf_rep, expected):
+        """
+        Test that _format_value correctly handles float values.
+        """
+        df = DataFrame()
+        formatter = ExcelFormatter(
+            df, float_format=float_format, inf_rep=inf_rep
+        )
+        result = formatter._format_value(val)
+        assert result == expected
+
+    def test_format_value_throws_for_tz_aware_dt(self):
+        """
+        Test that _format_value raises ValueError for tz-aware datetimes.
+        """
+        df = DataFrame()
+        formatter = ExcelFormatter(df)
+        val = Timestamp("2025-06-27 10:00", tz="UTC")
+        msg = (
+            "Excel does not support datetimes with "
+            "timezones. Please ensure that datetimes "
+            "are timezone unaware before writing to Excel."
+        )
+        with pytest.raises(ValueError, match=msg):
+            formatter._format_value(val)
+
+    def test_formated_header_mi_multi_index_throws(self):
+        header = [
+            ("Cool", "A"), ("Cool", "B"),
+            ("Amazing", "C"), ("Amazing", "D")
+        ]
+        columns = MultiIndex.from_tuples(header)
+        df = DataFrame(
+            np.random.randn(4, 4),
+            columns=columns
+        )        
+        formatter = ExcelFormatter(df, index=False)
+        assert(formatter.columns.nlevels > 1 and not formatter.index)
+        msg = (
+            "Writing to Excel with MultiIndex columns and no "
+            "index ('index'=False) is not yet implemented."
+        )
+        with pytest.raises(NotImplementedError):
+            list(formatter._format_header_mi())
+    
+    def test_returns_none_no_header(self):
+        df = DataFrame({"A": [1,2], "B": [3,4]})
+        formatter = ExcelFormatter(df,header=False)
+        assert(formatter._has_aliases == False)
+        assert(list(formatter._format_header_mi()) == list())
+    
+    @pytest.mark.parametrize(
+        "df, merge_cells, expected_cells",
+        [
+            # Case 1: MultiIndex columns, merge_cells=True
+            (
+                DataFrame(
+                    np.zeros((1, 4)),
+                    columns=MultiIndex.from_product([["A", "B"], ["C", "D"]]),
+                ),
+                True,
+                [
+                    (0, 0, None, None, None),
+                    (1, 0, None, None, None),
+                    (0, 1, "A", 0, 2),  # row, col, val, mergestart, mergeend
+                    (0, 3, "B", 0, 4),
+                    (1, 1, "C", None, None),
+                    (1, 2, "D", None, None),
+                    (1, 3, "C", None, None),
+                    (1, 4, "D", None, None),
+                ],
+            ),
+            # Case 2: MultiIndex columns, merge_cells=False
+            (
+                DataFrame(
+                    np.zeros((1, 4)),
+                    columns=MultiIndex.from_product([["A", "B"], ["C", "D"]]),
+                ),
+                False,
+                [
+                    (0, 0, None, None, None),
+                    (1, 0, None, None, None),
+                    (0, 1, "A", None, None),
+                    (0, 2, "A", None, None),
+                    (0, 3, "B", None, None),
+                    (0, 4, "B", None, None),
+                    (1, 1, "C", None, None),
+                    (1, 2, "D", None, None),
+                    (1, 3, "C", None, None),
+                    (1, 4, "D", None, None),
+                ],
+            ),
+            # Case 3: MultiIndex on both index and columns
+            (
+                DataFrame(
+                    np.zeros((1, 1)),
+                    columns=MultiIndex.from_product([["A"], ["B"]]),
+                    index=MultiIndex.from_product([["X"], ["Y"]]),
+                ),
+                True,
+                [
+                    (0, 1, None, None, None),
+                    (1, 1, None, None, None),
+                    (0, 2, "A", None, None),
+                    (1, 2, "B", None, None),
+                ],
+            ),
+        ],
+    )
+    def test_format_header_mi_general(self, df, merge_cells, expected_cells):
+        """Test general behavior of _format_header_mi."""
+        formatter = ExcelFormatter(df, merge_cells=merge_cells)
+        result = list(formatter._format_header_mi())
+
+        # Extract relevant fields for comparison
+        result_tuples = [
+            (cell.row, cell.col, cell.val, cell.mergestart, cell.mergeend)
+            for cell in result
+        ]
+        assert result_tuples == expected_cells
+
+
+    @pytest.mark.parametrize(
+        "df, formatter_options, expected_cells",
+        [
+            # Case 1: Default index=True
+            (
+                DataFrame({"A": [1], "B": [2]}),
+                {},
+                [
+                    (0, 1, "A", None, None),
+                    (0, 2, "B", None, None),
+                ],
+            ),
+            # Case 2: index=False
+            (
+                DataFrame({"A": [1], "B": [2]}),
+                {"index": False},
+                [
+                    (0, 0, "A", None, None),
+                    (0, 1, "B", None, None),
+                ],
+            ),
+            # Case 3: With MultiIndex on rows
+            (
+                DataFrame(
+                    {"A": [1], "B": [2]},
+                    index=MultiIndex.from_product([["X"], ["Y"]]),
+                ),
+                {},
+                [
+                    (0, 2, "A", None, None),
+                    (0, 3, "B", None, None),
+                ],
+            ),
+            # Case 4: With custom header aliases
+            (
+                DataFrame({"A": [1], "B": [2]}),
+                {"header": ["C", "D"]},
+                [
+                    (0, 1, "C", None, None),
+                    (0, 2, "D", None, None),
+                ],
+            ),
+        ],
+    )
+    def test_format_header_regular_general(self, df, formatter_options, expected_cells):
+        """Test general behavior of _format_header_regular."""
+        formatter = ExcelFormatter(df, **formatter_options)
+        result = list(formatter._format_header_regular())
+
+        # Extract relevant fields for comparison
+        result_tuples = [
+            (cell.row, cell.col, cell.val, cell.mergestart, cell.mergeend)
+            for cell in result
+        ]
+        assert result_tuples == expected_cells
+
+    @pytest.mark.parametrize(
+        "df, formatter_options, expected_cells",
+        [
+            # Case 1: Default index=True, with index name
+            (
+                DataFrame({"A": [10]}, index=Index(["r1"], name="idx")),
+                {},
+                [
+                    (1, 0, "idx", None, None),  # Index label
+                    (2, 0, "r1", None, None),   # Index value
+                    (2, 1, 10, None, None),   # Body value
+                ],
+            ),
+            # Case 2: index=False
+            (
+                DataFrame({"A": [10]}),
+                {"index": False},
+                [
+                    (2, 0, 10, None, None),  # Body value, coloffset=0
+                ],
+            ),
+            # Case 3: With string index_label
+            (
+                DataFrame({"A": [10]}, index=Index(["r1"], name="idx")),
+                {"index_label": "custom_idx"},
+                [
+                    (1, 0, "custom_idx", None, None),
+                    (2, 0, "r1", None, None),
+                    (2, 1, 10, None, None),
+                ],
+            ),
+            # Case 4: With list index_label
+            (
+                DataFrame({"A": [10]}, index=Index(["r1"], name="idx")),
+                {"index_label": ["custom_idx", "ignored"]},
+                [
+                    (1, 0, "custom_idx", None, None),
+                    (2, 0, "r1", None, None),
+                    (2, 1, 10, None, None),
+                ],
+            ),
+            # Case 5: With MultiIndex columns
+            (
+                DataFrame(
+                    [[10]],
+                    index=Index(["r1"], name="idx"),
+                    columns=MultiIndex.from_product([["A"], ["B"]]),
+                ),
+                {},
+                [
+                    (3, 0, "idx", None, None),  # Index label, row is pushed down
+                    (4, 0, "r1", None, None),
+                    (4, 1, 10, None, None),
+                ],
+            ),
+        ],
+    )
+    def test_format_regular_rows_general(self, df, formatter_options, expected_cells):
+        """Test general behavior of _format_regular_rows."""
+        formatter = ExcelFormatter(df, **formatter_options)
+        # Simulate header writing to set rowcounter correctly
+        if formatter.header:
+            formatter.rowcounter = len(formatter.df.columns.names)
+
+        result = list(formatter._format_regular_rows())
+
+        result_tuples = [
+            (cell.row, cell.col, cell.val, cell.mergestart, cell.mergeend)
+            for cell in result
+        ]
+        assert result_tuples == expected_cells
+    
+    @pytest.mark.parametrize(
+        "df, formatter_options, expected_cells",
+        [
+            # Case 1: merge_cells=True (default)
+            (
+                DataFrame(
+                    {"A": [10, 20]},
+                    index=MultiIndex.from_tuples(
+                        [("L1", "a"), ("L1", "b")], names=["idx1", "idx2"]
+                    ),
+                ),
+                {"merge_cells": True},
+                [
+                    (0, 0, "idx1", None, None),
+                    (0, 1, "idx2", None, None),
+                    (1, 0, "L1", 2, 0),  # Merged cell
+                    (1, 1, "a", None, None),
+                    (2, 1, "b", None, None),
+                    (1, 2, 10, None, None),  # Body
+                    (2, 2, 20, None, None),
+                ],
+            ),
+            # Case 2: merge_cells=False
+            (
+                DataFrame(
+                    {"A": [10, 20]},
+                    index=MultiIndex.from_tuples(
+                        [("L1", "a"), ("L2", "b")], names=["idx1", "idx2"]
+                    ),
+                ),
+                {"merge_cells": False},
+                [
+                    (0, 0, "idx1", None, None),
+                    (0, 1, "idx2", None, None),
+                    (1, 0, "L1", None, None),  # Non-merged
+                    (2, 0, "L2", None, None),
+                    (1, 1, "a", None, None),
+                    (2, 1, "b", None, None),
+                    (1, 2, 10, None, None),
+                    (2, 2, 20, None, None),
+                ],
+            ),
+            # Case 3: With custom index_label
+            (
+                DataFrame(
+                    {"A": [10]},
+                    index=MultiIndex.from_tuples([("L1", "a")], names=["idx1", "idx2"]),
+                ),
+                {"index_label": ["Custom1", "Custom2"]},
+                [
+                    (0, 0, "Custom1", None, None),
+                    (0, 1, "Custom2", None, None),
+                    (1, 0, "L1", None, None),
+                    (1, 1, "a", None, None),
+                    (1, 2, 10, None, None),
+                ],
+            ),
+            # Case 4: With MultiIndex on columns
+            (
+                DataFrame(
+                    [[10]],
+                    index=MultiIndex.from_tuples([("L1", "a")], names=["idx1", "idx2"]),
+                    columns=MultiIndex.from_product([["A"], ["B"]]),
+                ),
+                {},
+                [
+                    (2, 0, "idx1", None, None),  # Row pushed down
+                    (2, 1, "idx2", None, None),
+                    (3, 0, "L1", None, None),
+                    (3, 1, "a", None, None),
+                    (3, 2, 10, None, None),
+                ],
+            ),
+        ],
+    )
+    def test_format_hierarchical_rows_general(
+        self, df, formatter_options, expected_cells
+    ):
+        """Test general behavior of _format_hierarchical_rows."""
+        formatter = ExcelFormatter(df, **formatter_options)
+        # Simulate header writing to set rowcounter correctly
+        if formatter.header:
+            formatter.rowcounter = df.columns.nlevels - 1
+
+        result = list(formatter._format_hierarchical_rows())
+
+        result_tuples = [
+            (cell.row, cell.col, cell.val, cell.mergestart, cell.mergeend)
+            for cell in result
+        ]
+        assert result_tuples == expected_cells
+
+    @pytest.mark.parametrize(
+        "df, coloffset, rowcounter, expected_cells",
+        [
+            # Case 1: No offsets
+            (
+                DataFrame({"A": [10, 20], "B": [30, 40]}),
+                0,
+                0,
+                [
+                    (0, 0, 10), (1, 0, 20),  # Column A
+                    (0, 1, 30), (1, 1, 40),  # Column B
+                ],
+            ),
+            # Case 2: With offsets
+            (
+                DataFrame({"A": [10, 20], "B": [30, 40]}),
+                1,  # Simulates index=True
+                1,  # Simulates header=True
+                [
+                    (1, 1, 10), (2, 1, 20),  # Column A
+                    (1, 2, 30), (2, 2, 40),  # Column B
+                ],
+            ),
+        ],
+    )
+    def test_generate_body_general(self, df, coloffset, rowcounter, expected_cells):
+        """Test general behavior of _generate_body."""
+        formatter = ExcelFormatter(df)
+        formatter.rowcounter = rowcounter  # Simulate state after header formatting
+        result = list(formatter._generate_body(coloffset))
+
+        # Only checking row, col, and val for this internal method
+        result_tuples = [(cell.row, cell.col, cell.val) for cell in result]
+        assert result_tuples == expected_cells
+
+    @pytest.mark.parametrize(
+        "df, formatter_options, expected_values",
+        [
+            # Case 1: Regular DF with various formats
+            (
+                DataFrame({"A": [np.nan, 1.2345]}, index=Index([0, 1], name="idx")),
+                {
+                    "na_rep": "NULL",
+                    "float_format": "%.2f",
+                    "inf_rep": "Infinity",
+                },
+                [
+                    "A",        # Column header                    
+                    "idx",      # Index header
+                    0,          # Index value
+                    1,          # Index value                    
+                    "NULL",     # Formatted NaN
+                    1.23,       # Formatted float
+                ],
+            ),
+            # Case 2: No index or header
+            (
+                DataFrame([np.inf]),
+                {"index": False, "header": False, "inf_rep": "INF"},
+                ["INF"],  # Only the formatted body value
+            ),
+            # Case 3: MultiIndex on columns and rows
+            (
+                DataFrame(
+                    [[np.nan]],
+                    index=MultiIndex.from_tuples([(1, NaT)], names=["i1", "i2"]),
+                    columns=MultiIndex.from_tuples([("A", "a")], names=["c1", "c2"]),
+                ),
+                {"na_rep": "Missing"},
+                [
+                    "c1", "c2",             # Column headers
+                    "A", "a",
+                    "i1", "i2",             # Index headers
+                    1, "Missing",           # Index values (NaT formatted)
+                    "Missing",              # Body value (NaN formatted)
+                ],
+            ),
+        ],
+    )
+    def test_get_formatted_cells_integration(self, df, formatter_options, expected_values):
+        """
+        Integration test for get_formatted_cells to ensure it chains all
+        formatting methods and applies final value formatting correctly.
+        """
+        formatter = ExcelFormatter(df, **formatter_options)
+        result = list(formatter.get_formatted_cells())
+        result_values = [cell.val for cell in result]
+
+        assert result_values == expected_values
+        # Flatten the structure and check against expected formatted values
