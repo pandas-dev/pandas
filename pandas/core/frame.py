@@ -11341,7 +11341,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> # Use parallel computation for large DataFrames
         >>> large_df = pd.DataFrame(np.random.randn(10000, 100))
-        >>> corr_matrix = large_df.corr(parallel=True)
+        >>> corr_matrix = large_df.corr(use_parallel=True)
         """  # noqa: E501
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
