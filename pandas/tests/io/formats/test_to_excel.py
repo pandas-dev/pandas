@@ -621,7 +621,7 @@ class TestExcelFormatter:
             ("Amazing", "C"), ("Amazing", "D")
         ]
         columns = MultiIndex.from_tuples(header)
-        rng = np.random.default_rng()
+        rng = np.random.default_rng(42)
         df = DataFrame(
             rng.standard_normal((4, 4)),
             columns=columns
