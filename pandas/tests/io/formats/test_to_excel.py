@@ -526,42 +526,29 @@ class TestExcelFormatter:
         assert formatter.df is df
         assert isinstance(formatter.style_converter, CSSToExcelConverter)
 
-    @pytest.mark.parametrize("columns", [
-        ["A","C"],
-        ["A","B","C"]
-    ])
+    @pytest.mark.parametrize("columns", [["A", "C"], ["A", "B", "C"]])
     def test_column_missmatch(self, columns):
         """Testing that we throw an error when the specified columns are not found"""
         df = DataFrame({"A": [1, 2], "B": [3, 4]})
-        msg="Not all names specified in 'columns' are found"
+        msg = "Not all names specified in 'columns' are found"
         with pytest.raises(KeyError, match=msg):
             ExcelFormatter(df, cols=columns)
 
-    @pytest.mark.parametrize("columns",[
-    ["C"],
-    ["D"],
-    ["C","D"]
-    ])
-    def test_column_full_miss(self,columns):
+    @pytest.mark.parametrize("columns", [["C"], ["D"], ["C", "D"]])
+    def test_column_full_miss(self, columns):
         """Testing that we throw an error when all of the columns are not in"""
         df = DataFrame({"A": [1, 2], "B": [3, 4]})
-        msg="passes columns are not ALL present dataframe"
+        msg = "passes columns are not ALL present dataframe"
         with pytest.raises(KeyError, match=msg):
             ExcelFormatter(df, cols=columns)
 
-    @pytest.mark.parametrize("merge_cells", [
-        "1",
-        "invalid",
-        1,
-        0
-    ])
+    @pytest.mark.parametrize("merge_cells", ["1", "invalid", 1, 0])
     def test_merge_cells_not_bool_throws(self, merge_cells):
         """Testing that we throw an error when merge_cells is not a boolean"""
         df = DataFrame({"A": [1, 2], "B": [3, 4]})
         msg = f"Unexpected value for {merge_cells=}."
         with pytest.raises(ValueError, match=msg):
             ExcelFormatter(df, merge_cells=merge_cells)
-
 
     @pytest.mark.parametrize(
         "val, na_rep, expected",
@@ -594,9 +581,7 @@ class TestExcelFormatter:
         Test that _format_value correctly handles float values.
         """
         df = DataFrame()
-        formatter = ExcelFormatter(
-            df, float_format=float_format, inf_rep=inf_rep
-        )
+        formatter = ExcelFormatter(df, float_format=float_format, inf_rep=inf_rep)
         result = formatter._format_value(val)
         assert result == expected
 
@@ -616,26 +601,20 @@ class TestExcelFormatter:
             formatter._format_value(val)
 
     def test_formated_header_mi_multi_index_throws(self):
-        header = [
-            ("Cool", "A"), ("Cool", "B"),
-            ("Amazing", "C"), ("Amazing", "D")
-        ]
+        header = [("Cool", "A"), ("Cool", "B"), ("Amazing", "C"), ("Amazing", "D")]
         columns = MultiIndex.from_tuples(header)
         rng = np.random.default_rng(42)
-        df = DataFrame(
-            rng.standard_normal((4, 4)),
-            columns=columns
-        )
+        df = DataFrame(rng.standard_normal((4, 4)), columns=columns)
         formatter = ExcelFormatter(df, index=False)
-        assert(formatter.columns.nlevels > 1 and not formatter.index)
+        assert formatter.columns.nlevels > 1 and not formatter.index
         with pytest.raises(NotImplementedError):
             list(formatter._format_header_mi())
 
     def test_returns_none_no_header(self):
-        df = DataFrame({"A": [1,2], "B": [3,4]})
-        formatter = ExcelFormatter(df,header=False)
-        assert(not formatter._has_aliases)
-        assert(list(formatter._format_header_mi()) == [])
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        formatter = ExcelFormatter(df, header=False)
+        assert not formatter._has_aliases
+        assert list(formatter._format_header_mi()) == []
 
     @pytest.mark.parametrize(
         "df, merge_cells, expected_cells",
@@ -707,7 +686,6 @@ class TestExcelFormatter:
         ]
         assert result_tuples == expected_cells
 
-
     @pytest.mark.parametrize(
         "df, formatter_options, expected_cells",
         [
@@ -773,8 +751,8 @@ class TestExcelFormatter:
                 {},
                 [
                     (1, 0, "idx", None, None),  # Index label
-                    (2, 0, "r1", None, None),   # Index value
-                    (2, 1, 10, None, None),   # Body value
+                    (2, 0, "r1", None, None),  # Index value
+                    (2, 1, 10, None, None),  # Body value
                 ],
             ),
             # Case 2: index=False
@@ -937,8 +915,10 @@ class TestExcelFormatter:
                 0,
                 0,
                 [
-                    (0, 0, 10), (1, 0, 20),  # Column A
-                    (0, 1, 30), (1, 1, 40),  # Column B
+                    (0, 0, 10),
+                    (1, 0, 20),  # Column A
+                    (0, 1, 30),
+                    (1, 1, 40),  # Column B
                 ],
             ),
             # Case 2: With offsets
@@ -947,8 +927,10 @@ class TestExcelFormatter:
                 1,  # Simulates index=True
                 1,  # Simulates header=True
                 [
-                    (1, 1, 10), (2, 1, 20),  # Column A
-                    (1, 2, 30), (2, 2, 40),  # Column B
+                    (1, 1, 10),
+                    (2, 1, 20),  # Column A
+                    (1, 2, 30),
+                    (2, 2, 40),  # Column B
                 ],
             ),
         ],
@@ -975,12 +957,12 @@ class TestExcelFormatter:
                     "inf_rep": "Infinity",
                 },
                 [
-                    "A",        # Column header
-                    "idx",      # Index header
-                    0,          # Index value
-                    1,          # Index value
-                    "NULL",     # Formatted NaN
-                    1.23,       # Formatted float
+                    "A",  # Column header
+                    "idx",  # Index header
+                    0,  # Index value
+                    1,  # Index value
+                    "NULL",  # Formatted NaN
+                    1.23,  # Formatted float
                 ],
             ),
             # Case 2: No index or header
@@ -998,17 +980,22 @@ class TestExcelFormatter:
                 ),
                 {"na_rep": "Missing"},
                 [
-                    "c1", "c2",             # Column headers
-                    "A", "a",
-                    "i1", "i2",             # Index headers
-                    1, "Missing",           # Index values (NaT formatted)
-                    "Missing",              # Body value (NaN formatted)
+                    "c1",
+                    "c2",  # Column headers
+                    "A",
+                    "a",
+                    "i1",
+                    "i2",  # Index headers
+                    1,
+                    "Missing",  # Index values (NaT formatted)
+                    "Missing",  # Body value (NaN formatted)
                 ],
             ),
         ],
     )
-    def test_get_formatted_cells_integration(self, df, formatter_options,
-                                             expected_values):
+    def test_get_formatted_cells_integration(
+        self, df, formatter_options, expected_values
+    ):
         """
         Integration test for get_formatted_cells to ensure it chains all
         formatting methods and applies final value formatting correctly.
