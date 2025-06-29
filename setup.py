@@ -438,6 +438,10 @@ ext_data = {
     "_libs.algos": {
         "pyxfile": "_libs/algos",
         "depends": _pxi_dep["algos"],
+        "extra_compile_args": extra_compile_args
+        + (["-fopenmp"] if not is_platform_windows() else ["/openmp"]),
+        "extra_link_args": extra_link_args
+        + (["-fopenmp"] if not is_platform_windows() else []),
     },
     "_libs.arrays": {"pyxfile": "_libs/arrays"},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
