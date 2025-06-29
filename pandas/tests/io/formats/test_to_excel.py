@@ -1,20 +1,24 @@
 """Tests formatting as writer-agnostic ExcelCells"""
 
-import numpy as np
-
 import string
+from unittest.mock import (
+    Mock,
+    call,
+    patch,
+)
 
+import numpy as np
 import pytest
+
+from pandas.errors import CSSWarning
 
 from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    NaT,
     Timestamp,
-    NaT
 )
-from pandas.errors import CSSWarning
-
 import pandas._testing as tm
 
 from pandas.io.formats.excel import (
@@ -23,10 +27,8 @@ from pandas.io.formats.excel import (
     ExcelCell,
     ExcelFormatter,
 )
-
 from pandas.io.formats.style import Styler
 
-from unittest.mock import Mock, patch, call
 
 @pytest.mark.parametrize(
     "css,expected",
@@ -581,7 +583,7 @@ class TestExcelFormatter:
         formatter = ExcelFormatter(df, na_rep=na_rep)
         result = formatter._format_value(val)
         assert result == expected
-    
+
     @pytest.mark.parametrize(
         "val, float_format, inf_rep, expected",
         [
@@ -626,7 +628,7 @@ class TestExcelFormatter:
         df = DataFrame(
             np.random.randn(4, 4),
             columns=columns
-        )        
+        )
         formatter = ExcelFormatter(df, index=False)
         assert(formatter.columns.nlevels > 1 and not formatter.index)
         msg = (
@@ -635,13 +637,13 @@ class TestExcelFormatter:
         )
         with pytest.raises(NotImplementedError):
             list(formatter._format_header_mi())
-    
+
     def test_returns_none_no_header(self):
         df = DataFrame({"A": [1,2], "B": [3,4]})
         formatter = ExcelFormatter(df,header=False)
         assert(formatter._has_aliases == False)
         assert(list(formatter._format_header_mi()) == list())
-    
+
     @pytest.mark.parametrize(
         "df, merge_cells, expected_cells",
         [
@@ -840,7 +842,7 @@ class TestExcelFormatter:
             for cell in result
         ]
         assert result_tuples == expected_cells
-    
+
     @pytest.mark.parametrize(
         "df, formatter_options, expected_cells",
         [
@@ -980,10 +982,10 @@ class TestExcelFormatter:
                     "inf_rep": "Infinity",
                 },
                 [
-                    "A",        # Column header                    
+                    "A",        # Column header
                     "idx",      # Index header
                     0,          # Index value
-                    1,          # Index value                    
+                    1,          # Index value
                     "NULL",     # Formatted NaN
                     1.23,       # Formatted float
                 ],
