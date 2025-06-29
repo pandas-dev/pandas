@@ -625,24 +625,21 @@ class TestExcelFormatter:
             ("Amazing", "C"), ("Amazing", "D")
         ]
         columns = MultiIndex.from_tuples(header)
+        rng = np.random.default_rng()
         df = DataFrame(
-            np.random.randn(4, 4),
+            rng.standard_normal((4, 4)),
             columns=columns
         )
         formatter = ExcelFormatter(df, index=False)
         assert(formatter.columns.nlevels > 1 and not formatter.index)
-        msg = (
-            "Writing to Excel with MultiIndex columns and no "
-            "index ('index'=False) is not yet implemented."
-        )
         with pytest.raises(NotImplementedError):
             list(formatter._format_header_mi())
 
     def test_returns_none_no_header(self):
         df = DataFrame({"A": [1,2], "B": [3,4]})
         formatter = ExcelFormatter(df,header=False)
-        assert(formatter._has_aliases == False)
-        assert(list(formatter._format_header_mi()) == list())
+        assert(not formatter._has_aliases)
+        assert(list(formatter._format_header_mi()) == [])
 
     @pytest.mark.parametrize(
         "df, merge_cells, expected_cells",
@@ -1014,7 +1011,8 @@ class TestExcelFormatter:
             ),
         ],
     )
-    def test_get_formatted_cells_integration(self, df, formatter_options, expected_values):
+    def test_get_formatted_cells_integration(self, df, formatter_options,
+                                             expected_values):
         """
         Integration test for get_formatted_cells to ensure it chains all
         formatting methods and applies final value formatting correctly.
