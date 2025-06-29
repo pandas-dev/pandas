@@ -196,7 +196,7 @@ facilitate replication. (:issue:`2419`)
 
    # weights are accepted.
    example_weights = [0, 0, 0.2, 0.2, 0.2, 0.4]
-   example_series.sample(n=3, weights=example_weights)
+   example_series.sample(n=2, weights=example_weights)
 
    # weights will also be normalized if they do not sum to one,
    # and missing values will be treated as zeros.
@@ -209,8 +209,8 @@ when sampling from rows.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"col1": [9, 8, 7, 6], "weight_column": [0.5, 0.4, 0.1, 0]})
-   df.sample(n=3, weights="weight_column")
+      df = pd.DataFrame({"col1": [9, 8, 7, 6], "weight_column": [0.5, 0.4, 0.1, 0]})
+      df.sample(n=2, weights="weight_column")
 
 
 .. _whatsnew_0161.enhancements.string:
