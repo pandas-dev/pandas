@@ -150,12 +150,12 @@ def sample(
         else:
             raise ValueError("Invalid weights: weights sum to zero")
 
-    if weights is not None:
-        is_max_weight_dominating = size * weights.max() > 1
-        if is_max_weight_dominating and not replace:
+        assert weights is not None  # for mypy
+        if not replace and size * weights.max() > 1:
             raise ValueError(
-                "Invalid weights: If `replace`=False, "
-                "total unit probabilities have to be less than 1"
+                "Weighted sampling cannot be achieved with replace=False. Either "
+                "set replace=True or use smaller weights. See the docstring of "
+                "sample for details."
             )
 
     return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(
