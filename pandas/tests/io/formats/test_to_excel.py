@@ -545,7 +545,7 @@ class TestExcelFormatter:
     def test_column_full_miss(self,columns):
         """Testing that we throw an error when all of the columns are not in"""
         df = DataFrame({"A": [1, 2], "B": [3, 4]})
-        msg="Passed columns are not ALL present dataframe"
+        msg="passes columns are not ALL present dataframe"
         with pytest.raises(KeyError, match=msg):
             ExcelFormatter(df, cols=columns)
 
