@@ -69,6 +69,7 @@ from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexing import IndexSlice
 from pandas.core.series import Series
+from pandas.core.tools.check import check
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.numeric import to_numeric
 from pandas.core.tools.timedeltas import to_timedelta
@@ -121,6 +122,7 @@ __all__ = [
     "UInt64Dtype",
     "array",
     "bdate_range",
+    "check",
     "date_range",
     "factorize",
     "interval_range",
