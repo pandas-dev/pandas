@@ -91,3 +91,8 @@ def test_can_hold_element_bool():
     assert not can_hold_element(arr, element)
     assert not can_hold_element(arr, np.array([element]))
     assert not can_hold_element(arr, np.array([element], dtype=object))
+
+    element = np.nan
+    assert not can_hold_element(arr, element)
+    assert not can_hold_element(arr, np.array([element]))
+    assert not can_hold_element(arr, np.array([element], dtype=object))
