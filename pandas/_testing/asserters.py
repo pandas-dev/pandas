@@ -1316,6 +1316,20 @@ def assert_frame_equal(
             lcol = left._ixs(i, axis=1)
             rcol = right._ixs(i, axis=1)
 
+            # Fix for issue #61473: Handle pd.NA values when check_dtype=False
+            if not check_dtype:
+                # Normalize both pd.NA and np.nan to the same representation for comparison
+                # This allows comparison between object and Int32 dtypes with pd.NA
+                lcol_normalized = lcol.copy()
+                rcol_normalized = rcol.copy()
+                
+                # Replace all null values (pd.NA, np.nan) with a consistent representation
+                lcol_normalized = lcol_normalized.where(lcol_normalized.notna(), np.nan)
+                rcol_normalized = rcol_normalized.where(rcol_normalized.notna(), np.nan)
+                
+                lcol = lcol_normalized
+                rcol = rcol_normalized
+
             # GH #38183
             # use check_index=False, because we do not want to run
             # assert_index_equal for each column,
