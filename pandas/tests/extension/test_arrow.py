@@ -67,10 +67,7 @@ from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
 
-from pandas.core.arrays.arrow.array import (
-    ArrowExtensionArray,
-    get_unit_from_pa_dtype,
-)
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
@@ -539,8 +536,7 @@ class TestArrowArray(base.ExtensionTests):
                 elif pa.types.is_date(pa_type):
                     cmp_dtype = ArrowDtype(pa.duration("s"))
                 elif pa.types.is_time(pa_type):
-                    unit = get_unit_from_pa_dtype(pa_type)
-                    cmp_dtype = ArrowDtype(pa.duration(unit))
+                    cmp_dtype = ArrowDtype(pa.duration(pa_type.unit))
                 else:
                     cmp_dtype = ArrowDtype(pa.duration(pa_type.unit))
             else:
