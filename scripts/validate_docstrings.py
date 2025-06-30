@@ -252,6 +252,8 @@ def pandas_validate(func_name: str):
     else:
         result = {
             "docstring": "",
+            "file": None,
+            "file_line": None,
             "errors": [("GL08", "The object does not have a docstring")],
         }
     mentioned_errs = doc.mentioned_private_classes
