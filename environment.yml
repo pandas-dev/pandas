@@ -64,9 +64,8 @@ dependencies:
   - dask-core
   - seaborn-base
 
-  # local testing dependencies
+  # Mocking s3 tests
   - moto
-  - flask
 
   # benchmarks
   - asv>=0.6.1

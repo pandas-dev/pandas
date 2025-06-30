@@ -140,9 +140,6 @@ jobs:
 
       moto:
         image: motoserver/moto:5.0.27
-        env:
-          AWS_ACCESS_KEY_ID: foobar_key
-          AWS_SECRET_ACCESS_KEY: foobar_secret
         ports:
           - 5000:5000
 
