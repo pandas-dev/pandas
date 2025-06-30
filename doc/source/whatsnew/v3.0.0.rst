@@ -28,6 +28,9 @@ Enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :func:`pandas.merge` propagates the ``attrs`` attribute to the result if all
+  inputs have identical ``attrs``, as has so far already been the case for
+  :func:`pandas.concat`.
 - :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
 - :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
 - Added :meth:`.Styler.to_typst` to write Styler objects to file, buffer or string in Typst format (:issue:`57617`)
