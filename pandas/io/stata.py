@@ -2739,7 +2739,7 @@ supported types."""
                 encoded = self.data[col].str.encode(self._encoding)
                 # If larger than _max_string_length do nothing
                 if (
-                    max_len_string_array(ensure_object(encoded._values))
+                    max_len_string_array(ensure_object(self.data[col]._values))
                     <= self._max_string_length
                 ):
                     self.data[col] = encoded
@@ -3263,11 +3263,15 @@ class StataStrLWriter:
             bio.write(gso_type)
 
             # llll
-            utf8_string = bytes(strl, "utf-8")
-            bio.write(struct.pack(len_type, len(utf8_string) + 1))
+            if isinstance(strl, str):
+                strl_convert = bytes(strl, "utf-8")
+            else:
+                strl_convert = strl
+
+            bio.write(struct.pack(len_type, len(strl_convert) + 1))
 
             # xxx...xxx
-            bio.write(utf8_string)
+            bio.write(strl_convert)
             bio.write(null)
 
         return bio.getvalue()
