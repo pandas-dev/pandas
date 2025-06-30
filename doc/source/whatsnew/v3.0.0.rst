@@ -65,6 +65,57 @@ for the ``.dtype`` being object dtype or checking the exact missing value sentin
 
 TODO add link to migration guide for more details
 
+.. seealso::
+
+    `PDEP-14: Dedicated string data type for pandas 3.0 <https://pandas.pydata.org/pdeps/0014-string-dtype.html>`__
+
+
+.. _whatsnew_300.enhancements.copy_on_write:
+
+Copy-on-Write
+^^^^^^^^^^^^^
+
+The new "copy-on-write" behaviour in pandas 3.0 brings changes in behavior in
+how pandas operates with respect to copies and views. A summary of the changes:
+
+1. The result of *any* indexing operation (subsetting a DataFrame or Series in any way,
+   i.e. including accessing a DataFrame column as a Series) or any method returning a
+   new DataFrame or Series, always *behaves as if* it were a copy in terms of user
+   API.
+2. As a consequence, if you want to modify an object (DataFrame or Series), the only way
+   to do this is to directly modify that object itself.
+
+The main goal of this change is to make the user API more consistent and
+predictable. There is now a clear rule: *any* subset or returned
+series/dataframe **always** behaves as a copy of the original, and thus never
+modifies the original (before pandas 3.0, whether a derived object would be a
+copy or a view depended on the exact operation performed, which was often
+confusing).
+
+Because every single indexing step now behaves as a copy, this also means that
+"chained assignment" (updating a DataFrame with multiple setitem steps) will
+stop working. Because this now consistently never works, the
+``SettingWithCopyWarning`` is removed.
+
+The new behavioral semantics are explained in more detail in the
+:ref:`user guide about Copy-on-Write <copy_on_write>`.
+
+A secondary goal is to improve performance by avoiding unnecessary copies. As
+mentioned above, every new DataFrame or Series returned from an indexing
+operation or method *behaves* as a copy, but under the hood pandas will use
+views as much as possible, and only copy when needed to guarantee the "behaves
+as a copy" behaviour (this is the actual "copy-on-write" mechanism used as an
+implementation detail).
+
+Some of the behaviour changes described above are breaking changes in pandas
+3.0. When upgrading to pandas 3.0, it is recommended to first upgrade to pandas
+2.3 to get deprecation warnings for a subset of those changes. The
+:ref:`migration guide <copy_on_write.migration_guide>` explains the upgrade
+process in more detail.
+
+.. seealso::
+
+    `PDEP-7: Consistent copy/view semantics in pandas with Copy-on-Write <https://pandas.pydata.org/pdeps/0007-copy-on-write.html>`__
 
 .. _whatsnew_300.enhancements.enhancement2:
 
