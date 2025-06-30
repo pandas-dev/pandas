@@ -32,39 +32,6 @@ Other enhancements
 - The :meth:`~Series.sum` reduction is now implemented for :class:`StringDtype` columns (:issue:`59853`)
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.notable_bug_fixes:
-
-Notable bug fixes
-~~~~~~~~~~~~~~~~~
-
-These are bug fixes that might have notable behavior changes.
-
-.. _whatsnew_230.notable_bug_fixes.string_comparisons:
-
-Comparisons between different string dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In previous versions, comparing :class:`Series` of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise. pandas will now use the hierarchy
-
-    object < (python, NaN) < (pyarrow, NaN) < (python, NA) < (pyarrow, NA)
-
-in determining the result dtype when there are different string dtypes compared. Some examples:
-
-- When ``pd.StringDtype("pyarrow", na_value=pd.NA)`` is compared against any other string dtype, the result will always be ``boolean[pyarrow]``.
-- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("pyarrow", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
-- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("python", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
-
-.. _whatsnew_230.api_changes:
-
-API changes
-~~~~~~~~~~~
-
-- When enabling the ``future.infer_string`` option, :class:`Index` set operations (like
-  union or intersection) will now ignore the dtype of an empty :class:`RangeIndex` or
-  empty :class:`Index` with ``object`` dtype when determining the dtype of the resulting
-  Index (:issue:`60797`)
-
-.. ---------------------------------------------------------------------------
 .. _whatsnew_230.deprecations:
 
 Deprecations
@@ -85,8 +52,6 @@ Numeric
 
 Strings
 ^^^^^^^
-- Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.max`, :meth:`.Resampler.min`, :meth:`.Resampler.max` where all NA values of string dtype would return float instead of string dtype (:issue:`60810`)
-- Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` with all NA values of :class:`StringDtype` resulted in ``0`` instead of the empty string ``""`` (:issue:`60229`)
 - Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` where an ``Exception`` was not raised for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
 - Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` that incorrectly returned integer results with ``method="average"`` and raised an error if it would truncate results (:issue:`59768`)
 - Bug in :meth:`Series.replace` with :class:`StringDtype` when replacing with a non-string value was not upcasting to ``object`` dtype (:issue:`60282`)
