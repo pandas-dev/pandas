@@ -51,7 +51,6 @@ zstandard>=0.22.0
 dask
 seaborn
 moto
-flask
 asv>=0.6.1
 flake8==7.1.0
 mypy==1.13.0
