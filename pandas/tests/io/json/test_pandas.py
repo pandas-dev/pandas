@@ -1566,11 +1566,8 @@ class TestPandasContainer:
         result = read_json(StringIO(dfjson), orient="table")
         tm.assert_frame_equal(result, expected)
 
-    # TODO: We are casting to string which coerces None to NaN before casting back
-    # to object, ending up with incorrect na values
-    @pytest.mark.xfail(using_string_dtype(), reason="incorrect na conversion")
     @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
-    def test_to_json_from_json_columns_dtypes(self, orient):
+    def test_to_json_from_json_columns_dtypes(self, orient, using_infer_string):
         # GH21892 GH33205
         expected = DataFrame.from_dict(
             {
@@ -1590,6 +1587,11 @@ class TestPandasContainer:
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             dfjson = expected.to_json(orient=orient)
+
+        if using_infer_string:
+            # When this is read back in it is inferred to "str" dtype which
+            #  uses NaN instead of None.
+            expected.loc[0, "Object"] = np.nan
 
         result = read_json(
             StringIO(dfjson),
@@ -1849,11 +1851,11 @@ class TestPandasContainer:
 
         assert result == expected
 
-    @pytest.mark.skipif(
-        using_string_dtype(),
-        reason="Adjust expected when infer_string is default, no bug here, "
-        "just a complicated parametrization",
-    )
+    # @pytest.mark.skipif(
+    #    using_string_dtype(),
+    #    reason="Adjust expected when infer_string is default, no bug here, "
+    #    "just a complicated parametrization",
+    # )
     @pytest.mark.parametrize(
         "orient,expected",
         [
