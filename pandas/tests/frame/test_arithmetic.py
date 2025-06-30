@@ -4,7 +4,6 @@ from datetime import (
     timezone,
 )
 from enum import Enum
-import functools
 import operator
 import re
 
@@ -2139,6 +2138,12 @@ def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 
     class SubclassedSeries(Series):
+        _metadata = ["my_extra_data"]
+
+        def __init__(self, data=None, my_extra_data=None, *args, **kwargs) -> None:
+            self.my_extra_data = my_extra_data
+            super().__init__(data, *args, **kwargs)
+
         @property
         def _constructor(self):
             return SubclassedSeries
@@ -2150,21 +2155,25 @@ def test_frame_op_subclass_nonclass_constructor():
     class SubclassedDataFrame(DataFrame):
         _metadata = ["my_extra_data"]
 
-        def __init__(self, my_extra_data, *args, **kwargs) -> None:
+        def __init__(self, data=None, my_extra_data=None, *args, **kwargs) -> None:
             self.my_extra_data = my_extra_data
-            super().__init__(*args, **kwargs)
+            super().__init__(data, *args, **kwargs)
 
         @property
         def _constructor(self):
-            return functools.partial(type(self), self.my_extra_data)
+            return SubclassedDataFrame
 
         @property
         def _constructor_sliced(self):
             return SubclassedSeries
 
-    sdf = SubclassedDataFrame("some_data", {"A": [1, 2, 3], "B": [4, 5, 6]})
+    sdf = SubclassedDataFrame(
+        my_extra_data="some_data", data={"A": [1, 2, 3], "B": [4, 5, 6]}
+    )
     result = sdf * 2
-    expected = SubclassedDataFrame("some_data", {"A": [2, 4, 6], "B": [8, 10, 12]})
+    expected = SubclassedDataFrame(
+        my_extra_data="some_data", data={"A": [2, 4, 6], "B": [8, 10, 12]}
+    )
     tm.assert_frame_equal(result, expected)
 
     result = sdf + sdf

@@ -679,7 +679,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         # We assume that the subclass __init__ knows how to handle a
         #  pd.DataFrame object.
-        return self._constructor(df)
+        metadata = {k: getattr(self, k) for k in self._metadata}
+        return self._constructor(df, **metadata)
 
     _constructor_sliced: Callable[..., Series] = Series
 
@@ -694,7 +695,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         # We assume that the subclass __init__ knows how to handle a
         #  pd.Series object.
-        return self._constructor_sliced(ser)
+        metadata = {k: getattr(self, k) for k in self._metadata}
+        return self._constructor_sliced(ser, **metadata)
 
     # ----------------------------------------------------------------------
     # Constructors
