@@ -23,7 +23,6 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under11p0,
     pa_version_under12p1,
     pa_version_under13p0,
 )
@@ -207,16 +206,6 @@ if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
-
-
-def get_unit_from_pa_dtype(pa_dtype) -> str:
-    # https://github.com/pandas-dev/pandas/pull/50998#discussion_r1100344804
-    if pa_version_under11p0:
-        unit = str(pa_dtype).split("[", 1)[-1][:-1]
-        if unit not in ["s", "ms", "us", "ns"]:
-            raise ValueError(pa_dtype)
-        return unit
-    return pa_dtype.unit
 
 
 def to_pyarrow_type(
@@ -1200,10 +1189,6 @@ class ArrowExtensionArray(
         null_encoding = "mask" if use_na_sentinel else "encode"
 
         data = self._pa_array
-        pa_type = data.type
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            data = data.cast(pa.int64())
 
         if pa.types.is_dictionary(data.type):
             if null_encoding == "encode":
@@ -1228,8 +1213,6 @@ class ArrowExtensionArray(
             )
             uniques = type(self)(combined.dictionary)
 
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            uniques = cast(ArrowExtensionArray, uniques.astype(self.dtype))
         return indices, uniques
 
     def reshape(self, *args, **kwargs):
@@ -1516,19 +1499,7 @@ class ArrowExtensionArray(
         -------
         ArrowExtensionArray
         """
-        pa_type = self._pa_array.type
-
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            data = self._pa_array.cast(pa.int64())
-        else:
-            data = self._pa_array
-
-        pa_result = pc.unique(data)
-
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            pa_result = pa_result.cast(pa_type)
-
+        pa_result = pc.unique(self._pa_array)
         return type(self)(pa_result)
 
     def value_counts(self, dropna: bool = True) -> Series:
@@ -1548,18 +1519,12 @@ class ArrowExtensionArray(
         --------
         Series.value_counts
         """
-        pa_type = self._pa_array.type
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            data = self._pa_array.cast(pa.int64())
-        else:
-            data = self._pa_array
-
         from pandas import (
             Index,
             Series,
         )
 
+        data = self._pa_array
         vc = data.value_counts()
 
         values = vc.field(0)
@@ -1568,9 +1533,6 @@ class ArrowExtensionArray(
             mask = values.is_valid()
             values = values.filter(mask)
             counts = counts.filter(mask)
-
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            values = values.cast(pa_type)
 
         counts = ArrowExtensionArray(counts)
 
@@ -1865,8 +1827,7 @@ class ArrowExtensionArray(
             if pa.types.is_duration(pa_type):
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
-                unit = get_unit_from_pa_dtype(pa_type)
-                result = result.cast(pa.duration(unit))
+                result = result.cast(pa.duration(pa_type.unit))
             elif pa.types.is_date(pa_type):
                 # go with closest available unit, i.e. "s"
                 result = result.cast(pa.duration("s"))

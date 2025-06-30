@@ -11,10 +11,7 @@ from typing import (
     cast,
 )
 
-from pandas.compat import (
-    HAS_PYARROW,
-    pa_version_under11p0,
-)
+from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -171,11 +168,6 @@ class ListAccessor(ArrowAccessor):
                 name=self._data.name,
             )
         elif isinstance(key, slice):
-            if pa_version_under11p0:
-                raise NotImplementedError(
-                    f"List slice not supported by pyarrow {pa.__version__}."
-                )
-
             # TODO: Support negative start/stop/step, ideally this would be added
             # upstream in pyarrow.
             start, stop, step = key.start, key.stop, key.step

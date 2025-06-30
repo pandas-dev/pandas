@@ -13,7 +13,6 @@ import numpy as np
 from pandas._libs import lib
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under17p0,
 )
@@ -132,10 +131,6 @@ class ArrowStringArrayMixin:
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
     ) -> Self:
-        if pa_version_under11p0:
-            # GH#59724
-            result = self._apply_elementwise(lambda val: val[start:stop:step])
-            return type(self)(pa.chunked_array(result, type=self._pa_array.type))
         if start is None:
             if step is not None and step < 0:
                 # GH#59710

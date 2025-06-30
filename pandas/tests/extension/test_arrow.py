@@ -39,7 +39,6 @@ from pandas.compat import (
     PY312,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under19p0,
@@ -351,15 +350,6 @@ class TestArrowArray(base.ExtensionTests):
             request.applymarker(
                 pytest.mark.xfail(
                     reason="Nanosecond time parsing not supported.",
-                )
-            )
-        elif pa_version_under11p0 and (
-            pa.types.is_duration(pa_dtype) or pa.types.is_decimal(pa_dtype)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support parsing {pa_dtype}",
                 )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
@@ -3288,9 +3278,6 @@ def test_pow_missing_operand():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under11p0, reason="Decimal128 to string cast implemented in pyarrow 11"
-)
 def test_decimal_parse_raises():
     # GH 56984
     ser = pd.Series(["1.2345"], dtype=ArrowDtype(pa.string()))
@@ -3300,9 +3287,6 @@ def test_decimal_parse_raises():
         ser.astype(ArrowDtype(pa.decimal128(1, 0)))
 
 
-@pytest.mark.skipif(
-    pa_version_under11p0, reason="Decimal128 to string cast implemented in pyarrow 11"
-)
 def test_decimal_parse_succeeds():
     # GH 56984
     ser = pd.Series(["1.2345"], dtype=ArrowDtype(pa.string()))
