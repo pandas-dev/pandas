@@ -1851,11 +1851,11 @@ class TestPandasContainer:
 
         assert result == expected
 
-    # @pytest.mark.skipif(
-    #    using_string_dtype(),
-    #    reason="Adjust expected when infer_string is default, no bug here, "
-    #    "just a complicated parametrization",
-    # )
+    @pytest.mark.skipif(
+        using_string_dtype(),
+        reason="Adjust expected when infer_string is default, no bug here, "
+        "just a complicated parametrization",
+    )
     @pytest.mark.parametrize(
         "orient,expected",
         [
