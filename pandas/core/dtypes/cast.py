@@ -1931,7 +1931,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if lib.is_bool_array(element):
                     return element.astype("bool")
             raise LossySetitemError
-
         if lib.is_bool(element):
             return element
         raise LossySetitemError
