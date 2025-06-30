@@ -13,6 +13,8 @@
 name: Wheel builder
 
 on:
+  release:
+    types: [published]
   schedule:
   # 3:27 UTC every day
   - cron: "27 3 * * *"
@@ -222,7 +224,7 @@ jobs:
 
   publish:
     if: >
-      github.repository == 'evgmosme/pandas' &&
+      github.repository == 'pandas-dev/pandas' &&
       github.event_name == 'push' &&
       startsWith(github.ref, 'refs/tags/v')
 
@@ -233,7 +235,7 @@ jobs:
     runs-on: ubuntu-latest
 
     environment:
-      name: testpypi          # must match the Environment in repo settings
+      name: pypi
     permissions:
       id-token: write         # OIDC for Trusted Publishing
       contents: read
@@ -252,22 +254,9 @@ jobs:
                     -name '*.whl'   -exec mv {} upload/ \;
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
-      - name: Publish to **Test PyPI** (Trusted Publishing)
+      - name: Publish to **PyPI** (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/legacy/
+          repository-url: https://upload.pypi.org/legacy/
           packages-dir: upload
           skip-existing: true
-
-    # environment:
-    #   name: pypi
-    # permissions:
-    #   id-token: write
-    #   contents: read
-    #
-    # - name: Publish to **PyPI** (Trusted Publishing)
-    #   uses: pypa/gh-action-pypi-publish@release/v1
-    #   with:
-    #     repository-url: https://upload.pypi.org/legacy/
-    #     packages-dir: upload
-    #     skip-existing: true
