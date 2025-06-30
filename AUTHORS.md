@@ -23,7 +23,7 @@ Our Copyright Policy
 
 PyData uses a shared copyright model. Each contributor maintains copyright
 over their contributions to PyData. However, it is important to note that
-these contributions are typically only changes to the repositories. Thus,
+these contributions are typically limited to changes to the repositories. Thus,
 the PyData source code, in its entirety, is not the copyright of any single
 person or institution. Instead, it is the collective copyright of the
 entire PyData Development Team. If individual contributors want to maintain
