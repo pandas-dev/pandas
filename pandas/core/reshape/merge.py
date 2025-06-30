@@ -10,6 +10,7 @@ from collections.abc import (
 )
 import datetime
 from functools import partial
+import types
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -1134,7 +1135,10 @@ class _MergeOperation:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
-        result = result.__finalize__(self, method=self._merge_type)
+        result = result.__finalize__(
+            types.SimpleNamespace(input_objs=[self.left, self.right]),
+            method=self._merge_type,
+        )
 
         if self.indicator:
             result = self._indicator_post_merge(result)
@@ -1143,7 +1147,9 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        return result.__finalize__(self, method="merge")
+        return result.__finalize__(
+            types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
+        )
 
     @final
     @cache_readonly

@@ -80,12 +80,16 @@ class TestDataFrame:
         def finalize(self, other, method=None, **kwargs):
             for name in self._metadata:
                 if method == "merge":
-                    left, right = other.left, other.right
+                    left, right = other.input_objs
                     value = getattr(left, name, "") + "|" + getattr(right, name, "")
                     object.__setattr__(self, name, value)
                 elif method == "concat":
                     value = "+".join(
-                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                        [
+                            getattr(o, name)
+                            for o in other.input_objs
+                            if getattr(o, name, None)
+                        ]
                     )
                     object.__setattr__(self, name, value)
                 else:

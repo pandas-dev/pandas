@@ -550,7 +550,7 @@ def _get_result(
             result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
             result._name = name
             return result.__finalize__(
-                types.SimpleNamespace(objs=objs), method="concat"
+                types.SimpleNamespace(input_objs=objs), method="concat"
             )
 
         # combine as columns in a frame
@@ -571,7 +571,9 @@ def _get_result(
             )
             df = cons(data, index=index, copy=False)
             df.columns = columns
-            return df.__finalize__(types.SimpleNamespace(objs=objs), method="concat")
+            return df.__finalize__(
+                types.SimpleNamespace(input_objs=objs), method="concat"
+            )
 
     # combine block managers
     else:
@@ -610,7 +612,7 @@ def _get_result(
         )
 
         out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
-        return out.__finalize__(types.SimpleNamespace(objs=objs), method="concat")
+        return out.__finalize__(types.SimpleNamespace(input_objs=objs), method="concat")
 
 
 def new_axes(
