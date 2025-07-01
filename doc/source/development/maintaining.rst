@@ -448,7 +448,7 @@ which will be triggered when the tag is pushed.
 5. Wheels are uploaded automatically by GitHub Actions
    via [**Trusted Publishing**](https://docs.pypi.org/trusted-publishers/)
    when the GitHub [*Release*](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)
-   is published. No manual ``twine upload`` step is required.
+   is published. Do not run ``twine upload`` manually.
 
 6. The GitHub release will after some hours trigger an
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
