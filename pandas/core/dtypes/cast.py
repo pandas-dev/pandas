@@ -1418,6 +1418,13 @@ def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
             # so fall back to object (find_common_dtype did unless there
             # was only one dtype)
             common_dtype = np.dtype("O")
+        elif (
+            # Some precision is lost with float64 when handling uint64/int64
+            # Use object instead for the common type
+            all(np.dtype(x).kind in "iu" and np.dtype(x).itemsize == 8 for x in dtypes)
+            and common_dtype == np.float64
+        ):
+            common_dtype = np.dtype("O")
 
     except TypeError:
         common_dtype = np.dtype("O")

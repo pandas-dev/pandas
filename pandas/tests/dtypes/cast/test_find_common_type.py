@@ -31,7 +31,7 @@ from pandas import (
         ((np.float16, np.float32), np.float32),
         ((np.float16, np.int16), np.float32),
         ((np.float32, np.int16), np.float32),
-        ((np.uint64, np.int64), np.float64),
+        ((np.uint64, np.int64), object),
         ((np.int16, np.float64), np.float64),
         ((np.float16, np.int64), np.float64),
         # Into others.
@@ -155,9 +155,16 @@ def test_interval_dtype(left, right):
     elif left.subtype.kind in ["i", "u", "f"]:
         # i.e. numeric
         if right.subtype.kind in ["i", "u", "f"]:
-            # both numeric -> common numeric subtype
-            expected = IntervalDtype(np.float64, "right")
-            assert result == expected
+            if (
+                left.subtype.kind in ["i", "u"]
+                and right.subtype.kind in ["i", "u"]
+                and left.subtype.kind != right.subtype.kind
+            ):
+                assert result == object
+            else:
+                # both numeric -> common numeric subtype
+                expected = IntervalDtype(np.float64, "right")
+                assert result == expected
         else:
             assert result == object
 

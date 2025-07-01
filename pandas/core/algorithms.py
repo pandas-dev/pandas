@@ -557,16 +557,6 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
 
     else:
         common = np_find_common_type(values.dtype, comps_array.dtype)
-        if (
-            values.dtype.kind in "iu"
-            and comps_array.dtype.kind in "iu"
-            and common == np.float64
-        ):
-            # GH#46485
-            # Let's np_find_common_type do the job and return float64
-            # when it cannot do otherwise with integers
-            # We replace it by an object
-            common = np.dtype("O")
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
