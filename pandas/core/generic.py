@@ -28,6 +28,7 @@ from pandas._config import config
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import (
     Period,
     Timestamp,
@@ -9707,6 +9708,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
+            cond = cond.fillna(True)
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
                 cond = cond._constructor_expanddim(
@@ -9717,10 +9719,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond = cond.align(self, join="right")[0]
         else:
             if not hasattr(cond, "shape"):
-                cond = np.asanyarray(cond)
+                cond = np.asanyarray(cond, dtype=object)
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
+            cond = cond.fillna(True)
 
         # make sure we are boolean
         fill_value = bool(inplace)
@@ -10101,7 +10104,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
-            cond = np.array(cond)
+            cond = np.array(cond, dtype=object)
+
+        if isinstance(cond, np.ndarray):
+            if all(
+                x is NA or isinstance(x, (np.bool_, bool)) or x is np.nan
+                for x in cond.flatten()
+            ):
+                if not cond.flags.writeable:
+                    cond.setflags(write=True)
+                cond[isna(cond)] = False
+                cond = cond.astype(bool)
 
         return self._where(
             ~cond,
