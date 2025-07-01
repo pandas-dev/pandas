@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeAlias,
     cast,
 )
 
@@ -71,7 +72,7 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
-ResType = dict[int, Any]
+ResType: TypeAlias = dict[int, Any]
 
 
 class BaseExecutionEngine(abc.ABC):

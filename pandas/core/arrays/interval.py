@@ -9,7 +9,7 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Literal,
-    Union,
+    TypeAlias,
     overload,
 )
 
@@ -109,8 +109,8 @@ if TYPE_CHECKING:
     )
 
 
-IntervalSide = Union[TimeArrayLike, np.ndarray]
-IntervalOrNA = Union[Interval, float]
+IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
+IntervalOrNA: TypeAlias = Interval | float
 
 _interval_shared_docs: dict[str, str] = {}
 

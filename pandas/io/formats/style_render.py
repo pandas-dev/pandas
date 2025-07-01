@@ -11,9 +11,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
-    Optional,
+    TypeAlias,
     TypedDict,
-    Union,
 )
 from uuid import uuid4
 
@@ -50,11 +49,11 @@ if TYPE_CHECKING:
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
-BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
-CSSPair = tuple[str, Union[str, float]]
-CSSList = list[CSSPair]
-CSSProperties = Union[str, CSSList]
+BaseFormatter: TypeAlias = str | Callable
+ExtFormatter: TypeAlias = BaseFormatter | dict[Any, BaseFormatter | None]
+CSSPair: TypeAlias = tuple[str, str | float]
+CSSList: TypeAlias = list[CSSPair]
+CSSProperties: TypeAlias = str | CSSList
 
 
 class CSSDict(TypedDict):
@@ -62,8 +61,8 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-CSSStyles = list[CSSDict]
-Subset = Union[slice, Sequence, Index]
+CSSStyles: TypeAlias = list[CSSDict]
+Subset = slice | Sequence | Index
 
 
 class StylerRenderer:

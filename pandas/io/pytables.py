@@ -20,6 +20,7 @@ from typing import (
     Any,
     Final,
     Literal,
+    TypeAlias,
     cast,
     overload,
 )
@@ -160,7 +161,7 @@ def _ensure_str(name):
     return name
 
 
-Term = PyTablesExpr
+Term: TypeAlias = PyTablesExpr
 
 
 def _ensure_term(where, scope_level: int):
