@@ -301,3 +301,11 @@ def test_multi_columns_nan_empty():
         index=[0, 0, 1, 2, 3, 3],
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_str_dtype():
+    # https://github.com/pandas-dev/pandas/pull/61623
+    df = pd.DataFrame({"a": ["x", "y"]}, dtype="str")
+    result = df.explode(column="a")
+    assert result is not df
+    tm.assert_frame_equal(result, df)

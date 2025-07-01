@@ -173,3 +173,11 @@ def test_explode_pyarrow_non_list_type(ignore_index):
     result = ser.explode(ignore_index=ignore_index)
     expected = pd.Series([1, 2, 3], dtype="int64[pyarrow]", index=[0, 1, 2])
     tm.assert_series_equal(result, expected)
+
+
+def test_str_dtype():
+    # https://github.com/pandas-dev/pandas/pull/61623
+    ser = pd.Series(["x", "y"], dtype="str")
+    result = ser.explode()
+    assert result is not ser
+    tm.assert_series_equal(result, ser)

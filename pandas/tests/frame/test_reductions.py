@@ -846,6 +846,16 @@ class TestDataFrameAnalytics:
         expected = Series([], index=index, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("min_count", [0, 1])
+    def test_axis_1_sum_na(self, string_dtype_no_object, skipna, min_count):
+        # https://github.com/pandas-dev/pandas/issues/60229
+        dtype = string_dtype_no_object
+        df = DataFrame({"a": [pd.NA]}, dtype=dtype)
+        result = df.sum(axis=1, skipna=skipna, min_count=min_count)
+        value = "" if skipna and min_count == 0 else pd.NA
+        expected = Series([value], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
     @pytest.mark.parametrize("numeric_only", [None, True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):
