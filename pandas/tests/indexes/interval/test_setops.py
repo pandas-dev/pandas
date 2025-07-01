@@ -55,7 +55,7 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         other = empty_index(dtype="uint64", closed=closed)
-        expected = Index([], dtype='object')
+        expected = Index([], dtype="object")
         result = index.union(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
@@ -118,7 +118,7 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         other = monotonic_index(300, 314, dtype="uint64", closed=closed)
-        expected = Index([], dtype='object')
+        expected = Index([], dtype="object")
         result = index.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
