@@ -225,7 +225,7 @@ jobs:
   publish:
     if: >
       github.repository == 'pandas-dev/pandas' &&
-      github.event_name == 'push' &&
+      github.event_name == 'release' &&
       startsWith(github.ref, 'refs/tags/v')
 
     needs:
