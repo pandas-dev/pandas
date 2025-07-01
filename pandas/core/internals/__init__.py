@@ -8,6 +8,7 @@ from pandas.core.internals.managers import (
 __all__ = [
     "Block",  # pyright:ignore[reportUnsupportedDunderAll)]
     "BlockManager",
+    "DatetimeTZBlock",  # pyright:ignore[reportUnsupportedDunderAll)]
     "ExtensionBlock",  # pyright:ignore[reportUnsupportedDunderAll)]
     "SingleBlockManager",
     "concatenate_managers",
@@ -36,6 +37,7 @@ def __getattr__(name: str):
     if name in [
         "Block",
         "ExtensionBlock",
+        "DatetimeTZBlock",
     ]:
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
@@ -45,6 +47,10 @@ def __getattr__(name: str):
             # on hard-coding stacklevel
             stacklevel=2,
         )
+        if name == "DatetimeTZBlock":
+            from pandas.core.internals.blocks import DatetimeLikeBlock
+
+            return DatetimeLikeBlock
         if name == "ExtensionBlock":
             from pandas.core.internals.blocks import ExtensionBlock
 
