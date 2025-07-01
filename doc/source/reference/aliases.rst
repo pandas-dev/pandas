@@ -13,12 +13,12 @@ Typing aliases
 .. currentmodule:: pandas.api.atyping.aliases
 
 The typing declarations in ``pandas/_typing.py`` are considered private, and used
-by pandasdevelopers for type checking of the pandascode base.  For users, it is
+by pandas developers for type checking of the pandas code base.  For users, it is
 highly recommended to use the ``pandas-stubs`` package that represents the officially
 supported type declarations for users of pandas.
 Note that the definitions and use cases of these aliases are subject to change.
 They are documented here for users who wish to use these declarations in their
-own python code that calls pandasor expects certain results.
+own python code that calls pandas or expects certain results.
 
 Each of these aliases listed in the table below can be found by importing them from :py:mod:`pandas.api.typing.aliases`.
 
