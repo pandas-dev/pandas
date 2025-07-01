@@ -152,8 +152,8 @@ def import_optional_dependency(
     install_name = package_name if package_name is not None else name
 
     msg = (
-        f"Missing optional dependency '{install_name}'. {extra} "
-        f"Use pip or conda to install {install_name}."
+        f"`Import {install_name}` failed. {extra} "
+        f"Use pip or conda to install the {install_name} package."
     )
     try:
         module = importlib.import_module(name)

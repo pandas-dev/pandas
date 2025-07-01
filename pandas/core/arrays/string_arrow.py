@@ -4,7 +4,6 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
-    Union,
 )
 import warnings
 
@@ -62,9 +61,6 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Series
-
-
-ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:

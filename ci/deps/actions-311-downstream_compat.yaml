@@ -50,7 +50,8 @@ dependencies:
   - pytz>=2023.4
   - pyxlsb>=1.0.10
   - s3fs>=2023.12.2
-  - scipy>=1.12.0
+  # TEMP upper pin for scipy (https://github.com/statsmodels/statsmodels/issues/9584)
+  - scipy>=1.12.0,<1.16
   - sqlalchemy>=2.0.0
   - tabulate>=0.9.0
   - xarray>=2024.1.1
