@@ -2116,3 +2116,9 @@ def temp_file(tmp_path):
     file_path = tmp_path / str(uuid.uuid4())
     file_path.touch()
     return file_path
+
+
+@pytest.fixture(scope="session")
+def monkeysession():
+    with pytest.MonkeyPatch.context() as mp:
+        yield mp

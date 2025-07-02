@@ -5,7 +5,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    TypeVar,
     cast,
     final,
 )
@@ -83,6 +82,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         Self,
+        T,
         npt,
     )
 
@@ -91,7 +91,6 @@ if TYPE_CHECKING:
         Series,
     )
 
-T = TypeVar("T")
 # "null slice"
 _NS = slice(None, None)
 _one_ellipsis_message = "indexer may only contain one '...' entry"
@@ -1066,8 +1065,10 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         tup = self._validate_key_length(tup)
 
-        for i, key in enumerate(tup):
-            if is_label_like(key):
+        # Reverse tuple so that we are indexing along columns before rows
+        # and avoid unintended dtype inference. # GH60600
+        for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup)):
+            if is_label_like(key) or is_list_like(key):
                 # We don't need to check for tuples here because those are
                 #  caught by the _is_nested_tuple_indexer check above.
                 section = self._getitem_axis(key, axis=i)

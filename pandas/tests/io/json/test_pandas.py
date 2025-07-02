@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time
+import uuid
 
 import numpy as np
 import pytest
@@ -1411,11 +1412,10 @@ class TestPandasContainer:
     @pytest.mark.single_cpu
     @pytest.mark.network
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
+    def test_read_s3_jsonl(self, s3_bucket_public_with_data, s3so):
         # GH17200
-
         result = read_json(
-            f"s3n://{s3_public_bucket_with_data.name}/items.jsonl",
+            f"s3n://{s3_bucket_public_with_data.name}/items.jsonl",
             lines=True,
             storage_options=s3so,
         )
@@ -2011,14 +2011,15 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     @pytest.mark.network
-    def test_to_s3(self, s3_public_bucket, s3so):
+    def test_to_s3(self, s3_bucket_public, s3so):
         # GH 28375
-        mock_bucket_name, target_file = s3_public_bucket.name, "test.json"
+        mock_bucket_name = s3_bucket_public.name
+        target_file = f"{uuid.uuid4()}.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
         df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5
         while True:
-            if target_file in (obj.key for obj in s3_public_bucket.objects.all()):
+            if target_file in (obj.key for obj in s3_bucket_public.objects.all()):
                 break
             time.sleep(0.1)
             timeout -= 0.1

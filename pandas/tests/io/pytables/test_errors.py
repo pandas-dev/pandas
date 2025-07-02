@@ -45,7 +45,7 @@ def test_pass_spec_to_storer(setup_path):
             "format store. this store must be selected in its entirety"
         )
         with pytest.raises(TypeError, match=msg):
-            store.select("df", where=[("columns=A")])
+            store.select("df", where=["columns=A"])
 
 
 def test_table_index_incompatible_dtypes(setup_path):
