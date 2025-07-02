@@ -48,9 +48,9 @@ def __getattr__(name: str):
             stacklevel=2,
         )
         if name == "DatetimeTZBlock":
-            from pandas.core.internals.blocks import DatetimeLikeBlock
+            from pandas.core.internals.api import _DatetimeTZBlock as DatetimeTZBlock
 
-            return DatetimeLikeBlock
+            return DatetimeTZBlock
         if name == "ExtensionBlock":
             from pandas.core.internals.blocks import ExtensionBlock
 

@@ -728,7 +728,14 @@ class TestParquetPyArrow(Base):
 
         expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[ms]")
+        if pa_version_under13p0:
+            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+                "M8[ns]"
+            )
+        else:
+            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+                "M8[ms]"
+            )
         tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa):
@@ -972,15 +979,12 @@ class TestParquetPyArrow(Base):
 
     def test_timestamp_nanoseconds(self, pa):
         # with version 2.6, pyarrow defaults to writing the nanoseconds, so
-        # this should work without error
-        # Note in previous pyarrows(<7.0.0), only the pseudo-version 2.0 was available
+        # this should work without error, even for pyarrow < 13
         ver = "2.6"
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
-        pytest.importorskip("pyarrow", "11.0.0")
-
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 
@@ -995,6 +999,8 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
 
         expected = df[:]
+        if pa_version_under13p0:
+            expected.index = expected.index.as_unit("ns")
         if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
             # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
             # https://github.com/pandas-dev/pandas/issues/37286
@@ -1178,7 +1184,7 @@ class TestParquetPyArrow(Base):
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
-        pa = pytest.importorskip("pyarrow", "11.0.0")
+        pa = pytest.importorskip("pyarrow", "13.0.0")
         pq = pytest.importorskip("pyarrow.parquet")
 
         arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
