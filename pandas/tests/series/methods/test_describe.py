@@ -95,6 +95,32 @@ class TestSeriesDescribe:
         assert np.isnan(result.iloc[2])
         assert np.isnan(result.iloc[3])
 
+    def test_describe_multiple_dtypes(self):
+        """
+        GH61707: describe() doesn't work on EAs which generate
+        statistics with multiple dtypes.
+        """
+        from decimal import Decimal
+
+        from pandas.tests.extension.decimal import to_decimal
+
+        s = Series(to_decimal([1, 2.5, 3]), dtype="decimal")
+
+        expected = Series(
+            [
+                3,
+                Decimal("2.166666666666666666666666667"),
+                Decimal("0.8498365855987974716713706849"),
+                Decimal("1"),
+                Decimal("3"),
+            ],
+            index=["count", "mean", "std", "min", "max"],
+            dtype="object",
+        )
+
+        result = s.describe(percentiles=[])
+        tm.assert_series_equal(result, expected)
+
     def test_describe_with_tz(self, tz_naive_fixture):
         # GH 21332
         tz = tz_naive_fixture

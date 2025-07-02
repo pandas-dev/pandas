@@ -12,6 +12,7 @@ from abc import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
 )
 
@@ -215,6 +216,14 @@ def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     return names
 
 
+def has_multiple_internal_dtypes(d: list[Any]) -> bool:
+    """Check if the sequence has multiple internal dtypes."""
+    if not d:
+        return False
+
+    return any(type(item) != type(d[0]) for item in d)
+
+
 def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     """Describe series containing numerical data.
 
@@ -251,6 +260,10 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
                 import pyarrow as pa
 
                 dtype = ArrowDtype(pa.float64())
+        elif has_multiple_internal_dtypes(d):
+            # GH61707: describe() doesn't work on EAs
+            # with multiple internal dtypes, so return object dtype
+            dtype = None
         else:
             dtype = Float64Dtype()
     elif series.dtype.kind in "iufb":
