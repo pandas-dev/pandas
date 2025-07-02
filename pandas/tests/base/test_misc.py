@@ -3,12 +3,9 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import PYPY
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_object_dtype,
 )
 
@@ -81,10 +78,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert Series([1]).item() == 1
 
 
-@pytest.mark.skipif(
-    PYPY or using_string_dtype(),
-    reason="not relevant for PyPy doesn't work properly for arrow strings",
-)
+@pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_memory_obj):
     obj = index_or_series_memory_obj
     # Clear index caches so that len(obj) == 0 report 0 memory usage
@@ -98,18 +92,21 @@ def test_memory_usage(index_or_series_memory_obj):
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
-    is_object = is_object_dtype(obj) or (is_ser and is_object_dtype(obj.index))
-    is_categorical = isinstance(obj.dtype, pd.CategoricalDtype) or (
-        is_ser and isinstance(obj.index.dtype, pd.CategoricalDtype)
-    )
-    is_object_string = is_dtype_equal(obj, "string[python]") or (
-        is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
-    )
+    def _is_object_dtype(obj):
+        if isinstance(obj, pd.MultiIndex):
+            return any(_is_object_dtype(level) for level in obj.levels)
+        elif isinstance(obj.dtype, pd.CategoricalDtype):
+            return _is_object_dtype(obj.dtype.categories)
+        elif isinstance(obj.dtype, pd.StringDtype):
+            return obj.dtype.storage == "python"
+        return is_object_dtype(obj)
+
+    has_objects = _is_object_dtype(obj) or (is_ser and _is_object_dtype(obj.index))
 
     if len(obj) == 0:
         expected = 0
         assert res_deep == res == expected
-    elif is_object or is_categorical or is_object_string:
+    elif has_objects:
         # only deep will pick them up
         assert res_deep > res
     else:
