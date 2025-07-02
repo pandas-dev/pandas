@@ -94,9 +94,9 @@ def test_memory_usage(index_or_series_memory_obj):
 
     def _is_object_dtype(obj):
         if isinstance(obj, pd.MultiIndex):
-            return any(is_object_dtype(level) for level in obj.levels)
+            return any(_is_object_dtype(level) for level in obj.levels)
         elif isinstance(obj.dtype, pd.CategoricalDtype):
-            return is_object_dtype(obj.dtype.categories)
+            return _is_object_dtype(obj.dtype.categories)
         elif isinstance(obj.dtype, pd.StringDtype):
             return obj.dtype.storage == "python"
         return is_object_dtype(obj)
