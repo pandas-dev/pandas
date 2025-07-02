@@ -1343,6 +1343,7 @@ def iterdir(
     path: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     extensions: str | Iterable[str] | None = None,
     glob: str | None = None,
+    storage_options: StorageOptions | None = None,
 ) -> list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:
     """Yield file paths in a directory (no nesting allowed).
 
@@ -1430,7 +1431,15 @@ def iterdir(
 
     # Remote paths
     fsspec = import_optional_dependency("fsspec", extra=scheme)
-    fs, inner_path = fsspec.core.url_to_fs(path_str)
+
+    # GH #11071
+    # Two legacy S3 protocols (s3n and s3a) are replaced with s3
+    if path_str.startswith("s3n://"):
+        path_str = path_str.replace("s3n://", "s3://")
+    if path_str.startswith("s3a://"):
+        path_str = path_str.replace("s3a://", "s3://")
+
+    fs, inner_path = fsspec.core.url_to_fs(path_str, **storage_options)
     if fs.isfile(inner_path):
         path_obj = PurePosixPath(inner_path)
         if _match_file(

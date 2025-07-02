@@ -727,7 +727,8 @@ def _read(
 
     extensions = kwds.get("extensions", None)
     glob = kwds.get("glob", None)
-    files = iterdir(filepath_or_buffer, extensions, glob)
+    storage_options = kwds.get("storage_options", None)
+    files = iterdir(filepath_or_buffer, extensions, glob, storage_options)
 
     if isinstance(files, list) and not files:
         raise FileNotFoundError(
