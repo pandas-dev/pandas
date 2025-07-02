@@ -393,8 +393,8 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["days"] = np.asarray(diff).astype("m8[D]").view("int64")
 
         elif infer_dtype(dates, skipna=False) == "datetime":
-            # - Deprecated casting object-dtype columns of datetimes to datetime64 when writing to stata; call df=df.infer_objects() before writing to stata instead (:issue:`??`)
             warnings.warn(
+                # GH#56536
                 "Converting object-dtype columns of datetimes to datetime64 when "
                 "writing to stata is deprecated. Call "
                 "`df=df.infer_objects(copy=False)` before writing to stata instead.",
@@ -405,10 +405,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 delta = dates._values - stata_epoch
 
                 def f(x: timedelta) -> float:
-                    return US_PER_DAY * x.days + 1000000 * x.seconds + x.microseconds
+                    return US_PER_DAY * x.days + 1_000_000 * x.seconds + x.microseconds
 
                 v = np.vectorize(f)
-                d["delta"] = v(delta)
+                d["delta"] = v(delta) // 1_000  # convert back to ms
             if year:
                 year_month = dates.apply(lambda x: 100 * x.year + x.month)
                 d["year"] = year_month._values // 100
