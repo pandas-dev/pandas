@@ -5432,7 +5432,7 @@ A simple example loading all data from an Iceberg table ``my_table`` defined in 
     df = pd.read_iceberg("my_table", catalog_name="my_catalog")
 
 Catalogs must be defined in the ``.pyiceberg.yaml`` file, usually in the home directory.
-It is possible to to change properties of the catalog definition with the
+It is possible to change properties of the catalog definition with the
 ``catalog_properties`` parameter:
 
 .. code-block:: python
