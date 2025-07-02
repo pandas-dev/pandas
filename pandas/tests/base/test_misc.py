@@ -108,7 +108,7 @@ def test_memory_usage(index_or_series_memory_obj):
         assert res_deep == res == expected
     elif has_objects:
         # only deep will pick them up
-        assert res_deep > res, (res_deep, res)
+        assert res_deep > res
     else:
         assert res == res_deep
 
