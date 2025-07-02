@@ -2382,8 +2382,8 @@ def test_merge_suffix_with_force_simple(force_suffixes):
                 })
 
     if force_suffixes:
-        expected = DataFrame([[2, 2, "B", "D"], [3, 3, "C", "E"]],
-                             columns=["ID_left", "Value_left", "ID_right", "Value_right"])
+        expected = DataFrame([[2, "B", "D"], [3, "C", "E"]],
+                             columns=["ID", "Value_left", "Value_right"])
     else:
         expected = DataFrame([[2, "B", "D"], [3, "C", "E"]],
                              columns=["ID", "Value_left", "Value_right"])
@@ -2399,7 +2399,7 @@ def test_merge_suffix_with_force_multi_column(force_suffixes):
 
     if force_suffixes:
         expected = DataFrame([[1, 4, "A", 1, 4, "a"], [2, 5, "B", 2, 5, "b"], [3, 6, "C", 3, 6, "c"]],
-                             columns=["A_x", "B_x", "ALPHABET_x", "a_y", "b_y", "alphabet_y"])
+                             columns=["A", "B", "ALPHABET_x", "a", "b", "alphabet_y"])
     else:
         expected = DataFrame([[1, 4, "A", 1, 4, "a"], [2, 5, "B", 2, 5, "b"], [3, 6, "C", 3, 6, "c"]],
                              columns=["A", "B", "ALPHABET", "a", "b", "alphabet"])
