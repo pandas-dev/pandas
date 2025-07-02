@@ -758,6 +758,9 @@ class NSort:
     params = ["first", "last", "all"]
     param_names = ["keep"]
 
+    def __init__(self):
+        self.df = None
+
     def setup(self, keep):
         self.df = DataFrame(np.random.randn(100000, 3), columns=list("ABC"))
 
@@ -772,6 +775,12 @@ class NSort:
 
     def time_nsmallest_two_columns(self, keep):
         self.df.nsmallest(100, ["A", "B"], keep=keep)
+
+    def time_nsorted_one_column(self, keep):
+        self.df.nsorted(100, "A", keep=keep, ascending=True)
+
+    def time_nsorted_two_columns(self, keep):
+        self.df.nsorted(100, ["A", "B"], keep=keep, ascending=[True, False])
 
 
 class Describe:
