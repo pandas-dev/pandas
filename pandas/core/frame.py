@@ -188,7 +188,10 @@ from pandas.core.sorting import (
     nargsort,
 )
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    allow_third_party_engines,
+    get_handle,
+)
 from pandas.io.formats import (
     console,
     format as fmt,
@@ -3547,6 +3550,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return xml_formatter.write_output()
 
+    @allow_third_party_engines
     def to_iceberg(
         self,
         table_identifier: str,
@@ -3556,6 +3560,7 @@ class DataFrame(NDFrame, OpsMixin):
         location: str | None = None,
         append: bool = False,
         snapshot_properties: dict[str, str] | None = None,
+        engine: str | None = None,
     ) -> None:
         """
         Write a DataFrame to an Apache Iceberg table.
@@ -3580,6 +3585,10 @@ class DataFrame(NDFrame, OpsMixin):
             If ``True``, append data to the table, instead of replacing the content.
         snapshot_properties : dict of {str: str}, optional
             Custom properties to be added to the snapshot summary
+        engine : str, optional
+            The engine to use. Engines can be installed via third-party packages. For an
+            updated list of existing pandas I/O engines check the I/O engines section of
+            the pandas Ecosystem page.
 
         See Also
         --------

@@ -9,6 +9,7 @@ from abc import (
 import codecs
 from collections import defaultdict
 from collections.abc import (
+    Callable,
     Hashable,
     Mapping,
     Sequence,
@@ -16,6 +17,7 @@ from collections.abc import (
 import dataclasses
 import functools
 import gzip
+from importlib.metadata import entry_points
 from io import (
     BufferedIOBase,
     BytesIO,
@@ -89,6 +91,10 @@ if TYPE_CHECKING:
     )
 
     from pandas import MultiIndex
+
+# registry of I/O engines. It is populated the first time a non-core
+# pandas engine is used
+_io_engines: dict[str, Any] | None = None
 
 
 @dataclasses.dataclass
@@ -1282,3 +1288,149 @@ def dedup_names(
         counts[col] = cur_count + 1
 
     return names
+
+
+def _get_io_engine(name: str) -> Any:
+    """
+    Return an I/O engine by its name.
+
+    pandas I/O engines can be registered via entry points. The first time this
+    function is called it will register all the entry points of the "pandas.io_engine"
+    group and cache them in the global `_io_engines` variable.
+
+    Engines are implemented as classes with the `read_<format>` and `to_<format>`
+    methods (classmethods) for the formats they wish to provide. This function will
+    return the method from the engine and format being requested.
+
+    Parameters
+    ----------
+    name : str
+        The engine name provided by the user in `engine=<value>`.
+
+    Examples
+    --------
+    An engine is implemented with a class like:
+
+    >>> class DummyEngine:
+    ...     @classmethod
+    ...     def read_csv(cls, filepath_or_buffer, **kwargs):
+    ...         # the engine signature must match the pandas method signature
+    ...         return pd.DataFrame()
+
+    It must be registered as an entry point with the engine name:
+
+    ```
+    [project.entry-points."pandas.io_engine"]
+    dummy = "pandas:io.dummy.DummyEngine"
+
+    ```
+
+    Then the `read_csv` method of the engine can be used with:
+
+    >>> _get_io_engine(engine_name="dummy").read_csv("myfile.csv")  # doctest: +SKIP
+
+    This is used internally to dispatch the next pandas call to the engine caller:
+
+    >>> df = read_csv("myfile.csv", engine="dummy")  # doctest: +SKIP
+    """
+    global _io_engines
+
+    if _io_engines is None:
+        _io_engines = {}
+        for entry_point in entry_points().select(group="pandas.io_engine"):
+            if entry_point.dist:
+                package_name = entry_point.dist.metadata["Name"]
+            else:
+                package_name = None
+            if entry_point.name in _io_engines:
+                _io_engines[entry_point.name]._packages.append(package_name)
+            else:
+                _io_engines[entry_point.name] = entry_point.load()
+                _io_engines[entry_point.name]._packages = [package_name]
+
+    try:
+        engine = _io_engines[name]
+    except KeyError as err:
+        raise ValueError(
+            f"'{name}' is not a known engine. Some engines are only available "
+            "after installing the package that provides them."
+        ) from err
+
+    if len(engine._packages) > 1:
+        msg = (
+            f"The engine '{name}' has been registered by the package "
+            f"'{engine._packages[0]}' and will be used. "
+        )
+        if len(engine._packages) == 2:
+            msg += (
+                f"The package '{engine._packages[1]}' also tried to register "
+                "the engine, but it couldn't because it was already registered."
+            )
+        else:
+            msg += (
+                "The packages {str(engine._packages[1:]}[1:-1] also tried to register "
+                "the engine, but they couldn't because it was already registered."
+            )
+        warnings.warn(msg, RuntimeWarning, stacklevel=find_stack_level())
+
+    return engine
+
+
+def allow_third_party_engines(
+    skip_engines: list[str] | Callable | None = None,
+) -> Callable:
+    """
+    Decorator to avoid boilerplate code when allowing readers and writers to use
+    third-party engines.
+
+    The decorator will introspect the function to know which format should be obtained,
+    and to know if it's a reader or a writer. Then it will check if the engine has been
+    registered, and if it has, it will dispatch the execution to the engine with the
+    arguments provided by the user.
+
+    Parameters
+    ----------
+    skip_engines : list of str, optional
+        For engines that are implemented in pandas, we want to skip them for this engine
+        dispatching system. They should be specified in this parameter.
+
+    Examples
+    --------
+    The decorator works both with the `skip_engines` parameter, or without:
+
+    >>> class DataFrame:
+    ...     @allow_third_party_engines(["python", "c", "pyarrow"])
+    ...     def read_csv(filepath_or_buffer, **kwargs):
+    ...         pass
+    ...
+    ...     @allow_third_party_engines
+    ...     def read_sas(filepath_or_buffer, **kwargs):
+    ...         pass
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            if callable(skip_engines) or skip_engines is None:
+                skip_engine = False
+            else:
+                skip_engine = kwargs["engine"] in skip_engines
+
+            if "engine" in kwargs and not skip_engine:
+                engine_name = kwargs.pop("engine")
+                engine = _get_io_engine(engine_name)
+                try:
+                    return getattr(engine, func.__name__)(*args, **kwargs)
+                except AttributeError as err:
+                    raise ValueError(
+                        f"The engine '{engine_name}' does not provide a "
+                        f"'{func.__name__}' function"
+                    ) from err
+            else:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    if callable(skip_engines):
+        return decorator(skip_engines)
+    return decorator
