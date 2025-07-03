@@ -1344,7 +1344,7 @@ def iterdir(
     extensions: str | Iterable[str] | None = None,
     glob: str | None = None,
     storage_options: StorageOptions | None = None,
-) -> FilePath | list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:  # type: ignore[assignment]
+) -> FilePath | list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:
     """Yield file paths in a directory (no nesting allowed).
 
     Supports:
