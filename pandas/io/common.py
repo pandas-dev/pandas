@@ -1439,7 +1439,7 @@ def iterdir(
     if path_str.startswith("s3a://"):
         path_str = path_str.replace("s3a://", "s3://")
 
-    fs, inner_path = fsspec.core.url_to_fs(path_str, **storage_options)
+    fs, inner_path = fsspec.core.url_to_fs(path_str, **(storage_options or {}))
     if fs.isfile(inner_path):
         path_obj = PurePosixPath(inner_path)
         if _match_file(
