@@ -29,6 +29,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
+    DatetimeLikeBlock,
     check_ndim,
     ensure_block_shape,
     extract_pandas_array,
@@ -74,6 +75,14 @@ def _make_block(values: ArrayLike, placement: np.ndarray) -> Block:
     return klass(values, ndim=2, placement=placement_obj)
 
 
+class _DatetimeTZBlock(DatetimeLikeBlock):
+    """implement a datetime64 block with a tz attribute"""
+
+    values: DatetimeArray
+
+    __slots__ = ()
+
+
 def make_block(
     values, placement, klass=None, ndim=None, dtype: Dtype | None = None
 ) -> Block:
@@ -113,6 +122,16 @@ def make_block(
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(dtype)
+
+    elif klass is _DatetimeTZBlock and not isinstance(values.dtype, DatetimeTZDtype):
+        # pyarrow calls get here (pyarrow<15)
+        values = DatetimeArray._simple_new(
+            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+            # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
+            # expected "Union[dtype[datetime64], DatetimeTZDtype]"
+            values,
+            dtype=dtype,  # type: ignore[arg-type]
+        )
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)

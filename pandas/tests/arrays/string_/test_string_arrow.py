@@ -178,7 +178,7 @@ def test_from_sequence_wrong_dtype_raises(using_infer_string):
 
 @td.skip_if_installed("pyarrow")
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=10.0.1 is required for PyArrow backed")
+    msg = re.escape("pyarrow>=12.0.1 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")
