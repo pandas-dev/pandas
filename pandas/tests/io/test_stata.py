@@ -1030,7 +1030,13 @@ class TestStata:
         # {c : c[-2:] for c in columns}
         path = temp_file
         expected.index.name = "index"
-        expected.to_stata(path, convert_dates=date_conversion)
+        msg = (
+            "Converting object-dtype columns of datetimes to datetime64 "
+            "when writing to stata is deprecated"
+        )
+        exp_object = expected.astype(object)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            exp_object.to_stata(path, convert_dates=date_conversion)
         written_and_read_again = self.read_dta(path)
 
         tm.assert_frame_equal(
