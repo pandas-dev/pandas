@@ -500,6 +500,12 @@ class ArrowExtensionArray(
                 value = to_timedelta(value, unit=pa_type.unit).as_unit(pa_type.unit)
                 value = value.to_numpy()
 
+            if pa_type is not None and pa.types.is_timestamp(pa_type):
+                # Use to_datetime to handle NaNs, disallow Decimal("NaN")
+                from pandas import to_datetime
+
+                value = to_datetime(value).as_unit(pa_type.unit)
+
             try:
                 pa_array = pa.array(value, type=pa_type, from_pandas=True)
             except (pa.ArrowInvalid, pa.ArrowTypeError):
