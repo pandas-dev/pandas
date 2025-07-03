@@ -1,23 +1,21 @@
-# Non-dependencies that pandas utilizes or has compatibility with pandas objects
 name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.11
+  - python=3.9
 
   # build dependencies
-  - versioneer
-  - cython<4.0.0a0
-  - meson=1.2.1
+  - versioneer[toml]
+  - cython>=0.29.33
+  - meson[ninja]=1.2.1
   - meson-python=0.13.1
 
   # test dependencies
   - pytest>=7.3.2
   - pytest-cov
   - pytest-xdist>=2.2.0
-  - pytest-localserver>=0.7.1
   - pytest-qt>=4.2.0
-  - boto3=1.37.3
+  - boto3
 
   # required dependencies
   - python-dateutil
@@ -51,30 +49,16 @@ dependencies:
   - python-calamine>=0.1.7
   - pyxlsb>=1.0.10
   - s3fs>=2022.11.0
-  # TEMP upper pin for scipy (https://github.com/statsmodels/statsmodels/issues/9584)
-  - scipy>=1.10.0,<1.16
+  - scipy>=1.10.0
   - sqlalchemy>=2.0.0
   - tabulate>=0.9.0
-  - xarray>=2022.12.0, <=2024.9.0
+  - xarray>=2022.12.0
   - xlrd>=2.0.1
   - xlsxwriter>=3.0.5
   - zstandard>=0.19.0
 
-  # downstream packages
-  - botocore
-  - cftime
-  - dask
-  - ipython
-  - geopandas-base
-  - seaborn
-  - scikit-learn
-  - statsmodels
-  - coverage
-  - pandas-datareader
-  - pyyaml
-  - py
   - pip:
     - adbc-driver-postgresql>=0.8.0
     - adbc-driver-sqlite>=0.8.0
-    - dataframe-api-compat>=0.1.7
     - tzdata>=2022.7
+    - pytest-localserver>=0.7.1

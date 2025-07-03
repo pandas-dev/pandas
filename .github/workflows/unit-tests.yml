@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-22.04, ubuntu-24.04-arm]
-        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["0"]
@@ -38,7 +38,7 @@ jobs:
             pytest_target: "pandas/tests/test_downstream.py"
             platform: ubuntu-22.04
           - name: "Minimum Versions"
-            env_file: actions-310-minimum_versions.yaml
+            env_file: actions-39-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
             platform: ubuntu-22.04
           - name: "Locale: it_IT"
@@ -63,6 +63,11 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
             platform: ubuntu-22.04
+          - name: "Copy-on-Write 3.9"
+            env_file: actions-39.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+            platform: ubuntu-22.04
           - name: "Copy-on-Write 3.10"
             env_file: actions-310.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -85,6 +90,11 @@ jobs:
             platform: ubuntu-22.04
           - name: "Copy-on-Write 3.10 (warnings)"
             env_file: actions-310.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "warn"
+            platform: ubuntu-22.04
+          - name: "Copy-on-Write 3.9 (warnings)"
+            env_file: actions-39.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "warn"
             platform: ubuntu-22.04
@@ -218,7 +228,7 @@ jobs:
       matrix:
         # Note: Don't use macOS latest since macos 14 appears to be arm64 only
         os: [macos-13, macos-14, windows-latest]
-        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
