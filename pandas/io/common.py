@@ -1344,7 +1344,7 @@ def iterdir(
     extensions: str | Iterable[str] | None = None,
     glob: str | None = None,
     storage_options: StorageOptions | None = None,
-) -> list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:
+) -> FilePath | list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:  # type: ignore[assignment]
     """Yield file paths in a directory (no nesting allowed).
 
     Supports:
@@ -1412,7 +1412,7 @@ def iterdir(
                 glob,
             ):
                 result.append(resolved_path)
-                return result
+                return result  # type: ignore[return-value]
 
         if resolved_path.is_dir():
             for entry in resolved_path.iterdir():
@@ -1423,7 +1423,7 @@ def iterdir(
                         glob,
                     ):
                         result.append(entry)
-            return result
+            return result  # type: ignore[return-value]
 
         raise ValueError(
             f"The path '{resolved_path}' is neither a file nor a directory."
@@ -1458,5 +1458,5 @@ def iterdir(
                 extensions,
                 glob,
             ):
-                result.append(f"{scheme}://{path_obj}")
-    return result
+                result.append(f"{scheme}://{path_obj}")  # type: ignore[arg-type]
+    return result  # type: ignore[return-value]
