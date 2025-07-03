@@ -72,6 +72,8 @@ from pandas.core.missing import isna
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     import pyarrow
 
     from pandas._typing import (
