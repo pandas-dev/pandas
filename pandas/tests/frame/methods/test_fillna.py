@@ -795,3 +795,22 @@ def test_fillna_out_of_bounds_datetime():
     msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsDatetime, match=msg):
         df.fillna(Timestamp("0001-01-01"))
+
+
+def test_fillna_dataframe_preserves_dtypes_mixed_columns():
+    # GH#61568
+    empty = DataFrame([[None] * 4] * 4, columns=list("ABCD"), dtype=np.float64)
+    full = DataFrame(
+        [
+            [1.0, 2.0, "3.0", 4.0],
+            [5.0, 6.0, "7.0", 8.0],
+            [9.0, 10.0, "11.0", 12.0],
+            [13.0, 14.0, "15.0", 16.0],
+        ],
+        columns=list("ABCD"),
+    )
+    result = empty.fillna(full)
+    expected_dtypes = Series(
+        {"A": "float64", "B": "float64", "C": "object", "D": "float64"}
+    )
+    tm.assert_series_equal(result.dtypes, expected_dtypes)
