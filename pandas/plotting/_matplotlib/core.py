@@ -99,6 +99,10 @@ if TYPE_CHECKING:
         Series,
     )
 
+import itertools
+
+from matplotlib.collections import LineCollection
+
 
 def holds_integer(column: Index) -> bool:
     return column.inferred_type in {"integer", "mixed-integer"}
@@ -1549,6 +1553,30 @@ class LinePlot(MPLPlot):
             self.data = self.data.fillna(value=0)
 
     def _make_plot(self, fig: Figure) -> None:
+        threshold = 200  # switch when DataFrame has more than this many columns
+        can_use_lc = (
+            not self._is_ts_plot()  # not a TS plot
+            and not self.stacked  # stacking not requested
+            and not com.any_not_none(*self.errors.values())  # no error bars
+            and len(self.data.columns) > threshold
+        )
+        if can_use_lc:
+            ax = self._get_ax(0)
+            x = self._get_xticks()
+            segments = [
+                np.column_stack((x, self.data[col].values)) for col in self.data.columns
+            ]
+            base_colors = mpl.rcParams["axes.prop_cycle"].by_key()["color"]
+            colors = list(itertools.islice(itertools.cycle(base_colors), len(segments)))
+            lc = LineCollection(
+                segments,
+                colors=colors,
+                linewidths=self.kwds.get("linewidth", mpl.rcParams["lines.linewidth"]),
+            )
+            ax.add_collection(lc)
+            ax.margins(0.05)
+            return  # skip the per-column Line2D loop
+
         if self._is_ts_plot():
             data = maybe_convert_index(self._get_ax(0), self.data)
 
