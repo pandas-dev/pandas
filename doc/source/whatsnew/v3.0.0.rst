@@ -761,6 +761,8 @@ Datetimelike
 - Bug in constructing arrays with :class:`ArrowDtype` with ``timestamp`` type incorrectly allowing ``Decimal("NaN")`` (:issue:`61773`)
 - Bug in constructing arrays with a timezone-aware :class:`ArrowDtype` from timezone-naive datetime objects incorrectly treating those as UTC times instead of wall times like :class:`DatetimeTZDtype` (:issue:`61775`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
+- Bug in constructing arrays with :class:`ArrowDtype` with ``timestamp`` type incorrectly allowing ``Decimal("NaN")`` (:issue:`??`)
+-
 
 Timedelta
 ^^^^^^^^^
