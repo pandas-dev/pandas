@@ -3,11 +3,15 @@ Ensure wide DataFrame.line plots use a single LineCollection
 instead of one Line2D per column (PR #61764).
 """
 
-from matplotlib.collections import LineCollection
-import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 import pandas as pd
+
+# Skip this entire module if matplotlib is not installed
+mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
+from matplotlib.collections import LineCollection
 
 
 def test_linecollection_used_for_wide_dataframe():
@@ -16,7 +20,7 @@ def test_linecollection_used_for_wide_dataframe():
 
     ax = df.plot(legend=False)
 
-    # one LineCollection, zero Line2D objects
+    # exactly one LineCollection, and no Line2D artists
     assert sum(isinstance(c, LineCollection) for c in ax.collections) == 1
     assert len(ax.lines) == 0
 
