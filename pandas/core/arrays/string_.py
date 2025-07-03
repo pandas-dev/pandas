@@ -218,7 +218,7 @@ class StringDtype(StorageExtensionDtype):
             return self.storage == other.storage and self.na_value is other.na_value
         return False
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: MutableMapping[str, Any]) -> None:
         self.storage = state.pop("storage", "python")
         self._na_value = state.pop("_na_value", libmissing.NA)
 
