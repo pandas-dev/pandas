@@ -8,7 +8,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_pdep16_nan_behavior
 
 from pandas._libs import (
     lib,
@@ -103,7 +103,7 @@ class NumericDtype(BaseMaskedDtype):
                 array = array.combine_chunks()
 
         data, mask = pyarrow_array_to_numpy_and_mask(array, dtype=self.numpy_dtype)
-        if data.dtype.kind == "f" and get_option("mode.PDEP16_nan_behavior"):
+        if data.dtype.kind == "f" and using_pdep16_nan_behavior():
             mask[np.isnan(data)] = False
         return array_class(data.copy(), ~mask, copy=False)
 
@@ -274,7 +274,7 @@ class NumericArray(BaseMaskedArray):
             # If we don't raise here, then accessing self.dtype would raise
             raise TypeError("FloatingArray does not support np.float16 dtype.")
 
-        # NB: if get_option("mode.PDEP16_nan_behavior") is True
+        # NB: if using_pdep16_nan_behavior() is True
         #  then caller is responsible for ensuring
         #  assert mask[np.isnan(values)].all()
 

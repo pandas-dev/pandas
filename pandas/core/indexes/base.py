@@ -21,6 +21,7 @@ import numpy as np
 
 from pandas._config import (
     get_option,
+    using_pdep16_nan_behavior,
     using_string_dtype,
 )
 
@@ -162,6 +163,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
@@ -6587,9 +6589,8 @@ class Index(IndexOpsMixin, PandasObject):
         if (
             is_float(key)
             and np.isnan(key)
-            and isinstance(self.dtype, ExtensionDtype)
-            and self.dtype.kind == "f"
-            and get_option("mode.pdep16_nan_behavior")
+            and isinstance(self.dtype, FloatingDtype)
+            and using_pdep16_nan_behavior()
         ):
             # TODO: better place to do this?
             key = self.dtype.na_value

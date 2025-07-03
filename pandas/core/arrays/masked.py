@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_pdep16_nan_behavior
 
 from pandas._libs import (
     lib,
@@ -310,7 +310,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __contains__(self, key) -> bool:
         if isna(key) and key is not self.dtype.na_value:
             # GH#52840
-            if lib.is_float(key) and get_option("mode.PDEP16_nan_behavior"):
+            if lib.is_float(key) and using_pdep16_nan_behavior():
                 key = self.dtype.na_value
             elif self._data.dtype.kind == "f" and lib.is_float(key):
                 return bool((np.isnan(self._data) & ~self._mask).any())
@@ -659,7 +659,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     # reached in e.g. np.sqrt on BooleanArray
                     # we don't support float16
                     x = x.astype(np.float32)
-                if get_option("mode.PDEP16_nan_behavior"):
+                if using_pdep16_nan_behavior():
                     m[np.isnan(x)] = True
                 return FloatingArray(x, m)
             else:
@@ -866,7 +866,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if result.dtype.kind == "f":
             from pandas.core.arrays import FloatingArray
 
-            if get_option("mode.PDEP16_nan_behavior"):
+            if using_pdep16_nan_behavior():
                 mask[np.isnan(result)] = True
 
             return FloatingArray(result, mask, copy=False)
