@@ -218,6 +218,10 @@ class StringDtype(StorageExtensionDtype):
             return self.storage == other.storage and self.na_value is other.na_value
         return False
 
+    def __setstate__(self, state):
+        self.storage = state.pop('storage', 'python')
+        self._na_value = state.pop('_na_value', libmissing.NA)
+    
     def __hash__(self) -> int:
         # need to override __hash__ as well because of overriding __eq__
         return super().__hash__()
