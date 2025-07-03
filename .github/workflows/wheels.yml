@@ -151,7 +151,6 @@ jobs:
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
-          CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
 
