@@ -1430,7 +1430,7 @@ def iterdir(
         )
 
     # Remote paths
-    fsspec = import_optional_dependency("fsspec", extra=scheme)
+    fsspec = import_optional_dependency("fsspec")
 
     # GH #11071
     # Two legacy S3 protocols (s3n and s3a) are replaced with s3
