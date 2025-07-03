@@ -430,3 +430,26 @@ jobs:
           # do not import pandas from the checked out repo
           cd ..
           python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'
+
+  numpy-1.26-test:
+    name: NumPy 1.26 Test
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install NumPy 1.26 and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy==1.26.0
+          pip install versioneer[toml] cython python-dateutil tzdata
+          pip install --no-build-isolation -e . -Csetup-args="--error-checking"
+
+      - name: Run tests
+        run: pytest pandas
