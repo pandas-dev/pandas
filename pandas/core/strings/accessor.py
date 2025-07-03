@@ -305,8 +305,6 @@ class StringMethods(NoNewAttributesMixin):
             if isinstance(result.dtype, ArrowDtype):
                 import pyarrow as pa
 
-                from pandas.compat import pa_version_under11p0
-
                 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
                 value_lengths = pa.compute.list_value_length(result._pa_array)
@@ -319,26 +317,14 @@ class StringMethods(NoNewAttributesMixin):
                     )
                 if min_len < max_len:
                     # append nulls to each scalar list element up to max_len
-                    if not pa_version_under11p0:
-                        result = ArrowExtensionArray(
-                            pa.compute.list_slice(
-                                result._pa_array,
-                                start=0,
-                                stop=max_len,
-                                return_fixed_size_list=True,
-                            )
+                    result = ArrowExtensionArray(
+                        pa.compute.list_slice(
+                            result._pa_array,
+                            start=0,
+                            stop=max_len,
+                            return_fixed_size_list=True,
                         )
-                    else:
-                        all_null = np.full(max_len, fill_value=None, dtype=object)
-                        values = result.to_numpy()
-                        new_values = []
-                        for row in values:
-                            if len(row) < max_len:
-                                nulls = all_null[: max_len - len(row)]
-                                row = np.append(row, nulls)
-                            new_values.append(row)
-                        pa_type = result._pa_array.type
-                        result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
+                    )
                 if name is None:
                     name = range(max_len)
                 result = (
