@@ -147,7 +147,7 @@ def create_pickle_data():
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
         "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
-        "string": Index(["foo", "bar", "baz", "qux", "quux"], dtype='string'),
+        "string": Index(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
     index["range"] = RangeIndex(10)
@@ -240,7 +240,7 @@ def create_pickle_data():
                 "A": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
                 "B": Series(["one", "two", "one", "two", "three"], dtype="string"),
             }
-        )
+        ),
     }
 
     cat = {
