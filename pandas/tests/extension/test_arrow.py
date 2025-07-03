@@ -3551,8 +3551,8 @@ def test_arrow_json_type():
 
 
 def test_timestamp_dtype_disallows_decimal():
-    # constructing with pyarrow timestamp dtype should disallow Decimal NaN,
-    # just like pd.to_datetime
+    # GH#61773 constructing with pyarrow timestamp dtype should disallow
+    #  Decimal NaN, just like pd.to_datetime
     vals = [pd.Timestamp("2016-01-02 03:04:05"), Decimal("NaN")]
 
     msg = "<class 'decimal.Decimal'> is not convertible to datetime"

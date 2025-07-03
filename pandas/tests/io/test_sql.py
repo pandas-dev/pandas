@@ -1041,6 +1041,7 @@ def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
     pytest.importorskip("pyarrow")
     if isinstance(nulls_fixture, Decimal):
         pytest.skip(
+            # GH#61773
             reason="Decimal('NaN') not supported in constructor for timestamp dtype"
         )
 
