@@ -17,6 +17,7 @@ import numpy as np
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
 
+from pandas.core.api import StringDtype
 from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
