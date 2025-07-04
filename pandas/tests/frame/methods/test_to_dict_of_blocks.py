@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     DataFrame,
     MultiIndex,
+    Series,
 )
 import pandas._testing as tm
 from pandas.core.arrays import NumpyExtensionArray
@@ -27,10 +26,9 @@ class TestToDictOfBlocks:
         assert _last_df is not None and not _last_df[column].equals(df[column])
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_to_dict_of_blocks_item_cache():
     # Calling to_dict_of_blocks should not poison item_cache
-    df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
+    df = DataFrame({"a": [1, 2, 3, 4], "b": Series(["a", "b", "c", "d"], dtype=object)})
     df["c"] = NumpyExtensionArray(np.array([1, 2, None, 3], dtype=object))
     mgr = df._mgr
     assert len(mgr.blocks) == 3  # i.e. not consolidated
