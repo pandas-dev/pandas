@@ -673,15 +673,33 @@ def _validate_names(names: Sequence[Hashable] | None) -> None:
 def _multi_file_generator(
     list_of_files: list[FilePath], kwds
 ) -> Generator[DataFrame] | Generator[TextFileReader]:
-    """Generator for multiple files."""
+    """
+    Generator that yields DataFrames or TextFileReaders for each file in the
+    provided list of files.
+    Parameters
+    ----------
+    list_of_files : list of str or Path
+        List of file paths to read.
+    kwds : dict
+        Keyword arguments to pass to the TextFileReader.
+    Returns
+    -------
+    Generator[DataFrame] | Generator[TextFileReader]
+        A generator that yields DataFrames or TextFileReaders for each file.
+    """
+
+    chunksize = kwds.get("chunksize", None)
+    iterator = kwds.get("iterator", False)
+    nrows = kwds.get("nrows", None)
+
     for file in list_of_files:
         parser = TextFileReader(file, **kwds)
 
-        if kwds.get("chunksize", None) or kwds.get("iterator", False):
+        if chunksize or iterator:
             yield parser
         else:
             with parser:
-                yield parser.read(kwds.get("nrows", None))
+                yield parser.read(nrows)
 
 
 def _read(
