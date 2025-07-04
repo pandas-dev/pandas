@@ -63,6 +63,7 @@ from pandas.core.arrays.base import (
 from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
@@ -501,10 +502,31 @@ class ArrowExtensionArray(
                 value = value.to_numpy()
 
             if pa_type is not None and pa.types.is_timestamp(pa_type):
-                # Use to_datetime to handle NaNs, disallow Decimal("NaN")
-                from pandas import to_datetime
+                # Use DatetimeArray to exclude Decimal(NaN) (GH#61774) and
+                #  ensure constructor treats tznaive the same as non-pyarrow
+                #  dtypes (GH#61775)
+                from pandas.core.arrays.datetimes import (
+                    DatetimeArray,
+                    tz_to_dtype,
+                )
 
-                value = to_datetime(value).as_unit(pa_type.unit)
+                pass_dtype = tz_to_dtype(tz=pa_type.tz, unit=pa_type.unit)
+                value = extract_array(value, extract_numpy=True)
+                if isinstance(value, DatetimeArray):
+                    dta = value
+                else:
+                    dta = DatetimeArray._from_sequence(
+                        value, copy=copy, dtype=pass_dtype
+                    )
+                mask = dta.isna()
+                value_i8 = dta.view("i8")
+                if not value_i8.flags["WRITEABLE"]:
+                    # e.g. test_setitem_frame_2d_values
+                    value_i8 = value_i8.copy()
+                    dta = DatetimeArray._from_sequence(value_i8, dtype=dta.dtype)
+                value_i8[mask] = 0  # GH#61776 avoid __sub__ overflow
+                pa_array = pa.array(dta._ndarray, type=pa_type, mask=mask)
+                return pa_array
 
             try:
                 pa_array = pa.array(value, type=pa_type, from_pandas=True)
