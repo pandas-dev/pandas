@@ -1291,6 +1291,17 @@ def dedup_names(
 
 
 def _infer_protocol(path: str) -> str:
+    """
+    Infer the protocol of a given path string.
+    Parameters
+    ----------
+    path : str
+        The path string to infer the protocol from.
+    Returns
+    -------
+    str
+        The inferred protocol.
+    """
     # Treat Windows drive letters like C:\ as local file paths
     if is_platform_windows() and re.match(r"^[a-zA-Z]:[\\/]", path):
         return "file"
@@ -1325,6 +1336,17 @@ def _match_file(
 
 
 def _resolve_local_path(path_str: str) -> Path:
+    """
+    Resolve a local file path, handling Windows paths and file URLs.
+    Parameters
+    ----------
+    path_str : str
+        The path string to resolve.
+    Returns
+    -------
+    Path
+        A Path object representing the resolved local path.
+    """
     parsed = parse_url(path_str)
 
     if is_platform_windows():
@@ -1345,7 +1367,9 @@ def iterdir(
     glob: str | None = None,
     storage_options: StorageOptions | None = None,
 ) -> FilePath | list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:
-    """Yield file paths in a directory (no nesting allowed).
+    """
+    Yield file paths in a directory (no nesting allowed). File-like objects
+    and string URLs are returned directly. Remote paths are handled via fsspec.
 
     Supports:
     - Local paths (str, os.PathLike)
@@ -1371,18 +1395,18 @@ def iterdir(
 
     Raises
     ------
-    NotADirectoryError
-        If the given path is not a directory.
+    TypeError
+        If `path` is not a string, os.PathLike, or file-like object.
+    FileNotFoundError
+        If the specified path does not exist.
+    ValueError
+        If the specified path is neither a file nor a directory.
     ImportError
         If fsspec is required but not installed.
     """
 
     # file-like objects and urls are returned directly
-    if (
-        hasattr(path, "read")
-        or hasattr(path, "write")
-        or (isinstance(path, str) and is_url(path))
-    ):
+    if hasattr(path, "read") or hasattr(path, "write") or is_url(path):
         return path
 
     if not isinstance(path, (str, os.PathLike)):
