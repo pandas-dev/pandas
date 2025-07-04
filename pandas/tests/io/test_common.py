@@ -720,7 +720,7 @@ def test_remote_csv_directory(remote_csv_directory):
     import fsspec
     from fsspec.implementations.memory import MemoryFileSystem
 
-    fs, _ = fsspec.url_to_fs(remote_csv_directory)
+    fs, _ = fsspec.core.url_to_fs(remote_csv_directory)
     assert isinstance(fs, MemoryFileSystem)
 
     assert fs.exists("remote-bucket")
