@@ -61,6 +61,14 @@ def test_read_directory_local(directory_data, directory_data_to_file):
     tm.assert_frame_equal(df_concat, expected)
 
 
+def test_read_directory_local_chunks(directory_data_to_file):
+    chunksize = 1
+    for reader in pd.read_csv(directory_data_to_file, chunksize=chunksize):
+        for chunk in reader:
+            assert isinstance(chunk, pd.DataFrame)
+            assert len(chunk) == chunksize
+
+
 def test_read_directory_s3(s3_bucket_public_with_directory_data, s3so, directory_data):
     _, data_list = directory_data
     df_list = list(
@@ -74,3 +82,15 @@ def test_read_directory_s3(s3_bucket_public_with_directory_data, s3so, directory
     df_concat = df_concat.sort_values(by=list(df_concat.columns)).reset_index(drop=True)
     expected = pd.DataFrame([value for data in data_list for value in data.values()])
     tm.assert_frame_equal(df_concat, expected)
+
+
+def test_read_directory_s3_chunks(s3_bucket_public_with_directory_data, s3so):
+    chunksize = 1
+    for reader in pd.read_csv(
+        f"s3://{s3_bucket_public_with_directory_data.name}/",
+        storage_options=s3so,
+        chunksize=chunksize,
+    ):
+        for chunk in reader:
+            assert isinstance(chunk, pd.DataFrame)
+            assert len(chunk) == chunksize
