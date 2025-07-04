@@ -52,11 +52,8 @@ def test_directory_data(directory_data_to_file):
 
 
 def test_read_directory_local(directory_data, directory_data_to_file):
-    field_names, data_list = directory_data
-    df_list = []
-    for df in pd.read_csv(directory_data_to_file):
-        assert set(df.columns) == set(field_names)
-        df_list.append(df)
+    _, data_list = directory_data
+    df_list = list(pd.read_csv(directory_data_to_file))
     assert len(df_list) == len(data_list)
     df_concat = pd.concat(df_list, ignore_index=True)
     df_concat = df_concat.sort_values(by=list(df_concat.columns)).reset_index(drop=True)
@@ -72,7 +69,7 @@ def test_read_directory_s3(s3_bucket_public_with_directory_data, s3so, directory
             storage_options=s3so,
         )
     )
-    assert len(df_list) == 3
+    assert len(df_list) == len(data_list)
     df_concat = pd.concat(df_list, ignore_index=True)
     df_concat = df_concat.sort_values(by=list(df_concat.columns)).reset_index(drop=True)
     expected = pd.DataFrame([value for data in data_list for value in data.values()])
