@@ -520,7 +520,7 @@ class ArrowExtensionArray(
                     )
                 mask = dta.isna()
                 value_i8 = dta.view("i8")
-                if not value_i8.flags["WRITEABLE"]:
+                if not np.asarray(value_i8).flags["WRITEABLE"]:
                     # e.g. test_setitem_frame_2d_values
                     value_i8 = value_i8.copy()
                     dta = DatetimeArray._from_sequence(value_i8, dtype=dta.dtype)
