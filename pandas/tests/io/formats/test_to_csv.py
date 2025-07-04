@@ -1,7 +1,6 @@
 import io
 import os
 import sys
-import warnings
 from zipfile import ZipFile
 
 from _csv import Error
@@ -781,8 +780,7 @@ def test_new_style_with_mixed_types():
 
 def test_new_style_with_mixed_types_in_column():
     df = DataFrame({"A": [1.23, "text", 4.56]})
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("always")
+    with tm.assert_produces_warning(UserWarning):
         result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
 
     expected = ",A\n0,1.23\n1,text\n2,4.56\n"
