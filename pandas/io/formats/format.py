@@ -871,7 +871,6 @@ class DataFrameFormatter:
                 except (ValueError, KeyError, IndexError) as e:
                     raise ValueError(f"Invalid new-style format string {fmt!r}") from e
 
-        # If fmt is neither None, nor callable, nor a successfully processed string,
         raise ValueError("float_format must be a string or callable")
 
 
