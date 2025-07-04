@@ -867,7 +867,7 @@ class DataFrameFormatter:
             else:
                 try:
                     _ = fmt.format(1.0)  # Test with an arbitrary float
-                    return lambda x: fmt.format(x)
+                    return fmt.format
                 except (ValueError, KeyError, IndexError) as e:
                     raise ValueError(f"Invalid new-style format string {fmt!r}") from e
 
