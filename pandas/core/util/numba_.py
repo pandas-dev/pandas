@@ -150,7 +150,7 @@ def prepare_function_arguments(
     return args, kwargs
 
 
-def extract_numba_options(decorator: Callable):
+def extract_numba_options(decorator: Callable) -> dict:
     """
     Extract targetoptions from a numba.jit decorator
     """
