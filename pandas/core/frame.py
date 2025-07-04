@@ -10623,7 +10623,6 @@ class DataFrame(NDFrame, OpsMixin):
             numba = import_optional_dependency("numba")
             numba_jit = numba.jit(**engine_kwargs or {})
             numba_jit.__pandas_udf__ = NumbaExecutionEngine
-            numba_jit.engine_kwargs = engine_kwargs
             engine = numba_jit
 
         if engine is None or isinstance(engine, str):

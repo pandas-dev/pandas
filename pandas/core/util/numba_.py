@@ -148,3 +148,24 @@ def prepare_function_arguments(
 
     args = args[num_required_args:]
     return args, kwargs
+
+
+def extract_numba_options(decorator):
+    """
+    Extract targetoptions from a numba.jit decorator
+    """
+    try:
+        closure = decorator.__closure__
+        if closure is None:
+            return {}
+        freevars = decorator.__code__.co_freevars
+        if "targetoptions" not in freevars:
+            return {}
+        idx = freevars.index("targetoptions")
+        cell = closure[idx]
+        targetoptions = cell.cell_contents
+        if isinstance(targetoptions, dict):
+            return targetoptions
+        return {}
+    except Exception:
+        return {}
