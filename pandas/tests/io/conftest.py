@@ -226,8 +226,9 @@ def remote_csv_directory():
     import fsspec
     from fsspec.implementations.memory import MemoryFileSystem
 
-    fsspec.register_implementation("s3", MemoryFileSystem)
-    fs = fsspec.filesystem("s3")
+    schema = f"remote-{uuid.uuid4()}"
+    fsspec.register_implementation(schema, MemoryFileSystem)
+    fs = fsspec.filesystem(schema)
     fs.store.clear()
 
     dir_name = "remote-bucket"
@@ -238,7 +239,7 @@ def remote_csv_directory():
     assert fs.exists(dir_name), "Remote directory was not created"
     assert fs.isdir(dir_name), "Remote path is not a directory"
 
-    return f"s3://{dir_name}"
+    return f"{schema}://{dir_name}"
 
 
 @pytest.fixture
