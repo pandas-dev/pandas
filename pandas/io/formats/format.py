@@ -857,11 +857,7 @@ class DataFrameFormatter:
         Validates and processes the float_format argument.
         Converts new-style format strings to callables.
         """
-
-        if fmt is None:
-            return None
-
-        if callable(fmt):
+        if fmt is None or callable(fmt):
             return fmt
 
         if isinstance(fmt, str):
