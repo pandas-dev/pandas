@@ -125,7 +125,7 @@ def test_map_categorical_with_nan_values(data, expected_dtype):
 
     s = Series(data, dtype="category")
 
-    result = s.map(func, na_action="ignore")
+    result = s.map(func, skipna=True)
     expected = Series(["1", "1", np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -280,7 +280,7 @@ def test_map_decimal(string_series):
 def test_map_na_exclusion(engine):  # noqa: F811
     s = Series([1.5, np.nan, 3, np.nan, 5])
 
-    result = s.map(lambda x: x * 2, na_action="ignore", engine=engine)
+    result = s.map(lambda x: x * 2, skipna=True, engine=engine)
     exp = s * 2
     tm.assert_series_equal(result, exp)
 
@@ -330,30 +330,30 @@ def test_map_dict_na_key():
     tm.assert_series_equal(result, expected)
 
 
-def test_map_defaultdict_na_key(na_action):
+def test_map_defaultdict_na_key(skipna):
     # GH 48813
     s = Series([1, 2, np.nan])
     default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
-    result = s.map(default_map, na_action=na_action)
-    expected = Series({0: "a", 1: "b", 2: "c" if na_action is None else np.nan})
+    result = s.map(default_map, skipna=skipna)
+    expected = Series({0: "a", 1: "b", 2: "c" if not skipna else np.nan})
     tm.assert_series_equal(result, expected)
 
 
-def test_map_defaultdict_missing_key(na_action):
+def test_map_defaultdict_missing_key(skipna):
     # GH 48813
     s = Series([1, 2, np.nan])
     default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", 3: "c"})
-    result = s.map(default_map, na_action=na_action)
-    expected = Series({0: "a", 1: "b", 2: "missing" if na_action is None else np.nan})
+    result = s.map(default_map, skipna=skipna)
+    expected = Series({0: "a", 1: "b", 2: "missing" if not skipna else np.nan})
     tm.assert_series_equal(result, expected)
 
 
-def test_map_defaultdict_unmutated(na_action):
+def test_map_defaultdict_unmutated(skipna):
     # GH 48813
     s = Series([1, 2, np.nan])
     default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
     expected_default_map = default_map.copy()
-    s.map(default_map, na_action=na_action)
+    s.map(default_map, skipna=skipna)
     assert default_map == expected_default_map
 
 
@@ -362,7 +362,7 @@ def test_map_dict_ignore_na(arg_func):
     # GH#47527
     mapping = arg_func({1: 10, np.nan: 42})
     ser = Series([1, np.nan, 2])
-    result = ser.map(mapping, na_action="ignore")
+    result = ser.map(mapping, skipna=True)
     expected = Series([10, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
@@ -377,14 +377,14 @@ def test_map_defaultdict_ignore_na():
 
 
 @pytest.mark.parametrize(
-    "na_action, expected",
-    [(None, Series([10.0, 42.0, np.nan])), ("ignore", Series([10, np.nan, np.nan]))],
+    "skipna, expected",
+    [(False, Series([10.0, 42.0, np.nan])), (True, Series([10, np.nan, np.nan]))],
 )
-def test_map_categorical_na_ignore(na_action, expected):
+def test_map_categorical_na_ignore(skipna, expected):
     # GH#47527
     values = pd.Categorical([1, np.nan, 2], categories=[10, 1, 2])
     ser = Series(values)
-    result = ser.map({1: 10, np.nan: 42}, na_action=na_action)
+    result = ser.map({1: 10, np.nan: 42}, skipna=skipna)
     tm.assert_series_equal(result, expected)
 
 
@@ -484,28 +484,28 @@ def test_map_box_period():
     tm.assert_series_equal(res, exp)
 
 
-def test_map_categorical(na_action, using_infer_string):
+def test_map_categorical(skipna, using_infer_string):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     s = Series(values, name="XX", index=list("abcdefg"))
 
-    result = s.map(lambda x: x.lower(), na_action=na_action)
+    result = s.map(lambda x: x.lower(), skipna=skipna)
     exp_values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
     exp = Series(exp_values, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
     tm.assert_categorical_equal(result.values, exp_values)
 
-    result = s.map(lambda x: "A", na_action=na_action)
+    result = s.map(lambda x: "A", skipna=skipna)
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
     assert result.dtype == object if not using_infer_string else "str"
 
 
 @pytest.mark.parametrize(
-    "na_action, expected",
+    "skipna, expected",
     (
-        [None, Series(["A", "B", "nan"], name="XX")],
+        [False, Series(["A", "B", "nan"], name="XX")],
         [
-            "ignore",
+            True,
             Series(
                 ["A", "B", np.nan],
                 name="XX",
@@ -514,11 +514,11 @@ def test_map_categorical(na_action, using_infer_string):
         ],
     ),
 )
-def test_map_categorical_na_action(na_action, expected):
+def test_map_categorical_skipna(skipna, expected):
     dtype = pd.CategoricalDtype(list("DCBA"), ordered=True)
     values = pd.Categorical(list("AB") + [np.nan], dtype=dtype)
     s = Series(values, name="XX")
-    result = s.map(str, na_action=na_action)
+    result = s.map(str, skipna=skipna)
     tm.assert_series_equal(result, expected)
 
 
@@ -651,3 +651,29 @@ def test_map_engine_not_executor():
 
     with pytest.raises(ValueError, match="Not a valid engine: 'something'"):
         s.map(lambda x: x, engine="something")
+
+
+def test_map_na_action_none():
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        result = Series([1, np.nan]).map(lambda x: 10, na_action=None)
+    expected = Series([10, 10])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_na_action_ignore():
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        result = Series([1, np.nan]).map(lambda x: 10, na_action="ignore")
+    expected = Series([10, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_invalid_na_action():
+    with tm.assert_produces_warning(
+        FutureWarning, match="``na_action`` parameter has been deprecated"
+    ):
+        with pytest.raises(ValueError, match="na_action must .* 'abc' was passed"):
+            Series([1, 2]).map(func=lambda x: x, na_action="abc")

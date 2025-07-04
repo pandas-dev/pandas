@@ -23,7 +23,7 @@ class MockExecutionEngine(BaseExecutionEngine):
 
     def map(data, func, args, kwargs, decorator, skip_na):
         kwargs_to_pass = kwargs if isinstance(data, DataFrame) else {}
-        return data.map(func, na_action="ignore" if skip_na else None, **kwargs_to_pass)
+        return data.map(func, skipna=skip_na, **kwargs_to_pass)
 
     def apply(data, func, args, kwargs, decorator, axis):
         if isinstance(data, Series):
