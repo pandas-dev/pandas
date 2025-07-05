@@ -383,7 +383,7 @@ In Python, since ``a`` is a list, you can simply use list comprehension.
 
 .. ipython:: python
 
-   a = np.array(list(range(1, 24)) + [np.NAN]).reshape(2, 3, 4)
+   a = np.array(list(range(1, 24)) + [np.nan]).reshape(2, 3, 4)
    pd.DataFrame([tuple(list(x) + [val]) for x, val in np.ndenumerate(a)])
 
 meltlist
@@ -402,7 +402,7 @@ In Python, this list would be a list of tuples, so
 
 .. ipython:: python
 
-   a = list(enumerate(list(range(1, 5)) + [np.NAN]))
+   a = list(enumerate(list(range(1, 5)) + [np.nan]))
    pd.DataFrame(a)
 
 For more details and examples see :ref:`the Intro to Data Structures

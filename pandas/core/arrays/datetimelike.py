@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeAlias,
     Union,
     cast,
     final,
@@ -161,7 +162,7 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+DTScalarOrNaT: TypeAlias = DatetimeLikeScalar | NaTType
 
 
 def _make_unpacked_invalid_op(op_name: str):
@@ -275,7 +276,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         --------
         >>> arr = pd.array(np.array(["1970-01-01"], "datetime64[ns]"))
         >>> arr._unbox_scalar(arr[0])
-        numpy.datetime64('1970-01-01T00:00:00.000000000')
+        np.datetime64('1970-01-01T00:00:00.000000000')
         """
         raise AbstractMethodError(self)
 
@@ -386,7 +387,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
+        result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
@@ -2394,7 +2395,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         )
 
         indices = np.asarray(indices, dtype=np.intp)
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))  # type: ignore[arg-type]
 
         if isinstance(maybe_slice, slice):
             freq = self._get_getitem_freq(maybe_slice)

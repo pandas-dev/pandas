@@ -22,8 +22,8 @@ from pandas._libs.tslibs import (
     timezones,
 )
 from pandas.compat import (
-    pa_version_under10p1,
-    pa_version_under11p0,
+    HAS_PYARROW,
+    pa_version_under12p1,
     pa_version_under13p0,
 )
 from pandas.util._decorators import doc
@@ -33,7 +33,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
-    CategoricalDtype,
     is_array_like,
     is_bool_dtype,
     is_float_dtype,
@@ -75,7 +74,7 @@ from pandas.core.strings.base import BaseStringArrayMethods
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -209,16 +208,6 @@ if TYPE_CHECKING:
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
-def get_unit_from_pa_dtype(pa_dtype) -> str:
-    # https://github.com/pandas-dev/pandas/pull/50998#discussion_r1100344804
-    if pa_version_under11p0:
-        unit = str(pa_dtype).split("[", 1)[-1][:-1]
-        if unit not in ["s", "ms", "us", "ns"]:
-            raise ValueError(pa_dtype)
-        return unit
-    return pa_dtype.unit
-
-
 def to_pyarrow_type(
     dtype: ArrowDtype | pa.DataType | Dtype | None,
 ) -> pa.DataType | None:
@@ -301,7 +290,7 @@ class ArrowExtensionArray(
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under10p1:
+        if pa_version_under12p1:
             msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
@@ -730,9 +719,7 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(
-            other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
-        ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
+        if isinstance(other, (ExtensionArray, np.ndarray, list)):
             try:
                 result = pc_func(self._pa_array, self._box_pa(other))
             except pa.ArrowNotImplementedError:
@@ -1202,10 +1189,6 @@ class ArrowExtensionArray(
         null_encoding = "mask" if use_na_sentinel else "encode"
 
         data = self._pa_array
-        pa_type = data.type
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            data = data.cast(pa.int64())
 
         if pa.types.is_dictionary(data.type):
             if null_encoding == "encode":
@@ -1230,8 +1213,6 @@ class ArrowExtensionArray(
             )
             uniques = type(self)(combined.dictionary)
 
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            uniques = cast(ArrowExtensionArray, uniques.astype(self.dtype))
         return indices, uniques
 
     def reshape(self, *args, **kwargs):
@@ -1518,19 +1499,7 @@ class ArrowExtensionArray(
         -------
         ArrowExtensionArray
         """
-        pa_type = self._pa_array.type
-
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            data = self._pa_array.cast(pa.int64())
-        else:
-            data = self._pa_array
-
-        pa_result = pc.unique(data)
-
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            pa_result = pa_result.cast(pa_type)
-
+        pa_result = pc.unique(self._pa_array)
         return type(self)(pa_result)
 
     def value_counts(self, dropna: bool = True) -> Series:
@@ -1550,18 +1519,12 @@ class ArrowExtensionArray(
         --------
         Series.value_counts
         """
-        pa_type = self._pa_array.type
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            data = self._pa_array.cast(pa.int64())
-        else:
-            data = self._pa_array
-
         from pandas import (
             Index,
             Series,
         )
 
+        data = self._pa_array
         vc = data.value_counts()
 
         values = vc.field(0)
@@ -1570,9 +1533,6 @@ class ArrowExtensionArray(
             mask = values.is_valid()
             values = values.filter(mask)
             counts = counts.filter(mask)
-
-        if pa_version_under11p0 and pa.types.is_duration(pa_type):
-            values = values.cast(pa_type)
 
         counts = ArrowExtensionArray(counts)
 
@@ -1867,8 +1827,7 @@ class ArrowExtensionArray(
             if pa.types.is_duration(pa_type):
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
-                unit = get_unit_from_pa_dtype(pa_type)
-                result = result.cast(pa.duration(unit))
+                result = result.cast(pa.duration(pa_type.unit))
             elif pa.types.is_date(pa_type):
                 # go with closest available unit, i.e. "s"
                 result = result.cast(pa.duration("s"))
@@ -1938,9 +1897,9 @@ class ArrowExtensionArray(
         """
         # child class explode method supports only list types; return
         # default implementation for non list types.
-        if not (
-            pa.types.is_list(self.dtype.pyarrow_dtype)
-            or pa.types.is_large_list(self.dtype.pyarrow_dtype)
+        if not hasattr(self.dtype, "pyarrow_dtype") or (
+            not pa.types.is_list(self.dtype.pyarrow_dtype)
+            and not pa.types.is_large_list(self.dtype.pyarrow_dtype)
         ):
             return super()._explode()
         values = self
@@ -2540,7 +2499,7 @@ class ArrowExtensionArray(
             dummies_dtype = np.bool_
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
         dummies[indices] = True
-        dummies = dummies.reshape((n_rows, n_cols))
+        dummies = dummies.reshape((n_rows, n_cols))  # type: ignore[assignment]
         result = type(self)(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 

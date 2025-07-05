@@ -218,7 +218,6 @@ def to_orc(
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
-    pyarrow = import_optional_dependency(engine, min_version="10.0.1")
     pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
@@ -229,7 +228,7 @@ def to_orc(
     with get_handle(path, "wb", is_text=False) as handles:
         try:
             orc.write_table(
-                pyarrow.Table.from_pandas(df, preserve_index=index),
+                pa.Table.from_pandas(df, preserve_index=index),
                 handles.handle,
                 **engine_kwargs,
             )
