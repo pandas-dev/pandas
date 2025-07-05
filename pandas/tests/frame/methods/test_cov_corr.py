@@ -507,3 +507,127 @@ class TestDataFrameCorrWith:
         result2 = df.dropna().cov()
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
+
+    def test_corr_parallel_functionality(self):
+        """Test that parallel correlation gives same results as sequential."""
+        rng = np.random.default_rng(seed=42)
+        n_samples = 100
+
+        x = rng.normal(0, 1, n_samples)
+        y = 0.8 * x + 0.6 * rng.normal(0, 1, n_samples)
+        z = -0.5 * x + 0.866 * rng.normal(0, 1, n_samples)
+
+        df = DataFrame({"X": x, "Y": y, "Z": z})
+
+        result_sequential = df.corr(use_parallel=False)
+        result_parallel = df.corr(use_parallel=True)
+
+        tm.assert_frame_equal(result_sequential, result_parallel)
+
+        for result in [result_sequential, result_parallel]:
+            assert result.shape == (3, 3)
+            assert (np.diag(result) == 1.0).all()
+
+            tm.assert_frame_equal(result, result.T)
+
+            assert (result >= -1.0).all().all()
+            assert (result <= 1.0).all().all()
+
+            assert abs(result.loc["X", "Y"] - 0.8) < 0.2
+            assert abs(result.loc["X", "Z"] + 0.5) < 0.2
+
+    def test_corr_with_missing_data_parallel(self):
+        """
+        Test correlation with missing data works correctly with parallel processing.
+        """
+        df = DataFrame(
+            {
+                "A": [1.0, 2.0, np.nan, 4.0, 5.0],
+                "B": [2.0, np.nan, 3.0, 4.0, 5.0],
+                "C": [1.0, 2.0, 3.0, np.nan, 5.0],
+            }
+        )
+
+        result_sequential = df.corr(use_parallel=False)
+        result_parallel = df.corr(use_parallel=True)
+
+        tm.assert_frame_equal(result_sequential, result_parallel)
+
+        for result in [result_sequential, result_parallel]:
+            assert result.shape == (3, 3)
+            assert (np.diag(result) == 1.0).all()
+            tm.assert_frame_equal(result, result.T)
+
+            assert (result >= -1.0).all().all()
+            assert (result <= 1.0).all().all()
+
+            assert np.isfinite(result.loc["A", "B"])
+            assert np.isfinite(result.loc["A", "C"])
+            assert np.isfinite(result.loc["B", "C"])
+
+    def test_corr_parallel_vs_sequential_large_data(self):
+        """
+        Test parallel and sequential correlation on large dataset.
+        """
+        rng = np.random.default_rng(seed=42)
+        n_samples = 1000
+        n_cols = 100
+
+        data = rng.normal(0, 1, (n_samples, n_cols))
+        df = DataFrame(data, columns=[f"col_{i}" for i in range(n_cols)])
+
+        result_sequential = df.corr(use_parallel=False)
+        result_parallel = df.corr(use_parallel=True)
+
+        tm.assert_frame_equal(
+            result_sequential, result_parallel, rtol=1e-14, atol=1e-14
+        )
+
+        for result in [result_sequential, result_parallel]:
+            assert (np.diag(result) == 1.0).all()
+
+            tm.assert_frame_equal(result, result.T)
+
+            assert (result >= -1.0).all().all()
+            assert (result <= 1.0).all().all()
+
+    def test_corr_numerical_stability_edge_cases(self):
+        """Test correlation numerical stability with edge cases."""
+        df_small = DataFrame({"A": [1e-15, 2e-15, 3e-15], "B": [2e-15, 4e-15, 6e-15]})
+
+        result_small_seq = df_small.corr(use_parallel=False)
+        result_small_par = df_small.corr(use_parallel=True)
+
+        tm.assert_frame_equal(result_small_seq, result_small_par)
+
+        for result in [result_small_seq, result_small_par]:
+            assert (np.diag(result) == 1.0).all()
+            assert abs(result.loc["A", "B"] - 1.0) < 1e-10
+
+        df_large = DataFrame({"A": [1e15, 2e15, 3e15], "B": [2e15, 4e15, 6e15]})
+
+        result_large_seq = df_large.corr(use_parallel=False)
+        result_large_par = df_large.corr(use_parallel=True)
+
+        tm.assert_frame_equal(result_large_seq, result_large_par)
+
+        for result in [result_large_seq, result_large_par]:
+            assert (np.diag(result) == 1.0).all()
+            assert abs(result.loc["A", "B"] - 1.0) < 1e-10
+
+        df_precision = DataFrame(
+            {
+                "A": [0.1, 0.2, 0.3],
+                "B": [0.1000000000000001, 0.2000000000000001, 0.3000000000000001],
+            }
+        )
+
+        result_precision_seq = df_precision.corr(use_parallel=False)
+        result_precision_par = df_precision.corr(use_parallel=True)
+
+        tm.assert_frame_equal(result_precision_seq, result_precision_par)
+
+        for result in [result_precision_seq, result_precision_par]:
+            assert (np.diag(result) == 1.0).all()
+            assert result.loc["A", "B"] >= 0.999
+            assert result.loc["A", "B"] <= 1.0
