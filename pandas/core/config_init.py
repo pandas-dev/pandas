@@ -427,6 +427,15 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([True, False, "warn"]),
     )
 
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "pyarrow_strict_nans",
+        True,
+        # TODO: Change this to False before merging
+        "Whether to make ArrowDtype arrays consistently treat NaN as distinct from NA",
+        validator=is_one_of_factory([True, False]),
+    )
+
 
 # user warnings
 chained_assignment = """

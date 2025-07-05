@@ -15,8 +15,10 @@ import unicodedata
 
 import numpy as np
 
+from pandas._config import using_pyarrow_strict_nans
+
 from pandas._libs import lib
-from pandas._libs.missing import NA
+from pandas._libs.missing import is_pdna_or_none
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
@@ -324,6 +326,11 @@ class ArrowExtensionArray(
         """
         Construct a new ExtensionArray from a sequence of strings.
         """
+        mask = isna(strings)
+
+        if isinstance(strings, cls):
+            strings = strings._pa_array
+
         pa_type = to_pyarrow_type(dtype)
         if (
             pa_type is None
@@ -342,22 +349,35 @@ class ArrowExtensionArray(
             from pandas.core.tools.datetimes import to_datetime
 
             scalars = to_datetime(strings, errors="raise").date
+
+            if isinstance(strings, cls):
+                # Avoid an object path
+                # TODO: this assumes that pyarrows str->date casting is the
+                # same as to_datetime. Is that a fair assumption?
+                scalars = strings._pa_array.cast(pa_type)
+            else:
+                scalars = pa.array(scalars, mask=mask.view(bool), type=pa_type)
+
         elif pa.types.is_duration(pa_type):
             from pandas.core.tools.timedeltas import to_timedelta
 
             scalars = to_timedelta(strings, errors="raise")
+
             if pa_type.unit != "ns":
                 # GH51175: test_from_sequence_of_strings_pa_array
                 # attempt to parse as int64 reflecting pyarrow's
                 # duration to string casting behavior
                 mask = isna(scalars)
-                if not isinstance(strings, (pa.Array, pa.ChunkedArray)):
-                    strings = pa.array(strings, type=pa.string())
+                if isinstance(strings, cls):
+                    strings = strings._pa_array
+                elif not isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                    strings = pa.array(strings, type=pa.string(), mask=mask)
                 strings = pc.if_else(mask, None, strings)
                 try:
                     scalars = strings.cast(pa.int64())
                 except pa.ArrowInvalid:
                     pass
+
         elif pa.types.is_time(pa_type):
             from pandas.core.tools.times import to_time
 
@@ -373,7 +393,7 @@ class ArrowExtensionArray(
             if isinstance(strings, (pa.Array, pa.ChunkedArray)):
                 scalars = strings
             else:
-                scalars = pa.array(strings, type=pa.string())
+                scalars = pa.array(strings, type=pa.string(), mask=mask)
             scalars = pc.if_else(pc.equal(scalars, "1.0"), "1", scalars)
             scalars = pc.if_else(pc.equal(scalars, "0.0"), "0", scalars)
             scalars = scalars.cast(pa.bool_())
@@ -385,12 +405,16 @@ class ArrowExtensionArray(
             from pandas.core.tools.numeric import to_numeric
 
             scalars = to_numeric(strings, errors="raise")
-            if not pa.types.is_decimal(pa_type):
+            if not pa.types.is_decimal(pa_type) and isinstance(
+                strings, (pa.Array, pa.ChunkedArray)
+            ):
                 # TODO: figure out why doing this cast breaks with decimal dtype
                 #  in test_from_sequence_of_strings_pa_array
                 mask = strings.is_null()
                 scalars = pa.array(scalars, mask=np.array(mask), type=pa_type)
                 # TODO: could we just do strings.cast(pa_type)?
+            elif mask is not None:
+                scalars = pa.array(scalars, mask=mask.view(bool), type=pa_type)
 
         else:
             raise NotImplementedError(
@@ -544,23 +568,20 @@ class ArrowExtensionArray(
                 return pa_array
 
             mask = None
-            if getattr(value, "dtype", None) is None or value.dtype.kind not in "mfM":
-                # similar to isna(value) but exclude NaN
-                # TODO: cythonize!
-                mask = np.array([x is NA or x is None for x in value], dtype=bool)
+            if getattr(value, "dtype", None) is None or value.dtype.kind not in "mMf":
+                try:
+                    arr_value = np.asarray(value)
+                except ValueError:
+                    # e.g. list dtype with mixed-length lists
+                    arr_value = np.asarray(value, dtype=object)
+                # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
+                mask = is_pdna_or_none(arr_value)
 
-            from_pandas = False
-            if pa.types.is_integer(pa_type):
-                # If user specifically asks to cast a numpy float array with NaNs
-                #  to pyarrow integer, we'll treat those NaNs as NA
-                from_pandas = True
             try:
-                pa_array = pa.array(
-                    value, type=pa_type, mask=mask, from_pandas=from_pandas
-                )
+                pa_array = pa.array(value, type=pa_type, mask=mask)
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 # GH50430: let pyarrow infer type, then cast
-                pa_array = pa.array(value, mask=mask, from_pandas=from_pandas)
+                pa_array = pa.array(value, mask=mask)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # Workaround https://github.com/apache/arrow/issues/37291
@@ -1496,7 +1517,11 @@ class ArrowExtensionArray(
             pa.types.is_floating(pa_type)
             and (
                 na_value is np.nan
-                or (original_na_value is lib.no_default and is_float_dtype(dtype))
+                or (
+                    original_na_value is lib.no_default
+                    and is_float_dtype(dtype)
+                    and not using_pyarrow_strict_nans()
+                )
             )
         ):
             result = data._pa_array.to_numpy()
@@ -2369,6 +2394,7 @@ class ArrowExtensionArray(
             replacements = np.array(replacements, dtype=object)
         elif isinstance(replacements, pa.Scalar):
             replacements = replacements.as_py()
+
         result = np.array(values, dtype=object)
         result[mask] = replacements
         return pa.array(result, type=values.type)
