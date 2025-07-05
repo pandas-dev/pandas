@@ -32,6 +32,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_strict_nans
+
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
@@ -717,7 +719,10 @@ class TestArrowArray(base.ExtensionTests):
                 pytest.mark.xfail(reason="CSV parsers don't correctly handle binary")
             )
         df = pd.DataFrame({"with_dtype": pd.Series(data, dtype=str(data.dtype))})
-        csv_output = df.to_csv(index=False, na_rep=np.nan)
+        if using_pyarrow_strict_nans():
+            csv_output = df.to_csv(index=False, na_rep="NA")
+        else:
+            csv_output = df.to_csv(index=False, na_rep=np.nan)
         if pa.types.is_binary(pa_dtype):
             csv_output = BytesIO(csv_output)
         else:
@@ -1508,7 +1513,8 @@ def test_pickle_roundtrip(data):
 
 def test_astype_from_non_pyarrow(data):
     # GH49795
-    pd_array = data._pa_array.to_pandas().array
+    np_arr = data.to_numpy()
+    pd_array = pd.array(np_arr, dtype=np_arr.dtype)
     result = pd_array.astype(data.dtype)
     assert not isinstance(pd_array.dtype, ArrowDtype)
     assert isinstance(result.dtype, ArrowDtype)
@@ -1542,7 +1548,9 @@ def test_to_numpy_with_defaults(data):
     else:
         expected = np.array(data._pa_array)
 
-    if data._hasna and not is_numeric_dtype(data.dtype):
+    if data._hasna and (
+        not is_numeric_dtype(data.dtype) or using_pyarrow_strict_nans()
+    ):
         expected = expected.astype(object)
         expected[pd.isna(data)] = pd.NA
 
@@ -2682,6 +2690,7 @@ def test_dt_tz_localize_unsupported_tz_options():
         ser.dt.tz_localize("UTC", nonexistent="NaT")
 
 
+@pytest.mark.xfail(reason="Converts to UTC before localizing GH#61780")
 def test_dt_tz_localize_none():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
@@ -2689,7 +2698,7 @@ def test_dt_tz_localize_none():
     )
     result = ser.dt.tz_localize(None)
     expected = pd.Series(
-        [datetime(year=2023, month=1, day=2, hour=3), None],
+        [ser[0].tz_localize(None), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
     tm.assert_series_equal(result, expected)
@@ -2749,7 +2758,7 @@ def test_dt_tz_convert_none():
     )
     result = ser.dt.tz_convert(None)
     expected = pd.Series(
-        [datetime(year=2023, month=1, day=2, hour=3), None],
+        [ser[0].tz_convert(None), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
     tm.assert_series_equal(result, expected)
@@ -2763,7 +2772,7 @@ def test_dt_tz_convert(unit):
     )
     result = ser.dt.tz_convert("US/Eastern")
     expected = pd.Series(
-        [datetime(year=2023, month=1, day=2, hour=3), None],
+        [ser[0].tz_convert("US/Eastern"), None],
         dtype=ArrowDtype(pa.timestamp(unit, "US/Eastern")),
     )
     tm.assert_series_equal(result, expected)
@@ -2863,7 +2872,7 @@ def test_dt_components():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[1, 0, 0, 2, 0, 3, 4], [None, None, None, None, None, None, None]],
+        [[1, 0, 0, 2, 0, 3, 4], [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA]],
         columns=[
             "days",
             "hours",
@@ -2888,7 +2897,10 @@ def test_dt_components_large_values():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[365, 23, 59, 59, 999, 0, 0], [None, None, None, None, None, None, None]],
+        [
+            [365, 23, 59, 59, 999, 0, 0],
+            [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA],
+        ],
         columns=[
             "days",
             "hours",
@@ -3544,3 +3556,30 @@ def test_arrow_json_type():
     dtype = ArrowDtype(pa.json_(pa.string()))
     result = dtype.type
     assert result == str
+
+
+def test_timestamp_dtype_disallows_decimal():
+    # GH#61773 constructing with pyarrow timestamp dtype should disallow
+    #  Decimal NaN, just like pd.to_datetime
+    vals = [pd.Timestamp("2016-01-02 03:04:05"), Decimal("NaN")]
+
+    msg = "<class 'decimal.Decimal'> is not convertible to datetime"
+    with pytest.raises(TypeError, match=msg):
+        # Check that the non-pyarrow version raises as expected
+        pd.to_datetime(vals)
+
+    with pytest.raises(TypeError, match=msg):
+        pd.array(vals, dtype=ArrowDtype(pa.timestamp("us")))
+
+
+def test_timestamp_dtype_matches_to_datetime():
+    # GH#61775
+    dtype1 = "datetime64[ns, US/Eastern]"
+    dtype2 = "timestamp[ns, US/Eastern][pyarrow]"
+
+    ts = pd.Timestamp("2025-07-03 18:10")
+
+    result = pd.Series([ts], dtype=dtype2)
+    expected = pd.Series([ts], dtype=dtype1).convert_dtypes(dtype_backend="pyarrow")
+
+    tm.assert_series_equal(result, expected)
