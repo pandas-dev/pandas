@@ -1909,7 +1909,7 @@ class ArrowExtensionArray(
         mask = counts == 0
         if mask.any():
             # pc.if_else here is similar to `values[mask] = fill_value`
-            #  but this avoids a object-dtype round-trip.
+            #  but this avoids an object-dtype round-trip.
             pa_values = pc.if_else(~mask, values._pa_array, fill_value)
             values = type(self)(pa_values)
             counts = counts.copy()
