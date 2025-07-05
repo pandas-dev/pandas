@@ -1,8 +1,6 @@
 cimport cython
 from cython cimport Py_ssize_t
-from cython.parallel cimport (
-    prange,
-)
+from cython.parallel cimport prange
 from libc.math cimport (
     fabs,
     sqrt,
@@ -365,7 +363,7 @@ def nancorr(
         bint no_nans
         int64_t nobs = 0
         float64_t mean, ssqd, val
-        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
+        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, corr_val
 
     N, K = (<object>mat).shape
     if minp is None:
@@ -393,7 +391,6 @@ def nancorr(
                 means[j] = mean
                 ssqds[j] = ssqd
 
-    # ONLY CHANGE: Add parallel option to the main correlation loop
     if use_parallel:
         for xi in prange(K, schedule="dynamic", nogil=True):
             for yi in range(xi + 1):
@@ -427,7 +424,19 @@ def nancorr(
                 else:
                     divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
                     if divisor != 0:
-                        result[xi, yi] = result[yi, xi] = covxy / divisor
+                        if cov:
+                            result[xi, yi] = result[yi, xi] = covxy / divisor
+                        else:
+                            # ensure that diagonal is exactly 1.0
+                            if xi == yi:
+                                result[xi, yi] = 1.0
+                            else:
+                                corr_val = covxy / divisor
+                                if corr_val > 1.0:
+                                    corr_val = 1.0
+                                elif corr_val < -1.0:
+                                    corr_val = -1.0
+                                result[xi, yi] = result[yi, xi] = corr_val
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
     else:
@@ -464,7 +473,19 @@ def nancorr(
                     else:
                         divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
                         if divisor != 0:
-                            result[xi, yi] = result[yi, xi] = covxy / divisor
+                            if cov:
+                                result[xi, yi] = result[yi, xi] = covxy / divisor
+                            else:
+                                # For correlation, ensure diagonal is exactly 1.0
+                                if xi == yi:
+                                    result[xi, yi] = 1.0
+                                else:
+                                    corr_val = covxy / divisor
+                                    if corr_val > 1.0:
+                                        corr_val = 1.0
+                                    elif corr_val < -1.0:
+                                        corr_val = -1.0
+                                    result[xi, yi] = result[yi, xi] = corr_val
                         else:
                             result[xi, yi] = result[yi, xi] = NaN
 
