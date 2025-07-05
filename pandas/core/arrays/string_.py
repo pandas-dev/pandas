@@ -221,6 +221,7 @@ class StringDtype(StorageExtensionDtype):
         return False
 
     def __setstate__(self, state: MutableMapping[str, Any]) -> None:
+        # back-compat for pandas < 2.3, where na_value did not yet exist
         self.storage = state.pop("storage", "python")
         self._na_value = state.pop("_na_value", libmissing.NA)
 
