@@ -143,6 +143,36 @@ python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 
 See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
 
+---
+
+### Building from Source on Windows (Development Setup)
+
+To build pandas from source on a fresh Windows environment, several build-time dependencies are required. The following steps outline the full process:
+
+1.  **Install C++ Build Tools:**
+    * Download and run the "Build Tools for Visual Studio 2022".
+    * In the installer, you must select the **"Desktop development with C++"** workload.
+
+2.  **Create and Activate a Virtual Environment:**
+    ```bash
+    python -m venv venv
+    .\venv\Scripts\activate
+    ```
+
+3.  **Install Python Build Dependencies:**
+    The build process requires several Python packages that must be installed first.
+    ```bash
+    pip install meson-python ninja versioneer cython numpy
+    ```
+
+4.  **Install Pandas in Editable Mode:**
+    Once all dependencies are in place, run the following command from the project root to install pandas in development mode.
+    ```bash
+    python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
+    ```
+---
+
+
 ## License
 [BSD 3](LICENSE)
 
