@@ -911,11 +911,11 @@ def test_sort_values_inplace(obj, kwargs):
 
 @pytest.mark.parametrize("decimals", [-1, 0, 1])
 def test_round(decimals):
-    df = DataFrame({"a": [1, 2], "b": "c"})
+    df = DataFrame({"a": [1, 2], "b": [3.3, 4.4]})
     df_orig = df.copy()
     df2 = df.round(decimals=decimals)
 
-    assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    assert not tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     # TODO: Make inplace by using out parameter of ndarray.round?
     if decimals >= 0:
         # Ensure lazy copy if no-op
@@ -923,8 +923,8 @@ def test_round(decimals):
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
-    df2.iloc[0, 1] = "d"
-    df2.iloc[0, 0] = 4
+    df2.iloc[0, 1] = 6.6
+    df2.iloc[0, 0] = 5
     assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
