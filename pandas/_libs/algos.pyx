@@ -398,6 +398,7 @@ def nancorr(
                 ssqds[j] = ssqd
 
     if use_parallel:
+        # Use parallel execution with prange (only works if OpenMP is available)
         for xi in prange(K, schedule="dynamic", nogil=True):
             for yi in range(xi + 1):
                 covxy = 0
@@ -446,6 +447,7 @@ def nancorr(
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
     else:
+        # Use sequential execution with regular range
         with nogil:
             for xi in range(K):
                 for yi in range(xi + 1):

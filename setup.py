@@ -28,6 +28,16 @@ import versioneer
 cmdclass = versioneer.get_cmdclass()
 
 
+# Check for WebAssembly/Emscripten build environment
+def is_platform_emscripten():
+    """Check if we're building for WebAssembly/Emscripten (Pyodide)."""
+    return (
+        sys.platform == "emscripten"
+        or os.environ.get("EMSCRIPTEN", "").lower() in ("1", "true", "yes")
+        or os.environ.get("PYODIDE", "").lower() in ("1", "true", "yes")
+    )
+
+
 def is_platform_windows():
     return sys.platform in ("win32", "cygwin")
 
@@ -439,9 +449,17 @@ ext_data = {
         "pyxfile": "_libs/algos",
         "depends": _pxi_dep["algos"],
         "extra_compile_args": extra_compile_args
-        + (["-fopenmp"] if not is_platform_windows() else ["/openmp"]),
+        + (
+            (["-fopenmp"] if not is_platform_windows() else ["/openmp"])
+            if not is_platform_emscripten()
+            else []
+        ),
         "extra_link_args": extra_link_args
-        + (["-fopenmp"] if not is_platform_windows() else []),
+        + (
+            (["-fopenmp"] if not is_platform_windows() else [])
+            if not is_platform_emscripten()
+            else []
+        ),
     },
     "_libs.arrays": {"pyxfile": "_libs/arrays"},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},

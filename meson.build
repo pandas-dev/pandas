@@ -106,4 +106,5 @@ endif
 # Needed by pandas.test() when it looks for the pytest ini options
 py.install_sources('pyproject.toml', subdir: 'pandas')
 
+# Pass build flags to subdirectories
 subdir('pandas')
