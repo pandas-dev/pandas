@@ -1636,7 +1636,10 @@ class LinePlot(MPLPlot):
 
         if use_collection and segments:
             if self.legend:
-                lc_colors = [h.get_color() for h in self.legend_handles]
+                lc_colors = [
+                    cast(mpl.lines.Line2D, h).get_color()  # type: ignore[attr-defined]
+                    for h in self.legend_handles
+                ]
             else:
                 # no legend - just follow the default colour cycle
                 base = mpl.rcParams["axes.prop_cycle"].by_key()["color"]
