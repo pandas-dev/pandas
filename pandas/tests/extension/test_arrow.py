@@ -3531,7 +3531,10 @@ def test_cast_dictionary_different_value_dtype(arrow_type):
 def test_map_numeric_na_action():
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
-    expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    if using_pyarrow_strict_nans():
+        expected = pd.Series([42.0, 42.0, pd.NA], dtype="object")
+    else:
+        expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
     tm.assert_series_equal(result, expected)
 
 

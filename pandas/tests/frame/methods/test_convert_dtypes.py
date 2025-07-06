@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_strict_nans
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -73,6 +75,8 @@ class TestConvertDtypes:
             }
         )
         result = df.convert_dtypes(dtype_backend="pyarrow")
+
+        item = None if not using_pyarrow_strict_nans() else np.nan
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
@@ -80,7 +84,7 @@ class TestConvertDtypes:
                 ),
                 "b": pd.arrays.ArrowExtensionArray(pa.array(["x", "y", None])),
                 "c": pd.arrays.ArrowExtensionArray(pa.array([True, False, None])),
-                "d": pd.arrays.ArrowExtensionArray(pa.array([None, 100.5, 200.0])),
+                "d": pd.arrays.ArrowExtensionArray(pa.array([item, 100.5, 200.0])),
                 "e": pd.arrays.ArrowExtensionArray(
                     pa.array(
                         [
