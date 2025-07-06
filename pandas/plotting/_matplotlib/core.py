@@ -1592,7 +1592,9 @@ class LinePlot(MPLPlot):
             if self.color is not None:
                 kwds["color"] = self.color
 
-            style, kwds = self._apply_style_colors(colors, kwds, i, label)
+            style, kwds = self._apply_style_colors(  # type: ignore[arg-type]
+                colors, kwds, i, label
+            )
             kwds.update(self._get_errorbars(label=label, index=i))
 
             label_str = self._mark_right_label(pprint_thing(label), index=i)
@@ -1637,8 +1639,7 @@ class LinePlot(MPLPlot):
         if use_collection and segments:
             if self.legend:
                 lc_colors = [
-                    cast(mpl.lines.Line2D, h).get_color()  # type: ignore[attr-defined]
-                    for h in self.legend_handles
+                    cast(mpl.lines.Line2D, h).get_color() for h in self.legend_handles
                 ]
             else:
                 # no legend - just follow the default colour cycle
