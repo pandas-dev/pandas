@@ -407,6 +407,8 @@ class ArrowExtensionArray(
                 mask = strings.is_null()
                 scalars = pa.array(scalars, mask=np.array(mask), type=pa_type)
                 # TODO: could we just do strings.cast(pa_type)?
+            elif isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                scalars = strings.cast(pa_type)
             elif mask is not None:
                 scalars = pa.array(scalars, mask=mask.view(bool), type=pa_type)
 

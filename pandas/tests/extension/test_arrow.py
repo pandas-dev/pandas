@@ -1562,8 +1562,11 @@ def test_to_numpy_int_with_na():
     data = [1, None]
     arr = pd.array(data, dtype="int64[pyarrow]")
     result = arr.to_numpy()
-    expected = np.array([1, np.nan])
-    assert isinstance(result[0], float)
+    if using_pyarrow_strict_nans():
+        expected = np.array([1, pd.NA], dtype=object)
+    else:
+        expected = np.array([1, np.nan])
+        assert isinstance(result[0], float)
     tm.assert_numpy_array_equal(result, expected)
 
 
