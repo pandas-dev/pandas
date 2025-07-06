@@ -1559,7 +1559,7 @@ class LinePlot(MPLPlot):
         rendered with a single LineCollection for a large speed-up while keeping
         public behaviour identical to the original per-column path.
         """
-        # choose once whether to use the LineCollection fast path
+        # decide once whether we can use the LineCollection fast draw
         threshold = 200
         use_collection = (
             not self._is_ts_plot()
@@ -1568,9 +1568,10 @@ class LinePlot(MPLPlot):
             and len(self.data.columns) > threshold
         )
 
+        # choose ts-plot helper vs. regular helper
         if self._is_ts_plot():
             data = maybe_convert_index(self._get_ax(0), self.data)
-            x = data.index  # dummy (ignored by _ts_plot)
+            x = data.index  # dummy; _ts_plot ignores it
             plotf = self._ts_plot
             it = data.items()
         else:
@@ -1592,8 +1593,11 @@ class LinePlot(MPLPlot):
             if self.color is not None:
                 kwds["color"] = self.color
 
-            style, kwds = self._apply_style_colors(  # type: ignore[arg-type]
-                colors, kwds, i, label
+            style, kwds = self._apply_style_colors(
+                colors,
+                kwds,
+                i,
+                label,  # type: ignore[arg-type]
             )
             kwds.update(self._get_errorbars(label=label, index=i))
 
@@ -1601,10 +1605,10 @@ class LinePlot(MPLPlot):
             kwds["label"] = label_str
 
             if use_collection:
-                # collect vertices for the final LineCollection
+                # collect vertices; defer drawing
                 segments.append(np.column_stack((x, y)))
 
-                # keep legend parity with a tiny proxy only if legend is on
+                # tiny proxy only if legend is requested
                 if self.legend:
                     proxy = mpl.lines.Line2D(
                         [],
@@ -1614,7 +1618,7 @@ class LinePlot(MPLPlot):
                             "linewidth", mpl.rcParams["lines.linewidth"]
                         ),
                         linestyle=kwds.get("linestyle", "-"),
-                        marker=kwds.get("marker", None),
+                        marker=kwds.get("marker"),
                     )
                     self._append_legend_handles_labels(proxy, label_str)
             else:
@@ -1630,19 +1634,21 @@ class LinePlot(MPLPlot):
                 )
                 self._append_legend_handles_labels(newlines[0], label_str)
 
-                # reset x-limits for true time-series plots
+                # reset x-limits for true ts plots
                 if self._is_ts_plot():
                     lines = get_all_lines(ax)
                     left, right = get_xlim(lines)
                     ax.set_xlim(left, right)
 
+        # single draw call for fast path
         if use_collection and segments:
             if self.legend:
                 lc_colors = [
-                    cast(mpl.lines.Line2D, h).get_color() for h in self.legend_handles
+                    cast(mpl.lines.Line2D, h).get_color()  # mypy: h is Line2D
+                    for h in self.legend_handles
                 ]
             else:
-                # no legend - just follow the default colour cycle
+                # no legend - repeat default colour cycle
                 base = mpl.rcParams["axes.prop_cycle"].by_key()["color"]
                 lc_colors = list(itertools.islice(itertools.cycle(base), len(segments)))
 
