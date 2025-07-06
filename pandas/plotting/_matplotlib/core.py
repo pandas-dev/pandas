@@ -1553,90 +1553,103 @@ class LinePlot(MPLPlot):
             self.data = self.data.fillna(value=0)
 
     def _make_plot(self, fig: Figure) -> None:
-        threshold = 200  # switch when DataFrame has more than this many columns
-        can_use_lc = (
-            not self._is_ts_plot()  # not a TS plot
-            and not self.stacked  # stacking not requested
-            and not com.any_not_none(*self.errors.values())  # no error bars
+        """
+        Draw a DataFrame line plot.  For very wide frames (> 200 columns) that are
+        *not* time-series and have no stacking or error bars, all columns are
+        rendered with a single LineCollection for a large speed-up while keeping
+        public behaviour identical to the original per-column path.
+        """
+        # choose once whether to use the LineCollection fast path
+        threshold = 200
+        use_collection = (
+            not self._is_ts_plot()
+            and not self.stacked
+            and not com.any_not_none(*self.errors.values())
             and len(self.data.columns) > threshold
         )
-        if can_use_lc:
-            ax = self._get_ax(0)
-            x = self._get_xticks()
-            segments = [
-                np.column_stack((x, self.data[col].values)) for col in self.data.columns
-            ]
-            base_colors = mpl.rcParams["axes.prop_cycle"].by_key()["color"]
-            colors = list(itertools.islice(itertools.cycle(base_colors), len(segments)))
-            lc = LineCollection(
-                segments,
-                colors=colors,
-                linewidths=self.kwds.get("linewidth", mpl.rcParams["lines.linewidth"]),
-            )
-            ax.add_collection(lc)
-            ax.margins(0.05)
-            return  # skip the per-column Line2D loop
 
         if self._is_ts_plot():
             data = maybe_convert_index(self._get_ax(0), self.data)
-
-            x = data.index  # dummy, not used
+            x = data.index  # dummy (ignored by _ts_plot)
             plotf = self._ts_plot
             it = data.items()
         else:
             x = self._get_xticks()
-            # error: Incompatible types in assignment (expression has type
-            # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
-            # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
             plotf = self._plot  # type: ignore[assignment]
-            # error: Incompatible types in assignment (expression has type
-            # "Iterator[tuple[Hashable, ndarray[Any, Any]]]", variable has
-            # type "Iterable[tuple[Hashable, Series]]")
             it = self._iter_data(data=self.data)  # type: ignore[assignment]
 
+        # shared state
         stacking_id = self._get_stacking_id()
         is_errorbar = com.any_not_none(*self.errors.values())
-
         colors = self._get_colors()
+        segments: list[np.ndarray] = []  # vertices for LineCollection
+
+        # unified per-column loop
         for i, (label, y) in enumerate(it):
-            ax = self._get_ax(i)
+            ax = self._get_ax(i if not use_collection else 0)
+
             kwds = self.kwds.copy()
             if self.color is not None:
                 kwds["color"] = self.color
-            style, kwds = self._apply_style_colors(
-                colors,
-                kwds,
-                i,
-                # error: Argument 4 to "_apply_style_colors" of "MPLPlot" has
-                # incompatible type "Hashable"; expected "str"
-                label,  # type: ignore[arg-type]
+
+            style, kwds = self._apply_style_colors(colors, kwds, i, label)
+            kwds.update(self._get_errorbars(label=label, index=i))
+
+            label_str = self._mark_right_label(pprint_thing(label), index=i)
+            kwds["label"] = label_str
+
+            if use_collection:
+                # collect vertices for the final LineCollection
+                segments.append(np.column_stack((x, y)))
+
+                # keep legend parity with a tiny proxy only if legend is on
+                if self.legend:
+                    proxy = mpl.lines.Line2D(
+                        [],
+                        [],
+                        color=kwds.get("color"),
+                        linewidth=kwds.get(
+                            "linewidth", mpl.rcParams["lines.linewidth"]
+                        ),
+                        linestyle=kwds.get("linestyle", "-"),
+                        marker=kwds.get("marker", None),
+                    )
+                    self._append_legend_handles_labels(proxy, label_str)
+            else:
+                newlines = plotf(
+                    ax,
+                    x,
+                    y,
+                    style=style,
+                    column_num=i,
+                    stacking_id=stacking_id,
+                    is_errorbar=is_errorbar,
+                    **kwds,
+                )
+                self._append_legend_handles_labels(newlines[0], label_str)
+
+                # reset x-limits for true time-series plots
+                if self._is_ts_plot():
+                    lines = get_all_lines(ax)
+                    left, right = get_xlim(lines)
+                    ax.set_xlim(left, right)
+
+        if use_collection and segments:
+            if self.legend:
+                lc_colors = [h.get_color() for h in self.legend_handles]
+            else:
+                # no legend - just follow the default colour cycle
+                base = mpl.rcParams["axes.prop_cycle"].by_key()["color"]
+                lc_colors = list(itertools.islice(itertools.cycle(base), len(segments)))
+
+            lc = LineCollection(
+                segments,
+                colors=lc_colors,
+                linewidths=self.kwds.get("linewidth", mpl.rcParams["lines.linewidth"]),
             )
-
-            errors = self._get_errorbars(label=label, index=i)
-            kwds = dict(kwds, **errors)
-
-            label = pprint_thing(label)
-            label = self._mark_right_label(label, index=i)
-            kwds["label"] = label
-
-            newlines = plotf(
-                ax,
-                x,
-                y,
-                style=style,
-                column_num=i,
-                stacking_id=stacking_id,
-                is_errorbar=is_errorbar,
-                **kwds,
-            )
-            self._append_legend_handles_labels(newlines[0], label)
-
-            if self._is_ts_plot():
-                # reset of xlim should be used for ts data
-                # TODO: GH28021, should find a way to change view limit on xaxis
-                lines = get_all_lines(ax)
-                left, right = get_xlim(lines)
-                ax.set_xlim(left, right)
+            ax0 = self._get_ax(0)
+            ax0.add_collection(lc)
+            ax0.margins(0.05)
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
