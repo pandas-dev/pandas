@@ -778,9 +778,6 @@ class ExtensionArray:
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        # if dtype.kind == "U":
-        #    dtype = np.dtype(object)
-        # return self.to_numpy(dtype=dtype, copy=copy)
         if not copy:
             return np.asarray(self, dtype=dtype)
         else:
