@@ -284,7 +284,10 @@ class TestArrowArray(base.ExtensionTests):
             tm.assert_numpy_array_equal(result, expected)
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
-            if data_missing.dtype == "float32[pyarrow]":
+            if (
+                data_missing.dtype == "float32[pyarrow]"
+                and not using_pyarrow_strict_nans()
+            ):
                 # map roundtrips through objects, which converts to float64
                 expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
             else:
