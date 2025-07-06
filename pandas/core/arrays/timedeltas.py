@@ -507,6 +507,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             # numpy >= 2.1 may not raise a TypeError
             # and seems to dispatch to others.__rmul__?
             raise TypeError(f"Cannot multiply with {type(other).__name__}")
+        if isinstance(result, type(self)):
+            # e.g. if other is IntegerArray
+            assert result.dtype == self.dtype
+            return result
         return type(self)._simple_new(result, dtype=result.dtype)
 
     __rmul__ = __mul__

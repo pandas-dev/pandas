@@ -291,7 +291,7 @@ class TestDtypeEnforced:
     def test_constructor_dtypes_to_int(self, vals, any_int_numpy_dtype):
         dtype = any_int_numpy_dtype
         index = Index(vals, dtype=dtype)
-        assert index.dtype == dtype
+        assert index.dtype == tm.to_dtype(dtype)
 
     @pytest.mark.parametrize(
         "vals",

@@ -22,6 +22,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     algos as libalgos,
     lib,
@@ -2420,7 +2422,12 @@ class ExtensionArray:
         result = self.copy()
 
         if is_list_like(value):
-            val = value[~mask]
+            if np.ndim(value) == 1 and len(value) == 1:
+                # test_where.test_broadcast if we change to use nullable...
+                #  maybe this should be handled at a higher level?
+                val = value[0]
+            else:
+                val = value[~mask]
         else:
             val = value
 
@@ -2655,6 +2662,10 @@ class ExtensionArray:
         if op.how in op.cast_blocklist:
             # i.e. how in ["rank"], since other cast_blocklist methods don't go
             #  through cython_operation
+            if get_option("mode.pdep16_data_types"):
+                from pandas import array as pd_array
+
+                return pd_array(res_values)
             return res_values
 
         if isinstance(self.dtype, StringDtype):

@@ -1702,6 +1702,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if op.how in op.cast_blocklist:
             # i.e. how in ["rank"], since other cast_blocklist methods don't go
             #  through cython_operation
+            # if get_option("mode.pdep16_data_types"):
+            #    return pd_array(res_values)  # breaks bc they dont support 2D
             return res_values
 
         # We did a view to M8[ns] above, now we go the other direction

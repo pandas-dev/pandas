@@ -16,7 +16,10 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -612,7 +615,9 @@ def sanitize_array(
         if dtype is None:
             subarr = data
             if data.dtype == object and infer_object:
-                subarr = maybe_infer_to_datetimelike(data)
+                subarr = maybe_infer_to_datetimelike(
+                    data, convert_to_nullable_dtype=get_option("mode.pdep16_data_types")
+                )
             elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
@@ -659,7 +664,10 @@ def sanitize_array(
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
                 subarr = cast(np.ndarray, subarr)
-                subarr = maybe_infer_to_datetimelike(subarr)
+                subarr = maybe_infer_to_datetimelike(
+                    subarr,
+                    convert_to_nullable_dtype=get_option("mode.pdep16_data_types"),
+                )
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 
