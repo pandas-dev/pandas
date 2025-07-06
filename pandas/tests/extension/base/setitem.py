@@ -422,7 +422,6 @@ class BaseSetitemTests:
         df.iloc[:-1] = df.iloc[:-1].copy()
         tm.assert_frame_equal(df, orig)
 
-        # FIXME: Breaks for pyarrow float dtype bc df.values changes NAs to NaN
         df.iloc[:] = df.values
         tm.assert_frame_equal(df, orig)
 

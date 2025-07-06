@@ -352,13 +352,7 @@ class ArrowExtensionArray(
 
             scalars = to_datetime(strings, errors="raise").date
 
-            if isinstance(strings, cls):
-                # Avoid an object path
-                # TODO: this assumes that pyarrows str->date casting is the
-                # same as to_datetime. Is that a fair assumption?
-                scalars = strings._pa_array.cast(pa_type)
-            else:
-                scalars = pa.array(scalars, mask=mask.view(bool), type=pa_type)
+            scalars = pa.array(scalars, mask=mask.view(bool), type=pa_type)
 
         elif pa.types.is_duration(pa_type):
             from pandas.core.tools.timedeltas import to_timedelta
@@ -370,9 +364,7 @@ class ArrowExtensionArray(
                 # attempt to parse as int64 reflecting pyarrow's
                 # duration to string casting behavior
                 mask = isna(scalars)
-                if isinstance(strings, cls):
-                    strings = strings._pa_array
-                elif not isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                if not isinstance(strings, (pa.Array, pa.ChunkedArray)):
                     strings = pa.array(strings, type=pa.string(), mask=mask)
                 strings = pc.if_else(mask, None, strings)
                 try:
