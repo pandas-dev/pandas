@@ -898,7 +898,7 @@ def test_to_numeric_dtype_backend_error(dtype_backend):
         dtype = "double[pyarrow]"
     else:
         dtype = "Float64"
-    expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
+    expected = Series([pd.NA, pd.NA, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
