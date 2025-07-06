@@ -11,6 +11,8 @@ from libc.stdlib cimport (
 )
 from libc.string cimport memmove
 
+import sys
+
 import numpy as np
 
 cimport numpy as cnp
@@ -364,6 +366,10 @@ def nancorr(
         int64_t nobs = 0
         float64_t mean, ssqd, val
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, corr_val
+
+    # Disable parallel execution in Pyodide/WebAssembly environment
+    if use_parallel and hasattr(sys, "platform") and sys.platform == "emscripten":
+        use_parallel = False
 
     N, K = (<object>mat).shape
     if minp is None:

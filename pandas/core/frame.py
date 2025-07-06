@@ -11374,7 +11374,19 @@ class DataFrame(NDFrame, OpsMixin):
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
-            correl = libalgos.nancorr(mat, minp=min_periods, use_parallel=use_parallel)
+            if use_parallel:
+                try:
+                    correl = libalgos.nancorr(mat, minp=min_periods, use_parallel=True)
+                except (ImportError, AttributeError, RuntimeError):
+                    # OpenMP not available or prange failed, fall back to sequential
+                    warnings.warn(
+                        "No parallelism; using sequential (e.g. Pyodide or no OpenMP).",
+                        UserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    correl = libalgos.nancorr(mat, minp=min_periods, use_parallel=False)
+            else:
+                correl = libalgos.nancorr(mat, minp=min_periods, use_parallel=False)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
         elif method == "kendall" or callable(method):
