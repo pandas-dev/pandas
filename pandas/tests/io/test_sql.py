@@ -636,7 +636,7 @@ def drop_view(
         sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection
     ),
 ):
-    import sqlalchemy
+    sqlalchemy = pytest.importorskip("sqlalchemy")
     from sqlalchemy import Engine
 
     if isinstance(conn, sqlite3.Connection):
@@ -1209,7 +1209,12 @@ def connect_and_uuid(request, types_data):
     if isinstance(conn, str):
         sqlalchemy = pytest.importorskip("sqlalchemy")
         conn = sqlalchemy.create_engine(conn)
-    drop_table_uuid_views(conn, table_uuid, view_uuid)
+        drop_table_uuid_views(conn, table_uuid, view_uuid)
+        conn.dispose()
+    else:
+        drop_table_uuid_views(conn, table_uuid, view_uuid)
+
+
 
 
 @pytest.mark.parametrize(
@@ -1343,7 +1348,6 @@ def test_to_sql(connect_and_uuid, method, test_frame1, request):
 def test_to_sql_exist(connect_and_uuid, mode, num_row_coef, test_frame1, request):
     conn = connect_and_uuid["conn"]
     table_uuid = connect_and_uuid["table_uuid"]
-    conn_name = connect_and_uuid["conn_name"]
 
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, table_uuid, if_exists="fail")
