@@ -1,13 +1,8 @@
-import numpy as np
-import pytest
-
 from pandas import (
     DataFrame,
     MultiIndex,
-    Series,
 )
 import pandas._testing as tm
-from pandas.core.arrays import NumpyExtensionArray
 
 
 class TestToDictOfBlocks:
@@ -24,21 +19,6 @@ class TestToDictOfBlocks:
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
         assert _last_df is not None and not _last_df[column].equals(df[column])
-
-
-def test_to_dict_of_blocks_item_cache():
-    # Calling to_dict_of_blocks should not poison item_cache
-    df = DataFrame({"a": [1, 2, 3, 4], "b": Series(["a", "b", "c", "d"], dtype=object)})
-    df["c"] = NumpyExtensionArray(np.array([1, 2, None, 3], dtype=object))
-    mgr = df._mgr
-    assert len(mgr.blocks) == 3  # i.e. not consolidated
-
-    ser = df["b"]  # populations item_cache["b"]
-
-    df._to_dict_of_blocks()
-
-    with pytest.raises(ValueError, match="read-only"):
-        ser.values[0] = "foo"
 
 
 def test_set_change_dtype_slice():

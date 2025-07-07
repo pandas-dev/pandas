@@ -1,6 +1,6 @@
 .. _whatsnew_231:
 
-What's new in 2.3.1 (Month XX, 2025)
+What's new in 2.3.1 (July 7, 2025)
 ------------------------------------
 
 These are the changes in pandas 2.3.1. See :ref:`release` for a full changelog
@@ -14,12 +14,16 @@ including other versions of pandas.
 Improvements and fixes for the StringDtype
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Most changes in this release are related to :class:`StringDtype` which will
+become the default string dtype in pandas 3.0. See
+:ref:`whatsnew_230.upcoming_changes` for more details.
+
 .. _whatsnew_231.string_fixes.string_comparisons:
 
 Comparisons between different string dtypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, comparing :class:`Series` of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise. pandas will now use the hierarchy
+In previous versions, comparing :class:`Series` of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise (:issue:`60639`). pandas will now use the hierarchy
 
     object < (python, NaN) < (pyarrow, NaN) < (python, NA) < (pyarrow, NA)
 
@@ -44,7 +48,7 @@ correctly, rather than defaulting to ``object`` dtype. For example:
 
 .. code-block:: python
 
-    >>> pd.options.mode.infer_string = True
+    >>> pd.options.future.infer_string = True
     >>> df = pd.DataFrame()
     >>> df.columns.dtype
     dtype('int64')               # default RangeIndex for empty columns
@@ -57,32 +61,16 @@ correctly, rather than defaulting to ``object`` dtype. For example:
 Bug fixes
 ^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.max`, :meth:`.Resampler.min`, :meth:`.Resampler.max` where all NA values of string dtype would return float instead of string dtype (:issue:`60810`)
+- Bug in :meth:`DataFrame.join` incorrectly downcasting object-dtype indexes (:issue:`61771`)
 - Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` with all NA values of :class:`StringDtype` resulted in ``0`` instead of the empty string ``""`` (:issue:`60229`)
 - Fixed bug in :meth:`DataFrame.explode` and :meth:`Series.explode` where methods would fail with ``dtype="str"`` (:issue:`61623`)
+- Fixed bug in unpickling objects pickled in pandas versions pre-2.3.0 that used :class:`StringDtype` (:issue:`61763`)
 
-
-.. _whatsnew_231.regressions:
-
-Fixed regressions
-~~~~~~~~~~~~~~~~~
--
-
-.. ---------------------------------------------------------------------------
-.. _whatsnew_231.bug_fixes:
-
-Bug fixes
-~~~~~~~~~
--
-
-.. ---------------------------------------------------------------------------
-.. _whatsnew_231.other:
-
-Other
-~~~~~
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_231.contributors:
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.3.0..v2.3.1|HEAD
