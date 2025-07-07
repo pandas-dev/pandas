@@ -133,7 +133,8 @@ def create_pickle_data():
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
         "B": [0, 1, 0, 1, 0],
-        "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+        # "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+        "C": Series(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
         "D": date_range("1/1/2009", periods=5),
         "E": [0.0, 1, Timestamp("20100101"), "foo", 2.0],
     }
@@ -180,8 +181,16 @@ def create_pickle_data():
                 tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])), names=["one", "two"]
             ),
         ),
-        "dup": Series(np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]),
-        "cat": Series(Categorical(["foo", "bar", "baz"])),
+        "dup": Series(
+            np.arange(5).astype(np.float64),
+            index=Index(["A", "B", "C", "D", "A"], dtype=object),
+        ),
+        # "cat": Series(Categorical(["foo", "bar", "baz"])),
+        "cat": Series(
+            Categorical.from_codes(
+                [2, 0, 1], categories=Index(["bar", "baz", "foo"], dtype="object")
+            )
+        ),
         "dt": Series(date_range("20130101", periods=5)),
         "dt_tz": Series(date_range("20130101", periods=5, tz="US/Eastern")),
         "period": Series([Period("2000Q1")] * 5),
@@ -210,26 +219,36 @@ def create_pickle_data():
         "dup": DataFrame(
             np.arange(15).reshape(5, 3).astype(np.float64), columns=["A", "B", "A"]
         ),
-        "cat_onecol": DataFrame({"A": Categorical(["foo", "bar"])}),
+        # "cat_onecol": DataFrame({"A": Categorical(["foo", "bar"])}),
+        "cat_onecol": DataFrame(
+            {
+                "A": Categorical.from_codes(
+                    [1, 0], categories=Index(["bar", "foo"], dtype="object")
+                )
+            }
+        ),
         "cat_and_float": DataFrame(
             {
-                "A": Categorical(["foo", "bar", "baz"]),
+                # "A": Categorical(["foo", "bar", "baz"]),
+                "A": Categorical.from_codes(
+                    [2, 0, 1], categories=Index(["bar", "baz", "foo"], dtype="object")
+                ),
                 "B": np.arange(3).astype(np.int64),
             }
         ),
         "mixed_dup": mixed_dup_df,
         "dt_mixed_tzs": DataFrame(
             {
-                "A": Timestamp("20130102", tz="US/Eastern"),
-                "B": Timestamp("20130603", tz="CET"),
+                "A": Timestamp("20130102", tz="US/Eastern").as_unit("ns"),
+                "B": Timestamp("20130603", tz="CET").as_unit("ns"),
             },
             index=range(5),
         ),
         "dt_mixed2_tzs": DataFrame(
             {
-                "A": Timestamp("20130102", tz="US/Eastern"),
-                "B": Timestamp("20130603", tz="CET"),
-                "C": Timestamp("20130603", tz="UTC"),
+                "A": Timestamp("20130102", tz="US/Eastern").as_unit("ns"),
+                "B": Timestamp("20130603", tz="CET").as_unit("ns"),
+                "C": Timestamp("20130603", tz="UTC").as_unit("ns"),
             },
             index=range(5),
         ),
@@ -245,6 +264,9 @@ def create_pickle_data():
         "normal": Timestamp("2011-01-01"),
         "nat": NaT,
         "tz": Timestamp("2011-01-01", tz="US/Eastern"),
+        # kept because those are present in the legacy pickles (<= 1.4)
+        "freq": Timestamp("2011-01-01"),
+        "both": Timestamp("2011-01-01", tz="Asia/Tokyo"),
     }
 
     off = {
