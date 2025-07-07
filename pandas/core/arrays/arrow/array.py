@@ -518,14 +518,14 @@ class ArrowExtensionArray(
                     dta = DatetimeArray._from_sequence(
                         value, copy=copy, dtype=pass_dtype
                     )
-                mask = dta.isna()
-                value_i8 = dta.view("i8")
-                if not np.asarray(value_i8).flags["WRITEABLE"]:
+                dta_mask = dta.isna()
+                value_i8 = cast("npt.NDArray", dta.view("i8"))
+                if not value_i8.flags["WRITEABLE"]:
                     # e.g. test_setitem_frame_2d_values
                     value_i8 = value_i8.copy()
                     dta = DatetimeArray._from_sequence(value_i8, dtype=dta.dtype)
-                value_i8[mask] = 0  # GH#61776 avoid __sub__ overflow
-                pa_array = pa.array(dta._ndarray, type=pa_type, mask=mask)
+                value_i8[dta_mask] = 0  # GH#61776 avoid __sub__ overflow
+                pa_array = pa.array(dta._ndarray, type=pa_type, mask=dta_mask)
                 return pa_array
 
             try:
