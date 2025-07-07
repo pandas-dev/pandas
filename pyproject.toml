@@ -527,7 +527,7 @@ filterwarnings = [
   # Can be removed once https://github.com/numpy/numpy/pull/24794 is merged
   "ignore:.*In the future `np.long` will be defined as.*:FutureWarning",
   # https://github.com/numpy/numpy/pull/29301
-  "ignore:dtype::numpy",
+  "ignore:.*align should be passed:",
 ]
 junit_family = "xunit2"
 markers = [
