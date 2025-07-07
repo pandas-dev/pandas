@@ -51,7 +51,7 @@ object would, including missing value semantics and general operations on these
 columns.
 
 However, the introduction of a new default dtype will also have some breaking
-consequences your code (for example when checking for the ``.dtype`` being
+consequences to your code (for example when checking for the ``.dtype`` being
 object dtype). To allow testing it in advance of the pandas 3.0 release, this
 future dtype inference logic can be enabled in pandas 2.3 with:
 
