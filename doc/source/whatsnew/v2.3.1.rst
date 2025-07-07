@@ -44,7 +44,7 @@ correctly, rather than defaulting to ``object`` dtype. For example:
 
 .. code-block:: python
 
-    >>> pd.options.mode.infer_string = True
+    >>> pd.options.future.infer_string = True
     >>> df = pd.DataFrame()
     >>> df.columns.dtype
     dtype('int64')               # default RangeIndex for empty columns
