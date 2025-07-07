@@ -867,7 +867,6 @@ Reshaping
 - Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index = True`` drops the series name (:issue:`60723`, :issue:`56257`)
 - Bug in :func:`melt` where calling with duplicate column names in ``id_vars`` raised a misleading ``AttributeError`` (:issue:`61475`)
 - Bug in :meth:`DataFrame.merge` where user-provided suffixes could result in duplicate column names if the resulting names matched existing columns. Now raises a :class:`MergeError` in such cases. (:issue:`61402`)
--
 
 Sparse
 ^^^^^^
