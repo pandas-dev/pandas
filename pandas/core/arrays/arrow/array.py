@@ -1908,8 +1908,10 @@ class ArrowExtensionArray(
         fill_value = pa.scalar([None], type=self._pa_array.type)
         mask = counts == 0
         if mask.any():
-            values = values.copy()
-            values[mask] = fill_value
+            # pc.if_else here is similar to `values[mask] = fill_value`
+            #  but this avoids an object-dtype round-trip.
+            pa_values = pc.if_else(~mask, values._pa_array, fill_value)
+            values = type(self)(pa_values)
             counts = counts.copy()
             counts[mask] = 1
         values = values.fillna(fill_value)
