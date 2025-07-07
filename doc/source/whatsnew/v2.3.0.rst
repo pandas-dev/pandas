@@ -57,7 +57,7 @@ consequences to your code (for example when checking for the ``.dtype`` being
 object dtype). To allow testing it in advance of the pandas 3.0 release, this
 future dtype inference logic can be enabled in pandas 2.3 with:
 
-.. code-block:: ipython
+.. code-block:: python
 
    pd.options.future.infer_string = True
 
@@ -89,7 +89,7 @@ The new behavioral semantics are explained in more detail in the
 
 The new behavior can be enabled since pandas 2.0 with the following option:
 
-.. code-block:: ipython
+.. code-block:: python
 
    pd.options.mode.copy_on_write = True
 
@@ -97,7 +97,7 @@ Some of the behaviour changes allow a clear deprecation, like the changes in
 chained assignment. Other changes are more subtle and thus, the warnings are
 hidden behind an option that can be enabled since pandas 2.2:
 
-.. code-block:: ipython
+.. code-block:: python
 
    pd.options.mode.copy_on_write = "warn"
 
