@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 from pandas import (
     DataFrame,
     Index,
@@ -317,13 +313,9 @@ def test_merge_copy_keyword(using_copy_on_write, copy):
         assert not np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and HAS_PYARROW,
-    reason="TODO(infer_string); result.index infers str dtype while both "
-    "df1 and df2 index are object.",
-)
-def test_join_on_key(using_copy_on_write):
-    df_index = Index(["a", "b", "c"], name="key", dtype=object)
+@pytest.mark.parametrize("dtype", [object, "str"])
+def test_join_on_key(dtype, using_copy_on_write):
+    df_index = Index(["a", "b", "c"], name="key", dtype=dtype)
 
     df1 = DataFrame({"a": [1, 2, 3]}, index=df_index.copy(deep=True))
     df2 = DataFrame({"b": [4, 5, 6]}, index=df_index.copy(deep=True))
@@ -336,7 +328,7 @@ def test_join_on_key(using_copy_on_write):
     if using_copy_on_write:
         assert np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
         assert np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
-        assert np.shares_memory(get_array(result.index), get_array(df1.index))
+        assert tm.shares_memory(get_array(result.index), get_array(df1.index))
         assert not np.shares_memory(get_array(result.index), get_array(df2.index))
     else:
         assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
