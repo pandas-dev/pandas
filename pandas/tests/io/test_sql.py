@@ -1066,14 +1066,20 @@ def iris_connect_and_per_test_id(request, iris_path):
         "conn_name": conn_name,
     }
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    if type(conn) == type("str"):
+    if isinstance(conn, str):
         conn = sqlalchemy.create_engine(conn)
-    drop_view(view_uuid, conn)
-    drop_table(table_uuid, conn)
-    if isinstance(conn, sqlalchemy.Engine):
+        drop_view(view_uuid, conn)
+        drop_table(table_uuid, conn)
         conn.dispose()
     else:
-        conn.close()
+        drop_view(view_uuid, conn)
+        drop_table(table_uuid, conn)
+        if isinstance(conn, sqlalchemy.Engine):
+            conn.dispose()
+        if isinstance(conn, sqlalchemy.Connection):
+            Engine = conn.engine
+            conn.close()
+            Engine.dispose()
 
 
 
@@ -1191,7 +1197,16 @@ def connect_and_uuid_types(request, types_data):
     }
     if isinstance(conn, str):
         conn = sqlalchemy.create_engine(conn)
-    drop_table_uuid_views(conn, table_uuid, view_uuid)
+        drop_table_uuid_views(conn, table_uuid, view_uuid)
+        conn.dispose()
+    else:
+        drop_table_uuid_views(conn, table_uuid, view_uuid)
+        if isinstance(conn, sqlalchemy.Engine):
+            conn.dispose()
+        if isinstance(conn, sqlalchemy.Connection):
+            Engine = conn.engine
+            conn.close()
+            Engine.dispose()
 
 
 @pytest.fixture
@@ -1210,12 +1225,17 @@ def connect_and_uuid(request, types_data):
         "conn_name": conn_name,
     }
     if isinstance(conn, str):
-        sqlalchemy = pytest.importorskip("sqlalchemy")
         conn = sqlalchemy.create_engine(conn)
         drop_table_uuid_views(conn, table_uuid, view_uuid)
         conn.dispose()
     else:
         drop_table_uuid_views(conn, table_uuid, view_uuid)
+        if isinstance(conn, sqlalchemy.Engine):
+            conn.dispose()
+        if isinstance(conn, sqlalchemy.Connection):
+            Engine = conn.engine
+            conn.close()
+            Engine.dispose()
 
 
 
