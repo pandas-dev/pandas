@@ -67,7 +67,7 @@ Copy-on-Write
 ^^^^^^^^^^^^^
 
 The currently optional mode Copy-on-Write will be enabled by default in pandas 3.0. There
-won't be an option to keep the current behavior enabled.
+won't be an option to retain the legacy behavior.
 
 In summary, the new "copy-on-write" behaviour will bring changes in behavior in
 how pandas operates with respect to copies and views.
