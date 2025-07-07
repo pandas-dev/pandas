@@ -1054,6 +1054,7 @@ all_connectable_types = (
 
 @pytest.fixture
 def iris_connect_and_per_test_id(request, iris_path):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
     conn_name = request.param[0]
 
     conn, table_uuid, view_uuid = request.getfixturevalue(conn_name)
@@ -1172,6 +1173,8 @@ def drop_table_uuid_views(conn, table_uuid, view_uuid):
 
 @pytest.fixture
 def connect_and_uuid_types(request, types_data):
+
+    sqlalchemy = pytest.importorskip("sqlalchemy")
     conn_name = request.param[0]
     table_uuid = generate_uuid_strings("table", request.param[1])
     view_uuid = generate_uuid_strings("view", request.param[2])
@@ -1187,13 +1190,13 @@ def connect_and_uuid_types(request, types_data):
         "conn_name": conn_name,
     }
     if isinstance(conn, str):
-        sqlalchemy = pytest.importorskip("sqlalchemy")
         conn = sqlalchemy.create_engine(conn)
     drop_table_uuid_views(conn, table_uuid, view_uuid)
 
 
 @pytest.fixture
 def connect_and_uuid(request, types_data):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
     conn_name = request.param[0]
 
     table_uuid = generate_uuid_strings("table", request.param[1])
