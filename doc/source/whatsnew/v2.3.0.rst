@@ -34,6 +34,7 @@ objects, such as in constructors or IO functions.
 Old behavior:
 
 .. code-block:: python
+
     >>> ser = pd.Series(["a", "b"])
     0    a
     1    b
@@ -41,6 +42,7 @@ Old behavior:
 New behavior:
 
 .. code-block:: python
+
     >>> ser = pd.Series(["a", "b"])
     0    a
     1    b
