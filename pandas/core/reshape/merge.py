@@ -1076,13 +1076,13 @@ class _MergeOperation:
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
                 if left_indexer is not None and (left_indexer == -1).all():
-                    key_col = Index(rvals)
+                    key_col = Index(rvals, dtype=rvals.dtype, copy=False)
                     result_dtype = rvals.dtype
                 elif right_indexer is not None and (right_indexer == -1).all():
-                    key_col = Index(lvals)
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     result_dtype = lvals.dtype
                 else:
-                    key_col = Index(lvals)
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     if left_indexer is not None:
                         mask_left = left_indexer == -1
                         key_col = key_col.where(~mask_left, rvals)
@@ -1112,7 +1112,8 @@ class _MergeOperation:
 
                         result.set_index(idx_list, inplace=True)
                     else:
-                        result.index = Index(key_col, name=name)
+                        key_col.name = name
+                        result.index = key_col
                 else:
                     result.insert(i, name or f"key_{i}", key_col)
 
