@@ -59,7 +59,7 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
     ),
-    pytest.mark.single_cpu,
+    pytest.mark.db,
 ]
 
 
@@ -585,24 +585,6 @@ def get_all_tables(conn):
             return inspect(conn).get_table_names()
 
 
-def filter_get_all_tables(conn, extract_this_value):
-    tables =  get_all_tables(conn)
-    return_val = []
-    for t in tables:
-        if t in extract_this_value:
-            return_val.append(t)
-    return return_val
-
-def filter_get_all_views(conn, extract_this_value):
-    views =  get_all_views(conn)
-    return_val = []
-
-    for v in views:
-        if v in extract_this_value:
-            return_val.append(v)
-    return return_val
-
-
 def drop_table(
     table_name: str,
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
@@ -620,9 +602,10 @@ def drop_table(
         else:
             import sqlalchemy
             # Better matching for dialect string literal tables
-            quoted_table_name = conn.engine.dialect.identifier_preparer.quote_identifier(
+            quoted_table_name = (
+                conn.engine.dialect.identifier_preparer.quote_identifier(
                 table_name
-            )
+            ))
             stmt = sqlalchemy.text(f"DROP TABLE IF EXISTS {quoted_table_name}")
 
             if isinstance(conn, sqlalchemy.Engine):
