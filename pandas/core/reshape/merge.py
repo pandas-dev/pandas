@@ -1112,7 +1112,8 @@ class _MergeOperation:
 
                         result.set_index(idx_list, inplace=True)
                     else:
-                        result.index = Index(key_col, name=name)
+                        key_col.name = name
+                        result.index = key_col
                 else:
                     result.insert(i, name or f"key_{i}", key_col)
 
