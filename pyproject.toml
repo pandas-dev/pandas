@@ -526,7 +526,8 @@ filterwarnings = [
   "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",
   # Can be removed once https://github.com/numpy/numpy/pull/24794 is merged
   "ignore:.*In the future `np.long` will be defined as.*:FutureWarning",
-  "ignore:dtype:numpy.exceptions.VisibleDeprecationWarning",
+  # https://github.com/numpy/numpy/pull/29301
+  "ignore:dtype::numpy",
 ]
 junit_family = "xunit2"
 markers = [
