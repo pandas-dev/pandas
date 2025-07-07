@@ -10,7 +10,7 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_220.upcoming_changes:
+.. _whatsnew_230.upcoming_changes:
 
 Upcoming changes in pandas 3.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
