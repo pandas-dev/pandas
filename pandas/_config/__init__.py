@@ -36,5 +36,5 @@ def using_string_dtype() -> bool:
 
 
 def using_pdep16_nan_behavior() -> bool:
-    _mode_options = _global_config["mode"]
-    return _mode_options["pdep16_nan_behavior"]
+    _mode_options = _global_config["future"]
+    return _mode_options["numpy_nullable_nans_always_na"]
