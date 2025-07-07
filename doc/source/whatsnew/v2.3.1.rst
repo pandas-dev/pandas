@@ -14,6 +14,10 @@ including other versions of pandas.
 Improvements and fixes for the StringDtype
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Most changes in this release are related to :class:`StringDtype` which will
+become the default string dtype in pandas 3.0. See
+:ref:`whatsnew_230.upcoming_changes` for more details.
+
 .. _whatsnew_231.string_fixes.string_comparisons:
 
 Comparisons between different string dtypes
@@ -59,7 +63,7 @@ Bug fixes
 - Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.max`, :meth:`.Resampler.min`, :meth:`.Resampler.max` where all NA values of string dtype would return float instead of string dtype (:issue:`60810`)
 - Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` with all NA values of :class:`StringDtype` resulted in ``0`` instead of the empty string ``""`` (:issue:`60229`)
 - Fixed bug in :meth:`DataFrame.explode` and :meth:`Series.explode` where methods would fail with ``dtype="str"`` (:issue:`61623`)
-- Fixed bug in unpickling objects pickled in pandas versions pre-2.3.0 that used :class:`StringDtype` (:issue:`61763`).
+- Fixed bug in unpickling objects pickled in pandas versions pre-2.3.0 that used :class:`StringDtype` (:issue:`61763`)
 
 
 .. ---------------------------------------------------------------------------
