@@ -79,7 +79,9 @@ def setup(connection_variables, table_uuid=None, uuid_views=None):
             conn.append(each)
         else:
             conn.append(each[0][0])
-    return list(map(lambda *args: args, conn, repeat(table_uuid), repeat(uuid_views)))
+    return list(
+        map(lambda *args: args, conn, repeat(table_uuid), repeat(uuid_views))
+    )
 
 
 @pytest.fixture
@@ -155,7 +157,6 @@ def create_and_load_iris_sqlite3(conn, iris_file: Path, iris_uuid):
         next(reader)
         stmt = f"INSERT INTO {iris_uuid} VALUES(?, ?, ?, ?, ?)"
         # ADBC requires explicit types - no implicit str -> float conversion
-        records = []
         records = [
             (
                 float(row[0]),
@@ -232,7 +233,9 @@ def create_and_load_iris_view(conn, iris_table_uuid, iris_view_uuid):
         cur = conn.cursor()
         cur.execute(stmt)
     else:
-        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        adbc = import_optional_dependency(
+            "adbc_driver_manager.dbapi", errors="ignore"
+        )
         if adbc and isinstance(conn, adbc.Connection):
             with conn.cursor() as cur:
                 cur.execute(stmt)
@@ -543,7 +546,9 @@ def get_all_views(conn):
         c = conn.execute("SELECT name FROM sqlite_master WHERE type='view'")
         return [view[0] for view in c.fetchall()]
     else:
-        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        adbc = import_optional_dependency(
+            "adbc_driver_manager.dbapi", errors="ignore"
+        )
         if adbc and isinstance(conn, adbc.Connection):
             results = []
             info = conn.adbc_get_objects().read_all().to_pylist()
@@ -568,7 +573,9 @@ def get_all_tables(conn):
         c = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         return [table[0] for table in c.fetchall()]
     else:
-        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        adbc = import_optional_dependency(
+            "adbc_driver_manager.dbapi", errors="ignore"
+        )
 
         if adbc and isinstance(conn, adbc.Connection):
             results = []
@@ -589,14 +596,20 @@ def get_all_tables(conn):
 
 def drop_table(
     table_name: str,
-    conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
+    conn: (
+        sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection
+    ),
 ):
     if isinstance(conn, sqlite3.Connection):
-        conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
+        conn.execute(
+            f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}"
+        )
         conn.commit()
 
     else:
-        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        adbc = import_optional_dependency(
+            "adbc_driver_manager.dbapi", errors="ignore"
+        )
         if adbc and isinstance(conn, adbc.Connection):
             with conn.cursor() as cur:
                 cur.execute(f'DROP TABLE IF EXISTS "{table_name}"')
@@ -619,7 +632,9 @@ def drop_table(
 
 def drop_view(
     view_name: str,
-    conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
+    conn: (
+        sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection
+    ),
 ):
     import sqlalchemy
     from sqlalchemy import Engine
@@ -628,7 +643,9 @@ def drop_view(
         conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
         conn.commit()
     else:
-        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        adbc = import_optional_dependency(
+            "adbc_driver_manager.dbapi", errors="ignore"
+        )
         if adbc and isinstance(conn, adbc.Connection):
             with conn.cursor() as cur:
                 cur.execute(f'DROP VIEW IF EXISTS "{view_name}"')
@@ -814,7 +831,10 @@ def sqlite_engine(sqlite_str):
 @pytest.fixture
 def sqlite_conn(sqlite_engine):
     with sqlite_engine.connect() as conn:
-        yield conn
+        try:
+            yield conn
+        finally:
+            conn.close()
 
 
 @pytest.fixture
@@ -850,7 +870,10 @@ def sqlite_engine_iris(request, iris_path, sqlite_engine):
 def sqlite_conn_iris(sqlite_engine_iris):
     engine, iris_table_uuid, iris_view_uuid = sqlite_engine_iris
     with engine.connect() as conn:
-        yield conn, iris_table_uuid, iris_view_uuid
+        try:
+            yield conn, iris_table_uuid, iris_view_uuid
+        finally:
+            conn.close()
 
 
 @pytest.fixture
@@ -869,7 +892,10 @@ def sqlite_engine_types(sqlite_engine):
 @pytest.fixture
 def sqlite_conn_types(sqlite_engine_types):
     with sqlite_engine_types.connect() as conn:
-        yield conn
+        try:
+            yield conn
+        finally:
+            conn.close()
 
 
 @pytest.fixture
@@ -1024,7 +1050,6 @@ all_connectable_types = (
 @pytest.fixture
 def iris_connect_and_per_test_id(request, iris_path):
     conn_name = request.param[0]
-    conn_name = request.param[0]
 
     conn, table_uuid, view_uuid = request.getfixturevalue(conn_name)
 
@@ -1042,35 +1067,39 @@ def iris_connect_and_per_test_id(request, iris_path):
 
 
 connectables_to_create_uuid_function_map = {
-    "mysql_pymysql_engine_types": lambda eng, types_data, uuid: create_and_load_types(
-        eng, types_data, "mysql", uuid
-    ),
-    "mysql_pymysql_conn_types": lambda eng, types_data, uuid: create_and_load_types(
-        eng, types_data, "mysql", uuid
-    ),
-    "postgresql_psycopg2_engine_types": lambda eng, types_data, uuid: create_and_load_types(
-        eng, types_data, "postgres", uuid
-    ),
-    "postgresql_adbc_types": lambda eng, new_data, uuid: create_and_load_types_postgresql(
-        eng, new_data, uuid
-    ),
-    "postgresql_psycopg2_conn_types": lambda eng, types_data, uuid: create_and_load_types(
-        eng, types_data, "postgres", uuid
-    ),
-    "sqlite_str_types": lambda eng, types_data, uuid: create_and_load_types(
-        eng, types_data, "sqlite", uuid
-    ),
-    "sqlite_engine_types": lambda eng, types_data, uuid: create_and_load_types(
-        eng, types_data, "sqlite", uuid
-    ),
-    "sqlite_conn_types": lambda eng, types_data, uuid: create_and_load_types(
-        eng, types_data, "sqlite", uuid
-    ),
-    "sqlite_adbc_types": lambda eng, new_data, uuid: create_and_load_types_sqlite3(
-        eng, new_data, uuid
-    ),
-    "sqlite_buildin_types": lambda eng, types_data, uuid: create_and_load_types_sqlite3(
-        eng, [tuple(entry.values()) for entry in types_data], uuid
+    "mysql_pymysql_engine_types": lambda eng, types_data, uuid:      \
+        create_and_load_types(eng, types_data, "mysql", uuid),
+
+    "mysql_pymysql_conn_types": lambda eng, types_data, uuid:        \
+        create_and_load_types(eng, types_data, "mysql", uuid),
+
+    "postgresql_psycopg2_engine_types": lambda eng, types_data, uuid:\
+        create_and_load_types(
+        eng, types_data, "postgres", uuid),
+
+    "postgresql_adbc_types": lambda eng, new_data, uuid:            \
+        create_and_load_types_postgresql(eng, new_data, uuid),
+
+    "postgresql_psycopg2_conn_types": lambda eng, types_data, uuid: \
+        create_and_load_types(eng, types_data, "postgres", uuid),
+
+    "sqlite_str_types": lambda eng, types_data, uuid:               \
+        create_and_load_types(eng, types_data, "sqlite", uuid),
+
+    "sqlite_engine_types": lambda eng, types_data, uuid:            \
+        create_and_load_types(eng, types_data, "sqlite", uuid),
+
+    "sqlite_conn_types": lambda eng, types_data, uuid:              \
+        create_and_load_types(eng, types_data, "sqlite", uuid),
+
+    "sqlite_adbc_types": lambda eng, new_data, uuid:                \
+        create_and_load_types_sqlite3(eng, new_data, uuid),
+
+    "sqlite_buildin_types": lambda eng, types_data, uuid:           \
+        create_and_load_types_sqlite3(
+            eng,
+            [tuple(entry.values()) for entry in types_data],
+            uuid
     ),
 }
 
@@ -1270,7 +1299,9 @@ def test_dataframe_to_sql_arrow_dtypes_missing(
 
 
 @pytest.mark.parametrize(
-    "connect_and_uuid", setup(all_connectable, table_uuid="test_to_sql"), indirect=True
+    "connect_and_uuid",
+    setup(all_connectable, table_uuid="test_to_sql"),
+    indirect=True,
 )
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(connect_and_uuid, method, test_frame1, request):
@@ -1319,7 +1350,6 @@ def test_to_sql_exist(connect_and_uuid, mode, num_row_coef, test_frame1, request
 def test_to_sql_exist_fail(connect_and_uuid, test_frame1, request):
     conn = connect_and_uuid["conn"]
     table_uuid = connect_and_uuid["table_uuid"]
-    conn_name = connect_and_uuid["conn_name"]
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, table_uuid, if_exists="fail")
         assert pandasSQL.has_table(table_uuid)
@@ -1335,7 +1365,6 @@ def test_to_sql_exist_fail(connect_and_uuid, test_frame1, request):
 def test_read_iris_query(iris_connect_and_per_test_id, request):
     conn = iris_connect_and_per_test_id["conn"]
     iris_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
-    conn_name = iris_connect_and_per_test_id["conn_name"]
 
     iris_frame = read_sql_query(f"SELECT * FROM {iris_uuid}", conn)
     check_iris_frame(iris_frame)
@@ -1448,7 +1477,6 @@ def test_read_iris_table(iris_connect_and_per_test_id, request):
     # GH 51015 if conn = sqlite_iris_str
     conn = iris_connect_and_per_test_id["conn"]
     iris_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
-    conn_name = iris_connect_and_per_test_id["conn_name"]
 
     iris_frame = read_sql_table(iris_uuid, conn)
     check_iris_frame(iris_frame)
@@ -1935,7 +1963,9 @@ def test_read_sql_iris_no_parameter_with_percent(
     iris_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
     conn_name = iris_connect_and_per_test_id["conn_name"]
 
-    if "mysql" in conn_name or ("postgresql" in conn_name and "adbc" not in conn_name):
+    if "mysql" in conn_name or (
+        "postgresql" in conn_name and "adbc" not in conn_name
+    ):
         request.applymarker(pytest.mark.xfail(reason="broken test"))
 
     query = sql_strings["read_no_parameters_with_percent"][flavor(conn_name)]
@@ -1956,7 +1986,6 @@ def test_read_sql_iris_no_parameter_with_percent(
 )
 def test_api_read_sql_view(iris_connect_and_per_test_id, request):
     conn = iris_connect_and_per_test_id["conn"]
-    iris_table_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
     iris_view_uuid = iris_connect_and_per_test_id["iris_view_uuid"]
 
     iris_frame = sql.read_sql_query(f"SELECT * FROM {iris_view_uuid}", conn)
@@ -1966,7 +1995,9 @@ def test_api_read_sql_view(iris_connect_and_per_test_id, request):
 @pytest.mark.parametrize(
     "iris_connect_and_per_test_id", setup(all_connectable_iris), indirect=True
 )
-def test_api_read_sql_with_chunksize_no_result(iris_connect_and_per_test_id, request):
+def test_api_read_sql_with_chunksize_no_result(
+    iris_connect_and_per_test_id, request
+):
     conn = iris_connect_and_per_test_id["conn"]
     iris_view_uuid = iris_connect_and_per_test_id["iris_view_uuid"]
     conn_name = iris_connect_and_per_test_id["conn_name"]
@@ -2161,7 +2192,6 @@ def test_api_execute_sql(iris_connect_and_per_test_id, request):
     # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
     conn = iris_connect_and_per_test_id["conn"]
     iris_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
-    conn_name = iris_connect_and_per_test_id["conn_name"]
 
     with sql.pandasSQL_builder(conn) as pandas_sql:
         iris_results = pandas_sql.execute(f"SELECT * FROM {iris_uuid}")
@@ -2449,7 +2479,8 @@ def test_api_to_sql_index_label_multiindex(connect_and_uuid, request):
     if "mysql" in conn_name:
         request.applymarker(
             pytest.mark.xfail(
-                reason="MySQL can fail using TEXT without length as key", strict=False
+                reason="MySQL can fail using TEXT without length as key",
+                strict=False,
             )
         )
     elif "adbc" in conn_name:
@@ -2524,7 +2555,6 @@ def test_api_to_sql_index_label_multiindex(connect_and_uuid, request):
 def test_api_multiindex_roundtrip(connect_and_uuid, request):
     conn = connect_and_uuid["conn"]
     table_uuid = connect_and_uuid["table_uuid"]
-    conn_name = connect_and_uuid["conn_name"]
 
     if sql.has_table(table_uuid, conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -2661,7 +2691,9 @@ def test_api_get_schema_dtypes(connect_and_uuid, request):
         from sqlalchemy import Integer
 
         dtype = Integer
-    create_sql = sql.get_schema(float_frame, table_uuid, con=conn, dtype={"b": dtype})
+    create_sql = sql.get_schema(
+        float_frame, table_uuid, con=conn, dtype={"b": dtype}
+    )
     assert "CREATE" in create_sql
     assert "INTEGER" in create_sql
 
@@ -2735,7 +2767,9 @@ def test_api_chunksize_read(connect_and_uuid, request):
     i = 0
     sizes = [5, 5, 5, 5, 2]
 
-    for chunk in sql.read_sql_query(f"select * from {table_uuid}", conn, chunksize=5):
+    for chunk in sql.read_sql_query(
+        f"select * from {table_uuid}", conn, chunksize=5
+    ):
         res2 = concat([res2, chunk], ignore_index=True)
         assert len(chunk) == sizes[i]
         i += 1
@@ -3113,7 +3147,6 @@ def test_sqlalchemy_integer_overload_mapping(connect_and_uuid, request, integer)
 )
 def test_database_uri_string(connect_and_uuid, request, test_frame1):
     pytest.importorskip("sqlalchemy")
-    conn = connect_and_uuid["conn"]
     table_uuid = connect_and_uuid["table_uuid"]
     # Test read_sql and .to_sql method with a database URI (GH10654)
     # db_uri = 'sqlite:///:memory:' # raises
@@ -3175,7 +3208,6 @@ def test_query_by_text_obj(iris_connect_and_per_test_id, request):
 def test_query_by_select_obj(iris_connect_and_per_test_id, request):
     conn = iris_connect_and_per_test_id["conn"]
     iris_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
-    conn_name = iris_connect_and_per_test_id["conn_name"]
     # WIP : GH10846
     from sqlalchemy import (
         bindparam,
@@ -3214,7 +3246,6 @@ def test_column_with_percentage(connect_and_uuid, request):
 def test_sql_open_close(test_frame3):
     # Test if the IO in the database still work if the connection closed
     # between the writing and reading (as in many real situations).
-    table_uuid = create_uuid()("test_sql_open_close")
     with tm.ensure_clean() as name:
         with contextlib.closing(sqlite3.connect(name)) as conn:
             assert (
@@ -3248,7 +3279,9 @@ def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed()
             self.conn.close()
 
     with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
+        with tm.assert_produces_warning(
+            UserWarning, match="only supports SQLAlchemy"
+        ):
             sql.read_sql("SELECT 1", conn)
 
 
@@ -3263,7 +3296,9 @@ def test_sqlite_read_sql_delegate(iris_connect_and_per_test_id):
     iris_frame2 = sql.read_sql(f"SELECT * FROM {iris_uuid}", conn)
     tm.assert_frame_equal(iris_frame1, iris_frame2)
 
-    msg = f"Execution failed on sql '{iris_uuid}': near \"{iris_uuid}\": syntax error"
+    msg = (
+        f"Execution failed on sql '{iris_uuid}': near \"{iris_uuid}\": syntax error"
+    )
     with pytest.raises(sql.DatabaseError, match=msg):
         sql.read_sql(iris_uuid, conn)
 
@@ -3313,7 +3348,9 @@ def test_create_table(connect_and_uuid, request):
 
     from sqlalchemy import inspect
 
-    temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
+    temp_frame = DataFrame(
+        {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
+    )
 
     with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
         assert pandasSQL.to_sql(temp_frame, table_uuid) == 4
@@ -3341,7 +3378,9 @@ def test_drop_table(connect_and_uuid, request):
 
     from sqlalchemy import inspect
 
-    temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
+    temp_frame = DataFrame(
+        {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
+    )
     with sql.SQLDatabase(conn) as pandasSQL:
         with pandasSQL.run_transaction():
             assert pandasSQL.to_sql(temp_frame, table_uuid) == 4
@@ -3403,7 +3442,9 @@ def test_delete_rows_is_atomic(connect_and_uuid, request):
             cur.execute(table_stmt)
 
         with pandasSQL.run_transaction():
-            pandasSQL.to_sql(original_df, table_uuid, if_exists="append", index=False)
+            pandasSQL.to_sql(
+                original_df, table_uuid, if_exists="append", index=False
+            )
 
         # inserting duplicated values in a UNIQUE constraint column
         with pytest.raises(pd.errors.DatabaseError):
@@ -3454,7 +3495,6 @@ def test_roundtrip(connect_and_uuid, request, test_frame1):
 def test_execute_sql(iris_connect_and_per_test_id, request):
     conn = iris_connect_and_per_test_id["conn"]
     iris_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
-    conn_name = iris_connect_and_per_test_id["conn_name"]
 
     with pandasSQL_builder(conn) as pandasSQL:
         with pandasSQL.run_transaction():
@@ -3481,12 +3521,13 @@ def test_sqlalchemy_read_table(iris_connect_and_per_test_id, request):
 def test_sqlalchemy_read_table_columns(iris_connect_and_per_test_id, request):
     conn = iris_connect_and_per_test_id["conn"]
     iris_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
-    conn_name = iris_connect_and_per_test_id["conn_name"]
 
     iris_frame = sql.read_sql_table(
         iris_uuid, con=conn, columns=["SepalLength", "SepalLength"]
     )
-    tm.assert_index_equal(iris_frame.columns, Index(["SepalLength", "SepalLength__1"]))
+    tm.assert_index_equal(
+        iris_frame.columns, Index(["SepalLength", "SepalLength__1"])
+    )
 
 
 @pytest.mark.parametrize(
@@ -3494,8 +3535,6 @@ def test_sqlalchemy_read_table_columns(iris_connect_and_per_test_id, request):
 )
 def test_read_table_absent_raises(iris_connect_and_per_test_id, request):
     conn = iris_connect_and_per_test_id["conn"]
-    iris_uuid = iris_connect_and_per_test_id["iris_table_uuid"]
-    conn_name = iris_connect_and_per_test_id["conn_name"]
 
     msg = "Table this_doesnt_exist not found"
     with pytest.raises(ValueError, match=msg):
@@ -3637,7 +3676,11 @@ def test_datetime_with_timezone_roundtrip(connect_and_uuid, request):
     # For dbs that support timestamps with timezones, should get back UTC
     # otherwise naive data should be returned
     expected = DataFrame(
-        {"A": date_range("2013-01-01 09:00:00", periods=3, tz="US/Pacific", unit="us")}
+        {
+            "A": date_range(
+                "2013-01-01 09:00:00", periods=3, tz="US/Pacific", unit="us"
+            )
+        }
     )
     assert expected.to_sql(name=table_uuid, con=conn, index=False) == 3
 
@@ -3687,7 +3730,9 @@ def test_naive_datetimeindex_roundtrip(connect_and_uuid, request):
     # Ensure that a naive DatetimeIndex isn't converted to UTC
     conn = connect_and_uuid["conn"]
     table_uuid = connect_and_uuid["table_uuid"]
-    dates = date_range("2018-01-01", periods=5, freq="6h", unit="us")._with_freq(None)
+    dates = date_range("2018-01-01", periods=5, freq="6h", unit="us")._with_freq(
+        None
+    )
     expected = DataFrame({"nums": range(5)}, index=dates)
     assert expected.to_sql(name=table_uuid, con=conn, index_label="info_date") == 5
     result = sql.read_sql_table(table_uuid, conn, index_col="info_date")
@@ -4284,7 +4329,8 @@ def test_connectable_issue_example(connect_and_uuid, request):
             test_connectable(connectable)
 
     assert (
-        DataFrame({"test_foo_data": [0, 1, 2]}).to_sql(name=table_uuid, con=conn) == 3
+        DataFrame({"test_foo_data": [0, 1, 2]}).to_sql(name=table_uuid, con=conn)
+        == 3
     )
     main(conn)
 
@@ -4768,7 +4814,8 @@ def test_row_object_is_named_tuple(connect_and_uuid):
     with Session() as session:
         df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
         assert (
-            df.to_sql(name=table_uuid, con=conn, index=False, if_exists="replace") == 2
+            df.to_sql(name=table_uuid, con=conn, index=False, if_exists="replace")
+            == 2
         )
         session.commit()
         test_query = session.query(Test.id, Test.string_column)
@@ -4960,7 +5007,10 @@ def test_self_join_date_columns(connect_and_uuid):
         with con.begin():
             con.execute(create_table)
 
-    sql_query = f'SELECT * FROM "{table_uuid}" AS p1 INNER JOIN "{table_uuid}" AS p2 ON p1.id = p2.id;'
+    sql_query = f'''
+        SELECT * FROM "{table_uuid}"
+        AS p1 INNER JOIN "{table_uuid}"
+        AS p2 ON p1.id = p2.id;'''
     result = pd.read_sql(sql_query, conn)
     expected = DataFrame(
         [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
@@ -4981,7 +5031,9 @@ def test_self_join_date_columns(connect_and_uuid):
 def test_create_and_drop_table(connect_and_uuid):
     conn = connect_and_uuid["conn"]
     table_uuid = connect_and_uuid["table_uuid"]
-    temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
+    temp_frame = DataFrame(
+        {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
+    )
     with sql.SQLDatabase(conn) as pandasSQL:
         with pandasSQL.run_transaction():
             assert pandasSQL.to_sql(temp_frame, table_uuid) == 4
@@ -5346,7 +5398,9 @@ def test_xsqlite_execute_closed_connection():
         cur.execute(create_sql)
 
         with sql.pandasSQL_builder(conn) as pandas_sql:
-            pandas_sql.execute(f"INSERT INTO {table_uuid} VALUES('foo', 'bar', 1.234)")
+            pandas_sql.execute(
+                f"INSERT INTO {table_uuid} VALUES('foo', 'bar', 1.234)"
+            )
 
     msg = "Cannot operate on a closed database."
     with pytest.raises(sqlite3.ProgrammingError, match=msg):
