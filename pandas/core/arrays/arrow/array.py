@@ -371,7 +371,6 @@ class ArrowExtensionArray(
                     scalars = strings.cast(pa.int64())
                 except pa.ArrowInvalid:
                     pass
-
         elif pa.types.is_time(pa_type):
             from pandas.core.tools.times import to_time
 
@@ -399,18 +398,10 @@ class ArrowExtensionArray(
             from pandas.core.tools.numeric import to_numeric
 
             scalars = to_numeric(strings, errors="raise")
-            if not pa.types.is_decimal(pa_type) and isinstance(
-                strings, (pa.Array, pa.ChunkedArray)
-            ):
-                # TODO: figure out why doing this cast breaks with decimal dtype
-                #  in test_from_sequence_of_strings_pa_array
-                mask = strings.is_null()
-                scalars = pa.array(scalars, mask=np.array(mask), type=pa_type)
-                # TODO: could we just do strings.cast(pa_type)?
-            elif isinstance(strings, (pa.Array, pa.ChunkedArray)):
+            if isinstance(strings, (pa.Array, pa.ChunkedArray)):
                 scalars = strings.cast(pa_type)
             elif mask is not None:
-                scalars = pa.array(scalars, mask=mask.view(bool), type=pa_type)
+                scalars = pa.array(scalars, mask=mask, type=pa_type)
 
         else:
             raise NotImplementedError(
