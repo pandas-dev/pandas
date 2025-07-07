@@ -281,7 +281,7 @@ class PythonParser(ParserBase):
 
         index: Index | None
         columns: Sequence[Hashable] = list(self.orig_names)
-        if not len(content):  # pragma: no cover
+        if not content:  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             # error: Cannot determine type of 'index_col'
             names = dedup_names(
