@@ -427,7 +427,7 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([True, False, "warn"]),
     )
 
-with cf.config_prefix("mode"):
+with cf.config_prefix("future"):
     cf.register_option(
         "PDEP16_nan_behavior",
         True,
