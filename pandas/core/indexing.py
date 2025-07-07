@@ -624,8 +624,8 @@ class IndexingMixin:
         >>> df.loc[:, "B"] = s  # Aligns by index, not order
         >>> df
            A   B
-        0  1  20
-        1  2  10
+        0  1  20.0
+        1  2  10.0
         2  3 NaN
         """
         return _LocIndexer("loc", self)
