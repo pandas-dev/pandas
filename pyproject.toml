@@ -317,6 +317,8 @@ ignore = [
   "ISC001",
   # if-stmt-min-max
   "PLR1730",
+  # nan-comparison
+  "PLW0177",
 
   ### TODO: Enable gradually
   # Useless statement
