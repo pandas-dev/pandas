@@ -7137,7 +7137,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
-        if self.is_(other):
+        if False:  # self.is_(other):
             # fastpath
             if op in {operator.eq, operator.le, operator.ge}:
                 arr = np.ones(len(self), dtype=bool)

@@ -74,6 +74,10 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self.dtype.na_value  # type: ignore[attr-defined]
 
         if not len(self):
+            if dtype == "Int64":
+                from pandas.core.construction import array as pd_array
+
+                return pd_array([], dtype=dtype)
             return np.array([], dtype=dtype)
 
         arr = np.asarray(self, dtype=object)
@@ -110,12 +114,17 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             np.putmask(result, mask, na_value)
             if convert and result.dtype == object:
                 result = lib.maybe_convert_objects(result)
+
+        if dtype == "Int64":
+            from pandas.core.construction import array as pd_array
+
+            return pd_array(result, dtype=dtype)
         return result
 
     def _str_count(self, pat, flags: int = 0):
         regex = re.compile(pat, flags=flags)
         f = lambda x: len(regex.findall(x))
-        return self._str_map(f, dtype="int64")
+        return self._str_map(f, dtype="Int64")
 
     def _str_pad(
         self,
@@ -298,7 +307,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: getattr(x, method)(sub, start)
         else:
             f = lambda x: getattr(x, method)(sub, start, end)
-        return self._str_map(f, dtype="int64")
+        return self._str_map(f, dtype="Int64")
 
     def _str_findall(self, pat, flags: int = 0):
         regex = re.compile(pat, flags=flags)
@@ -319,14 +328,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: x.index(sub, start, end)
         else:
             f = lambda x: x.index(sub, start, end)
-        return self._str_map(f, dtype="int64")
+        return self._str_map(f, dtype="Int64")
 
     def _str_rindex(self, sub, start: int = 0, end=None):
         if end:
             f = lambda x: x.rindex(sub, start, end)
         else:
             f = lambda x: x.rindex(sub, start, end)
-        return self._str_map(f, dtype="int64")
+        return self._str_map(f, dtype="Int64")
 
     def _str_join(self, sep: str):
         return self._str_map(sep.join)
@@ -339,7 +348,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(lambda x: x.rpartition(sep), dtype="object")
 
     def _str_len(self):
-        return self._str_map(len, dtype="int64")
+        return self._str_map(len, dtype="Int64")
 
     def _str_slice(self, start=None, stop=None, step=None):
         obj = slice(start, stop, step)

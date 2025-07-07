@@ -254,5 +254,5 @@ class TestCatAccessor:
             {"int_cat": [1, 2, 3], "bool_cat": [True, False, False]}, dtype="category"
         )
         value = df["bool_cat"].cat.categories.dtype
-        expected = np.dtype(np.bool_)
-        assert value is expected
+        expected = tm.to_dtype(np.dtype(np.bool_))
+        assert value == expected
