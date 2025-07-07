@@ -22,7 +22,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil=2.8.2
-  - numpy=1.23.5
+  - numpy=1.26.0
 
   # optional dependencies
   - beautifulsoup4=4.12.3
