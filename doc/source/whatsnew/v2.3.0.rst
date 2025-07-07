@@ -39,6 +39,7 @@ Old behavior:
     0    a
     1    b
     dtype: object
+
 New behavior:
 
 .. code-block:: python
