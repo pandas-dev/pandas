@@ -96,8 +96,7 @@ non-string value in it (see below for more details).
 Missing values with the new string dtype are always represented as ``NaN`` (``np.nan``),
 and the missing value behavior is similar to other default dtypes.
 
-This new string dtype should otherwise work the same as how you have been
-using pandas with string data today. For example, all string-specific methods
+This new string dtype should otherwise behave the same as the existing ``object`` dtype users are used to.  For example, all string-specific methods
 through the ``str`` accessor will work the same:
 
 .. code-block:: python
