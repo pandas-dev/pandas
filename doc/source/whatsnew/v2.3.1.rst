@@ -1,6 +1,6 @@
 .. _whatsnew_231:
 
-What's new in 2.3.1 (Month XX, 2025)
+What's new in 2.3.1 (July 7, 2025)
 ------------------------------------
 
 These are the changes in pandas 2.3.1. See :ref:`release` for a full changelog
@@ -62,27 +62,10 @@ Bug fixes
 - Fixed bug in unpickling objects pickled in pandas versions pre-2.3.0 that used :class:`StringDtype` (:issue:`61763`).
 
 
-.. _whatsnew_231.regressions:
-
-Fixed regressions
-~~~~~~~~~~~~~~~~~
--
-
-.. ---------------------------------------------------------------------------
-.. _whatsnew_231.bug_fixes:
-
-Bug fixes
-~~~~~~~~~
-
-.. ---------------------------------------------------------------------------
-.. _whatsnew_231.other:
-
-Other
-~~~~~
--
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_231.contributors:
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.3.0..v2.3.1|HEAD
