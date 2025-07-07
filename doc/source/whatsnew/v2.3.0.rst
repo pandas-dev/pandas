@@ -61,7 +61,8 @@ future dtype inference logic can be enabled in pandas 2.3 with:
 
    pd.options.future.infer_string = True
 
-TODO add link to migration guide
+See the :ref:`string_migration_guide` for more details on the behaviour changes
+and how to adapt your code to the new default.
 
 Copy-on-Write
 ^^^^^^^^^^^^^
