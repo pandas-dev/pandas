@@ -381,30 +381,3 @@ def test_update_inplace_sets_valid_block_values():
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
-
-
-def test_nonconsolidated_item_cache_take():
-    # https://github.com/pandas-dev/pandas/issues/35521
-
-    # create non-consolidated dataframe with object dtype columns
-    df = DataFrame(
-        {
-            "col1": Series(["a"], dtype=object),
-        }
-    )
-    df["col2"] = Series([0], dtype=object)
-    assert not df._mgr.is_consolidated()
-
-    # access column (item cache)
-    df["col1"] == "A"
-    # take operation
-    # (regression was that this consolidated but didn't reset item cache,
-    # resulting in an invalid cache and the .at operation not working properly)
-    df[df["col2"] == 0]
-
-    # now setting value should update actual dataframe
-    df.at[0, "col1"] = "A"
-
-    expected = DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
-    tm.assert_frame_equal(df, expected)
-    assert df.at[0, "col1"] == "A"

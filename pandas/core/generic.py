@@ -236,7 +236,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     _internal_names: list[str] = [
         "_mgr",
-        "_item_cache",
         "_cache",
         "_name",
         "_metadata",
