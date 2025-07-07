@@ -146,7 +146,7 @@ def create_and_load_iris_sqlite3(conn, iris_file: Path, iris_uuid):
             "PetalWidth" REAL,
             "Name" TEXT
         )"""
-    import sqlalchemy
+    sqlalchemy = pytest.importorskip(sqlalchemy)
 
     if type(conn) == sqlalchemy.engine.base.Engine:
         conn = conn.raw_connection()
