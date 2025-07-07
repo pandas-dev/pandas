@@ -2127,5 +2127,5 @@ def monkeysession():
 @pytest.fixture(params=[True, False])
 def pdep16_nan_behavior(request):
     opt = request.param
-    with pd.option_context("future.PDEP16_nan_behavior", opt):
+    with pd.option_context("future.numpy_nullable_nans_always_na", opt):
         yield opt

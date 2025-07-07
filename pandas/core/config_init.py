@@ -429,7 +429,7 @@ with cf.config_prefix("mode"):
 
 with cf.config_prefix("future"):
     cf.register_option(
-        "PDEP16_nan_behavior",
+        "numpy_nullable_nans_always_na",
         True,
         # TODO: set the default to False before merging;
         #  True is just to find the tests that break with it enabled.
