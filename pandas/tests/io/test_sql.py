@@ -146,7 +146,7 @@ def create_and_load_iris_sqlite3(conn, iris_file: Path, iris_uuid):
             "PetalWidth" REAL,
             "Name" TEXT
         )"""
-    sqlalchemy = pytest.importorskip(sqlalchemy)
+    sqlalchemy = pytest.importorskip("sqlalchemy")
 
     if type(conn) == sqlalchemy.engine.base.Engine:
         conn = conn.raw_connection()
@@ -698,6 +698,8 @@ def mysql_pymysql_engine_iris(request, mysql_pymysql_engine, iris_path):
 
     yield conn, iris_table_uuid, iris_view_uuid
 
+    conn.dispose()
+
 
 @pytest.fixture
 def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
@@ -715,6 +717,7 @@ def mysql_pymysql_conn_iris(mysql_pymysql_engine_iris):
     engine, iris_table_uuid, iris_view_uuid = mysql_pymysql_engine_iris
     with engine.connect() as conn:
         yield conn, iris_table_uuid, iris_view_uuid
+    engine.dispose()
 
 
 @pytest.fixture
@@ -750,6 +753,7 @@ def postgresql_psycopg2_engine_iris(request, postgresql_psycopg2_engine, iris_pa
     create_and_load_iris_view(conn, iris_table_uuid, iris_view_uuid)
 
     yield conn, iris_table_uuid, iris_view_uuid
+    conn.dispose()
 
 
 @pytest.fixture
@@ -789,6 +793,7 @@ def postgresql_adbc_iris(request, postgresql_adbc_conn, iris_path):
     create_and_load_iris_view(conn, iris_table_uuid, iris_view_uuid)
 
     yield conn, iris_table_uuid, iris_view_uuid
+    conn.drop()
 
 
 @pytest.fixture
@@ -951,7 +956,7 @@ def sqlite_buildin_iris(request, sqlite_buildin, iris_path):
     create_and_load_iris_sqlite3(conn, iris_path, iris_table_uuid)
     create_and_load_iris_view(conn, iris_table_uuid, iris_view_uuid)
     yield conn, iris_table_uuid, iris_view_uuid
-    conn.close()
+    # conn.close()
 
 
 @pytest.fixture
@@ -1064,6 +1069,11 @@ def iris_connect_and_per_test_id(request, iris_path):
         conn = sqlalchemy.create_engine(conn)
     drop_view(view_uuid, conn)
     drop_table(table_uuid, conn)
+    if isinstance(conn, sqlalchemy.Engine):
+        conn.dispose()
+    else:
+        conn.close()
+
 
 
 connectables_to_create_uuid_function_map = {
