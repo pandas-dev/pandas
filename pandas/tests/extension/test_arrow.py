@@ -41,6 +41,7 @@ from pandas.compat import (
     pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under20p0,
+    pa_version_under21p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -580,7 +581,10 @@ class TestArrowArray(base.ExtensionTests):
         if op_name in ["max", "min"]:
             cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
-            if op_name not in ["median", "var", "std", "skew"]:
+            if op_name == "sum" and not pa_version_under21p0:
+                # https://github.com/apache/arrow/pull/44184
+                cmp_dtype = ArrowDtype(pa.decimal128(38, 3))
+            elif op_name not in ["median", "var", "std", "skew"]:
                 cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
