@@ -141,32 +141,9 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
-        ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
-        ("DataFrameGroupBy.corrwith", "DataFrameGroupBy.corrwith is deprecated"),
         ("NDFrame.replace", "Series.replace without 'value'"),
-        ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
-        ("Series.idxmin", "The behavior of Series.idxmin"),
-        ("Series.idxmax", "The behavior of Series.idxmax"),
-        ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
-        ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
-        ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
-        ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
-        ("NDFrame.reindex_like", "keyword argument 'method' is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        (
-            "pandas.core.generic.NDFrame.first",
-            "first is deprecated and will be removed in a future version. "
-            "Please create a mask and filter using `.loc` instead",
-        ),
-        (
-            "Resampler.fillna",
-            "DatetimeIndexResampler.fillna is deprecated",
-        ),
-        (
-            "DataFrameGroupBy.fillna",
-            "DataFrameGroupBy.fillna with 'method' is deprecated",
-        ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
