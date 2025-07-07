@@ -2,10 +2,7 @@ import re
 
 import pytest
 
-from pandas.compat.pyarrow import (
-    pa_version_under11p0,
-    pa_version_under13p0,
-)
+from pandas.compat.pyarrow import pa_version_under13p0
 
 from pandas import (
     ArrowDtype,
@@ -105,7 +102,6 @@ def test_struct_accessor_field_with_invalid_name_or_index():
         ser.struct.field(1.1)
 
 
-@pytest.mark.skipif(pa_version_under11p0, reason="pyarrow>=11.0.0 required")
 def test_struct_accessor_explode():
     index = Index([-100, 42, 123])
     ser = Series(

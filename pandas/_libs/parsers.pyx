@@ -358,7 +358,7 @@ cdef class TextReader:
         int64_t leading_cols, table_width
         object delimiter  # bytes or str
         object converters
-        object na_values
+        object na_values  # dict[hashable, set[str]] | list[str]
         list header  # list[list[non-negative integers]]
         object index_col
         object skiprows
@@ -390,8 +390,8 @@ cdef class TextReader:
                   usecols=None,
                   on_bad_lines=ERROR,
                   bint na_filter=True,
-                  na_values=None,
-                  na_fvalues=None,
+                  na_values=None,       # dict[hashable, set[str]] | set[str]
+                  na_fvalues=None,      # dict[hashable, set[float]] | set[float]
                   bint keep_default_na=True,
                   true_values=None,
                   false_values=None,
@@ -486,9 +486,17 @@ cdef class TextReader:
 
         self.delimiter = delimiter
 
+        # na_fvalues is created from user-provided na_value in _clean_na_values
+        #  which ensures that either
+        #  a) na_values is set[str] and na_fvalues is set[float]
+        #  b) na_values is dict[Hashable, set[str]] and
+        #     na_fvalues is dict[Hashable, set[float]]
+        #     (tests for this case are in test_na_values.py)
+        if not isinstance(na_values, dict):
+            # i.e. it must be a set
+            na_values = list(na_values)
+
         self.na_values = na_values
-        if na_fvalues is None:
-            na_fvalues = set()
         self.na_fvalues = na_fvalues
 
         self.true_values = _maybe_encode(true_values) + _true_values
@@ -929,7 +937,8 @@ cdef class TextReader:
             int nused
             kh_str_starts_t *na_hashset = NULL
             int64_t start, end
-            object name, na_flist, col_dtype = None
+            object name, col_dtype = None
+            set na_fset
             bint na_filter = 0
             int64_t num_cols
             dict results
@@ -1021,18 +1030,15 @@ cdef class TextReader:
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
-            # Collect the list of NaN values associated with the column.
+            # Collect the set of NaN values associated with the column.
             # If we aren't supposed to do that, or none are collected,
             # we set `na_filter` to `0` (`1` otherwise).
-            na_flist = set()
+            na_fset = set()
 
             if self.na_filter:
-                na_list, na_flist = self._get_na_list(i, name)
-                if na_list is None:
-                    na_filter = 0
-                else:
-                    na_filter = 1
-                    na_hashset = kset_from_list(na_list)
+                na_list, na_fset = self._get_na_list(i, name)
+                na_filter = 1
+                na_hashset = kset_from_list(na_list)
             else:
                 na_filter = 0
 
@@ -1041,7 +1047,7 @@ cdef class TextReader:
             try:
                 col_res, na_count = self._convert_tokens(
                     i, start, end, name, na_filter, na_hashset,
-                    na_flist, col_dtype)
+                    na_fset, col_dtype)
             finally:
                 # gh-21353
                 #
@@ -1075,12 +1081,12 @@ cdef class TextReader:
     cdef _convert_tokens(self, Py_ssize_t i, int64_t start,
                          int64_t end, object name, bint na_filter,
                          kh_str_starts_t *na_hashset,
-                         object na_flist, object col_dtype):
+                         set na_fset, object col_dtype):
 
         if col_dtype is not None:
             col_res, na_count = self._convert_with_dtype(
                 col_dtype, i, start, end, na_filter,
-                1, na_hashset, na_flist)
+                1, na_hashset, na_fset)
 
             # Fallback on the parse (e.g. we requested int dtype,
             # but its actually a float).
@@ -1094,7 +1100,7 @@ cdef class TextReader:
             for dt in self.dtype_cast_order:
                 try:
                     col_res, na_count = self._convert_with_dtype(
-                        dt, i, start, end, na_filter, 0, na_hashset, na_flist)
+                        dt, i, start, end, na_filter, 0, na_hashset, na_fset)
                 except ValueError:
                     # This error is raised from trying to convert to uint64,
                     # and we discover that we cannot convert to any numerical
@@ -1102,11 +1108,11 @@ cdef class TextReader:
                     # column AS IS with object dtype.
                     col_res, na_count = self._convert_with_dtype(
                         np.dtype("object"), i, start, end, 0,
-                        0, na_hashset, na_flist)
+                        0, na_hashset, na_fset)
                 except OverflowError:
                     col_res, na_count = self._convert_with_dtype(
                         np.dtype("object"), i, start, end, na_filter,
-                        0, na_hashset, na_flist)
+                        0, na_hashset, na_fset)
 
                 if col_res is not None:
                     break
@@ -1154,7 +1160,7 @@ cdef class TextReader:
                              bint na_filter,
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
-                             object na_flist):
+                             set na_fset):
         if isinstance(dtype, CategoricalDtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
@@ -1212,7 +1218,7 @@ cdef class TextReader:
 
         elif dtype.kind == "f":
             result, na_count = _try_double(self.parser, i, start, end,
-                                           na_filter, na_hashset, na_flist)
+                                           na_filter, na_hashset, na_fset)
 
             if result is not None and dtype != "float64":
                 result = result.astype(dtype)
@@ -1272,10 +1278,6 @@ cdef class TextReader:
         return self.converters.get(i)
 
     cdef _get_na_list(self, Py_ssize_t i, name):
-        # Note: updates self.na_values, self.na_fvalues
-        if self.na_values is None:
-            return None, set()
-
         if isinstance(self.na_values, dict):
             key = None
             values = None
@@ -1300,11 +1302,6 @@ cdef class TextReader:
 
             return _ensure_encoded(values), fvalues
         else:
-            if not isinstance(self.na_values, list):
-                self.na_values = list(self.na_values)
-            if not isinstance(self.na_fvalues, set):
-                self.na_fvalues = set(self.na_fvalues)
-
             return _ensure_encoded(self.na_values), self.na_fvalues
 
     cdef _free_na_set(self, kh_str_starts_t *table):
@@ -1622,27 +1619,27 @@ cdef:
 # -> tuple[ndarray[float64_t], int]  | tuple[None, None]
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
-                 bint na_filter, kh_str_starts_t *na_hashset, object na_flist):
+                 bint na_filter, kh_str_starts_t *na_hashset, set na_fset):
     cdef:
         int error, na_count = 0
         Py_ssize_t lines
         float64_t *data
         float64_t NA = na_values[np.float64]
-        kh_float64_t *na_fset
+        kh_float64_t *na_fhashset
         ndarray[float64_t] result
-        bint use_na_flist = len(na_flist) > 0
+        bint use_na_flist = len(na_fset) > 0
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
     data = <float64_t *>result.data
-    na_fset = kset_float64_from_list(na_flist)
+    na_fhashset = kset_float64_from_set(na_fset)
     with nogil:
         error = _try_double_nogil(parser, parser.double_converter,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
-                                  na_fset, NA, data, &na_count)
+                                  na_fhashset, NA, data, &na_count)
 
-    kh_destroy_float64(na_fset)
+    kh_destroy_float64(na_fhashset)
     if error != 0:
         return None, None
     return result, na_count
@@ -1655,7 +1652,7 @@ cdef int _try_double_nogil(parser_t *parser,
                            int64_t col, int64_t line_start, int64_t line_end,
                            bint na_filter, kh_str_starts_t *na_hashset,
                            bint use_na_flist,
-                           const kh_float64_t *na_flist,
+                           const kh_float64_t *na_fhashset,
                            float64_t NA, float64_t *data,
                            int *na_count) nogil:
     cdef:
@@ -1694,8 +1691,8 @@ cdef int _try_double_nogil(parser_t *parser,
                     else:
                         return 1
                 if use_na_flist:
-                    k64 = kh_get_float64(na_flist, data[0])
-                    if k64 != na_flist.n_buckets:
+                    k64 = kh_get_float64(na_fhashset, data[0])
+                    if k64 != na_fhashset.n_buckets:
                         na_count[0] += 1
                         data[0] = NA
             data += 1
@@ -1977,7 +1974,7 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
     return table
 
 
-cdef kh_float64_t* kset_float64_from_list(values) except NULL:
+cdef kh_float64_t* kset_float64_from_set(set values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
         kh_float64_t *table
