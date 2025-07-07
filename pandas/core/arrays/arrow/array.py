@@ -562,12 +562,8 @@ class ArrowExtensionArray(
                 return pa_array
 
             mask = None
-            if getattr(value, "dtype", None) is None or value.dtype.kind not in "mMf":
-                try:
-                    arr_value = np.asarray(value)
-                except ValueError:
-                    # e.g. list dtype with mixed-length lists
-                    arr_value = np.asarray(value, dtype=object)
+            if getattr(value, "dtype", None) is None or value.dtype.kind not in "iumMf":
+                arr_value = np.asarray(value, dtype=object)
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
                 mask = is_pdna_or_none(arr_value)
 
