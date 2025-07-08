@@ -2166,9 +2166,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
-            return self._grouper._cython_operation(
+            blk_res = self._grouper._cython_operation(
                 "transform", bvalues, how, 1, **kwargs
             )
+            return blk_res
 
         res_mgr = mgr.apply(arr_func)
 

@@ -127,7 +127,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
             #  pass those through to the underlying ndarray
             return self._ndarray.view(dtype)
 
-        dtype = pandas_dtype(dtype)
+        dtype = pandas_dtype(dtype, allow_numpy_dtypes=True)
         arr = self._ndarray
 
         if isinstance(dtype, PeriodDtype):

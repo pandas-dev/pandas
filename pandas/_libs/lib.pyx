@@ -2786,17 +2786,21 @@ def maybe_convert_objects(ndarray[object] objects,
         seen.object_ = True
 
     elif seen.str_:
-        if convert_to_nullable_dtype and is_string_array(objects, skipna=True):
-            from pandas.core.arrays.string_ import StringDtype
+        if is_string_array(objects, skipna=True):
+            if convert_to_nullable_dtype:
+                from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype()
-            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+                if using_string_dtype():
+                    dtype = StringDtype(na_value=np.nan)
+                else:
+                    dtype = StringDtype()
+                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
-        elif using_string_dtype() and is_string_array(objects, skipna=True):
-            from pandas.core.arrays.string_ import StringDtype
+            elif using_string_dtype():
+                from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(na_value=np.nan)
-            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+                dtype = StringDtype(na_value=np.nan)
+                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
     elif seen.interval_:

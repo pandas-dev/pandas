@@ -973,7 +973,13 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         try:
             other = self._validate_comparison_value(other)
         except InvalidComparison:
-            return invalid_comparison(self, other, op)
+            res = invalid_comparison(self, other, op)
+            if get_option("mode.pdep16_data_types"):
+                res = pd_array(res)
+                o_mask = isna(other)
+                mask = self._isnan | o_mask
+                res[mask] = res.dtype.na_value
+            return res
 
         dtype = getattr(other, "dtype", None)
         if is_object_dtype(dtype):
@@ -982,12 +988,18 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             result = ops.comp_method_OBJECT_ARRAY(
                 op, np.asarray(self.astype(object)), other
             )
+            if get_option("mode.pdep16_data_types"):
+                result = pd_array(result)
+                result[self.isna()] = result.dtype.na_value
             return result
         if other is NaT:
             if op is operator.ne:
                 result = np.ones(self.shape, dtype=bool)
             else:
                 result = np.zeros(self.shape, dtype=bool)
+            if get_option("mode.pdep16_data_types"):
+                result = pd_array(result)
+                result[self.isna()] = result.dtype.na_value
             return result
 
         if not isinstance(self.dtype, PeriodDtype):
@@ -1018,6 +1030,10 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             nat_result = op is operator.ne
             np.putmask(result, mask, nat_result)
 
+        if get_option("mode.pdep16_data_types"):
+            result = pd_array(result)
+            if mask.any():
+                result[mask] = result.dtype.na_value
         return result
 
     # pow is invalid for all three subclasses; TimedeltaArray will override
@@ -1702,6 +1718,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if op.how in op.cast_blocklist:
             # i.e. how in ["rank"], since other cast_blocklist methods don't go
             #  through cython_operation
+            # if get_option("mode.pdep16_data_types"):
+            #    return pd_array(res_values)  # breaks bc they dont support 2D
             return res_values
 
         # We did a view to M8[ns] above, now we go the other direction

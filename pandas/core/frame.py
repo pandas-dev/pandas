@@ -141,6 +141,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     sanitize_array,
     sanitize_masked_array,
@@ -4411,6 +4412,14 @@ class DataFrame(NDFrame, OpsMixin):
     def _set_item_mgr(
         self, key, value: ArrayLike, refs: BlockValuesRefs | None = None
     ) -> None:
+        if get_option("mode.pdep16_data_types"):
+            # TODO: possibly handle this at a lower level?
+            if (
+                isinstance(value, np.ndarray)
+                and value.dtype.kind in "iufb"
+                and value.dtype != np.float16
+            ):
+                value = pd_array(value, copy=False)
         try:
             loc = self._info_axis.get_loc(key)
         except KeyError:

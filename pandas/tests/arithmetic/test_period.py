@@ -85,6 +85,8 @@ class TestPeriodArrayLikeComparisons:
         xbox = get_upcast_box(idx, other, True)
 
         expected = np.array([True, True, False])
+        if pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected)
         expected = tm.box_expected(expected, xbox)
 
         result = idx == other
@@ -102,6 +104,8 @@ class TestPeriodArrayLikeComparisons:
 
         result = pi <= other
         expected = np.array([True, False, False, False])
+        if pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected)
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
 
@@ -251,31 +255,43 @@ class TestPeriodIndexComparisons:
         xbox = get_upcast_box(base, per, True)
 
         exp = np.array([False, True, False, False])
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         exp = tm.box_expected(exp, xbox)
         tm.assert_equal(base == per, exp)
         tm.assert_equal(per == base, exp)
 
         exp = np.array([True, False, True, True])
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         exp = tm.box_expected(exp, xbox)
         tm.assert_equal(base != per, exp)
         tm.assert_equal(per != base, exp)
 
         exp = np.array([False, False, True, True])
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         exp = tm.box_expected(exp, xbox)
         tm.assert_equal(base > per, exp)
         tm.assert_equal(per < base, exp)
 
         exp = np.array([True, False, False, False])
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         exp = tm.box_expected(exp, xbox)
         tm.assert_equal(base < per, exp)
         tm.assert_equal(per > base, exp)
 
         exp = np.array([False, True, True, True])
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         exp = tm.box_expected(exp, xbox)
         tm.assert_equal(base >= per, exp)
         tm.assert_equal(per <= base, exp)
 
         exp = np.array([True, True, False, False])
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         exp = tm.box_expected(exp, xbox)
         tm.assert_equal(base <= per, exp)
         tm.assert_equal(per >= base, exp)
@@ -357,42 +373,66 @@ class TestPeriodIndexComparisons:
 
         result = idx1 > per
         exp = np.array([False, False, False, True])
-        tm.assert_numpy_array_equal(result, exp)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[-2] = pd.NA
+        tm.assert_equal(result, exp)
         result = per < idx1
-        tm.assert_numpy_array_equal(result, exp)
+        tm.assert_equal(result, exp)
 
         result = idx1 == pd.NaT
         exp = np.array([False, False, False, False])
-        tm.assert_numpy_array_equal(result, exp)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[-2] = pd.NA
+        tm.assert_equal(result, exp)
         result = pd.NaT == idx1
-        tm.assert_numpy_array_equal(result, exp)
+        tm.assert_equal(result, exp)
 
         result = idx1 != pd.NaT
         exp = np.array([True, True, True, True])
-        tm.assert_numpy_array_equal(result, exp)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[-2] = pd.NA
+        tm.assert_equal(result, exp)
         result = pd.NaT != idx1
-        tm.assert_numpy_array_equal(result, exp)
+        tm.assert_equal(result, exp)
 
         idx2 = PeriodIndex(["2011-02", "2011-01", "2011-04", "NaT"], freq=freq)
         result = idx1 < idx2
         exp = np.array([True, False, False, False])
-        tm.assert_numpy_array_equal(result, exp)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[-2:] = pd.NA
+        tm.assert_equal(result, exp)
 
         result = idx1 == idx2
         exp = np.array([False, False, False, False])
-        tm.assert_numpy_array_equal(result, exp)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[-2:] = pd.NA
+        tm.assert_equal(result, exp)
 
         result = idx1 != idx2
         exp = np.array([True, True, True, True])
-        tm.assert_numpy_array_equal(result, exp)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[-2:] = pd.NA
+        tm.assert_equal(result, exp)
 
         result = idx1 == idx1
         exp = np.array([True, True, False, True])
-        tm.assert_numpy_array_equal(result, exp)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[-2] = pd.NA
+        tm.assert_equal(result, exp)
 
         result = idx1 != idx1
         exp = np.array([False, False, True, False])
-        tm.assert_numpy_array_equal(result, exp)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[-2] = pd.NA
+        tm.assert_equal(result, exp)
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_pi_cmp_nat_mismatched_freq_raises(self, freq):
@@ -405,7 +445,10 @@ class TestPeriodIndexComparisons:
 
         result = idx1 == diff
         expected = np.array([False, False, False, False], dtype=bool)
-        tm.assert_numpy_array_equal(result, expected)
+        if pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected)
+            expected[-2:] = pd.NA
+        tm.assert_equal(result, expected)
 
     # TODO: De-duplicate with test_pi_cmp_nat
     @pytest.mark.parametrize("dtype", [object, None])
@@ -419,23 +462,40 @@ class TestPeriodIndexComparisons:
 
         result = left == right
         expected = np.array([False, False, True])
-        tm.assert_numpy_array_equal(result, expected)
+        if pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected)
+            expected[:2] = pd.NA
+        tm.assert_equal(result, expected)
 
         result = left != right
         expected = np.array([True, True, False])
-        tm.assert_numpy_array_equal(result, expected)
+        if pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected)
+            expected[:2] = pd.NA
+        tm.assert_equal(result, expected)
 
         expected = np.array([False, False, False])
-        tm.assert_numpy_array_equal(left == pd.NaT, expected)
-        tm.assert_numpy_array_equal(pd.NaT == right, expected)
+        if pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected)
+            expected[1] = pd.NA
+        tm.assert_equal(left == pd.NaT, expected)
+        if pd.get_option("mode.pdep16_data_types"):
+            expected[:2] = pd.NA
+        tm.assert_equal(pd.NaT == right, expected)
 
         expected = np.array([True, True, True])
-        tm.assert_numpy_array_equal(left != pd.NaT, expected)
-        tm.assert_numpy_array_equal(pd.NaT != left, expected)
+        if pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected)
+            expected[1] = pd.NA
+        tm.assert_equal(left != pd.NaT, expected)
+        tm.assert_equal(pd.NaT != left, expected)
 
         expected = np.array([False, False, False])
-        tm.assert_numpy_array_equal(left < pd.NaT, expected)
-        tm.assert_numpy_array_equal(pd.NaT > left, expected)
+        if pd.get_option("mode.pdep16_data_types"):
+            expected = pd.array(expected)
+            expected[1] = pd.NA
+        tm.assert_equal(left < pd.NaT, expected)
+        tm.assert_equal(pd.NaT > left, expected)
 
 
 class TestPeriodSeriesComparisons:
@@ -490,7 +550,7 @@ class TestPeriodIndexSeriesComparisonConsistency:
         result = func(idx)
 
         # check that we don't pass an unwanted type to tm.assert_equal
-        assert isinstance(expected, (pd.Index, np.ndarray))
+        # assert isinstance(expected, (pd.Index, np.ndarray))
         tm.assert_equal(result, expected)
 
         s = Series(values)
@@ -507,26 +567,36 @@ class TestPeriodIndexSeriesComparisonConsistency:
 
         f = lambda x: x == per
         exp = np.array([False, False, True, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         self._check(idx, f, exp)
         f = lambda x: per == x
         self._check(idx, f, exp)
 
         f = lambda x: x != per
         exp = np.array([True, True, False, True], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         self._check(idx, f, exp)
         f = lambda x: per != x
         self._check(idx, f, exp)
 
         f = lambda x: per >= x
         exp = np.array([True, True, True, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         self._check(idx, f, exp)
 
         f = lambda x: x > per
         exp = np.array([False, False, False, True], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         self._check(idx, f, exp)
 
         f = lambda x: per >= x
         exp = np.array([True, True, True, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
         self._check(idx, f, exp)
 
     def test_pi_comp_period_nat(self):
@@ -537,42 +607,66 @@ class TestPeriodIndexSeriesComparisonConsistency:
 
         f = lambda x: x == per
         exp = np.array([False, False, True, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[1] = pd.NA
         self._check(idx, f, exp)
         f = lambda x: per == x
         self._check(idx, f, exp)
 
         f = lambda x: x == pd.NaT
         exp = np.array([False, False, False, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[1] = pd.NA
         self._check(idx, f, exp)
         f = lambda x: pd.NaT == x
         self._check(idx, f, exp)
 
         f = lambda x: x != per
         exp = np.array([True, True, False, True], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[1] = pd.NA
         self._check(idx, f, exp)
         f = lambda x: per != x
         self._check(idx, f, exp)
 
         f = lambda x: x != pd.NaT
         exp = np.array([True, True, True, True], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[1] = pd.NA
         self._check(idx, f, exp)
         f = lambda x: pd.NaT != x
         self._check(idx, f, exp)
 
         f = lambda x: per >= x
         exp = np.array([True, False, True, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[1] = pd.NA
         self._check(idx, f, exp)
 
         f = lambda x: x < per
         exp = np.array([True, False, False, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[1] = pd.NA
         self._check(idx, f, exp)
 
         f = lambda x: x > pd.NaT
         exp = np.array([False, False, False, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[1] = pd.NA
         self._check(idx, f, exp)
 
         f = lambda x: pd.NaT >= x
         exp = np.array([False, False, False, False], dtype=np.bool_)
+        if pd.get_option("mode.pdep16_data_types"):
+            exp = pd.array(exp)
+            exp[1] = pd.NA
         self._check(idx, f, exp)
 
 

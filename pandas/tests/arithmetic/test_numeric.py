@@ -399,7 +399,7 @@ class TestDivisionByZero:
     @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
-        if numeric_idx.dtype == np.uint64:
+        if numeric_idx.dtype == tm.to_dtype(np.uint64):
             pytest.skip(f"Div by negative 0 not relevant for {numeric_idx.dtype}")
         idx = numeric_idx - 3
 
@@ -687,7 +687,7 @@ class TestMultiplicationDivision:
         result = idx * np.array(5, dtype="int64")
         tm.assert_index_equal(result, idx * 5)
 
-        arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
+        arr_dtype = "uint64" if idx.dtype == tm.to_dtype(np.uint64) else "int64"
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
@@ -695,7 +695,7 @@ class TestMultiplicationDivision:
         idx = numeric_idx
         didx = idx * idx
 
-        arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
+        arr_dtype = "uint64" if idx.dtype == tm.to_dtype(np.uint64) else "int64"
         result = idx * Series(np.arange(5, dtype=arr_dtype))
         tm.assert_series_equal(result, Series(didx))
 
@@ -1122,38 +1122,38 @@ class TestUFuncCompat:
         box = index_or_series
 
         result = np.sqrt(idx)
-        assert result.dtype == "f8" and isinstance(result, box)
+        assert result.dtype == tm.to_dtype("f8") and isinstance(result, box)
         exp = Index(np.sqrt(np.array([1, 2, 3, 4, 5], dtype=np.float64)), name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = np.divide(idx, 2.0)
-        assert result.dtype == "f8" and isinstance(result, box)
+        assert result.dtype == tm.to_dtype("f8") and isinstance(result, box)
         exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=np.float64, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         # _evaluate_numeric_binop
         result = idx + 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
+        assert result.dtype == tm.to_dtype("f8") and isinstance(result, box)
         exp = Index([3.0, 4.0, 5.0, 6.0, 7.0], dtype=np.float64, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx - 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
+        assert result.dtype == tm.to_dtype("f8") and isinstance(result, box)
         exp = Index([-1.0, 0.0, 1.0, 2.0, 3.0], dtype=np.float64, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx * 1.0
-        assert result.dtype == "f8" and isinstance(result, box)
+        assert result.dtype == tm.to_dtype("f8") and isinstance(result, box)
         exp = Index([1.0, 2.0, 3.0, 4.0, 5.0], dtype=np.float64, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx / 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
+        assert result.dtype == tm.to_dtype("f8") and isinstance(result, box)
         exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=np.float64, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)

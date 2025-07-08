@@ -361,6 +361,11 @@ class Block(PandasObject, libinternals.Block):
         else:
             res_values = result.reshape(-1, 1)
 
+        if self.values.dtype == object:
+            if res_values.dtype.kind == "f":
+                # TODO: this is kludgy; does it mean there is a problem
+                #  at a higher level?
+                res_values = res_values.astype(object)
         nb = self.make_block(res_values)
         return [nb]
 
@@ -2226,6 +2231,8 @@ def new_block_2d(
     klass = get_block_type(values.dtype)
 
     values = maybe_coerce_values(values)
+    if isinstance(values, np.ndarray):
+        assert values.dtype == np.float16 or values.dtype.kind not in "iufb"
     return klass(values, ndim=2, placement=placement, refs=refs)
 
 
@@ -2241,6 +2248,8 @@ def new_block(
     # - check_ndim/ensure_block_shape already checked
     # - maybe_coerce_values already called/unnecessary
     klass = get_block_type(values.dtype)
+    if isinstance(values, np.ndarray):
+        assert values.dtype == np.float16 or values.dtype.kind not in "iufb"
     return klass(values, ndim=ndim, placement=placement, refs=refs)
 
 
