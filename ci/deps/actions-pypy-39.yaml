@@ -23,4 +23,4 @@ dependencies:
   - numpy
   - python-dateutil
   - pip:
-    - tzdata>=2022.7
+    - tzdata>=2023.3
