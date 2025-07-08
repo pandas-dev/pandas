@@ -25,7 +25,7 @@ authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
 license = {file = 'LICENSE'}
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0",
   "python-dateutil>=2.8.2",
@@ -41,7 +41,6 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
@@ -197,7 +196,7 @@ test-command = """
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 fix = true
 
 [tool.ruff.lint]
@@ -275,8 +274,6 @@ ignore = [
   "B015",
   # Function definition does not bind loop variable
   "B023",
-  # Only works with python >=3.10
-  "B905",
   # Too many arguments to function call
   "PLR0913",
   # Too many returns
@@ -329,7 +326,7 @@ ignore = [
   "PLR0124",
   # collection-literal-concatenation
   "RUF005",
-  # pairwise-over-zipped (>=PY310 only)
+  # pairwise-over-zipped
   "RUF007",
   # mutable-class-default
   "RUF012",
@@ -391,6 +388,8 @@ ignore = [
   "PLW0603",
   # runtime-cast-value
   "TC006",
+  # zip-without-explicit-strict
+  "B905",
 ]
 
 exclude = [

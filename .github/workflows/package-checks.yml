@@ -42,7 +42,7 @@ jobs:
         id: setup_python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Pip install with extra
         run: |
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python-version: ['3.10', '3.11']
+        python-version: ['3.11', '3.12']
       fail-fast: false
     name: Test Conda Forge Recipe - Python ${{ matrix.python-version }}
     concurrency:

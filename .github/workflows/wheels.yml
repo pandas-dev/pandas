@@ -102,7 +102,7 @@ jobs:
         - [windows-2022, win_amd64]
         - [windows-11-arm, win_arm64]
         # TODO: support PyPy?
-        python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
+        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
         # Build Pyodide wheels and upload them to Anaconda.org
         # NOTE: this job is similar to the one in unit-tests.yml except for the fact
@@ -111,8 +111,6 @@ jobs:
           python: ["cp312", "3.12"]
           cibw_build_frontend: 'build'
         exclude:
-          - buildplat: [windows-11-arm, win_arm64]
-            python: ["cp310", "3.10"]
         # BackendUnavailable: Cannot import 'mesonpy'
           - buildplat: [windows-11-arm, win_arm64]
             python: ["cp313t", "3.13"]
