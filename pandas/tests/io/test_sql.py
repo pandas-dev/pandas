@@ -909,10 +909,13 @@ def sqlite_adbc_conn():
     pytest.importorskip("adbc_driver_sqlite")
     from adbc_driver_sqlite import dbapi
 
-    with tm.ensure_clean() as name:
-        uri = f"file:{name}"
-        with dbapi.connect(uri) as conn:
-            yield conn
+    try:
+        with tm.ensure_clean() as name:
+            uri = f"file:{name}"
+            with dbapi.connect(uri) as conn:
+                yield conn
+    finally:
+        conn.close()
 
 
 @pytest.fixture
@@ -942,7 +945,11 @@ def sqlite_adbc_types(sqlite_adbc_conn, types_data):
 
 @pytest.fixture
 def sqlite_buildin():
-    yield sqlite3.connect(":memory:")
+    try:
+        conn = sqlite3.connect(":memory:")
+        yield conn
+    finally:
+        conn.close()
 
 
 @pytest.fixture
