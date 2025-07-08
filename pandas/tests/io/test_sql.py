@@ -8,6 +8,7 @@ from datetime import (
     time,
     timedelta,
 )
+from decimal import Decimal
 from io import StringIO
 from pathlib import Path
 import sqlite3
@@ -1315,6 +1316,12 @@ def test_dataframe_to_sql_arrow_dtypes_missing(
     table_uuid = connect_and_uuid["table_uuid"]
 
     pytest.importorskip("pyarrow")
+    if isinstance(nulls_fixture, Decimal):
+        pytest.skip(
+            # GH#61773
+            reason="Decimal('NaN') not supported in constructor for timestamp dtype"
+        )
+
     df = DataFrame(
         {
             "datetime": pd.array(

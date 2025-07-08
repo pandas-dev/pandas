@@ -141,7 +141,7 @@ pd.set_option("plotting.backend", "hvplot")
 
 [Plotly's](https://plot.ly/) [Python API](https://plot.ly/python/)
 enables interactive figures and web shareability. Maps, 2D, 3D, and
-live-streaming graphs are rendered with WebGL and
+live-streaming graphs are rendered with [WebGL](https://www.khronos.org/webgl/) and
 [D3.js](https://d3js.org/). The library supports plotting directly from
 a pandas DataFrame and cloud-based collaboration. Users of [matplotlib,
 ggplot for Python, and
