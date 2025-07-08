@@ -710,6 +710,7 @@ def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
 def mysql_pymysql_conn(mysql_pymysql_engine):
     with mysql_pymysql_engine.connect() as conn:
         yield conn
+    conn.close()
 
 
 @pytest.fixture
@@ -724,6 +725,7 @@ def mysql_pymysql_conn_iris(mysql_pymysql_engine_iris):
 def mysql_pymysql_conn_types(mysql_pymysql_engine_types):
     with mysql_pymysql_engine_types.connect() as conn:
         yield conn
+    conn.close()
 
 
 @pytest.fixture
@@ -765,6 +767,7 @@ def postgresql_psycopg2_engine_types(postgresql_psycopg2_engine, types_data):
 def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
     with postgresql_psycopg2_engine.connect() as conn:
         yield conn
+    conn.close()
 
 
 @pytest.fixture
@@ -776,6 +779,7 @@ def postgresql_adbc_conn():
     uri = "postgresql://postgres:postgres@localhost:5432/pandas"
     with dbapi.connect(uri) as conn:
         yield conn
+    conn.close()
 
 
 @pytest.fixture
@@ -793,7 +797,6 @@ def postgresql_adbc_iris(request, postgresql_adbc_conn, iris_path):
     create_and_load_iris_view(conn, iris_table_uuid, iris_view_uuid)
 
     yield conn, iris_table_uuid, iris_view_uuid
-    conn.drop()
 
 
 @pytest.fixture
@@ -814,8 +817,9 @@ def postgresql_psycopg2_conn_iris(postgresql_psycopg2_engine_iris):
 
 @pytest.fixture
 def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
-    with postgresql_psycopg2_engine_types.connect() as conn:
-        yield conn
+    conn = postgresql_psycopg2_engine_types.connect()
+    yield conn
+    conn.close()
 
 
 @pytest.fixture
@@ -835,11 +839,11 @@ def sqlite_engine(sqlite_str):
 
 @pytest.fixture
 def sqlite_conn(sqlite_engine):
-    with sqlite_engine.connect() as conn:
-        try:
-            yield conn
-        finally:
-            conn.close()
+    conn = sqlite_engine.connect()
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 @pytest.fixture
@@ -864,11 +868,11 @@ def sqlite_engine_iris(request, iris_path, sqlite_engine):
     uuid_root = f"{calling_test_name}_" + f"{uuid.uuid4().hex}"[0:10]
     iris_table_uuid = "tbl_" + uuid_root
     iris_view_uuid = "view_" + uuid_root
-    conn = sqlite_engine
+    engine = sqlite_engine
 
-    create_and_load_iris_sqlite3(conn, iris_path, iris_table_uuid)
-    create_and_load_iris_view(conn, iris_table_uuid, iris_view_uuid)
-    yield conn, iris_table_uuid, iris_view_uuid
+    create_and_load_iris_sqlite3(engine, iris_path, iris_table_uuid)
+    create_and_load_iris_view(engine, iris_table_uuid, iris_view_uuid)
+    yield engine, iris_table_uuid, iris_view_uuid
 
 
 @pytest.fixture
@@ -958,12 +962,11 @@ def sqlite_buildin_iris(request, sqlite_buildin, iris_path):
     uuid_root = f"{calling_test_name}_" + f"{uuid.uuid4().hex}"[0:10]
     iris_table_uuid = "tbl_" + uuid_root
     iris_view_uuid = "view_" + uuid_root
-    conn = sqlite3.connect(":memory:")
+    conn = sqlite_buildin
 
     create_and_load_iris_sqlite3(conn, iris_path, iris_table_uuid)
     create_and_load_iris_view(conn, iris_table_uuid, iris_view_uuid)
     yield conn, iris_table_uuid, iris_view_uuid
-    # conn.close()
 
 
 @pytest.fixture
@@ -1065,14 +1068,12 @@ def iris_connect_and_per_test_id(request, iris_path):
     conn_name = request.param[0]
 
     conn, table_uuid, view_uuid = request.getfixturevalue(conn_name)
-
     yield {
         "conn": conn,
         "iris_table_uuid": table_uuid,
         "iris_view_uuid": view_uuid,
         "conn_name": conn_name,
     }
-    sqlalchemy = pytest.importorskip("sqlalchemy")
     if isinstance(conn, str):
         conn = sqlalchemy.create_engine(conn)
         drop_view(view_uuid, conn)
@@ -1081,13 +1082,6 @@ def iris_connect_and_per_test_id(request, iris_path):
     else:
         drop_view(view_uuid, conn)
         drop_table(table_uuid, conn)
-        if isinstance(conn, sqlalchemy.Engine):
-            conn.dispose()
-        if isinstance(conn, sqlalchemy.Connection):
-            Engine = conn.engine
-            conn.close()
-            Engine.dispose()
-
 
 
 connectables_to_create_uuid_function_map = {
@@ -1203,17 +1197,11 @@ def connect_and_uuid_types(request, types_data):
         "conn_name": conn_name,
     }
     if isinstance(conn, str):
-        conn = sqlalchemy.create_engine(conn)
-        drop_table_uuid_views(conn, table_uuid, view_uuid)
-        conn.dispose()
+        engine = sqlalchemy.create_engine(conn)
+        drop_table_uuid_views(engine, table_uuid, view_uuid)
+        engine.dispose()
     else:
         drop_table_uuid_views(conn, table_uuid, view_uuid)
-        if isinstance(conn, sqlalchemy.Engine):
-            conn.dispose()
-        if isinstance(conn, sqlalchemy.Connection):
-            Engine = conn.engine
-            conn.close()
-            Engine.dispose()
 
 
 @pytest.fixture
@@ -1232,17 +1220,11 @@ def connect_and_uuid(request, types_data):
         "conn_name": conn_name,
     }
     if isinstance(conn, str):
-        conn = sqlalchemy.create_engine(conn)
-        drop_table_uuid_views(conn, table_uuid, view_uuid)
-        conn.dispose()
+        engine = sqlalchemy.create_engine(conn)
+        drop_table_uuid_views(engine, table_uuid, view_uuid)
+        engine.dispose()
     else:
         drop_table_uuid_views(conn, table_uuid, view_uuid)
-        if isinstance(conn, sqlalchemy.Engine):
-            conn.dispose()
-        if isinstance(conn, sqlalchemy.Connection):
-            Engine = conn.engine
-            conn.close()
-            Engine.dispose()
 
 
 
