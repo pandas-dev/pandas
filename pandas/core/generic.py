@@ -5814,7 +5814,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
-            When replace = False will not allow ``(n * max(weights) / sum(weights)) > 1``,
+            When replace = False will not allow ``(n * max(weights) / sum(weights)) > 1``
             in order to avoid biased results. See the Notes below for more details.
         random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
             If int, array-like, or BitGenerator, seed for random number generator.
@@ -5853,8 +5853,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         If `frac` > 1, `replacement` should be set to `True`.
 
         When replace = False will not allow ``(n * max(weights) / sum(weights)) > 1``,
-        since that would cause results to be biased. E.g. sampling 2 items without replacement,
-        with weights [100, 1, 1] would yield two last items in 1/2 of cases, instead of 1/102
+        since that would cause results to be biased. E.g. sampling 2 items without replacement
+        with weights [100, 1, 1] would yield two last items in 1/2 of cases, instead of 1/102.
+        This is similar to specifying `n=4` without replacement on a Series with 3 elements.
 
         Examples
         --------

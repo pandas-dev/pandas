@@ -209,8 +209,8 @@ when sampling from rows.
 
 .. ipython:: python
 
-      df = pd.DataFrame({"col1": [9, 8, 7, 6], "weight_column": [0.5, 0.4, 0.1, 0]})
-      df.sample(n=2, weights="weight_column")
+   df = pd.DataFrame({"col1": [9, 8, 7, 6], "weight_column": [0.5, 0.4, 0.1, 0]})
+   df.sample(n=2, weights="weight_column")
 
 
 .. _whatsnew_0161.enhancements.string:
