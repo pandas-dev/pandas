@@ -54,7 +54,6 @@ VERSIONS = {
     "xlrd": "2.0.1",
     "xlsxwriter": "3.2.0",
     "zstandard": "0.22.0",
-    "tzdata": "2022.7",
     "qtpy": "2.3.0",
     "pyqt5": "5.15.9",
 }

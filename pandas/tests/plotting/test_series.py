@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_linux
-from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -277,7 +276,7 @@ class TestSeriesPlots:
         assert label2 == ""
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
+        is_platform_linux(),
         reason="Weird rounding problems",
         strict=False,
     )
@@ -290,7 +289,7 @@ class TestSeriesPlots:
         tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
+        is_platform_linux(),
         reason="Weird rounding problems",
         strict=False,
     )

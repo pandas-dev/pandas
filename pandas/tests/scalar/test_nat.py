@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat.numpy import np_version_gte1p24p3
 
 from pandas import (
     DatetimeIndex,
@@ -537,24 +536,10 @@ def test_to_numpy_alias():
     [
         Timedelta(0),
         Timedelta(0).to_pytimedelta(),
-        pytest.param(
-            Timedelta(0).to_timedelta64(),
-            marks=pytest.mark.xfail(
-                not np_version_gte1p24p3,
-                reason="td64 doesn't return NotImplemented, see numpy#17017",
-                # When this xfail is fixed, test_nat_comparisons_numpy
-                #  can be removed.
-            ),
-        ),
+        Timedelta(0).to_timedelta64(),
         Timestamp(0),
         Timestamp(0).to_pydatetime(),
-        pytest.param(
-            Timestamp(0).to_datetime64(),
-            marks=pytest.mark.xfail(
-                not np_version_gte1p24p3,
-                reason="dt64 doesn't return NotImplemented, see numpy#17017",
-            ),
-        ),
+        Timestamp(0).to_datetime64(),
         Timestamp(0).tz_localize("UTC"),
         NaT,
     ],
@@ -568,18 +553,6 @@ def test_nat_comparisons(compare_operators_no_eq_ne, other):
     op = getattr(operator, opname.strip("_"))
     assert op(NaT, other) is False
     assert op(other, NaT) is False
-
-
-@pytest.mark.parametrize("other", [np.timedelta64(0, "ns"), np.datetime64("now", "ns")])
-def test_nat_comparisons_numpy(other):
-    # Once numpy#17017 is fixed and the xfailed cases in test_nat_comparisons
-    #  pass, this test can be removed
-    assert not NaT == other
-    assert NaT != other
-    assert not NaT < other
-    assert not NaT > other
-    assert not NaT <= other
-    assert not NaT >= other
 
 
 @pytest.mark.parametrize("other_and_type", [("foo", "str"), (2, "int"), (2.0, "float")])

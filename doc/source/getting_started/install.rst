@@ -148,9 +148,9 @@ pandas requires the following dependencies.
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.23.5
+`NumPy <https://numpy.org>`__                                    1.26.0
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
-`tzdata <https://pypi.org/project/tzdata/>`__                    2022.7
+`tzdata <https://pypi.org/project/tzdata/>`__                    2023.3
 ================================================================ ==========================
 
 .. _install.optional_dependencies:

@@ -60,4 +60,4 @@ dependencies:
   - pip:
     - adbc-driver-postgresql>=0.10.0
     - adbc-driver-sqlite>=0.8.0
-    - tzdata>=2022.7
+    - tzdata>=2023.3

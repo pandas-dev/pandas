@@ -306,13 +306,15 @@ pandas 3.0.0 supports Python 3.10 and higher.
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Some minimum supported versions of dependencies were updated.
-If installed, we now require:
+The following required dependencies were updated:
 
-+-----------------+-----------------+----------+---------+
-| Package         | Minimum Version | Required | Changed |
-+=================+=================+==========+=========+
-| numpy           | 1.23.5          |    X     |    X    |
-+-----------------+-----------------+----------+---------+
++-----------------+----------------------+
+| Package         | New Minimum Version  |
++=================+======================+
+| numpy           | 1.26.0               |
++-----------------+----------------------+
+| tzdata          | 2023.3               |
++-----------------+----------------------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.

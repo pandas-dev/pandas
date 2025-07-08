@@ -27,10 +27,9 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.10'
 dependencies = [
-  "numpy>=1.23.5; python_version<'3.12'",
-  "numpy>=1.26.0; python_version>='3.12'",
+  "numpy>=1.26.0",
   "python-dateutil>=2.8.2",
-  "tzdata>=2022.7"
+  "tzdata>=2023.3"
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
