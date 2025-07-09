@@ -75,11 +75,6 @@ jobs:
             env_file: actions-311.yaml
             pandas_future_infer_string: "1"
             platform: ubuntu-24.04
-          - name: "Pypy"
-            env_file: actions-pypy-39.yaml
-            pattern: "not slow and not network and not single_cpu"
-            test_args: "--max-worker-restart 0"
-            platform: ubuntu-24.04
           - name: "Numpy Dev"
             env_file: actions-311-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -169,12 +164,9 @@ jobs:
       with:
         # xref https://github.com/cython/cython/issues/6870
         werror: ${{ matrix.name != 'Freethreading' }}
-      # TODO: Re-enable once Pypy has Pypy 3.10 on conda-forge
-      if: ${{ matrix.name != 'Pypy' }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
-      if: ${{ matrix.name != 'Pypy' }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
