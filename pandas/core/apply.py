@@ -291,6 +291,8 @@ class Apply(metaclass=abc.ABCMeta):
         elif is_list_like(func):
             # we require a list, but not a 'str'
             return self.agg_list_like()
+        elif callable(func):
+            return self.agg_callable()
 
         # caller can react
         return None
@@ -797,6 +799,86 @@ class Apply(metaclass=abc.ABCMeta):
             msg = f"'{func}' is not a valid function for '{type(obj).__name__}' object"
             raise AttributeError(msg)
 
+    def agg_callable(self) -> DataFrame | Series:
+        """
+        Compute aggregation in the case of a callable argument.
+        
+        This method handles callable functions while preserving extension dtypes
+        by delegating to the same infrastructure used for string aggregations.
+        
+        Returns
+        -------
+        Result of aggregation.
+        """
+        obj = self.obj
+        func = self.func
+
+        if obj.ndim == 1:
+            return func(obj, *self.args, **self.kwargs)
+        
+        # Use _reduce to preserve extension dtypes like on string aggregation
+        try:
+            result = obj._reduce(
+                func, 
+                name=getattr(func, '__name__', '<lambda>'),
+                axis=self.axis,
+                skipna=True,
+                numeric_only=False,
+                **self.kwargs
+            )
+            return result
+            
+        except (AttributeError, TypeError):
+            # If _reduce fails, fallback to column-wise
+            return self._agg_callable_fallback()
+
+    def _agg_callable_fallback(self) -> DataFrame | Series:
+        """
+        Fallback method for callable aggregation when _reduce fails.
+        
+        This method applies the function column-wise while preserving dtypes,
+        but avoids the performance overhead of row-by-row processing.
+        """
+        obj = self.obj
+        func = self.func
+        
+        if self.axis == 1:
+            # For row-wise aggregation, transpose and recurse
+            transposed_result = obj.T._aggregate(func, axis=0, *self.args, **self.kwargs)
+            return transposed_result
+        
+        from pandas import Series
+        
+        try:
+            # Apply function to each column
+            results = {}
+            for name in obj.columns:
+                col = obj._get_column_reference(name)
+                result_val = func(col, *self.args, **self.kwargs)
+                results[name] = result_val
+            
+            result = Series(results, name=None)
+            
+            # Preserve extension dtypes where possible
+            for name in result.index:
+                if name in obj.columns:
+                    original_dtype = obj.dtypes[name]
+                    if hasattr(original_dtype, 'construct_array_type'):
+                        try:
+                            array_type = original_dtype.construct_array_type()
+                            if hasattr(array_type, '_from_sequence'):
+                                preserved_val = array_type._from_sequence(
+                                    [result[name]], dtype=original_dtype
+                                )[0]
+                                result.loc[name] = preserved_val
+                        except Exception:
+                            # If dtype preservation fails, keep the computed value
+                            pass
+            
+            return result
+            
+        except Exception:
+            return None
 
 class NDFrameApply(Apply):
     """
