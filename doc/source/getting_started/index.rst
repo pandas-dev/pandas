@@ -30,8 +30,8 @@ Installation
         :columns: 12 12 6 6
         :padding: 3
 
-        pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
-
+        You can install pandas easily using pip from `PyPI <https://pypi.org/project/pandas>`__.
+        ..Edited by Lalit Choudhary as a first open source
         ++++
 
         .. code-block:: bash
