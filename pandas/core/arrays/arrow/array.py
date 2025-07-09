@@ -1490,16 +1490,9 @@ class ArrowExtensionArray(
         return result
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        if not is_string_dtype(self.dtype) and any(
-            [
-                is_numeric_dtype(self.dtype)
-                or pa.types.is_date(self.dtype.pyarrow_dtype)
-                or pa.types.is_timestamp(self.dtype.pyarrow_dtype)
-            ]
-        ):
+        if self.dtype.kind == "mM" or is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
-        else:
-            return super().map(mapper, na_action)
+        return super().map(mapper, na_action)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
