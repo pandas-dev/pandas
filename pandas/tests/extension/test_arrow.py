@@ -65,6 +65,7 @@ from pandas.api.types import (
     is_unsigned_integer_dtype,
 )
 from pandas.tests.extension import base
+from pandas.core.algorithms import map_array
 
 pa = pytest.importorskip("pyarrow")
 
@@ -278,8 +279,9 @@ class TestArrowArray(base.ExtensionTests):
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         if data_missing.dtype.kind in "mM":
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            expected = data_missing.to_numpy(dtype=object)
+            mapper = lambda x: x
+            result = data_missing.map(mapper, na_action=na_action)
+            expected = map_array(data_missing.to_numpy(dtype=object), mapper, na_action=na_action)
             tm.assert_numpy_array_equal(result, expected)
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
