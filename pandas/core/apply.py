@@ -824,7 +824,7 @@ class Apply(metaclass=abc.ABCMeta):
                 axis=self.axis,
                 skipna=True,
                 numeric_only=False,
-                **self.kwargs
+                **self.kwargs,
             )
             return result
 
@@ -845,10 +845,7 @@ class Apply(metaclass=abc.ABCMeta):
         if self.axis == 1:
             # For row-wise aggregation, transpose and recurse
             transposed_result = obj.T._aggregate(
-                func,
-                *self.args,
-                axis=0,
-                **self.kwargs
+                func, *self.args, axis=0, **self.kwargs
             )
             return transposed_result
 
@@ -884,6 +881,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         except Exception:
             return None
+
 
 class NDFrameApply(Apply):
     """
