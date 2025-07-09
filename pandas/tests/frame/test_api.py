@@ -315,7 +315,7 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
-    def test_attrs_deepcopy(self):
+    def test_attrs_is_deepcopy(self):
         df = DataFrame({"A": [2, 3]})
         assert df.attrs == {}
         df.attrs["tags"] = {"spam", "ham"}
@@ -323,6 +323,30 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == df.attrs
         assert result.attrs["tags"] is not df.attrs["tags"]
+
+    def test_attrs_concat(self):
+        # concat propagates attrs if all input attrs are equal
+        df1 = DataFrame({"A": [2, 3]})
+        df1.attrs = {"a": 1, "b": 2}
+        df2 = DataFrame({"A": [4, 5]})
+        df2.attrs = df1.attrs.copy()
+        df3 = DataFrame({"A": [6, 7]})
+        df3.attrs = df1.attrs.copy()
+        assert pd.concat([df1, df2, df3]).attrs == df1.attrs
+        # concat does not propagate attrs if input attrs are different
+        df2.attrs = {"c": 3}
+        assert pd.concat([df1, df2, df3]).attrs == {}
+
+    def test_attrs_merge(self):
+        # merge propagates attrs if all input attrs are equal
+        df1 = DataFrame({"key": ["a", "b"], "val1": [1, 2]})
+        df1.attrs = {"a": 1, "b": 2}
+        df2 = DataFrame({"key": ["a", "b"], "val2": [3, 4]})
+        df2.attrs = df1.attrs.copy()
+        assert pd.merge(df1, df2).attrs == df1.attrs
+        # merge does not propagate attrs if input attrs are different
+        df2.attrs = {"c": 3}
+        assert pd.merge(df1, df2).attrs == {}
 
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(

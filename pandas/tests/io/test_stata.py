@@ -1030,7 +1030,13 @@ class TestStata:
         # {c : c[-2:] for c in columns}
         path = temp_file
         expected.index.name = "index"
-        expected.to_stata(path, convert_dates=date_conversion)
+        msg = (
+            "Converting object-dtype columns of datetimes to datetime64 "
+            "when writing to stata is deprecated"
+        )
+        exp_object = expected.astype(object)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            exp_object.to_stata(path, convert_dates=date_conversion)
         written_and_read_again = self.read_dta(path)
 
         tm.assert_frame_equal(
@@ -2601,3 +2607,13 @@ def test_strl_missings(temp_file, version):
         ]
     )
     df.to_stata(temp_file, version=version)
+
+
+@pytest.mark.parametrize("version", [117, 118, 119, None])
+def test_ascii_error(temp_file, version):
+    # GH #61583
+    # Check that 2 byte long unicode characters doesn't cause export error
+    df = DataFrame({"doubleByteCol": ["§" * 1500]})
+    df.to_stata(temp_file, write_index=0, version=version)
+    df_input = read_stata(temp_file)
+    tm.assert_frame_equal(df, df_input)
