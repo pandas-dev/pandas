@@ -351,26 +351,26 @@ class TestSparseArray(base.ExtensionTests):
         super().test_equals_same_data_different_object(data)
 
     @pytest.mark.parametrize(
-        "func, na_action, expected",
+        "func, skipna, expected",
         [
-            (lambda x: x, None, SparseArray([1.0, np.nan])),
-            (lambda x: x, "ignore", SparseArray([1.0, np.nan])),
-            (str, None, SparseArray(["1.0", "nan"], fill_value="nan")),
-            (str, "ignore", SparseArray(["1.0", np.nan])),
+            (lambda x: x, False, SparseArray([1.0, np.nan])),
+            (lambda x: x, True, SparseArray([1.0, np.nan])),
+            (str, False, SparseArray(["1.0", "nan"], fill_value="nan")),
+            (str, True, SparseArray(["1.0", np.nan])),
         ],
     )
-    def test_map(self, func, na_action, expected):
+    def test_map(self, func, skipna, expected):
         # GH52096
         data = SparseArray([1, np.nan])
-        result = data.map(func, na_action=na_action)
+        result = data.map(func, skipna=skipna)
         tm.assert_extension_array_equal(result, expected)
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map_raises(self, data, na_action):
+    @pytest.mark.parametrize("skipna", [False, True])
+    def test_map_raises(self, data, skipna):
         # GH52096
         msg = "fill value in the sparse values not supported"
         with pytest.raises(ValueError, match=msg):
-            data.map(lambda x: np.nan, na_action=na_action)
+            data.map(lambda x: np.nan, skipna=skipna)
 
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
     def test_astype_string(self, data, nullable_string_dtype):

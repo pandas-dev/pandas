@@ -127,8 +127,7 @@ class BaseExecutionEngine(abc.ABC):
             executor the user wants to use.
         skip_na : bool
             Whether the function should be called for missing values or not.
-            This is specified by the pandas user as ``map(na_action=None)``
-            or ``map(na_action='ignore')``.
+            This is specified by the pandas user as ``map(skipna=)``.
         """
 
     @staticmethod

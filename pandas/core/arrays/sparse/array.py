@@ -1309,7 +1309,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None) -> Self:
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
+    ) -> Self:
         """
         Map categories using an input mapping or function.
 
@@ -1318,7 +1323,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         mapper : dict, Series, callable
             The correspondence from old values to new.
         na_action : {None, 'ignore'}, default None
-            If 'ignore', propagate NA values, without passing them to the
+            If 'ignore', propagate NaN values, without passing them to func.
+
+            .. deprecated:: 3.0.0
+                Use ``skipna`` instead.
+        skipna : bool, default False
+            If ``True``, propagate NA values, without passing them to the
             mapping correspondence.
 
         Returns
@@ -1349,11 +1359,26 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([1, 2], dtype=int32)
         """
+        if na_action != lib.no_default:
+            warnings.warn(
+                "The ``na_action`` parameter has been deprecated and it will be "
+                "removed in a future version of pandas. Use ``skipna`` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            if na_action == "ignore":
+                skipna = True
+            elif na_action not in (None, "ignore"):
+                raise ValueError(
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action!r} was passed"
+                )
+
         is_map = isinstance(mapper, (abc.Mapping, ABCSeries))
 
         fill_val = self.fill_value
 
-        if na_action is None or notna(fill_val):
+        if not skipna or notna(fill_val):
             fill_val = mapper.get(fill_val, fill_val) if is_map else mapper(fill_val)
 
         def func(sp_val):

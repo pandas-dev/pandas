@@ -4327,7 +4327,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def map(
         self,
         func: Callable | Mapping | Series | None = None,
-        na_action: Literal["ignore"] | None = None,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
         engine: Callable | None = None,
         **kwargs,
     ) -> Series:
@@ -4345,6 +4346,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
+
+            .. deprecated:: 3.0.0
+                Use ``skipna`` instead.
+        skipna : bool, default False
+            If ``True``, do not pass missing values to the function, and
+            propagate them to the result directly instead.
         engine : decorator, optional
             Choose the execution engine to use to run the function. Only used for
             functions. If ``map`` is called with a mapping or ``Series``, an
@@ -4421,15 +4428,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: object
 
         To avoid applying the function to missing values (and keep them as
-        ``NaN``) ``na_action='ignore'`` can be used:
+        ``NaN``) ``skipna=True`` can be used:
 
-        >>> s.map("I am a {}".format, na_action="ignore")
+        >>> s.map("I am a {}".format, skipna=True)
         0     I am a cat
         1     I am a dog
         2            NaN
         3  I am a rabbit
         dtype: object
         """
+        if na_action != lib.no_default:
+            warnings.warn(
+                "The ``na_action`` parameter has been deprecated and it will be "
+                "removed in a future version of pandas. Use ``skipna`` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            if na_action == "ignore":
+                skipna = True
+            elif na_action not in (None, "ignore"):
+                raise ValueError(
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action!r} was passed"
+                )
+
         if func is None:
             if "arg" in kwargs:
                 # `.map(arg=my_func)`
@@ -4464,7 +4486,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if callable(func):
             func = functools.partial(func, **kwargs)
-        new_values = self._map_values(func, na_action=na_action)
+        new_values = self._map_values(func, skipna=skipna)
         return self._constructor(new_values, index=self.index, copy=False).__finalize__(
             self, method="map"
         )

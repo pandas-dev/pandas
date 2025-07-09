@@ -6350,7 +6350,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         return PrettyDict(result)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
+    ):
         """
         Map values using an input mapping or function.
 
@@ -6360,6 +6365,12 @@ class Index(IndexOpsMixin, PandasObject):
             Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
+            mapping correspondence.
+
+            .. deprecated:: 3.0.0
+                Use ``skipna`` instead.
+        skipna : bool = False
+            If ``True``, propagate NA values, without passing them to the
             mapping correspondence.
 
         Returns
@@ -6391,7 +6402,22 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        new_values = self._map_values(mapper, na_action=na_action)
+        if na_action != lib.no_default:
+            warnings.warn(
+                "The ``na_action`` parameter has been deprecated and it will be "
+                "removed in a future version of pandas. Use ``skipna`` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            if na_action == "ignore":
+                skipna = True
+            elif na_action not in (None, "ignore"):
+                raise ValueError(
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action!r} was passed"
+                )
+
+        new_values = self._map_values(mapper, skipna=skipna)
 
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):

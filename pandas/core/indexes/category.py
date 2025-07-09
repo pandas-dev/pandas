@@ -6,14 +6,21 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
     set_module,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
 )
 
 from pandas.core.dtypes.common import is_scalar
@@ -448,7 +455,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        skipna: bool = False,
+    ):
         """
         Map values using input an input mapping or function.
 
@@ -467,6 +479,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             Mapping correspondence.
         na_action : {None, 'ignore'}, default 'ignore'
             If 'ignore', propagate NaN values, without passing them to
+            the mapping correspondence.
+
+            .. deprecated:: 3.0.0
+                Use ``skipna`` instead.
+        skipna : bool, default False
+            If ``True``, propagate NaN values, without passing them to
             the mapping correspondence.
 
         Returns
@@ -518,7 +536,22 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> idx.map({"a": "first", "b": "second"})
         Index(['first', 'second', nan], dtype='object')
         """
-        mapped = self._values.map(mapper, na_action=na_action)
+        if na_action != lib.no_default:
+            warnings.warn(
+                "The ``na_action`` parameter has been deprecated and it will be "
+                "removed in a future version of pandas. Use ``skipna`` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            if na_action == "ignore":
+                skipna = True
+            elif na_action not in (None, "ignore"):
+                raise ValueError(
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action!r} was passed"
+                )
+
+        mapped = self._values.map(mapper, skipna=skipna)
         return Index(mapped, name=self.name)
 
     def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
