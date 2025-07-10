@@ -152,20 +152,37 @@ def prepare_function_arguments(
 
 def extract_numba_options(decorator: Callable) -> dict:
     """
-    Extract targetoptions from a numba.jit decorator
+    Extract the `targetoptions` dictionary from a numba.jit decorator.
+
+    The `targetoptions` attribute stores the keyword arguments
+    passed to the `@numba.jit` decorator when it is created.
+
+    This function returns a dictionary with the following keys,
+    if present in the decorator:
+        - nopython
+        - nogil
+        - parallel
+
+    Parameters
+    ----------
+    decorator : Callable
+        A numba.jit decorated function or a numba dispatcher object.
+
+    Returns
+    -------
+    dict
+        A dictionary with the extracted numba compilation options.
     """
-    try:
-        closure = decorator.__closure__
-        if closure is None:
-            return {}
-        freevars = decorator.__code__.co_freevars
-        if "targetoptions" not in freevars:
-            return {}
-        idx = freevars.index("targetoptions")
-        cell = closure[idx]
-        targetoptions = cell.cell_contents
-        if isinstance(targetoptions, dict):
-            return targetoptions
+    closure = decorator.__closure__
+    if closure is None:
         return {}
-    except Exception:
+    freevars = decorator.__code__.co_freevars
+    if "targetoptions" not in freevars:
         return {}
+    idx = freevars.index("targetoptions")
+    cell = closure[idx]
+    targetoptions = cell.cell_contents
+    if isinstance(targetoptions, dict):
+        relevant_keys = {"nopython", "nogil", "parallel"}
+        return {k: v for k, v in targetoptions.items() if k in relevant_keys}
+    return {}

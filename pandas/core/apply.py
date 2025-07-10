@@ -216,11 +216,8 @@ class NumbaExecutionEngine(BaseExecutionEngine):
 
         NumbaExecutionEngine.check_numba_support(func)
 
-        # normalize axis values
-        if axis in (0, "index"):
-            axis = 0
-        else:
-            axis = 1
+        if not isinstance(data, np.ndarray):
+            axis = data._get_axis_number(cast(Axis, axis))
 
         # check for data typing
         if not isinstance(data, np.ndarray):
@@ -230,7 +227,7 @@ class NumbaExecutionEngine(BaseExecutionEngine):
             engine_kwargs = extract_numba_options(decorator)
 
             NumbaExecutionEngine.validate_values_for_numba_raw_false(
-                data, get_jit_arguments(engine_kwargs)
+                data, **get_jit_arguments(engine_kwargs)
             )
 
             return NumbaExecutionEngine.apply_raw_false(
@@ -288,9 +285,29 @@ class NumbaExecutionEngine(BaseExecutionEngine):
             Series,
         )
 
-        results = NumbaExecutionEngine.apply_with_numba(
-            data, func, args, kwargs, decorator, axis
+        func = cast(Callable, func)
+        args, kwargs = prepare_function_arguments(
+            func, args, kwargs, num_required_args=1
         )
+        nb_func = NumbaExecutionEngine.generate_numba_apply_func(func, axis, decorator)
+
+        from pandas.core._numba.extensions import set_numba_data
+
+        # Convert from numba dict to regular dict
+        # Our isinstance checks in the df constructor don't pass for numbas typed dict
+
+        if axis == 0:
+            col_names_index = data.index
+            result_index = data.columns
+        else:
+            col_names_index = data.columns
+            result_index = data.index
+
+        with (
+            set_numba_data(result_index) as index,
+            set_numba_data(col_names_index) as columns,
+        ):
+            results = dict(nb_func(data.values, columns, index, *args))
 
         if results:
             sample = next(iter(results.values()))
@@ -306,11 +323,14 @@ class NumbaExecutionEngine(BaseExecutionEngine):
 
     @staticmethod
     def validate_values_for_numba_raw_false(
-        data: Series | DataFrame, engine_kwargs: dict[str, bool]
+        data: Series | DataFrame,
+        nopython: bool | None = None,
+        nogil: bool | None = None,
+        parallel: bool | None = None,
     ) -> None:
         from pandas import Series
 
-        if engine_kwargs.get("parallel", False):
+        if parallel:
             raise NotImplementedError(
                 "Parallel apply is not supported when raw=False and engine='numba'"
             )
@@ -375,34 +395,6 @@ class NumbaExecutionEngine(BaseExecutionEngine):
             return results
 
         return numba_func
-
-    @staticmethod
-    def apply_with_numba(data, func, args, kwargs, decorator, axis=0) -> dict[int, Any]:
-        func = cast(Callable, func)
-        args, kwargs = prepare_function_arguments(
-            func, args, kwargs, num_required_args=1
-        )
-        nb_func = NumbaExecutionEngine.generate_numba_apply_func(func, axis, decorator)
-
-        from pandas.core._numba.extensions import set_numba_data
-
-        # Convert from numba dict to regular dict
-        # Our isinstance checks in the df constructor don't pass for numbas typed dict
-
-        if axis == 0 or axis == "index":
-            col_names_index = data.index
-            result_index = data.columns
-        else:
-            col_names_index = data.columns
-            result_index = data.index
-
-        with (
-            set_numba_data(result_index) as index,
-            set_numba_data(col_names_index) as columns,
-        ):
-            res = dict(nb_func(data.values, columns, index, *args))
-
-        return res
 
 
 def frame_apply(

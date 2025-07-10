@@ -141,3 +141,7 @@ def test_extract_numba_options_from_user_decorated_function(jit_args):
     extracted = extract_numba_options(numba.jit(**jit_args))
     for k, v in jit_args.items():
         assert extracted.get(k) == v
+
+    extracted = extract_numba_options(numba.njit(**jit_args))
+    for k, v in jit_args.items():
+        assert extracted.get(k) == v
