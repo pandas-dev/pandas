@@ -199,6 +199,7 @@ class TestCategoricalIndex:
         expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
 
+    # TODO(3.0): remove this test once using_string_dtype() is always True
     @pytest.mark.xfail(using_string_dtype(), reason="repr doesn't roundtrip")
     def test_repr_roundtrip(self):
         ci = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
