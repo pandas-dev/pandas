@@ -2175,7 +2175,8 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     tm.assert_frame_equal(result, expected)
 
 
-def test_df_mul_series_fill_value():
+@pytest.mark.parametrize("op", ["add", "sub", "mul", "div", "mod", "truediv", "pow"])
+def test_df_series_fill_value(op):
     # GH 61581
     data = np.arange(50).reshape(10, 5)
     columns = list("ABCDE")
@@ -2189,7 +2190,9 @@ def test_df_mul_series_fill_value():
     df_b = df.iloc[:, -1]
     nan_mask = df_a.isna().astype(int).mul(df_b.isna().astype(int), axis=0).astype(bool)
 
-    df_result = df_a.mul(df_b, axis=0, fill_value=5)
-    df_expected = (df_a.fillna(5).mul(df_b.fillna(5), axis=0)).mask(nan_mask, np.nan)
+    df_result = getattr(df_a, op)(df_b, axis=0, fill_value=5)
+    df_expected = getattr(df_a.fillna(5), op)(df_b.fillna(5), axis=0).mask(
+        nan_mask, np.nan
+    )
 
     tm.assert_frame_equal(df_result, df_expected)
