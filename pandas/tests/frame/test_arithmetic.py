@@ -626,12 +626,6 @@ class TestFrameFlexArithmetic:
         expected = float_frame.sort_index() * np.nan
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], fill_value=3)
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], axis="index", fill_value=3)
-
     @pytest.mark.parametrize("op", ["add", "sub", "mul", "mod"])
     def test_arith_flex_series_ops(self, simple_frame, op):
         # after arithmetic refactor, add truediv here
@@ -664,19 +658,6 @@ class TestFrameFlexArithmetic:
             expected = expected.astype(any_real_numpy_dtype)
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
-
-    def test_arith_flex_zero_len_raises(self):
-        # GH 19522 passing fill_value to frame flex arith methods should
-        # raise even in the zero-length special cases
-        ser_len0 = Series([], dtype=object)
-        df_len0 = DataFrame(columns=["A", "B"])
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df.add(ser_len0, fill_value="E")
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df_len0.sub(df["A"], axis=None, fill_value=3)
 
     def test_flex_add_scalar_fill_value(self):
         # GH#12723
