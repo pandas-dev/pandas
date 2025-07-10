@@ -614,8 +614,7 @@ class IndexingMixin:
         **Assignment with Series**
 
         When assigning a Series to .loc[row_indexer, col_indexer], pandas aligns
-        the Series by index labels, not by order or position. This is consistent
-        with pandas' general alignment behavior.
+        the Series by index labels, not by order or position.
 
         Series assignment with .loc and index alignment:
 
