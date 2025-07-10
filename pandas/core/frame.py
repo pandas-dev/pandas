@@ -7319,7 +7319,7 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = lexsort_indexer(
                 keys_data, orders=ascending, na_position=na_position, key=key
             )
-        elif len(by):
+        elif by:
             # len(by) == 1
 
             k = self._get_label_or_level_values(by[0], axis=axis)
