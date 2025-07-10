@@ -1781,4 +1781,4 @@ Examples:
    df['positional'] = s1.values  # or s1.tolist()
 
    # Or reset the Series index to match DataFrame index
-   df['reset_index'] = s1.reindex(df.index)
+   df['s1_values'] = s1.reindex(df.index)
