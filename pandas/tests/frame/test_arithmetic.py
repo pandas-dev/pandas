@@ -2192,3 +2192,19 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     expected.columns = expected.columns.astype(string_dtype_no_object)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_df_mul_series_fill_value():
+    # GH 61581
+    data = np.arange(50).reshape(10, 5)
+    columns = list("ABCDE")
+    df = DataFrame(data, columns=columns)
+    for i in range(5):
+        df.iat[i, i] = np.nan
+        df.iat[i + 1, i] = np.nan
+        df.iat[i + 4, i] = np.nan
+
+    df_result = df[["A", "B", "C", "D"]].mul(df["E"], axis=0, fill_value=5)
+    df_expected = df[["A", "B", "C", "D"]].mul(df["E"].fillna(5), axis=0)
+
+    tm.assert_frame_equal(df_result, df_expected)
