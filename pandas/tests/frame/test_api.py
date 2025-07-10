@@ -412,7 +412,7 @@ class TestDataFrameMisc:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_series_partial_alignment(self):
-        # Test Series assignment with partial index match. """
+        # Test Series assignment with partial index match.
         df = DataFrame({"A": [1, 2, 3, 4]}, index=["a", "b", "c", "d"])
         s = Series([100, 200], index=["b", "d"])
         df["B"] = s
