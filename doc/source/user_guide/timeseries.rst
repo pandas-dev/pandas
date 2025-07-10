@@ -2541,7 +2541,7 @@ Fold is supported only for constructing from naive ``datetime.datetime``
 or for constructing from components (see below). Only ``dateutil`` timezones are supported
 (see `dateutil documentation <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
 for ``dateutil`` methods that deal with ambiguous datetimes) as ``pytz``
-timezones do not support fold (see `pytz documentation <http://pytz.sourceforge.net/index.html>`__
+timezones do not support fold (see `pytz documentation <https://pypi.org/project/pytz/>`__
 for details on how ``pytz`` deals with ambiguous datetimes). To localize an ambiguous datetime
 with ``pytz``, please use :meth:`Timestamp.tz_localize`. In general, we recommend to rely
 on :meth:`Timestamp.tz_localize` when localizing ambiguous datetimes if you need direct
