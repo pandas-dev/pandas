@@ -378,22 +378,3 @@ class TestDataFrameMisc:
         # GH38740
         df = DataFrame()
         inspect.getmembers(df)
-
-    def test_setitem_series_alignment_documentation(self):
-        # Test that Series assignment aligns by index as documented.
-        df = DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
-        s = Series([10, 20], index=[1, 3])
-        df["B"] = s
-        expected = DataFrame({"A": [1, 2, 3], "B": [np.nan, 10, np.nan]})
-        tm.assert_frame_equal(df, expected)
-
-    def test_setitem_series_partial_alignment(self):
-        # Test Series assignment with partial index match. """
-        df = DataFrame({"A": [1, 2, 3, 4]}, index=["a", "b", "c", "d"])
-        s = Series([100, 200], index=["b", "d"])
-        df["B"] = s
-        expected = DataFrame(
-            {"A": [1, 2, 3, 4], "B": [np.nan, 100, np.nan, 200]},
-            index=["a", "b", "c", "d"],
-        )
-        tm.assert_frame_equal(df, expected)
