@@ -2204,7 +2204,11 @@ def test_df_mul_series_fill_value():
         df.iat[i + 1, i] = np.nan
         df.iat[i + 4, i] = np.nan
 
-    df_result = df[["A", "B", "C", "D"]].mul(df["E"], axis=0, fill_value=5)
-    df_expected = df[["A", "B", "C", "D"]].mul(df["E"].fillna(5), axis=0)
+    df_a = df.iloc[:, :-1]
+    df_b = df.iloc[:, -1]
+    nan_mask = df_a.isna().astype(int).mul(df_b.isna().astype(int), axis=0).astype(bool)
+
+    df_result = df_a.mul(df_b, axis=0, fill_value=5)
+    df_expected = (df_a.fillna(5).mul(df_b.fillna(5), axis=0)).mask(nan_mask, np.nan)
 
     tm.assert_frame_equal(df_result, df_expected)
