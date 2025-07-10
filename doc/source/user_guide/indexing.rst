@@ -1778,7 +1778,7 @@ Examples:
    #If you want positional assignment instead of index alignment:
    # Convert Series to array/list for positional assignment
 
-   df['positional'] = s1.values  # or s1.tolist()
+   df['positional'] = s1.tolist()
 
    # Or reset the Series index to match DataFrame index
    df['s1_values'] = s1.reindex(df.index)

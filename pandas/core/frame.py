@@ -4285,6 +4285,18 @@ class DataFrame(NDFrame, OpsMixin):
         b  2  100
         c  3  NaN
         d  4  200
+
+        Series index labels NOT in DataFrame, ignored:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=["x", "y", "z"])
+        >>> s = pd.Series([10, 20, 30, 40, 50], index=["x", "y", "a", "b", "z"])
+        >>> df["B"] = s
+        >>> df
+           A   B
+        x  1  10
+        y  2  20
+        z  3  50
+        # Values for 'a' and 'b' are completely ignored!
         """
         if not PYPY:
             if sys.getrefcount(self) <= 3:
