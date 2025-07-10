@@ -567,6 +567,14 @@ class Index(IndexOpsMixin, PandasObject):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
+            # 60925 should raise when one of index's items is a list and others are not
+            if any(isinstance(el, list) for el in data) and not all(
+                isinstance(el, list) for el in data
+            ):
+                raise ValueError(
+                    "Index names must all be hashable, or all lists to make MultiIndex"
+                )
+
         try:
             arr = sanitize_array(data, None, dtype=dtype, copy=copy)
         except ValueError as err:
