@@ -26,6 +26,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
+    TypeAlias,
     TypeVar,
     Union,
     cast,
@@ -449,13 +450,13 @@ class GroupByPlot(PandasObject):
         return attr
 
 
-_KeysArgType = Union[
-    Hashable,
-    list[Hashable],
-    Callable[[Hashable], Hashable],
-    list[Callable[[Hashable], Hashable]],
-    Mapping[Hashable, Hashable],
-]
+_KeysArgType: TypeAlias = (
+    Hashable
+    | list[Hashable]
+    | Callable[[Hashable], Hashable]
+    | list[Callable[[Hashable], Hashable]]
+    | Mapping[Hashable, Hashable]
+)
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
@@ -957,9 +958,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         level = self.level
         result = self._grouper.get_iterator(self._selected_obj)
         # mypy: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
-        if (
-            (is_list_like(level) and len(level) == 1)  # type: ignore[arg-type]
-            or (isinstance(keys, list) and len(keys) == 1)
+        if (is_list_like(level) and len(level) == 1) or (  # type: ignore[arg-type]
+            isinstance(keys, list) and len(keys) == 1
         ):
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
