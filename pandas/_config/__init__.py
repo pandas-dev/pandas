@@ -33,3 +33,8 @@ from pandas._config.display import detect_console_encoding
 def using_string_dtype() -> bool:
     _mode_options = _global_config["future"]
     return _mode_options["infer_string"]
+
+
+def using_pyarrow_strict_nans() -> bool:
+    _mode_options = _global_config["mode"]
+    return _mode_options["pyarrow_strict_nans"]

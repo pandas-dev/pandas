@@ -271,12 +271,32 @@ class TestSeriesRank:
 
     def test_rank_tie_methods(self, ser, results, dtype, using_infer_string):
         method, exp = results
-        if dtype == "int64" or (not using_infer_string and dtype == "str"):
+        if (
+            dtype == "int64"
+            or dtype == "int64[pyarrow]"
+            or dtype == "uint64[pyarrow]"
+            or (not using_infer_string and dtype == "str")
+        ):
             pytest.skip("int64/str does not support NaN")
 
         ser = ser if dtype is None else ser.astype(dtype)
         result = ser.rank(method=method)
-        tm.assert_series_equal(result, Series(exp, dtype=expected_dtype(dtype, method)))
+        if dtype == "float64[pyarrow]":
+            # the NaNs are not treated as NA
+            exp = exp.copy()
+            if method == "average":
+                exp[np.isnan(ser)] = 9.5
+            elif method == "dense":
+                exp[np.isnan(ser)] = 6
+            elif method == "max":
+                exp[np.isnan(ser)] = 10
+            elif method == "min":
+                exp[np.isnan(ser)] = 9
+            elif method == "first":
+                exp[np.isnan(ser)] = [9, 10]
+
+        expected = Series(exp, dtype=expected_dtype(dtype, method))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("na_option", ["top", "bottom", "keep"])
     @pytest.mark.parametrize(
@@ -321,6 +341,8 @@ class TestSeriesRank:
             order = [ranks[1], ranks[0], ranks[2]]
         elif na_option == "bottom":
             order = [ranks[0], ranks[2], ranks[1]]
+        elif dtype == "float64[pyarrow]":
+            order = [ranks[0], [NA] * chunk, ranks[1]]
         else:
             order = [ranks[0], [np.nan] * chunk, ranks[1]]
         expected = order if ascending else order[::-1]
@@ -386,8 +408,12 @@ class TestSeriesRank:
 
     def test_rank_descending(self, ser, results, dtype, using_infer_string):
         method, _ = results
-        if dtype == "int64" or (not using_infer_string and dtype == "str"):
-            s = ser.dropna()
+        if (
+            dtype == "int64"
+            or dtype == "int64[pyarrow]"
+            or (not using_infer_string and dtype == "str")
+        ):
+            s = ser.dropna().astype(dtype)
         else:
             s = ser.astype(dtype)
 
