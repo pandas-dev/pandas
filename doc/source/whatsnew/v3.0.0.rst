@@ -911,6 +911,7 @@ Other
 - Bug in :meth:`DataFrame.query` where using duplicate column names led to a ``TypeError``. (:issue:`59950`)
 - Bug in :meth:`DataFrame.query` which raised an exception or produced incorrect results when expressions contained backtick-quoted column names containing the hash character ``#``, backticks, or characters that fall outside the ASCII range (U+0001..U+007F). (:issue:`59285`) (:issue:`49633`)
 - Bug in :meth:`DataFrame.query` which raised an exception when querying integer column names using backticks. (:issue:`60494`)
+- Bug in :meth:`DataFrame.sample` with ``replace=False`` and ``(n * max(weights) / sum(weights)) > 1``, the method would return biased results. Now raises ``ValueError``. (:issue:`61516`)
 - Bug in :meth:`DataFrame.shift` where passing a ``freq`` on a DataFrame with no columns did not shift the index correctly. (:issue:`60102`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.sort_values` where sorting by a column explicitly named ``None`` raised a ``KeyError`` instead of sorting by the column as expected. (:issue:`61512`)
