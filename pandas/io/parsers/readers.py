@@ -1712,7 +1712,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
     return na_values, na_fvalues
 
 
-def _floatify_na_values(na_values):
+def _floatify_na_values(na_values) -> set[float]:
     # create float versions of the na_values
     result = set()
     for v in na_values:
