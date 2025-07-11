@@ -59,6 +59,7 @@ from pandas.core.array_algos import (
     masked_reductions,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
@@ -360,6 +361,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data.ravel(*args, **kwargs)
         mask = self._mask.ravel(*args, **kwargs)
         return type(self)(data, mask)
+
+    def shift(self, periods: int = 1, fill_value=None) -> Self:
+        # NB: shift is always along axis=0
+        axis = 0
+        if fill_value is None:
+            new_data = shift(self._data, periods, axis, 0)
+            new_mask = shift(self._mask, periods, axis, True)
+        else:
+            new_data = shift(self._data, periods, axis, fill_value)
+            new_mask = shift(self._mask, periods, axis, False)
+        return type(self)(new_data, new_mask)
 
     @property
     def T(self) -> Self:
