@@ -211,8 +211,15 @@ def to_numeric(
 
     values_dtype = getattr(values, "dtype", None)
     if isinstance(values_dtype, ArrowDtype):
+        if is_numeric_dtype(values_dtype):
+            if is_series:
+                return arg._constructor(values, index=arg.index, name=arg.name)
+            else:
+                return values
+
         mask = values.isna()
         values = values.dropna().to_numpy()
+
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
         pass
