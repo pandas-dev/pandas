@@ -784,7 +784,7 @@ MultiIndex
 
 I/O
 ^^^
-- Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping`` elements. (:issue:`57915`)
+- Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping` elements. (:issue:`57915`)
 - Bug in :meth:`.DataFrame.to_json` when ``"index"`` was a value in the :attr:`DataFrame.column` and :attr:`Index.name` was ``None``. Now, this will fail with a ``ValueError`` (:issue:`58925`)
 - Bug in :meth:`.io.common.is_fsspec_url` not recognizing chained fsspec URLs (:issue:`48978`)
 - Bug in :meth:`DataFrame._repr_html_` which ignored the ``"display.float_format"`` option (:issue:`59876`)
