@@ -271,6 +271,24 @@ def to_numeric(
                     if values.dtype == dtype:
                         break
 
+        # Fallback: if we requested an unsigned downcast but did not
+        # successfully convert (e.g. because the data was float64 after
+        # parsing large Python ints), attempt a direct cast to uint64 as a
+        # last resort.  This addresses GH#14422 where `to_numeric` failed to
+        # downcast `[0, 9223372036854775808]` to ``uint64``.
+        if (
+            downcast == "unsigned"
+            and values.dtype.kind == "f"  # still a float dtype
+            and (not len(values) or np.all(np.mod(values, 1) == 0))  # integral values
+            and (not len(values) or np.min(values) >= 0)
+            and (not len(values) or np.max(values) <= np.iinfo(np.uint64).max)
+        ):
+            try:
+                values = values.astype(np.uint64)
+            except (OverflowError, ValueError):
+                # If casting is unsafe, keep original dtype
+                pass
+
     # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
     # masked array
     if (mask is not None or new_mask is not None) and not is_string_dtype(values.dtype):
