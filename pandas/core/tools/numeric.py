@@ -114,6 +114,13 @@ def to_numeric(
         Numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray.
 
+    Raises
+    ------
+    ValueError
+        If the conversion cannot be performed and `errors='raise'`.
+    TypeError
+        If the input type is not supported for conversion.
+
     See Also
     --------
     DataFrame.astype : Cast argument to a specified dtype.
