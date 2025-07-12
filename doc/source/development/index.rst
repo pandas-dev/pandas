@@ -16,6 +16,7 @@ Development
     contributing_environment
     contributing_documentation
     contributing_codebase
+    code_guidelines
     maintaining
     internals
     copy_on_write
