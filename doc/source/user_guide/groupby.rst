@@ -6,8 +6,7 @@
 Group by: split-apply-combine
 *****************************
 
-By "group by" we are referring to a process involving one or more of the following
-steps:
+A "group by" operation involves some combination of the following steps:
 
 * **Splitting** the data into groups based on some criteria.
 * **Applying** a function to each group independently.
