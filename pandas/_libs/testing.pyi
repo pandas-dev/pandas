@@ -7,6 +7,7 @@ def assert_almost_equal(
     rtol: float = ...,
     atol: float = ...,
     check_dtype: bool = ...,
+    strict_na: bool = ...,
     obj=...,
     lobj=...,
     robj=...,
