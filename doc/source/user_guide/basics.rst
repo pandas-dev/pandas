@@ -209,6 +209,10 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis="index")
    df.sub(column, axis=0)
 
+Be careful when using raw Python lists in binary operations with DataFrames.
+Unlike NumPy arrays or Series, lists are not broadcast across rows or columns.
+Instead, pandas attempts to match the entire list against a single axis, which may lead to confusing results such as Series of arrays.
+To ensure proper broadcasting behavior, use a NumPy array or Series with explicit index or shape.
 Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
