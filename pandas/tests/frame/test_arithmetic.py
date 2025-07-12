@@ -626,12 +626,6 @@ class TestFrameFlexArithmetic:
         expected = float_frame.sort_index() * np.nan
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], fill_value=3)
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], axis="index", fill_value=3)
-
     @pytest.mark.parametrize("op", ["add", "sub", "mul", "mod"])
     def test_arith_flex_series_ops(self, simple_frame, op):
         # after arithmetic refactor, add truediv here
@@ -664,19 +658,6 @@ class TestFrameFlexArithmetic:
             expected = expected.astype(any_real_numpy_dtype)
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
-
-    def test_arith_flex_zero_len_raises(self):
-        # GH 19522 passing fill_value to frame flex arith methods should
-        # raise even in the zero-length special cases
-        ser_len0 = Series([], dtype=object)
-        df_len0 = DataFrame(columns=["A", "B"])
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df.add(ser_len0, fill_value="E")
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df_len0.sub(df["A"], axis=None, fill_value=3)
 
     def test_flex_add_scalar_fill_value(self):
         # GH#12723
@@ -2192,3 +2173,26 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     expected.columns = expected.columns.astype(string_dtype_no_object)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["add", "sub", "mul", "div", "mod", "truediv", "pow"])
+def test_df_series_fill_value(op):
+    # GH 61581
+    data = np.arange(50).reshape(10, 5)
+    columns = list("ABCDE")
+    df = DataFrame(data, columns=columns)
+    for i in range(5):
+        df.iat[i, i] = np.nan
+        df.iat[i + 1, i] = np.nan
+        df.iat[i + 4, i] = np.nan
+
+    df_a = df.iloc[:, :-1]
+    df_b = df.iloc[:, -1]
+    nan_mask = df_a.isna().astype(int).mul(df_b.isna().astype(int), axis=0).astype(bool)
+
+    df_result = getattr(df_a, op)(df_b, axis=0, fill_value=5)
+    df_expected = getattr(df_a.fillna(5), op)(df_b.fillna(5), axis=0).mask(
+        nan_mask, np.nan
+    )
+
+    tm.assert_frame_equal(df_result, df_expected)
