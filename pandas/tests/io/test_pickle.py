@@ -43,6 +43,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
+from pandas.util.version import Version
 
 import pandas.io.common as icom
 from pandas.tseries.offsets import (
@@ -56,7 +57,7 @@ from pandas.tseries.offsets import (
 # ---------------------
 def compare_element(result, expected, typ):
     if isinstance(expected, Index):
-        tm.assert_index_equal(expected, result)
+        tm.assert_index_equal(result, expected)
         return
 
     if typ.startswith("sp_"):
@@ -81,15 +82,39 @@ def test_pickles(datapath):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
+    current_data = create_pickle_data()
+
     # For loop for compat with --strict-data-files
     for legacy_pickle in Path(__file__).parent.glob("data/legacy_pickle/*/*.p*kl*"):
+        legacy_version = Version(legacy_pickle.parent.name)
         legacy_pickle = datapath(legacy_pickle)
 
         data = pd.read_pickle(legacy_pickle)
 
         for typ, dv in data.items():
             for dt, result in dv.items():
-                expected = data[typ][dt]
+                expected = current_data[typ][dt]
+
+                if (
+                    typ == "timestamp"
+                    and dt in ("tz", "both")
+                    and legacy_version < Version("1.3.0")
+                ):
+                    # convert to wall time
+                    # (bug since pandas 2.0 that tz gets dropped for older pickle files)
+                    expected = expected.tz_convert(None)
+
+                if typ in ("frame", "sp_frame"):
+                    expected.columns = expected.columns.astype("object")
+
+                if typ == "frame" and dt == "mi":
+                    expected.index = expected.index.set_levels(
+                        [level.astype("object") for level in expected.index.levels],
+                    )
+                if typ == "mi":
+                    expected = expected.set_levels(
+                        [level.astype("object") for level in expected.levels],
+                    )
 
                 if typ == "series" and dt == "ts":
                     # GH 7748
