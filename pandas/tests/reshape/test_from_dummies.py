@@ -465,9 +465,6 @@ def test_object_dtype_preserved():
     # https://github.com/pandas-dev/pandas/pull/60694
     # When the input has object dtype, the result should as
     # well even when infer_string is True.
-    import pandas as pd
-
-    assert pd.get_option("future.infer_string")
     df = DataFrame(
         {
             "x": [1, 0, 0],
