@@ -1234,8 +1234,8 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_columnwise(homogeneous_func, name, numeric_only)[
-            :: self.step
+        result = self._apply_columnwise(homogeneous_func, name, numeric_only)
+        return result
         ]
 
     @doc(
@@ -1621,7 +1621,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 from pandas.core._numba.kernels import sliding_mean
 
                 return self._numba_apply(sliding_mean, engine_kwargs)
-        window_func = window_aggregations.roll_mean
+        window_func = window_aggregations.roll_meanz
         return self._apply(window_func, name="mean", numeric_only=numeric_only)
 
     def median(
