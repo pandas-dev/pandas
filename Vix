@@ -1,0 +1,54 @@
+import yfinance as yf
+import pandas as pd
+from ta.momentum import RSIIndicator
+
+# Download daily Nifty 50 data for the last decade
+data = yf.download('^NSEI', start='2015-07-13', end='2025-07-13')
+data = data[['Close']].dropna()
+
+# Calculate RSI for daily, weekly, and monthly
+data['RSI_D'] = RSIIndicator(data['Close'], window=14).rsi()
+data['Week'] = data.index.to_period('W')
+data['Month'] = data.index.to_period('M')
+
+# Weekly RSI
+weekly = data.groupby('Week')['Close'].last()
+weekly_rsi = RSIIndicator(weekly, window=14).rsi()
+data['RSI_W'] = data['Week'].map(weekly_rsi)
+
+# Monthly RSI
+monthly = data.groupby('Month')['Close'].last()
+monthly_rsi = RSIIndicator(monthly, window=14).rsi()
+data['RSI_M'] = data['Month'].map(monthly_rsi)
+
+# Generate signals
+data['Buy_Signal'] = (
+    (data['RSI_D'] > 40) &
+    (data['RSI_D'].shift(1) <= 40) &  # Daily RSI just crossed above 40
+    (data['RSI_W'] > 60) &
+    (data['RSI_M'] > 60)
+)
+
+# Backtest: Buy at next day's open after signal, sell at next buy or end
+trades = []
+entry_price = None
+for i in range(1, len(data)):
+    if data['Buy_Signal'].iloc[i] and entry_price is None:
+        entry_price = data['Close'].iloc[i]
+    elif data['Buy_Signal'].iloc[i] and entry_price is not None:
+        exit_price = data['Close'].iloc[i]
+        trades.append(exit_price > entry_price)
+        entry_price = data['Close'].iloc[i]
+# Close last trade if open
+if entry_price is not None and not data['Buy_Signal'].iloc[-1]:
+    exit_price = data['Close'].iloc[-1]
+    trades.append(exit_price > entry_price)
+
+# Results
+if trades:
+    win_probability = sum(trades) / len(trades)
+    print(f"Total trades: {len(trades)}")
+    print(f"Winning trades: {sum(trades)}")
+    print(f"Win probability: {win_probability:.2%}")
+else:
+    print("No trades found with the given strategy.")
