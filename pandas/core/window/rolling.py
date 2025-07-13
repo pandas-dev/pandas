@@ -1230,9 +1230,16 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_columnwise(homogeneous_func, name, numeric_only)[
-            :: self.step
-        ]
+        result = self._apply_columnwise(homogeneous_func, name, numeric_only)
+        if self.step is not None and self.step > 1:
+            if isinstance(result, pd.Series):
+                result = result.iloc[::self.step]
+            elif isinstance(result, pd.DataFrame):
+                result = result.iloc[::self.step, :]
+        return result
+        
+       
+
 
     @doc(
         _shared_docs["aggregate"],
