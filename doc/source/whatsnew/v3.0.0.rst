@@ -944,6 +944,14 @@ Other
 -
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_300.documentation:
+
+Documentation changes
+~~~~~~~~~~~~~~~~~~~~~
+
+- Simplified pandas theme footer implementation by leveraging built-in templates from pydata-sphinx-theme v0.16 (:issue:`51536`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_300.contributors:
 
 Contributors
