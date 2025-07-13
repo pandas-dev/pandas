@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeAlias,
     Union,
     cast,
     final,
@@ -161,7 +162,7 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+DTScalarOrNaT: TypeAlias = DatetimeLikeScalar | NaTType
 
 
 def _make_unpacked_invalid_op(op_name: str):
@@ -386,7 +387,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
+        result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:

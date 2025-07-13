@@ -3,12 +3,12 @@ name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.11
   - pip
 
   # build dependencies
   - versioneer
-  - cython~=3.0.5
+  - cython<4.0.0a0
   - meson=1.2.1
   - meson-python=0.13.1
 
@@ -43,7 +43,7 @@ dependencies:
   - openpyxl>=3.1.2
   - odfpy>=1.4.1
   - psycopg2>=2.9.6
-  - pyarrow>=10.0.1
+  - pyarrow>=12.0.1
   - pyiceberg>=0.7.1
   - pymysql>=1.1.0
   - pyreadstat>=1.2.6
@@ -64,9 +64,8 @@ dependencies:
   - dask-core
   - seaborn-base
 
-  # local testing dependencies
+  # Mocking s3 tests
   - moto
-  - flask
 
   # benchmarks
   - asv>=0.6.1
@@ -124,4 +123,4 @@ dependencies:
       - adbc-driver-postgresql>=0.10.0
       - adbc-driver-sqlite>=0.8.0
       - typing_extensions; python_version<"3.11"
-      - tzdata>=2022.7
+      - tzdata>=2023.3

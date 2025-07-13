@@ -18,23 +18,6 @@ msg = "A value is trying to be set on a copy of a slice from a DataFrame"
 
 
 class TestCaching:
-    def test_slice_consolidate_invalidate_item_cache(self):
-        # this is chained assignment, but will 'work'
-        with option_context("chained_assignment", None):
-            # #3970
-            df = DataFrame({"aa": np.arange(5), "bb": [2.2] * 5})
-
-            # Creates a second float block
-            df["cc"] = 0.0
-
-            # caches a reference to the 'bb' series
-            df["bb"]
-
-            # Assignment to wrong series
-            with tm.raises_chained_assignment_error():
-                df["bb"].iloc[0] = 0.17
-            tm.assert_almost_equal(df["bb"][0], 2.2)
-
     @pytest.mark.parametrize("do_ref", [True, False])
     def test_setitem_cache_updating(self, do_ref):
         # GH 5424
@@ -88,18 +71,6 @@ class TestCaching:
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
-
-    def test_altering_series_clears_parent_cache(self):
-        # GH #33675
-        df = DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
-        ser = df["A"]
-
-        # Adding a new entry to ser swaps in a new array, so "A" needs to
-        #  be removed from df._item_cache
-        ser["c"] = 5
-        assert len(ser) == 3
-        assert df["A"] is not ser
-        assert len(df["A"]) == 2
 
 
 class TestChaining:

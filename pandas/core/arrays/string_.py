@@ -25,7 +25,7 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under10p1,
+    pa_version_under12p1,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -72,6 +72,8 @@ from pandas.core.missing import isna
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     import pyarrow
 
     from pandas._typing import (
@@ -182,9 +184,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under10p1:
+        if storage == "pyarrow" and pa_version_under12p1:
             raise ImportError(
-                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
+                "pyarrow>=12.0.1 is required for PyArrow backed StringArray."
             )
 
         if isinstance(na_value, float) and np.isnan(na_value):
@@ -217,6 +219,11 @@ class StringDtype(StorageExtensionDtype):
         if isinstance(other, type(self)):
             return self.storage == other.storage and self.na_value is other.na_value
         return False
+
+    def __setstate__(self, state: MutableMapping[str, Any]) -> None:
+        # back-compat for pandas < 2.3, where na_value did not yet exist
+        self.storage = state.pop("storage", "python")
+        self._na_value = state.pop("_na_value", libmissing.NA)
 
     def __hash__(self) -> int:
         # need to override __hash__ as well because of overriding __eq__

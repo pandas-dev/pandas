@@ -148,9 +148,9 @@ pandas requires the following dependencies.
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.23.5
+`NumPy <https://numpy.org>`__                                    1.26.0
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
-`tzdata <https://pypi.org/project/tzdata/>`__                    2022.7
+`tzdata <https://pypi.org/project/tzdata/>`__                    2023.3
 ================================================================ ==========================
 
 .. _install.optional_dependencies:
@@ -307,8 +307,8 @@ Dependency                                             Minimum Version    pip ex
 `PyTables <https://github.com/PyTables/PyTables>`__    3.8.0              hdf5             HDF5-based reading / writing
 `zlib <https://github.com/madler/zlib>`__                                 hdf5             Compression for HDF5
 `fastparquet <https://github.com/dask/fastparquet>`__  2024.2.0           -                Parquet reading / writing (pyarrow is default)
-`pyarrow <https://github.com/apache/arrow>`__          10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
-`PyIceberg <https://py.iceberg.apache.org/>`__         0.7.1              iceberg          Apache Iceberg reading
+`pyarrow <https://github.com/apache/arrow>`__          12.0.1             parquet, feather Parquet, ORC, and feather reading / writing
+`PyIceberg <https://py.iceberg.apache.org/>`__         0.7.1              iceberg          Apache Iceberg reading / writing
 `pyreadstat <https://github.com/Roche/pyreadstat>`__   1.2.6              spss             SPSS files (.sav) reading
 `odfpy <https://github.com/eea/odfpy>`__               1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
 ====================================================== ================== ================ ==========================================================
