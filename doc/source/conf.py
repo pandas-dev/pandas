@@ -164,7 +164,7 @@ master_doc = "index"
 # General information about the project.
 project = "pandas"
 # We have our custom "pandas_footer.html" template, using copyright for the current year
-copyright = f"{datetime.now().year},"
+copyright = f"{datetime.now().year}, pandas"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -242,7 +242,7 @@ else:
 
 html_theme_options = {
     "external_links": [],
-    "footer_start": ["pandas_footer", "sphinx-version"],
+    "footer_start": ["copyright", "pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",

@@ -48,5 +48,16 @@ table {
 }
 
 .card, .card img {
-  background-color: var(--pst-color-background);
+  background: none !important;
+}
+
+/* Footer styling */
+.footer-items__start {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-sponsors {
+  display: inline-block;
 }
