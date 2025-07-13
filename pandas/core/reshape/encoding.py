@@ -17,14 +17,12 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtype,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
@@ -38,7 +36,6 @@ from pandas.core.series import Series
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        DtypeObj,
         NpDtype,
     )
 
@@ -395,7 +392,9 @@ def from_dummies(
         The default category is the implied category when a value has none of the
         listed categories specified with a one, i.e. if all dummies in a row are
         zero. Can be a single value for all variables or a dict directly mapping
-        the default categories to a prefix of a variable.
+        the default categories to a prefix of a variable. The default category
+        will be coerced to the dtype of ``data.columns`` if such coercion is
+        lossless, and will raise otherwise.
 
     Returns
     -------
@@ -560,20 +559,9 @@ def from_dummies(
                 "Dummy DataFrame contains multi-assignment(s); "
                 f"First instance in row: {assigned.idxmax()}"
             )
-        dtype: str | DtypeObj = data.columns.dtype
         if any(assigned == 0):
             if isinstance(default_category, dict):
-                value = default_category[prefix]
-                if (
-                    is_string_dtype(data.columns.dtype)
-                    and not isinstance(value, str)
-                    and (is_list_like(value) or not isna(value))
-                ):
-                    # https://github.com/pandas-dev/pandas/pull/60694
-                    # `value` is not a string or NA.
-                    # Using data.columns.dtype would coerce `value` into a string.
-                    dtype = "object"
-                cats.append(value)
+                cats.append(default_category[prefix])
             else:
                 raise ValueError(
                     "Dummy DataFrame contains unassigned value(s); "
@@ -584,7 +572,8 @@ def from_dummies(
             )
         else:
             data_slice = data_to_decode.loc[:, prefix_slice]
-        cats_array = data._constructor_sliced(cats, dtype=dtype)
+        # cats_array = data._constructor_sliced(cats, dtype=dtype)
+        cats_array = data._constructor_sliced(cats, dtype=data.columns.dtype)
         # get indices of True entries along axis=1
         true_values = data_slice.idxmax(axis=1)
         indexer = data_slice.columns.get_indexer_for(true_values)

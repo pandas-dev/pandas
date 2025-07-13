@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -334,7 +333,7 @@ def test_no_prefix_string_cats_default_category(
 ):
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
     result = from_dummies(dummies, default_category=default_category)
-    expected = DataFrame(expected)
+    expected = DataFrame(expected, dtype=dummies.columns.dtype)
     tm.assert_frame_equal(result, expected)
 
 
@@ -466,6 +465,9 @@ def test_object_dtype_preserved():
     # https://github.com/pandas-dev/pandas/pull/60694
     # When the input has object dtype, the result should as
     # well even when infer_string is True.
+    import pandas as pd
+
+    assert pd.get_option("future.infer_string")
     df = DataFrame(
         {
             "x": [1, 0, 0],
@@ -473,7 +475,6 @@ def test_object_dtype_preserved():
         },
     )
     df.columns = df.columns.astype("object")
-    with pd.option_context("future.infer_string", True):
-        result = from_dummies(df, default_category="z")
-        expected = DataFrame({"": ["x", "y", "z"]}, dtype="object")
-        tm.assert_frame_equal(result, expected)
+    result = from_dummies(df, default_category="z")
+    expected = DataFrame({"": ["x", "y", "z"]}, dtype="object")
+    tm.assert_frame_equal(result, expected)
