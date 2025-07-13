@@ -572,7 +572,6 @@ def from_dummies(
             )
         else:
             data_slice = data_to_decode.loc[:, prefix_slice]
-        # cats_array = data._constructor_sliced(cats, dtype=dtype)
         cats_array = data._constructor_sliced(cats, dtype=data.columns.dtype)
         # get indices of True entries along axis=1
         true_values = data_slice.idxmax(axis=1)
