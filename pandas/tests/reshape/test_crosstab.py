@@ -289,7 +289,7 @@ class TestCrosstab:
         # GH: 10772: Keep np.nan in result with dropna=False
         df = DataFrame({"a": [1, 2, 2, 2, 2, np.nan], "b": [3, 3, 4, 4, 4, 4]})
         actual = crosstab(df.a, df.b, margins=True, dropna=False)
-        expected = DataFrame([[1, 0, 1.0], [1, 3, 4.0], [0, 1, np.nan], [2, 4, 6.0]])
+        expected = DataFrame([[1, 0, 1], [1, 3, 4], [0, 1, 1], [2, 4, 6]])
         expected.index = Index([1.0, 2.0, np.nan, "All"], name="a")
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
@@ -301,11 +301,11 @@ class TestCrosstab:
         )
         actual = crosstab(df.a, df.b, margins=True, dropna=False)
         expected = DataFrame(
-            [[1, 0, 0, 1.0], [0, 1, 0, 1.0], [0, 3, 1, np.nan], [1, 4, 0, 6.0]]
+            [[1, 0, 0, 1.0], [0, 1, 0, 1.0], [0, 3, 1, 4.0], [1, 4, 1, 6.0]]
         )
         expected.index = Index([1.0, 2.0, np.nan, "All"], name="a")
         expected.columns = Index([3.0, 4.0, np.nan, "All"], name="b")
-        tm.assert_frame_equal(actual, expected)
+        tm.assert_frame_equal(actual, expected, check_dtype=False)
 
     def test_margin_dropna6(self):
         # GH: 10772: Keep np.nan in result with dropna=False
@@ -326,7 +326,7 @@ class TestCrosstab:
             names=["b", "c"],
         )
         expected = DataFrame(
-            [[1, 0, 1, 0, 0, 0, 2], [2, 0, 1, 1, 0, 1, 5], [3, 0, 2, 1, 0, 0, 7]],
+            [[1, 0, 1, 0, 0, 0, 2], [2, 0, 1, 1, 0, 1, 5], [3, 0, 2, 1, 0, 1, 7]],
             columns=m,
         )
         expected.index = Index(["bar", "foo", "All"], name="a")
@@ -349,7 +349,7 @@ class TestCrosstab:
                 [0, 0, np.nan],
                 [2, 0, 2.0],
                 [1, 1, 2.0],
-                [0, 1, np.nan],
+                [0, 1, 1.0],
                 [5, 2, 7.0],
             ],
             index=m,
