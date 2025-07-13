@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_dict_like,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -215,7 +216,7 @@ def _reconstruct_data(
         values = cls._from_sequence(values, dtype=dtype)  # type: ignore[assignment]
 
     else:
-        values = values.astype(dtype, copy=False)
+        values = values.astype(dtype, copy=False)  # type: ignore[assignment]
 
     return values
 
@@ -511,6 +512,7 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             len(values) > 0
             and values.dtype.kind in "iufcb"
             and not is_signed_integer_dtype(comps)
+            and not is_dtype_equal(values, comps)
         ):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
@@ -987,7 +989,7 @@ def duplicated(
 
 def mode(
     values: ArrayLike, dropna: bool = True, mask: npt.NDArray[np.bool_] | None = None
-) -> ArrayLike:
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]] | ExtensionArray:
     """
     Returns the mode(s) of an array.
 
@@ -1000,7 +1002,7 @@ def mode(
 
     Returns
     -------
-    np.ndarray or ExtensionArray
+    Union[Tuple[np.ndarray, npt.NDArray[np.bool_]], ExtensionArray]
     """
     values = _ensure_arraylike(values, func_name="mode")
     original = values
@@ -1014,8 +1016,10 @@ def mode(
     values = _ensure_data(values)
 
     npresult, res_mask = htable.mode(values, dropna=dropna, mask=mask)
-    if res_mask is not None:
-        return npresult, res_mask  # type: ignore[return-value]
+    if res_mask is None:
+        res_mask = np.zeros(npresult.shape, dtype=np.bool_)
+    else:
+        return npresult, res_mask
 
     try:
         npresult = safe_sort(npresult)
@@ -1026,7 +1030,7 @@ def mode(
         )
 
     result = _reconstruct_data(npresult, original.dtype, original)
-    return result
+    return result, res_mask
 
 
 def rank(
@@ -1647,6 +1651,8 @@ def map_array(
         If the function returns a tuple with more than one element
         a MultiIndex will be returned.
     """
+    from pandas import Index
+
     if na_action not in (None, "ignore"):
         msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
         raise ValueError(msg)
@@ -1676,6 +1682,10 @@ def map_array(
 
             if len(mapper) == 0:
                 mapper = Series(mapper, dtype=np.float64)
+            elif isinstance(mapper, dict):
+                mapper = Series(
+                    mapper.values(), index=Index(mapper.keys(), tupleize_cols=False)
+                )
             else:
                 mapper = Series(mapper)
 

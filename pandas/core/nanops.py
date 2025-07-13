@@ -508,12 +508,12 @@ def nanany(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2])
     >>> nanops.nanany(s.values)
-    True
+    np.True_
 
     >>> from pandas.core import nanops
     >>> s = pd.Series([np.nan])
     >>> nanops.nanany(s.values)
-    False
+    np.False_
     """
     if values.dtype.kind in "iub" and mask is None:
         # GH#26032 fastpath
@@ -564,12 +564,12 @@ def nanall(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nanall(s.values)
-    True
+    np.True_
 
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 0])
     >>> nanops.nanall(s.values)
-    False
+    np.False_
     """
     if values.dtype.kind in "iub" and mask is None:
         # GH#26032 fastpath
@@ -625,7 +625,7 @@ def nansum(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nansum(s.values)
-    3.0
+    np.float64(3.0)
     """
     dtype = values.dtype
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
@@ -691,7 +691,7 @@ def nanmean(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nanmean(s.values)
-    1.5
+    np.float64(1.5)
     """
     dtype = values.dtype
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
@@ -1014,7 +1014,11 @@ def nanvar(
     avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
-    sqr = _ensure_numeric((avg - values) ** 2)
+    if values.dtype.kind == "c":
+        # Need to use absolute value for complex numbers.
+        sqr = _ensure_numeric(abs(avg - values) ** 2)
+    else:
+        sqr = _ensure_numeric((avg - values) ** 2)
     if mask is not None:
         np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d
@@ -1061,7 +1065,7 @@ def nansem(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nansem(s.values)
-     0.5773502691896258
+     np.float64(0.5773502691896258)
     """
     # This checks if non-numeric-like data is passed with numeric_only=False
     # and raises a TypeError otherwise
@@ -1093,11 +1097,14 @@ def _nanminmax(meth, fill_value_typ):
         if values.size == 0:
             return _na_for_min_count(values, axis)
 
+        dtype = values.dtype
         values, mask = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
         result = getattr(values, meth)(axis)
-        result = _maybe_null_out(result, axis, mask, values.shape)
+        result = _maybe_null_out(
+            result, axis, mask, values.shape, datetimelike=dtype.kind in "mM"
+        )
         return result
 
     return reduction
@@ -1133,7 +1140,7 @@ def nanargmax(
     >>> from pandas.core import nanops
     >>> arr = np.array([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmax(arr)
-    4
+    np.int64(4)
 
     >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
     >>> arr[2:, 2] = np.nan
@@ -1179,7 +1186,7 @@ def nanargmin(
     >>> from pandas.core import nanops
     >>> arr = np.array([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmin(arr)
-    0
+    np.int64(0)
 
     >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
     >>> arr[2:, 0] = np.nan
@@ -1234,7 +1241,7 @@ def nanskew(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s.values)
-    1.7320508075688787
+    np.float64(1.7320508075688787)
     """
     mask = _maybe_get_mask(values, skipna, mask)
     if values.dtype.kind != "f":
@@ -1322,7 +1329,7 @@ def nankurt(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s.values)
-    -1.2892561983471076
+    np.float64(-1.2892561983471076)
     """
     mask = _maybe_get_mask(values, skipna, mask)
     if values.dtype.kind != "f":
@@ -1414,7 +1421,7 @@ def nanprod(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, 3, np.nan])
     >>> nanops.nanprod(s.values)
-    6.0
+    np.float64(6.0)
     """
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -1499,6 +1506,7 @@ def _maybe_null_out(
     mask: npt.NDArray[np.bool_] | None,
     shape: tuple[int, ...],
     min_count: int = 1,
+    datetimelike: bool = False,
 ) -> np.ndarray | float | NaTType:
     """
     Returns
@@ -1520,7 +1528,10 @@ def _maybe_null_out(
             null_mask = np.broadcast_to(below_count, new_shape)
 
         if np.any(null_mask):
-            if is_numeric_dtype(result):
+            if datetimelike:
+                # GH#60646 For datetimelike, no need to cast to float
+                result[null_mask] = iNaT
+            elif is_numeric_dtype(result):
                 if np.iscomplexobj(result):
                     result = result.astype("c16")
                 elif not is_float_dtype(result):

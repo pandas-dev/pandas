@@ -112,8 +112,7 @@ class ParserBase:
             parse_dates = bool(parse_dates)
         elif not isinstance(parse_dates, list):
             raise TypeError(
-                "Only booleans and lists are accepted "
-                "for the 'parse_dates' parameter"
+                "Only booleans and lists are accepted for the 'parse_dates' parameter"
             )
         self.parse_dates: bool | list = parse_dates
         self.date_parser = kwds.pop("date_parser", lib.no_default)
@@ -244,7 +243,7 @@ class ParserBase:
             names.insert(single_ic, single_ic)
 
         # Clean the column names (if we have an index_col).
-        if len(ic):
+        if ic:
             col_names = [
                 r[ic[0]]
                 if ((r[ic[0]] is not None) and r[ic[0]] not in self.unnamed_cols)

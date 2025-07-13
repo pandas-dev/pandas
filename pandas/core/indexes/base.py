@@ -19,7 +19,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs import (
     NaT,
@@ -1728,10 +1731,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return Index or MultiIndex name.
 
+        Returns
+        -------
+        label (hashable object)
+            The name of the Index.
+
         See Also
         --------
         Index.set_names: Able to set new names partially and by level.
         Index.rename: Able to set new names partially and by level.
+        Series.name: Corresponding Series property.
 
         Examples
         --------
@@ -1904,12 +1913,12 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
 
-        names : label or list of label or dict-like for MultiIndex
+        names : Hashable or a sequence of the previous or dict-like for MultiIndex
             Name(s) to set.
 
             .. versionchanged:: 1.3.0
 
-        level : int, label or list of int or label, optional
+        level : int, Hashable or a sequence of the previous, optional
             If the index is a MultiIndex and names is not dict-like, level(s) to set
             (None for all levels). Otherwise level must be None.
 
@@ -2014,7 +2023,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        name : label or list of labels
+        name : Hashable or a sequence of the previous
             Name(s) to set.
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
@@ -2958,10 +2967,14 @@ class Index(IndexOpsMixin, PandasObject):
             and self.tz is not None
             and other.tz is not None
         ):
-            # GH#39328, GH#45357
-            left = self.tz_convert("UTC")
-            right = other.tz_convert("UTC")
-            return left, right
+            # GH#39328, GH#45357, GH#60080
+            # If both timezones are the same, no need to convert to UTC
+            if self.tz == other.tz:
+                return self, other
+            else:
+                left = self.tz_convert("UTC")
+                right = other.tz_convert("UTC")
+                return left, right
         return self, other
 
     @final
@@ -4919,6 +4932,10 @@ class Index(IndexOpsMixin, PandasObject):
            :meth:`Index.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
 
+        .. versionchanged:: 3.0.0
+
+           The returned array is read-only.
+
         Returns
         -------
         array: numpy.ndarray or ExtensionArray
@@ -5464,11 +5481,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quickly return if the lengths are different
             return False
 
-        if (
-            isinstance(self.dtype, StringDtype)
-            and self.dtype.na_value is np.nan
-            and other.dtype != self.dtype
-        ):
+        if isinstance(self.dtype, StringDtype) and other.dtype != self.dtype:
             # TODO(infer_string) can we avoid this special case?
             # special case for object behavior
             return other.equals(self.astype(object))
@@ -6235,6 +6248,24 @@ class Index(IndexOpsMixin, PandasObject):
         """
         target_dtype, _ = infer_dtype_from(target)
 
+        if using_string_dtype():
+            # special case: if left or right is a zero-length RangeIndex or
+            # Index[object], those can be created by the default empty constructors
+            # -> for that case ignore this dtype and always return the other
+            # (https://github.com/pandas-dev/pandas/pull/60797)
+            from pandas.core.indexes.range import RangeIndex
+
+            if len(self) == 0 and (
+                isinstance(self, RangeIndex) or self.dtype == np.object_
+            ):
+                return target_dtype
+            if (
+                isinstance(target, Index)
+                and len(target) == 0
+                and (isinstance(target, RangeIndex) or target_dtype == np.object_)
+            ):
+                return self.dtype
+
         # special case: if one dtype is uint64 and the other a signed int, return object
         # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
         # Now it's:
@@ -6888,6 +6919,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         arr = self._values
 
+        if using_string_dtype() and len(self) == 0 and self.dtype == np.object_:
+            # special case: if we are an empty object-dtype Index, also
+            # take into account the inserted item for the resulting dtype
+            # (https://github.com/pandas-dev/pandas/pull/60797)
+            dtype = self._find_common_type_compat(item)
+            if dtype != self.dtype:
+                return self.astype(dtype).insert(loc, item)
+
         try:
             if isinstance(arr, ExtensionArray):
                 res_values = arr.insert(loc, item)
@@ -6983,6 +7022,23 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         copy : bool, default True
             Whether to make a copy in cases where no inference occurs.
+
+        Returns
+        -------
+        Index
+            An Index with a new dtype if the dtype was inferred
+            or a shallow copy if the dtype could not be inferred.
+
+        See Also
+        --------
+        Index.inferred_type: Return a string of the type inferred from the values.
+
+        Examples
+        --------
+        >>> pd.Index(["a", 1]).infer_objects()
+        Index(['a', '1'], dtype='object')
+        >>> pd.Index([1, 2], dtype="object").infer_objects()
+        Index([1, 2], dtype='int64')
         """
         if self._is_multi:
             raise NotImplementedError(
@@ -7115,10 +7171,10 @@ class Index(IndexOpsMixin, PandasObject):
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
-        return self._construct_result(res_values, name=res_name)
+        return self._construct_result(res_values, name=res_name, other=other)
 
     @final
-    def _construct_result(self, result, name):
+    def _construct_result(self, result, name, other):
         if isinstance(result, tuple):
             return (
                 Index(result[0], name=name, dtype=result[0].dtype),
@@ -7575,7 +7631,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
             # check in clean_index_list
             index_like = list(index_like)
 
-        if len(index_like) and lib.is_all_arraylike(index_like):
+        if index_like and lib.is_all_arraylike(index_like):
             from pandas.core.indexes.multi import MultiIndex
 
             return MultiIndex.from_arrays(index_like)

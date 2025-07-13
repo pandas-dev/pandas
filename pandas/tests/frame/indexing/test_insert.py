@@ -7,8 +7,6 @@ __setitem__.
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 from pandas import (
     DataFrame,
     Index,
@@ -68,23 +66,9 @@ class TestDataFrameInsert:
         df.insert(0, "A", ["d", "e", "f"], allow_duplicates=True)
         df.insert(0, "A", ["a", "b", "c"], allow_duplicates=True)
         exp = DataFrame(
-            [["a", "d", "g"], ["b", "e", "h"], ["c", "f", "i"]],
-            columns=Index(["A", "A", "A"], dtype=object),
+            [["a", "d", "g"], ["b", "e", "h"], ["c", "f", "i"]], columns=["A", "A", "A"]
         )
         tm.assert_frame_equal(df, exp)
-
-    def test_insert_item_cache(self, performance_warning):
-        df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
-        ser = df[0]
-        expected_warning = PerformanceWarning if performance_warning else None
-
-        with tm.assert_produces_warning(expected_warning):
-            for n in range(100):
-                df[n + 3] = df[1] * n
-
-        ser.iloc[0] = 99
-        assert df.iloc[0, 0] == df[0][0]
-        assert df.iloc[0, 0] != 99
 
     def test_insert_EA_no_warning(self):
         # PerformanceWarning about fragmented frame should not be raised when

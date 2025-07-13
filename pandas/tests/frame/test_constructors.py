@@ -21,8 +21,6 @@ from numpy import ma
 from numpy.ma import mrecords
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
@@ -1974,7 +1972,6 @@ class TestDataFrameConstructors:
         df = DataFrame({"value": dr})
         assert str(df.iat[0, 0].tz) == "US/Eastern"
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_constructor_with_datetimes5(self):
         # GH 7822
         # preserver an index with a tz on dict construction
@@ -2782,6 +2779,19 @@ class TestDataFrameConstructors:
             ["NaT", "0 days 00:00:00.000000001"], dtype="timedelta64[ns]"
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_dataframe_from_array_like_with_name_attribute(self):
+        # GH#61443
+        class DummyArray(np.ndarray):
+            def __new__(cls, input_array):
+                obj = np.asarray(input_array).view(cls)
+                obj.name = "foo"
+                return obj
+
+        dummy = DummyArray(np.eye(3))
+        df = DataFrame(dummy)
+        expected = DataFrame(np.eye(3))
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameConstructorIndexInference:

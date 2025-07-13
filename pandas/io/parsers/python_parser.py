@@ -281,7 +281,7 @@ class PythonParser(ParserBase):
 
         index: Index | None
         columns: Sequence[Hashable] = list(self.orig_names)
-        if not len(content):  # pragma: no cover
+        if not content:  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             # error: Cannot determine type of 'index_col'
             names = dedup_names(
@@ -595,8 +595,7 @@ class PythonParser(ParserBase):
                         joi = list(map(str, header[:-1] if have_mi_columns else header))
                         msg = f"[{','.join(joi)}], len of {len(joi)}, "
                         raise ValueError(
-                            f"Passed header={msg}"
-                            f"but only {self.line_pos} lines in file"
+                            f"Passed header={msg}but only {self.line_pos} lines in file"
                         ) from err
 
                     # We have an empty file, so check
@@ -1219,8 +1218,7 @@ class PythonParser(ParserBase):
 
             for row_num, actual_len in bad_lines:
                 msg = (
-                    f"Expected {col_len} fields in line {row_num + 1}, saw "
-                    f"{actual_len}"
+                    f"Expected {col_len} fields in line {row_num + 1}, saw {actual_len}"
                 )
                 if (
                     self.delimiter
@@ -1470,7 +1468,7 @@ class FixedWidthReader(abc.Iterator):
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
         edge_pairs = list(zip(edges[::2], edges[1::2]))
-        return edge_pairs
+        return edge_pairs  # type: ignore[return-value]
 
     def __next__(self) -> list[str]:
         # Argument 1 to "next" has incompatible type "Union[IO[str],

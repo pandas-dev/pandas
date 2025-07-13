@@ -14,7 +14,6 @@ main:
   - pandas_web.Preprocessors.home_add_releases
   - pandas_web.Preprocessors.roadmap_pdeps
   markdown_extensions:
-  - toc
   - tables
   - fenced_code
   - meta
@@ -82,16 +81,11 @@ maintainers:
   - simonjayhawkins
   - topper-123
   - alimcmaster1
-  - bashtage
   - Dr-Irv
-  - MarcoGorelli
   - rhshadrach
   - phofl
   - attack68
   - fangchenli
-  - lithomas1
-  - lukemanley
-  - noatamir
   inactive:
   - lodagro
   - jseabold
@@ -108,6 +102,11 @@ maintainers:
   - gfyoung
   - mzeitlin11
   - twoertwein
+  - MarcoGorelli
+  - bashtage
+  - noatamir
+  - lithomas1
+  - lukemanley
 workgroups:
   coc:
     name: Code of Conduct
@@ -132,62 +131,30 @@ workgroups:
     contact: infrastructure@pandas.pydata.org
     responsibilities: "Keep the pandas infrastructure up and working. In particular the servers for the website, benchmarks, CI and others needed."
     members:
-    - Marc Garcia
-    - Matthew Roeschke
+    - William Ayd
     - Thomas Li
   communications:
     name: Communications
     contact: communications@pandas.pydata.org
     responsibilities: "Share relevant information with the broader community, mainly via our social networks, as well as being the main point of contact between NumFOCUS and the core team."
     members:
-    - Marco Gorelli
-    - Marc Garcia
+    - datapythonista
 sponsors:
   active:
   - name: "NumFOCUS"
     url: https://numfocus.org/
     logo: static/img/partners/numfocus.svg
     kind: numfocus
-  - name: "Two Sigma"
-    url: https://www.twosigma.com/
-    logo: static/img/partners/two_sigma.svg
-    kind: partner
-    description: "Jeff Reback"
-  - name: "Voltron Data"
-    url: https://voltrondata.com/
-    logo: static/img/partners/voltron_data.svg
-    kind: partner
-    description: "Joris Van den Bossche"
-  - name: "Coiled"
-    url: https://www.coiled.io
-    logo: static/img/partners/coiled.svg
-    kind: partner
-    description: "Patrick Hoefler"
-  - name: "Quansight"
-    url: https://quansight.com/
-    logo: static/img/partners/quansight_labs.svg
-    kind: partner
-    description: "Marco Gorelli"
   - name: "Nvidia"
     url: https://www.nvidia.com
     logo: static/img/partners/nvidia.svg
     kind: partner
     description: "Matthew Roeschke"
-  - name: "Intel"
-    url: https://www.intel.com/
-    logo: /static/img/partners/intel.svg
-    kind: partner
-    description: "Brock Mendel"
   - name: "Tidelift"
     url: https://tidelift.com
     logo: static/img/partners/tidelift.svg
     kind: regular
     description: "<i>pandas</i> is part of the <a href=\"https://tidelift.com/subscription/pkg/pypi-pandas?utm_source=pypi-pandas&utm_medium=referral&utm_campaign=readme\">Tidelift subscription</a>. You can support pandas by becoming a Tidelift subscriber."
-  - name: "Chan Zuckerberg Initiative"
-    url: https://chanzuckerberg.com/
-    logo: static/img/partners/czi.svg
-    kind: regular
-    description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintenance, improve extension types, and a efficient string type."
   - name: "Bodo"
     url: https://www.bodo.ai/
     logo: static/img/partners/bodo.svg
@@ -218,6 +185,21 @@ sponsors:
     kind: partner
   - name: "d-fine GmbH"
     url: https://www.d-fine.com/en/
+    kind: partner
+  - name: "Two Sigma"
+    url: https://www.twosigma.com/
+    kind: partner
+  - name: "Voltron Data"
+    url: https://voltrondata.com/
+    kind: partner
+  - name: "Intel"
+    url: https://www.intel.com/
+    kind: partner
+  - name: "Chan Zuckerberg Initiative"
+    url: https://chanzuckerberg.com/
+    kind: regular
+  - name: "Coiled"
+    url: https://www.coiled.io
     kind: partner
 roadmap:
   pdeps_path: pdeps

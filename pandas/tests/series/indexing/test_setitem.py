@@ -4,12 +4,11 @@ from datetime import (
     datetime,
 )
 from decimal import Decimal
-import os
 
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gte1p24
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import is_list_like
@@ -474,12 +473,14 @@ class TestSetitemCallable:
 
 
 class TestSetitemWithExpansion:
-    def test_setitem_empty_series(self):
-        # GH#10193, GH#51363 changed in 3.0 to not do inference in Index.insert
+    def test_setitem_empty_series(self, using_infer_string):
+        # GH#10193
         key = Timestamp("2012-01-01")
         series = Series(dtype=object)
         series[key] = 47
-        expected = Series(47, Index([key], dtype=object))
+        expected = Series(
+            47, index=[key] if using_infer_string else Index([key], dtype=object)
+        )
         tm.assert_series_equal(series, expected)
 
     def test_setitem_empty_series_datetimeindex_preserves_freq(self):
@@ -536,10 +537,7 @@ class TestSetitemWithExpansion:
         ser["a"] = Timestamp("2016-01-01")
         ser["b"] = 3.0
         ser["c"] = "foo"
-        expected = Series(
-            [Timestamp("2016-01-01"), 3.0, "foo"],
-            index=Index(["a", "b", "c"], dtype=object),
-        )
+        expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_not_contained(self, string_series):
@@ -1442,13 +1440,7 @@ class TestCoercionFloat64(CoercionTest):
             np.float32,
             False,
             marks=pytest.mark.xfail(
-                (
-                    not np_version_gte1p24
-                    or (
-                        np_version_gte1p24
-                        and os.environ.get("NPY_PROMOTION_STATE", "weak") != "weak"
-                    )
-                ),
+                not np_version_gt2,
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",
             ),
@@ -1839,3 +1831,13 @@ def test_setitem_empty_mask_dont_upcast_dt64():
     ser.mask(mask, "foo", inplace=True)
     assert ser.dtype == dti.dtype  # no-op -> dont upcast
     tm.assert_series_equal(ser, orig)
+
+
+def test_setitem_bool_dtype_with_boolean_indexer():
+    # GH 57338
+    s1 = Series([True, True, True], dtype=bool)
+    s2 = Series([False, False, False], dtype=bool)
+    condition = [False, True, False]
+    s1[condition] = s2[condition]
+    expected = Series([True, False, True], dtype=bool)
+    tm.assert_series_equal(s1, expected)

@@ -1086,10 +1086,7 @@ def convert_dtypes(
             elif (
                 infer_objects
                 and input_array.dtype == object
-                and (
-                    isinstance(inferred_dtype, str)
-                    and inferred_dtype == "mixed-integer-float"
-                )
+                and (isinstance(inferred_dtype, str) and inferred_dtype == "floating")
             ):
                 inferred_dtype = pandas_dtype_func("Float64")
 
@@ -1113,7 +1110,7 @@ def convert_dtypes(
     else:
         inferred_dtype = input_array.dtype
 
-    if dtype_backend == "pyarrow":
+    if dtype_backend == "pyarrow" and not isinstance(inferred_dtype, ArrowDtype):
         from pandas.core.arrays.arrow.array import to_pyarrow_type
         from pandas.core.arrays.string_ import StringDtype
 
@@ -1127,6 +1124,7 @@ def convert_dtypes(
             or (
                 inferred_dtype.kind not in "iufcb"
                 and not isinstance(inferred_dtype, StringDtype)
+                and not isinstance(inferred_dtype, CategoricalDtype)
             )
         ):
             if isinstance(inferred_dtype, PandasExtensionDtype) and not isinstance(
@@ -1651,7 +1649,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                 # (test_constructor_coercion_signed_to_unsigned) so safe to ignore.
                 warnings.filterwarnings(
                     "ignore",
-                    "NumPy will stop allowing conversion of " "out-of-bound Python int",
+                    "NumPy will stop allowing conversion of out-of-bound Python int",
                     DeprecationWarning,
                 )
                 casted = np.asarray(arr, dtype=dtype)
@@ -1925,6 +1923,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                         # i.e. there are pd.NA elements
                         raise LossySetitemError
                 return element
+            # GH 57338 check boolean array set as object type
+            if tipo.kind == "O" and isinstance(element, np.ndarray):
+                if lib.is_bool_array(element):
+                    return element.astype("bool")
             raise LossySetitemError
         if lib.is_bool(element):
             return element

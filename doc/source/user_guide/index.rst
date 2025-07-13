@@ -78,6 +78,7 @@ Guides
     boolean
     visualization
     style
+    user_defined_functions
     groupby
     window
     timeseries
@@ -86,5 +87,6 @@ Guides
     enhancingperf
     scale
     sparse
+    migration-3-strings
     gotchas
     cookbook

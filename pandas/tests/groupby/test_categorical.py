@@ -506,6 +506,23 @@ def test_observed_groups(observed):
     tm.assert_dict_equal(result, expected)
 
 
+def test_groups_na_category(dropna, observed):
+    # https://github.com/pandas-dev/pandas/issues/61356
+    df = DataFrame(
+        {"cat": Categorical(["a", np.nan, "a"], categories=list("adb"))},
+        index=list("xyz"),
+    )
+    g = df.groupby("cat", observed=observed, dropna=dropna)
+
+    result = g.groups
+    expected = {"a": Index(["x", "z"])}
+    if not dropna:
+        expected |= {np.nan: Index(["y"])}
+    if not observed:
+        expected |= {"b": Index([]), "d": Index([])}
+    tm.assert_dict_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "keys, expected_values, expected_index_levels",
     [
@@ -990,7 +1007,7 @@ def test_sort():
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
     df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 10)})
-    labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
+    labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 
     df = df.sort_values(by=["value"], ascending=True)

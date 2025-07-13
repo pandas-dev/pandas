@@ -21,6 +21,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+# The fixture it's mostly used in pandas/tests/apply, so it's defined in that
+# conftest, which is out of scope here. So we need to manually import
+from pandas.tests.apply.conftest import engine  # noqa: F401
+
 
 def test_series_map_box_timedelta():
     # GH#11349
@@ -32,16 +36,20 @@ def test_series_map_box_timedelta():
     ser.map(f)
 
 
-def test_map_callable(datetime_series):
+def test_map_callable(datetime_series, engine):  # noqa: F811
     with np.errstate(all="ignore"):
-        tm.assert_series_equal(datetime_series.map(np.sqrt), np.sqrt(datetime_series))
+        tm.assert_series_equal(
+            datetime_series.map(np.sqrt, engine=engine), np.sqrt(datetime_series)
+        )
 
     # map function element-wise
-    tm.assert_series_equal(datetime_series.map(math.exp), np.exp(datetime_series))
+    tm.assert_series_equal(
+        datetime_series.map(math.exp, engine=engine), np.exp(datetime_series)
+    )
 
     # empty series
     s = Series(dtype=object, name="foo", index=Index([], name="bar"))
-    rs = s.map(lambda x: x)
+    rs = s.map(lambda x: x, engine=engine)
     tm.assert_series_equal(s, rs)
 
     # check all metadata (GH 9322)
@@ -52,7 +60,7 @@ def test_map_callable(datetime_series):
 
     # index but no data
     s = Series(index=[1, 2, 3], dtype=np.float64)
-    rs = s.map(lambda x: x)
+    rs = s.map(lambda x: x, engine=engine)
     tm.assert_series_equal(s, rs)
 
 
@@ -269,10 +277,10 @@ def test_map_decimal(string_series):
     assert isinstance(result.iloc[0], Decimal)
 
 
-def test_map_na_exclusion():
+def test_map_na_exclusion(engine):  # noqa: F811
     s = Series([1.5, np.nan, 3, np.nan, 5])
 
-    result = s.map(lambda x: x * 2, na_action="ignore")
+    result = s.map(lambda x: x * 2, na_action="ignore", engine=engine)
     exp = s * 2
     tm.assert_series_equal(result, exp)
 
@@ -604,3 +612,42 @@ def test_map_kwargs():
     result = Series([2, 4, 5]).map(lambda x, y: x + y, y=2)
     expected = Series([4, 6, 7])
     tm.assert_series_equal(result, expected)
+
+
+def test_map_arg_as_kwarg():
+    with tm.assert_produces_warning(
+        FutureWarning, match="`arg` has been renamed to `func`"
+    ):
+        Series([1, 2]).map(arg={})
+
+
+def test_map_func_and_arg():
+    # `arg`is considered a normal kwarg that should be passed to the function
+    result = Series([1, 2]).map(lambda _, arg: arg, arg=3)
+    expected = Series([3, 3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_no_func_or_arg():
+    with pytest.raises(ValueError, match="The `func` parameter is required"):
+        Series([1, 2]).map()
+
+
+def test_map_func_is_none():
+    with pytest.raises(ValueError, match="The `func` parameter is required"):
+        Series([1, 2]).map(func=None)
+
+
+@pytest.mark.parametrize("func", [{}, {1: 2}, Series([3, 4])])
+def test_map_engine_no_function(func):
+    s = Series([1, 2])
+
+    with pytest.raises(ValueError, match="engine argument can only be specified"):
+        s.map(func, engine="something")
+
+
+def test_map_engine_not_executor():
+    s = Series([1, 2])
+
+    with pytest.raises(ValueError, match="Not a valid engine: 'something'"):
+        s.map(lambda x: x, engine="something")

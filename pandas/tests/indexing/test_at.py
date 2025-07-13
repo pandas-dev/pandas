@@ -13,7 +13,6 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -50,33 +49,6 @@ def test_selection_methods_of_assigned_col():
 
 
 class TestAtSetItem:
-    def test_at_setitem_item_cache_cleared(self):
-        # GH#22372 Note the multi-step construction is necessary to trigger
-        #  the original bug. pandas/issues/22372#issuecomment-413345309
-        df = DataFrame(index=[0])
-        df["x"] = 1
-        df["cost"] = 2
-
-        # accessing df["cost"] adds "cost" to the _item_cache
-        df["cost"]
-
-        # This loc[[0]] lookup used to call _consolidate_inplace at the
-        #  BlockManager level, which failed to clear the _item_cache
-        df.loc[[0]]
-
-        df.at[0, "x"] = 4
-        df.at[0, "cost"] = 789
-
-        expected = DataFrame(
-            {"x": [4], "cost": 789},
-            index=[0],
-            columns=Index(["x", "cost"], dtype=object),
-        )
-        tm.assert_frame_equal(df, expected)
-
-        # And in particular, check that the _item_cache has updated correctly.
-        tm.assert_series_equal(df["cost"], expected["cost"])
-
     def test_at_setitem_mixed_index_assignment(self):
         # GH#19860
         ser = Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])

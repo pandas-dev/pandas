@@ -1,10 +1,14 @@
 import datetime
 from datetime import timedelta
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import json
 import os
 import sys
 import time
+import uuid
 
 import numpy as np
 import pytest
@@ -1267,9 +1271,7 @@ class TestPandasContainer:
             columns=["a", "b"],
         )
         expected = (
-            '[["(1+0j)","(nan+0j)"],'
-            '["(2.3+0j)","(nan+0j)"],'
-            '["(4-5j)","(1.2+0j)"]]'
+            '[["(1+0j)","(nan+0j)"],["(2.3+0j)","(nan+0j)"],["(4-5j)","(1.2+0j)"]]'
         )
         assert df.to_json(default_handler=str, orient="values") == expected
 
@@ -1372,11 +1374,7 @@ class TestPandasContainer:
     )
     def test_tz_range_is_utc(self, tz_range):
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
-        dfexp = (
-            '{"DT":{'
-            '"0":"2013-01-01T05:00:00.000Z",'
-            '"1":"2013-01-02T05:00:00.000Z"}}'
-        )
+        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}}'
 
         assert ujson_dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
@@ -1414,11 +1412,10 @@ class TestPandasContainer:
     @pytest.mark.single_cpu
     @pytest.mark.network
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
+    def test_read_s3_jsonl(self, s3_bucket_public_with_data, s3so):
         # GH17200
-
         result = read_json(
-            f"s3n://{s3_public_bucket_with_data.name}/items.jsonl",
+            f"s3n://{s3_bucket_public_with_data.name}/items.jsonl",
             lines=True,
             storage_options=s3so,
         )
@@ -1569,11 +1566,8 @@ class TestPandasContainer:
         result = read_json(StringIO(dfjson), orient="table")
         tm.assert_frame_equal(result, expected)
 
-    # TODO: We are casting to string which coerces None to NaN before casting back
-    # to object, ending up with incorrect na values
-    @pytest.mark.xfail(using_string_dtype(), reason="incorrect na conversion")
     @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
-    def test_to_json_from_json_columns_dtypes(self, orient):
+    def test_to_json_from_json_columns_dtypes(self, orient, using_infer_string):
         # GH21892 GH33205
         expected = DataFrame.from_dict(
             {
@@ -1593,6 +1587,11 @@ class TestPandasContainer:
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             dfjson = expected.to_json(orient=orient)
+
+        if using_infer_string:
+            # When this is read back in it is inferred to "str" dtype which
+            #  uses NaN instead of None.
+            expected.loc[0, "Object"] = np.nan
 
         result = read_json(
             StringIO(dfjson),
@@ -1759,6 +1758,7 @@ class TestPandasContainer:
         [
             "s3://example-fsspec/",
             "gcs://another-fsspec/file.json",
+            "filecache::s3://yet-another-fsspec/file.json",
             "https://example-site.com/data",
             "some-protocol://data.txt",
         ],
@@ -1775,7 +1775,7 @@ class TestPandasContainer:
     )
     def test_read_json_with_very_long_file_path(self, compression):
         # GH 46718
-        long_json_path = f'{"a" * 1000}.json{compression}'
+        long_json_path = f"{'a' * 1000}.json{compression}"
         with pytest.raises(
             FileNotFoundError, match=f"File {long_json_path} does not exist"
         ):
@@ -2013,14 +2013,15 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     @pytest.mark.network
-    def test_to_s3(self, s3_public_bucket, s3so):
+    def test_to_s3(self, s3_bucket_public, s3so):
         # GH 28375
-        mock_bucket_name, target_file = s3_public_bucket.name, "test.json"
+        mock_bucket_name = s3_bucket_public.name
+        target_file = f"{uuid.uuid4()}.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
         df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5
         while True:
-            if target_file in (obj.key for obj in s3_public_bucket.objects.all()):
+            if target_file in (obj.key for obj in s3_bucket_public.objects.all()):
                 break
             time.sleep(0.1)
             timeout -= 0.1
@@ -2188,6 +2189,30 @@ class TestPandasContainer:
         # the storage of the str columns' Index is also affected by the
         # string_storage setting -> ignore that for checking the result
         tm.assert_frame_equal(result, expected, check_column_type=False)
+
+    @td.skip_if_no("pyarrow")
+    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
+    def test_read_json_pyarrow_with_dtype(self):
+        dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
+        json = b'{"a": 1, "b": 2}\n'
+
+        df = read_json(
+            BytesIO(json),
+            dtype=dtype,
+            lines=True,
+            engine="pyarrow",
+            dtype_backend="pyarrow",
+        )
+
+        result = df.dtypes
+        expected = Series(
+            data=[
+                pd.ArrowDtype.construct_from_string("int32[pyarrow]"),
+                pd.ArrowDtype.construct_from_string("int64[pyarrow]"),
+            ],
+            index=["a", "b"],
+        )
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("orient", ["split", "records", "index"])
     def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):

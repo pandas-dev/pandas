@@ -835,6 +835,16 @@ class TestDataFrameAnalytics:
         expected = Series([], index=index, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("min_count", [0, 1])
+    def test_axis_1_sum_na(self, string_dtype_no_object, skipna, min_count):
+        # https://github.com/pandas-dev/pandas/issues/60229
+        dtype = string_dtype_no_object
+        df = DataFrame({"a": [pd.NA]}, dtype=dtype)
+        result = df.sum(axis=1, skipna=skipna, min_count=min_count)
+        value = "" if skipna and min_count == 0 else pd.NA
+        expected = Series([value], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
     @pytest.mark.parametrize("numeric_only", [None, True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):
@@ -1544,6 +1554,44 @@ class TestDataFrameReductions:
         exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
+    def test_min_max_dt64_with_NaT_precision(self):
+        # GH#60646 Make sure the reduction doesn't cast input timestamps to
+        # float and lose precision.
+        df = DataFrame(
+            {"foo": [pd.NaT, pd.NaT, Timestamp("2012-05-01 09:20:00.123456789")]},
+            dtype="datetime64[ns]",
+        )
+
+        res = df.min(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+        res = df.max(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max_td64_with_NaT_precision(self):
+        # GH#60646 Make sure the reduction doesn't cast input timedeltas to
+        # float and lose precision.
+        df = DataFrame(
+            {
+                "foo": [
+                    pd.NaT,
+                    pd.NaT,
+                    to_timedelta("10000 days 06:05:01.123456789"),
+                ],
+            },
+            dtype="timedelta64[ns]",
+        )
+
+        res = df.min(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+        res = df.max(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
     def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
         # GH#36907
         tz = tz_naive_fixture
@@ -1868,6 +1916,39 @@ class TestEmptyDataFrameReductions:
 
         expected = Series([pd.NA, pd.NA], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"a": [0, 1, 2], "b": [pd.NaT, pd.NaT, pd.NaT]},
+            {"a": [0, 1, 2], "b": [Timestamp("1990-01-01"), pd.NaT, pd.NaT]},
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    Timestamp("1990-01-01"),
+                    Timestamp("1991-01-01"),
+                    Timestamp("1992-01-01"),
+                ],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.NaT],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    pd.Timedelta("1 days"),
+                    pd.Timedelta("2 days"),
+                    pd.Timedelta("3 days"),
+                ],
+            },
+        ],
+    )
+    def test_df_cov_pd_nat(self, data):
+        # GH #53115
+        df = DataFrame(data)
+        with pytest.raises(TypeError, match="not supported for cov"):
+            df.cov()
 
 
 def test_sum_timedelta64_skipna_false():

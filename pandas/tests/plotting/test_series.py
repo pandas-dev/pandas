@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_linux
-from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -277,7 +276,7 @@ class TestSeriesPlots:
         assert label2 == ""
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
+        is_platform_linux(),
         reason="Weird rounding problems",
         strict=False,
     )
@@ -290,7 +289,7 @@ class TestSeriesPlots:
         tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
+        is_platform_linux(),
         reason="Weird rounding problems",
         strict=False,
     )
@@ -427,7 +426,7 @@ class TestSeriesPlots:
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
-        pcts = [f"{s*100:.2f}" for s in series.values / series.sum()]
+        pcts = [f"{s * 100:.2f}" for s in series.values / series.sum()]
         expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         _check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
@@ -971,3 +970,27 @@ class TestSeriesPlots:
         s1.plot(ax=ax2)
         assert len(ax.xaxis.get_minor_ticks()) == 0
         assert len(ax.get_xticklabels()) > 0
+
+    def test_bar_line_plot(self):
+        """
+        Test that bar and line plots with the same x values are superposed
+        and that the x limits are set such that the plots are visible.
+        """
+        # GH61161
+        index = period_range("2023", periods=3, freq="Y")
+        years = set(index.year.astype(str))
+        s = Series([1, 2, 3], index=index)
+        ax = plt.subplot()
+        s.plot(kind="bar", ax=ax)
+        bar_xticks = [
+            label for label in ax.get_xticklabels() if label.get_text() in years
+        ]
+        s.plot(kind="line", ax=ax, color="r")
+        line_xticks = [
+            label for label in ax.get_xticklabels() if label.get_text() in years
+        ]
+        assert len(bar_xticks) == len(index)
+        assert bar_xticks == line_xticks
+        x_limits = ax.get_xlim()
+        assert x_limits[0] <= bar_xticks[0].get_position()[0]
+        assert x_limits[1] >= bar_xticks[-1].get_position()[0]

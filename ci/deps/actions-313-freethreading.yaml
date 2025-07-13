@@ -1,0 +1,29 @@
+name: pandas-dev-313-freethreading
+channels:
+  - conda-forge
+dependencies:
+  - python-freethreading
+
+  # build dependencies
+  - setuptools
+  - versioneer
+  - cython<4.0.0a0
+  - meson=1.8.0
+  - meson-python=0.18.0
+
+  # test dependencies
+  - pytest>=7.3.2
+  - pytest-xdist>=3.4.0
+
+  # required dependencies
+  - python-dateutil
+  - numpy
+
+  # optional dependencies
+  - hypothesis>=6.84.0
+
+  - pip:
+    # No free-threaded coveragepy (with the C-extension) on conda-forge yet
+    - pytest-cov
+    - tzdata>=2023.3
+    - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"

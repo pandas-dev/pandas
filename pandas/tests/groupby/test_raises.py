@@ -263,10 +263,7 @@ def test_groupby_raises_string_np(
     if using_infer_string:
         if groupby_func_np is np.mean:
             klass = TypeError
-        msg = (
-            f"Cannot perform reduction '{groupby_func_np.__name__}' "
-            "with string dtype"
-        )
+        msg = f"Cannot perform reduction '{groupby_func_np.__name__}' with string dtype"
 
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
@@ -674,7 +671,7 @@ def test_groupby_raises_category_on_category(
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
         "prod": (TypeError, "category type does not support prod operations"),
-        "quantile": (TypeError, ""),
+        "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
         "sem": (
             TypeError,

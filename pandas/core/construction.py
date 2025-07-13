@@ -81,6 +81,10 @@ def array(
     """
     Create an array.
 
+    This method constructs an array using pandas extension types when possible.
+    If `dtype` is specified, it determines the type of array returned. Otherwise,
+    pandas attempts to infer the appropriate dtype based on `data`.
+
     Parameters
     ----------
     data : Sequence of objects
@@ -596,6 +600,8 @@ def sanitize_array(
         # create an extension array from its dtype
         _sanitize_non_ordered(data)
         cls = dtype.construct_array_type()
+        if not hasattr(data, "__array__"):
+            data = list(data)
         subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
 
     # GH#846

@@ -2,6 +2,7 @@ from collections import abc
 from decimal import Decimal
 from enum import Enum
 from sys import getsizeof
+from types import GenericAlias
 from typing import (
     Literal,
     _GenericAlias,
@@ -502,7 +503,7 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     return True
 
 
-def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
+def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, intp_t max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
         intp_t k, vstart, vlast, v
@@ -777,7 +778,10 @@ cpdef ndarray[object] ensure_string_array(
             return out
         arr = arr.to_numpy(dtype=object)
     elif not util.is_array(arr):
-        arr = np.array(arr, dtype="object")
+        # GH#61155: Guarantee a 1-d result when array is a list of lists
+        input_arr = arr
+        arr = np.empty(len(arr), dtype="object")
+        arr[:] = input_arr
 
     result = np.asarray(arr, dtype="object")
 
@@ -981,15 +985,13 @@ def get_level_sorter(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
+def count_level_2d(const uint8_t[:, :] mask,
                    const intp_t[:] labels,
                    Py_ssize_t max_bin,
                    ):
     cdef:
-        Py_ssize_t i, j, k, n
+        Py_ssize_t i, j, k = mask.shape[1], n = mask.shape[0]
         ndarray[int64_t, ndim=2] counts
-
-    n, k = (<object>mask).shape
 
     counts = np.zeros((n, max_bin), dtype="i8")
     with nogil:
@@ -1297,7 +1299,7 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
         getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
         # exclude Generic types that have __iter__
-        and not isinstance(obj, (str, bytes, _GenericAlias))
+        and not isinstance(obj, (str, bytes, _GenericAlias, GenericAlias))
         # exclude zero-dimensional duck-arrays, effectively scalars
         and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # exclude sets if allow_sets is False
@@ -1520,11 +1522,16 @@ cdef object _try_infer_map(object dtype):
 
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Return a string label of the type of a scalar or list-like of values.
+    Return a string label of the type of the elements in a list-like input.
+
+    This method inspects the elements of the provided input and determines
+    classification of its data type. It is particularly useful for
+    handling heterogeneous data inputs where explicit dtype conversion may not
+    be possible or necessary.
 
     Parameters
     ----------
-    value : scalar, list, ndarray, or pandas type
+    value : list, ndarray, or pandas type
         The input data to infer the dtype.
     skipna : bool, default True
         Ignore NaN values when inferring the type.
@@ -1745,7 +1752,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "complex"
 
     elif util.is_float_object(val):
-        if is_float_array(values):
+        if is_float_array(values, skipna=skipna):
             return "floating"
         elif is_integer_float_array(values, skipna=skipna):
             if is_integer_na_array(values, skipna=skipna):
@@ -1882,7 +1889,7 @@ cdef class BoolValidator(Validator):
 
 cpdef bint is_bool_array(ndarray values, bint skipna=False):
     cdef:
-        BoolValidator validator = BoolValidator(len(values),
+        BoolValidator validator = BoolValidator(values.size,
                                                 values.dtype,
                                                 skipna=skipna)
     return validator.validate(values)
@@ -1900,7 +1907,7 @@ cdef class IntegerValidator(Validator):
 # Note: only python-exposed for tests
 cpdef bint is_integer_array(ndarray values, bint skipna=True):
     cdef:
-        IntegerValidator validator = IntegerValidator(len(values),
+        IntegerValidator validator = IntegerValidator(values.size,
                                                       values.dtype,
                                                       skipna=skipna)
     return validator.validate(values)
@@ -1915,7 +1922,7 @@ cdef class IntegerNaValidator(Validator):
 
 cdef bint is_integer_na_array(ndarray values, bint skipna=True):
     cdef:
-        IntegerNaValidator validator = IntegerNaValidator(len(values),
+        IntegerNaValidator validator = IntegerNaValidator(values.size,
                                                           values.dtype, skipna=skipna)
     return validator.validate(values)
 
@@ -1931,7 +1938,7 @@ cdef class IntegerFloatValidator(Validator):
 
 cdef bint is_integer_float_array(ndarray values, bint skipna=True):
     cdef:
-        IntegerFloatValidator validator = IntegerFloatValidator(len(values),
+        IntegerFloatValidator validator = IntegerFloatValidator(values.size,
                                                                 values.dtype,
                                                                 skipna=skipna)
     return validator.validate(values)
@@ -1947,9 +1954,11 @@ cdef class FloatValidator(Validator):
 
 
 # Note: only python-exposed for tests
-cpdef bint is_float_array(ndarray values):
+cpdef bint is_float_array(ndarray values, bint skipna=True):
     cdef:
-        FloatValidator validator = FloatValidator(len(values), values.dtype)
+        FloatValidator validator = FloatValidator(values.size,
+                                                  values.dtype,
+                                                  skipna=skipna)
     return validator.validate(values)
 
 
@@ -1967,7 +1976,7 @@ cdef class ComplexValidator(Validator):
 
 cdef bint is_complex_array(ndarray values):
     cdef:
-        ComplexValidator validator = ComplexValidator(len(values), values.dtype)
+        ComplexValidator validator = ComplexValidator(values.size, values.dtype)
     return validator.validate(values)
 
 
@@ -1980,7 +1989,7 @@ cdef class DecimalValidator(Validator):
 cdef bint is_decimal_array(ndarray values, bint skipna=False):
     cdef:
         DecimalValidator validator = DecimalValidator(
-            len(values), values.dtype, skipna=skipna
+            values.size, values.dtype, skipna=skipna
         )
     return validator.validate(values)
 
@@ -1996,7 +2005,7 @@ cdef class StringValidator(Validator):
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:
-        StringValidator validator = StringValidator(len(values),
+        StringValidator validator = StringValidator(values.size,
                                                     values.dtype,
                                                     skipna=skipna)
     return validator.validate(values)
@@ -2013,7 +2022,7 @@ cdef class BytesValidator(Validator):
 
 cdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
-        BytesValidator validator = BytesValidator(len(values), values.dtype,
+        BytesValidator validator = BytesValidator(values.size, values.dtype,
                                                   skipna=skipna)
     return validator.validate(values)
 
@@ -2064,7 +2073,7 @@ cdef class DatetimeValidator(TemporalValidator):
 
 cpdef bint is_datetime_array(ndarray values, bint skipna=True):
     cdef:
-        DatetimeValidator validator = DatetimeValidator(len(values),
+        DatetimeValidator validator = DatetimeValidator(values.size,
                                                         skipna=skipna)
     return validator.validate(values)
 
@@ -2078,7 +2087,7 @@ cdef class Datetime64Validator(DatetimeValidator):
 # Note: only python-exposed for tests
 cpdef bint is_datetime64_array(ndarray values, bint skipna=True):
     cdef:
-        Datetime64Validator validator = Datetime64Validator(len(values),
+        Datetime64Validator validator = Datetime64Validator(values.size,
                                                             skipna=skipna)
     return validator.validate(values)
 
@@ -2093,7 +2102,7 @@ cdef class AnyDatetimeValidator(DatetimeValidator):
 
 cdef bint is_datetime_or_datetime64_array(ndarray values, bint skipna=True):
     cdef:
-        AnyDatetimeValidator validator = AnyDatetimeValidator(len(values),
+        AnyDatetimeValidator validator = AnyDatetimeValidator(values.size,
                                                               skipna=skipna)
     return validator.validate(values)
 
@@ -2105,7 +2114,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     Doesn't check values are datetime-like types.
     """
     cdef:
-        Py_ssize_t i = 0, j, n = len(values)
+        Py_ssize_t i = 0, j, n = values.size
         object base_val, base_tz, val, tz
 
     if n == 0:
@@ -2153,7 +2162,7 @@ cpdef bint is_timedelta_or_timedelta64_array(ndarray values, bint skipna=True):
     Infer with timedeltas and/or nat/none.
     """
     cdef:
-        AnyTimedeltaValidator validator = AnyTimedeltaValidator(len(values),
+        AnyTimedeltaValidator validator = AnyTimedeltaValidator(values.size,
                                                                 skipna=skipna)
     return validator.validate(values)
 
@@ -2167,7 +2176,7 @@ cdef class DateValidator(Validator):
 # Note: only python-exposed for tests
 cpdef bint is_date_array(ndarray values, bint skipna=False):
     cdef:
-        DateValidator validator = DateValidator(len(values), skipna=skipna)
+        DateValidator validator = DateValidator(values.size, skipna=skipna)
     return validator.validate(values)
 
 
@@ -2180,7 +2189,7 @@ cdef class TimeValidator(Validator):
 # Note: only python-exposed for tests
 cpdef bint is_time_array(ndarray values, bint skipna=False):
     cdef:
-        TimeValidator validator = TimeValidator(len(values), skipna=skipna)
+        TimeValidator validator = TimeValidator(values.size, skipna=skipna)
     return validator.validate(values)
 
 
@@ -2231,14 +2240,14 @@ cpdef bint is_interval_array(ndarray values):
     Is this an ndarray of Interval (or np.nan) with a single dtype?
     """
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = values.size
         str closed = None
         bint numeric = False
         bint dt64 = False
         bint td64 = False
         object val
 
-    if len(values) == 0:
+    if n == 0:
         return False
 
     for i in range(n):

@@ -7,7 +7,7 @@ runs:
   using: composite
   steps:
     - name: Install ${{ inputs.environment-file }}
-      uses: mamba-org/setup-micromamba@v1
+      uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: ${{ inputs.environment-file }}
         environment-name: test

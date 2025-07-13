@@ -39,9 +39,11 @@ from pandas.compat import (
     PY312,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
+    pa_version_under19p0,
+    pa_version_under20p0,
+    pa_version_under21p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -66,10 +68,7 @@ from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
 
-from pandas.core.arrays.arrow.array import (
-    ArrowExtensionArray,
-    get_unit_from_pa_dtype,
-)
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
@@ -351,15 +350,6 @@ class TestArrowArray(base.ExtensionTests):
                     reason="Nanosecond time parsing not supported.",
                 )
             )
-        elif pa_version_under11p0 and (
-            pa.types.is_duration(pa_dtype) or pa.types.is_decimal(pa_dtype)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support parsing {pa_dtype}",
-                )
-            )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
             _require_timezone_database(request)
 
@@ -453,31 +443,24 @@ class TestArrowArray(base.ExtensionTests):
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if op_name in ["kurt", "skew"]:
+        if op_name == "kurt" or (pa_version_under20p0 and op_name == "skew"):
             return False
 
         dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
-        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod"]:
+        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod", "skew"]:
             if pa.types.is_duration(pa_dtype) and op_name in ["sum"]:
                 # summing timedeltas is one case that *is* well-defined
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name == "sum":
+        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew"]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and op_name in [
-            "mean",
-            "median",
-            "prod",
-            "std",
-            "sem",
-            "var",
-        ]:
+        ) and op_name in ["mean", "median", "prod", "std", "sem", "var", "skew"]:
             return False
 
         if (
@@ -554,14 +537,16 @@ class TestArrowArray(base.ExtensionTests):
                 elif pa.types.is_date(pa_type):
                     cmp_dtype = ArrowDtype(pa.duration("s"))
                 elif pa.types.is_time(pa_type):
-                    unit = get_unit_from_pa_dtype(pa_type)
-                    cmp_dtype = ArrowDtype(pa.duration(unit))
+                    cmp_dtype = ArrowDtype(pa.duration(pa_type.unit))
                 else:
                     cmp_dtype = ArrowDtype(pa.duration(pa_type.unit))
             else:
                 cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
-            if op_name not in ["median", "var", "std", "sem"]:
+            if op_name == "sum" and not pa_version_under21p0:
+                # https://github.com/apache/arrow/pull/44184
+                cmp_dtype = ArrowDtype(pa.decimal128(38, 3))
+            elif op_name not in ["median", "var", "std", "sem", "skew"]:
                 cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
@@ -579,10 +564,29 @@ class TestArrowArray(base.ExtensionTests):
             }[arr.dtype.kind]
         return cmp_dtype
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if (
+            not pa_version_under20p0
+            and skipna
+            and all_numeric_reductions == "skew"
+            and (
+                pa.types.is_integer(data.dtype.pyarrow_dtype)
+                or pa.types.is_floating(data.dtype.pyarrow_dtype)
+            )
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="https://github.com/apache/arrow/issues/45733",
+                )
+            )
+        return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
-        if op_name == "skew":
+        if op_name == "skew" and pa_version_under20p0:
             if data.dtype._is_numeric:
                 mark = pytest.mark.xfail(reason="skew not implemented")
                 request.applymarker(mark)
@@ -964,8 +968,7 @@ class TestArrowArray(base.ExtensionTests):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(
-                    f"{opname} not supported between"
-                    f"pd.NA and {pa_dtype} Python scalar"
+                    f"{opname} not supported betweenpd.NA and {pa_dtype} Python scalar"
                 ),
             )
         elif opname == "__rfloordiv__" and (
@@ -2683,6 +2686,7 @@ def test_dt_tz_localize_unsupported_tz_options():
         ser.dt.tz_localize("UTC", nonexistent="NaT")
 
 
+@pytest.mark.xfail(reason="Converts to UTC before localizing GH#61780")
 def test_dt_tz_localize_none():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
@@ -2690,7 +2694,7 @@ def test_dt_tz_localize_none():
     )
     result = ser.dt.tz_localize(None)
     expected = pd.Series(
-        [datetime(year=2023, month=1, day=2, hour=3), None],
+        [ser[0].tz_localize(None), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
     tm.assert_series_equal(result, expected)
@@ -2750,7 +2754,7 @@ def test_dt_tz_convert_none():
     )
     result = ser.dt.tz_convert(None)
     expected = pd.Series(
-        [datetime(year=2023, month=1, day=2, hour=3), None],
+        [ser[0].tz_convert(None), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
     tm.assert_series_equal(result, expected)
@@ -2764,7 +2768,7 @@ def test_dt_tz_convert(unit):
     )
     result = ser.dt.tz_convert("US/Eastern")
     expected = pd.Series(
-        [datetime(year=2023, month=1, day=2, hour=3), None],
+        [ser[0].tz_convert("US/Eastern"), None],
         dtype=ArrowDtype(pa.timestamp(unit, "US/Eastern")),
     )
     tm.assert_series_equal(result, expected)
@@ -3077,7 +3081,7 @@ def test_infer_dtype_pyarrow_dtype(data, request):
     res = lib.infer_dtype(data)
     assert res != "unknown-array"
 
-    if data._hasna and res in ["floating", "datetime64", "timedelta64"]:
+    if data._hasna and res in ["datetime64", "timedelta64"]:
         mark = pytest.mark.xfail(
             reason="in infer_dtype pd.NA is not ignored in these cases "
             "even with skipna=True in the list(data) check below"
@@ -3275,21 +3279,15 @@ def test_pow_missing_operand():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under11p0, reason="Decimal128 to string cast implemented in pyarrow 11"
-)
 def test_decimal_parse_raises():
     # GH 56984
     ser = pd.Series(["1.2345"], dtype=ArrowDtype(pa.string()))
     with pytest.raises(
-        pa.lib.ArrowInvalid, match="Rescaling Decimal128 value would cause data loss"
+        pa.lib.ArrowInvalid, match="Rescaling Decimal(128)? value would cause data loss"
     ):
         ser.astype(ArrowDtype(pa.decimal128(1, 0)))
 
 
-@pytest.mark.skipif(
-    pa_version_under11p0, reason="Decimal128 to string cast implemented in pyarrow 11"
-)
 def test_decimal_parse_succeeds():
     # GH 56984
     ser = pd.Series(["1.2345"], dtype=ArrowDtype(pa.string()))
@@ -3328,6 +3326,18 @@ def test_factorize_chunked_dictionary():
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
     tm.assert_numpy_array_equal(res_indices, exp_indicies)
     tm.assert_index_equal(res_uniques, exp_uniques)
+
+
+def test_factorize_dictionary_with_na():
+    # GH#60567
+    arr = pd.array(
+        ["a1", pd.NA], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+    )
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([0, 1], dtype=np.intp)
+    expected_uniques = pd.array(["a1", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
 def test_dictionary_astype_categorical():
@@ -3511,4 +3521,58 @@ def test_map_numeric_na_action():
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
     expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_categorical_from_arrow_dictionary():
+    # GH 60563
+    df = pd.DataFrame(
+        {"A": ["a1", "a2"]}, dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.utf8()))
+    )
+    result = df.value_counts(dropna=False)
+    expected = pd.Series(
+        [1, 1],
+        index=pd.MultiIndex.from_arrays(
+            [pd.Index(["a1", "a2"], dtype=ArrowDtype(pa.string()), name="A")]
+        ),
+        name="count",
+        dtype="int64",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    pa_version_under19p0, reason="pa.json_ was introduced in pyarrow v19.0"
+)
+def test_arrow_json_type():
+    # GH 60958
+    dtype = ArrowDtype(pa.json_(pa.string()))
+    result = dtype.type
+    assert result == str
+
+
+def test_timestamp_dtype_disallows_decimal():
+    # GH#61773 constructing with pyarrow timestamp dtype should disallow
+    #  Decimal NaN, just like pd.to_datetime
+    vals = [pd.Timestamp("2016-01-02 03:04:05"), Decimal("NaN")]
+
+    msg = "<class 'decimal.Decimal'> is not convertible to datetime"
+    with pytest.raises(TypeError, match=msg):
+        # Check that the non-pyarrow version raises as expected
+        pd.to_datetime(vals)
+
+    with pytest.raises(TypeError, match=msg):
+        pd.array(vals, dtype=ArrowDtype(pa.timestamp("us")))
+
+
+def test_timestamp_dtype_matches_to_datetime():
+    # GH#61775
+    dtype1 = "datetime64[ns, US/Eastern]"
+    dtype2 = "timestamp[ns, US/Eastern][pyarrow]"
+
+    ts = pd.Timestamp("2025-07-03 18:10")
+
+    result = pd.Series([ts], dtype=dtype2)
+    expected = pd.Series([ts], dtype=dtype1).convert_dtypes(dtype_backend="pyarrow")
+
     tm.assert_series_equal(result, expected)

@@ -4,6 +4,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -15,7 +17,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.tests.apply.conftest import MockEngineDecorator
 from pandas.tests.frame.common import zip_frames
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -32,7 +36,13 @@ def int_frame_const_col():
     return df
 
 
-@pytest.fixture(params=["python", pytest.param("numba", marks=pytest.mark.single_cpu)])
+@pytest.fixture(
+    params=[
+        "python",
+        pytest.param("numba", marks=pytest.mark.single_cpu),
+        MockEngineDecorator,
+    ]
+)
 def engine(request):
     if request.param == "numba":
         pytest.importorskip("numba")
@@ -65,6 +75,13 @@ def test_apply(float_frame, engine, request):
 @pytest.mark.parametrize("raw", [True, False])
 @pytest.mark.parametrize("nopython", [True, False])
 def test_apply_args(float_frame, axis, raw, engine, nopython):
+    numba = pytest.importorskip("numba")
+    if (
+        engine == "numba"
+        and Version(numba.__version__) == Version("0.61")
+        and is_platform_arm()
+    ):
+        pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
     engine_kwargs = {"nopython": nopython}
     result = float_frame.apply(
         lambda x, y: x + y,
@@ -265,7 +282,7 @@ def test_apply_broadcast_scalars(float_frame):
 def test_apply_broadcast_scalars_axis1(float_frame):
     result = float_frame.apply(np.mean, axis=1, result_type="broadcast")
     m = float_frame.mean(axis=1)
-    expected = DataFrame({c: m for c in float_frame.columns})
+    expected = DataFrame(dict.fromkeys(float_frame.columns, m))
     tm.assert_frame_equal(result, expected)
 
 
@@ -292,7 +309,7 @@ def test_apply_broadcast_lists_index(float_frame):
     )
     m = list(range(len(float_frame.index)))
     expected = DataFrame(
-        {c: m for c in float_frame.columns},
+        dict.fromkeys(float_frame.columns, m),
         dtype="float64",
         index=float_frame.index,
     )
@@ -1069,12 +1086,21 @@ def test_result_type_broadcast(int_frame_const_col, request, engine):
         mark = pytest.mark.xfail(reason="numba engine doesn't support list return")
         request.node.add_marker(mark)
     df = int_frame_const_col
-    # broadcast result
-    result = df.apply(
-        lambda x: [1, 2, 3], axis=1, result_type="broadcast", engine=engine
-    )
-    expected = df.copy()
-    tm.assert_frame_equal(result, expected)
+    if engine is MockEngineDecorator:
+        with pytest.raises(
+            NotImplementedError,
+            match="result_type='broadcast' only implemented for the default engine",
+        ):
+            df.apply(
+                lambda x: [1, 2, 3], axis=1, result_type="broadcast", engine=engine
+            )
+    else:
+        # broadcast result
+        result = df.apply(
+            lambda x: [1, 2, 3], axis=1, result_type="broadcast", engine=engine
+        )
+        expected = df.copy()
+        tm.assert_frame_equal(result, expected)
 
 
 def test_result_type_broadcast_series_func(int_frame_const_col, engine, request):
@@ -1087,14 +1113,27 @@ def test_result_type_broadcast_series_func(int_frame_const_col, engine, request)
         request.node.add_marker(mark)
     df = int_frame_const_col
     columns = ["other", "col", "names"]
-    result = df.apply(
-        lambda x: Series([1, 2, 3], index=columns),
-        axis=1,
-        result_type="broadcast",
-        engine=engine,
-    )
-    expected = df.copy()
-    tm.assert_frame_equal(result, expected)
+
+    if engine is MockEngineDecorator:
+        with pytest.raises(
+            NotImplementedError,
+            match="result_type='broadcast' only implemented for the default engine",
+        ):
+            df.apply(
+                lambda x: Series([1, 2, 3], index=columns),
+                axis=1,
+                result_type="broadcast",
+                engine=engine,
+            )
+    else:
+        result = df.apply(
+            lambda x: Series([1, 2, 3], index=columns),
+            axis=1,
+            result_type="broadcast",
+            engine=engine,
+        )
+        expected = df.copy()
+        tm.assert_frame_equal(result, expected)
 
 
 def test_result_type_series_result(int_frame_const_col, engine, request):
@@ -1781,3 +1820,9 @@ def test_agg_dist_like_and_nonunique_columns():
     result = df.agg({"A": "count"})
     expected = df["A"].count()
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("engine_name", ["unknown", 25])
+def test_wrong_engine(engine_name):
+    with pytest.raises(ValueError, match="Unknown engine "):
+        DataFrame().apply(lambda x: x, engine=engine_name)

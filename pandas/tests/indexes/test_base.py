@@ -40,6 +40,7 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
+from pandas.testing import assert_series_equal
 
 
 class TestIndex:
@@ -1112,8 +1113,7 @@ class TestIndex:
     def test_take_fill_value_none_raises(self):
         index = Index(list("ABC"), name="xxx")
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
 
         with pytest.raises(ValueError, match=msg):
@@ -1718,3 +1718,27 @@ def test_is_monotonic_pyarrow_list_type():
     idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     assert not idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing
+
+
+def test_index_equals_different_string_dtype(string_dtype_no_object):
+    # GH 61099
+    idx_obj = Index(["a", "b", "c"])
+    idx_str = Index(["a", "b", "c"], dtype=string_dtype_no_object)
+
+    assert idx_obj.equals(idx_str)
+    assert idx_str.equals(idx_obj)
+
+
+def test_index_comparison_different_string_dtype(string_dtype_no_object):
+    # GH 61099
+    idx = Index(["a", "b", "c"])
+    s_obj = Series([1, 2, 3], index=idx)
+    s_str = Series([4, 5, 6], index=idx.astype(string_dtype_no_object))
+
+    expected = Series([True, True, True], index=["a", "b", "c"])
+    result = s_obj < s_str
+    assert_series_equal(result, expected)
+
+    result = s_str > s_obj
+    expected.index = idx.astype(string_dtype_no_object)
+    assert_series_equal(result, expected)
