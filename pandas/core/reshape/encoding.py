@@ -35,9 +35,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        NpDtype,
-    )
+    from pandas._typing import NpDtype
 
 
 def get_dummies(
