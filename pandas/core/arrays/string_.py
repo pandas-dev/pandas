@@ -444,6 +444,9 @@ class BaseStringArray(ExtensionArray):
             elif dtype == np.dtype("bool"):
                 # GH#55736
                 na_value = bool(na_value)
+
+            dtype = pandas_dtype(dtype)
+            pass_dtype = dtype.numpy_dtype
             result = lib.map_infer_mask(
                 arr,
                 f,
@@ -453,7 +456,7 @@ class BaseStringArray(ExtensionArray):
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(cast(type, dtype)),
+                dtype=np.dtype(cast(type, pass_dtype)),
             )
 
             if not na_value_is_na:
@@ -837,7 +840,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             arr_ea = self.copy()
             mask = self.isna()
             arr_ea[mask] = "0"
-            values = arr_ea.astype(dtype.numpy_dtype)
+            values = arr_ea.to_numpy(dtype=dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
             # Skip the NumpyExtensionArray.astype method

@@ -9,6 +9,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     lib,
     tslibs,
@@ -59,6 +61,7 @@ from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
+from pandas.core.construction import array as pd_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -507,6 +510,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             # numpy >= 2.1 may not raise a TypeError
             # and seems to dispatch to others.__rmul__?
             raise TypeError(f"Cannot multiply with {type(other).__name__}")
+        if isinstance(result, type(self)):
+            # e.g. if other is IntegerArray
+            assert result.dtype == self.dtype
+            return result
         return type(self)._simple_new(result, dtype=result.dtype)
 
     __rmul__ = __mul__
@@ -524,10 +531,13 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # specifically timedelta64-NaT
                 res = np.empty(self.shape, dtype=np.float64)
                 res.fill(np.nan)
-                return res
 
-            # otherwise, dispatch to Timedelta implementation
-            return op(self._ndarray, other)
+            else:
+                # otherwise, dispatch to Timedelta implementation
+                res = op(self._ndarray, other)
+            if get_option("mode.pdep16_data_types"):
+                res = pd_array(res)
+            return res
 
         else:
             # caller is responsible for checking lib.is_scalar(other)
@@ -581,6 +591,8 @@ class TimedeltaArray(dtl.TimelikeOps):
                 result = result.astype(np.float64)
                 np.putmask(result, mask, np.nan)
 
+        if get_option("mode.pdep16_data_types"):
+            result = pd_array(result)
         return result
 
     @unpack_zerodim_and_defer("__truediv__")

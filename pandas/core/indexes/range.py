@@ -18,6 +18,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     index as libindex,
     lib,
@@ -38,12 +40,16 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_signed_integer_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    array as pd_array,
+    extract_array,
+)
 from pandas.core.indexers import check_array_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
@@ -277,7 +283,10 @@ class RangeIndex(Index):
 
         The constructed array is saved in ``_cache``.
         """
-        return np.arange(self.start, self.stop, self.step, dtype=np.int64)
+        data = np.arange(self.start, self.stop, self.step, dtype=np.int64)
+        if get_option("mode.pdep16_data_types"):
+            return pd_array(data)
+        return data
 
     def _get_data_as_items(self) -> list[tuple[str, int]]:
         """return a list of tuples of start, stop, step"""
@@ -441,7 +450,7 @@ class RangeIndex(Index):
 
     @property
     def dtype(self) -> np.dtype:
-        return _dtype_int64
+        return pandas_dtype(_dtype_int64)
 
     @property
     def is_unique(self) -> bool:
@@ -1409,7 +1418,7 @@ class RangeIndex(Index):
                 raise IndexError(
                     f"index {ind_min} is out of bounds for axis 0 with size {len(self)}"
                 )
-            taken = indices.astype(self.dtype, casting="safe")
+            taken = indices.astype("int64", casting="safe")
             if ind_min < 0:
                 taken %= len(self)
             if self.step != 1:
@@ -1417,7 +1426,8 @@ class RangeIndex(Index):
             if self.start != 0:
                 taken += self.start
 
-        return self._shallow_copy(taken, name=self.name)
+        # TODO(PDEP16): prevent shallow_copy from allowing int64?
+        return self._shallow_copy(taken, name=self.name).astype(self.dtype, copy=False)
 
     def value_counts(
         self,

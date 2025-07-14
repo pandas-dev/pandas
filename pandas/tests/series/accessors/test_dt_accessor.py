@@ -200,7 +200,7 @@ class TestSeriesDatetimeValues:
 
             result = ser.dt.total_seconds()
             assert isinstance(result, Series)
-            assert result.dtype == "float64"
+            assert result.dtype == tm.to_dtype("float64")
 
             freq_result = ser.dt.freq
             assert freq_result == TimedeltaIndex(ser.values, freq="infer").freq

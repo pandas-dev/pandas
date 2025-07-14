@@ -10,6 +10,7 @@ from pandas import (
     Index,
     Series,
     array,
+    get_option,
 )
 import pandas._testing as tm
 from pandas.core.arrays import (
@@ -110,6 +111,9 @@ def assert_invalid_comparison(left, right, box):
             # NB: we are assuming no pd.NAs for now
             return x.astype(bool)
         return x
+
+    if xbox is np.array and get_option("mode.pdep16_data_types"):
+        xbox = BooleanArray._from_sequence
 
     # rev_box: box to use for reversed comparisons
     rev_box = xbox
