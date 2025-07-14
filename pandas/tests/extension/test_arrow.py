@@ -3514,6 +3514,6 @@ def test_map_numeric_na_action():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(not hasattr(pa, "uuid"))
+@pytest.mark.skipif(condition=not hasattr(pa, "uuid"), reason="No pa extension type")
 def test_arrow_extension_type():
     assert ArrowDtype(pa.uuid()).type is bytes
