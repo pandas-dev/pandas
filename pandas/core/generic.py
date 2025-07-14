@@ -4569,6 +4569,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_name = self._get_axis_name(axis)
             axes = {axis_name: labels}
         elif index is not None or columns is not None:
+            if axis == 1 and index is not None:
+                raise ValueError("Cannot specify both 'axis' and 'index'")
             axes = {"index": index}
             if self.ndim == 2:
                 axes["columns"] = columns
