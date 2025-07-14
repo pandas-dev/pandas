@@ -1371,7 +1371,7 @@ class ScatterPlot(PlanePlot):
         # if a list of non-color strings is passed in as c, color points
         # by uniqueness of the strings, such same strings get same color
         create_colors = not self._are_valid_colors(c_values)
-        if create_colors:
+        if c_values is not None and create_colors:
             color_mapping = self._get_color_mapping(c_values)
             c_values = [color_mapping[s] for s in c_values]
 
@@ -1422,7 +1422,7 @@ class ScatterPlot(PlanePlot):
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is None and color is None:
-            c_values = mpl.rcParams["patch.facecolor"]
+            c_values = None
         elif color is not None:
             c_values = color
         elif color_by_categorical:
