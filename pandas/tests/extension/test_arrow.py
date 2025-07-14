@@ -3512,3 +3512,8 @@ def test_map_numeric_na_action():
     result = ser.map(lambda x: 42, na_action="ignore")
     expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(not hasattr(pa, "uuid"))
+def test_arrow_extension_type():
+    assert ArrowDtype(pa.uuid()).type is bytes
