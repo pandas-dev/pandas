@@ -92,8 +92,8 @@ Here are just a few of the things that pandas does well:
    [timeseries]: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#time-series-date-functionality
 
 ## Where to get it
-The source code is currently hosted on GitHub at:
-https://github.com/pandas-dev/pandas
+The source code is currently hosted on 
+[GitHub](https://github.com/pandas-dev/pandas).
 
 Binary installers for the latest released version are available at the [Python
 Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://anaconda.org/conda-forge/pandas).
@@ -117,7 +117,7 @@ details, see the commit logs at https://github.com/pandas-dev/pandas.
 - [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
 - [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://github.com/stub42/pytz)
 
-See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
+See the full [installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
 ## Installation from sources
 To install pandas from source you need [Cython](https://cython.org/) in addition to the normal
@@ -134,14 +134,14 @@ cloning the git repo), execute:
 pip install .
 ```
 
-or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_install/#install-editable):
+or for installing in [Development Mode](https://pip.pypa.io/en/latest/cli/pip_install/#install-editable):
 
 
 ```sh
 python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 ```
 
-See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
+See the full instructions for installing from source [here](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
 
 ## License
 [BSD 3](LICENSE)
@@ -165,7 +165,7 @@ Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/
 
 There are also frequent [community meetings](https://pandas.pydata.org/docs/dev/development/community.html#community-meeting) for project maintainers open to the community as well as monthly [new contributor meetings](https://pandas.pydata.org/docs/dev/development/community.html#new-contributor-meeting) to help support new contributors.
 
-Additional information on the communication channels can be found on the [contributor community](https://pandas.pydata.org/docs/development/community.html) page.
+Additional information on the communication channels can be found on the [Contributor Community](https://pandas.pydata.org/docs/development/community.html) page.
 
 ## Contributing to pandas
 
@@ -173,11 +173,11 @@ Additional information on the communication channels can be found on the [contri
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the **[contributing guide](https://pandas.pydata.org/docs/dev/development/contributing.html)**.
+A detailed overview on how to contribute can be found in the **[Contributing Guide](https://pandas.pydata.org/docs/dev/development/contributing.html)**.
 
-If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?q=is%3Aissue%20state%3Aopen%20label%3ADocs%20sort%3Aupdated-desc) and [good first issue](https://github.com/pandas-dev/pandas/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22%20sort%3Aupdated-desc) where you could start out.
+If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "Issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?q=is%3Aissue%20state%3Aopen%20label%3ADocs%20sort%3Aupdated-desc) and [Good First Issue](https://github.com/pandas-dev/pandas/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22%20sort%3Aupdated-desc) where you could start out.
 
-You can also triage issues which may include reproducing bug reports, or asking for vital information such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe to pandas on CodeTriage](https://www.codetriage.com/pandas-dev/pandas).
+You can also triage issues which may include reproducing bug reports, or asking for vital information such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe](https://www.codetriage.com/pandas-dev/pandas) to pandas on CodeTriage.
 
 Or maybe through using pandas you have an idea of your own or are looking for something in the documentation and thinking ‘this can be improved’...you can do something about it!
 
