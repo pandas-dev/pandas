@@ -48,6 +48,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas import (
+    DataFrame,
+    Series,
+)
 from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import (
@@ -119,10 +123,6 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import (
-        DataFrame,
-        Series,
-    )
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
 
@@ -1230,9 +1230,13 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_columnwise(homogeneous_func, name, numeric_only)[
-            :: self.step
-        ]
+        result = self._apply_columnwise(homogeneous_func, name, numeric_only)
+        if self.step is not None and self.step > 1:
+            if isinstance(result, Series):
+                result = result.iloc[:: self.step]
+            elif isinstance(result, DataFrame):
+                result = result.iloc[:: self.step, :]
+        return result
 
     @doc(
         _shared_docs["aggregate"],
