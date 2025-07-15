@@ -53,6 +53,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_get_option",
     "_fill_limit_area_1d",
     "_make_block",
+    "_DatetimeTZBlock",
 }
 
 

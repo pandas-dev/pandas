@@ -24,6 +24,12 @@ from pandas.io.parsers import (
 )
 from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
+# The only non-test way that TextReader gets called has na_valuess and na_fvalues
+#  either both-sets or both dicts, and the code assumes this is the case.
+#  But the default argument in its __init__ is None, so we have to pass these
+#  explicitly in tests.
+_na_value_kwargs: dict[str, set] = {"na_values": set(), "na_fvalues": set()}
+
 
 class TestTextReader:
     @pytest.fixture
@@ -32,20 +38,20 @@ class TestTextReader:
 
     def test_file_handle(self, csv_path):
         with open(csv_path, "rb") as f:
-            reader = TextReader(f)
+            reader = TextReader(f, **_na_value_kwargs)
             reader.read()
 
     def test_file_handle_mmap(self, csv_path):
         # this was never using memory_map=True
         with open(csv_path, "rb") as f:
-            reader = TextReader(f, header=None)
+            reader = TextReader(f, header=None, **_na_value_kwargs)
             reader.read()
 
     def test_StringIO(self, csv_path):
         with open(csv_path, "rb") as f:
             text = f.read()
         src = BytesIO(text)
-        reader = TextReader(src, header=None)
+        reader = TextReader(src, header=None, **_na_value_kwargs)
         reader.read()
 
     def test_encoding_mismatch_warning(self, csv_path):
@@ -58,14 +64,16 @@ class TestTextReader:
     def test_string_factorize(self):
         # should this be optional?
         data = "a\nb\na\nb\na"
-        reader = TextReader(StringIO(data), header=None)
+        reader = TextReader(StringIO(data), header=None, **_na_value_kwargs)
         result = reader.read()
         assert len(set(map(id, result[0]))) == 2
 
     def test_skipinitialspace(self):
         data = "a,   b\na,   b\na,   b\na,   b"
 
-        reader = TextReader(StringIO(data), skipinitialspace=True, header=None)
+        reader = TextReader(
+            StringIO(data), skipinitialspace=True, header=None, **_na_value_kwargs
+        )
         result = reader.read()
 
         tm.assert_numpy_array_equal(
@@ -78,7 +86,7 @@ class TestTextReader:
     def test_parse_booleans(self):
         data = "True\nFalse\nTrue\nTrue"
 
-        reader = TextReader(StringIO(data), header=None)
+        reader = TextReader(StringIO(data), header=None, **_na_value_kwargs)
         result = reader.read()
 
         assert result[0].dtype == np.bool_
@@ -86,7 +94,9 @@ class TestTextReader:
     def test_delimit_whitespace(self):
         data = 'a  b\na\t\t "b"\n"a"\t \t b'
 
-        reader = TextReader(StringIO(data), delim_whitespace=True, header=None)
+        reader = TextReader(
+            StringIO(data), delim_whitespace=True, header=None, **_na_value_kwargs
+        )
         result = reader.read()
 
         tm.assert_numpy_array_equal(
@@ -99,7 +109,7 @@ class TestTextReader:
     def test_embedded_newline(self):
         data = 'a\n"hello\nthere"\nthis'
 
-        reader = TextReader(StringIO(data), header=None)
+        reader = TextReader(StringIO(data), header=None, **_na_value_kwargs)
         result = reader.read()
 
         expected = np.array(["a", "hello\nthere", "this"], dtype=np.object_)
@@ -108,7 +118,9 @@ class TestTextReader:
     def test_euro_decimal(self):
         data = "12345,67\n345,678"
 
-        reader = TextReader(StringIO(data), delimiter=":", decimal=",", header=None)
+        reader = TextReader(
+            StringIO(data), delimiter=":", decimal=",", header=None, **_na_value_kwargs
+        )
         result = reader.read()
 
         expected = np.array([12345.67, 345.678])
@@ -117,7 +129,13 @@ class TestTextReader:
     def test_integer_thousands(self):
         data = "123,456\n12,500"
 
-        reader = TextReader(StringIO(data), delimiter=":", thousands=",", header=None)
+        reader = TextReader(
+            StringIO(data),
+            delimiter=":",
+            thousands=",",
+            header=None,
+            **_na_value_kwargs,
+        )
         result = reader.read()
 
         expected = np.array([123456, 12500], dtype=np.int64)
@@ -138,7 +156,9 @@ class TestTextReader:
         # too many lines, see #2430 for why
         data = "a:b:c\nd:e:f\ng:h:i\nj:k:l:m\nl:m:n\no:p:q:r"
 
-        reader = TextReader(StringIO(data), delimiter=":", header=None)
+        reader = TextReader(
+            StringIO(data), delimiter=":", header=None, **_na_value_kwargs
+        )
         msg = r"Error tokenizing data\. C error: Expected 3 fields in line 4, saw 4"
         with pytest.raises(parser.ParserError, match=msg):
             reader.read()
@@ -148,6 +168,7 @@ class TestTextReader:
             delimiter=":",
             header=None,
             on_bad_lines=2,  # Skip
+            **_na_value_kwargs,
         )
         result = reader.read()
         expected = {
@@ -163,13 +184,14 @@ class TestTextReader:
                 delimiter=":",
                 header=None,
                 on_bad_lines=1,  # Warn
+                **_na_value_kwargs,
             )
             reader.read()
 
     def test_header_not_enough_lines(self):
         data = "skip this\nskip this\na,b,c\n1,2,3\n4,5,6"
 
-        reader = TextReader(StringIO(data), delimiter=",", header=2)
+        reader = TextReader(StringIO(data), delimiter=",", header=2, **_na_value_kwargs)
         header = reader.header
         expected = [["a", "b", "c"]]
         assert header == expected
@@ -185,7 +207,13 @@ class TestTextReader:
     def test_escapechar(self):
         data = '\\"hello world"\n\\"hello world"\n\\"hello world"'
 
-        reader = TextReader(StringIO(data), delimiter=",", header=None, escapechar="\\")
+        reader = TextReader(
+            StringIO(data),
+            delimiter=",",
+            header=None,
+            escapechar="\\",
+            **_na_value_kwargs,
+        )
         result = reader.read()
         expected = {0: np.array(['"hello world"'] * 3, dtype=object)}
         assert_array_dicts_equal(result, expected)
@@ -208,7 +236,9 @@ aaaaa,5"""
         def _make_reader(**kwds):
             if "dtype" in kwds:
                 kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
-            return TextReader(StringIO(data), delimiter=",", header=None, **kwds)
+            return TextReader(
+                StringIO(data), delimiter=",", header=None, **kwds, **_na_value_kwargs
+            )
 
         reader = _make_reader(dtype="S5,i4")
         result = reader.read()
@@ -237,7 +267,7 @@ one,two
         def _make_reader(**kwds):
             if "dtype" in kwds:
                 kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
-            return TextReader(StringIO(data), delimiter=",", **kwds)
+            return TextReader(StringIO(data), delimiter=",", **kwds, **_na_value_kwargs)
 
         reader = _make_reader(dtype={"one": "u1", 1: "S1"})
         result = reader.read()
@@ -263,7 +293,7 @@ a,b,c
 10,11,12"""
 
         def _make_reader(**kwds):
-            return TextReader(StringIO(data), delimiter=",", **kwds)
+            return TextReader(StringIO(data), delimiter=",", **kwds, **_na_value_kwargs)
 
         reader = _make_reader(usecols=(1, 2))
         result = reader.read()
@@ -296,14 +326,14 @@ a,b,c
     )
     def test_cr_delimited(self, text, kwargs):
         nice_text = text.replace("\r", "\r\n")
-        result = TextReader(StringIO(text), **kwargs).read()
-        expected = TextReader(StringIO(nice_text), **kwargs).read()
+        result = TextReader(StringIO(text), **kwargs, **_na_value_kwargs).read()
+        expected = TextReader(StringIO(nice_text), **kwargs, **_na_value_kwargs).read()
         assert_array_dicts_equal(result, expected)
 
     def test_empty_field_eof(self):
         data = "a,b,c\n1,2,3\n4,,"
 
-        result = TextReader(StringIO(data), delimiter=",").read()
+        result = TextReader(StringIO(data), delimiter=",", **_na_value_kwargs).read()
 
         expected = {
             0: np.array([1, 4], dtype=np.int64),

@@ -236,7 +236,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     _internal_names: list[str] = [
         "_mgr",
-        "_item_cache",
         "_cache",
         "_name",
         "_metadata",
@@ -330,8 +329,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         Many operations that create new datasets will copy ``attrs``. Copies
         are always deep so that changing ``attrs`` will only affect the
-        present dataset. ``pandas.concat`` copies ``attrs`` only if all input
-        datasets have the same ``attrs``.
+        present dataset. :func:`pandas.concat` and :func:`pandas.merge` will
+        only copy ``attrs`` if all input datasets have the same ``attrs``.
 
         Examples
         --------
@@ -5815,6 +5814,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
+            When replace = False will not allow ``(n * max(weights) / sum(weights)) > 1``
+            in order to avoid biased results. See the Notes below for more details.
         random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
             If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState or np.random.Generator, use as given.
@@ -5850,6 +5851,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         If `frac` > 1, `replacement` should be set to `True`.
+
+        When replace = False will not allow ``(n * max(weights) / sum(weights)) > 1``,
+        since that would cause results to be biased. E.g. sampling 2 items without replacement
+        with weights [100, 1, 1] would yield two last items in 1/2 of cases, instead of 1/102.
+        This is similar to specifying `n=4` without replacement on a Series with 3 elements.
 
         Examples
         --------
@@ -6090,11 +6096,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
-        if method == "concat":
-            objs = other.objs
-            # propagate attrs only if all concat arguments have the same attrs
+        elif hasattr(other, "input_objs"):
+            objs = other.input_objs
+            # propagate attrs only if all inputs have the same attrs
             if all(bool(obj.attrs) for obj in objs):
-                # all concatenate arguments have non-empty attrs
+                # all inputs have non-empty attrs
                 attrs = objs[0].attrs
                 have_same_attrs = all(obj.attrs == attrs for obj in objs[1:])
                 if have_same_attrs:
