@@ -655,13 +655,7 @@ Instead, the list is treated as a single object and the operation is performed c
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.arange(6).reshape(2, 3), columns=["A", "B", "C"])
-
-    df + [1, 2, 3]  # Returns a Series of arrays, not a DataFrame
-
-    df + np.array([1, 2, 3])  # Correct broadcasting
-
-    df + pd.Series([1, 2, 3], index=["A", "B", "C"])  # Also correct
+    df + np.array([1, 2, 3])  
     
 For explicit control over the matching and broadcasting behavior, see the
 section on :ref:`flexible binary operations <basics.binop>`.
