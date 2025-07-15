@@ -121,6 +121,7 @@ def to_numeric(
     TypeError
         If the input is not list-like, 1D, or scalar convertible to numeric,
         such as nested lists or unsupported input types (e.g., dict).
+
     See Also
     --------
     DataFrame.astype : Cast argument to a specified dtype.
