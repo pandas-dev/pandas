@@ -23,7 +23,8 @@
 .tags
 .cache/
 .vscode/
-
+*.cursorrules
+*.cursor
 # Compiled source #
 ###################
 *.a
