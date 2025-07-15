@@ -1558,6 +1558,8 @@ class LinePlot(MPLPlot):
         *not* time-series and have no stacking or error bars, all columns are
         rendered with a single LineCollection for a large speed-up while keeping
         public behaviour identical to the original per-column path.
+
+        GH#61764
         """
         # decide once whether we can use the LineCollection fast draw
         threshold = 200

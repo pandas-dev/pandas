@@ -1,6 +1,6 @@
 """
 Ensure wide DataFrame.line plots use a single LineCollection
-instead of one Line2D per column (PR #61764).
+instead of one Line2D per column (GH #61764).
 """
 
 import numpy as np
