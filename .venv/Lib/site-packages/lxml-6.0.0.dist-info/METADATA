@@ -1,0 +1,163 @@
+Metadata-Version: 2.4
+Name: lxml
+Version: 6.0.0
+Summary: Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API.
+Home-page: https://lxml.de/
+Author: lxml dev team
+Author-email: lxml@lxml.de
+Maintainer: lxml dev team
+Maintainer-email: lxml@lxml.de
+License: BSD-3-Clause
+Project-URL: Source, https://github.com/lxml/lxml
+Project-URL: Bug Tracker, https://bugs.launchpad.net/lxml
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Cython
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: C
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Text Processing :: Markup :: HTML
+Classifier: Topic :: Text Processing :: Markup :: XML
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.8
+License-File: LICENSE.txt
+License-File: LICENSES.txt
+Provides-Extra: source
+Provides-Extra: cssselect
+Requires-Dist: cssselect>=0.7; extra == "cssselect"
+Provides-Extra: html5
+Requires-Dist: html5lib; extra == "html5"
+Provides-Extra: htmlsoup
+Requires-Dist: BeautifulSoup4; extra == "htmlsoup"
+Provides-Extra: html-clean
+Requires-Dist: lxml_html_clean; extra == "html-clean"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: maintainer
+Dynamic: maintainer-email
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-python
+Dynamic: summary
+
+lxml is a Pythonic, mature binding for the libxml2 and libxslt libraries.
+It provides safe and convenient access to these libraries using the
+ElementTree API.
+
+It extends the ElementTree API significantly to offer support for XPath,
+RelaxNG, XML Schema, XSLT, C14N and much more.
+
+To contact the project, go to the `project home page <https://lxml.de/>`_
+or see our bug tracker at https://launchpad.net/lxml
+
+In case you want to use the current in-development version of lxml,
+you can get it from the github repository at
+https://github.com/lxml/lxml .  Note that this requires Cython to
+build the sources, see the build instructions on the project home page.
+
+
+After an official release of a new stable series, bug fixes may become available at
+https://github.com/lxml/lxml/tree/lxml-6.0 .
+Running ``pip install https://github.com/lxml/lxml/archive/refs/heads/lxml-6.0.tar.gz``
+will install the unreleased branch state as soon as a maintenance branch has been established.
+Note that this requires Cython to be installed at an appropriate version for the build.
+
+6.0.0 (2025-06-26)
+==================
+
+Features added
+--------------
+
+* GH#463: ``lxml.html.diff`` is faster and provides structurally better diffs.
+  Original patch by Steven Fernandez.
+
+* GH#405: The factories ``Element`` and ``ElementTree`` can now be used in type hints.
+
+* GH#448: Parsing from ``memoryview`` and other buffers is supported to allow zero-copy parsing.
+
+* GH#437: ``lxml.html.builder`` was missing several HTML5 tag names.
+  Patch by Nick Tarleton.
+
+* GH#458: ``CDATA`` can now be written into the incremental ``xmlfile()`` writer.
+  Original patch by Lane Shaw.
+
+* A new parser option ``decompress=False`` was added that controls the automatic
+  input decompression when using libxml2 2.15.0 or later.  Disabling this option
+  by default will effectively prevent decompression bombs when handling untrusted
+  input.  Code that depends on automatic decompression must enable this option.
+  Note that libxml2 2.15.0 was not released yet, so this option currently has no
+  effect but can already be used.
+
+* The set of compile time / runtime supported libxml2 feature names is available as
+  ``etree.LIBXML_COMPILED_FEATURES`` and ``etree.LIBXML_FEATURES``.
+  This currently includes
+  ``catalog``, ``ftp``, ``html``, ``http``, ``iconv``, ``icu``,
+  ``lzma``, ``regexp``, ``schematron``, ``xmlschema``, ``xpath``, ``zlib``.
+
+Bugs fixed
+----------
+
+* GH#353: Predicates in ``.find*()`` could mishandle tag indices if a default namespace is provided.
+  Original patch by Luise K.
+
+* GH#272: The ``head`` and ``body`` properties of ``lxml.html`` elements failed if no such element
+  was found.  They now return ``None`` instead.
+  Original patch by FVolral.
+
+* Tag names provided by code (API, not data) that are longer than ``INT_MAX``
+  could be truncated or mishandled in other ways.
+
+* ``.text_content()`` on ``lxml.html`` elements accidentally returned a "smart string"
+  without additional information.  It now returns a plain string.
+
+* LP#2109931: When building lxml with coverage reporting, it now disables the ``sys.monitoring``
+  support due to the lack of support in https://github.com/nedbat/coveragepy/issues/1790
+
+Other changes
+-------------
+
+* Support for Python < 3.8 was removed.
+
+* Parsing directly from zlib (or lzma) compressed data is now considered an optional
+  feature in lxml.  It may get removed from libxml2 at some point for security reasons
+  (compression bombs) and is therefore no longer guaranteed to be available in lxml.
+
+  As of this release, zlib support is still normally available in the binary wheels
+  but may get disabled or removed in later (x.y.0) releases.  To test the availability,
+  use ``"zlib" in etree.LIBXML_FEATURES``.
+
+* The ``Schematron`` class is deprecated and will become non-functional in a future lxml version.
+  The feature will soon be removed from libxml2 and stop being available.
+
+* GH#438: Wheels include the ``arm7l`` target.
+
+* GH#465: Windows wheels include the ``arm64`` target.
+  Patch by Finn Womack.
+
+* Binary wheels use the library versions libxml2 2.14.4 and libxslt 1.1.43.
+  Note that this disables direct HTTP and FTP support for parsing from URLs.
+  Use Python URL request tools instead (which usually also support HTTPS).
+  To test the availability, use ``"http" in etree.LIBXML_FEATURES``.
+
+* Windows binary wheels use the library versions libxml2 2.11.9, libxslt 1.1.39 and libiconv 1.17.
+  They are now based on VS-2022.
+
+* Built using Cython 3.1.2.
+
+* The debug methods ``MemDebug.dump()`` and ``MemDebug.show()`` were removed completely.
+  libxml2 2.13.0 discarded this feature.
+
+

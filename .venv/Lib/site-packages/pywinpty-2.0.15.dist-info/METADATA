@@ -1,0 +1,145 @@
+Metadata-Version: 2.4
+Name: pywinpty
+Version: 2.0.15
+License-File: LICENSE.txt
+Summary: Pseudo terminal support for Windows from Python.
+Keywords: pty,pseudo-terminal,conpty,windows,winpty
+Author: Edgar Andrés Margffoy Tuay <andfoy@gmail.com>
+Author-email: Edgar Andrés Margffoy Tuay <andfoy@gmail.com>
+License: MIT
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown; charset=UTF-8; variant=GFM
+Project-URL: Source Code, https://github.com/spyder-ide/pywinpty
+
+# PyWinpty: Pseudoterminals for Windows in Python
+
+[![Project License - MIT](https://img.shields.io/pypi/l/pywinpty.svg)](./LICENSE.txt)
+[![pypi version](https://img.shields.io/pypi/v/pywinpty.svg)](https://pypi.org/project/pywinpty/)
+[![conda version](https://img.shields.io/conda/vn/conda-forge/pywinpty.svg)](https://www.anaconda.com/download/)
+[![download count](https://img.shields.io/conda/dn/conda-forge/pywinpty.svg)](https://www.anaconda.com/download/)
+[![Downloads](https://pepy.tech/badge/pywinpty)](https://pepy.tech/project/pywinpty)
+[![PyPI status](https://img.shields.io/pypi/status/pywinpty.svg)](https://github.com/spyder-ide/pywinpty)
+[![Windows tests](https://github.com/andfoy/pywinpty/actions/workflows/windows_build.yml/badge.svg)](https://github.com/andfoy/pywinpty/actions/workflows/windows_build.yml)
+
+*Copyright © 2017–2022 Spyder Project Contributors*
+*Copyright © 2022– Edgar Andrés Margffoy Tuay*
+
+
+## Overview
+
+PyWinpty allows creating and communicating with Windows processes that receive input and print outputs via console input and output pipes. PyWinpty supports both the native [ConPTY](https://devblogs.microsoft.com/commandline/windows-command-line-introducing-the-windows-pseudo-console-conpty/) interface and the previous, fallback [winpty](https://github.com/rprichard/winpty) library.
+
+
+## Dependencies
+To compile pywinpty sources, you must have [Rust](https://rustup.rs/) installed.
+Optionally, you can also have Winpty's C header and library files available on your include path.
+
+
+## Installation
+You can install this library by using conda or pip package managers, as it follows:
+
+Using conda (Recommended):
+```bash
+conda install pywinpty
+```
+
+Using pip:
+```bash
+pip install pywinpty
+```
+
+## Building from source
+
+To build from sources, you will require both a working stable or nightly Rust toolchain with
+target `x86_64-pc-windows-msvc`, which can be installed using [rustup](https://rustup.rs/).
+
+Optionally, this library can be linked against winpty library, which you can install using conda-forge:
+
+```batch
+conda install winpty -c conda-forge
+```
+
+If you don't want to use conda, you will need to have the winpty binaries and headers available on your PATH.
+
+Finally, pywinpty uses [Maturin](https://github.com/PyO3/maturin) as the build backend, which can be installed using `pip`:
+
+```batch
+pip install maturin
+```
+
+To test your compilation environment settings, you can build pywinpty sources locally, by
+executing:
+
+```bash
+maturin develop
+```
+
+This package depends on the following Rust crates:
+
+* [PyO3](https://github.com/PyO3/pyo3): Library used to produce Python bindings from Rust code.
+* [WinPTY-rs](https://github.com/andfoy/winpty-rs): Create and spawn processes inside a pseudoterminal in Windows from Rust.
+* [Maturin](https://github.com/PyO3/maturin): Build system to build and publish Rust-based Python packages.
+
+## Package usage
+Pywinpty offers a single python wrapper around winpty library functions.
+This implies that using a single object (``winpty.PTY``) it is possible to access to all functionality, as it follows:
+
+```python
+# High level usage using `spawn`
+from winpty import PtyProcess
+
+proc = PtyProcess.spawn('python')
+proc.write('print("hello, world!")\r\n')
+proc.write('exit()\r\n')
+while proc.isalive():
+	print(proc.readline())
+
+# Low level usage using the raw `PTY` object
+from winpty import PTY
+
+# Start a new winpty-agent process of size (cols, rows)
+cols, rows = 80, 25
+process = PTY(cols, rows)
+
+# Spawn a new console process, e.g., CMD
+process.spawn(br'C:\windows\system32\cmd.exe')
+
+# Read console output (Unicode)
+process.read()
+
+# Write input to console (Unicode)
+process.write(b'Text')
+
+# Resize console size
+new_cols, new_rows = 90, 30
+process.set_size(new_cols, new_rows)
+
+# Know if the process is alive
+alive = process.isalive()
+
+# End winpty-agent process
+del process
+```
+
+## Running tests
+We use pytest to run tests as it follows (after calling ``maturin develop``), the test suite depends
+on pytest-lazy-fixture, which can be installed via pip:
+
+```batch
+pip install pytest pytest-lazy-fixture flaky
+```
+
+All the tests can be exceuted using the following command
+
+```bash
+python runtests.py
+```
+
+
+## Changelog
+Visit our [CHANGELOG](CHANGELOG.md) file to learn more about our new features and improvements.
+
+
+## Contribution guidelines
+We follow PEP8 and PEP257 for pure python packages and Rust to compile extensions. We use MyPy type annotations for all functions and classes declared on this package. Feel free to send a PR or create an issue if you have any problem/question.
+

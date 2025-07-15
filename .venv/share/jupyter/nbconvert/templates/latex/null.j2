@@ -1,0 +1,106 @@
+((=- Auto-generated template file, DO NOT edit directly!
+    To edit this file, please refer to ../../skeleton/README.md -=))
+
+
+((=
+
+DO NOT USE THIS AS A BASE,
+IF YOU ARE COPY AND PASTING THIS FILE
+YOU ARE PROBABLY DOING THINGS INCORRECTLY.
+
+Null template, does nothing except defining a basic structure
+To layout the different blocks of a notebook.
+
+Subtemplates can override blocks to define their custom representation.
+
+If one of the block you do overwrite is not a leaf block, consider
+calling super.
+
+((*- block nonLeafBlock -*))
+    #add stuff at beginning
+    ((( super() )))
+    #add stuff at end
+((*- endblock nonLeafBlock -*))
+
+consider calling super even if it is a leaf block, we might insert more blocks later.
+
+=))
+((*- block header -*))
+((*- endblock header -*))
+((*- block body -*))
+((*- for cell in nb.cells -*))
+    ((*- block any_cell scoped -*))
+        ((*- if cell.cell_type == 'code'-*))
+            ((*- if resources.global_content_filter.include_code -*))
+            ((*- block codecell scoped -*))
+                ((*- if resources.global_content_filter.include_input and not cell.metadata.get("transient",{}).get("remove_source", false) -*))
+                    ((*- block input_group -*))
+                    ((*- if resources.global_content_filter.include_input_prompt -*))
+                        ((*- block in_prompt -*))((*- endblock in_prompt -*))
+                    ((*- endif -*))
+                        ((*- block input -*))((*- endblock input -*))
+                    ((*- endblock input_group -*))
+                ((*- endif -*))
+                ((*- if cell.outputs and resources.global_content_filter.include_output -*))
+                    ((*- block output_group -*))
+                        ((*- if resources.global_content_filter.include_output_prompt -*))
+                            ((*- block output_prompt -*))((*- endblock output_prompt -*))
+                        ((*- endif -*))
+                        ((*- block outputs scoped -*))
+                            ((*- for output in cell.outputs -*))
+                                ((*- block output scoped -*))
+                                    ((*- if output.output_type == 'execute_result' -*))
+                                        ((*- block execute_result scoped -*))((*- endblock execute_result -*))
+                                    ((*- elif output.output_type == 'stream' -*))
+                                        ((*- block stream scoped -*))
+                                            ((*- if output.name == 'stdout' -*))
+                                                ((*- block stream_stdout scoped -*))
+                                                ((*- endblock stream_stdout -*))
+                                            ((*- elif output.name == 'stderr' -*))
+                                                ((*- block stream_stderr scoped -*))
+                                                ((*- endblock stream_stderr -*))
+                                            ((*- endif -*))
+                                        ((*- endblock stream -*))
+                                    ((*- elif output.output_type == 'display_data' -*))
+                                        ((*- block display_data scoped -*))
+                                            ((*- block data_priority scoped -*))
+                                            ((*- endblock data_priority -*))
+                                        ((*- endblock display_data -*))
+                                    ((*- elif output.output_type == 'error' -*))
+                                        ((*- block error scoped -*))
+                                        ((*- for line in output.traceback -*))
+                                            ((*- block traceback_line scoped -*))((*- endblock traceback_line -*))
+                                        ((*- endfor -*))
+                                        ((*- endblock error -*))
+                                    ((*- endif -*))
+                                ((*- endblock output -*))
+                            ((*- endfor -*))
+                        ((*- endblock outputs -*))
+                    ((*- endblock output_group -*))
+                ((*- endif -*))
+            ((*- endblock codecell -*))
+            ((*- endif -*))
+        ((*- elif cell.cell_type in ['markdown'] -*))
+            ((*- if resources.global_content_filter.include_markdown and not cell.metadata.get("transient",{}).get("remove_source", false) -*))
+                ((*- block markdowncell scoped-*)) ((*- endblock markdowncell -*))
+            ((*- endif -*))
+        ((*- elif cell.cell_type in ['raw'] -*))
+            ((*- if resources.global_content_filter.include_raw and not cell.metadata.get("transient",{}).get("remove_source", false) -*))
+                ((*- block rawcell scoped -*))
+                ((*- if cell.metadata.get('raw_mimetype', '').lower() in resources.get('raw_mimetypes', ['']) -*))
+                ((( cell.source )))
+                ((*- endif -*))
+                ((*- endblock rawcell -*))
+            ((*- endif -*))
+        ((*- else -*))
+            ((*- if resources.global_content_filter.include_unknown and not cell.metadata.get("transient",{}).get("remove_source", false) -*))
+                ((*- block unknowncell scoped-*))
+                ((*- endblock unknowncell -*))
+            ((*- endif -*))
+        ((*- endif -*))
+    ((*- endblock any_cell -*))
+((*- endfor -*))
+((*- endblock body -*))
+
+((*- block footer -*))
+((*- endblock footer -*))

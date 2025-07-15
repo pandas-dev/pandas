@@ -1,0 +1,238 @@
+.TH MESON "1" "August 2023" "meson 1.2.1" "User Commands"
+.SH NAME
+meson - a high productivity build system
+.SH DESCRIPTION
+
+Meson is a build system designed to optimize programmer
+productivity. It aims to do this by providing simple, out-of-the-box
+support for modern software development tools and practices, such as
+unit tests, coverage reports, Valgrind, Ccache and the like.
+
+The main Meson executable provides many subcommands to access all
+the functionality.
+
+.SH The setup command
+
+Using Meson is simple and follows the common two-phase
+process of most build systems. First you run Meson to
+configure your build:
+
+.B meson setup [
+.I options
+.B ] [
+.I build directory
+.B ] [
+.I source directory
+.B ]
+
+Note that the build directory must be different from the source
+directory. Meson does not support building inside the source directory
+and attempting to do that leads to an error.
+
+After a successful configuration step you can build the source by
+running the actual build command in the build directory. The default
+backend of Meson is Ninja, which can be invoked like this.
+
+\fBninja [\fR \fItarget\fR \fB]\fR
+
+You only need to run the Meson command once: when you first configure
+your build dir. After that you just run the build command. Meson will
+autodetect changes in your source tree and regenerate all files
+needed to build the project.
+
+The setup command is the default operation. If no actual command is
+specified, Meson will assume you meant to do a setup. That means
+that you can set up a build directory without the setup command
+like this:
+
+.B meson [
+.I options
+.B ] [
+.I build directory
+.B ] [
+.I source directory
+.B ]
+
+.SS "options:"
+.TP
+\fB\-\-version\fR
+print version number
+.TP
+\fB\-\-help\fR
+print command line help
+
+.SH The configure command
+
+.B meson configure
+provides a way to configure a Meson project from the command line.
+Its usage is simple:
+
+.B meson configure [
+.I build directory
+.B ] [
+.I options to set
+.B ]
+
+If build directory is omitted, the current directory is used instead.
+
+If no parameters are set,
+.B meson configure
+will print the value of all build options to the console.
+
+To set values, use the \-D command line argument like this.
+
+.B meson configure \-Dopt1=value1 \-Dopt2=value2
+
+.SH The introspect command
+
+Meson introspect is a command designed to make it simple to  integrate with
+other tools, such as IDEs. The output of this command is in JSON.
+
+.B meson introspect [
+.I build directory
+.B ] [
+.I option
+.B ]
+
+If build directory is omitted, the current directory is used instead.
+
+.SS "options:"
+.TP
+\fB\-\-targets\fR
+print all top level targets (executables, libraries, etc)
+.TP
+\fB\-\-target\-files\fR
+print the source files of the given target
+.TP
+\fB\-\-buildsystem\-files\fR
+print all files that make up the build system (meson.build, meson.options, meson_options.txt etc)
+.TP
+\fB\-\-tests\fR
+print all unit tests
+.TP
+\fB\-\-help\fR
+print command line help
+
+.SH The test command
+
+.B meson test
+is a helper tool for running test suites of projects using Meson.
+The default way of running tests is to invoke the default build command:
+
+\fBninja [\fR \fItest\fR \fB]\fR
+
+.B meson test
+provides a richer set of tools for invoking tests.
+
+.B meson test
+automatically rebuilds the necessary targets to run tests when used with the Ninja backend.
+Upon build failure,
+.B meson test
+will return an exit code of 125.
+This return code tells
+.B git bisect run
+to skip the current commit.
+Thus bisecting using git can be done conveniently like this.
+
+.B git bisect run meson test -C build_dir
+
+.SS "options:"
+.TP
+\fB\-\-repeat\fR
+run tests as many times as specified
+.TP
+\fB\-\-gdb\fR
+run tests under gdb
+.TP
+\fB\-\-list\fR
+list all available tests
+.TP
+\fB\-\-wrapper\fR
+invoke all tests via the given wrapper (e.g. valgrind)
+.TP
+\fB\-C\fR
+Change into the given directory before running tests (must be root of build directory).
+.TP
+\fB\-\-suite\fR
+run tests in this suite
+.TP
+\fB\-\-no\-suite\fR
+do not run tests in this suite
+.TP
+\fB\-\-no\-stdsplit\fR
+do not split stderr and stdout in test logs
+.TP
+\fB\-\-benchmark\fR
+run benchmarks instead of tests
+.TP
+\fB\-\-logbase\fR
+base of file name to use for writing test logs
+.TP
+\fB\-\-num-processes\fR
+how many parallel processes to use to run tests
+.TP
+\fB\-\-verbose\fR
+do not redirect stdout and stderr
+.TP
+\fB\-t\fR
+a multiplier to use for test timeout values (usually something like 100 for Valgrind)
+.TP
+\fB\-\-setup\fR
+use the specified test setup
+
+.SH The wrap command
+
+Wraptool is a helper utility to manage source dependencies
+using the online wrapdb service.
+
+.B meson wrap <
+.I command
+.B > [
+.I options
+.B ]
+
+You should run this command in the top level source directory
+of your project.
+
+.SS "Commands:"
+.TP
+\fBlist\fR
+list all available projects
+.TP
+\fBsearch\fR
+search projects by name
+.TP
+\fBinstall\fR
+install a project with the given name
+.TP
+\fBupdate\fR
+update the specified project to latest available version
+.TP
+\fBinfo\fR
+show available versions of the specified project
+.TP
+\fBstatus\fR
+show installed and available versions of currently used subprojects
+
+.SH EXIT STATUS
+
+.TP
+.B 0
+Successful.
+.TP
+.B 1
+Usage error, or an error parsing or executing meson.build.
+.TP
+.B 2
+Internal error.
+.TP
+.B 125
+.B meson test
+could not rebuild the required targets.
+.TP
+
+.SH SEE ALSO
+
+http://mesonbuild.com/
+
+https://wrapdb.mesonbuild.com/

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=JupyterLab
+Comment=Run JupyterLab
+Exec=jupyter-lab %f
+Terminal=true
+Type=Application
+Icon=jupyterlab
+StartupNotify=true
+MimeType=application/x-ipynb+json;
+Categories=Development;Education;
+Keywords=python;

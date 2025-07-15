@@ -1,0 +1,92 @@
+Metadata-Version: 2.4
+Name: dask
+Version: 2025.7.0
+Summary: Parallel PyData with Task Scheduling
+Maintainer-email: Matthew Rocklin <mrocklin@gmail.com>
+License: BSD-3-Clause
+Project-URL: Homepage, https://github.com/dask/dask/
+Keywords: task-scheduling parallel numpy pandas pydata
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: System :: Distributed Computing
+Requires-Python: >=3.10
+Description-Content-Type: text/x-rst
+License-File: LICENSE.txt
+License-File: dask/array/NUMPY_LICENSE.txt
+Requires-Dist: click>=8.1
+Requires-Dist: cloudpickle>=3.0.0
+Requires-Dist: fsspec>=2021.09.0
+Requires-Dist: packaging>=20.0
+Requires-Dist: partd>=1.4.0
+Requires-Dist: pyyaml>=5.3.1
+Requires-Dist: toolz>=0.10.0
+Requires-Dist: importlib_metadata>=4.13.0; python_version < "3.12"
+Provides-Extra: array
+Requires-Dist: numpy>=1.24; extra == "array"
+Provides-Extra: bag
+Provides-Extra: dataframe
+Requires-Dist: dask[array]; extra == "dataframe"
+Requires-Dist: pandas>=2.0; extra == "dataframe"
+Requires-Dist: pyarrow>=14.0.1; extra == "dataframe"
+Provides-Extra: distributed
+Requires-Dist: distributed==2025.7.0; extra == "distributed"
+Provides-Extra: diagnostics
+Requires-Dist: bokeh>=3.1.0; extra == "diagnostics"
+Requires-Dist: jinja2>=2.10.3; extra == "diagnostics"
+Provides-Extra: delayed
+Provides-Extra: complete
+Requires-Dist: dask[array,dataframe,diagnostics,distributed]; extra == "complete"
+Requires-Dist: pyarrow>=14.0.1; extra == "complete"
+Requires-Dist: lz4>=4.3.2; extra == "complete"
+Provides-Extra: test
+Requires-Dist: pandas[test]; extra == "test"
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: pytest-cov; extra == "test"
+Requires-Dist: pytest-mock; extra == "test"
+Requires-Dist: pytest-rerunfailures; extra == "test"
+Requires-Dist: pytest-timeout; extra == "test"
+Requires-Dist: pytest-xdist; extra == "test"
+Requires-Dist: pre-commit; extra == "test"
+Dynamic: license-file
+
+Dask
+====
+
+|Build Status| |Coverage| |Doc Status| |Discourse| |Version Status| |NumFOCUS|
+
+Dask is a flexible parallel computing library for analytics.  See
+documentation_ for more information.
+
+
+LICENSE
+-------
+
+New BSD. See `License File <https://github.com/dask/dask/blob/main/LICENSE.txt>`__.
+
+.. _documentation: https://dask.org
+.. |Build Status| image:: https://github.com/dask/dask/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/dask/dask/actions/workflows/tests.yml
+.. |Coverage| image:: https://codecov.io/gh/dask/dask/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/dask/dask/branch/main
+   :alt: Coverage status
+.. |Doc Status| image:: https://readthedocs.org/projects/dask/badge/?version=latest
+   :target: https://dask.org
+   :alt: Documentation Status
+.. |Discourse| image:: https://img.shields.io/discourse/users?logo=discourse&server=https%3A%2F%2Fdask.discourse.group
+   :alt: Discuss Dask-related things and ask for help
+   :target: https://dask.discourse.group
+.. |Version Status| image:: https://img.shields.io/pypi/v/dask.svg
+   :target: https://pypi.python.org/pypi/dask/
+.. |NumFOCUS| image:: https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A
+   :target: https://www.numfocus.org/

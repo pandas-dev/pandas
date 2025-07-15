@@ -1,0 +1,336 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+
+
+import json
+import os
+import re
+import tempfile
+import itertools
+
+from .console import log
+from . import util, runner
+from .repo import NoSuchNameError
+
+
+class Benchmarks(dict):
+    """
+    Manages and runs the set of benchmarks in the project.
+    """
+    api_version = 2
+
+    def __init__(self, conf, benchmarks, regex=None):
+        """
+        Initialize a list of benchmarks.
+
+        Parameters
+        ----------
+        conf : Config object
+            The project's configuration
+
+        benchmarks : list
+            Benchmarks as from Benchmarks._disc_benchmarks
+            or loaded from a file.
+
+        regex : str or list of str, optional
+            `regex` is a list of regular expressions matching the
+            benchmarks to run.  If none are provided, all benchmarks
+            are run.
+            For parameterized benchmarks, the regex match against
+            `funcname(param0, param1, ...)` to include the parameter
+            combination in regex filtering.
+        """
+        self._conf = conf
+        self._benchmark_dir = conf.benchmark_dir
+
+        if not regex:
+            regex = []
+        if isinstance(regex, str):
+            regex = [regex]
+
+        self._all_benchmarks = {}
+        self._benchmark_selection = {}
+        for benchmark in benchmarks:
+            self._all_benchmarks[benchmark['name']] = benchmark
+            if benchmark['params']:
+                self._benchmark_selection[benchmark['name']] = []
+                for idx, param_set in enumerate(
+                        itertools.product(*benchmark['params'])):
+                    name = f"{benchmark['name']}({', '.join(param_set)})"
+                    if not regex or any(re.search(reg, name) for reg in regex):
+                        self[benchmark['name']] = benchmark
+                        self._benchmark_selection[benchmark['name']].append(idx)
+            else:
+                self._benchmark_selection[benchmark['name']] = None
+                if not regex or any(re.search(reg, benchmark['name']) for reg in regex):
+                    self[benchmark['name']] = benchmark
+
+    @property
+    def benchmark_selection(self):
+        """
+        Active sets of parameterized benchmarks.
+        """
+        return self._benchmark_selection
+
+    @property
+    def benchmark_dir(self):
+        """
+        Benchmark directory.
+        """
+        return self._benchmark_dir
+
+    def filter_out(self, skip):
+        """
+        Return a new Benchmarks object, with some benchmarks filtered out.
+        """
+        benchmarks = super(Benchmarks, self).__new__(self.__class__)
+        benchmarks._conf = self._conf
+        benchmarks._benchmark_dir = self._benchmark_dir
+        benchmarks._all_benchmarks = self._all_benchmarks
+
+        selected_idx = {}
+
+        for name, benchmark in self.items():
+            if name not in skip:
+                benchmarks[name] = benchmark
+                if name in self._benchmark_selection:
+                    selected_idx[name] = self._benchmark_selection[name]
+
+        benchmarks._benchmark_selection = selected_idx
+
+        return benchmarks
+
+    @classmethod
+    def discover(cls, conf, repo, environments, commit_hash, regex=None,
+                 check=False):
+        """
+        Discover benchmarks in the given `benchmark_dir`.
+
+        Parameters
+        ----------
+        conf : Config object
+            The project's configuration
+
+        repo : Repo object
+            The project's repository
+
+        environments : list of Environment
+            List of environments available for benchmark discovery.
+
+        commit_hash : list of str
+            Commit hashes to use for benchmark discovery.
+
+        regex : str or list of str, optional
+            `regex` is a list of regular expressions matching the
+            benchmarks to run.  If none are provided, all benchmarks
+            are run.
+
+        check : bool
+            Run additional checks after discovery.
+
+        """
+        benchmarks = cls._disc_benchmarks(conf, repo, environments, commit_hash, check)
+        return cls(conf, benchmarks, regex=regex)
+
+    @classmethod
+    def _disc_benchmarks(cls, conf, repo, environments, commit_hashes, check):
+        """
+        Discover all benchmarks in a directory tree.
+        """
+        root = conf.benchmark_dir
+
+        cls.check_tree(root)
+
+        if len(environments) == 0:
+            raise util.UserError("No available environments")
+
+        # Try several different commits:
+        #
+        # - First of commit_hashes provided
+        # - Tips of branches from configuration file
+        # - Rest of the commit_hashes
+        #
+
+        def iter_hashes():
+            for h in commit_hashes[:1]:
+                yield h
+            for branch in conf.branches:
+                try:
+                    yield repo.get_hash_from_name(branch)
+                except NoSuchNameError:
+                    continue
+            for h in commit_hashes[1:]:
+                yield h
+
+        def iter_unique(iter):
+            seen = set()
+            for item in iter:
+                if item not in seen:
+                    seen.add(item)
+                    yield item
+
+        try_hashes = iter_unique(iter_hashes())
+
+        log.info("Discovering benchmarks")
+        with log.indent():
+            last_err = None
+            for env, commit_hash in itertools.product(environments, try_hashes):
+                env.create()
+
+                if last_err is not None:
+                    log.warning("Failed: trying different commit/environment")
+
+                result_dir = tempfile.mkdtemp()
+                try:
+                    env.install_project(conf, repo, commit_hash)
+
+                    env_vars = dict(os.environ)
+                    env_vars.update(env.env_vars)
+
+                    result_file = os.path.join(result_dir, 'result.json')
+                    env.run(
+                        [runner.BENCHMARK_RUN_SCRIPT, 'discover',
+                         os.path.abspath(root),
+                         os.path.abspath(result_file)],
+                        cwd=result_dir,
+                        env=env_vars,
+                        dots=False)
+
+                    try:
+                        with open(result_file, 'r') as fp:
+                            benchmarks = json.load(fp)
+                    except (OSError, ValueError):
+                        log.error("Invalid discovery output")
+                        raise util.UserError()
+
+                    break
+                except (util.UserError, util.ProcessError) as err:
+                    last_err = err
+                    continue
+                except KeyboardInterrupt:
+                    raise util.UserError("Interrupted.")
+                finally:
+                    util.long_path_rmtree(result_dir)
+            else:
+                raise util.UserError("Failed to build the project and import the benchmark suite.")
+
+        if check:
+            log.info("Checking benchmarks")
+            with log.indent():
+                result_dir = tempfile.mkdtemp()
+                try:
+                    out, err, retcode = env.run(
+                        [runner.BENCHMARK_RUN_SCRIPT, 'check',
+                         os.path.abspath(root)],
+                        cwd=result_dir,
+                        dots=False,
+                        env=env_vars,
+                        valid_return_codes=None,
+                        return_stderr=True,
+                        redirect_stderr=True)
+                finally:
+                    util.long_path_rmtree(result_dir)
+
+                out = out.strip()
+                if retcode == 0:
+                    if out:
+                        log.info(out)
+                    log.info("No problems found.")
+                else:
+                    if out:
+                        log.error(out)
+                    raise util.UserError("Benchmark suite check failed.")
+
+        return benchmarks
+
+    @classmethod
+    def check_tree(cls, root, require_init_py=True):
+        """
+        Check the benchmark tree for files with the same name as
+        directories.
+
+        Also, ensure that the top-level directory has an __init__.py file.
+
+        Raises
+        ------
+        UserError
+            A .py file and directory with the same name (excluding the
+            extension) were found.
+        """
+        if os.path.basename(root) == '__pycache__':
+            return
+
+        if not os.path.isfile(os.path.join(root, '__init__.py')):
+            # Not a Python package directory
+            if require_init_py:
+                raise util.UserError(
+                    f"No __init__.py file in '{root}'")
+            else:
+                return
+
+        # First, check for the case where a .py file and a directory
+        # have the same name (without the extension).  This can't be
+        # handled, so just raise an exception
+        found = set()
+        for filename in os.listdir(root):
+            path = os.path.join(root, filename)
+            if os.path.isfile(path):
+                filename, ext = os.path.splitext(filename)
+                if ext == '.py':
+                    found.add(filename)
+
+        for dirname in os.listdir(root):
+            path = os.path.join(root, dirname)
+            if os.path.isdir(path):
+                if dirname in found:
+                    raise util.UserError(
+                        "Found a directory and python file with same name in "
+                        "benchmark tree: '{0}'".format(path))
+                cls.check_tree(path, require_init_py=False)
+
+    @classmethod
+    def get_benchmark_file_path(cls, results_dir):
+        """
+        Get the path to the benchmarks.json file in the results dir.
+        """
+        return os.path.join(results_dir, "benchmarks.json")
+
+    def save(self):
+        """
+        Save the ``benchmarks.json`` file, which is a cached set of the
+        metadata about the discovered benchmarks, in the results dir.
+        """
+        path = self.get_benchmark_file_path(self._conf.results_dir)
+        util.write_json(path, self._all_benchmarks, self.api_version)
+
+    @classmethod
+    def load(cls, conf, regex=None):
+        """
+        Load the benchmark descriptions from the `benchmarks.json` file.
+        If the file is not found, one of the given `environments` will
+        be used to discover benchmarks.
+
+        Parameters
+        ----------
+        conf : Config object
+            The project's configuration
+        regex : str or list of str, optional
+            `regex` is a list of regular expressions matching the
+            benchmarks to load. See __init__ docstring.
+
+        Returns
+        -------
+        benchmarks : Benchmarks object
+        """
+        try:
+            path = cls.get_benchmark_file_path(conf.results_dir)
+            if not os.path.isfile(path):
+                raise util.UserError(f"Benchmark list file {path} missing!")
+            d = util.load_json(path, api_version=cls.api_version)
+            benchmarks = d.values()
+            return cls(conf, benchmarks, regex=regex)
+        except util.UserError as err:
+            if "asv update" in str(err):
+                # Don't give conflicting instructions
+                raise
+            raise util.UserError("{}\nUse `asv run --bench just-discover` to "
+                                 "regenerate benchmarks.json".format(str(err)))

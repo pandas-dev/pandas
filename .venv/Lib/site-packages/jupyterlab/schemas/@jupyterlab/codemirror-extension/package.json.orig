@@ -1,0 +1,73 @@
+{
+  "name": "@jupyterlab/codemirror-extension",
+  "version": "4.4.4",
+  "description": "JupyterLab - CodeMirror Provider Extension",
+  "homepage": "https://github.com/jupyterlab/jupyterlab",
+  "bugs": {
+    "url": "https://github.com/jupyterlab/jupyterlab/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlab/jupyterlab.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Project Jupyter",
+  "sideEffects": [
+    "style/**/*.css",
+    "style/index.js"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "directories": {
+    "lib": "lib/"
+  },
+  "files": [
+    "lib/*.d.ts",
+    "lib/*.js.map",
+    "lib/*.js",
+    "schema/*.json",
+    "style/**/*.css",
+    "style/index.js",
+    "src/**/*.{ts,tsx}"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
+    "watch": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.8.1",
+    "@codemirror/lang-markdown": "^6.3.2",
+    "@codemirror/language": "^6.11.0",
+    "@codemirror/legacy-modes": "^6.5.1",
+    "@codemirror/search": "^6.5.10",
+    "@codemirror/view": "^6.36.6",
+    "@jupyter/ydoc": "^3.0.4",
+    "@jupyterlab/application": "^4.4.4",
+    "@jupyterlab/codeeditor": "^4.4.4",
+    "@jupyterlab/codemirror": "^4.4.4",
+    "@jupyterlab/settingregistry": "^4.4.4",
+    "@jupyterlab/statusbar": "^4.4.4",
+    "@jupyterlab/translation": "^4.4.4",
+    "@jupyterlab/ui-components": "^4.4.4",
+    "@lumino/coreutils": "^2.2.1",
+    "@lumino/widgets": "^2.7.1",
+    "@rjsf/utils": "^5.13.4",
+    "@rjsf/validator-ajv8": "^5.13.4",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.26",
+    "rimraf": "~5.0.5",
+    "typescript": "~5.5.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "schemaDir": "schema"
+  },
+  "styleModule": "style/index.js"
+}

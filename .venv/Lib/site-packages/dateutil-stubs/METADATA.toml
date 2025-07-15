@@ -1,0 +1,2 @@
+version = "2.9.*"
+upstream_repository = "https://github.com/dateutil/dateutil"

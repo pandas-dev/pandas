@@ -433,6 +433,13 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     # NB: We assume extract_array has already been called on left and right
     lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = right
+    # Handle 2D ExtensionArrays with one dimension == 1 for broadcasting
+    if hasattr(lvalues, "ndim") and lvalues.ndim == 2 and lvalues.shape[1] == 1:
+     lvalues = lvalues.reshape(-1)  # flatten to 1D
+
+    if hasattr(rvalues, "ndim") and rvalues.ndim == 2 and rvalues.shape[1] == 1:
+      rvalues = rvalues.reshape(-1)
+
 
     if should_extension_dispatch(lvalues, rvalues):
         # Call the method on lvalues

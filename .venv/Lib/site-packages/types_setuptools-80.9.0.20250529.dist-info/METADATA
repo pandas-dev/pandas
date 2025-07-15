@@ -1,0 +1,45 @@
+Metadata-Version: 2.4
+Name: types-setuptools
+Version: 80.9.0.20250529
+Summary: Typing stubs for setuptools
+License-Expression: Apache-2.0
+Project-URL: Homepage, https://github.com/python/typeshed
+Project-URL: GitHub, https://github.com/python/typeshed
+Project-URL: Changes, https://github.com/typeshed-internal/stub_uploader/blob/main/data/changelogs/setuptools.md
+Project-URL: Issue tracker, https://github.com/python/typeshed/issues
+Project-URL: Chat, https://gitter.im/python/typing
+Classifier: Programming Language :: Python :: 3
+Classifier: Typing :: Stubs Only
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
+## Typing stubs for setuptools
+
+This is a [PEP 561](https://peps.python.org/pep-0561/)
+type stub package for the [`setuptools`](https://github.com/pypa/setuptools) package.
+It can be used by type-checking tools like
+[mypy](https://github.com/python/mypy/),
+[pyright](https://github.com/microsoft/pyright),
+[pytype](https://github.com/google/pytype/),
+[Pyre](https://pyre-check.org/),
+PyCharm, etc. to check code that uses `setuptools`. This version of
+`types-setuptools` aims to provide accurate annotations for
+`setuptools==80.9.*`.
+
+Given that `pkg_resources` is typed since `setuptools >= 71.1`, it is no longer included with `types-setuptools`.
+
+This package is part of the [typeshed project](https://github.com/python/typeshed).
+All fixes for types and metadata should be contributed there.
+See [the README](https://github.com/python/typeshed/blob/main/README.md)
+for more details. The source for this package can be found in the
+[`stubs/setuptools`](https://github.com/python/typeshed/tree/main/stubs/setuptools)
+directory.
+
+This package was tested with
+mypy 1.15.0,
+pyright 1.1.400,
+and pytype 2024.10.11.
+It was generated from typeshed commit
+[`c30f63140c4c81124e44baaf997b67f88e8febb4`](https://github.com/python/typeshed/commit/c30f63140c4c81124e44baaf997b67f88e8febb4).

@@ -1,0 +1,20 @@
+{
+  "title": "Launch Shortcuts",
+  "description": "Launch Shortcuts.",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-help",
+        "items": [
+          {
+            "command": "jupyter-notebook:launch-tree",
+            "rank": 1
+          }
+        ]
+      }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

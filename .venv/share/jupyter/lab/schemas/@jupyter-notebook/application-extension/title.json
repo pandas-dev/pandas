@@ -1,0 +1,10 @@
+{
+  "title": "Title widget",
+  "description": "Title widget",
+  "jupyter.lab.toolbars": {
+    "TopBar": [{ "name": "widgetTitle", "rank": 10 }]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

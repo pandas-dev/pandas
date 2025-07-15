@@ -1,0 +1,17 @@
+{
+  "title": "File Browser Widget - File Actions",
+  "description": "File Browser widget - File Actions settings.",
+  "jupyter.lab.toolbars": {
+    "FileBrowser": [
+      { "name": "fileAction-placeholder", "rank": 0 },
+      { "name": "fileAction-open", "rank": 1 },
+      { "name": "fileAction-download", "rank": 2 },
+      { "name": "fileAction-rename", "rank": 3 },
+      { "name": "fileAction-duplicate", "rank": 4 },
+      { "name": "fileAction-delete", "rank": 5 }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}
