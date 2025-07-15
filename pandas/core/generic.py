@@ -10113,10 +10113,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond = np.array(cond, dtype=object)
 
         if isinstance(cond, np.ndarray):
-            if all(
-                x is NA or isinstance(x, (np.bool_, bool)) or x is np.nan
-                for x in cond.flatten()
-            ):
+            if all(x is NA or lib.is_bool(x) or x is np.nan for x in cond.flatten()):
                 if not cond.flags.writeable:
                     cond.setflags(write=True)
                 cond[isna(cond)] = False
