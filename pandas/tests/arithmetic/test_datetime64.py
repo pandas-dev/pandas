@@ -9,7 +9,6 @@ from datetime import (
 )
 from itertools import (
     product,
-    starmap,
 )
 import operator
 
@@ -2211,7 +2210,7 @@ class TestDatetimeIndexArithmetic:
 
         def timedelta64(*args):
             # see casting notes in NumPy gh-12927
-            return np.sum(list(starmap(np.timedelta64, zip(args, intervals))))
+            return np.sum(list(map(np.timedelta64, args, intervals)))
 
         for d, h, m, s, us in product(*([range(2)] * 5)):
             nptd = timedelta64(d, h, m, s, us)
