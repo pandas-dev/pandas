@@ -11,8 +11,6 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat.numpy import np_version_gte1p25
-
 import pandas as pd
 from pandas import (
     ArrowDtype,
@@ -2134,13 +2132,6 @@ class TestPivotTable:
         data = data.drop(columns="C")
         result = pivot_table(data, index="A", columns="B", aggfunc=f)
         expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
-
-        if not np_version_gte1p25 and isinstance(f_numpy, list):
-            # Prior to 1.25, np.min/np.max would come through as amin and amax
-            mapper = {"amin": "min", "amax": "max", "sum": "sum", "mean": "mean"}
-            expected.columns = expected.columns.map(
-                lambda x: (mapper[x[0]], x[1], x[2])
-            )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
@@ -2593,6 +2584,36 @@ class TestPivotTable:
         )
         expected = DataFrame(data=e_data, index=e_index, columns=e_cols)
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_include_nan_groups(self):
+        # GH#61509
+        df = DataFrame(
+            {
+                "i": [1, 2, 3],
+                "g1": ["a", "b", "b"],
+                "g2": ["x", None, None],
+            }
+        )
+
+        result = df.pivot_table(
+            index="g1",
+            columns="g2",
+            values="i",
+            aggfunc="count",
+            dropna=False,
+            margins=True,
+        )
+
+        expected = DataFrame(
+            {
+                "x": {"a": 1.0, "b": np.nan, "All": 1.0},
+                np.nan: {"a": np.nan, "b": 2.0, "All": 2.0},
+                "All": {"a": 1.0, "b": 2.0, "All": 3.0},
+            }
+        )
+        expected.index.name = "g1"
+        expected.columns.name = "g2"
+        tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 class TestPivot:

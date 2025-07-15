@@ -5481,11 +5481,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quickly return if the lengths are different
             return False
 
-        if (
-            isinstance(self.dtype, StringDtype)
-            and self.dtype.na_value is np.nan
-            and other.dtype != self.dtype
-        ):
+        if isinstance(self.dtype, StringDtype) and other.dtype != self.dtype:
             # TODO(infer_string) can we avoid this special case?
             # special case for object behavior
             return other.equals(self.astype(object))
@@ -7026,6 +7022,23 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         copy : bool, default True
             Whether to make a copy in cases where no inference occurs.
+
+        Returns
+        -------
+        Index
+            An Index with a new dtype if the dtype was inferred
+            or a shallow copy if the dtype could not be inferred.
+
+        See Also
+        --------
+        Index.inferred_type: Return a string of the type inferred from the values.
+
+        Examples
+        --------
+        >>> pd.Index(["a", 1]).infer_objects()
+        Index(['a', '1'], dtype='object')
+        >>> pd.Index([1, 2], dtype="object").infer_objects()
+        Index([1, 2], dtype='int64')
         """
         if self._is_multi:
             raise NotImplementedError(
@@ -7618,7 +7631,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
             # check in clean_index_list
             index_like = list(index_like)
 
-        if len(index_like) and lib.is_all_arraylike(index_like):
+        if index_like and lib.is_all_arraylike(index_like):
             from pandas.core.indexes.multi import MultiIndex
 
             return MultiIndex.from_arrays(index_like)
