@@ -346,12 +346,11 @@ class TestDataFrameDrop:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_drop_multiindex_with_axis_and_index(self):
+    def test_drop_with_both_axis_and_index(self):
         df = DataFrame({"a": [1, 2, 3], "b": ["foo", "foo", "bar"]})
-        df = pd.concat([df], keys=["foo"], axis=1)
-        msg = "Cannot specify both 'axis' and 'index'"
+        msg = "Cannot specify both 'axis' and 'index'/'columns'"
         with pytest.raises(ValueError, match=msg):
-            df.drop(index="b", level=1, axis=1)
+            df.drop(index="b", axis=1)
 
     def test_drop_nonunique(self):
         df = DataFrame(
