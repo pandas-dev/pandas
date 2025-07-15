@@ -163,8 +163,12 @@ master_doc = "index"
 
 # General information about the project.
 project = "pandas"
-# Updated copyright to include sponsor information, removing the need for custom template
-copyright = f'{datetime.now().year}, pandas via <a href="https://numfocus.org">NumFOCUS, Inc.</a> Hosted by <a href="https://www.ovhcloud.com">OVHcloud</a>.'
+# Updated copyright to include sponsor information, removing custom template
+copyright = (
+    f'{datetime.now().year}, pandas via '
+    '<a href="https://numfocus.org">NumFOCUS, Inc.</a> '
+    'Hosted by <a href="https://www.ovhcloud.com">OVHcloud</a>.'
+)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
