@@ -62,8 +62,8 @@ The main characteristic of the new string data type:
 
 Those intentional changes can have breaking consequences, for example when checking
 for the ``.dtype`` being object dtype or checking the exact missing value sentinel.
-
-TODO add link to migration guide for more details
+See the :ref:`string_migration_guide` for more details on the behaviour changes
+and how to adapt your code to the new default.
 
 .. seealso::
 
