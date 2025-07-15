@@ -2183,23 +2183,54 @@ def test_mixed_col_index_dtype(using_infer_string):
 
 
 @pytest.mark.parametrize("op", ["add", "sub", "mul", "div", "mod", "truediv", "pow"])
-def test_df_series_fill_value(op):
+def test_df_fill_value_operations(op):
     # GH 61581
-    data = np.arange(50).reshape(10, 5)
+    input_data = np.arange(50).reshape(10, 5)
+    fill_val = 5
     columns = list("ABCDE")
-    df = DataFrame(data, columns=columns)
+    df = DataFrame(input_data, columns=columns)
     for i in range(5):
         df.iat[i, i] = np.nan
         df.iat[i + 1, i] = np.nan
         df.iat[i + 4, i] = np.nan
 
-    df_a = df.iloc[:, :-1]
-    df_b = df.iloc[:, -1]
-    nan_mask = df_a.isna().astype(int).mul(df_b.isna().astype(int), axis=0).astype(bool)
+    df_base = df.iloc[:, :-1]
+    df_mult = df.iloc[:, -1]
+    mask = df.isna().values
+    mask = mask[:, :-1] & mask[:, [-1]]
 
-    df_result = getattr(df_a, op)(df_b, axis=0, fill_value=5)
-    df_expected = getattr(df_a.fillna(5), op)(df_b.fillna(5), axis=0).mask(
-        nan_mask, np.nan
-    )
+    df_result = getattr(df_base, op)(df_mult, axis=0, fill_value=fill_val)
+    df_expected = getattr(df_base.fillna(fill_val), op)(
+        df_mult.fillna(fill_val), axis=0
+    ).mask(mask, np.nan)
 
     tm.assert_frame_equal(df_result, df_expected)
+
+
+# ! Currently implementing
+# @pytest.mark.parametrize("input_data, fill_val",
+#                         [
+#                             (np.arange(50).reshape(10, 5), 5),  #Numpy
+#                             (pd.array(np.random.choice([True, False], size=(10, 5)),
+#                                   dtype="boolean"), True),
+#                         ]
+#                     )
+# def test_df_fill_value_dtype(input_data, fill_val):
+#     # GH 61581
+#     columns = list("ABCDE")
+#     df = DataFrame(input_data, columns=columns)
+#     for i in range(5):
+#         df.iat[i, i] = np.nan
+#         df.iat[i + 1, i] = np.nan
+#         df.iat[i + 4, i] = np.nan
+
+#     df_base = df.iloc[:, :-1]
+#     df_mult = df.iloc[:, -1]
+#     mask = df.isna().values
+#     mask = mask[:, :-1] & mask[:, [-1]]
+
+#     df_result = df_base.mul(df_mult, axis=0, fill_value=fill_val)
+#     df_expected = (df_base.fillna(fill_val).mul(df_mult.fillna(fill_val),
+# axis=0)).mask(mask, np.nan)
+
+#     tm.assert_frame_equal(df_result, df_expected)
