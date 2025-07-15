@@ -5281,13 +5281,13 @@ Write to a parquet file.
 .. ipython:: python
 
    df.to_parquet("example_pa.parquet", engine="pyarrow")
-   df.to_parquet("example_fp.parquet", engine="fastparquet")
+   # df.to_parquet("example_fp.parquet", engine="fastparquet")
 
 Read from a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
+   # result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow")
 
    result.dtypes
@@ -5309,11 +5309,11 @@ Read only certain columns of a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet(
-       "example_fp.parquet",
-       engine="fastparquet",
-       columns=["a", "b"],
-   )
+   # result = pd.read_parquet(
+   #     "example_fp.parquet",
+   #     engine="fastparquet",
+   #     columns=["a", "b"],
+   # )
    result = pd.read_parquet(
        "example_pa.parquet",
        engine="pyarrow",
@@ -5326,7 +5326,7 @@ Read only certain columns of a parquet file.
    :suppress:
 
    os.remove("example_pa.parquet")
-   os.remove("example_fp.parquet")
+   # os.remove("example_fp.parquet")
 
 
 Handling indexes
