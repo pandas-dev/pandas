@@ -8,7 +8,9 @@ from typing import (
     TYPE_CHECKING,
     ClassVar,
     Self,
+    cast,
     get_args,
+    overload,
 )
 from uuid import UUID
 
@@ -27,6 +29,13 @@ if TYPE_CHECKING:
     import builtins
 
     from numpy.typing import NDArray
+
+    from pandas._typing import (
+        Dtype,
+        PositionalIndexer,
+        ScalarIndexer,
+        SequenceIndexer,
+    )
 
     from pandas.core.arrays.boolean import BooleanArray
 
@@ -89,16 +98,22 @@ class UuidExtensionArray(ExtensionArray):
     @classmethod
     def _from_sequence(
         cls,
-        data: Iterable[UuidLike],
-        dtype: UuidDtype | None = None,
+        scalars: Iterable[UuidLike],
+        *,
+        dtype: Dtype | None = None,
         copy: bool = False,
     ) -> Self:
         if dtype is None:
             dtype = UuidDtype()
-        return cls(data, copy=copy)
+        return cls(scalars, copy=copy)
 
-    def __getitem__(self, index) -> Self | UUID:
-        if isinstance(index, int):
+    @overload
+    def __getitem__(self, index: ScalarIndexer) -> UUID: ...
+    @overload
+    def __getitem__(self, index: SequenceIndexer) -> Self: ...
+
+    def __getitem__(self, index: PositionalIndexer) -> Self | UUID:
+        if isinstance(index, int | np.integer):
             return UUID(bytes=self._data[index].tobytes())
         index = check_array_indexer(self, index)
         return self._simple_new(self._data[index])
@@ -107,9 +122,10 @@ class UuidExtensionArray(ExtensionArray):
         return len(self._data)
 
     @unpack_zerodim_and_defer("__eq__")
-    def __eq__(self, other: object) -> BooleanArray:
+    def __eq__(self, other: object) -> BooleanArray:  # type: ignore[override]
         return self._cmp("eq", other)
 
+    @property
     def nbytes(self) -> int:
         return self._data.nbytes
 
@@ -117,7 +133,7 @@ class UuidExtensionArray(ExtensionArray):
         return pd.isna(self._data)
 
     def take(
-        self, indexer, *, allow_fill: bool = False, fill_value: UUID | None = None
+        self, indexer, *, allow_fill: bool = False, fill_value: object = None
     ) -> Self:
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value
@@ -153,8 +169,7 @@ class UuidExtensionArray(ExtensionArray):
         method = getattr(self._data, f"__{op}__")
         result = method(other)
 
-        rv: BooleanArray = pd.array(result, dtype="boolean")
-        return rv
+        return cast("BooleanArray", pd.array(result, dtype="boolean"))
 
 
 def test_construct() -> None:
