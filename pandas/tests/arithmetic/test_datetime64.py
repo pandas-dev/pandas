@@ -770,11 +770,18 @@ class TestDatetimeIndexComparisons:
 
         result = dti == other
         expected = np.array([False] * 10)
-        tm.assert_numpy_array_equal(result, expected)
+        if isinstance(other, Series):
+            tm.assert_series_equal(result, Series(expected, index=other.index))
+        else:
+            tm.assert_numpy_array_equal(result, expected)
 
         result = dti != other
         expected = np.array([True] * 10)
-        tm.assert_numpy_array_equal(result, expected)
+        if isinstance(other, Series):
+            tm.assert_series_equal(result, Series(expected, index=other.index))
+        else:
+            tm.assert_numpy_array_equal(result, expected)
+
         msg = "Invalid comparison between"
         with pytest.raises(TypeError, match=msg):
             dti < other
