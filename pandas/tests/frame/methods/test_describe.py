@@ -373,7 +373,7 @@ class TestDataFrameDescribe:
 
     def test_describe_when_included_dtypes_not_present(self):
         # GH#61863
-        df = pd.DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]})
         msg = "None of the included dtypes are present in the DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.describe(include=["datetime"])
