@@ -744,7 +744,7 @@ def _read(
     _validate_names(kwds.get("names", None))
 
     storage_options = kwds.get("storage_options", None)
-    files = iterdir(filepath_or_buffer, storage_options)
+    files = iterdir(filepath_or_buffer, storage_options=storage_options)
 
     if isinstance(files, list) and not files:
         raise FileNotFoundError(f"No files found in {filepath_or_buffer}.")
