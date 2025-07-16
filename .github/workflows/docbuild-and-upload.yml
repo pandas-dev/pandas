@@ -58,8 +58,8 @@ jobs:
 
     - name: Build documentation
       # TEMP don't let errors fail the build until all string dtype changes are fixed
-      continue-on-error: true
-      run: doc/make.py --warnings-are-errors
+      # run: doc/make.py --warnings-are-errors
+      run: doc/make.py
 
     - name: Build the interactive terminal
       working-directory: web/interactive_terminal
