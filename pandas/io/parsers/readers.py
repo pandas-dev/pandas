@@ -743,16 +743,11 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
-    extensions = kwds.get("extensions", None)
-    glob = kwds.get("glob", None)
     storage_options = kwds.get("storage_options", None)
-    files = iterdir(filepath_or_buffer, extensions, glob, storage_options)
+    files = iterdir(filepath_or_buffer, storage_options)
 
     if isinstance(files, list) and not files:
-        raise FileNotFoundError(
-            f"No files found in {filepath_or_buffer}, "
-            f"with extension(s) {extensions} and glob pattern {glob}"
-        )
+        raise FileNotFoundError(f"No files found in {filepath_or_buffer}.")
 
     if (isinstance(files, list) and len(files) == 1) or not isinstance(files, list):
         file = files[0] if isinstance(files, list) else files
