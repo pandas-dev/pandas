@@ -172,8 +172,6 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             ldesc.append(describe_func(series, percentiles))
 
         col_names = reorder_columns(ldesc)
-        if len(ldesc) == 0:
-                raise ValueError("None of the included dtypes are present in the DataFrame") 
         d = concat(
             [x.reindex(col_names) for x in ldesc],
             axis=1,
@@ -201,6 +199,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
+            if len(data.columns) == 0:
+                msg = "None of the included dtypes are present in the DataFrame"
+                raise ValueError(msg)
         return data
 
 
