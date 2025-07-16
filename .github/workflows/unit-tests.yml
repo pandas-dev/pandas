@@ -30,7 +30,7 @@ jobs:
         env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml, actions-313.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
-        pandas_future_infer_string: ["0"]
+        pandas_future_infer_string: ["1"]
         include:
           - name: "Downstream Compat"
             env_file: actions-311-downstream_compat.yaml
@@ -43,6 +43,10 @@ jobs:
             platform: ubuntu-24.04
           - name: "Freethreading"
             env_file: actions-313-freethreading.yaml
+            pattern: "not slow and not network and not single_cpu"
+            platform: ubuntu-24.04
+          - name: "Without PyArrow"
+            env_file: actions-312.yaml
             pattern: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Locale: it_IT"
@@ -67,13 +71,9 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
             platform: ubuntu-24.04
-          - name: "Future infer strings"
+          - name: "Past no infer strings"
             env_file: actions-312.yaml
-            pandas_future_infer_string: "1"
-            platform: ubuntu-24.04
-          - name: "Future infer strings (without pyarrow)"
-            env_file: actions-311.yaml
-            pandas_future_infer_string: "1"
+            pandas_future_infer_string: "0"
             platform: ubuntu-24.04
           - name: "Numpy Dev"
             env_file: actions-311-numpydev.yaml
@@ -83,7 +83,6 @@ jobs:
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
-            pandas_future_infer_string: "1"
             platform: ubuntu-24.04
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.env_file) }}
@@ -98,7 +97,7 @@ jobs:
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
-      REMOVE_PYARROW: ${{ matrix.name == 'Future infer strings (without pyarrow)' && '1' || '0' }}
+      REMOVE_PYARROW: ${{ matrix.name == 'Without PyArrow' && '1' || '0' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
