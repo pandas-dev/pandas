@@ -283,8 +283,10 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 cdef _determine_offset(kwds):
     if not kwds:
+        from dateutil.relativedelta import relativedelta
+
         # GH 45643/45890: (historically) defaults to 1 day
-        return timedelta(days=1), False
+        return relativedelta(days=1), True
 
     if "millisecond" in kwds:
         raise NotImplementedError(
