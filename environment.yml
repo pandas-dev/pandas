@@ -78,6 +78,7 @@ dependencies:
   # code checks
   - flake8=7.1.0  # run in subprocess over docstring examples
   - mypy=1.17.1  # pre-commit uses locally installed mypy
+  - ty=0.0.9 # pre-commit uses locally installed ty
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=4.2.0
 

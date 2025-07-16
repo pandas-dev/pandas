@@ -55,6 +55,7 @@ moto
 asv>=0.6.1
 flake8==7.1.0
 mypy==1.17.1
+ty=0.0.9
 tokenize-rt
 pre-commit>=4.2.0
 gitpython
