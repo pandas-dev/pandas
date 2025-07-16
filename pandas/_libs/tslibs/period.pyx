@@ -1625,7 +1625,7 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
                   "from {cls}(freq={own_freq})")
 
 
-class IncompatibleFrequency(ValueError):
+class IncompatibleFrequency(TypeError):
     pass
 
 
