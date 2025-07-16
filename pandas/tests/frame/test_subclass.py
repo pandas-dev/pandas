@@ -7,6 +7,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    concat,
 )
 import pandas._testing as tm
 
@@ -742,16 +743,67 @@ class TestDataFrameSubclassing:
         assert df1.equals(df2)
         assert df2.equals(df1)
 
+    def test_original_property_is_preserved_when_subclassing(self):
+        original_property = "original_property"
+
+        class SubclassedSeries(Series):
+            _metadata = [original_property]
+
+            def __init__(self, data=None, original_property=None, *args, **kwargs):
+                super().__init__(data, *args, **kwargs)
+                self.original_property = original_property
+
+            @property
+            def _constructor(self):
+                return SubclassedSeries
+
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedDataFrame
+
+        class SubclassedDataFrame(DataFrame):
+            _metadata = ["original_property"]
+
+            def __init__(self, data=None, original_property=None, *args, **kwargs):
+                super().__init__(data, *args, **kwargs)
+                self.original_property = original_property
+
+            @property
+            def _constructor(self):
+                return SubclassedDataFrame
+
+            @property
+            def _constructor_sliced(self):
+                return SubclassedSeries
+
+        data = {"key": ["foo", "bar", "baz", "foo"], "value": [1, 2, 3, 5]}
+        df = SubclassedDataFrame(data, original_property="original_property")
+        tm.assert_equal(df.original_property, original_property)
+        tm.assert_equal(df[df["value"] == 1].original_property, original_property)
+        tm.assert_equal(df.loc[df["key"] == "foo"].original_property, original_property)
+        tm.assert_equal(df["value"].original_property, original_property)
+
+        tm.assert_equal(concat([df, df]).original_property, original_property)
+
+        df1 = SubclassedDataFrame(
+            {"lkey": ["foo", "bar", "baz", "foo"], "value": [1, 2, 3, 5]},
+            original_property="original_property",
+        )
+        df2 = SubclassedDataFrame(
+            {"rkey": ["foo", "bar", "baz", "foo"], "value": [5, 6, 7, 8]},
+            original_property="original_property",
+        )
+        merged_df = df1.merge(df2, left_on="lkey", right_on="rkey")
+        tm.assert_equal(merged_df.original_property, original_property)
+        plus = df1 + df2
+        tm.assert_equal(plus.original_property, original_property)
+
 
 class MySubclassWithMetadata(DataFrame):
     _metadata = ["my_metadata"]
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        my_metadata = kwargs.pop("my_metadata", None)
-        if args and isinstance(args[0], MySubclassWithMetadata):
-            my_metadata = args[0].my_metadata  # type: ignore[has-type]
+    def __init__(self, data=None, my_metadata=None, *args, **kwargs) -> None:
+        super().__init__(data, *args, **kwargs)
         self.my_metadata = my_metadata
 
     @property
