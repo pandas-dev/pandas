@@ -320,7 +320,7 @@ class TestTimedelta64ArithmeticUnsorted:
         with pytest.raises(TypeError, match=msg):
             td - dt
 
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from Timedelta"
         with pytest.raises(TypeError, match=msg):
             td - dti
 
