@@ -368,7 +368,7 @@ class Index(IndexOpsMixin, PandasObject):
     Index([1, 2, 3], dtype='int64')
 
     >>> pd.Index(list("abc"))
-    Index(['a', 'b', 'c'], dtype='object')
+    Index(['a', 'b', 'c'], dtype='str')
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
     Index([1, 2, 3], dtype='uint8')
