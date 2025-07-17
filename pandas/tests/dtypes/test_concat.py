@@ -3,7 +3,10 @@ import pytest
 import pandas.core.dtypes.concat as _concat
 
 import pandas as pd
-from pandas import Series, DataFrame
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -19,7 +22,7 @@ def test_concat_mismatched_categoricals_with_empty():
 
 def test_concat_single_dataframe_tz_aware():
     # https://github.com/pandas-dev/pandas/issues/25257
-    df = pd.DataFrame(
+    df = DataFrame(
         {"timestamp": [pd.Timestamp("2020-04-08 09:00:00.709949+0000", tz="UTC")]}
     )
     expected = df.copy()
@@ -53,7 +56,7 @@ def test_concat_series_between_empty_and_tzaware_series(using_infer_string):
     ser2 = Series(dtype=float)
 
     result = pd.concat([ser1, ser2], axis=1)
-    expected = pd.DataFrame(
+    expected = DataFrame(
         data=[
             (0.0, None),
         ],
