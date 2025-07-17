@@ -184,7 +184,7 @@ API changes
   .. ipython:: python
      :okwarning:
 
-     dfc.loc[0]['A'] = 1111
+     dfc.loc[0]['B'] = 1111
 
   ::
 
@@ -198,7 +198,7 @@ API changes
 
   .. ipython:: python
 
-     dfc.loc[0, 'A'] = 11
+     dfc.loc[0, 'B'] = 1111
      dfc
 
 - ``Panel.reindex`` has the following call signature ``Panel.reindex(items=None, major_axis=None, minor_axis=None, **kwargs)``
