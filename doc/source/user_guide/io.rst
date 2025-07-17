@@ -5228,33 +5228,32 @@ languages easy. Parquet can use a variety of compression techniques to shrink th
 while still maintaining good read performance.
 
 Parquet is designed to faithfully serialize and de-serialize ``DataFrame`` s, supporting all of the pandas
-dtypes, including extension dtypes such as datetime with tz.
+dtypes, including extension dtypes such as datetime with timezone.
 
 Several caveats.
 
 * Duplicate column names and non-string columns names are not supported.
-* The ``pyarrow`` engine always writes the index to the output, but ``fastparquet`` only writes non-default
-  indexes. This extra column can cause problems for non-pandas consumers that are not expecting it. You can
-  force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
+* The DataFrame index is written as separate column(s) when it is a non-default range index.
+  This extra column can cause problems for non-pandas consumers that are not expecting it. You can
+  force including or omitting indexes with the ``index`` argument.
 * Index level names, if specified, must be strings.
 * In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
-* The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
-* Non supported types include ``Interval`` and actual Python object types. These will raise a helpful error message
-  on an attempt at serialization. ``Period`` type is supported with pyarrow >= 0.16.0.
+* The ``pyarrow`` engine supports the ``Period`` and ``Interval`` dtypes. ``fastparquet`` does not support those.
+* Non supported types include actual Python object types. These will raise a helpful error message
+  on an attempt at serialization.
 * The ``pyarrow`` engine preserves extension data types such as the nullable integer and string data
-  type (requiring pyarrow >= 0.16.0, and requiring the extension type to implement the needed protocols,
+  type (this can also work for external extension types, requiring the extension type to implement the needed protocols,
   see the :ref:`extension types documentation <extending.extension.arrow>`).
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
-then ``pyarrow`` is tried, and falling back to ``fastparquet``.
+then ``pyarrow`` is used when installed, and falling back to ``fastparquet``.
 
 See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__.
 
 .. note::
 
-   These engines are very similar and should read/write nearly identical parquet format files.
-   ``pyarrow>=8.0.0`` supports timedelta data, ``fastparquet>=0.1.4`` supports timezone aware datetimes.
+   These engines are very similar and should read/write nearly identical parquet format files for most cases.
    These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
 
 .. ipython:: python
@@ -5280,24 +5279,21 @@ Write to a parquet file.
 
 .. ipython:: python
 
-   df.to_parquet("example_pa.parquet", engine="pyarrow")
-   # df.to_parquet("example_fp.parquet", engine="fastparquet")
+   # specify engine="pyarrow" or engine="fastparquet" to use a specific engine
+   df.to_parquet("example.parquet")
 
 Read from a parquet file.
 
 .. ipython:: python
 
-   # result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
-   result = pd.read_parquet("example_pa.parquet", engine="pyarrow")
-
+   result = pd.read_parquet("example.parquet")
    result.dtypes
 
 By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
 
 .. ipython:: python
 
-   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", dtype_backend="pyarrow")
-
+   result = pd.read_parquet("example.parquet", dtype_backend="pyarrow")
    result.dtypes
 
 .. note::
@@ -5309,41 +5305,36 @@ Read only certain columns of a parquet file.
 
 .. ipython:: python
 
-   # result = pd.read_parquet(
-   #     "example_fp.parquet",
-   #     engine="fastparquet",
-   #     columns=["a", "b"],
-   # )
-   result = pd.read_parquet(
-       "example_pa.parquet",
-       engine="pyarrow",
-       columns=["a", "b"],
-   )
+   result = pd.read_parquet("example.parquet", columns=["a", "b"])
    result.dtypes
 
 
 .. ipython:: python
    :suppress:
 
-   os.remove("example_pa.parquet")
-   # os.remove("example_fp.parquet")
+   os.remove("example.parquet")
 
 
 Handling indexes
 ''''''''''''''''
 
 Serializing a ``DataFrame`` to parquet may include the implicit index as one or
-more columns in the output file. Thus, this code:
+more columns in the output file. For example, this code:
 
 .. ipython:: python
 
-    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[1, 2])
     df.to_parquet("test.parquet", engine="pyarrow")
 
-creates a parquet file with *three* columns if you use ``pyarrow`` for serialization:
-``a``, ``b``, and ``__index_level_0__``. If you're using ``fastparquet``, the
-index `may or may not <https://fastparquet.readthedocs.io/en/latest/api.html#fastparquet.write>`_
-be written to the file.
+creates a parquet file with *three* columns (``a``, ``b``, and
+``__index_level_0__`` when using the ``pyarrow`` engine, or ``index``, ``a``,
+and ``b`` when using the ``fastparquet`` engine) because the index in this case
+is not a default range index. In general, the index *may or may not* be written
+to the file (see the
+`preserve_index keyword for pyarrow <https://arrow.apache.org/docs/python/pandas.html#handling-pandas-indexes>`__
+or the
+`write_index keyword for fastparquet <https://fastparquet.readthedocs.io/en/latest/api.html#fastparquet.write>`__
+to check the default behaviour).
 
 This unexpected extra column causes some databases like Amazon Redshift to reject
 the file, because that column doesn't exist in the target table.
