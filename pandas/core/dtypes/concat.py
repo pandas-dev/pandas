@@ -69,6 +69,11 @@ def concat_compat(
     -------
     a single array, preserving the combined dtypes
     """
+    # Special handling for categorical arrays solves #51362
+    if (len(to_concat) and
+        all(isinstance(arr.dtype, CategoricalDtype) for arr in to_concat) and
+        axis == 0):
+        return union_categoricals(to_concat)
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
         obj = to_concat[0]
