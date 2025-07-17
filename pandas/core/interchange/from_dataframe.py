@@ -77,7 +77,7 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     >>> df_not_necessarily_pandas = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
     >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
     >>> interchange_object.column_names()
-    Index(['A', 'B'], dtype='object')
+    Index(['A', 'B'], dtype='str')
     >>> df_pandas = pd.api.interchange.from_dataframe(
     ...     interchange_object.select_columns_by_name(["A"])
     ... )

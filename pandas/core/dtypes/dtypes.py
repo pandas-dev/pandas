@@ -647,7 +647,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         --------
         >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
         >>> cat_type.categories
-        Index(['a', 'b'], dtype='object')
+        Index(['a', 'b'], dtype='str')
         """
         return self._categories
 
