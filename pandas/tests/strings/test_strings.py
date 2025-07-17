@@ -782,7 +782,6 @@ def test_series_str_decode():
 
 
 def test_decode_with_dtype_none():
-    # Ensure that future.infer_string is enabled
     with option_context("future.infer_string", True):
         ser = Series([b"a", b"b", b"c"])  # Use byte strings
         result = ser.str.decode("utf-8", dtype=None)
