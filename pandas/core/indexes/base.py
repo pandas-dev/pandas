@@ -965,12 +965,8 @@ class Index(IndexOpsMixin, PandasObject):
         Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
-        if (not isinstance(result, Index) and is_bool_dtype(result.dtype)) or np.ndim(
-            result
-        ) > 1:
-            # exclude Index to avoid warning from is_bool_dtype deprecation;
-            #  in the Index case it doesn't matter which path we go down.
-            # reached in plotting tests with e.g. np.nonzero(index)
+        if np.ndim(result) > 1:
+            # Reached in plotting tests with e.g. np.nonzero(index)
             return result
 
         return Index(result, name=self.name)
@@ -5481,11 +5477,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quickly return if the lengths are different
             return False
 
-        if (
-            isinstance(self.dtype, StringDtype)
-            and self.dtype.na_value is np.nan
-            and other.dtype != self.dtype
-        ):
+        if isinstance(self.dtype, StringDtype) and other.dtype != self.dtype:
             # TODO(infer_string) can we avoid this special case?
             # special case for object behavior
             return other.equals(self.astype(object))
@@ -7635,7 +7627,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
             # check in clean_index_list
             index_like = list(index_like)
 
-        if len(index_like) and lib.is_all_arraylike(index_like):
+        if index_like and lib.is_all_arraylike(index_like):
             from pandas.core.indexes.multi import MultiIndex
 
             return MultiIndex.from_arrays(index_like)
