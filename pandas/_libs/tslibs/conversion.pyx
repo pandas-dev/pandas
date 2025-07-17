@@ -374,7 +374,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             raise ValueError(
                 # GH#25611
                 "np.datetime64 objects with units containing a multiplier are "
-                "not supported", num
+                "not supported"
             )
         reso = get_supported_reso(get_datetime64_unit(ts))
         obj.creso = reso
