@@ -104,6 +104,10 @@ def test_kwarg_assertion(kwargs):
     with pytest.raises(ValueError, match=re.escape(err_message)):
         Timedelta(**kwargs)
 
+    with pytest.raises(ValueError, match=re.escape(err_message)):
+        # GH#53801 'unit' misspelled as 'units'
+        Timedelta(1, units="hours")
+
 
 class TestArrayToTimedelta64:
     def test_array_to_timedelta64_string_with_unit_2d_raises(self):

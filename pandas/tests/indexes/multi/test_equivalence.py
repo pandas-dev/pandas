@@ -64,8 +64,8 @@ def test_equals_op(idx):
     with pytest.raises(ValueError, match="Lengths must match"):
         index_a == series_b
 
-    tm.assert_numpy_array_equal(index_a == series_a, expected1)
-    tm.assert_numpy_array_equal(index_a == series_c, expected2)
+    tm.assert_series_equal(index_a == series_a, Series(expected1))
+    tm.assert_series_equal(index_a == series_c, Series(expected2))
 
     # cases where length is 1 for one of them
     with pytest.raises(ValueError, match="Lengths must match"):
