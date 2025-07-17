@@ -545,3 +545,27 @@ b,2,y
         {"col1": array(["a", "b"]), "col2": np.array([1, 2], dtype="uint8")}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("usecols", [(2, 0), ("c", "a")])
+def test_usecols_order(all_parsers, usecols, request):
+    # TODO add future flag
+    parser = all_parsers
+    data = """\
+a,b,c,d
+1,2,3,0
+4,5,6,
+7,8,9,0
+10,11,12,13"""
+    # print(usecols)
+    # print(data)
+
+    if parser.engine == "pyarrow" and isinstance(usecols[0], int):
+        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+            parser.read_csv(StringIO(data), usecols=usecols)
+        return
+
+    result = parser.read_csv(StringIO(data), usecols=usecols)
+
+    expected = DataFrame([[3, 1], [6, 4], [9, 7], [12, 10]], columns=["c", "a"])
+    tm.assert_frame_equal(result, expected)
