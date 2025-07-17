@@ -614,11 +614,7 @@ class ParserBase:
         columns: list of column names
         data: list of array-likes containing the data column-wise.
         """
-        if not self.index_col and len(columns) != len(data) and columns:
-            # error: No overload variant of "__ror__" of "ndarray" matches
-            # argument type "ExtensionArray"
-            if len(data) > len(columns) :
-                return
+        if columns and len(data)!=len(columns):
             warnings.warn(
                 f"Length of header or names ({len(columns)}) does not match number of "
                 f"fields in line ({len(data)}). Extra field will be dropped.",

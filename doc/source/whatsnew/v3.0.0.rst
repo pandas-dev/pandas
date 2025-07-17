@@ -817,10 +817,7 @@ I/O
 - Bug in :meth:`set_option` where setting the pandas option ``display.html.use_mathjax`` to ``False`` has no effect (:issue:`59884`)
 - Bug in :meth:`to_csv` where ``quotechar``` is not escaped when ``escapechar`` is not None (:issue:`61407`)
 - Bug in :meth:`to_excel` where :class:`MultiIndex` columns would be merged to a single row when ``merge_cells=False`` is passed (:issue:`60274`)
-- Bug in :func:`read_csv` with ``engine="python"`` and callable ``on_bad_lines`` 
-  where a ``ParserWarning`` for extra fields returned by the callable was only 
-  raised when ``index_col`` was ``None``. Now the warning is consistently raised 
-  regardless of ``index_col`` (:issue:`#61837`)
+- Bug in :func:`read_csv` with ``engine="python"`` and callable ``on_bad_lines`` where a ``ParserWarning`` for extra fields returned by the callable was only raised when ``index_col`` was ``None``. Now the warning is consistently raised regardless of ``index_col`` (:issue:`#61837`)
 
 Period
 ^^^^^^
