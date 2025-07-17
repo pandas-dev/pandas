@@ -369,7 +369,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
     elif cnp.is_datetime64_object(ts):
-        num = (<PyDatetimeScalarObject*>obj).obmeta.num
+        num = (<PyDatetimeScalarObject*>ts).obmeta.num
         if num != 1:
             raise ValueError(
                 # GH#25611
