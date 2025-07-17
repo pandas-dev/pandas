@@ -3,7 +3,7 @@ import pytest
 import pandas.core.dtypes.concat as _concat
 
 import pandas as pd
-from pandas import Series
+from pandas import Series, DataFrame
 import pandas._testing as tm
 
 
@@ -64,3 +64,21 @@ def test_concat_series_between_empty_and_tzaware_series(using_infer_string):
         dtype=float,
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_categorical_dataframes():
+    df = DataFrame({"a": [0, 1]}, dtype="category")
+    df2 = DataFrame({"a": [2, 3]}, dtype="category")
+
+    result = pd.concat([df, df2], axis=0)
+
+    assert result["a"].dtype.name == "category"
+
+
+def test_concat_categorical_series():
+    ser = Series([0, 1], dtype="category")
+    ser2 = Series([2, 3], dtype="category")
+
+    result = pd.concat([ser, ser2], axis=0)
+
+    assert result.dtype.name == "category"
