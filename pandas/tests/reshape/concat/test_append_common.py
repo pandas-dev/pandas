@@ -743,7 +743,13 @@ class TestConcatAppendCommon:
         df_different_categories = DataFrame({"cats": cat3, "vals": vals3})
 
         res = pd.concat([df, df_different_categories], ignore_index=True)
-        exp = DataFrame({"cats": list("abab"), "vals": [1, 2, 1, 2]})
+        exp = DataFrame(
+            {
+                "cats": Categorical(list("abab"), categories=["a", "b", "c"]),
+                "vals": [1, 2, 1, 2],
+            }
+        )  # I do not agree with the test made in #37243
+
         tm.assert_frame_equal(res, exp)
 
         res = df._append(df_different_categories, ignore_index=True)
