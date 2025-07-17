@@ -285,7 +285,8 @@ cdef _determine_offset(kwds):
     if not kwds:
         from dateutil.relativedelta import relativedelta
 
-        # GH 45643/45890: (historically) defaults to 1 day
+        # GH 45643, 45890: (historically) defaults to 1 day
+        # GH 61870: changed from timedelta to relativedelta
         return relativedelta(days=1), True
 
     if "millisecond" in kwds:
