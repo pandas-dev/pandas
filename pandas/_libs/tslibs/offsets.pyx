@@ -18,6 +18,8 @@ from cpython.datetime cimport (
 
 import warnings
 
+from dateutil.relativedelta import relativedelta
+
 import_datetime()
 
 import numpy as np
@@ -283,8 +285,6 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 cdef _determine_offset(kwds):
     if not kwds:
-        from dateutil.relativedelta import relativedelta
-
         # GH 45643, 45890: (historically) defaults to 1 day
         # GH 61870: changed from timedelta to relativedelta
         return relativedelta(days=1), True
@@ -328,8 +328,6 @@ cdef _determine_offset(kwds):
         kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
 
     if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
-        from dateutil.relativedelta import relativedelta
-
         return relativedelta(**kwds_no_nanos), True
 
     raise ValueError(
