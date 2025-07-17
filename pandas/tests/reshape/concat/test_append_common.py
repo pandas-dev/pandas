@@ -696,7 +696,7 @@ class TestConcatAppendCommon:
 
         s1 = Series([], dtype="category")
         s2 = Series([1, 2], dtype="category")
-        exp = s2.astype(object)
+        exp = s2
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
