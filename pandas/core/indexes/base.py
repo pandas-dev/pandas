@@ -368,7 +368,7 @@ class Index(IndexOpsMixin, PandasObject):
     Index([1, 2, 3], dtype='int64')
 
     >>> pd.Index(list("abc"))
-    Index(['a', 'b', 'c'], dtype='object')
+    Index(['a', 'b', 'c'], dtype='str')
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
     Index([1, 2, 3], dtype='uint8')
@@ -7599,7 +7599,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     Examples
     --------
     >>> ensure_index(["a", "b"])
-    Index(['a', 'b'], dtype='object')
+    Index(['a', 'b'], dtype='str')
 
     >>> ensure_index([("a", "a"), ("b", "c")])
     Index([('a', 'a'), ('b', 'c')], dtype='object')
