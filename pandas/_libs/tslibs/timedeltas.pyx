@@ -2006,6 +2006,20 @@ class Timedelta(_Timedelta):
                            "milliseconds", "microseconds", "nanoseconds"}
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
+        unsupported_kwargs = set(kwargs)
+        unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
+        if unsupported_kwargs or (
+            value is _no_input and
+            not cls._req_any_kwargs_new.intersection(kwargs)
+        ):
+            raise ValueError(
+                # GH#53801
+                "cannot construct a Timedelta from the passed arguments, "
+                "allowed keywords are "
+                "[weeks, days, hours, minutes, seconds, "
+                "milliseconds, microseconds, nanoseconds]"
+            )
+
         if value is _no_input:
             if not len(kwargs):
                 raise ValueError("cannot construct a Timedelta without a "
@@ -2013,16 +2027,6 @@ class Timedelta(_Timedelta):
                                  "(days,seconds....)")
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
-
-            unsupported_kwargs = set(kwargs)
-            unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
-            if unsupported_kwargs or not cls._req_any_kwargs_new.intersection(kwargs):
-                raise ValueError(
-                    "cannot construct a Timedelta from the passed arguments, "
-                    "allowed keywords are "
-                    "[weeks, days, hours, minutes, seconds, "
-                    "milliseconds, microseconds, nanoseconds]"
-                )
 
             # GH43764, convert any input to nanoseconds first and then
             # create the timedelta. This ensures that any potential
