@@ -2217,7 +2217,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))
-    def round(
+    def round(  # type: ignore[override]
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",
