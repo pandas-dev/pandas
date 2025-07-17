@@ -43,21 +43,6 @@ For more information about PDEPs, and how to submit one, please refer to
   while others will exist as sections below.
 </div>
 
-### Extensibility
-
-Pandas `extending.extension-types` allow
-for extending NumPy types with custom data types and array storage.
-Pandas uses extension types internally, and provides an interface for
-3rd-party libraries to define their own custom data types.
-
-Many parts of pandas still unintentionally convert data to a NumPy
-array. These problems are especially pronounced for nested data.
-
-We'd like to improve the handling of extension arrays throughout the
-library, making their behavior more consistent with the handling of
-NumPy arrays. We'll do this by cleaning up pandas' internals and
-adding new methods to the extension array interface.
-
 ### Apache Arrow interoperability
 
 [Apache Arrow](https://arrow.apache.org) is a cross-language development
