@@ -75,7 +75,10 @@ def concat_compat(
         and all(isinstance(arr.dtype, CategoricalDtype) for arr in to_concat)
         and axis == 0
     ):
-        return union_categoricals(to_concat)
+        return union_categoricals(
+            to_concat, sort_categories=True
+        )  # Performance cost, but necessary to keep tests passing.
+        # see pandas/tests/reshape/concat/test_append_common.py:498
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
         obj = to_concat[0]
