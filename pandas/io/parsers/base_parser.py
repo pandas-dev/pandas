@@ -614,7 +614,7 @@ class ParserBase:
         columns: list of column names
         data: list of array-likes containing the data column-wise.
         """
-        if columns and len(data)!=len(columns):
+        if columns and len(data) != len(columns):
             warnings.warn(
                 f"Length of header or names ({len(columns)}) does not match number of "
                 f"fields in line ({len(data)}). Extra field will be dropped.",
