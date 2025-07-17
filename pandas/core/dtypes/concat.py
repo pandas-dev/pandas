@@ -69,16 +69,7 @@ def concat_compat(
     -------
     a single array, preserving the combined dtypes
     """
-    # Special handling for categorical arrays solves #51362
-    if (
-        len(to_concat)
-        and all(isinstance(arr.dtype, CategoricalDtype) for arr in to_concat)
-        and axis == 0
-    ):
-        return union_categoricals(
-            to_concat, sort_categories=True
-        )  # Performance cost, but necessary to keep tests passing.
-        # see pandas/tests/reshape/concat/test_append_common.py:498
+
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
         obj = to_concat[0]
@@ -102,6 +93,27 @@ def concat_compat(
                 to_concat_eas,
                 axis=axis,  # type: ignore[call-arg]
             )
+    # Special handling for categorical arrays solves #51362
+    if (
+        len(to_concat)
+        and all(isinstance(arr.dtype, CategoricalDtype) for arr in to_concat)
+        and axis == 0
+    ):
+        # Filter out empty arrays before union, similar to non_empties logic
+        non_empty_categoricals = [x for x in to_concat if _is_nonempty(x, axis)]
+
+        if len(non_empty_categoricals) == 0:
+            # All arrays are empty, return the first one (they're all categorical)
+            return to_concat[0]
+        elif len(non_empty_categoricals) == 1:
+            # Only one non-empty array, return it directly
+            return non_empty_categoricals[0]
+        else:
+            # Multiple non-empty arrays, use union_categoricals
+            return union_categoricals(
+                non_empty_categoricals, sort_categories=True
+            )  # Performance cost, but necessary to keep tests passing.
+            # see pandas/tests/reshape/concat/test_append_common.py:498
 
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
