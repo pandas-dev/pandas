@@ -5,6 +5,7 @@ import numpy as np
 cimport numpy as cnp
 from libc.math cimport log10
 from numpy cimport (
+    PyDatetimeScalarObject,
     float64_t,
     int32_t,
     int64_t,
@@ -358,6 +359,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     cdef:
         _TSObject obj
         NPY_DATETIMEUNIT reso
+        int64_t num
 
     obj = _TSObject()
 
@@ -367,6 +369,13 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
     elif cnp.is_datetime64_object(ts):
+        num = (<PyDatetimeScalarObject*>ts).obmeta.num
+        if num != 1:
+            raise ValueError(
+                # GH#25611
+                "np.datetime64 objects with units containing a multiplier are "
+                "not supported"
+            )
         reso = get_supported_reso(get_datetime64_unit(ts))
         obj.creso = reso
         obj.value = get_datetime64_nanos(ts, reso)
