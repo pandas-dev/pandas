@@ -322,6 +322,23 @@ footer
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
 
 
+def test_on_bad_lines_extra_fields_warns(python_parser_only):
+    parser = python_parser_only
+    data = """id,field_1,field_2
+101,A,B
+102,C,D, E
+103,F,G
+"""
+
+    def line_fixer(_line):
+        return ["1", "2", "3", "4", "5"]
+    for index_col in [None, 0]:
+        with tm.assert_produces_warning(ParserWarning):
+            parser.read_csv(
+                    StringIO(data), on_bad_lines=line_fixer, index_col=index_col
+                    )
+
+
 def test_python_engine_file_no_next(python_parser_only):
     parser = python_parser_only
 
