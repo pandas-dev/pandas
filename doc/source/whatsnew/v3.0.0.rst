@@ -716,6 +716,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
+- Bug in :class:`pandas.tseries.offsets.DateOffset` where ``DateOffset(1)`` and ``DateOffset(days=1)`` returned different results near daylight saving time transitions. (:issue:`61862`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 
 Timezones
