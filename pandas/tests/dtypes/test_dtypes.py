@@ -426,11 +426,11 @@ class TestPeriodDtype(Base):
 
         for s in ["period[D]", "Period[D]", "D"]:
             dt = PeriodDtype(s)
-            assert dt.freq == pd.tseries.offsets.Day()
+            assert dt.unit == pd.tseries.offsets.Day()
 
         for s in ["period[3D]", "Period[3D]", "3D"]:
             dt = PeriodDtype(s)
-            assert dt.freq == pd.tseries.offsets.Day(3)
+            assert dt.unit == pd.tseries.offsets.Day(3)
 
         for s in [
             "period[26h]",
@@ -441,7 +441,7 @@ class TestPeriodDtype(Base):
             "1D2h",
         ]:
             dt = PeriodDtype(s)
-            assert dt.freq == pd.tseries.offsets.Hour(26)
+            assert dt.unit == pd.tseries.offsets.Hour(26)
 
     def test_cannot_use_custom_businessday(self):
         # GH#52534
@@ -565,10 +565,10 @@ class TestPeriodDtype(Base):
     def test_perioddtype_caching_dateoffset_normalize(self):
         # GH 24121
         per_d = PeriodDtype(pd.offsets.YearEnd(normalize=True))
-        assert per_d.freq.normalize
+        assert per_d.unit.normalize
 
         per_d2 = PeriodDtype(pd.offsets.YearEnd(normalize=False))
-        assert not per_d2.freq.normalize
+        assert not per_d2.unit.normalize
 
     def test_dont_keep_ref_after_del(self):
         # GH 54184
@@ -576,6 +576,11 @@ class TestPeriodDtype(Base):
         ref = weakref.ref(dtype)
         del dtype
         assert ref() is None
+
+    def test_freq_deprecation(self, dtype):
+        msg = "PeriodDtype.freq is deprecated, use dtype.unit instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            dtype.freq
 
 
 class TestIntervalDtype(Base):

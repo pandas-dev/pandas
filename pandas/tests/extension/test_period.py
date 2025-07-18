@@ -94,7 +94,7 @@ class TestPeriodArray(base.ExtensionTests):
             expected = exp_op(skipna=skipna)
             # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
             # attribute "freq"
-            freq = ser.dtype.freq  # type: ignore[union-attr]
+            freq = ser.dtype.unit  # type: ignore[union-attr]
             expected = Period._from_ordinal(int(expected), freq=freq)
             tm.assert_almost_equal(result, expected)
 

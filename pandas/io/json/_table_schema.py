@@ -141,7 +141,7 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
         field["constraints"] = {"enum": list(cats)}
         field["ordered"] = ordered
     elif isinstance(dtype, PeriodDtype):
-        field["freq"] = dtype.freq.freqstr
+        field["freq"] = dtype.unit.freqstr
     elif isinstance(dtype, DatetimeTZDtype):
         if timezones.is_utc(dtype.tz):
             field["tz"] = "UTC"

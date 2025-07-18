@@ -1072,6 +1072,33 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         return type(self), (self.name,)
 
     @property
+    def unit(self):
+        """
+        The unit object of this PeriodDtype.
+
+        The `unit` property returns the `BaseOffset` object that represents the
+        unit of the PeriodDtype. This unit specifies the interval (e.g.,
+        daily, monthly, yearly) associated with the Period type. It is essential
+        for operations that depend on time-based calculations within a period index
+        or series.
+
+        See Also
+        --------
+        Period : Represents a period of time.
+        PeriodIndex : Immutable ndarray holding ordinal values indicating
+            regular periods.
+        PeriodDtype : An ExtensionDtype for Period data.
+        date_range : Return a fixed frequency range of dates.
+
+        Examples
+        --------
+        >>> dtype = pd.PeriodDtype("D")
+        >>> dtype.unit
+        <Day>
+        """
+        return self._freq
+
+    @property
     def freq(self) -> BaseOffset:
         """
         The frequency object of this PeriodDtype.
@@ -1081,6 +1108,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         daily, monthly, yearly) associated with the Period type. It is essential
         for operations that depend on time-based calculations within a period index
         or series.
+
+        .. deprecated: 3.0
+            Use dtype.unit instead.
 
         See Also
         --------
@@ -1096,6 +1126,11 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         >>> dtype.freq
         <Day>
         """
+        warnings.warn(
+            "PeriodDtype.freq is deprecated, use dtype.unit instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._freq
 
     @classmethod
