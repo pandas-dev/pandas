@@ -199,6 +199,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
+            if len(data.columns) == 0:
+                msg = "None of the included dtypes are present in the DataFrame"
+                raise ValueError(msg)
         return data
 
 
