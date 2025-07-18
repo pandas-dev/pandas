@@ -219,6 +219,8 @@ ParseDatesArg: TypeAlias = (
 )
 
 # For functions like rename that convert one label to another
+# For example, you can pass a dict like {'old_name' : 'new_name'}
+# or a function like str.lower
 Renamer: TypeAlias = Mapping[Any, Hashable] | Callable[[Any], Hashable]
 
 # to maintain type information across generic functions and parametrization
