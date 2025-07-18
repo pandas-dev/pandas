@@ -650,6 +650,13 @@ row-wise. For example:
 
    df - df.iloc[0]
 
+When using a Python list in arithmetic operations with a DataFrame, the behavior is not element-wise broadcasting.
+Instead, the list is treated as a single object and the operation is performed column-wise, resulting in unexpected output (e.g. arrays inside each cell).
+
+.. ipython:: python
+
+    df + np.array([1, 2, 3])  
+    
 For explicit control over the matching and broadcasting behavior, see the
 section on :ref:`flexible binary operations <basics.binop>`.
 
