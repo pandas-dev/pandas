@@ -1103,14 +1103,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         The frequency object of this PeriodDtype.
 
+        .. deprecated:: 3.0
+            Use dtype.unit instead.
+
         The `freq` property returns the `BaseOffset` object that represents the
         frequency of the PeriodDtype. This frequency specifies the interval (e.g.,
         daily, monthly, yearly) associated with the Period type. It is essential
         for operations that depend on time-based calculations within a period index
         or series.
-
-        .. deprecated:: 3.0
-            Use dtype.unit instead.
 
         See Also
         --------
