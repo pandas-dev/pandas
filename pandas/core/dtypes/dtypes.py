@@ -1109,7 +1109,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         for operations that depend on time-based calculations within a period index
         or series.
 
-        .. deprecated: 3.0
+        .. deprecated:: 3.0
             Use dtype.unit instead.
 
         See Also
