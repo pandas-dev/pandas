@@ -1231,6 +1231,7 @@ def test_multiply_dateoffset_typeerror(left, right):
 
 
 def test_dateoffset_days_vs_n_near_dst_transition():
+    # GH 61870
     ts = Timestamp("2022-10-30", tz="Europe/Brussels")
 
     offset_days = ts + offsets.DateOffset(days=1)
