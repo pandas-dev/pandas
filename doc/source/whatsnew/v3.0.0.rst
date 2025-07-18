@@ -455,6 +455,7 @@ Other Deprecations
 
 - Deprecated :func:`core.internals.api.make_block`, use public APIs instead (:issue:`56815`)
 - Deprecated :meth:`.DataFrameGroupby.corrwith` (:issue:`57158`)
+- Deprecated :meth:`PeriodDtype.freq`, use ``dtype.unit`` instead (:issue:`61897`)
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.all`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`Series.all`,  :meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.sem`, :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.skew`, and :meth:`Series.kurt`. (:issue:`57087`)
@@ -469,7 +470,6 @@ Other Deprecations
 - Deprecated strings ``w``, ``d``, ``MIN``, ``MS``, ``US`` and ``NS`` denoting units in :class:`Timedelta` in favour of ``W``, ``D``, ``min``, ``ms``, ``us`` and ``ns`` (:issue:`59051`)
 - Deprecated the ``arg`` parameter of ``Series.map``; pass the added ``func`` argument instead. (:issue:`61260`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
-- Deprecated :meth:`PeriodDtype.freq`, use ``dtype.unit`` instead (:issue:`??`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.prior_deprecations:
