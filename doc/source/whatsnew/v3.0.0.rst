@@ -927,6 +927,7 @@ Other
 - Bug in :meth:`Index.sort_values` when passing a key function that turns values into tuples, e.g. ``key=natsort.natsort_key``, would raise ``TypeError`` (:issue:`56081`)
 - Bug in :meth:`MultiIndex.fillna` error message was referring to ``isna`` instead of ``fillna`` (:issue:`60974`)
 - Bug in :meth:`Series.describe` where median percentile was always included when the ``percentiles`` argument was passed (:issue:`60550`).
+- Bug in :meth:`Series.describe` where statistics with multiple dtypes for ExtensionArrays were coerced to ``float64`` which raised a ``DimensionalityError``` (:issue:`61707`)
 - Bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 - Bug in :meth:`Series.dt` methods in :class:`ArrowDtype` that were returning incorrect values. (:issue:`57355`)
 - Bug in :meth:`Series.isin` raising ``TypeError`` when series is large (>10**6) and ``values`` contains NA (:issue:`60678`)
