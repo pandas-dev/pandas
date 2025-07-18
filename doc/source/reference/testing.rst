@@ -36,6 +36,7 @@ Exceptions and warnings
    errors.DuplicateLabelError
    errors.EmptyDataError
    errors.IncompatibilityWarning
+   errors.IncompatibleFrequency
    errors.IndexingError
    errors.InvalidColumnName
    errors.InvalidComparison

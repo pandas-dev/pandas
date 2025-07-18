@@ -1625,7 +1625,11 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
                   "from {cls}(freq={own_freq})")
 
 
-class IncompatibleFrequency(ValueError):
+class IncompatibleFrequency(TypeError):
+    """
+    Raised when trying to compare or operate between Periods with different
+    frequencies.
+    """
     pass
 
 

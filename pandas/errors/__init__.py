@@ -9,6 +9,7 @@ import ctypes
 from pandas._config.config import OptionError
 
 from pandas._libs.tslibs import (
+    IncompatibleFrequency,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
@@ -917,6 +918,7 @@ __all__ = [
     "DuplicateLabelError",
     "EmptyDataError",
     "IncompatibilityWarning",
+    "IncompatibleFrequency",
     "IndexingError",
     "IntCastingNaNError",
     "InvalidColumnName",
