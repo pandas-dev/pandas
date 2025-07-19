@@ -2,9 +2,6 @@
 Tests for CategoricalIndex.__repr__ and related methods.
 """
 
-import pytest
-
-from pandas._config import using_string_dtype
 import pandas._config.config as cf
 
 from pandas import CategoricalIndex
@@ -22,7 +19,6 @@ class TestCategoricalIndexReprStringCategories:
             )
         assert repr(idx) == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="Different padding on multi-line")
     def test_categorical_index_repr_multiline(self, using_infer_string):
         # multiple lines
         idx = CategoricalIndex(["a", "bb", "ccc"] * 10)
@@ -37,7 +33,6 @@ class TestCategoricalIndexReprStringCategories:
             )
         assert repr(idx) == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="Different padding on multi-line")
     def test_categorical_index_repr_truncated(self, using_infer_string):
         # truncated
         idx = CategoricalIndex(["a", "bb", "ccc"] * 100)
@@ -76,7 +71,6 @@ class TestCategoricalIndexReprStringCategories:
             )
         assert repr(idx) == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="Different padding on multi-line")
     def test_categorical_index_repr_unicode_multiline(self, using_infer_string):
         # multiple lines
         idx = CategoricalIndex(["あ", "いい", "ううう"] * 10)
@@ -91,7 +85,6 @@ class TestCategoricalIndexReprStringCategories:
             )
         assert repr(idx) == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="Different padding on multi-line")
     def test_categorical_index_repr_unicode_truncated(self, using_infer_string):
         # truncated
         idx = CategoricalIndex(["あ", "いい", "ううう"] * 100)
@@ -131,7 +124,6 @@ class TestCategoricalIndexReprStringCategories:
                 )
             assert repr(idx) == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="Different padding on multi-line")
     def test_categorical_index_repr_east_asian_width_multiline(
         self, using_infer_string
     ):
@@ -151,7 +143,6 @@ class TestCategoricalIndexReprStringCategories:
                 )
             assert repr(idx) == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="Different padding on multi-line")
     def test_categorical_index_repr_east_asian_width_truncated(
         self, using_infer_string
     ):
