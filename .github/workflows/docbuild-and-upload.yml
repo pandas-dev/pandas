@@ -57,7 +57,11 @@ jobs:
       run: python web/pandas_web.py web/pandas --target-path=web/build
 
     - name: Build documentation
-      run: doc/make.py --warnings-are-errors
+      run: doc/make.py --warnings-are-errors --num-jobs=1
+
+    - name: Show error log
+      if: always()
+      run: cat /tmp/sphinx-err-svc_vpms.log
 
     - name: Build the interactive terminal
       working-directory: web/interactive_terminal
