@@ -50,6 +50,15 @@ _khash_primitive_helper_dep = declare_dependency(
     sources: _khash_primitive_helper,
 )
 
+# Use the parent's WebAssembly detection and OpenMP configuration
+# (is_pyodide_build and openmp_dep are inherited from parent meson.build)
+
+# Conditional dependencies for algos module
+algos_deps = [_khash_primitive_helper_dep]
+if openmp_dep.found() and not is_pyodide_build
+    algos_deps += [openmp_dep]
+endif
+
 cdata = configuration_data()
 if cy.version().version_compare('>=3.1.0')
     cdata.set('freethreading_compatible', '1')
@@ -70,7 +79,7 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {
         'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': _khash_primitive_helper_dep,
+        'deps': algos_deps,
     },
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx']},

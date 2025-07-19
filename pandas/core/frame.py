@@ -11263,9 +11263,14 @@ class DataFrame(NDFrame, OpsMixin):
         method: CorrelationMethod = "pearson",
         min_periods: int = 1,
         numeric_only: bool = False,
+        use_parallel: bool = False,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
+
+        This function computes the correlation matrix between all pairs of columns
+        in the DataFrame, handling missing values by excluding them from the
+        calculation on a pairwise basis.
 
         Parameters
         ----------
@@ -11291,6 +11296,21 @@ class DataFrame(NDFrame, OpsMixin):
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.
 
+        use_parallel : bool, default False
+            Use parallel computation for Pearson correlation to potentially
+            improve performance on large datasets. This parameter is only
+            effective when ``method='pearson'`` and is ignored for other
+            correlation methods.
+
+            When ``True``, the computation will utilize multiple CPU cores
+            for calculating pairwise correlations. This can provide significant
+            performance improvements for large DataFrames (typically with
+            hundreds of columns or more) but may introduce overhead for
+            smaller datasets. The optimal threshold depends on system
+            specifications and data characteristics.
+
+            .. versionadded:: 3.0.0
+
         Returns
         -------
         DataFrame
@@ -11309,6 +11329,17 @@ class DataFrame(NDFrame, OpsMixin):
         * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
         * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
         * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
+        **Parallel Computation:**
+
+        The ``use_parallel`` parameter can significantly improve performance for large
+        DataFrames by distributing the correlation computation across multiple CPU cores.
+        However, it's important to note:
+
+        - Only affects Pearson correlation (``method='pearson'``)
+        - Performance gains are most noticeable for DataFrames with many columns
+        - Small datasets may see negligible improvement or even slight overhead
+        - The optimal threshold depends on system specifications and data characteristics
 
         Examples
         --------
@@ -11331,6 +11362,10 @@ class DataFrame(NDFrame, OpsMixin):
               dogs  cats
         dogs   1.0   NaN
         cats   NaN   1.0
+
+        >>> # Use parallel computation for large DataFrames
+        >>> large_df = pd.DataFrame(np.random.randn(1000, 50))
+        >>> corr_matrix = large_df.corr(use_parallel=True)  # doctest: +SKIP
         """  # noqa: E501
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
@@ -11338,7 +11373,19 @@ class DataFrame(NDFrame, OpsMixin):
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
-            correl = libalgos.nancorr(mat, minp=min_periods)
+            if use_parallel:
+                try:
+                    correl = libalgos.nancorr(mat, minp=min_periods, use_parallel=True)
+                except (ImportError, AttributeError, RuntimeError):
+                    # OpenMP not available or prange failed, fall back to sequential
+                    warnings.warn(
+                        "No parallelism; using sequential (e.g. Pyodide or no OpenMP).",
+                        UserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    correl = libalgos.nancorr(mat, minp=min_periods, use_parallel=False)
+            else:
+                correl = libalgos.nancorr(mat, minp=min_periods, use_parallel=False)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
         elif method == "kendall" or callable(method):

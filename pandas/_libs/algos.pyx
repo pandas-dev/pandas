@@ -1,5 +1,7 @@
 cimport cython
 from cython cimport Py_ssize_t
+from cython.parallel cimport prange
+import sys
 from libc.math cimport (
     fabs,
     sqrt,
@@ -9,6 +11,8 @@ from libc.stdlib cimport (
     malloc,
 )
 from libc.string cimport memmove
+
+import sys
 
 import numpy as np
 
@@ -345,60 +349,154 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
-def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
+def nancorr(
+    const float64_t[:, :] mat,
+    bint cov=False,
+    minp=None,
+    bint use_parallel=False
+):
     cdef:
-        Py_ssize_t i, xi, yi, N, K
-        int64_t minpv
+        Py_ssize_t i, j, xi, yi, N, K
+        bint minpv
         float64_t[:, ::1] result
-        uint8_t[:, :] mask
+        # Initialize to None since we only use in the no missing value case
+        float64_t[::1] means = None
+        float64_t[::1] ssqds = None
+        ndarray[uint8_t, ndim=2] mask
+        bint no_nans
         int64_t nobs = 0
-        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
+        float64_t mean, ssqd, val
+        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, corr_val
+
+    # Disable parallel execution in WASM/Emscripten environments
+    if use_parallel and hasattr(sys, "platform"):
+        if "emscripten" in sys.platform or "wasm32" in sys.platform:
+            use_parallel = False
 
     N, K = (<object>mat).shape
     if minp is None:
         minpv = 1
     else:
-        minpv = <int64_t>minp
-
+        minpv = <int>minp
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
+    no_nans = mask.all()
 
-    with nogil:
-        for xi in range(K):
-            for yi in range(xi + 1):
-                # Welford's method for the variance-calculation
-                # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-                nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
+    # Computing the online means and variances is expensive - so if possible we can
+    # precompute these and avoid repeating the computations each time we handle
+    # an (xi, yi) pair
+    if no_nans:
+        means = np.empty(K, dtype=np.float64)
+        ssqds = np.empty(K, dtype=np.float64)
+        with nogil:
+            for j in range(K):
+                ssqd = mean = 0
                 for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
+                    val = mat[i, j]
+                    dx = val - mean
+                    mean += 1 / (i + 1) * dx
+                    ssqd += (val - mean) * dx
+                means[j] = mean
+                ssqds[j] = ssqd
+
+    if use_parallel:
+        for xi in prange(K, schedule="dynamic", nogil=True):
+            for yi in range(xi + 1):
+                covxy = 0
+                if no_nans:
+                    for i in range(N):
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        nobs += 1
-                        dx = vx - meanx
-                        dy = vy - meany
-                        meanx += 1. / nobs * dx
-                        meany += 1. / nobs * dy
-                        ssqdmx += (vx - meanx) * dx
-                        ssqdmy += (vy - meany) * dy
-                        covxy += (vx - meanx) * dy
-
+                        covxy += (vx - means[xi]) * (vy - means[yi])
+                    ssqdmx = ssqds[xi]
+                    ssqdmy = ssqds[yi]
+                    nobs = N
+                else:
+                    nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
+                    for i in range(N):
+                        # Welford's method for the variance-calculation
+                        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            nobs = nobs + 1
+                            dx = vx - meanx
+                            dy = vy - meany
+                            meanx = meanx + (1 / nobs * dx)
+                            meany = meany + (1 / nobs * dy)
+                            ssqdmx = ssqdmx + ((vx - meanx) * dx)
+                            ssqdmy = ssqdmy + ((vy - meany) * dy)
+                            covxy = covxy + ((vx - meanx) * dy)
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
                 else:
                     divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
-
-                    # clip `covxy / divisor` to ensure coeff is within bounds
                     if divisor != 0:
-                        val = covxy / divisor
-                        if not cov:
-                            if val > 1.0:
-                                val = 1.0
-                            elif val < -1.0:
-                                val = -1.0
-                        result[xi, yi] = result[yi, xi] = val
+                        if cov:
+                            result[xi, yi] = result[yi, xi] = covxy / divisor
+                        else:
+                            # ensure that diagonal is exactly 1.0
+                            if xi == yi:
+                                result[xi, yi] = 1.0
+                            else:
+                                corr_val = covxy / divisor
+                                if corr_val > 1.0:
+                                    corr_val = 1.0
+                                elif corr_val < -1.0:
+                                    corr_val = -1.0
+                                result[xi, yi] = result[yi, xi] = corr_val
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
+    else:
+        # Use sequential execution with regular range
+        with nogil:
+            for xi in range(K):
+                for yi in range(xi + 1):
+                    covxy = 0
+                    if no_nans:
+                        for i in range(N):
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            covxy += (vx - means[xi]) * (vy - means[yi])
+                        ssqdmx = ssqds[xi]
+                        ssqdmy = ssqds[yi]
+                        nobs = N
+                    else:
+                        nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
+                        for i in range(N):
+                            # Welford's method for the variance-calculation
+                            # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+                            if mask[i, xi] and mask[i, yi]:
+                                vx = mat[i, xi]
+                                vy = mat[i, yi]
+                                nobs += 1
+                                dx = vx - meanx
+                                dy = vy - meany
+                                meanx += 1 / nobs * dx
+                                meany += 1 / nobs * dy
+                                ssqdmx += (vx - meanx) * dx
+                                ssqdmy += (vy - meany) * dy
+                                covxy += (vx - meanx) * dy
+                    if nobs < minpv:
+                        result[xi, yi] = result[yi, xi] = NaN
+                    else:
+                        divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
+                        if divisor != 0:
+                            if cov:
+                                result[xi, yi] = result[yi, xi] = covxy / divisor
+                            else:
+                                # For correlation, ensure diagonal is exactly 1.0
+                                if xi == yi:
+                                    result[xi, yi] = 1.0
+                                else:
+                                    corr_val = covxy / divisor
+                                    if corr_val > 1.0:
+                                        corr_val = 1.0
+                                    elif corr_val < -1.0:
+                                        corr_val = -1.0
+                                    result[xi, yi] = result[yi, xi] = corr_val
+                        else:
+                            result[xi, yi] = result[yi, xi] = NaN
 
     return result.base
 

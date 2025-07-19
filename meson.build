@@ -15,6 +15,26 @@ py = import('python').find_installation(pure: false)
 tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
 
+# Find OpenMP dependency - skip for Pyodide/WebAssembly builds
+is_pyodide_build = false
+cc = meson.get_compiler('c')
+
+# Check if we're building for WebAssembly/Pyodide
+if cc.get_id() == 'clang' and host_machine.cpu_family() == 'wasm32'
+    is_pyodide_build = true
+    message('Detected Pyodide/WebAssembly build - skipping OpenMP')
+endif
+
+openmp_dep = dependency('openmp', required: false)
+if not openmp_dep.found() and not is_pyodide_build
+    # Try to find OpenMP using compiler flags
+    if cc.has_argument('-fopenmp')
+        openmp_dep = declare_dependency(
+            compile_args: ['-fopenmp'],
+            link_args: ['-fopenmp'],
+        )
+    endif
+endif
 
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'c')
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'cpp')
@@ -28,6 +48,18 @@ add_project_arguments(
     language: 'cpp',
 )
 
+# Add OpenMP compile args if available and not building for Pyodide
+if openmp_dep.found() and not is_pyodide_build
+    add_project_arguments('-DHAVE_OPENMP', language: 'c')
+    add_project_arguments('-DHAVE_OPENMP', language: 'cpp')
+    message('OpenMP support enabled')
+else
+    if is_pyodide_build
+        message('OpenMP disabled for Pyodide/WebAssembly build')
+    else
+        message('OpenMP not found - parallel code will run sequentially')
+    endif
+endif
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', subdir: 'pandas')
@@ -74,4 +106,5 @@ endif
 # Needed by pandas.test() when it looks for the pytest ini options
 py.install_sources('pyproject.toml', subdir: 'pandas')
 
+# Pass build flags to subdirectories
 subdir('pandas')
