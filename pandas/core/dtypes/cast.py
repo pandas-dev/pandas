@@ -1086,10 +1086,7 @@ def convert_dtypes(
             elif (
                 infer_objects
                 and input_array.dtype == object
-                and (
-                    isinstance(inferred_dtype, str)
-                    and inferred_dtype == "mixed-integer-float"
-                )
+                and (isinstance(inferred_dtype, str) and inferred_dtype == "floating")
             ):
                 inferred_dtype = pandas_dtype_func("Float64")
 
@@ -1933,6 +1930,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                         # i.e. there are pd.NA elements
                         raise LossySetitemError
                 return element
+            # GH 57338 check boolean array set as object type
+            if tipo.kind == "O" and isinstance(element, np.ndarray):
+                if lib.is_bool_array(element):
+                    return element.astype("bool")
             raise LossySetitemError
         if lib.is_bool(element):
             return element
