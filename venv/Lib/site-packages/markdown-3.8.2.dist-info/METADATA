@@ -1,0 +1,116 @@
+Metadata-Version: 2.4
+Name: Markdown
+Version: 3.8.2
+Summary: Python implementation of John Gruber's Markdown.
+Author: Manfred Stienstra, Yuri Takhteyev
+Author-email: Waylan limberg <python.markdown@gmail.com>
+Maintainer: Isaac Muse
+Maintainer-email: Waylan Limberg <python.markdown@gmail.com>
+License-Expression: BSD-3-Clause
+Project-URL: Homepage, https://Python-Markdown.github.io/
+Project-URL: Documentation, https://Python-Markdown.github.io/
+Project-URL: Repository, https://github.com/Python-Markdown/markdown
+Project-URL: Issue Tracker, https://github.com/Python-Markdown/markdown/issues
+Project-URL: Changelog, https://python-markdown.github.io/changelog/
+Keywords: markdown,markdown-parser,python-markdown,markdown-to-html
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Communications :: Email :: Filters
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries
+Classifier: Topic :: Internet :: WWW/HTTP :: Site Management
+Classifier: Topic :: Software Development :: Documentation
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: Filters
+Classifier: Topic :: Text Processing :: Markup :: HTML
+Classifier: Topic :: Text Processing :: Markup :: Markdown
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE.md
+Requires-Dist: importlib-metadata>=4.4; python_version < "3.10"
+Provides-Extra: testing
+Requires-Dist: coverage; extra == "testing"
+Requires-Dist: pyyaml; extra == "testing"
+Provides-Extra: docs
+Requires-Dist: mkdocs>=1.6; extra == "docs"
+Requires-Dist: mkdocs-nature>=0.6; extra == "docs"
+Requires-Dist: mdx_gh_links>=0.2; extra == "docs"
+Requires-Dist: mkdocstrings[python]; extra == "docs"
+Requires-Dist: mkdocs-gen-files; extra == "docs"
+Requires-Dist: mkdocs-section-index; extra == "docs"
+Requires-Dist: mkdocs-literate-nav; extra == "docs"
+Dynamic: license-file
+
+[Python-Markdown][]
+===================
+
+[![Build Status][build-button]][build]
+[![Coverage Status][codecov-button]][codecov]
+[![Latest Version][mdversion-button]][md-pypi]
+[![Python Versions][pyversion-button]][md-pypi]
+[![BSD License][bsdlicense-button]][bsdlicense]
+[![Code of Conduct][codeofconduct-button]][Code of Conduct]
+
+[build-button]: https://github.com/Python-Markdown/markdown/actions/workflows/tox.yml/badge.svg
+[build]: https://github.com/Python-Markdown/markdown/actions/workflows/tox.yml
+[codecov-button]: https://codecov.io/gh/Python-Markdown/markdown/branch/master/graph/badge.svg
+[codecov]: https://codecov.io/gh/Python-Markdown/markdown
+[mdversion-button]: https://img.shields.io/pypi/v/Markdown.svg
+[md-pypi]: https://pypi.org/project/Markdown/
+[pyversion-button]: https://img.shields.io/pypi/pyversions/Markdown.svg
+[bsdlicense-button]: https://img.shields.io/badge/license-BSD-yellow.svg
+[bsdlicense]: https://opensource.org/licenses/BSD-3-Clause
+[codeofconduct-button]: https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-green.svg?style=flat-square
+[Code of Conduct]: https://github.com/Python-Markdown/markdown/blob/master/CODE_OF_CONDUCT.md
+
+This is a Python implementation of John Gruber's [Markdown][].
+It is almost completely compliant with the reference implementation,
+though there are a few known issues. See [Features][] for information
+on what exactly is supported and what is not. Additional features are
+supported by the [Available Extensions][].
+
+[Python-Markdown]: https://Python-Markdown.github.io/
+[Markdown]: https://daringfireball.net/projects/markdown/
+[Features]: https://Python-Markdown.github.io#Features
+[Available Extensions]: https://Python-Markdown.github.io/extensions
+
+Documentation
+-------------
+
+```bash
+pip install markdown
+```
+```python
+import markdown
+html = markdown.markdown(your_text_string)
+```
+
+For more advanced [installation] and [usage] documentation, see the `docs/` directory
+of the distribution or the project website at <https://Python-Markdown.github.io/>.
+
+[installation]: https://python-markdown.github.io/install/
+[usage]: https://python-markdown.github.io/reference/
+
+See the change log at <https://python-markdown.github.io/changelog/>.
+
+Support
+-------
+
+You may report bugs, ask for help, and discuss various other issues on the [bug tracker][].
+
+[bug tracker]: https://github.com/Python-Markdown/markdown/issues
+
+Code of Conduct
+---------------
+
+Everyone interacting in the Python-Markdown project's code bases, issue trackers,
+and mailing lists is expected to follow the [Code of Conduct].

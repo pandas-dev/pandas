@@ -1,0 +1,2 @@
+[console_scripts]
+jupyter-trust = nbformat.sign:TrustNotebookApp.launch_instance

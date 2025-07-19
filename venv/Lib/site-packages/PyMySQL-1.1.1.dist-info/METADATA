@@ -1,0 +1,135 @@
+Metadata-Version: 2.1
+Name: PyMySQL
+Version: 1.1.1
+Summary: Pure Python MySQL Driver
+Author-email: Inada Naoki <songofacandy@gmail.com>, Yutaka Matsubara <yutaka.matsubara@gmail.com>
+License: MIT License
+Project-URL: Project, https://github.com/PyMySQL/PyMySQL
+Project-URL: Documentation, https://pymysql.readthedocs.io/
+Keywords: MySQL
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Topic :: Database
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: ed25519
+Requires-Dist: PyNaCl >=1.4.0 ; extra == 'ed25519'
+Provides-Extra: rsa
+Requires-Dist: cryptography ; extra == 'rsa'
+
+[![Documentation Status](https://readthedocs.org/projects/pymysql/badge/?version=latest)](https://pymysql.readthedocs.io/)
+[![codecov](https://codecov.io/gh/PyMySQL/PyMySQL/branch/main/graph/badge.svg?token=ppEuaNXBW4)](https://codecov.io/gh/PyMySQL/PyMySQL)
+
+# PyMySQL
+
+This package contains a pure-Python MySQL client library, based on [PEP
+249](https://www.python.org/dev/peps/pep-0249/).
+
+## Requirements
+
+- Python -- one of the following:
+  - [CPython](https://www.python.org/) : 3.7 and newer
+  - [PyPy](https://pypy.org/) : Latest 3.x version
+- MySQL Server -- one of the following:
+  - [MySQL](https://www.mysql.com/) \>= 5.7
+  - [MariaDB](https://mariadb.org/) \>= 10.4
+
+## Installation
+
+Package is uploaded on [PyPI](https://pypi.org/project/PyMySQL).
+
+You can install it with pip:
+
+    $ python3 -m pip install PyMySQL
+
+To use "sha256_password" or "caching_sha2_password" for authenticate,
+you need to install additional dependency:
+
+    $ python3 -m pip install PyMySQL[rsa]
+
+To use MariaDB's "ed25519" authentication method, you need to install
+additional dependency:
+
+    $ python3 -m pip install PyMySQL[ed25519]
+
+## Documentation
+
+Documentation is available online: <https://pymysql.readthedocs.io/>
+
+For support, please refer to the
+[StackOverflow](https://stackoverflow.com/questions/tagged/pymysql).
+
+## Example
+
+The following examples make use of a simple table
+
+``` sql
+CREATE TABLE `users` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `email` varchar(255) COLLATE utf8_bin NOT NULL,
+    `password` varchar(255) COLLATE utf8_bin NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+AUTO_INCREMENT=1 ;
+```
+
+``` python
+import pymysql.cursors
+
+# Connect to the database
+connection = pymysql.connect(host='localhost',
+                             user='user',
+                             password='passwd',
+                             database='db',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+with connection:
+    with connection.cursor() as cursor:
+        # Create a new record
+        sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
+        cursor.execute(sql, ('webmaster@python.org', 'very-secret'))
+
+    # connection is not autocommit by default. So you must commit to save
+    # your changes.
+    connection.commit()
+
+    with connection.cursor() as cursor:
+        # Read a single record
+        sql = "SELECT `id`, `password` FROM `users` WHERE `email`=%s"
+        cursor.execute(sql, ('webmaster@python.org',))
+        result = cursor.fetchone()
+        print(result)
+```
+
+This example will print:
+
+``` python
+{'password': 'very-secret', 'id': 1}
+```
+
+## Resources
+
+- DB-API 2.0: <https://www.python.org/dev/peps/pep-0249/>
+- MySQL Reference Manuals: <https://dev.mysql.com/doc/>
+- MySQL client/server protocol:
+  <https://dev.mysql.com/doc/internals/en/client-server-protocol.html>
+- "Connector" channel in MySQL Community Slack:
+  <https://lefred.be/mysql-community-on-slack/>
+- PyMySQL mailing list:
+  <https://groups.google.com/forum/#!forum/pymysql-users>
+
+## License
+
+PyMySQL is released under the MIT License. See LICENSE for more
+information.
