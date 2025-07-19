@@ -63,7 +63,7 @@ Starting in pandas 3.0, pandas will provide version-specific warnings. For examp
 - :class:`pandas.errors.PandasChangeWarning`: Base class of all pandas deprecation warnings.
 - :class:`pandas.errors.PandasPendingDeprecationWarning`: Base class of all warnings which emit a ``PendingDeprecationWarning``, independent of the version they will be enforced.
 - :class:`pandas.errors.PandasDeprecationWarning`: Base class of all warnings which emit a ``DeprecationWarning``, independent of the version they will be enforced.
-- :class:`pandas.errors.PandasFutureWarning`: Base class of all warnings which emit a ``PandasFutureWarning``, independent of the version they will be enforced.
+- :class:`pandas.errors.PandasFutureWarning`: Base class of all warnings which emit a ``FutureWarning``, independent of the version they will be enforced.
 
 ### Enforcement of deprecations
 
