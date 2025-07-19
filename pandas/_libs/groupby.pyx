@@ -707,6 +707,7 @@ def group_sum(
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
     bint is_datetimelike=False,
+    bint is_string=False,
     bint skipna=True,
 ) -> None:
     """
@@ -728,6 +729,10 @@ def group_sum(
     # the below is equivalent to `np.zeros_like(out)` but faster
     sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+
+    if is_string:
+        # for strings start with empty string instead of 0 as `initial` value
+        sumx = np.full((<object>out).shape, "", dtype=object)
 
     N, K = (<object>values).shape
     if uses_mask:

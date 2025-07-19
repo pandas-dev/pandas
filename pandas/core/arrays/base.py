@@ -2608,6 +2608,7 @@ class ExtensionArray:
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
+        is_string = False
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
@@ -2632,6 +2633,7 @@ class ExtensionArray:
 
             arr = self
             if op.how == "sum":
+                is_string = True
                 # https://github.com/pandas-dev/pandas/issues/60229
                 # All NA should result in the empty string.
                 assert "skipna" in kwargs
@@ -2649,6 +2651,7 @@ class ExtensionArray:
             ngroups=ngroups,
             comp_ids=ids,
             mask=None,
+            is_string=is_string,
             **kwargs,
         )
 

@@ -319,6 +319,7 @@ class WrappedCythonOp:
         comp_ids: np.ndarray,
         mask: npt.NDArray[np.bool_] | None = None,
         result_mask: npt.NDArray[np.bool_] | None = None,
+        is_string: bool = False,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -335,6 +336,7 @@ class WrappedCythonOp:
                 comp_ids=comp_ids,
                 mask=mask,
                 result_mask=result_mask,
+                is_string=is_string,
                 **kwargs,
             )
             if res.shape[0] == 1:
@@ -350,6 +352,7 @@ class WrappedCythonOp:
             comp_ids=comp_ids,
             mask=mask,
             result_mask=result_mask,
+            is_string=is_string,
             **kwargs,
         )
 
@@ -363,6 +366,7 @@ class WrappedCythonOp:
         comp_ids: np.ndarray,
         mask: npt.NDArray[np.bool_] | None,
         result_mask: npt.NDArray[np.bool_] | None,
+        is_string: bool = False,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -420,6 +424,10 @@ class WrappedCythonOp:
                 "sum",
                 "median",
             ]:
+                if self.how == "sum":
+                    # pass in through kwargs only for sum (other functions don't have
+                    # the keyword)
+                    kwargs["is_string"] = is_string
                 func(
                     out=result,
                     counts=counts,
