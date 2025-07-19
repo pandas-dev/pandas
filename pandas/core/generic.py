@@ -885,7 +885,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
 
         >>> even_primes.squeeze()
-        np.int64(2)
+        2
 
         Squeezing objects with more than one value in every axis does nothing:
 
@@ -943,7 +943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
-        np.int64(1)
+        1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         result = self.iloc[
@@ -1918,7 +1918,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         b  2  4
         c  3  8
         >>> d.keys()
-        Index(['A', 'B'], dtype='object')
+        Index(['A', 'B'], dtype='str')
         """
         return self._info_axis
 
@@ -6276,7 +6276,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         float              float64
         int                  int64
         datetime    datetime64[s]
-        string              object
+        string              str
         dtype: object
         """
         data = self._mgr.get_dtypes()
@@ -6838,7 +6838,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0      a
         1      b
         2    NaN
-        dtype: object
+        dtype: str
 
         Obtain a Series with dtype ``StringDtype``.
 
@@ -7968,7 +7968,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: float64
 
         >>> s.asof(20)
-        np.float64(2.0)
+        2.0
 
         For a sequence `where`, a Series is returned. The first value is
         NaN, because the first element of `where` is before the first
@@ -7983,7 +7983,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         NaN, even though NaN is at the index location for ``30``.
 
         >>> s.asof(30)
-        np.float64(2.0)
+        2.0
 
         Take all columns into consideration
 
@@ -8138,7 +8138,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... )
         >>> df
            age       born    name        toy
-        0  5.0        NaT  Alfred       None
+        0  5.0        NaT  Alfred        NaN
         1  6.0 1939-05-27  Batman  Batmobile
         2  NaN 1940-04-25              Joker
 
@@ -8211,7 +8211,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... )
         >>> df
            age       born    name        toy
-        0  5.0        NaT  Alfred       None
+        0  5.0        NaT  Alfred        NaN
         1  6.0 1939-05-27  Batman  Batmobile
         2  NaN 1940-04-25              Joker
 
@@ -10401,7 +10401,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    b
         3    c
         4    d
-        Name: A, dtype: object
+        Name: A, dtype: str
 
         The index values in ``truncate`` can be datetimes or string
         dates.
@@ -11804,7 +11804,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> print(df.last_valid_index())
         None
 
-        If all elements in DataFrame are NA/null, returns None.
+        If all elements in DataFrame are NA/null, returns NaN.
 
         >>> df = pd.DataFrame()
         >>> df
