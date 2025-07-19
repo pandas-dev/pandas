@@ -258,7 +258,7 @@ def concat(
     1    b
     0    c
     1    d
-    dtype: object
+    dtype: str
 
     Clear the existing index and reset it in the result
     by setting the ``ignore_index`` option to ``True``.
@@ -268,7 +268,7 @@ def concat(
     1    b
     2    c
     3    d
-    dtype: object
+    dtype: str
 
     Add a hierarchical index at the outermost level of
     the data with the ``keys`` option.
@@ -278,7 +278,7 @@ def concat(
         1    b
     s2  0    c
         1    d
-    dtype: object
+    dtype: str
 
     Label the index keys you create with the ``names`` option.
 
@@ -288,7 +288,7 @@ def concat(
                  1         b
     s2           0         c
                  1         d
-    dtype: object
+    dtype: str
 
     Combine two ``DataFrame`` objects with identical columns.
 
@@ -550,7 +550,7 @@ def _get_result(
             result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
             result._name = name
             return result.__finalize__(
-                types.SimpleNamespace(objs=objs), method="concat"
+                types.SimpleNamespace(input_objs=objs), method="concat"
             )
 
         # combine as columns in a frame
@@ -571,7 +571,9 @@ def _get_result(
             )
             df = cons(data, index=index, copy=False)
             df.columns = columns
-            return df.__finalize__(types.SimpleNamespace(objs=objs), method="concat")
+            return df.__finalize__(
+                types.SimpleNamespace(input_objs=objs), method="concat"
+            )
 
     # combine block managers
     else:
@@ -610,7 +612,7 @@ def _get_result(
         )
 
         out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
-        return out.__finalize__(types.SimpleNamespace(objs=objs), method="concat")
+        return out.__finalize__(types.SimpleNamespace(input_objs=objs), method="concat")
 
 
 def new_axes(
