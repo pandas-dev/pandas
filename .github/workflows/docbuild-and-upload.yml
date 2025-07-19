@@ -59,6 +59,10 @@ jobs:
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
 
+    - name: Show error log
+      if: always()
+      run: cat /tmp/sphinx-err-svc_vpms.log
+
     - name: Build the interactive terminal
       working-directory: web/interactive_terminal
       run: jupyter lite build
