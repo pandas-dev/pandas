@@ -1,8 +1,9 @@
 import pandas as pd
 
+
 def my_bad_line_handler(bad_line):
     print("Bad line encountered:", bad_line)
-    return None
+
 
 df = pd.read_csv(
     "test.csv",  # make sure this file exists in same folder or adjust the path

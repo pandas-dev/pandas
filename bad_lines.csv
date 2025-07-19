@@ -1,0 +1,4 @@
+name,age
+Alice,30
+Bob,not_a_number
+Charlie,40,extra_column

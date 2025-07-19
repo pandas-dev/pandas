@@ -1,0 +1,15 @@
+{
+  "jupyter.lab.setting-icon": "ui-components:settings",
+  "jupyter.lab.setting-icon-label": "Language",
+  "title": "Language",
+  "description": "Language settings.",
+  "type": "object",
+  "properties": {
+    "locale": {
+      "type": "string",
+      "title": "Language locale",
+      "description": "Set the interface display language. Examples: 'es_CO', 'fr'.",
+      "default": "en"
+    }
+  }
+}

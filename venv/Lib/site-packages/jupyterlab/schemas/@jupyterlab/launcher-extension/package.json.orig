@@ -1,0 +1,62 @@
+{
+  "name": "@jupyterlab/launcher-extension",
+  "version": "4.4.4",
+  "description": "JupyterLab - Launcher Page Extension",
+  "homepage": "https://github.com/jupyterlab/jupyterlab",
+  "bugs": {
+    "url": "https://github.com/jupyterlab/jupyterlab/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlab/jupyterlab.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Project Jupyter",
+  "sideEffects": [
+    "style/*.css",
+    "style/index.js"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "directories": {
+    "lib": "lib/"
+  },
+  "files": [
+    "lib/*.d.ts",
+    "lib/*.js.map",
+    "lib/*.js",
+    "schema/*.json",
+    "style/*.css",
+    "style/index.js",
+    "src/**/*.{ts,tsx}"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
+    "watch": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@jupyterlab/application": "^4.4.4",
+    "@jupyterlab/apputils": "^4.5.4",
+    "@jupyterlab/filebrowser": "^4.4.4",
+    "@jupyterlab/launcher": "^4.4.4",
+    "@jupyterlab/translation": "^4.4.4",
+    "@jupyterlab/ui-components": "^4.4.4",
+    "@lumino/algorithm": "^2.0.3",
+    "@lumino/coreutils": "^2.2.1",
+    "@lumino/widgets": "^2.7.1"
+  },
+  "devDependencies": {
+    "rimraf": "~5.0.5",
+    "typescript": "~5.5.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "schemaDir": "schema"
+  },
+  "styleModule": "style/index.js"
+}

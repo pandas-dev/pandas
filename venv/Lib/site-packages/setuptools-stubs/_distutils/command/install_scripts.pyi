@@ -1,0 +1,20 @@
+from typing import ClassVar
+
+from _typeshed import Incomplete
+
+from ..cmd import Command
+
+class install_scripts(Command):
+    description: ClassVar[str]
+    user_options: ClassVar[list[tuple[str, str | None, str]]]
+    boolean_options: ClassVar[list[str]]
+    install_dir: Incomplete
+    force: bool
+    build_dir: Incomplete
+    skip_build: Incomplete
+    def initialize_options(self) -> None: ...
+    def finalize_options(self) -> None: ...
+    outfiles: list[str]
+    def run(self) -> None: ...
+    def get_inputs(self): ...
+    def get_outputs(self): ...

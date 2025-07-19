@@ -1,0 +1,3 @@
+import cpuinfo
+
+cpuinfo.main()

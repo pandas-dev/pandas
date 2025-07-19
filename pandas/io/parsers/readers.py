@@ -670,6 +670,7 @@ def _validate_names(names: Sequence[Hashable] | None) -> None:
 
 def _read(filepath_or_buffer, kwds):
     import warnings
+
     from pandas.errors import ParserWarning
 
     iterator = kwds.get("iterator", False)
@@ -718,8 +719,7 @@ def _read(filepath_or_buffer, kwds):
         return parser
 
     with parser:
-        return parser.read(nrows)   # <== ⚠ THIS LINE must be INSIDE the function!
-
+        return parser.read(nrows)
 
 
 @overload
