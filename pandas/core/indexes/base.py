@@ -38,7 +38,6 @@ from pandas._libs.lib import (
     no_default,
 )
 from pandas._libs.tslibs import (
-    IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
@@ -368,7 +367,7 @@ class Index(IndexOpsMixin, PandasObject):
     Index([1, 2, 3], dtype='int64')
 
     >>> pd.Index(list("abc"))
-    Index(['a', 'b', 'c'], dtype='object')
+    Index(['a', 'b', 'c'], dtype='str')
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
     Index([1, 2, 3], dtype='uint8')
@@ -965,12 +964,8 @@ class Index(IndexOpsMixin, PandasObject):
         Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
-        if (not isinstance(result, Index) and is_bool_dtype(result.dtype)) or np.ndim(
-            result
-        ) > 1:
-            # exclude Index to avoid warning from is_bool_dtype deprecation;
-            #  in the Index case it doesn't matter which path we go down.
-            # reached in plotting tests with e.g. np.nonzero(index)
+        if np.ndim(result) > 1:
+            # Reached in plotting tests with e.g. np.nonzero(index)
             return result
 
         return Index(result, name=self.name)
@@ -1420,7 +1415,7 @@ class Index(IndexOpsMixin, PandasObject):
             is_justify = False
         elif isinstance(self.dtype, CategoricalDtype):
             self = cast("CategoricalIndex", self)
-            if is_object_dtype(self.categories.dtype):
+            if is_string_dtype(self.categories.dtype):
                 is_justify = False
         elif isinstance(self, ABCRangeIndex):
             # We will do the relevant formatting via attrs
@@ -3143,7 +3138,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  test_union_same_value_duplicated_in_both fails)
             try:
                 return self._outer_indexer(other)[0]
-            except (TypeError, IncompatibleFrequency):
+            except TypeError:
                 # incomparable objects; should only be for object dtype
                 value_list = list(lvals)
 
@@ -7603,7 +7598,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     Examples
     --------
     >>> ensure_index(["a", "b"])
-    Index(['a', 'b'], dtype='object')
+    Index(['a', 'b'], dtype='str')
 
     >>> ensure_index([("a", "a"), ("b", "c")])
     Index([('a', 'a'), ('b', 'c')], dtype='object')

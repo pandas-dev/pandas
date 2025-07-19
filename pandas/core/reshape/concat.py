@@ -259,7 +259,7 @@ def concat(
     1    b
     0    c
     1    d
-    dtype: object
+    dtype: str
 
     Clear the existing index and reset it in the result
     by setting the ``ignore_index`` option to ``True``.
@@ -269,7 +269,7 @@ def concat(
     1    b
     2    c
     3    d
-    dtype: object
+    dtype: str
 
     Add a hierarchical index at the outermost level of
     the data with the ``keys`` option.
@@ -279,7 +279,7 @@ def concat(
         1    b
     s2  0    c
         1    d
-    dtype: object
+    dtype: str
 
     Label the index keys you create with the ``names`` option.
 
@@ -289,7 +289,7 @@ def concat(
                  1         b
     s2           0         c
                  1         d
-    dtype: object
+    dtype: str
 
     Combine two ``DataFrame`` objects with identical columns.
 
