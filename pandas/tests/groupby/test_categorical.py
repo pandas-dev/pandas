@@ -325,7 +325,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-def test_observed(request, using_infer_string, observed):
+def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
