@@ -1,6 +1,7 @@
 cimport cython
 from cython cimport Py_ssize_t
 from cython.parallel cimport prange
+import sys
 from libc.math cimport (
     fabs,
     sqrt,
@@ -367,9 +368,10 @@ def nancorr(
         float64_t mean, ssqd, val
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, corr_val
 
-    # Disable parallel execution in Pyodide/WebAssembly environment
-    if use_parallel and hasattr(sys, "platform") and sys.platform == "emscripten":
-        use_parallel = False
+    # Disable parallel execution in WASM/Emscripten environments
+    if use_parallel and hasattr(sys, "platform"):
+        if "emscripten" in sys.platform or "wasm32" in sys.platform:
+            use_parallel = False
 
     N, K = (<object>mat).shape
     if minp is None:
@@ -398,7 +400,6 @@ def nancorr(
                 ssqds[j] = ssqd
 
     if use_parallel:
-        # Use parallel execution with prange (only works if OpenMP is available)
         for xi in prange(K, schedule="dynamic", nogil=True):
             for yi in range(xi + 1):
                 covxy = 0
