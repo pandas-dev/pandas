@@ -150,6 +150,14 @@ repos:
         types: [pyi]
         args: [scripts/run_stubtest.py]
         stages: [manual]
+    -   id: ty
+        # note: assumes python env is setup and activated
+        name: ty
+        entry: ty check
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py

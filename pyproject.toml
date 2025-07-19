@@ -663,6 +663,30 @@ module = [
 ]
 ignore_errors = true
 
+[tool.ty.src]
+include = ["pandas"]
+
+### TODO: Enable gradually
+[tool.ty.rules]
+unresolved-attribute = "ignore"
+invalid-return-type = "ignore"
+unsupported-operator = "ignore"
+invalid-assignment = "ignore"
+invalid-argument-type = "ignore"
+unresolved-import = "ignore"
+no-matching-overload = "ignore"
+possibly-unbound-attribute = "ignore"
+call-non-callable = "ignore"
+missing-argument = "ignore"
+non-subscriptable = "ignore"
+unknown-argument = "ignore"
+not-iterable = "ignore"
+unresolved-reference = "ignore"
+invalid-context-manager = "ignore"
+too-many-positional-arguments = "ignore"
+invalid-type-form = "ignore"
+parameter-already-assigned = "ignore"
+
 # To be kept consistent with "Import Formatting" section in contributing.rst
 [tool.isort]
 known_pre_libs = "pandas._config"
