@@ -22,7 +22,7 @@ dependencies:
   - pip
 
   - pip:
-    - "tzdata>=2022.7"
+    - "tzdata>=2023.3"
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--prefer-binary"
     - "--pre"

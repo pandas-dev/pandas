@@ -72,6 +72,8 @@ from pandas.core.missing import isna
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     import pyarrow
 
     from pandas._typing import (
@@ -217,6 +219,11 @@ class StringDtype(StorageExtensionDtype):
         if isinstance(other, type(self)):
             return self.storage == other.storage and self.na_value is other.na_value
         return False
+
+    def __setstate__(self, state: MutableMapping[str, Any]) -> None:
+        # back-compat for pandas < 2.3, where na_value did not yet exist
+        self.storage = state.pop("storage", "python")
+        self._na_value = state.pop("_na_value", libmissing.NA)
 
     def __hash__(self) -> int:
         # need to override __hash__ as well because of overriding __eq__

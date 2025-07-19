@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Bug in :meth:`Timestamp.weekday`` was returning incorrect results before ``'0000-02-29'`` (:issue:`53738`)
+- Bug in :meth:`Timestamp.weekday` was returning incorrect results before ``'0000-02-29'`` (:issue:`53738`)
 - Fixed performance regression in merging on datetime-like columns (:issue:`53231`)
 - Fixed regression when :meth:`DataFrame.to_string` creates extra space for string dtypes (:issue:`52690`)
 

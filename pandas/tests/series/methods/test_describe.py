@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gte1p25
-
 from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_extension_array_dtype,
@@ -167,7 +165,7 @@ class TestSeriesDescribe:
             dtype = "complex128" if is_complex_dtype(any_numeric_dtype) else None
 
         ser = Series([0, 1], dtype=any_numeric_dtype)
-        if dtype == "complex128" and np_version_gte1p25:
+        if dtype == "complex128":
             with pytest.raises(
                 TypeError, match=r"^a must be an array of real numbers$"
             ):
