@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -36,7 +38,7 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     args = get_groupby_method_args(groupby_func, obj)
 
-    warn = FutureWarning if groupby_func == "corrwith" else None
+    warn = Pandas4Warning if groupby_func == "corrwith" else None
     msg = f"{type(grouped).__name__}.corrwith is deprecated"
     with tm.assert_produces_warning(warn, match=msg):
         result1 = getattr(grouped, groupby_func)(*args)
