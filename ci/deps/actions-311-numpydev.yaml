@@ -8,7 +8,7 @@ dependencies:
   - versioneer
   - meson=1.2.1
   - meson-python=0.13.1
-  - cython>=0.29.33
+  - cython<4.0.0a0
 
   # test dependencies
   - pytest>=7.3.2
@@ -24,4 +24,4 @@ dependencies:
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--pre"
     - "numpy"
-    - "tzdata>=2022.7"
+    - "tzdata>=2023.3"

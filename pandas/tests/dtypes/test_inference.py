@@ -250,6 +250,15 @@ def test_is_list_like_generic():
     assert inference.is_list_like(tst)
 
 
+def test_is_list_like_native_container_types():
+    # GH 61565
+    # is_list_like was yielding false positives for native container types
+    assert not inference.is_list_like(list[int])
+    assert not inference.is_list_like(list[str])
+    assert not inference.is_list_like(tuple[int])
+    assert not inference.is_list_like(tuple[str])
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert is_seq((1, 2))
@@ -1386,6 +1395,15 @@ class TestTypeInference:
 
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
+
+    @pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+    def test_infer_dtype_numeric_with_na(self, na_value):
+        # GH61621
+        ser = Series([1, 2, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "integer"
+
+        ser = Series([1.0, 2.0, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "floating"
 
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])

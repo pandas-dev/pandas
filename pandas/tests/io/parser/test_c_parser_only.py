@@ -19,7 +19,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import WASM
-from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -90,10 +89,9 @@ nan 2
 3.0 3
 """
     # fallback casting, but not castable
-    warning = RuntimeWarning if np_version_gte1p24 else None
     if not WASM:  # no fp exception support in wasm
         with pytest.raises(ValueError, match="cannot safely convert"):
-            with tm.assert_produces_warning(warning, check_stacklevel=False):
+            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
                 parser.read_csv(
                     StringIO(data),
                     sep=r"\s+",

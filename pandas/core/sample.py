@@ -123,7 +123,7 @@ def sample(
     random_state: np.random.RandomState | np.random.Generator,
 ) -> np.ndarray:
     """
-    Randomly sample `size` indices in `np.arange(obj_len)`
+    Randomly sample `size` indices in `np.arange(obj_len)`.
 
     Parameters
     ----------
@@ -149,6 +149,14 @@ def sample(
             weights = weights / weight_sum
         else:
             raise ValueError("Invalid weights: weights sum to zero")
+
+        assert weights is not None  # for mypy
+        if not replace and size * weights.max() > 1:
+            raise ValueError(
+                "Weighted sampling cannot be achieved with replace=False. Either "
+                "set replace=True or use smaller weights. See the docstring of "
+                "sample for details."
+            )
 
     return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(
         np.intp, copy=False

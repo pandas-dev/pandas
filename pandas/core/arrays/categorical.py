@@ -452,7 +452,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if isinstance(values, Index):
                     arr = values._data._pa_array.combine_chunks()
                 else:
-                    arr = values._pa_array.combine_chunks()
+                    arr = extract_array(values)._pa_array.combine_chunks()
                 categories = arr.dictionary.to_pandas(types_mapper=ArrowDtype)
                 codes = arr.indices.to_numpy()
                 dtype = CategoricalDtype(categories, values.dtype.pyarrow_dtype.ordered)
@@ -794,28 +794,28 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
         >>> ser.cat.categories
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
 
         >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"])
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.categories
-        Index(['b', 'c', 'd'], dtype='object')
+        Index(['b', 'c', 'd'], dtype='str')
 
         For :class:`pandas.Categorical`:
 
         >>> cat = pd.Categorical(["a", "b"], ordered=True)
         >>> cat.categories
-        Index(['a', 'b'], dtype='object')
+        Index(['a', 'b'], dtype='str')
 
         For :class:`pandas.CategoricalIndex`:
 
         >>> ci = pd.CategoricalIndex(["a", "c", "b", "a", "c", "b"])
         >>> ci.categories
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
 
         >>> ci = pd.CategoricalIndex(["a", "c"], categories=["c", "b", "a"])
         >>> ci.categories
-        Index(['c', 'b', 'a'], dtype='object')
+        Index(['c', 'b', 'a'], dtype='str')
         """
         return self.dtype.categories
 
@@ -1666,7 +1666,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Parameters
         ----------
         dtype : np.dtype or None
-            Specifies the the dtype for the array.
+            Specifies the dtype for the array.
 
         copy : bool or None, optional
             See :func:`numpy.asarray`.
@@ -1853,7 +1853,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             count = np.bincount(obs, minlength=ncat or 0)
         else:
             count = np.bincount(np.where(mask, code, ncat))
-            ix = np.append(ix, -1)
+            ix = np.append(ix, -1)  # type: ignore[assignment]
 
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix_categorical = self._from_backing_data(ix)

@@ -1905,3 +1905,20 @@ def test_agg_lambda_pyarrow_struct_to_object_dtype_conversion():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_builtin_sum():
+    df = DataFrame(columns=["Group", "Data"])
+    result = df.groupby(["Group"], as_index=False)["Data"].agg("sum")
+    expected = DataFrame(columns=["Group", "Data"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_udf():
+    def func(x):
+        return sum(x)
+
+    df = DataFrame(columns=["Group", "Data"])
+    result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
+    expected = DataFrame(columns=["Group", "Data"])
+    tm.assert_frame_equal(result, expected)

@@ -25,7 +25,7 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under10p1,
+    pa_version_under12p1,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -72,6 +72,8 @@ from pandas.core.missing import isna
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     import pyarrow
 
     from pandas._typing import (
@@ -123,10 +125,10 @@ class StringDtype(StorageExtensionDtype):
     Examples
     --------
     >>> pd.StringDtype()
-    string[python]
+    <StringDtype(storage='python', na_value=<NA>)>
 
     >>> pd.StringDtype(storage="pyarrow")
-    string[pyarrow]
+    <StringDtype(na_value=<NA>)>
     """
 
     @property
@@ -182,9 +184,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under10p1:
+        if storage == "pyarrow" and pa_version_under12p1:
             raise ImportError(
-                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
+                "pyarrow>=12.0.1 is required for PyArrow backed StringArray."
             )
 
         if isinstance(na_value, float) and np.isnan(na_value):
@@ -198,11 +200,8 @@ class StringDtype(StorageExtensionDtype):
         self._na_value = na_value
 
     def __repr__(self) -> str:
-        if self._na_value is libmissing.NA:
-            return f"{self.name}[{self.storage}]"
-        else:
-            # TODO add more informative repr
-            return self.name
+        storage = "" if self.storage == "pyarrow" else "storage='python', "
+        return f"<StringDtype({storage}na_value={self._na_value})>"
 
     def __eq__(self, other: object) -> bool:
         # we need to override the base class __eq__ because na_value (NA or NaN)
@@ -220,6 +219,11 @@ class StringDtype(StorageExtensionDtype):
         if isinstance(other, type(self)):
             return self.storage == other.storage and self.na_value is other.na_value
         return False
+
+    def __setstate__(self, state: MutableMapping[str, Any]) -> None:
+        # back-compat for pandas < 2.3, where na_value did not yet exist
+        self.storage = state.pop("storage", "python")
+        self._na_value = state.pop("_na_value", libmissing.NA)
 
     def __hash__(self) -> int:
         # need to override __hash__ as well because of overriding __eq__
@@ -1018,7 +1022,30 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return super().searchsorted(value=value, side=side, sorter=sorter)
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
+        from pandas.arrays import (
+            ArrowExtensionArray,
+            BooleanArray,
+        )
+
+        if (
+            isinstance(other, BaseStringArray)
+            and self.dtype.na_value is not libmissing.NA
+            and other.dtype.na_value is libmissing.NA
+        ):
+            # NA has priority of NaN semantics
+            return NotImplemented
+
+        if isinstance(other, ArrowExtensionArray):
+            if isinstance(other, BaseStringArray):
+                # pyarrow storage has priority over python storage
+                # (except if we have NA semantics and other not)
+                if not (
+                    self.dtype.na_value is libmissing.NA
+                    and other.dtype.na_value is not libmissing.NA
+                ):
+                    return NotImplemented
+            else:
+                return NotImplemented
 
         if isinstance(other, StringArray):
             other = other._ndarray
