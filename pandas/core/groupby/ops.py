@@ -43,6 +43,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_uint64,
     is_1d_only_ea_dtype,
+    is_string_dtype,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -959,12 +960,10 @@ class BaseGrouper:
         npvalues = lib.maybe_convert_objects(result, try_float=False)
 
         if isinstance(obj._values, ArrowExtensionArray):
-            from pandas.core.dtypes.common import is_string_dtype
-
             # When obj.dtype is a string, any object can be cast. Only do so if the
             # UDF returned strings or NA values.
-            if not is_string_dtype(obj.dtype) or is_string_dtype(
-                npvalues[~isna(npvalues)]
+            if not is_string_dtype(obj.dtype) or lib.is_string_array(
+                npvalues, skipna=True
             ):
                 out = maybe_cast_pointwise_result(
                     npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
