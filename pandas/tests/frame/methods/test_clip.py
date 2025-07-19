@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -30,7 +27,7 @@ class TestDataFrameClip:
 
     def test_dataframe_clip(self):
         # GH#2747
-        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
 
         for lb, ub in [(-1, 1), (1, -1)]:
             clipped_df = df.clip(lb, ub)
@@ -46,12 +43,12 @@ class TestDataFrameClip:
     def test_clip_mixed_numeric(self):
         # clip on mixed integer or floats
         # GH#24162, clipping now preserves numeric types per column
-        df = DataFrame({"A": [1, 2, 3], "B": [1.0, np.nan, 3.0]})
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [1.0, np.nan, 3.0]})
         result = df.clip(1, 2)
-        expected = DataFrame({"A": [1, 2, 2], "B": [1.0, np.nan, 2.0]})
+        expected = pd.DataFrame({"A": [1, 2, 2], "B": [1.0, np.nan, 2.0]})
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame([[1, 2, 3.4], [3, 4, 5.6]], columns=["foo", "bar", "baz"])
+        df = pd.DataFrame([[1, 2, 3.4], [3, 4, 5.6]], columns=["foo", "bar", "baz"])
         expected = df.dtypes
         result = df.clip(upper=3).dtypes
         tm.assert_series_equal(result, expected)
@@ -60,8 +57,8 @@ class TestDataFrameClip:
     def test_clip_against_series(self, inplace):
         # GH#6966
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
-        lb = Series(np.random.default_rng(2).standard_normal(1000))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        lb = pd.Series(np.random.default_rng(2).standard_normal(1000))
         ub = lb + 1
 
         original = df.copy()
@@ -98,21 +95,21 @@ class TestDataFrameClip:
         # GH#15390
         arr = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
 
-        original = DataFrame(
+        original = pd.DataFrame(
             arr, columns=["one", "two", "three"], index=["a", "b", "c"]
         )
 
         result = original.clip(lower=lower, upper=[5, 6, 7], axis=axis, inplace=inplace)
 
-        expected = DataFrame(res, columns=original.columns, index=original.index)
+        expected = pd.DataFrame(res, columns=original.columns, index=original.index)
         if inplace:
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)
 
     @pytest.mark.parametrize("axis", [0, 1, None])
     def test_clip_against_frame(self, axis):
-        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
-        lb = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        lb = pd.DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
         ub = lb + 1
 
         clipped_df = df.clip(lb, ub, axis=axis)
@@ -127,15 +124,15 @@ class TestDataFrameClip:
 
     def test_clip_against_unordered_columns(self):
         # GH#20911
-        df1 = DataFrame(
+        df1 = pd.DataFrame(
             np.random.default_rng(2).standard_normal((1000, 4)),
             columns=["A", "B", "C", "D"],
         )
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             np.random.default_rng(2).standard_normal((1000, 4)),
             columns=["D", "A", "B", "C"],
         )
-        df3 = DataFrame(df2.values - 1, columns=["B", "D", "C", "A"])
+        df3 = pd.DataFrame(df2.values - 1, columns=["B", "D", "C", "A"])
         result_upper = df1.clip(lower=0, upper=df2)
         expected_upper = df1.clip(lower=0, upper=df2[df1.columns])
         result_lower = df1.clip(lower=df3, upper=3)
@@ -153,12 +150,12 @@ class TestDataFrameClip:
         tm.assert_frame_equal(float_frame.clip(upper=np.nan, lower=np.nan), float_frame)
 
         # GH#19992 and adjusted in GH#40420
-        df = DataFrame({"col_0": [1, 2, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]})
+        df = pd.DataFrame({"col_0": [1, 2, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]})
 
         result = df.clip(lower=[4, 5, np.nan], axis=0)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
-                "col_0": Series([4, 5, 3], dtype="float"),
+                "col_0": pd.Series([4, 5, 3], dtype="float"),
                 "col_1": [4, 5, 6],
                 "col_2": [7, 8, 9],
             }
@@ -166,35 +163,41 @@ class TestDataFrameClip:
         tm.assert_frame_equal(result, expected)
 
         result = df.clip(lower=[4, 5, np.nan], axis=1)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"col_0": [4, 4, 4], "col_1": [5, 5, 6], "col_2": [7, 8, 9]}
         )
         tm.assert_frame_equal(result, expected)
 
         # GH#40420
         data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
-        df = DataFrame(data)
-        t = Series([2, -4, np.nan, 6, 3])
+        df = pd.DataFrame(data)
+        t = pd.Series([2, -4, np.nan, 6, 3])
         result = df.clip(lower=t, axis=0)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]}, dtype="float"
         )
         tm.assert_frame_equal(result, expected)
 
     def test_clip_int_data_with_float_bound(self):
         # GH51472
-        df = DataFrame({"a": [1, 2, 3]})
+        df = pd.DataFrame({"a": [1, 2, 3]})
         result = df.clip(lower=1.5)
-        expected = DataFrame({"a": [1.5, 2.0, 3.0]})
+        expected = pd.DataFrame({"a": [1.5, 2.0, 3.0]})
         tm.assert_frame_equal(result, expected)
 
     def test_clip_with_list_bound(self):
         # GH#54817
-        df = DataFrame([1, 5])
-        expected = DataFrame([3, 5])
+        df = pd.DataFrame([1, 5])
+        expected = pd.DataFrame([3, 5])
         result = df.clip([3])
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame([1, 3])
+        expected = pd.DataFrame([1, 3])
         result = df.clip(upper=[3])
+        tm.assert_frame_equal(result, expected)
+
+    def test_clip_lower_greater_than_upper(self):
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        result = df.clip(lower=5, upper=3)
+        expected = pd.DataFrame({"A": [3, 3, 3]})
         tm.assert_frame_equal(result, expected)
