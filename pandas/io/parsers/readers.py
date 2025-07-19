@@ -668,23 +668,25 @@ def _validate_names(names: Sequence[Hashable] | None) -> None:
             raise ValueError("Names should be an ordered collection.")
 
 
-def _read(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
-) -> DataFrame | TextFileReader:
-    """Generic reader of line files."""
-    # if we pass a date_format and parse_dates=False, we should not parse the
-    # dates GH#44366
-    if kwds.get("parse_dates", None) is None:
-        if kwds.get("date_format", None) is None:
-            kwds["parse_dates"] = False
-        else:
-            kwds["parse_dates"] = True
+def _read(filepath_or_buffer, kwds):
+    import warnings
+    from pandas.errors import ParserWarning
 
-    # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
     chunksize = kwds.get("chunksize", None)
 
-    # Check type of encoding_errors
+    # Your inserted warning
+    on_bad_lines = kwds.get("on_bad_lines", "error")
+    index_col = kwds.get("index_col", None)
+
+    if callable(on_bad_lines) and index_col is not None:
+        warnings.warn(
+            "When using a callable for on_bad_lines with index_col set, "
+            "ParserWarning should be explicitly handled. This behavior may change.",
+            ParserWarning,
+            stacklevel=3,
+        )
+
     errors = kwds.get("encoding_errors", "strict")
     if not isinstance(errors, str):
         raise ValueError(
@@ -716,7 +718,8 @@ def _read(
         return parser
 
     with parser:
-        return parser.read(nrows)
+        return parser.read(nrows)   # <== ⚠ THIS LINE must be INSIDE the function!
+
 
 
 @overload
