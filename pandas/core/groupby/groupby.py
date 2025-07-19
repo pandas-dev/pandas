@@ -4628,13 +4628,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         >>> df = pd.DataFrame({"color": ["red", None, "red", "blue", "blue", "red"]})
         >>> df
-           color
-        0    red
-        1   None
-        2    red
-        3   blue
-        4   blue
-        5    red
+          color
+        0   red
+        1   NaN
+        2   red
+        3  blue
+        4  blue
+        5   red
         >>> df.groupby("color").ngroup()
         0    1.0
         1    NaN

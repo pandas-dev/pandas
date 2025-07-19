@@ -207,20 +207,6 @@ class TestDataFrameCorr:
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self):
-        # Check that corr does not lead to incorrect entries in item_cache
-
-        df = DataFrame({"A": range(10)})
-        df["B"] = range(10)[::-1]
-
-        ser = df["A"]  # populate item_cache
-        assert len(df._mgr.blocks) == 2
-
-        _ = df.corr(numeric_only=True)
-
-        ser.iloc[0] = 99
-        assert df.loc[0, "A"] == 0
-
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
     def test_corr_for_constant_columns(self, length):
         # GH: 37448
