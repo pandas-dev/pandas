@@ -48,8 +48,7 @@ from pandas._libs.tslibs.ccalendar import (
     weekday_to_int,
 )
 from pandas.util._exceptions import find_stack_level
-
-from pandas._libs.tslibs.ccalendar cimport (  # get_firstbday,; get_lastbday,
+from pandas._libs.tslibs.ccalendar cimport (
     MONTH_TO_CAL_NUM,
     dayofweek,
     get_days_in_month,
