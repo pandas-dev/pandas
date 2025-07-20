@@ -2958,7 +2958,8 @@ class DataFrame(NDFrame, OpsMixin):
           is expected and consistent with pandas' handling of categorical data.
           To manage file size and ensure a more predictable roundtrip process,
           consider using :meth:`Categorical.remove_unused_categories` on the
-          DataFrame before saving.
+          DataFrame before saving
+        * When using the "pyarrow" engine, `DataFrame.attrs` are stored as part of the file's metadata and restored on reading.
 
         Examples
         --------
