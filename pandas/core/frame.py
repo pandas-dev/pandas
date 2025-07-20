@@ -1015,8 +1015,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         >>> df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
         >>> df.axes
-        [RangeIndex(start=0, stop=2, step=1), Index(['col1', 'col2'],
-        dtype='object')]
+        [RangeIndex(start=0, stop=2, step=1), Index(['col1', 'col2'], dtype='str')]
         """
         return [self.index, self.columns]
 
@@ -14070,7 +14069,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     columns=("name", "max_speed", "rank"),
         ... )
         >>> df2.dtypes
-        name          object
+        name             str
         max_speed    float64
         rank          object
         dtype: object
