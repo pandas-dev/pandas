@@ -2608,7 +2608,7 @@ class ExtensionArray:
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
-        initial = 0
+        initial: Any = 0
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
