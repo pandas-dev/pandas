@@ -251,6 +251,12 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
                 import pyarrow as pa
 
                 dtype = ArrowDtype(pa.float64())
+
+        elif any(type(item) != type(d[0]) for item in d):
+            # GH61707: describe() doesn't work on EAs
+            # when series entries cannot be cast to float64, set dtype=None
+            dtype = None
+
         else:
             dtype = Float64Dtype()
     elif series.dtype.kind in "iufb":
