@@ -325,7 +325,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-def test_observed(observed):
+def test_observed(observed, using_infer_string):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
@@ -360,7 +360,10 @@ def test_observed(observed):
     result = gb.sum()
     if not observed:
         expected = cartesian_product_for_groupers(
-            expected, [cat1, cat2], list("AB"), fill_value={"values": 0, "C": ""}
+            expected,
+            [cat1, cat2],
+            list("AB"),
+            fill_value={"values": 0, "C": ""} if using_infer_string else 0,
         )
 
     tm.assert_frame_equal(result, expected)
