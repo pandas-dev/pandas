@@ -1778,7 +1778,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         >>> rng.strftime("%%B %%d, %%Y, %%r")
         Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
                'March 10, 2018, 09:00:02 AM'],
-              dtype='object')
+              dtype='str')
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
         if using_string_dtype():

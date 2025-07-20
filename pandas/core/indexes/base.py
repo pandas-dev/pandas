@@ -1209,7 +1209,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(['a', 'b', 'c'])
         >>> idx.take([2, 2, 1, 2])
-        Index(['c', 'c', 'b', 'c'], dtype='object')
+        Index(['c', 'c', 'b', 'c'], dtype='str')
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
@@ -6862,11 +6862,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.delete(1)
-        Index(['a', 'c'], dtype='object')
+        Index(['a', 'c'], dtype='str')
 
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.delete([0, 2])
-        Index(['b'], dtype='object')
+        Index(['b'], dtype='str')
         """
         values = self._values
         res_values: ArrayLike
@@ -6906,7 +6906,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.insert(1, "x")
-        Index(['a', 'x', 'b', 'c'], dtype='object')
+        Index(['a', 'x', 'b', 'c'], dtype='str')
         """
         item = lib.item_from_zerodim(item)
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
