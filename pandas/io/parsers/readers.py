@@ -167,6 +167,10 @@ filepath_or_buffer : str, path object or file-like object
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+
+    .. versionadded:: 3.0.0
+        Support reading from directory paths, which will read all files in the
+        directory and return a generator of DataFrames or TextFileReaders if chunked.
 sep : str, default {_default_sep}
     Character or regex pattern to treat as the delimiter. If ``sep=None``, the
     C engine cannot automatically detect
