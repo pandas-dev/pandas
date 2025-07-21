@@ -92,8 +92,6 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "duration"
     elif is_string_dtype(x):
         return "string"
-    elif isinstance(x, ExtensionDtype):
-        return "any"
     else:
         return "any"
 
