@@ -11804,7 +11804,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> print(df.last_valid_index())
         None
 
-        If all elements in DataFrame are NA/null, returns NaN.
+        If all elements in DataFrame are NA/null, returns None.
 
         >>> df = pd.DataFrame()
         >>> df
