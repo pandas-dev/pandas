@@ -278,7 +278,7 @@ def deprecate_nonkeyword_arguments(
 
     Parameters
     ----------
-    klass : Warning, optional
+    klass : Warning
         The warning class to use.
     allowed_args : list, optional
         In case of list, it must be the list of names of some
