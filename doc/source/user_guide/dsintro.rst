@@ -650,12 +650,12 @@ row-wise. For example:
 
    df - df.iloc[0]
 
-When using a Python list in arithmetic operations with a DataFrame, the behavior is not element-wise broadcasting.
-Instead, the list is treated as a single object and the operation is performed column-wise, resulting in unexpected output (e.g. arrays inside each cell).
+Use .add(array, axis=0) to apply row-wise broadcasting when the array length matches the number of rows — 
+this ensures element-wise operations are performed across each row, rather than mistakenly aligning with columns.
 
 .. ipython:: python
 
-    df + np.array([1, 2, 3])  
+    df.add(np.array([1, 2, 3]), axis=0) 
     
 For explicit control over the matching and broadcasting behavior, see the
 section on :ref:`flexible binary operations <basics.binop>`.
