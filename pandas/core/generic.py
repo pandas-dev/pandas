@@ -9727,7 +9727,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond = cond.align(self, join="right")[0]
         else:
             if not hasattr(cond, "shape"):
-                cond = np.asanyarray(cond, dtype=object)
+                cond = np.asanyarray(cond)
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
@@ -10112,7 +10112,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
-            cond = np.array(cond, dtype=object)
+            cond = np.array(cond)
 
         if isinstance(cond, np.ndarray):
             if all(x is NA or lib.is_bool(x) or x is np.nan for x in cond.flatten()):
