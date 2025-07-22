@@ -76,9 +76,7 @@ def test_groupby_resample_api():
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
+    result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -187,7 +185,7 @@ def test_api_compat_before_use(attr):
     getattr(rs, attr)
 
 
-def tests_raises_on_nuisance(test_frame):
+def tests_raises_on_nuisance(test_frame, using_infer_string):
     df = test_frame
     df["D"] = "foo"
     r = df.resample("h")
@@ -197,6 +195,8 @@ def tests_raises_on_nuisance(test_frame):
 
     expected = r[["A", "B", "C"]].mean()
     msg = re.escape("agg function failed [how->mean,dtype->")
+    if using_infer_string:
+        msg = "dtype 'str' does not support operation 'mean'"
     with pytest.raises(TypeError, match=msg):
         r.mean()
     result = r.mean(numeric_only=True)
@@ -732,7 +732,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         ),
         columns=[col_name],
     )
-    result = df.resample("1d").aggregate(["mean"])
+    result = df.resample("1D").aggregate(["mean"])
     expected = DataFrame(
         [47.5, 143.5, 195.5],
         index=date_range(start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"),
@@ -881,7 +881,9 @@ def test_end_and_end_day_origin(
         ("sem", lib.no_default, "could not convert string to float"),
     ],
 )
-def test_frame_downsample_method(method, numeric_only, expected_data):
+def test_frame_downsample_method(
+    method, numeric_only, expected_data, using_infer_string
+):
     # GH#46442 test if `numeric_only` behave as expected for DataFrameGroupBy
 
     index = date_range("2018-01-01", periods=2, freq="D")
@@ -898,6 +900,11 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         if method in ("var", "mean", "median", "prod"):
             klass = TypeError
             msg = re.escape(f"agg function failed [how->{method},dtype->")
+            if using_infer_string:
+                msg = f"dtype 'str' does not support operation '{method}'"
+        elif method in ["sum", "std", "sem"] and using_infer_string:
+            klass = TypeError
+            msg = f"dtype 'str' does not support operation '{method}'"
         else:
             klass = ValueError
             msg = expected_data
@@ -932,7 +939,9 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         ("last", lib.no_default, ["cat_2"]),
     ],
 )
-def test_series_downsample_method(method, numeric_only, expected_data):
+def test_series_downsample_method(
+    method, numeric_only, expected_data, using_infer_string
+):
     # GH#46442 test if `numeric_only` behave as expected for SeriesGroupBy
 
     index = date_range("2018-01-01", periods=2, freq="D")
@@ -948,8 +957,11 @@ def test_series_downsample_method(method, numeric_only, expected_data):
             func(**kwargs)
     elif method == "prod":
         msg = re.escape("agg function failed [how->prod,dtype->")
+        if using_infer_string:
+            msg = "dtype 'str' does not support operation 'prod'"
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
+
     else:
         result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)

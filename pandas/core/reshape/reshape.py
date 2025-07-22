@@ -42,7 +42,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
-    RangeIndex,
+    default_index,
 )
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
@@ -288,21 +288,19 @@ class _Unstacker:
 
         dtype = values.dtype
 
-        # if our mask is all True, then we can use our existing dtype
-        if mask_all:
-            dtype = values.dtype
-            new_values = np.empty(result_shape, dtype=dtype)
-        else:
-            if isinstance(dtype, ExtensionDtype):
-                # GH#41875
-                # We are assuming that fill_value can be held by this dtype,
-                #  unlike the non-EA case that promotes.
-                cls = dtype.construct_array_type()
-                new_values = cls._empty(result_shape, dtype=dtype)
+        if isinstance(dtype, ExtensionDtype):
+            # GH#41875
+            # We are assuming that fill_value can be held by this dtype,
+            #  unlike the non-EA case that promotes.
+            cls = dtype.construct_array_type()
+            new_values = cls._empty(result_shape, dtype=dtype)
+            if not mask_all:
                 new_values[:] = fill_value
-            else:
+        else:
+            if not mask_all:
                 dtype, fill_value = maybe_promote(dtype, fill_value)
-                new_values = np.empty(result_shape, dtype=dtype)
+            new_values = np.empty(result_shape, dtype=dtype)
+            if not mask_all:
                 new_values.fill(fill_value)
 
         name = dtype.name
@@ -461,7 +459,7 @@ def _unstack_multiple(
         )
 
     if isinstance(data, Series):
-        dummy = data.copy()
+        dummy = data.copy(deep=False)
         dummy.index = dummy_index
 
         unstacked = dummy.unstack("__placeholder__", fill_value=fill_value, sort=sort)
@@ -842,7 +840,7 @@ def _stack_multi_columns(
                     [x._values.astype(dtype, copy=False) for _, x in subset.items()]
                 )
                 N, K = subset.shape
-                idx = np.arange(N * K).reshape(K, N).T.ravel()
+                idx = np.arange(N * K).reshape(K, N).T.reshape(-1)
                 value_slice = value_slice.take(idx)
             else:
                 value_slice = subset.values
@@ -924,19 +922,34 @@ def _reorder_for_extension_array_stack(
     # idx is an indexer like
     # [c0r0, c1r0, c2r0, ...,
     #  c0r1, c1r1, c2r1, ...]
-    idx = np.arange(n_rows * n_columns).reshape(n_columns, n_rows).T.ravel()
+    idx = np.arange(n_rows * n_columns).reshape(n_columns, n_rows).T.reshape(-1)
     return arr.take(idx)
 
 
 def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     if frame.columns.nunique() != len(frame.columns):
         raise ValueError("Columns with duplicate values are not supported in stack")
+    if not len(level):
+        return frame
     set_levels = set(level)
     stack_cols = frame.columns._drop_level_numbers(
         [k for k in range(frame.columns.nlevels - 1, -1, -1) if k not in set_levels]
     )
 
-    result = stack_reshape(frame, level, set_levels, stack_cols)
+    result: Series | DataFrame
+    if not isinstance(frame.columns, MultiIndex):
+        # GH#58817 Fast path when we're stacking the columns of a non-MultiIndex.
+        # When columns are homogeneous EAs, we pass through object
+        # dtype but this is still slightly faster than the normal path.
+        if len(frame.columns) > 0 and frame._is_homogeneous_type:
+            dtype = frame._mgr.blocks[0].dtype
+        else:
+            dtype = None
+        result = frame._constructor_sliced(
+            frame._values.reshape(-1, order="F"), dtype=dtype
+        )
+    else:
+        result = stack_reshape(frame, level, set_levels, stack_cols)
 
     # Construct the correct MultiIndex by combining the frame's index and
     # stacked columns.
@@ -1018,6 +1031,8 @@ def stack_reshape(
     -------
     The data of behind the stacked DataFrame.
     """
+    # non-MultIndex takes a fast path.
+    assert isinstance(frame.columns, MultiIndex)
     # If we need to drop `level` from columns, it needs to be in descending order
     drop_levnums = sorted(level, reverse=True)
 
@@ -1025,20 +1040,16 @@ def stack_reshape(
     buf = []
     for idx in stack_cols.unique():
         if len(frame.columns) == 1:
-            data = frame.copy()
+            data = frame.copy(deep=False)
         else:
-            if not isinstance(frame.columns, MultiIndex) and not isinstance(idx, tuple):
-                # GH#57750 - if the frame is an Index with tuples, .loc below will fail
-                column_indexer = idx
-            else:
-                # Take the data from frame corresponding to this idx value
-                if len(level) == 1:
-                    idx = (idx,)
-                gen = iter(idx)
-                column_indexer = tuple(
-                    next(gen) if k in set_levels else slice(None)
-                    for k in range(frame.columns.nlevels)
-                )
+            # Take the data from frame corresponding to this idx value
+            if len(level) == 1:
+                idx = (idx,)
+            gen = iter(idx)
+            column_indexer = tuple(
+                next(gen) if k in set_levels else slice(None)
+                for k in range(frame.columns.nlevels)
+            )
             data = frame.loc[:, column_indexer]
 
         if len(level) < frame.columns.nlevels:
@@ -1047,7 +1058,7 @@ def stack_reshape(
             if data.ndim == 1:
                 data.name = 0
             else:
-                data.columns = RangeIndex(len(data.columns))
+                data.columns = default_index(len(data.columns))
         buf.append(data)
 
     if len(buf) > 0 and not frame.empty:

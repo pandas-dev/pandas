@@ -192,6 +192,10 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
   return npy_dt;
 }
 
+/* Initializes and exposes a customer datetime C-API from the pandas library
+ * by creating a PyCapsule that stores function pointers, which can be accessed
+ * later by other C code or Cython code that imports the capsule.
+ */
 static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
   PyDateTime_IMPORT;
   PandasDateTime_CAPI *capi = PyMem_Malloc(sizeof(PandasDateTime_CAPI));
@@ -245,7 +249,12 @@ static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
 }
 
 static PyModuleDef_Slot pandas_datetime_slots[] = {
-    {Py_mod_exec, pandas_datetime_exec}, {0, NULL}};
+    {Py_mod_exec, pandas_datetime_exec},
+#if PY_VERSION_HEX >= 0x030D0000
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+#endif
+    {0, NULL},
+};
 
 static struct PyModuleDef pandas_datetimemodule = {
     PyModuleDef_HEAD_INIT,

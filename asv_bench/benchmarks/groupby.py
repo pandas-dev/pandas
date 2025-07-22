@@ -511,8 +511,7 @@ class GroupByMethods:
         # grouping on multiple columns
         # and we lack kernels for a bunch of methods
         if (
-            engine == "numba"
-            and method in _numba_unsupported_methods
+            (engine == "numba" and method in _numba_unsupported_methods)
             or ncols > 1
             or application == "transformation"
             or dtype == "datetime"

@@ -105,7 +105,7 @@ class TestMultiIndexLoc:
         empty = Series(data=[], dtype=np.float64)
         expected = Series(
             [],
-            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            index=MultiIndex(levels=index.levels, codes=[[], []]),
             dtype=np.float64,
         )
         result = x.loc[empty]
@@ -129,7 +129,7 @@ class TestMultiIndexLoc:
         empty = np.array([])
         expected = Series(
             [],
-            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            index=MultiIndex(levels=index.levels, codes=[[], []]),
             dtype="float64",
         )
         result = x.loc[empty]
@@ -601,7 +601,7 @@ def test_loc_nan_multiindex(using_infer_string):
         np.ones((1, 4)),
         index=Index(
             [np.nan],
-            dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
+            dtype="object" if not using_infer_string else "str",
             name="u3",
         ),
         columns=Index(["d1", "d2", "d3", "d4"]),
@@ -757,7 +757,7 @@ class TestKeyErrorsWithMultiIndex:
         df = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
         df2 = df.set_index(["A", "B"])
 
-        with pytest.raises(KeyError, match="1"):
+        with pytest.raises(KeyError, match="6"):
             df2.loc[(1, 6)]
 
     def test_missing_key_raises_keyerror2(self):

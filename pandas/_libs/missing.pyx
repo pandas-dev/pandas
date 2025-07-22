@@ -347,6 +347,14 @@ class NAType(C_NAType):
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).
 
+    See Also
+    --------
+    numpy.nan : Floating point representation of Not a Number (NaN) for numerical data.
+    isna : Detect missing values for an array-like object.
+    notna : Detect non-missing values for an array-like object.
+    DataFrame.fillna : Fill missing values in a DataFrame.
+    Series.fillna : Fill missing values in a Series.
+
     Examples
     --------
     >>> pd.NA
@@ -463,6 +471,10 @@ class NAType(C_NAType):
             return False
         elif other is True or other is C_NA:
             return NA
+        elif util.is_bool_object(other):
+            if not other:
+                return False
+            return NA
         return NotImplemented
 
     __rand__ = __and__
@@ -472,12 +484,16 @@ class NAType(C_NAType):
             return True
         elif other is False or other is C_NA:
             return NA
+        elif util.is_bool_object(other):
+            if not other:
+                return NA
+            return True
         return NotImplemented
 
     __ror__ = __or__
 
     def __xor__(self, other):
-        if other is False or other is True or other is C_NA:
+        if util.is_bool_object(other) or other is C_NA:
             return NA
         return NotImplemented
 

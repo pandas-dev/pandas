@@ -40,6 +40,7 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
+from pandas.testing import assert_series_equal
 
 
 class TestIndex:
@@ -79,7 +80,7 @@ class TestIndex:
         assert new_index.name == "name"
         if using_infer_string:
             tm.assert_extension_array_equal(
-                new_index.values, pd.array(arr, dtype="string[pyarrow_numpy]")
+                new_index.values, pd.array(arr, dtype="str")
             )
         else:
             tm.assert_numpy_array_equal(arr, new_index.values)
@@ -157,7 +158,7 @@ class TestIndex:
         df = DataFrame(np.random.default_rng(2).random((5, 3)))
         df["date"] = dts
         result = DatetimeIndex(df["date"], freq="MS")
-        dtype = object if not using_infer_string else "string"
+        dtype = object if not using_infer_string else "str"
         assert df["date"].dtype == dtype
         expected.name = "date"
         tm.assert_index_equal(result, expected)
@@ -351,13 +352,11 @@ class TestIndex:
             msg = "When changing to a larger dtype"
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
-        elif index.dtype == "string":
-            with pytest.raises(NotImplementedError, match="i8"):
-                index.view("i8")
         else:
             msg = (
-                "Cannot change data-type for array of references.|"
-                "Cannot change data-type for object array.|"
+                r"Cannot change data-type for array of references\.|"
+                r"Cannot change data-type for object array\.|"
+                r"Cannot change data-type for array of strings\.|"
             )
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
@@ -922,10 +921,9 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
-    @td.skip_if_no("pyarrow")
-    def test_isin_arrow_string_null(self):
+    def test_isin_string_null(self, string_dtype_no_object):
         # GH#55821
-        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        index = Index(["a", "b"], dtype=string_dtype_no_object)
         result = index.isin([None])
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -960,6 +958,31 @@ class TestIndex:
     def test_slice_keep_name(self):
         index = Index(["a", "b"], name="asdf")
         assert index.name == index[1:].name
+
+    def test_slice_is_unique(self):
+        # GH 57911
+        index = Index([1, 1, 2, 3, 4])
+        assert not index.is_unique
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_unique
+
+    def test_slice_is_montonic(self):
+        """Test that is_monotonic_decreasing is correct on slices."""
+        # GH 57911
+        index = Index([1, 2, 3, 3])
+        assert not index.is_monotonic_decreasing
+
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[1:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
 
     @pytest.mark.parametrize(
         "index",
@@ -1090,8 +1113,7 @@ class TestIndex:
     def test_take_fill_value_none_raises(self):
         index = Index(list("ABC"), name="xxx")
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
 
         with pytest.raises(ValueError, match=msg):
@@ -1558,7 +1580,7 @@ class TestIndexUtils:
 
     def test_get_combined_index(self):
         result = _get_combined_index([])
-        expected = Index([])
+        expected = RangeIndex(0)
         tm.assert_index_equal(result, expected)
 
 
@@ -1600,7 +1622,7 @@ def test_generated_op_names(opname, index):
         partial(DatetimeIndex, data=["2020-01-01"]),
         partial(PeriodIndex, data=["2020-01-01"]),
         partial(TimedeltaIndex, data=["1 day"]),
-        partial(RangeIndex, data=range(1)),
+        partial(RangeIndex, start=range(1)),
         partial(IntervalIndex, data=[pd.Interval(0, 1)]),
         partial(Index, data=["a"], dtype=object),
         partial(MultiIndex, levels=[1], codes=[0]),
@@ -1696,3 +1718,27 @@ def test_is_monotonic_pyarrow_list_type():
     idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     assert not idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing
+
+
+def test_index_equals_different_string_dtype(string_dtype_no_object):
+    # GH 61099
+    idx_obj = Index(["a", "b", "c"])
+    idx_str = Index(["a", "b", "c"], dtype=string_dtype_no_object)
+
+    assert idx_obj.equals(idx_str)
+    assert idx_str.equals(idx_obj)
+
+
+def test_index_comparison_different_string_dtype(string_dtype_no_object):
+    # GH 61099
+    idx = Index(["a", "b", "c"])
+    s_obj = Series([1, 2, 3], index=idx)
+    s_str = Series([4, 5, 6], index=idx.astype(string_dtype_no_object))
+
+    expected = Series([True, True, True], index=["a", "b", "c"])
+    result = s_obj < s_str
+    assert_series_equal(result, expected)
+
+    result = s_str > s_obj
+    expected.index = idx.astype(string_dtype_no_object)
+    assert_series_equal(result, expected)

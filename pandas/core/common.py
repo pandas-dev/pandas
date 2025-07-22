@@ -12,6 +12,7 @@ from collections import (
     defaultdict,
 )
 from collections.abc import (
+    Callable,
     Collection,
     Generator,
     Hashable,
@@ -24,17 +25,14 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     TypeVar,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -145,7 +143,7 @@ def is_bool_indexer(key: Any) -> bool:
     elif isinstance(key, list):
         # check if np.array(key).dtype would be bool
         if len(key) > 0:
-            if type(key) is not list:  # noqa: E721
+            if type(key) is not list:
                 # GH#42461 cython will raise TypeError if we pass a subclass
                 key = list(key)
             return lib.is_bool_list(key)
@@ -243,11 +241,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         return construct_1d_object_array_from_listlike(values)
 
     try:
-        with warnings.catch_warnings():
-            # Can remove warning filter once NumPy 1.24 is min version
-            if not np_version_gte1p24:
-                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
-            result = np.asarray(values, dtype=dtype)
+        result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like
         # over each element
@@ -359,7 +353,7 @@ def is_full_slice(obj, line: int) -> bool:
 def get_callable_name(obj):
     # typical case has name
     if hasattr(obj, "__name__"):
-        return getattr(obj, "__name__")
+        return obj.__name__
     # some objects don't; could recurse
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
@@ -560,9 +554,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(
-    obj, attr: str, value, condition: bool = True
-) -> Generator[None, None, None]:
+def temp_setattr(obj, attr: str, value, condition: bool = True) -> Generator[None]:
     """
     Temporarily set attribute on an object.
 

@@ -12,6 +12,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 from fractions import Fraction
@@ -27,7 +28,6 @@ from typing import (
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import (
     lib,
@@ -248,6 +248,15 @@ def test_is_list_like_generic():
     assert not inference.is_list_like(tstc)
     assert isinstance(tst, DataFrame)
     assert inference.is_list_like(tst)
+
+
+def test_is_list_like_native_container_types():
+    # GH 61565
+    # is_list_like was yielding false positives for native container types
+    assert not inference.is_list_like(list[int])
+    assert not inference.is_list_like(list[str])
+    assert not inference.is_list_like(tuple[int])
+    assert not inference.is_list_like(tuple[str])
 
 
 def test_is_sequence():
@@ -1022,7 +1031,7 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=timezone.utc), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 
@@ -1387,6 +1396,15 @@ class TestTypeInference:
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
+    @pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+    def test_infer_dtype_numeric_with_na(self, na_value):
+        # GH61621
+        ser = Series([1, 2, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "integer"
+
+        ser = Series([1.0, 2.0, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "floating"
+
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
         assert lib.infer_dtype(arr, skipna=True) == "floating"
@@ -1581,6 +1599,31 @@ class TestTypeInference:
             np.array(["foo", "bar", np.nan], dtype=object), skipna=False
         )
         assert not lib.is_string_array(np.array([1, 2]))
+
+    @pytest.mark.parametrize(
+        "func",
+        [
+            "is_bool_array",
+            "is_date_array",
+            "is_datetime_array",
+            "is_datetime64_array",
+            "is_float_array",
+            "is_integer_array",
+            "is_interval_array",
+            "is_string_array",
+            "is_time_array",
+            "is_timedelta_or_timedelta64_array",
+        ],
+    )
+    def test_is_dtype_array_empty_obj(self, func):
+        # https://github.com/pandas-dev/pandas/pull/60796
+        func = getattr(lib, func)
+
+        arr = np.empty((2, 0), dtype=object)
+        assert not func(arr)
+
+        arr = np.empty((0, 2), dtype=object)
+        assert not func(arr)
 
     def test_to_object_array_tuples(self):
         r = (5, 6)
@@ -1925,7 +1968,7 @@ class TestIsScalar:
         assert not is_scalar(pd.array([1, 2, 3]))
 
     def test_is_scalar_number(self):
-        # Number() is not recognied by PyNumber_Check, so by extension
+        # Number() is not recognized by PyNumber_Check, so by extension
         #  is not recognized by is_scalar, but instances of non-abstract
         #  subclasses are.
 

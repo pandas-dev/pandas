@@ -190,6 +190,7 @@ def union_categoricals(
     Returns
     -------
     Categorical
+        The union of categories being combined.
 
     Raises
     ------
@@ -200,6 +201,11 @@ def union_categoricals(
         - sort_categories=True and Categoricals are ordered
     ValueError
         Empty list of categoricals passed
+
+    See Also
+    --------
+    CategoricalDtype : Type for categorical data with the categories and orderedness.
+    Categorical : Represent a categorical variable in classic R / S-plus fashion.
 
     Notes
     -----

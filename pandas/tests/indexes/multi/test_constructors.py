@@ -410,6 +410,19 @@ def test_from_tuples_with_tuple_label():
     tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.parametrize(
+    "keys, expected",
+    [
+        ((("l1",), ("l1", "l2")), (("l1", np.nan), ("l1", "l2"))),
+        ((("l1", "l2"), ("l1",)), (("l1", "l2"), ("l1", np.nan))),
+    ],
+)
+def test_from_tuples_with_various_tuple_lengths(keys, expected):
+    # GH 60695
+    idx = MultiIndex.from_tuples(keys)
+    assert tuple(idx) == expected
+
+
 # ----------------------------------------------------------------------------
 # from_product
 # ----------------------------------------------------------------------------
@@ -850,7 +863,7 @@ def test_dtype_representation(using_infer_string):
     # GH#46900
     pmidx = MultiIndex.from_arrays([[1], ["a"]], names=[("a", "b"), ("c", "d")])
     result = pmidx.dtypes
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = Series(
         ["int64", exp],
         index=MultiIndex.from_tuples([("a", "b"), ("c", "d")]),

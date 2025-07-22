@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-
-from pandas._config import using_pyarrow_string_dtype
 
 from pandas import (
     Categorical,
@@ -22,7 +19,7 @@ class TestCategoricalReprWithFactor:
         if using_infer_string:
             expected = [
                 "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-                "Categories (3, string): [a < b < c]",
+                "Categories (3, str): [a < b < c]",
             ]
         else:
             expected = [
@@ -77,16 +74,18 @@ class TestCategoricalRepr:
         with option_context("display.width", None):
             assert exp == repr(a)
 
-    @pytest.mark.skipif(
-        using_pyarrow_string_dtype(),
-        reason="Change once infer_string is set to True by default",
-    )
-    def test_unicode_print(self):
+    def test_unicode_print(self, using_infer_string):
         c = Categorical(["aaaaa", "bb", "cccc"] * 20)
         expected = """\
 ['aaaaa', 'bb', 'cccc', 'aaaaa', 'bb', ..., 'bb', 'cccc', 'aaaaa', 'bb', 'cccc']
 Length: 60
 Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
+
+        if using_infer_string:
+            expected = expected.replace(
+                "(3, object): ['aaaaa', 'bb', 'cccc']",
+                "(3, str): [aaaaa, bb, cccc]",
+            )
 
         assert repr(c) == expected
 
@@ -95,6 +94,12 @@ Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
 ['ああああ', 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', ..., 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', 'ううううううう']
 Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
+
+        if using_infer_string:
+            expected = expected.replace(
+                "(3, object): ['ああああ', 'いいいいい', 'ううううううう']",
+                "(3, str): [ああああ, いいいいい, ううううううう]",
+            )
 
         assert repr(c) == expected
 
@@ -105,6 +110,12 @@ Categories (3, object): ['ああああ', 'いいいいい', 'うううううう�
             expected = """['ああああ', 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', ..., 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', 'ううううううう']
 Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
+
+        if using_infer_string:
+            expected = expected.replace(
+                "(3, object): ['ああああ', 'いいいいい', 'ううううううう']",
+                "(3, str): [ああああ, いいいいい, ううううううう]",
+            )
 
             assert repr(c) == expected
 

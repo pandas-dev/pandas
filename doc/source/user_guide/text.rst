@@ -13,7 +13,7 @@ Text data types
 
 There are two ways to store text data in pandas:
 
-1. ``object`` -dtype NumPy array.
+1. ``object`` dtype NumPy array.
 2. :class:`StringDtype` extension type.
 
 We recommend using :class:`StringDtype` to store text data.
@@ -40,20 +40,20 @@ to significantly increase the performance and lower the memory overhead of
    and parts of the API may change without warning.
 
 For backwards-compatibility, ``object`` dtype remains the default type we
-infer a list of strings to
+infer a list of strings to:
 
 .. ipython:: python
 
    pd.Series(["a", "b", "c"])
 
-To explicitly request ``string`` dtype, specify the ``dtype``
+To explicitly request ``string`` dtype, specify the ``dtype``:
 
 .. ipython:: python
 
    pd.Series(["a", "b", "c"], dtype="string")
    pd.Series(["a", "b", "c"], dtype=pd.StringDtype())
 
-Or ``astype`` after the ``Series`` or ``DataFrame`` is created
+Or ``astype`` after the ``Series`` or ``DataFrame`` is created:
 
 .. ipython:: python
 
@@ -88,9 +88,9 @@ Behavior differences
 ^^^^^^^^^^^^^^^^^^^^
 
 These are places where the behavior of ``StringDtype`` objects differ from
-``object`` dtype
+``object`` dtype:
 
-l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
+1. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
    rather than either int or float dtype, depending on the presence of NA values.
    Methods returning **boolean** output will return a nullable boolean dtype.
@@ -102,7 +102,7 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
       s.str.count("a")
       s.dropna().str.count("a")
 
-   Both outputs are ``Int64`` dtype. Compare that with object-dtype
+   Both outputs are ``Int64`` dtype. Compare that with object-dtype:
 
    .. ipython:: python
 
@@ -204,7 +204,7 @@ and replacing any remaining whitespaces with underscores:
 
 .. warning::
 
-    The type of the Series is inferred and the allowed types (i.e. strings).
+    The type of the Series is inferred and is one among the allowed types (i.e. strings).
 
     Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
     exceptions, other uses are not supported, and may be disabled at a later point.
@@ -332,8 +332,8 @@ regular expression object will raise a ``ValueError``.
     ---------------------------------------------------------------------------
     ValueError: case and flags cannot be set when pat is a compiled regex
 
-``removeprefix`` and ``removesuffix`` have the same effect as ``str.removeprefix`` and ``str.removesuffix`` added in Python 3.9
-<https://docs.python.org/3/library/stdtypes.html#str.removeprefix>`__:
+``removeprefix`` and ``removesuffix`` have the same effect as ``str.removeprefix`` and ``str.removesuffix`` added in
+`Python 3.9 <https://docs.python.org/3/library/stdtypes.html#str.removeprefix>`__:
 
 .. versionadded:: 1.4.0
 

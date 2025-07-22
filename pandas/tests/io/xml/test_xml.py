@@ -29,11 +29,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
-from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
@@ -244,7 +239,8 @@ df_kml = DataFrame(
                 "-87.65362593118043,41.94742799535678,0"
             ),
         },
-    }
+    },
+    index=range(5),
 )
 
 
@@ -414,7 +410,7 @@ def test_string_charset(parser):
 
     df_str = read_xml(StringIO(txt), parser=parser)
 
-    df_expected = DataFrame({"c1": 1, "c2": 2}, index=[0])
+    df_expected = DataFrame({"c1": 1, "c2": 2}, index=range(1))
 
     tm.assert_frame_equal(df_str, df_expected)
 
@@ -1038,7 +1034,7 @@ def test_utf16_encoding(xml_baby_names, parser):
         UnicodeError,
         match=(
             "UTF-16 stream does not start with BOM|"
-            "'utf-16-le' codec can't decode byte"
+            "'utf-16(-le)?' codec can't decode byte"
         ),
     ):
         read_xml(xml_baby_names, encoding="UTF-16", parser=parser)
@@ -1507,8 +1503,7 @@ def test_bad_xml(parser):
         with pytest.raises(
             SyntaxError,
             match=(
-                "Extra content at the end of the document|"
-                "junk after document element"
+                "Extra content at the end of the document|junk after document element"
             ),
         ):
             read_xml(
@@ -1966,7 +1961,7 @@ def test_wrong_compression(parser, compression, compression_only):
             read_xml(path, parser=parser, compression=attempted_compression)
 
 
-def test_unsuported_compression(parser):
+def test_unsupported_compression(parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             read_xml(path, parser=parser, compression="7z")
@@ -1977,11 +1972,10 @@ def test_unsuported_compression(parser):
 
 @pytest.mark.network
 @pytest.mark.single_cpu
-def test_s3_parser_consistency(s3_public_bucket_with_data, s3so):
+def test_s3_parser_consistency(s3_bucket_public_with_data, s3so):
     pytest.importorskip("s3fs")
     pytest.importorskip("lxml")
-    s3 = f"s3://{s3_public_bucket_with_data.name}/books.xml"
-
+    s3 = f"s3://{s3_bucket_public_with_data.name}/books.xml"
     df_lxml = read_xml(s3, parser="lxml", storage_options=s3so)
 
     df_etree = read_xml(s3, parser="etree", storage_options=s3so)
@@ -2019,36 +2013,21 @@ def test_read_xml_nullable_dtypes(
 </row>
 </data>"""
 
-    if using_infer_string:
-        pa = pytest.importorskip("pyarrow")
-        string_array = ArrowStringArrayNumpySemantics(pa.array(["x", "y"]))
-        string_array_na = ArrowStringArrayNumpySemantics(pa.array(["x", None]))
-
-    elif string_storage == "python":
-        string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
-        string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
-
-    elif dtype_backend == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-        from pandas.arrays import ArrowExtensionArray
-
-        string_array = ArrowExtensionArray(pa.array(["x", "y"]))
-        string_array_na = ArrowExtensionArray(pa.array(["x", None]))
-
-    else:
-        pa = pytest.importorskip("pyarrow")
-        string_array = ArrowStringArray(pa.array(["x", "y"]))
-        string_array_na = ArrowStringArray(pa.array(["x", None]))
-
     with pd.option_context("mode.string_storage", string_storage):
         result = read_xml(StringIO(data), parser=parser, dtype_backend=dtype_backend)
 
+    if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        string_dtype = pd.ArrowDtype(pa.string())
+    else:
+        string_dtype = pd.StringDtype(string_storage)
+
     expected = DataFrame(
         {
-            "a": string_array,
+            "a": Series(["x", "y"], dtype=string_dtype),
             "b": Series([1, 2], dtype="Int64"),
             "c": Series([4.0, 5.0], dtype="Float64"),
-            "d": string_array_na,
+            "d": Series(["x", None], dtype=string_dtype),
             "e": Series([2, NA], dtype="Int64"),
             "f": Series([4.0, NA], dtype="Float64"),
             "g": Series([NA, NA], dtype="Int64"),
@@ -2069,7 +2048,9 @@ def test_read_xml_nullable_dtypes(
         )
         expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
-    tm.assert_frame_equal(result, expected)
+    # the storage of the str columns' Index is also affected by the
+    # string_storage setting -> ignore that for checking the result
+    tm.assert_frame_equal(result, expected, check_column_type=False)
 
 
 def test_invalid_dtype_backend():

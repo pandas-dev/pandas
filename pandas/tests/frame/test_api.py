@@ -5,8 +5,10 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 from pandas._config.config import option_context
+
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -85,7 +87,7 @@ class TestDataFrameMisc:
         assert isinstance(df.__getitem__("A"), DataFrame)
 
     def test_display_max_dir_items(self):
-        # display.max_dir_items increaes the number of columns that are in __dir__.
+        # display.max_dir_items increases the number of columns that are in __dir__.
         columns = ["a" + str(i) for i in range(420)]
         values = [range(420), range(420)]
         df = DataFrame(values, columns=columns)
@@ -113,7 +115,9 @@ class TestDataFrameMisc:
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="surrogates not allowed")
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="surrogates not allowed"
+    )
     def test_column_name_contains_unicode_surrogate(self):
         # GH 25509
         colname = "\ud83d"
@@ -311,7 +315,7 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
-    def test_attrs_deepcopy(self):
+    def test_attrs_is_deepcopy(self):
         df = DataFrame({"A": [2, 3]})
         assert df.attrs == {}
         df.attrs["tags"] = {"spam", "ham"}
@@ -319,6 +323,30 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == df.attrs
         assert result.attrs["tags"] is not df.attrs["tags"]
+
+    def test_attrs_concat(self):
+        # concat propagates attrs if all input attrs are equal
+        df1 = DataFrame({"A": [2, 3]})
+        df1.attrs = {"a": 1, "b": 2}
+        df2 = DataFrame({"A": [4, 5]})
+        df2.attrs = df1.attrs.copy()
+        df3 = DataFrame({"A": [6, 7]})
+        df3.attrs = df1.attrs.copy()
+        assert pd.concat([df1, df2, df3]).attrs == df1.attrs
+        # concat does not propagate attrs if input attrs are different
+        df2.attrs = {"c": 3}
+        assert pd.concat([df1, df2, df3]).attrs == {}
+
+    def test_attrs_merge(self):
+        # merge propagates attrs if all input attrs are equal
+        df1 = DataFrame({"key": ["a", "b"], "val1": [1, 2]})
+        df1.attrs = {"a": 1, "b": 2}
+        df2 = DataFrame({"key": ["a", "b"], "val2": [3, 4]})
+        df2.attrs = df1.attrs.copy()
+        assert pd.merge(df1, df2).attrs == df1.attrs
+        # merge does not propagate attrs if input attrs are different
+        df2.attrs = {"c": 3}
+        assert pd.merge(df1, df2).attrs == {}
 
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(
@@ -372,6 +400,5 @@ class TestDataFrameMisc:
 
     def test_inspect_getmembers(self):
         # GH38740
-        pytest.importorskip("jinja2")
         df = DataFrame()
         inspect.getmembers(df)

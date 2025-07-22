@@ -320,7 +320,7 @@ class TestTimedelta64ArithmeticUnsorted:
         with pytest.raises(TypeError, match=msg):
             td - dt
 
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from Timedelta"
         with pytest.raises(TypeError, match=msg):
             td - dti
 
@@ -1460,7 +1460,13 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")
         rng = tm.box_expected(rng, box_with_array)
-        msg = "argument must be an integer|cannot use operands with types dtype"
+        msg = "|".join(
+            [
+                "argument must be an integer",
+                "cannot use operands with types dtype",
+                "Cannot multiply with",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             rng * two_hours
 

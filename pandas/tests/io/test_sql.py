@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-from contextlib import closing
 import csv
 from datetime import (
     date,
@@ -9,6 +8,7 @@ from datetime import (
     time,
     timedelta,
 )
+from decimal import Decimal
 from io import StringIO
 from pathlib import Path
 import sqlite3
@@ -17,6 +17,8 @@ import uuid
 
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat import pa_version_under14p1
@@ -37,10 +39,6 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 from pandas.util.version import Version
 
 from pandas.io import sql
@@ -58,9 +56,12 @@ if TYPE_CHECKING:
     import sqlalchemy
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.single_cpu,
+]
 
 
 @pytest.fixture
@@ -236,14 +237,17 @@ def types_table_metadata(dialect: str):
         "types",
         metadata,
         Column("TextCol", TEXT),
-        Column("DateCol", date_type),
+        # error: Cannot infer type argument 1 of "Column"
+        Column("DateCol", date_type),  # type: ignore[misc]
         Column("IntDateCol", Integer),
         Column("IntDateOnlyCol", Integer),
         Column("FloatCol", Float),
         Column("IntCol", Integer),
-        Column("BoolCol", bool_type),
+        # error: Cannot infer type argument 1 of "Column"
+        Column("BoolCol", bool_type),  # type: ignore[misc]
         Column("IntColWithNull", Integer),
-        Column("BoolColWithNull", bool_type),
+        # error: Cannot infer type argument 1 of "Column"
+        Column("BoolColWithNull", bool_type),  # type: ignore[misc]
     )
     return types
 
@@ -681,6 +685,7 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 @pytest.fixture
 def postgresql_adbc_conn():
+    pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
@@ -813,6 +818,7 @@ def sqlite_conn_types(sqlite_engine_types):
 
 @pytest.fixture
 def sqlite_adbc_conn():
+    pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_sqlite")
     from adbc_driver_sqlite import dbapi
 
@@ -953,12 +959,12 @@ adbc_connectable = [
 
 adbc_connectable_iris = [
     pytest.param("postgresql_adbc_iris", marks=pytest.mark.db),
-    pytest.param("sqlite_adbc_iris", marks=pytest.mark.db),
+    "sqlite_adbc_iris",
 ]
 
 adbc_connectable_types = [
     pytest.param("postgresql_adbc_types", marks=pytest.mark.db),
-    pytest.param("sqlite_adbc_types", marks=pytest.mark.db),
+    "sqlite_adbc_types",
 ]
 
 
@@ -982,13 +988,13 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_empty(conn, test_frame1, request):
-    if conn == "postgresql_adbc_conn":
+    if conn == "postgresql_adbc_conn" and not using_string_dtype():
         request.node.add_marker(
             pytest.mark.xfail(
-                reason="postgres ADBC driver cannot insert index with null type",
-                strict=True,
+                reason="postgres ADBC driver < 1.2 cannot insert index with null type",
             )
         )
+
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
     empty_df = test_frame1.iloc[:0]
@@ -1033,6 +1039,12 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
 def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
     # GH 52046
     pytest.importorskip("pyarrow")
+    if isinstance(nulls_fixture, Decimal):
+        pytest.skip(
+            # GH#61773
+            reason="Decimal('NaN') not supported in constructor for timestamp dtype"
+        )
+
     df = DataFrame(
         {
             "datetime": pd.array(
@@ -1062,7 +1074,9 @@ def test_to_sql(conn, method, test_frame1, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
-@pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
+@pytest.mark.parametrize(
+    "mode, num_row_coef", [("replace", 1), ("append", 2), ("delete_rows", 1)]
+)
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
@@ -1699,11 +1713,9 @@ def test_api_roundtrip(conn, request, test_frame1):
 
     # HACK!
     if "adbc" in conn_name:
-        result = result.rename(columns={"__index_level_0__": "level_0"})
-    result.index = test_frame1.index
-    result.set_index("level_0", inplace=True)
-    result.index.astype(int)
-    result.index.name = None
+        result = result.drop(columns="__index_level_0__")
+    else:
+        result = result.drop(columns="level_0")
     tm.assert_frame_equal(result, test_frame1)
 
 
@@ -2492,10 +2504,8 @@ def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
             sql.SQLTable("test_type", db, frame=df)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
-def test_database_uri_string(conn, request, test_frame1):
+def test_database_uri_string(request, test_frame1):
     pytest.importorskip("sqlalchemy")
-    conn = request.getfixturevalue(conn)
     # Test read_sql and .to_sql method with a database URI (GH10654)
     # db_uri = 'sqlite:///:memory:' # raises
     # sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) near
@@ -2514,10 +2524,8 @@ def test_database_uri_string(conn, request, test_frame1):
 
 
 @td.skip_if_installed("pg8000")
-@pytest.mark.parametrize("conn", all_connectable)
-def test_pg8000_sqlalchemy_passthrough_error(conn, request):
+def test_pg8000_sqlalchemy_passthrough_error(request):
     pytest.importorskip("sqlalchemy")
-    conn = request.getfixturevalue(conn)
     # using driver that will not be installed on CI to trigger error
     # in sqlalchemy.create_engine -> test passing of this error to user
     db_uri = "postgresql+pg8000://user:pass@host/dbname"
@@ -2578,10 +2586,10 @@ def test_sql_open_close(test_frame3):
     # between the writing and reading (as in many real situations).
 
     with tm.ensure_clean() as name:
-        with closing(sqlite3.connect(name)) as conn:
+        with contextlib.closing(sqlite3.connect(name)) as conn:
             assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
 
-        with closing(sqlite3.connect(name)) as conn:
+        with contextlib.closing(sqlite3.connect(name)) as conn:
             result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
 
     tm.assert_frame_equal(test_frame3, result)
@@ -2694,6 +2702,59 @@ def test_drop_table(conn, request):
         assert not insp.has_table("temp_frame")
 
 
+@pytest.mark.parametrize("conn_name", all_connectable)
+def test_delete_rows_success(conn_name, test_frame1, request):
+    table_name = "temp_delete_rows_frame"
+    conn = request.getfixturevalue(conn_name)
+
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(test_frame1, table_name) == test_frame1.shape[0]
+
+        with pandasSQL.run_transaction():
+            assert pandasSQL.delete_rows(table_name) is None
+
+        assert count_rows(conn, table_name) == 0
+        assert pandasSQL.has_table(table_name)
+
+
+@pytest.mark.parametrize("conn_name", all_connectable)
+def test_delete_rows_is_atomic(conn_name, request):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+
+    table_name = "temp_delete_rows_atomic_frame"
+    table_stmt = f"CREATE TABLE {table_name} (a INTEGER, b INTEGER UNIQUE NOT NULL)"
+
+    if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
+        table_stmt = sqlalchemy.text(table_stmt)
+
+    # setting dtype is mandatory for adbc related tests
+    original_df = DataFrame({"a": [1, 2], "b": [3, 4]}, dtype="int32")
+    replacing_df = DataFrame({"a": [5, 6, 7], "b": [8, 8, 8]}, dtype="int32")
+
+    conn = request.getfixturevalue(conn_name)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(table_stmt)
+
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(original_df, table_name, if_exists="append", index=False)
+
+        # inserting duplicated values in a UNIQUE constraint column
+        with pytest.raises(pd.errors.DatabaseError):
+            with pandasSQL.run_transaction():
+                pandasSQL.to_sql(
+                    replacing_df, table_name, if_exists="delete_rows", index=False
+                )
+
+        # failed "delete_rows" is rolled back preserving original data
+        with pandasSQL.run_transaction():
+            result_df = pandasSQL.read_query(
+                f"SELECT * FROM {table_name}", dtype="int32"
+            )
+            tm.assert_frame_equal(result_df, original_df)
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 def test_roundtrip(conn, request, test_frame1):
     if conn == "sqlite_str":
@@ -2701,10 +2762,10 @@ def test_roundtrip(conn, request, test_frame1):
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    with pandasSQL.run_transaction():
-        assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
-        result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
+            result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
     if "adbc" in conn_name:
         result = result.rename(columns={"__index_level_0__": "level_0"})
@@ -3398,15 +3459,8 @@ def test_to_sql_with_negative_npinf(conn, request, input):
         # GH 36465
         # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
         # for pymysql version >= 0.10
-        # TODO(GH#36465): remove this version check after GH 36465 is fixed
-        pymysql = pytest.importorskip("pymysql")
-
-        if Version(pymysql.__version__) < Version("1.0.3") and "infe0" in df.columns:
-            mark = pytest.mark.xfail(reason="GH 36465")
-            request.applymarker(mark)
-
-        msg = "inf cannot be used with MySQL"
-        with pytest.raises(ValueError, match=msg):
+        msg = "Execution failed on sql"
+        with pytest.raises(pd.errors.DatabaseError, match=msg):
             df.to_sql(name="foobar", con=conn, index=False)
     else:
         assert df.to_sql(name="foobar", con=conn, index=False) == 1
@@ -3526,13 +3580,6 @@ def test_options_get_engine():
         assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
 
 
-def test_get_engine_auto_error_message():
-    # Expect different error messages from get_engine(engine="auto")
-    # if engines aren't installed vs. are installed but bad version
-    pass
-    # TODO(GH#36893) fill this in when we add more engines
-
-
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
 def test_read_sql_dtype_backend(
@@ -3555,7 +3602,8 @@ def test_read_sql_dtype_backend(
         result = getattr(pd, func)(
             f"Select * from {table}", conn, dtype_backend=dtype_backend
         )
-    expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
+        expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
+
     tm.assert_frame_equal(result, expected)
 
     if "adbc" in conn_name:
@@ -3605,7 +3653,7 @@ def test_read_sql_dtype_backend_table(
 
     with pd.option_context("mode.string_storage", string_storage):
         result = getattr(pd, func)(table, conn, dtype_backend=dtype_backend)
-    expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
+        expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
     tm.assert_frame_equal(result, expected)
 
     if "adbc" in conn_name:
@@ -3658,24 +3706,13 @@ def dtype_backend_data() -> DataFrame:
 
 @pytest.fixture
 def dtype_backend_expected():
-    def func(storage, dtype_backend, conn_name) -> DataFrame:
-        string_array: StringArray | ArrowStringArray
-        string_array_na: StringArray | ArrowStringArray
-        if storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
-
-        elif dtype_backend == "pyarrow":
+    def func(string_storage, dtype_backend, conn_name) -> DataFrame:
+        string_dtype: pd.StringDtype | pd.ArrowDtype
+        if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))  # type: ignore[assignment]
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))  # type: ignore[assignment]
-
+            string_dtype = pd.ArrowDtype(pa.string())
         else:
-            pa = pytest.importorskip("pyarrow")
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+            string_dtype = pd.StringDtype(string_storage)
 
         df = DataFrame(
             {
@@ -3685,8 +3722,8 @@ def dtype_backend_expected():
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, pd.NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": Series(["a", "b", "c"], dtype=string_dtype),
+                "h": Series(["a", "b", None], dtype=string_dtype),
             }
         )
         if dtype_backend == "pyarrow":
@@ -3821,7 +3858,6 @@ def test_row_object_is_named_tuple(sqlite_engine):
 def test_read_sql_string_inference(sqlite_engine):
     conn = sqlite_engine
     # GH#54430
-    pytest.importorskip("pyarrow")
     table = "test"
     df = DataFrame({"a": ["x", "y"]})
     df.to_sql(table, con=conn, index=False, if_exists="replace")
@@ -3829,7 +3865,7 @@ def test_read_sql_string_inference(sqlite_engine):
     with pd.option_context("future.infer_string", True):
         result = read_sql_table(table, conn)
 
-    dtype = "string[pyarrow_numpy]"
+    dtype = pd.StringDtype(na_value=np.nan)
     expected = DataFrame(
         {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
     )
@@ -4133,7 +4169,7 @@ def tquery(query, con=None):
 def test_xsqlite_basic(sqlite_buildin):
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     assert sql.to_sql(frame, name="test_table", con=sqlite_buildin, index=False) == 10
@@ -4160,7 +4196,7 @@ def test_xsqlite_basic(sqlite_buildin):
 def test_xsqlite_write_row_by_row(sqlite_buildin):
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     frame.iloc[0, 0] = np.nan
@@ -4183,7 +4219,7 @@ def test_xsqlite_write_row_by_row(sqlite_buildin):
 def test_xsqlite_execute(sqlite_buildin):
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     create_sql = sql.get_schema(frame, "test")
@@ -4204,7 +4240,7 @@ def test_xsqlite_execute(sqlite_buildin):
 def test_xsqlite_schema(sqlite_buildin):
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     create_sql = sql.get_schema(frame, "test")
@@ -4235,11 +4271,11 @@ def test_xsqlite_execute_fail(sqlite_buildin):
     cur.execute(create_sql)
 
     with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
-        pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
-        pandas_sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)')
+        pandas_sql.execute("INSERT INTO test VALUES('foo', 'bar', 1.234)")
+        pandas_sql.execute("INSERT INTO test VALUES('foo', 'baz', 2.567)")
 
         with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
-            pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 7)')
+            pandas_sql.execute("INSERT INTO test VALUES('foo', 'bar', 7)")
 
 
 def test_xsqlite_execute_closed_connection():
@@ -4257,7 +4293,7 @@ def test_xsqlite_execute_closed_connection():
         cur.execute(create_sql)
 
         with sql.pandasSQL_builder(conn) as pandas_sql:
-            pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
+            pandas_sql.execute("INSERT INTO test VALUES('foo', 'bar', 1.234)")
 
     msg = "Cannot operate on a closed database."
     with pytest.raises(sqlite3.ProgrammingError, match=msg):

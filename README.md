@@ -5,7 +5,7 @@
 
 -----------------
 
-# pandas: powerful Python data analysis toolkit
+# pandas: A Powerful Python Data Analysis Toolkit
 
 | | |
 | --- | --- |
@@ -96,7 +96,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://docs.conda.io/en/latest/).
+Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://anaconda.org/conda-forge/pandas).
 
 ```sh
 # conda
@@ -138,7 +138,7 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_in
 
 
 ```sh
-python -m pip install -ve . --no-build-isolation --config-settings=editable-verbose=true
+python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 ```
 
 See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
@@ -175,7 +175,7 @@ All contributions, bug reports, bug fixes, documentation improvements, enhanceme
 
 A detailed overview on how to contribute can be found in the **[contributing guide](https://pandas.pydata.org/docs/dev/development/contributing.html)**.
 
-If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
+If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?q=is%3Aissue%20state%3Aopen%20label%3ADocs%20sort%3Aupdated-desc) and [good first issue](https://github.com/pandas-dev/pandas/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22%20sort%3Aupdated-desc) where you could start out.
 
 You can also triage issues which may include reproducing bug reports, or asking for vital information such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe to pandas on CodeTriage](https://www.codetriage.com/pandas-dev/pandas).
 

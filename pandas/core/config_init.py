@@ -12,8 +12,9 @@ module is imported, register them here rather than in the module.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import os
-from typing import Callable
+from typing import Any
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -99,7 +100,10 @@ pc_max_rows_doc = """
 : int
     If max_rows is exceeded, switch to truncate view. Depending on
     `large_repr`, objects are either centrally truncated or printed as
-    a summary view. 'None' value means unlimited.
+    a summary view.
+
+    'None' value means unlimited. Beware that printing a large number of rows
+    could cause your rendering environment (the browser, etc.) to crash.
 
     In case python/IPython is running in a terminal and `large_repr`
     equals 'truncate' this can be set to 0 and pandas will auto-detect
@@ -120,7 +124,11 @@ pc_max_cols_doc = """
 : int
     If max_cols is exceeded, switch to truncate view. Depending on
     `large_repr`, objects are either centrally truncated or printed as
-    a summary view. 'None' value means unlimited.
+    a summary view.
+
+    'None' value means unlimited. Beware that printing a large number of
+    columns could cause your rendering environment (the browser, etc.) to
+    crash.
 
     In case python/IPython is running in a terminal and `large_repr`
     equals 'truncate' this can be set to 0 or None and pandas will auto-detect
@@ -451,16 +459,30 @@ with cf.config_prefix("mode"):
 
 string_storage_doc = """
 : string
-    The default storage for StringDtype. This option is ignored if
-    ``future.infer_string`` is set to True.
+    The default storage for StringDtype.
 """
+
+
+def is_valid_string_storage(value: Any) -> None:
+    legal_values = ["auto", "python", "pyarrow"]
+    if value not in legal_values:
+        msg = "Value must be one of python|pyarrow"
+        if value == "pyarrow_numpy":
+            # TODO: we can remove extra message after 3.0
+            msg += (
+                ". 'pyarrow_numpy' was specified, but this option should be "
+                "enabled using pandas.options.future.infer_string instead"
+            )
+        raise ValueError(msg)
+
 
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
-        "python",
+        "auto",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
+        # validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_valid_string_storage,
     )
 
 
@@ -858,7 +880,7 @@ with cf.config_prefix("styler"):
 with cf.config_prefix("future"):
     cf.register_option(
         "infer_string",
-        False,
+        False if os.environ.get("PANDAS_FUTURE_INFER_STRING", "1") == "0" else True,
         "Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
         "(at which point this option will be deprecated).",

@@ -53,6 +53,25 @@ class ToCSV(BaseIO):
         self.df.to_csv(self.fname)
 
 
+class ToCSVFloatFormatVariants(BaseIO):
+    fname = "__test__.csv"
+
+    def setup(self):
+        self.df = DataFrame(np.random.default_rng(seed=42).random((1000, 1000)))
+
+    def time_old_style_percent_format(self):
+        self.df.to_csv(self.fname, float_format="%.6f")
+
+    def time_new_style_brace_format(self):
+        self.df.to_csv(self.fname, float_format="{:.6f}")
+
+    def time_new_style_thousands_format(self):
+        self.df.to_csv(self.fname, float_format="{:,.2f}")
+
+    def time_callable_format(self):
+        self.df.to_csv(self.fname, float_format=lambda x: f"{x:.6f}")
+
+
 class ToCSVMultiIndexUnusedLevels(BaseIO):
     fname = "__test__.csv"
 
@@ -594,7 +613,7 @@ class ReadCSVIndexCol(StringIORewind):
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_index_col(self):
-        read_csv(self.StringIO_input, index_col="a")
+        read_csv(self.data(self.StringIO_input), index_col="a")
 
 
 class ReadCSVDatePyarrowEngine(StringIORewind):
@@ -605,7 +624,7 @@ class ReadCSVDatePyarrowEngine(StringIORewind):
 
     def time_read_csv_index_col(self):
         read_csv(
-            self.StringIO_input,
+            self.data(self.StringIO_input),
             parse_dates=["a"],
             engine="pyarrow",
             dtype_backend="pyarrow",

@@ -110,7 +110,7 @@ class TestSeriesPlots:
 
         # _check_plot_works adds an `ax` kwarg to the method call
         # so we get a warning about an axis being cleared, even
-        # though we don't explicing pass one, see GH #13188
+        # though we don't explicitly pass one, see GH #13188
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=getattr(df, by), layout=layout)
         _check_axes_shape(axes, axes_num=axes_num, layout=res_layout)

@@ -1,5 +1,6 @@
+from datetime import timezone
+
 import numpy as np
-from pytz import UTC
 
 from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 
@@ -41,7 +42,7 @@ class TimeTZConvert:
         #  dti = DatetimeIndex(self.i8data, tz=tz)
         #  dti.tz_localize(None)
         if old_sig:
-            tz_convert_from_utc(self.i8data, UTC, tz)
+            tz_convert_from_utc(self.i8data, timezone.utc, tz)
         else:
             tz_convert_from_utc(self.i8data, tz)
 

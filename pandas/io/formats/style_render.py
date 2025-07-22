@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import (
+    Callable,
+    Sequence,
+)
 from functools import partial
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     DefaultDict,
-    Optional,
+    TypeAlias,
     TypedDict,
-    Union,
 )
 from uuid import uuid4
 
@@ -48,11 +49,11 @@ if TYPE_CHECKING:
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
-BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
-CSSPair = tuple[str, Union[str, float]]
-CSSList = list[CSSPair]
-CSSProperties = Union[str, CSSList]
+BaseFormatter: TypeAlias = str | Callable
+ExtFormatter: TypeAlias = BaseFormatter | dict[Any, BaseFormatter | None]
+CSSPair: TypeAlias = tuple[str, str | float]
+CSSList: TypeAlias = list[CSSPair]
+CSSProperties: TypeAlias = str | CSSList
 
 
 class CSSDict(TypedDict):
@@ -60,8 +61,8 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-CSSStyles = list[CSSDict]
-Subset = Union[slice, Sequence, Index]
+CSSStyles: TypeAlias = list[CSSDict]
+Subset = slice | Sequence | Index
 
 
 class StylerRenderer:
@@ -75,6 +76,7 @@ class StylerRenderer:
     template_html_table = env.get_template("html_table.tpl")
     template_html_style = env.get_template("html_style.tpl")
     template_latex = env.get_template("latex.tpl")
+    template_typst = env.get_template("typst.tpl")
     template_string = env.get_template("string.tpl")
 
     def __init__(
@@ -230,6 +232,21 @@ class StylerRenderer:
         d.update(kwargs)
         return self.template_latex.render(**d)
 
+    def _render_typst(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        **kwargs,
+    ) -> str:
+        """
+        Render a Styler in typst format
+        """
+        d = self._render(sparse_index, sparse_columns, max_rows, max_cols)
+        d.update(kwargs)
+        return self.template_typst.render(**d)
+
     def _render_string(
         self,
         sparse_index: bool,
@@ -364,9 +381,11 @@ class StylerRenderer:
         if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
-                table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
+                table_attr = table_attr.replace(
+                    'class="', 'class="tex2jax_ignore mathjax_ignore '
+                )
             else:
-                table_attr += ' class="tex2jax_ignore"'
+                table_attr += ' class="tex2jax_ignore mathjax_ignore"'
         d.update({"table_attributes": table_attr})
 
         if self.tooltips:
@@ -830,10 +849,7 @@ class StylerRenderer:
 
             data_element = _element(
                 "td",
-                (
-                    f"{self.css['data']} {self.css['row']}{r} "
-                    f"{self.css['col']}{c}{cls}"
-                ),
+                (f"{self.css['data']} {self.css['row']}{r} {self.css['col']}{c}{cls}"),
                 value,
                 data_element_visible,
                 attributes="",
@@ -864,7 +880,8 @@ class StylerRenderer:
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         index_levels = self.index.nlevels
-        visible_index_level_n = index_levels - sum(self.hide_index_)
+        # GH 52218
+        visible_index_level_n = max(1, index_levels - sum(self.hide_index_))
         d["head"] = [
             [
                 {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
@@ -904,9 +921,9 @@ class StylerRenderer:
                 row_body_headers = [
                     {
                         **col,
-                        "display_value": col["display_value"]
-                        if col["is_visible"]
-                        else "",
+                        "display_value": (
+                            col["display_value"] if col["is_visible"] else ""
+                        ),
                         "cellstyle": self.ctx_index[r, c],
                     }
                     for c, col in enumerate(row[:index_levels])
@@ -952,7 +969,7 @@ class StylerRenderer:
                     idx_len = d["index_lengths"].get((lvl, r), None)
                     if idx_len is not None:  # i.e. not a sparsified entry
                         d["clines"][rn + idx_len].append(
-                            f"\\cline{{{lvln+1}-{len(visible_index_levels)+data_len}}}"
+                            f"\\cline{{{lvln + 1}-{len(visible_index_levels) + data_len}}}"  # noqa: E501
                         )
 
     def format(
@@ -1050,7 +1067,7 @@ class StylerRenderer:
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
-        When instantiating a Styler, default formatting can be applied be setting the
+        When instantiating a Styler, default formatting can be applied by setting the
         ``pandas.options``:
 
           - ``styler.format.formatter``: default None.
@@ -1062,7 +1079,7 @@ class StylerRenderer:
 
         .. warning::
            `Styler.format` is ignored when using the output format `Styler.to_excel`,
-           since Excel and Python have inherrently different formatting structures.
+           since Excel and Python have inherently different formatting structures.
            However, it is possible to use the `number-format` pseudo CSS attribute
            to force Excel permissible formatting. See examples.
 
@@ -1207,7 +1224,7 @@ class StylerRenderer:
         data = self.data.loc[subset]
 
         if not isinstance(formatter, dict):
-            formatter = {col: formatter for col in data.columns}
+            formatter = dict.fromkeys(data.columns, formatter)
 
         cis = self.columns.get_indexer_for(data.columns)
         ris = self.index.get_indexer_for(data.index)
@@ -1310,7 +1327,7 @@ class StylerRenderer:
 
         .. warning::
            `Styler.format_index` is ignored when using the output format
-           `Styler.to_excel`, since Excel and Python have inherrently different
+           `Styler.to_excel`, since Excel and Python have inherently different
            formatting structures.
            However, it is possible to use the `number-format` pseudo CSS attribute
            to force Excel permissible formatting. See documentation for `Styler.format`.
@@ -1393,7 +1410,7 @@ class StylerRenderer:
             return self  # clear the formatter / revert to default and avoid looping
 
         if not isinstance(formatter, dict):
-            formatter = {level: formatter for level in levels_}
+            formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
                 obj._get_level_number(level): formatter_
@@ -1536,7 +1553,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame({"samples": np.random.rand(10)})
         >>> styler = df.loc[np.random.randint(0, 10, 3)].style
-        >>> styler.relabel_index([f"sample{i+1} ({{}})" for i in range(3)])
+        >>> styler.relabel_index([f"sample{i + 1} ({{}})" for i in range(3)])
         ... # doctest: +SKIP
                          samples
         sample1 (5)     0.315811
@@ -1647,7 +1664,7 @@ class StylerRenderer:
 
         .. warning::
             `Styler.format_index_names` is ignored when using the output format
-            `Styler.to_excel`, since Excel and Python have inherrently different
+            `Styler.to_excel`, since Excel and Python have inherently different
             formatting structures.
 
         Examples
@@ -1690,7 +1707,7 @@ class StylerRenderer:
             return self  # clear the formatter / revert to default and avoid looping
 
         if not isinstance(formatter, dict):
-            formatter = {level: formatter for level in levels_}
+            formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
                 obj._get_level_number(level): formatter_
@@ -2067,18 +2084,18 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                                              ('border','1px solid red')]
     """
     if isinstance(style, str):
-        s = style.split(";")
-        try:
-            return [
-                (x.split(":")[0].strip(), x.split(":")[1].strip())
-                for x in s
-                if x.strip() != ""
-            ]
-        except IndexError as err:
+        if style and ":" not in style:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
-            ) from err
+            )
+        s = style.split(";")
+        return [
+            (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
+            for x in s
+            if x.strip() != ""
+        ]
+
     return style
 
 
@@ -2408,7 +2425,7 @@ def _parse_latex_header_span(
     r"""
     Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
 
-    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    'rowspan' and 'colspan' do not occur simultaneously. If they are detected then
     the `display_value` is altered to a LaTeX `multirow` or `multicol` command
     respectively, with the appropriate cell-span.
 
@@ -2499,7 +2516,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
         if value[0] == "#" and len(value) == 7:  # color is hex code
             return command, f"[HTML]{{{value[1:].upper()}}}{arg}"
         if value[0] == "#" and len(value) == 4:  # color is short hex code
-            val = f"{value[1].upper()*2}{value[2].upper()*2}{value[3].upper()*2}"
+            val = f"{value[1].upper() * 2}{value[2].upper() * 2}{value[3].upper() * 2}"
             return command, f"[HTML]{{{val}}}{arg}"
         elif value[:3] == "rgb":  # color is rgb or rgba
             r = re.findall("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()

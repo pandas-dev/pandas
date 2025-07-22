@@ -61,14 +61,13 @@ pandas/_version.py export-subst
 *.pxi export-ignore
 
 # Ignoring stuff from the top level
-.circleci export-ignore
 .github export-ignore
 asv_bench export-ignore
 ci export-ignore
 doc export-ignore
 gitpod export-ignore
 MANIFEST.in export-ignore
-scripts export-ignore
+scripts/** export-ignore
 typings export-ignore
 web export-ignore
 CITATION.cff export-ignore
@@ -82,3 +81,6 @@ setup.py export-ignore
 # csv_dir_path fixture checks the existence of the directory
 # exclude the whole directory to avoid running related tests in sdist
 pandas/tests/io/parser/data export-ignore
+
+# Include cibw script in sdist since it's needed for building wheels
+scripts/cibw_before_build.sh -export-ignore

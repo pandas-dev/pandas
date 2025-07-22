@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -60,6 +59,7 @@ from pandas.core.array_algos import (
     masked_reductions,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
@@ -73,6 +73,7 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from collections.abc import (
         Iterator,
         Sequence,
@@ -286,7 +287,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
-        raise TypeError(f"Invalid value '{value!s}' for dtype {self.dtype}")
+        raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
 
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
@@ -360,6 +361,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data.ravel(*args, **kwargs)
         mask = self._mask.ravel(*args, **kwargs)
         return type(self)(data, mask)
+
+    def shift(self, periods: int = 1, fill_value=None) -> Self:
+        # NB: shift is always along axis=0
+        axis = 0
+        if fill_value is None:
+            new_data = shift(self._data, periods, axis, 0)
+            new_mask = shift(self._mask, periods, axis, True)
+        else:
+            new_data = shift(self._data, periods, axis, fill_value)
+            new_mask = shift(self._mask, periods, axis, False)
+        return type(self)(new_data, new_mask)
 
     @property
     def T(self) -> Self:
@@ -581,7 +593,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        return self.to_numpy(dtype=dtype)
+        if copy is False:
+            if not self._hasna:
+                # special case, here we can simply return the underlying data
+                return np.array(self._data, dtype=dtype, copy=copy)
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        if copy is None:
+            copy = False  # The NumPy copy=False meaning is different here.
+        return self.to_numpy(dtype=dtype, copy=copy)
 
     _HANDLED_TYPES: tuple[type, ...]
 
@@ -1089,12 +1111,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return Series(arr, index=index, name="count", copy=False)
 
     def _mode(self, dropna: bool = True) -> Self:
-        if dropna:
-            result = mode(self._data, dropna=dropna, mask=self._mask)
-            res_mask = np.zeros(result.shape, dtype=np.bool_)
-        else:
-            result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
-        result = type(self)(result, res_mask)  # type: ignore[arg-type]
+        result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+        result = type(self)(result, res_mask)
         return result[result.argsort()]
 
     @doc(ExtensionArray.equals)
@@ -1198,7 +1216,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.ones(mask_size, dtype=bool)
 
         float_dtyp = "float32" if self.dtype == "Float32" else "float64"
-        if name in ["mean", "median", "var", "std", "skew", "kurt"]:
+        if name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             np_dtype = float_dtyp
         elif name in ["min", "max"] or self.dtype.itemsize == 8:
             np_dtype = self.dtype.numpy_dtype.name
@@ -1372,25 +1390,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, False, True]).any()
-        True
+        np.True_
         >>> pd.array([True, False, pd.NA]).any()
-        True
+        np.True_
         >>> pd.array([False, False, pd.NA]).any()
-        False
+        np.False_
         >>> pd.array([], dtype="boolean").any()
-        False
+        np.False_
         >>> pd.array([pd.NA], dtype="boolean").any()
-        False
+        np.False_
         >>> pd.array([pd.NA], dtype="Float64").any()
-        False
+        np.False_
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
 
         >>> pd.array([True, False, pd.NA]).any(skipna=False)
-        True
+        np.True_
         >>> pd.array([1, 0, pd.NA]).any(skipna=False)
-        True
+        np.True_
         >>> pd.array([False, False, pd.NA]).any(skipna=False)
         <NA>
         >>> pd.array([0, 0, pd.NA]).any(skipna=False)
@@ -1460,17 +1478,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, True, pd.NA]).all()
-        True
+        np.True_
         >>> pd.array([1, 1, pd.NA]).all()
-        True
+        np.True_
         >>> pd.array([True, False, pd.NA]).all()
-        False
+        np.False_
         >>> pd.array([], dtype="boolean").all()
-        True
+        np.True_
         >>> pd.array([pd.NA], dtype="boolean").all()
-        True
+        np.True_
         >>> pd.array([pd.NA], dtype="Float64").all()
-        True
+        np.True_
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
@@ -1480,9 +1498,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([1, 1, pd.NA]).all(skipna=False)
         <NA>
         >>> pd.array([True, False, pd.NA]).all(skipna=False)
-        False
+        np.False_
         >>> pd.array([1, 0, pd.NA]).all(skipna=False)
-        False
+        np.False_
         """
         nv.validate_all((), kwargs)
 
@@ -1491,10 +1509,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = values.all(axis=axis)
 
         if skipna:
-            return result
+            return result  # type: ignore[return-value]
         else:
             if not result or len(self) == 0 or not self._mask.any():
-                return result
+                return result  # type: ignore[return-value]
             else:
                 return self.dtype.na_value
 

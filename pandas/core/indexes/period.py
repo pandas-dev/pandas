@@ -21,6 +21,7 @@ from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_integer
@@ -82,6 +83,7 @@ def _new_PeriodIndex(cls, **d):
     wrap=True,
 )
 @inherit_names(["is_leap_year"], PeriodArray)
+@set_module("pandas")
 class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
@@ -262,18 +264,30 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Parameters
         ----------
         year : int, array, or Series, default None
+            Year for the PeriodIndex.
         quarter : int, array, or Series, default None
+            Quarter for the PeriodIndex.
         month : int, array, or Series, default None
+            Month for the PeriodIndex.
         day : int, array, or Series, default None
+            Day for the PeriodIndex.
         hour : int, array, or Series, default None
+            Hour for the PeriodIndex.
         minute : int, array, or Series, default None
+            Minute for the PeriodIndex.
         second : int, array, or Series, default None
+            Second for the PeriodIndex.
         freq : str or period object, optional
             One of pandas period strings or corresponding objects.
 
         Returns
         -------
         PeriodIndex
+
+        See Also
+        --------
+        PeriodIndex.from_ordinals : Construct a PeriodIndex from ordinals.
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
 
         Examples
         --------
@@ -311,6 +325,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Returns
         -------
         PeriodIndex
+
+        See Also
+        --------
+        PeriodIndex.from_fields : Construct a PeriodIndex from fields
+            (year, month, day, etc.).
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
 
         Examples
         --------
@@ -546,6 +566,14 @@ def period_range(
     Returns
     -------
     PeriodIndex
+        A PeriodIndex of fixed frequency periods.
+
+    See Also
+    --------
+    date_range : Returns a fixed frequency DatetimeIndex.
+    Period : Represents a period of time.
+    PeriodIndex : Immutable ndarray holding ordinal values indicating regular periods
+        in time.
 
     Notes
     -----

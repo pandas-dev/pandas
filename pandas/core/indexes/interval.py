@@ -32,6 +32,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    set_module,
 )
 from pandas.util._exceptions import rewrite_exception
 
@@ -51,6 +52,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -201,6 +203,7 @@ def _new_IntervalIndex(cls, d):
     IntervalArray,
 )
 @inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
+@set_module("pandas")
 class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
 
@@ -555,8 +558,7 @@ class IntervalIndex(ExtensionIndex):
             left = self._maybe_convert_i8(key.left)
             right = self._maybe_convert_i8(key.right)
             constructor = Interval if scalar else IntervalIndex.from_arrays
-            # error: "object" not callable
-            return constructor(left, right, closed=self.closed)  # type: ignore[operator]
+            return constructor(left, right, closed=self.closed)
 
         if scalar:
             # Timestamp/Timedelta
@@ -712,7 +714,7 @@ class IntervalIndex(ExtensionIndex):
             # left/right get_indexer, compare elementwise, equality -> match
             indexer = self._get_indexer_unique_sides(target)
 
-        elif not is_object_dtype(target.dtype):
+        elif not (is_object_dtype(target.dtype) or is_string_dtype(target.dtype)):
             # homogeneous scalar index: use IntervalTree
             # we should always have self._should_partial_index(target) here
             target = self._maybe_convert_i8(target)
@@ -990,7 +992,7 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _intersection(self, other, sort):
+    def _intersection(self, other, sort: bool = False):
         """
         intersection specialized to the case with matching dtypes.
         """
@@ -1005,7 +1007,7 @@ class IntervalIndex(ExtensionIndex):
             # duplicates
             taken = self._intersection_non_unique(other)
 
-        if sort is None:
+        if sort:
             taken = taken.sort_values()
 
         return taken
@@ -1279,14 +1281,7 @@ def interval_range(
             breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
-
-            # error: Argument 1 to "maybe_downcast_numeric" has incompatible type
-            # "Union[ndarray[Any, Any], TimedeltaIndex, DatetimeIndex]";
-            # expected "ndarray[Any, Any]"  [
-            breaks = maybe_downcast_numeric(
-                breaks,  # type: ignore[arg-type]
-                dtype,
-            )
+            breaks = maybe_downcast_numeric(breaks, dtype)
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):

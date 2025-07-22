@@ -418,7 +418,7 @@ You can also include the grouping columns if you want to operate on them.
 
 .. note::
 
-   The ``groupby`` operation in Pandas drops the ``name`` field of the columns Index object
+   The ``groupby`` operation in pandas drops the ``name`` field of the columns Index object
    after the operation. This change ensures consistency in syntax between different
    column selection methods within groupby operations.
 
@@ -618,7 +618,7 @@ this will make an extra copy.
 
 .. _groupby.aggregate.udf:
 
-Aggregation with User-Defined Functions
+Aggregation with user-defined functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Users can also provide their own User-Defined Functions (UDFs) for custom aggregations.
@@ -668,8 +668,9 @@ column, which produces an aggregated result with a hierarchical column index:
    grouped[["C", "D"]].agg(["sum", "mean", "std"])
 
 
-The resulting aggregations are named after the functions themselves. If you
-need to rename, then you can add in a chained operation for a ``Series`` like this:
+The resulting aggregations are named after the functions themselves.
+
+For a ``Series``, if you need to rename, you can add in a chained operation like this:
 
 .. ipython:: python
 
@@ -679,7 +680,18 @@ need to rename, then you can add in a chained operation for a ``Series`` like th
        .rename(columns={"sum": "foo", "mean": "bar", "std": "baz"})
    )
 
+Or, you can simply pass a list of tuples each with the name of the new column and the aggregate function:
+
+.. ipython:: python
+
+   (
+      grouped["C"]
+      .agg([("foo", "sum"), ("bar", "mean"), ("baz", "std")])
+   )
+
 For a grouped ``DataFrame``, you can rename in a similar manner:
+
+By chaining ``rename`` operation,
 
 .. ipython:: python
 
@@ -687,6 +699,16 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
        grouped[["C", "D"]].agg(["sum", "mean", "std"]).rename(
            columns={"sum": "foo", "mean": "bar", "std": "baz"}
        )
+   )
+
+Or, passing a list of tuples,
+
+.. ipython:: python
+
+   (
+      grouped[["C", "D"]].agg(
+         [("foo", "sum"), ("bar", "mean"), ("baz", "std")]
+      )
    )
 
 .. note::
@@ -1052,7 +1074,7 @@ missing values with the ``ffill()`` method.
    ).set_index("date")
    df_re
 
-   df_re.groupby("group").resample("1D", include_groups=False).ffill()
+   df_re.groupby("group").resample("1D").ffill()
 
 .. _groupby.filter:
 
@@ -1230,16 +1252,16 @@ the argument ``group_keys`` which defaults to ``True``. Compare
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=True).apply(lambda x: x, include_groups=False)
+    df.groupby("A", group_keys=True).apply(lambda x: x)
 
 with
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=False).apply(lambda x: x, include_groups=False)
+    df.groupby("A", group_keys=False).apply(lambda x: x)
 
 
-Numba Accelerated Routines
+Numba accelerated routines
 --------------------------
 
 .. versionadded:: 1.1
@@ -1674,7 +1696,7 @@ introduction <categorical>` and the
 
     dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
 
-Groupby by indexer to 'resample' data
+GroupBy by indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
@@ -1720,7 +1742,7 @@ column index name will be used as the name of the inserted column:
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
 
-   result = df.groupby("a").apply(compute_metrics, include_groups=False)
+   result = df.groupby("a").apply(compute_metrics)
 
    result
 

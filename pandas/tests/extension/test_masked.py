@@ -168,6 +168,13 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
+    @pytest.fixture(autouse=True)
+    def skip_if_doesnt_support_2d(self, dtype, request):
+        # Override the fixture so that we run these tests.
+        assert not dtype._supports_2d
+        # If dtype._supports_2d is ever changed to True, then this fixture
+        #  override becomes unnecessary.
+
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         result = data_missing.map(lambda x: x, na_action=na_action)
@@ -301,7 +308,7 @@ class TestMaskedArrays(base.ExtensionTests):
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         if is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
-        elif op_name in ["mean", "median", "var", "std", "skew"]:
+        elif op_name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             cmp_dtype = "Float64"
         elif op_name in ["max", "min"]:
             cmp_dtype = arr.dtype.name
@@ -323,9 +330,7 @@ class TestMaskedArrays(base.ExtensionTests):
                 else "UInt64"
             )
         elif arr.dtype.kind == "b":
-            if op_name in ["mean", "median", "var", "std", "skew"]:
-                cmp_dtype = "Float64"
-            elif op_name in ["min", "max"]:
+            if op_name in ["min", "max"]:
                 cmp_dtype = "boolean"
             elif op_name in ["sum", "prod"]:
                 cmp_dtype = (
@@ -404,7 +409,3 @@ class TestMaskedArrays(base.ExtensionTests):
 
         else:
             raise NotImplementedError(f"{op_name} not supported")
-
-
-class Test2DCompat(base.Dim2CompatTests):
-    pass

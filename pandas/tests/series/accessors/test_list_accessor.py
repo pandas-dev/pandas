@@ -10,8 +10,6 @@ import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow")
 
-from pandas.compat import pa_version_under11p0
-
 
 @pytest.mark.parametrize(
     "list_dtype",
@@ -25,9 +23,10 @@ def test_list_getitem(list_dtype):
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(list_dtype),
+        name="a",
     )
     actual = ser.list[1]
-    expected = Series([2, None, None], dtype="int64[pyarrow]")
+    expected = Series([2, None, None], dtype="int64[pyarrow]", name="a")
     tm.assert_series_equal(actual, expected)
 
 
@@ -37,9 +36,15 @@ def test_list_getitem_index():
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(pa.list_(pa.int64())),
         index=[1, 3, 7],
+        name="a",
     )
     actual = ser.list[1]
-    expected = Series([2, None, None], dtype="int64[pyarrow]", index=[1, 3, 7])
+    expected = Series(
+        [2, None, None],
+        dtype="int64[pyarrow]",
+        index=[1, 3, 7],
+        name="a",
+    )
     tm.assert_series_equal(actual, expected)
 
 
@@ -48,29 +53,26 @@ def test_list_getitem_slice():
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(pa.list_(pa.int64())),
         index=[1, 3, 7],
+        name="a",
     )
-    if pa_version_under11p0:
-        with pytest.raises(
-            NotImplementedError, match="List slice not supported by pyarrow "
-        ):
-            ser.list[1:None:None]
-    else:
-        actual = ser.list[1:None:None]
-        expected = Series(
-            [[2, 3], [None, 5], None],
-            dtype=ArrowDtype(pa.list_(pa.int64())),
-            index=[1, 3, 7],
-        )
-        tm.assert_series_equal(actual, expected)
+    actual = ser.list[1:None:None]
+    expected = Series(
+        [[2, 3], [None, 5], None],
+        dtype=ArrowDtype(pa.list_(pa.int64())),
+        index=[1, 3, 7],
+        name="a",
+    )
+    tm.assert_series_equal(actual, expected)
 
 
 def test_list_len():
     ser = Series(
         [[1, 2, 3], [4, None], None],
         dtype=ArrowDtype(pa.list_(pa.int64())),
+        name="a",
     )
     actual = ser.list.len()
-    expected = Series([3, 2, None], dtype=ArrowDtype(pa.int32()))
+    expected = Series([3, 2, None], dtype=ArrowDtype(pa.int32()), name="a")
     tm.assert_series_equal(actual, expected)
 
 
@@ -78,12 +80,14 @@ def test_list_flatten():
     ser = Series(
         [[1, 2, 3], None, [4, None], [], [7, 8]],
         dtype=ArrowDtype(pa.list_(pa.int64())),
+        name="a",
     )
     actual = ser.list.flatten()
     expected = Series(
         [1, 2, 3, 4, None, 7, 8],
         dtype=ArrowDtype(pa.int64()),
         index=[0, 0, 0, 2, 2, 4, 4],
+        name="a",
     )
     tm.assert_series_equal(actual, expected)
 
@@ -93,14 +97,8 @@ def test_list_getitem_slice_invalid():
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(pa.list_(pa.int64())),
     )
-    if pa_version_under11p0:
-        with pytest.raises(
-            NotImplementedError, match="List slice not supported by pyarrow "
-        ):
-            ser.list[1:None:0]
-    else:
-        with pytest.raises(pa.lib.ArrowInvalid, match=re.escape("`step` must be >= 1")):
-            ser.list[1:None:0]
+    with pytest.raises(pa.lib.ArrowInvalid, match=re.escape("`step` must be >= 1")):
+        ser.list[1:None:0]
 
 
 def test_list_accessor_non_list_dtype():

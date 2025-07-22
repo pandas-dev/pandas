@@ -5,7 +5,6 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Callable,
     cast,
 )
 
@@ -32,6 +31,7 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
     )
@@ -476,7 +476,7 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
                 zipped = zip(arr_values, mask)
             else:
                 zipped = zip(arr_values.T, mask.T)
-            return np.array([_nanargminmax(v, m, func) for v, m in zipped])
+            return np.array([_nanargminmax(v, m, func) for v, m in zipped])  # type: ignore[arg-type]
         return func(arr_values, axis=axis)
 
     return _nanargminmax(arr_values, mask, func)

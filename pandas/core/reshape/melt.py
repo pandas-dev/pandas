@@ -15,7 +15,6 @@ from pandas.core.dtypes.missing import notna
 import pandas.core.algorithms as algos
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import tile_compat
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
@@ -52,9 +51,9 @@ def melt(
     """
     Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
-    This function is useful to massage a DataFrame into a format where one
+    This function is useful to reshape a DataFrame into a format where one
     or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to
+    columns are considered measured variables (`value_vars`), and are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
 
@@ -183,6 +182,10 @@ def melt(
     value_vars_was_not_none = value_vars is not None
     value_vars = ensure_list_vars(value_vars, "value_vars", frame.columns)
 
+    # GH61475 - prevent AttributeError when duplicate column in id_vars
+    if len(frame.columns.get_indexer_for(id_vars)) > len(id_vars):
+        raise ValueError("id_vars cannot contain duplicate columns.")
+
     if id_vars or value_vars:
         if col_level is not None:
             level = frame.columns.get_level_values(col_level)
@@ -202,9 +205,9 @@ def melt(
         if value_vars_was_not_none:
             frame = frame.iloc[:, algos.unique(idx)]
         else:
-            frame = frame.copy()
+            frame = frame.copy(deep=False)
     else:
-        frame = frame.copy()
+        frame = frame.copy(deep=False)
 
     if col_level is not None:  # allow list or other?
         # frame is a copy
@@ -266,7 +269,8 @@ def melt(
     result = frame._constructor(mdata, columns=mcolumns)
 
     if not ignore_index:
-        result.index = tile_compat(frame.index, num_cols_adjusted)
+        taker = np.tile(np.arange(len(frame)), num_cols_adjusted)
+        result.index = frame.index.take(taker)
 
     return result
 

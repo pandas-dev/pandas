@@ -289,8 +289,7 @@ def test_tick_rdiv(cls):
     td64 = delta.to_timedelta64()
     instance__type = ".".join([cls.__module__, cls.__name__])
     msg = (
-        "unsupported operand type\\(s\\) for \\/: 'int'|'float' and "
-        f"'{instance__type}'"
+        f"unsupported operand type\\(s\\) for \\/: 'int'|'float' and '{instance__type}'"
     )
 
     with pytest.raises(TypeError, match=msg):

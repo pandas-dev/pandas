@@ -14,7 +14,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -223,7 +222,9 @@ class TestCommon:
             pass
 
         result = idx.unique()
-        tm.assert_index_equal(result, idx_unique)
+        tm.assert_index_equal(
+            result, idx_unique, exact=not isinstance(index, RangeIndex)
+        )
 
         # nans:
         if not index._can_hold_na:
@@ -379,13 +380,11 @@ class TestCommon:
         else:
             index.name = "idx"
 
-        warn = None
-        if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
-            # imaginary components discarded
-            if np_version_gte1p25:
-                warn = np.exceptions.ComplexWarning
-            else:
-                warn = np.ComplexWarning
+        warn = (
+            np.exceptions.ComplexWarning
+            if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]
+            else None
+        )
 
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:

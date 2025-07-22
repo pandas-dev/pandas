@@ -8,9 +8,8 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
-    Union,
+    TypeAlias,
     overload,
 )
 
@@ -99,6 +98,7 @@ from pandas.core.ops import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
@@ -109,8 +109,8 @@ if TYPE_CHECKING:
     )
 
 
-IntervalSide = Union[TimeArrayLike, np.ndarray]
-IntervalOrNA = Union[Interval, float]
+IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
+IntervalOrNA: TypeAlias = Interval | float
 
 _interval_shared_docs: dict[str, str] = {}
 
@@ -1055,7 +1055,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             from pandas import Index
 
             fill_value = Index(self._left, copy=False)._na_value
-            empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
+            empty = IntervalArray.from_breaks(
+                [fill_value] * (empty_len + 1), closed=self.closed
+            )
         else:
             empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
 
@@ -1233,6 +1235,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return the left endpoints of each Interval in the IntervalArray as an Index.
 
+        This property provides access to the left endpoints of the intervals
+        contained within the IntervalArray. This can be useful for analyses where
+        the starting point of each interval is of interest, such as in histogram
+        creation, data aggregation, or any scenario requiring the identification
+        of the beginning of defined ranges. This property returns a ``pandas.Index``
+        object containing the midpoint for each interval.
+
+        See Also
+        --------
+        arrays.IntervalArray.right : Return the right endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.mid : Return the midpoint of each Interval in the
+            IntervalArray as an Index.
+        arrays.IntervalArray.contains : Check elementwise if the Intervals contain
+            the value.
+
         Examples
         --------
 
@@ -1252,6 +1270,21 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def right(self) -> Index:
         """
         Return the right endpoints of each Interval in the IntervalArray as an Index.
+
+        This property extracts the right endpoints from each interval contained within
+        the IntervalArray. This can be helpful in use cases where you need to work
+        with or compare only the upper bounds of intervals, such as when performing
+        range-based filtering, determining interval overlaps, or visualizing the end
+        boundaries of data segments.
+
+        See Also
+        --------
+        arrays.IntervalArray.left : Return the left endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.mid : Return the midpoint of each Interval in the
+            IntervalArray as an Index.
+        arrays.IntervalArray.contains : Check elementwise if the Intervals contain
+            the value.
 
         Examples
         --------
@@ -1273,6 +1306,20 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an Index with entries denoting the length of each Interval.
 
+        The length of an interval is calculated as the difference between
+        its `right` and `left` bounds. This property is particularly useful
+        when working with intervals where the size of the interval is an important
+        attribute, such as in time-series analysis or spatial data analysis.
+
+        See Also
+        --------
+        arrays.IntervalArray.left : Return the left endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.right : Return the right endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.mid : Return the midpoint of each Interval in the
+            IntervalArray as an Index.
+
         Examples
         --------
 
@@ -1290,6 +1337,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def mid(self) -> Index:
         """
         Return the midpoint of each Interval in the IntervalArray as an Index.
+
+        The midpoint of an interval is calculated as the average of its
+        ``left`` and ``right`` bounds. This property returns a ``pandas.Index`` object
+        containing the midpoint for each interval.
+
+        See Also
+        --------
+        Interval.left : Return left bound for the interval.
+        Interval.right : Return right bound for the interval.
+        Interval.length : Return the length of each interval.
 
         Examples
         --------
@@ -1596,6 +1653,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
         """
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         left = self._left
         right = self._right
         mask = self.isna()
@@ -1713,7 +1775,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         [(0, 1], (1, 2]]
         Length: 2, dtype: interval[int64, right]
         >>> idx.to_tuples()
-        array([(0, 1), (1, 2)], dtype=object)
+        array([(np.int64(0), np.int64(1)), (np.int64(1), np.int64(2))],
+              dtype=object)
 
         For :class:`pandas.IntervalIndex`:
 

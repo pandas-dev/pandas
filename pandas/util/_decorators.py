@@ -6,7 +6,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
 )
 import warnings
@@ -19,7 +18,10 @@ from pandas._typing import (
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import (
+        Callable,
+        Mapping,
+    )
 
 
 def deprecate(
@@ -81,7 +83,7 @@ def deprecate(
         if alternative.__doc__.count("\n") < 3:
             raise AssertionError(doc_error_msg)
         empty1, summary, empty2, doc_string = alternative.__doc__.split("\n", 3)
-        if empty1 or empty2 and not summary:
+        if empty1 or (empty2 and not summary):
             raise AssertionError(doc_error_msg)
         wrapper.__doc__ = dedent(
             f"""
@@ -495,13 +497,13 @@ def indent(text: str | None, indents: int = 1) -> str:
 
 __all__ = [
     "Appender",
+    "Substitution",
     "cache_readonly",
     "deprecate",
     "deprecate_kwarg",
     "deprecate_nonkeyword_arguments",
     "doc",
     "future_version_msg",
-    "Substitution",
 ]
 
 

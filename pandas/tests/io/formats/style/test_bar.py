@@ -347,6 +347,7 @@ def test_styler_bar_with_NA_values():
 
 
 def test_style_bar_with_pyarrow_NA_values():
+    pytest.importorskip("pyarrow")
     data = """name,age,test1,test2,teacher
         Adam,15,95.0,80,Ashby
         Bob,16,81.0,82,Ashby

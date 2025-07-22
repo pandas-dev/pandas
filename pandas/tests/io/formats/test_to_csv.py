@@ -221,7 +221,7 @@ $1$,$2$
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
-        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="d")})
+        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="D")})
 
         expected_rows = [
             ",A",
@@ -482,10 +482,7 @@ $1$,$2$
             # case 3: CRLF as line terminator
             # 'lineterminator' should not change inner element
             expected_crlf = (
-                b"int,str_crlf\r\n"
-                b"1,abc\r\n"
-                b'2,"d\r\nef"\r\n'
-                b'3,"g\r\nh\r\n\r\ni"\r\n'
+                b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
             )
             df.to_csv(path, lineterminator="\r\n", index=False)
             with open(path, "rb") as f:
@@ -744,3 +741,140 @@ def test_to_csv_iterative_compression_buffer(compression):
             pd.read_csv(buffer, compression=compression, index_col=0), df
         )
         assert not buffer.closed
+
+
+def test_new_style_float_format_basic():
+    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A\n0,1234.57\n1,9876.54\n"
+    assert result == expected
+
+
+def test_new_style_float_format_thousands():
+    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    result = df.to_csv(float_format="{:,.2f}", lineterminator="\n")
+    expected = ',A\n0,"1,234.57"\n1,"9,876.54"\n'
+    assert result == expected
+
+
+def test_new_style_scientific_format():
+    df = DataFrame({"A": [0.000123, 0.000456]})
+    result = df.to_csv(float_format="{:.2e}", lineterminator="\n")
+    expected = ",A\n0,1.23e-04\n1,4.56e-04\n"
+    assert result == expected
+
+
+def test_new_style_with_nan():
+    df = DataFrame({"A": [1.23, np.nan, 4.56]})
+    result = df.to_csv(float_format="{:.2f}", na_rep="NA", lineterminator="\n")
+    expected = ",A\n0,1.23\n1,NA\n2,4.56\n"
+    assert result == expected
+
+
+def test_new_style_with_mixed_types():
+    df = DataFrame({"A": [1.23, 4.56], "B": ["x", "y"]})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A,B\n0,1.23,x\n1,4.56,y\n"
+    assert result == expected
+
+
+def test_new_style_with_mixed_types_in_column():
+    df = DataFrame({"A": [1.23, "text", 4.56]})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A\n0,1.23\n1,text\n2,4.56\n"
+    assert result == expected
+
+
+def test_invalid_new_style_format_missing_brace():
+    df = DataFrame({"A": [1.23]})
+    with pytest.raises(ValueError, match="Invalid new-style format string '{:.2f"):
+        df.to_csv(float_format="{:.2f")
+
+
+def test_invalid_new_style_format_specifier():
+    df = DataFrame({"A": [1.23]})
+    with pytest.raises(ValueError, match="Invalid new-style format string '{:.2z}'"):
+        df.to_csv(float_format="{:.2z}")
+
+
+def test_old_style_format_compatibility():
+    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    result = df.to_csv(float_format="%.2f", lineterminator="\n")
+    expected = ",A\n0,1234.57\n1,9876.54\n"
+    assert result == expected
+
+
+def test_callable_float_format_compatibility():
+    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    result = df.to_csv(float_format=lambda x: f"{x:,.2f}", lineterminator="\n")
+    expected = ',A\n0,"1,234.57"\n1,"9,876.54"\n'
+    assert result == expected
+
+
+def test_no_float_format():
+    df = DataFrame({"A": [1.23, 4.56]})
+    result = df.to_csv(float_format=None, lineterminator="\n")
+    expected = ",A\n0,1.23\n1,4.56\n"
+    assert result == expected
+
+
+def test_large_numbers():
+    df = DataFrame({"A": [1e308, 2e308]})
+    result = df.to_csv(float_format="{:.2e}", lineterminator="\n")
+    expected = ",A\n0,1.00e+308\n1,inf\n"
+    assert result == expected
+
+
+def test_zero_and_negative():
+    df = DataFrame({"A": [0.0, -1.23456]})
+    result = df.to_csv(float_format="{:+.2f}", lineterminator="\n")
+    expected = ",A\n0,+0.00\n1,-1.23\n"
+    assert result == expected
+
+
+def test_unicode_format():
+    df = DataFrame({"A": [1.23, 4.56]})
+    result = df.to_csv(float_format="{:.2f}€", encoding="utf-8", lineterminator="\n")
+    expected = ",A\n0,1.23€\n1,4.56€\n"
+    assert result == expected
+
+
+def test_empty_dataframe():
+    df = DataFrame({"A": []})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A\n"
+    assert result == expected
+
+
+def test_multi_column_float():
+    df = DataFrame({"A": [1.23, 4.56], "B": [7.89, 0.12]})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A,B\n0,1.23,7.89\n1,4.56,0.12\n"
+    assert result == expected
+
+
+def test_invalid_float_format_type():
+    df = DataFrame({"A": [1.23]})
+    with pytest.raises(ValueError, match="float_format must be a string or callable"):
+        df.to_csv(float_format=123)
+
+
+def test_new_style_with_inf():
+    df = DataFrame({"A": [1.23, np.inf, -np.inf]})
+    result = df.to_csv(float_format="{:.2f}", na_rep="NA", lineterminator="\n")
+    expected = ",A\n0,1.23\n1,inf\n2,-inf\n"
+    assert result == expected
+
+
+def test_new_style_with_precision_edge():
+    df = DataFrame({"A": [1.23456789]})
+    result = df.to_csv(float_format="{:.10f}", lineterminator="\n")
+    expected = ",A\n0,1.2345678900\n"
+    assert result == expected
+
+
+def test_new_style_with_template():
+    df = DataFrame({"A": [1234.56789]})
+    result = df.to_csv(float_format="Value: {:,.2f}", lineterminator="\n")
+    expected = ',A\n0,"Value: 1,234.57"\n'
+    assert result == expected

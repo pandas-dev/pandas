@@ -263,7 +263,7 @@ Enhancements
 
 - Raise errors in certain aggregation cases where an argument such as ``numeric_only`` is not handled (:issue:`8592`).
 
-- Added support for 3-character ISO and non-standard country codes in :func:`io.wb.download()` (:issue:`8482`)
+- Added support for 3-character ISO and non-standard country codes in :func:`io.wb.download` (:issue:`8482`)
 
 - World Bank data requests now will warn/raise based
   on an ``errors`` argument, as well as a list of hard-coded country codes and
