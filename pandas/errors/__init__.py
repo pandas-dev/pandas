@@ -9,6 +9,7 @@ import ctypes
 from pandas._config.config import OptionError
 
 from pandas._libs.tslibs import (
+    IncompatibleFrequency,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
@@ -379,7 +380,7 @@ class AbstractMethodError(NotImplementedError):
         types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
             raise ValueError(
-                f"methodtype must be one of {methodtype}, got {types} instead."
+                f"methodtype must be one of {types}, got {methodtype} instead."
             )
         self.methodtype = methodtype
         self.class_instance = class_instance
@@ -917,6 +918,7 @@ __all__ = [
     "DuplicateLabelError",
     "EmptyDataError",
     "IncompatibilityWarning",
+    "IncompatibleFrequency",
     "IndexingError",
     "IntCastingNaNError",
     "InvalidColumnName",
