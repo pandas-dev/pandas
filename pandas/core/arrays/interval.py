@@ -1990,12 +1990,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
-        # No overload variant of "__getitem__" of "ExtensionArray" matches argument
-        # type "Tuple[slice, int]"
-        nc = unique(
-            self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
-        )
-        nc = nc[:, None]
+        # Using .view("complex128") with negatives causes issues. # GH#61917
+        combined = self._combined
+        if not combined.flags.c_contiguous:
+            combined = np.ascontiguousarray(combined)
+        structured = combined.view(
+            [("left", combined.dtype), ("right", combined.dtype)]
+        )[:, 0]
+        unique_structured = unique(structured)
+        nc = unique_structured.view(combined.dtype)
         return self._from_combined(nc)
 
 
