@@ -416,8 +416,8 @@ DateTimeErrorChoices: TypeAlias = Literal["raise", "coerce"]
 SortKind: TypeAlias = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition: TypeAlias = Literal["first", "last"]
 
-# Arguments for nsorted, nsmallest and nlargest.
-NsmallestNlargestKeep = Literal["first", "last", "all"]
+# Arguments for nsorted, nsmallest and nlargest
+NsmallestNlargestKeep: TypeAlias = Literal["first", "last", "all"]
 
 # quantile interpolation
 QuantileInterpolation: TypeAlias = Literal[

@@ -7748,9 +7748,6 @@ class DataFrame(NDFrame, OpsMixin):
         well, but not used for ordering.
 
         This method is equivalent to
-        ``df.nsorted(n, columns, ascending=False)``.
-
-        This method is equivalent to
         ``df.sort_values(columns, ascending=False).head(n)``, but more
         performant.
 
@@ -7890,9 +7887,6 @@ class DataFrame(NDFrame, OpsMixin):
         Return the first `n` rows with the smallest values in `columns`, in
         ascending order. The columns that are not specified are returned as
         well, but not used for ordering.
-
-        This method is equivalent to
-        ``df.nsorted(n, columns, ascending=True)``.
 
         This method is equivalent to
         ``df.sort_values(columns, ascending=True).head(n)``, but more
