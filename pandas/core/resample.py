@@ -2109,7 +2109,6 @@ def get_resampler(obj: Series | DataFrame, **kwds) -> Resampler:
             # TODO: could disallow/deprecate Day _object_ while still
             #  allowing "D" string?
             freq = to_offset(freq)._maybe_to_hours()
-            freq = freq._maybe_to_hours()
             kwds["freq"] = freq
 
     tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]
