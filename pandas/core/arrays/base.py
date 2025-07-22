@@ -2366,6 +2366,7 @@ class ExtensionArray:
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
+        initial: Any = 0
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
@@ -2389,6 +2390,7 @@ class ExtensionArray:
 
             arr = self
             if op.how == "sum":
+                initial = ""
                 # https://github.com/pandas-dev/pandas/issues/60229
                 # All NA should result in the empty string.
                 if min_count == 0:
@@ -2405,6 +2407,7 @@ class ExtensionArray:
             ngroups=ngroups,
             comp_ids=ids,
             mask=None,
+            initial=initial,
             **kwargs,
         )
 
