@@ -526,11 +526,12 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-        Returns
-        -------
-        str, Series or Index
-            If `others` is None, `str` is returned, otherwise a `Series/Index`
-            (same type as caller) of objects is returned.
+Returns
+-------
+str, Series or Index
+    - If the caller is a Series and `others` is None, a single concatenated `str` is returned.
+    - If the caller is an Index and `others` is None, an Index of length 1 containing the concatenated string is returned.
+    - If `others` is specified, the result is a Series or Index (same type as caller) of concatenated strings.
 
         See Also
         --------
@@ -608,14 +609,25 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         >>>
         >>> s.str.cat(t, join="right", na_rep="-")
-        3    dd
-        0    aa
-        4    -e
-        2    -c
-        dtype: object
+3    dd
+0    aa
+4    -e
+2    -c
+dtype: object
 
-        For more examples, see :ref:`here <text.concatenate>`.
-        """
+When calling `.str.cat()` on an Index and not passing `others`, the return value is an Index:
+
+>>> idx = pd.Index(["x", "y", np.nan])
+>>> idx.str.cat(sep="-")
+Index(['x-y'], dtype='object')
+
+Note
+----
+Calling `.str.cat()` on a Series returns a string if `others` is None,
+but when called on an Index, it returns a new Index containing the concatenated string.
+
+For more examples, see :ref:`here <text.concatenate>`.
+
         # TODO: dispatch
         from pandas import (
             Index,
