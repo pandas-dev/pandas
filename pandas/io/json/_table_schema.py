@@ -195,7 +195,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     """
     typ = field["type"]
     if typ == "string":
-        return field.get("extDtype", "object")
+        return field.get("extDtype", None)
     elif typ == "integer":
         return field.get("extDtype", "int64")
     elif typ == "number":

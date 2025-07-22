@@ -547,7 +547,7 @@ class TestTableOrient:
                 },
                 CategoricalDtype(categories=["a", "b", "c"], ordered=True),
             ),
-            ({"type": "string"}, "object"),
+            ({"type": "string"}, None),
         ],
     )
     def test_convert_json_field_to_pandas_type(self, inp, exp):
