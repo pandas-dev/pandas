@@ -12,6 +12,7 @@ import collections
 import functools
 from typing import (
     TYPE_CHECKING,
+    Any,
     Generic,
     final,
 )
@@ -319,6 +320,7 @@ class WrappedCythonOp:
         comp_ids: np.ndarray,
         mask: npt.NDArray[np.bool_] | None = None,
         result_mask: npt.NDArray[np.bool_] | None = None,
+        initial: Any = 0,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -335,6 +337,7 @@ class WrappedCythonOp:
                 comp_ids=comp_ids,
                 mask=mask,
                 result_mask=result_mask,
+                initial=initial,
                 **kwargs,
             )
             if res.shape[0] == 1:
@@ -350,6 +353,7 @@ class WrappedCythonOp:
             comp_ids=comp_ids,
             mask=mask,
             result_mask=result_mask,
+            initial=initial,
             **kwargs,
         )
 
@@ -363,6 +367,7 @@ class WrappedCythonOp:
         comp_ids: np.ndarray,
         mask: npt.NDArray[np.bool_] | None,
         result_mask: npt.NDArray[np.bool_] | None,
+        initial: Any = 0,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -420,6 +425,10 @@ class WrappedCythonOp:
                 "sum",
                 "median",
             ]:
+                if self.how == "sum":
+                    # pass in through kwargs only for sum (other functions don't have
+                    # the keyword)
+                    kwargs["initial"] = initial
                 func(
                     out=result,
                     counts=counts,

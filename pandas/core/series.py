@@ -264,7 +264,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
-        If ``data`` is Series then is ignored.
     name : Hashable, default None
         The name to give to the Series.
     copy : bool, default False

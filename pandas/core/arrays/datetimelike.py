@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeAlias,
     Union,
     cast,
     final,
@@ -161,7 +162,7 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+DTScalarOrNaT: TypeAlias = DatetimeLikeScalar | NaTType
 
 
 def _make_unpacked_invalid_op(op_name: str):
@@ -386,7 +387,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
+        result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
@@ -543,7 +544,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             other = self._scalar_type(other)
             try:
                 self._check_compatible_with(other)
-            except (TypeError, IncompatibleFrequency) as err:
+            except TypeError as err:
                 # e.g. tzawareness mismatch
                 raise InvalidComparison(other) from err
 
@@ -557,7 +558,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             try:
                 other = self._validate_listlike(other, allow_object=True)
                 self._check_compatible_with(other)
-            except (TypeError, IncompatibleFrequency) as err:
+            except TypeError as err:
                 if is_object_dtype(getattr(other, "dtype", None)):
                     # We will have to operate element-wise
                     pass
@@ -1485,7 +1486,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             # GH#19959 datetime - datetime is well-defined as timedelta,
             # but any other type - datetime is not well-defined.
             raise TypeError(
-                f"cannot subtract {type(self).__name__} from {type(other).__name__}"
+                f"cannot subtract {type(self).__name__} from "
+                f"{type(other).__name__}[{other.dtype}]"
             )
         elif isinstance(self.dtype, PeriodDtype) and lib.is_np_dtype(other_dtype, "m"):
             # TODO: Can we simplify/generalize these cases at all?
@@ -1494,8 +1496,14 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             self = cast("TimedeltaArray", self)
             return (-self) + other
 
+        flipped = self - other
+        if flipped.dtype.kind == "M":
+            # GH#59571 give a more helpful exception message
+            raise TypeError(
+                f"cannot subtract {type(self).__name__} from {type(other).__name__}"
+            )
         # We get here with e.g. datetime objects
-        return -(self - other)
+        return -flipped
 
     def __iadd__(self, other) -> Self:
         result = self + other
@@ -1770,7 +1778,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         >>> rng.strftime("%%B %%d, %%Y, %%r")
         Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
                'March 10, 2018, 09:00:02 AM'],
-              dtype='object')
+              dtype='str')
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
         if using_string_dtype():

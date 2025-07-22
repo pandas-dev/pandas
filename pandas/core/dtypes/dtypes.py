@@ -46,7 +46,10 @@ from pandas._libs.tslibs.dtypes import (
     abbrev_to_npy_unit,
 )
 from pandas._libs.tslibs.offsets import BDay
-from pandas.compat import pa_version_under10p1
+from pandas.compat import (
+    HAS_PYARROW,
+    pa_version_under12p1,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -66,7 +69,7 @@ from pandas.core.dtypes.inference import (
     is_list_like,
 )
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
 
 if TYPE_CHECKING:
@@ -644,7 +647,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         --------
         >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
         >>> cat_type.categories
-        Index(['a', 'b'], dtype='object')
+        Index(['a', 'b'], dtype='str')
         """
         return self._categories
 
@@ -2193,8 +2196,8 @@ class ArrowDtype(StorageExtensionDtype):
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
-        if pa_version_under10p1:
-            raise ImportError("pyarrow>=10.0.1 is required for ArrowDtype")
+        if pa_version_under12p1:
+            raise ImportError("pyarrow>=12.0.1 is required for ArrowDtype")
         if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
                 f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
@@ -2346,7 +2349,7 @@ class ArrowDtype(StorageExtensionDtype):
         if string in ("string[pyarrow]", "str[pyarrow]"):
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
-        if pa_version_under10p1:
+        if pa_version_under12p1:
             raise ImportError("pyarrow>=10.0.1 is required for ArrowDtype")
 
         base_type = string[:-9]  # get rid of "[pyarrow]"

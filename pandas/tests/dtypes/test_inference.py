@@ -1396,6 +1396,15 @@ class TestTypeInference:
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
+    @pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+    def test_infer_dtype_numeric_with_na(self, na_value):
+        # GH61621
+        ser = Series([1, 2, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "integer"
+
+        ser = Series([1.0, 2.0, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "floating"
+
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
         assert lib.infer_dtype(arr, skipna=True) == "floating"

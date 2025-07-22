@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time
+import uuid
 
 import numpy as np
 import pytest
@@ -1411,11 +1412,10 @@ class TestPandasContainer:
     @pytest.mark.single_cpu
     @pytest.mark.network
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
+    def test_read_s3_jsonl(self, s3_bucket_public_with_data, s3so):
         # GH17200
-
         result = read_json(
-            f"s3n://{s3_public_bucket_with_data.name}/items.jsonl",
+            f"s3n://{s3_bucket_public_with_data.name}/items.jsonl",
             lines=True,
             storage_options=s3so,
         )
@@ -1566,11 +1566,8 @@ class TestPandasContainer:
         result = read_json(StringIO(dfjson), orient="table")
         tm.assert_frame_equal(result, expected)
 
-    # TODO: We are casting to string which coerces None to NaN before casting back
-    # to object, ending up with incorrect na values
-    @pytest.mark.xfail(using_string_dtype(), reason="incorrect na conversion")
     @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
-    def test_to_json_from_json_columns_dtypes(self, orient):
+    def test_to_json_from_json_columns_dtypes(self, orient, using_infer_string):
         # GH21892 GH33205
         expected = DataFrame.from_dict(
             {
@@ -1590,6 +1587,11 @@ class TestPandasContainer:
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             dfjson = expected.to_json(orient=orient)
+
+        if using_infer_string:
+            # When this is read back in it is inferred to "str" dtype which
+            #  uses NaN instead of None.
+            expected.loc[0, "Object"] = np.nan
 
         result = read_json(
             StringIO(dfjson),
@@ -2011,14 +2013,15 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     @pytest.mark.network
-    def test_to_s3(self, s3_public_bucket, s3so):
+    def test_to_s3(self, s3_bucket_public, s3so):
         # GH 28375
-        mock_bucket_name, target_file = s3_public_bucket.name, "test.json"
+        mock_bucket_name = s3_bucket_public.name
+        target_file = f"{uuid.uuid4()}.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
         df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5
         while True:
-            if target_file in (obj.key for obj in s3_public_bucket.objects.all()):
+            if target_file in (obj.key for obj in s3_bucket_public.objects.all()):
                 break
             time.sleep(0.1)
             timeout -= 0.1
