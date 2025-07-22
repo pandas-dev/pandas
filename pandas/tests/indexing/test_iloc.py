@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under16p0
 from pandas.errors import IndexingError
 
 from pandas import (
@@ -140,6 +141,9 @@ class TestiLocBaseIndependent:
         df = ser.to_frame()
         assert df.iloc._is_scalar_access((1, 0))
 
+    @pytest.mark.skipif(
+        pa_version_under16p0, reason="https://github.com/apache/arrow/issues/40642"
+    )
     def test_iloc_exceeds_bounds(self):
         # GH6296
         # iloc should allow indexers that exceed the bounds
