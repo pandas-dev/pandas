@@ -108,7 +108,7 @@ class TestGroupBy:
                 unit=df.index.unit,
             )
             expected = DataFrame(
-                {"Buyer": 0, "Quantity": 0},
+                {"Buyer": "" if using_infer_string else 0, "Quantity": 0},
                 index=exp_dti,
             )
             # Cast to object/str to avoid implicit cast when setting
