@@ -37,7 +37,7 @@ class TestSeriesNSorted:
     @pytest.mark.parametrize("arg", [2, 5, 0, -1])
     def test_nlargest_error(self, r, method, arg):
         dt = r.dtype
-        msg = f"Cannot use n-sorting with dtype {dt}"
+        msg = f"Cannot sort with dtype {dt}"
         with pytest.raises(TypeError, match=msg):
             getattr(r, method)(arg)
 
