@@ -456,13 +456,13 @@ class BaseSetitemTests:
         assert (df.loc[1, :] == original[0]).all()
 
     def test_readonly_property(self, data):
-        assert data.readonly is False
+        assert data._readonly is False
 
-        data.readonly = True
-        assert data.readonly is True
+        data._readonly = True
+        assert data._readonly is True
 
         data_orig = data.copy()
-        assert data_orig.readonly is False
+        assert data_orig._readonly is False
 
         with pytest.raises(ValueError, match="Cannot modify readonly array"):
             data[0] = data[1]
@@ -476,7 +476,7 @@ class BaseSetitemTests:
         tm.assert_extension_array_equal(data, data_orig)
 
     def test_readonly_propagates_to_numpy_array(self, data):
-        data.readonly = True
+        data._readonly = True
 
         # when we ask for a copy, the result should never be readonly
         arr = np.array(data)
@@ -492,7 +492,7 @@ class BaseSetitemTests:
             assert arr1.flags.writeable
 
     def test_readonly_propagates_to_numpy_array_method(self, data):
-        data.readonly = True
+        data._readonly = True
 
         # when we ask for a copy, the result should never be readonly
         arr = data.to_numpy(copy=True)
