@@ -118,12 +118,17 @@ through the ``str`` accessor will work the same:
 Overview of behavior differences and how to address them
 ---------------------------------------------------------
 
-The dtype is no longer object dtype
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The dtype is no longer a numpy object dtype
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When inferring or reading string data, the data type of the resulting DataFrame
 column or Series will silently start being the new ``"str"`` dtype instead of
-``"object"`` dtype, and this can have some impact on your code.
+the numpy ``"object"`` dtype, and this can have some impact on your code.
+
+The new string dtype is a pandas data type ("extension dtype"), and no longer a
+numpy ``np.dtype`` instance. Therefore, passing the dtype of a string column to
+numpy functions will no longer work (e.g. passing it to a ``dtype=`` argument
+of a numpy function, or using ``np.issubdtype`` to check the dtype).
 
 Checking the dtype
 ^^^^^^^^^^^^^^^^^^
