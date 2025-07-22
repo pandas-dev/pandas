@@ -7,7 +7,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import (
     Categorical,
-    CategoricalIndex,
     DataFrame,
     Series,
 )
@@ -76,13 +75,13 @@ class TestCategoricalConcat:
         # GH 16111, categories that aren't lexsorted
         categories = [9, 0, 1, 2, 3]
 
-        a = Series(1, index=CategoricalIndex([9, 0], categories=categories))
-        b = Series(2, index=CategoricalIndex([0, 1], categories=categories))
-        c = Series(3, index=CategoricalIndex([1, 2], categories=categories))
+        a = Series(1, index=pd.CategoricalIndex([9, 0], categories=categories))
+        b = Series(2, index=pd.CategoricalIndex([0, 1], categories=categories))
+        c = Series(3, index=pd.CategoricalIndex([1, 2], categories=categories))
 
         result = pd.concat([a, b, c], axis=1)
 
-        exp_idx = CategoricalIndex([9, 0, 1, 2], categories=categories)
+        exp_idx = pd.CategoricalIndex([9, 0, 1, 2], categories=categories)
         exp = DataFrame(
             {
                 0: [1, 1, np.nan, np.nan],
@@ -100,7 +99,7 @@ class TestCategoricalConcat:
         s = Series(list("abc"), dtype="category")
         s2 = Series(list("abd"), dtype="category")
 
-        exp = Series(list("abcabd"), dtype="category")
+        exp = Series(list("abcabd"))
         res = pd.concat([s, s2], ignore_index=True)
         tm.assert_series_equal(res, exp)
 
@@ -148,8 +147,8 @@ class TestCategoricalConcat:
         result = pd.concat([df2, df3])
         expected = pd.concat(
             [
-                df2.set_axis(df2.index.astype("category"), axis=0),
-                df3.set_axis(df3.index.astype("category"), axis=0),
+                df2.set_axis(df2.index.astype(object), axis=0),
+                df3.set_axis(df3.index.astype(object), axis=0),
             ]
         )
         tm.assert_frame_equal(result, expected)
@@ -180,8 +179,7 @@ class TestCategoricalConcat:
 
         result = pd.concat([df1, df2])
         expected = DataFrame(
-            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])},
-            dtype="category",
+            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}
         )
 
         tm.assert_equal(result, expected)
@@ -229,9 +227,7 @@ class TestCategoricalConcat:
         b = DataFrame({"foo": [4, 3]}, index=Categorical(["baz", "bar"]))
 
         res = pd.concat([a, b])
-        exp = DataFrame(
-            {"foo": [1, 2, 4, 3]}, index=Categorical(["foo", "bar", "baz", "bar"])
-        )
+        exp = DataFrame({"foo": [1, 2, 4, 3]}, index=["foo", "bar", "baz", "bar"])
 
         tm.assert_equal(res, exp)
 
@@ -239,7 +235,7 @@ class TestCategoricalConcat:
         b = Series([4, 3], index=Categorical(["baz", "bar"]))
 
         res = pd.concat([a, b])
-        exp = Series([1, 2, 4, 3], index=Categorical(["foo", "bar", "baz", "bar"]))
+        exp = Series([1, 2, 4, 3], index=["foo", "bar", "baz", "bar"])
 
         tm.assert_equal(res, exp)
 
@@ -261,9 +257,9 @@ class TestCategoricalConcat:
     def test_concat_categorical_same_categories_different_order(self):
         # https://github.com/pandas-dev/pandas/issues/24845
 
-        c1 = CategoricalIndex(["a", "a"], categories=["a", "b"], ordered=False)
-        c2 = CategoricalIndex(["b", "b"], categories=["b", "a"], ordered=False)
-        c3 = CategoricalIndex(
+        c1 = pd.CategoricalIndex(["a", "a"], categories=["a", "b"], ordered=False)
+        c2 = pd.CategoricalIndex(["b", "b"], categories=["b", "a"], ordered=False)
+        c3 = pd.CategoricalIndex(
             ["a", "a", "b", "b"], categories=["a", "b"], ordered=False
         )
 
