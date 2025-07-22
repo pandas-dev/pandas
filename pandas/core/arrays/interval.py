@@ -729,6 +729,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify readonly array")
+
         value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
 

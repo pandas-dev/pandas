@@ -562,7 +562,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if copy is True:
                 return np.array(self.sp_values)
             else:
-                return self.sp_values
+                result = self.sp_values
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
 
         if copy is False:
             raise ValueError(
@@ -591,6 +595,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return out
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify readonly array")
         # I suppose we could allow setting of non-fill_value elements.
         # TODO(SparseArray.__setitem__): remove special cases in
         # ExtensionBlock.where

@@ -40,6 +40,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import maybe_cast_pointwise_result
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -269,6 +270,8 @@ class ExtensionArray:
     #  strictly less than 2000 to be below Index.__pandas_priority__.
     __pandas_priority__ = 1000
 
+    _readonly = False
+
     # ------------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------------
@@ -482,6 +485,11 @@ class ExtensionArray:
         Returns
         -------
         None
+
+        Raises
+        ------
+        ValueError
+            If the array is readonly and modification is attempted.
         """
         # Some notes to the ExtensionArray implementer who may have ended up
         # here. While this method is not required for the interface, if you
@@ -501,7 +509,58 @@ class ExtensionArray:
         #   __init__ method coerces that value, then so should __setitem__
         # Note, also, that Series/DataFrame.where internally use __setitem__
         # on a copy of the data.
+        # Check if the array is readonly
+        if self._readonly:
+            raise ValueError("Cannot modify readonly array")
+
         raise NotImplementedError(f"{type(self)} does not implement __setitem__.")
+
+    @property
+    def readonly(self) -> bool:
+        """
+        Whether the array is readonly.
+
+        If True, attempts to modify the array via __setitem__ will raise
+        a ValueError.
+
+        Returns
+        -------
+        bool
+            True if the array is readonly, False otherwise.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.readonly
+        False
+        >>> arr.readonly = True
+        >>> arr[0] = 5
+        Traceback (most recent call last):
+        ...
+        ValueError: Cannot modify readonly ExtensionArray
+        """
+        return getattr(self, "_readonly", False)
+
+    @readonly.setter
+    def readonly(self, value: bool) -> None:
+        """
+        Set the readonly state of the array.
+
+        Parameters
+        ----------
+        value : bool
+            True to make the array readonly, False to make it writable.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.readonly = True
+        >>> arr.readonly
+        True
+        """
+        if not isinstance(value, bool):
+            raise TypeError("readonly must be a boolean")
+        self._readonly = value
 
     def __len__(self) -> int:
         """
@@ -595,8 +654,14 @@ class ExtensionArray:
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
+        elif self._readonly and astype_is_view(self.dtype, result.dtype):
+            # If the ExtensionArray is readonly, make the numpy array readonly too
+            result = result.view()
+            result.flags.writeable = False
+
         if na_value is not lib.no_default:
             result[self.isna()] = na_value  # type: ignore[index]
+
         return result
 
     # ------------------------------------------------------------------------

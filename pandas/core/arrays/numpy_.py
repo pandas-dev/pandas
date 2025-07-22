@@ -12,7 +12,10 @@ from pandas._libs import lib
 from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.astype import (
+    astype_array,
+    astype_is_view,
+)
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
@@ -160,8 +163,19 @@ class NumpyExtensionArray(  # type: ignore[misc]
     ) -> np.ndarray:
         if copy is not None:
             # Note: branch avoids `copy=None` for NumPy 1.x support
-            return np.array(self._ndarray, dtype=dtype, copy=copy)
-        return np.asarray(self._ndarray, dtype=dtype)
+            result = np.array(self._ndarray, dtype=dtype, copy=copy)
+        else:
+            result = np.asarray(self._ndarray, dtype=dtype)
+
+        if (
+            self._readonly
+            and not copy
+            and (dtype is None or astype_is_view(self.dtype, dtype))
+        ):
+            result = result.view()
+            result.flags.writeable = False
+
+        return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
@@ -512,6 +526,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
             result[mask] = na_value
         else:
             result = self._ndarray
+            if not copy and self._readonly:
+                result = result.view()
+                result.flags.writeable = False
 
         result = np.asarray(result, dtype=dtype)
 

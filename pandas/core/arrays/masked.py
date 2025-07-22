@@ -23,6 +23,7 @@ from pandas.compat import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
@@ -290,6 +291,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify readonly array")
+
         key = check_array_indexer(self, key)
 
         if is_scalar(value):
@@ -520,6 +524,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 data = self._data.astype(dtype, copy=copy)
+            if self._readonly and astype_is_view(self.dtype, dtype):
+                data = data.view()
+                data.flags.writeable = False
         return data
 
     @doc(ExtensionArray.tolist)
@@ -596,7 +603,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if copy is False:
             if not self._hasna:
                 # special case, here we can simply return the underlying data
-                return np.array(self._data, dtype=dtype, copy=copy)
+                result = np.array(self._data, dtype=dtype, copy=copy)
+                # If the ExtensionArray is readonly, make the numpy array readonly too
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
