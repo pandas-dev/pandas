@@ -515,53 +515,6 @@ class ExtensionArray:
 
         raise NotImplementedError(f"{type(self)} does not implement __setitem__.")
 
-    @property
-    def readonly(self) -> bool:
-        """
-        Whether the array is readonly.
-
-        If True, attempts to modify the array via __setitem__ will raise
-        a ValueError.
-
-        Returns
-        -------
-        bool
-            True if the array is readonly, False otherwise.
-
-        Examples
-        --------
-        >>> arr = pd.array([1, 2, 3])
-        >>> arr.readonly
-        False
-        >>> arr.readonly = True
-        >>> arr[0] = 5
-        Traceback (most recent call last):
-        ...
-        ValueError: Cannot modify readonly ExtensionArray
-        """
-        return getattr(self, "_readonly", False)
-
-    @readonly.setter
-    def readonly(self, value: bool) -> None:
-        """
-        Set the readonly state of the array.
-
-        Parameters
-        ----------
-        value : bool
-            True to make the array readonly, False to make it writable.
-
-        Examples
-        --------
-        >>> arr = pd.array([1, 2, 3])
-        >>> arr.readonly = True
-        >>> arr.readonly
-        True
-        """
-        if not isinstance(value, bool):
-            raise TypeError("readonly must be a boolean")
-        self._readonly = value
-
     def __len__(self) -> int:
         """
         Length of this array
