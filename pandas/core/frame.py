@@ -7591,8 +7591,7 @@ class DataFrame(NDFrame, OpsMixin):
         keep: NsmallestNlargestKeep = "first",
     ) -> DataFrame:
         """
-        Return the first `n` rows ordered by `columns` in the order defined by
-        `ascending`.
+        Return the first `n` rows ordered by `columns` in `ascending` order.
 
         The columns that are not specified are returned as
         well, but not used for ordering.
