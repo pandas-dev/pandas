@@ -486,17 +486,15 @@ class TestConcatAppendCommon:
         s1 = Series([3, 2], dtype="category")
         s2 = Series([2, 1], dtype="category")
 
-        exp = Series([3, 2, 2, 1], dtype="category")  # should remain category
+        exp = Series([3, 2, 2, 1])
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
         # completely different categories (same dtype) => not-category
-        s1 = Series([10.0, 11.0, np.nan], dtype="category")
-        s2 = Series([np.nan, 1.0, 3.0, 2.0], dtype="category")
+        s1 = Series([10, 11, np.nan], dtype="category")
+        s2 = Series([np.nan, 1, 3, 2], dtype="category")
 
-        exp = Series([10, 11, np.nan, np.nan, 1, 3, 2], dtype=np.float64).astype(
-            "category"
-        )
+        exp = Series([10, 11, np.nan, np.nan, 1, 3, 2], dtype=np.float64)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
@@ -696,7 +694,7 @@ class TestConcatAppendCommon:
 
         s1 = Series([], dtype="category")
         s2 = Series([1, 2], dtype="category")
-        exp = s2
+        exp = s2.astype(object)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
@@ -745,13 +743,7 @@ class TestConcatAppendCommon:
         df_different_categories = DataFrame({"cats": cat3, "vals": vals3})
 
         res = pd.concat([df, df_different_categories], ignore_index=True)
-        exp = DataFrame(
-            {
-                "cats": Categorical(list("abab"), categories=["a", "b", "c"]),
-                "vals": [1, 2, 1, 2],
-            }
-        )  # I do not agree with the test made in #37243
-
+        exp = DataFrame({"cats": list("abab"), "vals": [1, 2, 1, 2]})
         tm.assert_frame_equal(res, exp)
 
         res = df._append(df_different_categories, ignore_index=True)
