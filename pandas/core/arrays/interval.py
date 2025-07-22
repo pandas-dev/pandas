@@ -1992,13 +1992,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def unique(self) -> IntervalArray:
         # Using .view("complex128") with negatives causes issues. # GH#61917
         combined = self._combined
-        if not combined.flags.c_contiguous:
-            combined = np.ascontiguousarray(combined)
-        structured = combined.view(
-            [("left", combined.dtype), ("right", combined.dtype)]
-        )[:, 0]
-        unique_structured = unique(structured)
-        nc = unique_structured.view(combined.dtype)
+        combined = np.ascontiguousarray(combined)
+        if combined.dtype == np.object_:
+            nc = unique(
+                self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
+            )
+            nc = nc[:, None]
+        else:
+            structured = combined.view(
+                [("left", combined.dtype), ("right", combined.dtype)]
+            )[:, 0]
+            unique_structured = unique(structured)
+            nc = unique_structured.view(combined.dtype)
         return self._from_combined(nc)
 
 
