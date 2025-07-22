@@ -1,6 +1,6 @@
 """
 Note: for naming purposes, most test method titles include "nsorted"
-(e.g., "test_nlargest_foo") but are implicitly also testing "nsmallest" and
+(e.g., "test_nsorted_foo") but are implicitly also testing "nsmallest" and
 "nlargest".
 """
 
