@@ -55,6 +55,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     get_handle,
+    iterdir,
     stringify_path,
     validate_header_arg,
 )
@@ -73,6 +74,7 @@ from pandas.io.parsers.python_parser import (
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Generator,
         Hashable,
         Iterable,
         Mapping,
@@ -165,6 +167,10 @@ filepath_or_buffer : str, path object or file-like object
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+
+    .. versionadded:: 3.0.0
+        Support reading from directory paths, which will read all files in the
+        directory and return a generator of DataFrames or TextFileReaders if chunked.
 sep : str, default {_default_sep}
     Character or regex pattern to treat as the delimiter. If ``sep=None``, the
     C engine cannot automatically detect
@@ -668,9 +674,41 @@ def _validate_names(names: Sequence[Hashable] | None) -> None:
             raise ValueError("Names should be an ordered collection.")
 
 
+def _multi_file_generator(
+    list_of_files: list[FilePath], kwds
+) -> Generator[DataFrame] | Generator[TextFileReader]:
+    """
+    Generator that yields DataFrames or TextFileReaders for each file in the
+    provided list of files.
+    Parameters
+    ----------
+    list_of_files : list of str or Path
+        List of file paths to read.
+    kwds : dict
+        Keyword arguments to pass to the TextFileReader.
+    Returns
+    -------
+    Generator[DataFrame] | Generator[TextFileReader]
+        A generator that yields DataFrames or TextFileReaders for each file.
+    """
+
+    chunksize = kwds.get("chunksize", None)
+    iterator = kwds.get("iterator", False)
+    nrows = kwds.get("nrows", None)
+
+    for file in list_of_files:
+        parser = TextFileReader(file, **kwds)
+
+        if chunksize or iterator:
+            yield parser
+        else:
+            with parser:
+                yield parser.read(nrows)
+
+
 def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
-) -> DataFrame | TextFileReader:
+) -> DataFrame | TextFileReader | Generator[DataFrame] | Generator[TextFileReader]:
     """Generic reader of line files."""
     # if we pass a date_format and parse_dates=False, we should not parse the
     # dates GH#44366
@@ -709,14 +747,22 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
-    # Create the parser.
-    parser = TextFileReader(filepath_or_buffer, **kwds)
+    storage_options = kwds.get("storage_options", None)
+    files = iterdir(filepath_or_buffer, storage_options=storage_options)
 
-    if chunksize or iterator:
-        return parser
+    if isinstance(files, list) and not files:
+        raise FileNotFoundError(f"No files found in {filepath_or_buffer}.")
 
-    with parser:
-        return parser.read(nrows)
+    if (isinstance(files, list) and len(files) == 1) or not isinstance(files, list):
+        file = files[0] if isinstance(files, list) else files
+        parser = TextFileReader(file, **kwds)
+
+        if chunksize or iterator:
+            return parser
+
+        with parser:
+            return parser.read(nrows)
+    return _multi_file_generator(files, kwds)
 
 
 @overload
@@ -832,7 +878,7 @@ def read_csv(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-) -> DataFrame | TextFileReader:
+) -> DataFrame | TextFileReader | Generator[DataFrame] | Generator[TextFileReader]:
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -932,10 +978,9 @@ def read_table(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     skip_blank_lines: bool = True,
@@ -968,7 +1013,7 @@ def read_table(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-) -> DataFrame | TextFileReader:
+) -> DataFrame | TextFileReader | Generator[DataFrame] | Generator[TextFileReader]:
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1038,7 +1083,7 @@ def read_fwf(
     iterator: bool = False,
     chunksize: int | None = None,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame | TextFileReader:
+) -> DataFrame | TextFileReader | Generator[DataFrame] | Generator[TextFileReader]:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
