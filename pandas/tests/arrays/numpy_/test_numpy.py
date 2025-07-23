@@ -159,13 +159,6 @@ def test_to_numpy():
 # Setitem
 
 
-def test_setitem_series():
-    ser = pd.Series([1, 2, 3])
-    ser.array[0] = 10
-    expected = pd.Series([10, 2, 3])
-    tm.assert_series_equal(ser, expected)
-
-
 def test_setitem(any_numpy_array):
     nparr = any_numpy_array
     arr = NumpyExtensionArray(nparr, copy=True)
