@@ -1989,7 +1989,10 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer((pi, info_axis[0]), value[0])
 
                 raise ValueError(
-                    "Must have equal len keys and value when setting with an iterable"
+                    f"Length mismatch when setting Dataframe with an iterable: "
+                    f"{len(pi)} keys vs {len(value)} values. "
+                    f"Keys: {pi}, Values: {value}. "
+                    f"Both must have the same length."
                 )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
@@ -2017,7 +2020,10 @@ class _iLocIndexer(_LocationIndexer):
 
             else:
                 raise ValueError(
-                    "Must have equal len keys and value when setting with an iterable"
+                    f"Length mismatch when setting Dataframe with an iterable: "
+                    f"{len(pi)} keys vs {len(value)} values. "
+                    f"Keys: {pi}, Values: {value}. "
+                    f"Both must have the same length."
                 )
 
         else:
