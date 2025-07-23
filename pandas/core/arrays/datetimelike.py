@@ -544,7 +544,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             other = self._scalar_type(other)
             try:
                 self._check_compatible_with(other)
-            except (TypeError, IncompatibleFrequency) as err:
+            except TypeError as err:
                 # e.g. tzawareness mismatch
                 raise InvalidComparison(other) from err
 
@@ -558,7 +558,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             try:
                 other = self._validate_listlike(other, allow_object=True)
                 self._check_compatible_with(other)
-            except (TypeError, IncompatibleFrequency) as err:
+            except TypeError as err:
                 if is_object_dtype(getattr(other, "dtype", None)):
                     # We will have to operate element-wise
                     pass
@@ -1778,7 +1778,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         >>> rng.strftime("%%B %%d, %%Y, %%r")
         Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
                'March 10, 2018, 09:00:02 AM'],
-              dtype='object')
+              dtype='str')
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
         if using_string_dtype():
