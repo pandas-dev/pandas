@@ -209,9 +209,6 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis="index")
    df.sub(column, axis=0)
 
-Use .add(array, axis=0) to broadcast values row-wise, ensuring each element in the array is 
-applied to the corresponding row. This avoids accidental column alignment and preserves expected element-wise behavior.
-
 .. ipython:: python
 
     df.add(np.array([1, 2, 3]), axis=0) 
