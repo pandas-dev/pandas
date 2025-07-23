@@ -142,6 +142,4 @@ doc/source/savefig/
 ##############################
 /.pyodide-xbuildenv-*
 
-.venv
-venv/
 
