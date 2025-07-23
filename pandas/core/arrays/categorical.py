@@ -2237,8 +2237,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if self.categories.dtype == "str":
             # the extension array formatter defaults to boxed=True in format_array
             # override here to boxed=False to be consistent with QUOTE_NONNUMERIC
-            arr: ExtensionArray = self.categories._values
-            formatter = arr._formatter(boxed=False)
+            formatter = cast(ExtensionArray, self.categories._values)._formatter(
+                boxed=False
+            )
 
         format_array = partial(
             fmt.format_array, formatter=formatter, quoting=QUOTE_NONNUMERIC
