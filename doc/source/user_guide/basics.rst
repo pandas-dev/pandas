@@ -592,7 +592,7 @@ arguments. The special value ``all`` can also be used:
 
 .. ipython:: python
 
-    frame.describe(include=["object"])
+    frame.describe(include=["str"])
     frame.describe(include=["number"])
     frame.describe(include="all")
 
