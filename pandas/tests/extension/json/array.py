@@ -155,7 +155,6 @@ class JSONArray(ExtensionArray):
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
-
         if dtype is None:
             dtype = object
         if dtype == object:

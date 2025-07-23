@@ -510,4 +510,9 @@ class BaseSetitemTests:
         # non-NA fill value should always result in a copy
         if data.isna().any():
             arr = data.to_numpy(copy=False, na_value=data[0])
-            assert arr.flags.writeable
+            if isinstance(data.dtype, pd.ArrowDtype) and data.dtype.kind == "f":
+                # for float dtype, after the fillna, the conversion from pyarrow to
+                # numpy is zero-copy, and pyarrow will mark the array as readonly
+                assert not arr.flags.writeable
+            else:
+                assert arr.flags.writeable

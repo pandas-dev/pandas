@@ -975,6 +975,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # _NestedSequence[Union[bool, int]]], ...]]"
             data_slice = self.to_dense()[key]  # type: ignore[index]
         elif isinstance(key, slice):
+            if key == slice(None):
+                return type(self)._simple_new(self.sp_values, self.sp_index, self.dtype)
             # Avoid densifying when handling contiguous slices
             if key.step is None or key.step == 1:
                 start = 0 if key.start is None else key.start
