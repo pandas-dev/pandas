@@ -7689,7 +7689,7 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Malta       434000    12011      MT
 
-        When using ``keep='last'``, ties are resolved in reverse order:
+        When using ``keep="last"``, ties are resolved in reverse order:
 
         >>> df.nsorted(3, "population", ascending=False, keep="last")
                 population      GDP alpha-2
@@ -7697,7 +7697,7 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
 
-        When using ``keep='all'``, the number of elements kept can go beyond ``n``
+        When using ``keep="all"``, the number of elements kept can go beyond ``n``
         if there are duplicate values for the smallest element. All the
         ties are kept:
 
@@ -7721,7 +7721,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         To order by the largest values in column "population" and break ties
         according to the smallest values in column "GDP", we can specify
-        multiple columns and ascending orders like in the next example.
+        multiple columns and ascending orders as in the next example.
 
         >>> df.nsorted(3, ["population", "GDP"], ascending=[False, True])
                 population      GDP alpha-2
