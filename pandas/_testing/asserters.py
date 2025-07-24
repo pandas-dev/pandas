@@ -325,7 +325,9 @@ def assert_index_equal(
             try:
                 mismatch = left._values != right._values
             except TypeError as e:
-                raise AssertionError(f"{obj} cannot be compared due to incompatible categorical types.\n{e}") from e
+                raise AssertionError(
+                    f"{obj} cannot be compared due to incompatible categorical types.\n{e}"
+                ) from e
 
             if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
