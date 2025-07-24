@@ -44,6 +44,9 @@ sys.path.extend(
     ]
 )
 
+# Edit on GitHub links
+sys.path.insert(0, os.path.abspath('_ext'))
+
 # -- General configuration -----------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -69,6 +72,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     "nbsphinx",
+    'edit_on_github',
 ]
 
 exclude_patterns = [
@@ -114,8 +118,6 @@ if pattern:
                 ):
                     exclude_patterns.append(rel_fname)
                 elif single_doc and rel_fname != pattern:
-                    if "\\" in rel_fname:
-                        rel_fname = rel_fname.replace("\\", "/")
                     exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
@@ -148,6 +150,10 @@ nbsphinx_requirejs_path = ""
 
 # https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
 toggleprompt_offset_right = 35
+
+# Configure the "Edit on GitHub links for Sphinx" extention
+edit_on_github_project = 'username/reponame'
+edit_on_github_branch = 'master'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
