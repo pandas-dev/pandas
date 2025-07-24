@@ -50,3 +50,70 @@ table {
 .card, .card img {
   background-color: var(--pst-color-background);
 }
+
+/* Buttons for JupyterLite-enabled interactive examples */
+/* adapted from https://github.com/numpy/numpy/pull/26745 */
+
+.try_examples_button {
+  position: relative;
+  overflow: hidden;
+  color: white;
+  background-color: var(--pst-color-info);
+  border: none;
+  padding: 5px 10px;
+  border-radius: 0.25rem;
+  margin-top: 3px;  /* better alignment under admonitions */
+  margin-bottom: 5px !important; /* fix uneven button sizes under admonitions */
+  box-shadow: 0 2px 5px rgba(108, 108, 108, 0.2);
+  font-weight: bold;
+  font-size: small;
+}
+
+/* Use more acccessible colours for text in dark mode */
+[data-theme=dark] .try_examples_button {
+  color: black;
+}
+
+.try_examples_button:after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  bottom: -50%;
+  left: -50%;
+  background: linear-gradient(to bottom, rgba(229, 172, 142, 0), rgba(255,255,255,0.5) 50%, rgba(229, 172, 142, 0));
+  transform: rotateZ(-60deg) translate(-12em, -5em); /* Starting from the left */
+}
+
+/* Activate sheen effect on hover */
+.try_examples_button:hover::after {
+  animation: jupyterSheen 1s forwards;
+}
+
+@keyframes jupyterSheen {
+  100% {
+    transform: rotateZ(-60deg) translate(12em, 10em);
+  }
+}
+
+.try_examples_button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.try_examples_button:focus {
+  outline: 0;
+}
+
+.try_examples_button_container {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* Better gaps for examples buttons under admonitions */
+.try_examples_outer_iframe {
+  margin-top: 0.4em;
+}
