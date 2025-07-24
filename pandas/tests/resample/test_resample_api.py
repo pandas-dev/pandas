@@ -748,7 +748,7 @@ def test_resample_agg_readonly():
     arr.setflags(write=False)
 
     ser = Series(arr, index=index)
-    rs = ser.resample("1D")
+    rs = ser.resample("24h")
 
     expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
 

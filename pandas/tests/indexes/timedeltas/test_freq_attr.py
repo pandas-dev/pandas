@@ -4,7 +4,6 @@ from pandas import TimedeltaIndex
 
 from pandas.tseries.offsets import (
     DateOffset,
-    Day,
     Hour,
     MonthEnd,
 )
@@ -12,7 +11,7 @@ from pandas.tseries.offsets import (
 
 class TestFreq:
     @pytest.mark.parametrize("values", [["0 days", "2 days", "4 days"], []])
-    @pytest.mark.parametrize("freq", ["2D", Day(2), "48h", Hour(48)])
+    @pytest.mark.parametrize("freq", ["48h", Hour(48)])
     def test_freq_setter(self, values, freq):
         # GH#20678
         idx = TimedeltaIndex(values)
@@ -42,11 +41,11 @@ class TestFreq:
 
         # setting with an incompatible freq
         msg = (
-            "Inferred frequency 2D from passed values does not conform to "
-            "passed frequency 5D"
+            "Inferred frequency 48h from passed values does not conform to "
+            "passed frequency 120h"
         )
         with pytest.raises(ValueError, match=msg):
-            idx._data.freq = "5D"
+            idx._data.freq = "120h"
 
         # setting with a non-fixed frequency
         msg = r"<2 \* BusinessDays> is a non-fixed frequency"
@@ -61,12 +60,12 @@ class TestFreq:
         # Setting the freq for one TimedeltaIndex shouldn't alter the freq
         #  for another that views the same data
 
-        tdi = TimedeltaIndex(["0 days", "2 days", "4 days"], freq="2D")
+        tdi = TimedeltaIndex(["0 days", "2 days", "4 days"], freq="48h")
         tda = tdi._data
 
         tdi2 = TimedeltaIndex(tda)._with_freq(None)
         assert tdi2.freq is None
 
         # Original was not altered
-        assert tdi.freq == "2D"
-        assert tda.freq == "2D"
+        assert tdi.freq == "48h"
+        assert tda.freq == "48h"

@@ -93,7 +93,7 @@ class TestTimedeltaIndex:
 
         result = left.union(right)
         tm.assert_index_equal(result, tdi)
-        assert result.freq == "D"
+        assert result.freq == "24h"
 
     def test_intersection_bug_1708(self):
         index_1 = timedelta_range("1 day", periods=4, freq="h")
