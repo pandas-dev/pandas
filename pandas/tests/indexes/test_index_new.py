@@ -188,6 +188,18 @@ class TestIndexConstructorInference:
         expected = Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_list_between_elems(self):
+        # 60925 should raise when one of index's items is a list and others are not
+        msg = "Index names must all be hashable, or all lists to make MultiIndex"
+
+        data = ["a", ["b", "c"], ["b", "c"]]
+        with pytest.raises(ValueError, match=msg):
+            Index(data)
+
+        data = [["b", "c"], ("b", "c")]
+        with pytest.raises(ValueError, match=msg):
+            Index(data)
+
 
 class TestDtypeEnforced:
     # check we don't silently ignore the dtype keyword
