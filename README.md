@@ -116,7 +116,7 @@ details, see the commit logs at https://github.com/pandas-dev/pandas.
 - [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
 - [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
 - [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://github.com/stub42/pytz)
-- [tzdata - Provides IANA time zone data as a fallback for systems that do not have system time zone data installed (or don’t have it installed in a standard location)](https://tzdata.readthedocs.io/en/latest/)
+- [tzdata - Provides an IANA time zone database](https://tzdata.readthedocs.io/en/latest/)
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
