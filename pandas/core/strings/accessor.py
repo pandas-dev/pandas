@@ -1349,8 +1349,10 @@ class StringMethods(NoNewAttributesMixin):
 
         if regex:
             try:
-                _compiled = pat if isinstance(pat, re.Pattern) else re.compile(
-                    pat, flags=flags
+                _compiled = (
+                    pat
+                    if isinstance(pat, re.Pattern)
+                    else re.compile(pat, flags=flags)
                 )
                 if _compiled.groups:
                     warnings.warn(
