@@ -12,7 +12,10 @@ from typing import (
 )
 import uuid
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    PYPY,
+    WARNING_CHECK_BROKEN,
+)
 from pandas.errors import ChainedAssignmentError
 
 from pandas.io.common import get_handle
@@ -163,7 +166,7 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
 def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
     from pandas._testing import assert_produces_warning
 
-    if PYPY:
+    if PYPY or WARNING_CHECK_BROKEN:
         if not extra_warnings:
             from contextlib import nullcontext
 
