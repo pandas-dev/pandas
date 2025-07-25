@@ -1,0 +1,37 @@
+Metadata-Version: 2.4
+Name: jupyter_core
+Version: 5.8.1
+Summary: Jupyter core package. A base package on which Jupyter projects rely.
+Project-URL: Homepage, https://jupyter.org
+Project-URL: Documentation, https://jupyter-core.readthedocs.io/
+Project-URL: Source, https://github.com/jupyter/jupyter_core
+Project-URL: Tracker, https://github.com/jupyter/jupyter_core/issues
+Author-email: Jupyter Development Team <jupyter@googlegroups.org>
+License-Expression: BSD-3-Clause
+License-File: LICENSE
+Classifier: Framework :: Jupyter
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: System Administrators
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.8
+Requires-Dist: platformdirs>=2.5
+Requires-Dist: pywin32>=300; sys_platform == 'win32' and platform_python_implementation != 'PyPy'
+Requires-Dist: traitlets>=5.3
+Provides-Extra: docs
+Requires-Dist: intersphinx-registry; extra == 'docs'
+Requires-Dist: myst-parser; extra == 'docs'
+Requires-Dist: pydata-sphinx-theme; extra == 'docs'
+Requires-Dist: sphinx-autodoc-typehints; extra == 'docs'
+Requires-Dist: sphinxcontrib-spelling; extra == 'docs'
+Requires-Dist: traitlets; extra == 'docs'
+Provides-Extra: test
+Requires-Dist: ipykernel; extra == 'test'
+Requires-Dist: pre-commit; extra == 'test'
+Requires-Dist: pytest-cov; extra == 'test'
+Requires-Dist: pytest-timeout; extra == 'test'
+Requires-Dist: pytest<9; extra == 'test'
+Description-Content-Type: text/plain
+
+There is no reason to install this package on its own.

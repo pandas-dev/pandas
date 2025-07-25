@@ -1,0 +1,8 @@
+module QtTest
+plugin qmltestplugin
+classname QTestQmlModule
+typeinfo plugins.qmltypes
+TestCase 1.0 TestCase.qml
+TestCase 1.2 TestCase.qml
+SignalSpy 1.0 SignalSpy.qml
+depends QtQuick.Window 2.0
