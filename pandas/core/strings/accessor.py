@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pandas.core.dtypes.dtypes import ArrowDtype
-
 import codecs
 from functools import wraps
 import re
