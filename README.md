@@ -115,7 +115,7 @@ details, see the commit logs at https://github.com/pandas-dev/pandas.
 ## Dependencies
 - [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
 - [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
-- [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://github.com/stub42/pytz)
+- [tzdata - Provides an IANA time zone database](https://tzdata.readthedocs.io/en/latest/)
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
@@ -188,3 +188,12 @@ As contributors and maintainers to this project, you are expected to abide by pa
 <hr>
 
 [Go to Top](#table-of-contents)
+
+---
+
+## Helpful Resources
+
+- 📘 [Pandas Cheat Sheet (Official)](https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf)
+- 🎓 [Beginner’s Guide to Pandas](https://realpython.com/pandas-python-explore-dataset/)
+- 🛠️ [Good First Issues to Contribute](https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+label%3A%22good+first+issue%22)
+- 💬 [Join the Pandas Community on Slack](https://pandas.pydata.org/docs/dev/development/community.html#community-slack)
