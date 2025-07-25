@@ -414,8 +414,11 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
     - ``'skip'``, skip bad lines without raising or warning when they are encountered.
     - Callable, function that will process a single bad line.
         - With ``engine='python'``, function with signature
-          ``(bad_line: list[str]) -> list[str] | None``.
+          ``(bad_line: list[str], expected_columns: int, actual_columns: int, row: int) -> list[str] | None``.
           ``bad_line`` is a list of strings split by the ``sep``.
+          ``expected_columns`` is the expected number of columns.
+          ``actual_columns`` is the actual number of columns.
+          ``row`` is the row number of the bad line.
           If the function returns ``None``, the bad line will be ignored.
           If the function returns a new ``list`` of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.

@@ -1201,7 +1201,7 @@ class PythonParser(ParserBase):
 
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
-                        new_l = self.on_bad_lines(_content)
+                        new_l = self.on_bad_lines(_content, col_len, actual_len, i + 2)
                         if new_l is not None:
                             content.append(new_l)  # pyright: ignore[reportArgumentType]
                     elif self.on_bad_lines in (
