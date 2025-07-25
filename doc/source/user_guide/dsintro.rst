@@ -650,6 +650,13 @@ row-wise. For example:
 
    df - df.iloc[0]
 
+Use .add(array, axis=0) to apply row-wise broadcasting when the array length matches the number of rows — 
+this ensures element-wise operations are performed across each row, rather than mistakenly aligning with columns.
+
+.. ipython:: python
+
+    df.add(np.array([1, 2, 3]), axis=0) 
+    
 For explicit control over the matching and broadcasting behavior, see the
 section on :ref:`flexible binary operations <basics.binop>`.
 
