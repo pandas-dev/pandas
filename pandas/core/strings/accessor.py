@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pandas.core.dtypes.dtypes import ArrowDtype
+
 import codecs
 from functools import wraps
 import re
@@ -1350,13 +1352,6 @@ class StringMethods(NoNewAttributesMixin):
         4    False
         dtype: bool
         """
-        from pandas.core.dtypes.dtypes import ArrowDtype
-        import re
-
-        # --- Handle Arrow-backed string arrays with compiled regex patterns ---
-        # Arrow backend does not support compiled regex objects or Python regex flags.
-        # If a compiled regex is passed, only allow it if no flags are set.
-
         if isinstance(self._data.dtype, ArrowDtype) and isinstance(pat, re.Pattern):
             if flags != 0:
                 raise NotImplementedError(
@@ -1382,7 +1377,6 @@ class StringMethods(NoNewAttributesMixin):
                 raise ValueError(
                     f"Invalid regex pattern passed to str.contains(): {e}"
                 ) from e
-
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
