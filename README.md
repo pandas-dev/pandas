@@ -188,3 +188,12 @@ As contributors and maintainers to this project, you are expected to abide by pa
 <hr>
 
 [Go to Top](#table-of-contents)
+
+---
+
+## Helpful Resources
+
+- 📘 [Pandas Cheat Sheet (Official)](https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf)
+- 🎓 [Beginner’s Guide to Pandas](https://realpython.com/pandas-python-explore-dataset/)
+- 🛠️ [Good First Issues to Contribute](https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+label%3A%22good+first+issue%22)
+- 💬 [Join the Pandas Community on Slack](https://pandas.pydata.org/docs/dev/development/community.html#community-slack)
