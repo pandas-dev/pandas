@@ -27,6 +27,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
@@ -1533,7 +1535,7 @@ class TextFileReader(abc.Iterator):
             else:
                 dtype = None
 
-            if dtype is None:
+            if dtype is None and get_option("future.usecols_use_order"):
                 if usecols is None or isfunction(usecols):
                     # Doesn't change anything if function or None gets passed
                     pass

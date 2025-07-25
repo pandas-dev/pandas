@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config.config import option_context
+
 from pandas.errors import ParserError
 
 from pandas import (
@@ -547,9 +549,10 @@ b,2,y
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("usecols", [(2, 0), ("c", "a")])
-def test_usecols_order(all_parsers, usecols, request):
-    # TODO add future flag
+@pytest.mark.parametrize("usecols", [(3, 0, 2), ("d", "a", "c")])
+@pytest.mark.parametrize("usecols_use_order", (True, False))
+def test_usecols_order(all_parsers, usecols, usecols_use_order):
+    # TODOE add portion in doc for 3.0 transition
     parser = all_parsers
     data = """\
 a,b,c,d
@@ -557,15 +560,23 @@ a,b,c,d
 4,5,6,0
 7,8,9,0
 10,11,12,13"""
-    # print(usecols)
-    # print(data)
 
+    msg = "The pyarrow engine does not allow 'usecols' to be integer column positions"
     if parser.engine == "pyarrow" and isinstance(usecols[0], int):
-        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+        with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), usecols=usecols)
         return
 
     result = parser.read_csv(StringIO(data), usecols=usecols)
 
-    expected = DataFrame([[3, 1], [6, 4], [9, 7], [12, 10]], columns=["c", "a"])
-    tm.assert_frame_equal(result, expected)
+    if usecols_use_order:
+        expected = DataFrame(
+            {"d": [0, 0, 0, 13], "a": [1, 4, 7, 10], "c": [3, 6, 9, 12]}
+        )
+    else:
+        expected = DataFrame(
+            {"a": [1, 4, 7, 10], "c": [3, 6, 9, 12], "d": [0, 0, 0, 13]}
+        )
+
+    with option_context("future.usecols_use_order", usecols_use_order):
+        tm.assert_frame_equal(result, expected)
