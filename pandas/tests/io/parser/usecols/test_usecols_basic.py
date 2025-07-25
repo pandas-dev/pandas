@@ -554,6 +554,7 @@ b,2,y
 def test_usecols_order(all_parsers, usecols, usecols_use_order):
     # TODOE add portion in doc for 3.0 transition
     parser = all_parsers
+    pyarrow_flag = False
     data = """\
 a,b,c,d
 1,2,3,0
@@ -561,15 +562,18 @@ a,b,c,d
 7,8,9,0
 10,11,12,13"""
 
-    msg = "The pyarrow engine does not allow 'usecols' to be integer column positions"
-    if parser.engine == "pyarrow" and isinstance(usecols[0], int):
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), usecols=usecols)
-        return
+    if parser.engine == "pyarrow":
+        if isinstance(usecols[0], int):
+            msg = "The pyarrow engine does not allow 'usecols' to be integer column"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), usecols=usecols)
+            return
+        else:
+            # looks like pyarrow already considers column order by default.
+            # Modifies test to account for it in selecting expected df
+            pyarrow_flag = True
 
-    result = parser.read_csv(StringIO(data), usecols=usecols)
-
-    if usecols_use_order:
+    if usecols_use_order or pyarrow_flag:
         expected = DataFrame(
             {"d": [0, 0, 0, 13], "a": [1, 4, 7, 10], "c": [3, 6, 9, 12]}
         )
@@ -579,4 +583,5 @@ a,b,c,d
         )
 
     with option_context("future.usecols_use_order", usecols_use_order):
+        result = parser.read_csv(StringIO(data), usecols=usecols)
         tm.assert_frame_equal(result, expected)

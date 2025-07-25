@@ -1535,16 +1535,15 @@ class TextFileReader(abc.Iterator):
             else:
                 dtype = None
 
-            if dtype is None and get_option("future.usecols_use_order"):
+            if get_option("future.usecols_use_order"):
                 if usecols is None or isfunction(usecols):
                     # Doesn't change anything if function or None gets passed
                     pass
                 elif len(usecols) == len(columns):
                     # uses size of number in usecols to determine corresponding columns
-                    usecols_sorted = sorted(
-                        range(len(usecols)), key=lambda i: usecols[i]
-                    )
-                    columns = [columns[i] for i in usecols_sorted]
+                    value_ranked = {v: i for i, v in enumerate(sorted(usecols))}
+                    usecols_pressed = [value_ranked[v] for v in usecols]
+                    columns = [columns[i] for i in usecols_pressed]
                     col_dict = {k: col_dict[k] for k in columns}
 
             if dtype is not None:
