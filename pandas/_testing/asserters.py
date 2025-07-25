@@ -323,7 +323,9 @@ def assert_index_equal(
     elif check_exact and check_categorical:
         if not left.equals(right):
             try:
-                mismatch = left._values != right._values
+                mismatch = ( 
+                    left._internal_get_values() != right._internal_get_values()
+                )
             except TypeError as e:
                 raise AssertionError(
                     f"{obj} cannot be compared due to incompatible"
