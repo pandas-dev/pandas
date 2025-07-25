@@ -768,7 +768,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> pd.Series(list("aabc")).astype("category").values
         ['a', 'a', 'b', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
 
         Timezone aware datetime data is converted to UTC:
 
@@ -2144,12 +2144,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
         ['b', 'a', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> pd.Series(
         ...     pd.Categorical(list("baabc"), categories=list("abc"), ordered=True)
         ... ).unique()
         ['b', 'a', 'c']
-        Categories (3, object): ['a' < 'b' < 'c']
+        Categories (3, str): ['a' < 'b' < 'c']
         """
         return super().unique()
 
