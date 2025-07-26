@@ -391,11 +391,11 @@ def unique(values):
 
     >>> pd.unique(pd.Series(pd.Categorical(list("baabc"))))
     ['b', 'a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     >>> pd.unique(pd.Series(pd.Categorical(list("baabc"), categories=list("abc"))))
     ['b', 'a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     An ordered Categorical preserves the category ordering.
 
@@ -405,7 +405,7 @@ def unique(values):
     ...     )
     ... )
     ['b', 'a', 'c']
-    Categories (3, object): ['a' < 'b' < 'c']
+    Categories (3, str): ['a' < 'b' < 'c']
 
     An array of tuples
 
@@ -751,7 +751,7 @@ def factorize(
     array([0, 0, 1])
     >>> uniques
     ['a', 'c']
-    Categories (3, str): [a, b, c]
+    Categories (3, str): ['a', 'b', 'c']
 
     Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.

@@ -332,7 +332,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     >>> pd.Categorical(["a", "b", "c", "a", "b", "c"])
     ['a', 'b', 'c', 'a', 'b', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     Missing values are not included as a category.
 
@@ -355,7 +355,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ... )
     >>> c
     ['a', 'b', 'c', 'a', 'b', 'c']
-    Categories (3, object): ['c' < 'b' < 'a']
+    Categories (3, str): ['c' < 'b' < 'a']
     >>> c.min()
     'c'
     """
@@ -510,9 +510,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat = pd.Categorical(["a", "b"], ordered=True)
         >>> cat
         ['a', 'b']
-        Categories (2, object): ['a' < 'b']
+        Categories (2, str): ['a' < 'b']
         >>> cat.dtype
-        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
+        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=str)
         """
         return self._dtype
 
@@ -740,7 +740,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> dtype = pd.CategoricalDtype(["a", "b"], ordered=True)
         >>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)
         ['a', 'b', 'a', 'b']
-        Categories (2, object): ['a' < 'b']
+        Categories (2, str): ['a' < 'b']
         """
         dtype = CategoricalDtype._from_values_or_dtype(
             categories=categories, ordered=ordered, dtype=dtype
@@ -922,12 +922,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c = pd.Categorical(["a", "b"])
         >>> c
         ['a', 'b']
-        Categories (2, object): ['a', 'b']
+        Categories (2, str): ['a', 'b']
 
         >>> c._set_categories(pd.Index(["a", "c"]))
         >>> c
         ['a', 'c']
-        Categories (2, object): ['a', 'c']
+        Categories (2, str): ['a', 'c']
         """
         if fastpath:
             new_dtype = CategoricalDtype._from_fastpath(categories, self.ordered)
@@ -1111,7 +1111,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         2   c
         3   NaN
         dtype: category
-        Categories (3, object): ['a' < 'b' < 'c']
+        Categories (3, str): ['a' < 'b' < 'c']
 
         >>> ser.cat.set_categories(["A", "B", "C"], rename=True)
         0   A
@@ -1119,7 +1119,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         2   C
         3   NaN
         dtype: category
-        Categories (3, object): ['A' < 'B' < 'C']
+        Categories (3, str): ['A' < 'B' < 'C']
 
         For :class:`pandas.CategoricalIndex`:
 
@@ -1215,13 +1215,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         >>> c.rename_categories({"a": "A", "c": "C"})
         ['A', 'A', 'b']
-        Categories (2, object): ['A', 'b']
+        Categories (2, str): ['A', 'b']
 
         You may also provide a callable to create the new categories
 
         >>> c.rename_categories(lambda x: x.upper())
         ['A', 'A', 'B']
-        Categories (2, object): ['A', 'B']
+        Categories (2, str): ['A', 'B']
         """
 
         if is_dict_like(new_categories):
@@ -1281,7 +1281,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         2   c
         3   a
         dtype: category
-        Categories (3, object): ['c' < 'b' < 'a']
+        Categories (3, str): ['c' < 'b' < 'a']
 
         >>> ser.sort_values()
         2   c
@@ -1289,7 +1289,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         0   a
         3   a
         dtype: category
-        Categories (3, object): ['c' < 'b' < 'a']
+        Categories (3, str): ['c' < 'b' < 'a']
 
         For :class:`pandas.CategoricalIndex`:
 
@@ -1346,11 +1346,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c = pd.Categorical(["c", "b", "c"])
         >>> c
         ['c', 'b', 'c']
-        Categories (2, object): ['b', 'c']
+        Categories (2, str): ['b', 'c']
 
         >>> c.add_categories(["d", "a"])
         ['c', 'b', 'c']
-        Categories (4, object): ['b', 'c', 'd', 'a']
+        Categories (4, str): ['b', 'c', 'd', 'a']
         """
 
         if not is_list_like(new_categories):
@@ -1414,11 +1414,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c = pd.Categorical(["a", "c", "b", "c", "d"])
         >>> c
         ['a', 'c', 'b', 'c', 'd']
-        Categories (4, object): ['a', 'b', 'c', 'd']
+        Categories (4, str): ['a', 'b', 'c', 'd']
 
         >>> c.remove_categories(["d", "a"])
         [NaN, 'c', 'b', 'c', NaN]
-        Categories (2, object): ['b', 'c']
+        Categories (2, str): ['b', 'c']
         """
         from pandas import Index
 
@@ -1465,17 +1465,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c = pd.Categorical(["a", "c", "b", "c", "d"])
         >>> c
         ['a', 'c', 'b', 'c', 'd']
-        Categories (4, object): ['a', 'b', 'c', 'd']
+        Categories (4, str): ['a', 'b', 'c', 'd']
 
         >>> c[2] = "a"
         >>> c[4] = "c"
         >>> c
         ['a', 'c', 'a', 'c', 'c']
-        Categories (4, object): ['a', 'b', 'c', 'd']
+        Categories (4, str): ['a', 'b', 'c', 'd']
 
         >>> c.remove_unused_categories()
         ['a', 'c', 'a', 'c', 'c']
-        Categories (2, object): ['a', 'c']
+        Categories (2, str): ['a', 'c']
         """
         idx, inv = np.unique(self._codes, return_inverse=True)
 
@@ -1540,13 +1540,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat = pd.Categorical(["a", "b", "c"])
         >>> cat
         ['a', 'b', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.map(lambda x: x.upper(), na_action=None)
         ['A', 'B', 'C']
-        Categories (3, object): ['A', 'B', 'C']
+        Categories (3, str): ['A', 'B', 'C']
         >>> cat.map({"a": "first", "b": "second", "c": "third"}, na_action=None)
         ['first', 'second', 'third']
-        Categories (3, object): ['first', 'second', 'third']
+        Categories (3, str): ['first', 'second', 'third']
 
         If the mapping is one-to-one the ordering of the categories is
         preserved:
@@ -1554,7 +1554,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat = pd.Categorical(["a", "b", "c"], ordered=True)
         >>> cat
         ['a', 'b', 'c']
-        Categories (3, object): ['a' < 'b' < 'c']
+        Categories (3, str): ['a' < 'b' < 'c']
         >>> cat.map({"a": 3, "b": 2, "c": 1}, na_action=None)
         [3, 2, 1]
         Categories (3, int64): [3 < 2 < 1]
@@ -1562,13 +1562,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
         >>> cat.map({"a": "first", "b": "second", "c": "first"}, na_action=None)
-        Index(['first', 'second', 'first'], dtype='object')
+        Index(['first', 'second', 'first'], dtype='str')
 
         If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
         >>> cat.map({"a": "first", "b": "second"}, na_action=None)
-        Index(['first', 'second', nan], dtype='object')
+        Index(['first', 'second', nan], dtype='str')
         """
         assert callable(mapper) or is_dict_like(mapper)
 
@@ -2383,9 +2383,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c = pd.Categorical(list("aabca"))
         >>> c
         ['a', 'a', 'b', 'c', 'a']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> c.categories
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
         >>> c.codes
         array([0, 0, 1, 2, 0], dtype=int8)
         >>> c._reverse_indexer()
@@ -2517,10 +2517,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         --------
         >>> pd.Categorical(list("baabc")).unique()
         ['b', 'a', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> pd.Categorical(list("baab"), categories=list("abc"), ordered=True).unique()
         ['b', 'a']
-        Categories (3, object): ['a' < 'b' < 'c']
+        Categories (3, str): ['a' < 'b' < 'c']
         """
         return super().unique()
 
@@ -2845,10 +2845,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     >>> s.cat.categories
-    Index(['a', 'b', 'c'], dtype='object')
+    Index(['a', 'b', 'c'], dtype='str')
 
     >>> s.cat.rename_categories(list("cba"))
     0    c
@@ -2858,7 +2858,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    a
     5    a
     dtype: category
-    Categories (3, object): ['c', 'b', 'a']
+    Categories (3, str): ['c', 'b', 'a']
 
     >>> s.cat.reorder_categories(list("cba"))
     0    a
@@ -2868,7 +2868,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): ['c', 'b', 'a']
+    Categories (3, str): ['c', 'b', 'a']
 
     >>> s.cat.add_categories(["d", "e"])
     0    a
@@ -2878,7 +2878,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (5, object): ['a', 'b', 'c', 'd', 'e']
+    Categories (5, str): ['a', 'b', 'c', 'd', 'e']
 
     >>> s.cat.remove_categories(["a", "c"])
     0    NaN
@@ -2888,7 +2888,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    NaN
     5    NaN
     dtype: category
-    Categories (1, object): ['b']
+    Categories (1, str): ['b']
 
     >>> s1 = s.cat.add_categories(["d", "e"])
     >>> s1.cat.remove_unused_categories()
@@ -2899,7 +2899,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     >>> s.cat.set_categories(list("abcde"))
     0    a
@@ -2909,7 +2909,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (5, object): ['a', 'b', 'c', 'd', 'e']
+    Categories (5, str): ['a', 'b', 'c', 'd', 'e']
 
     >>> s.cat.as_ordered()
     0    a
@@ -2919,7 +2919,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): ['a' < 'b' < 'c']
+    Categories (3, str): ['a' < 'b' < 'c']
 
     >>> s.cat.as_unordered()
     0    a
@@ -2929,7 +2929,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
     """
 
     def __init__(self, data) -> None:

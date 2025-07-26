@@ -183,7 +183,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     ...         "ordered": True,
     ...     }
     ... )
-    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True, categories_dtype=object)
+    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True, categories_dtype=str)
 
     >>> convert_json_field_to_pandas_type({"name": "a_datetime", "type": "datetime"})
     'datetime64[ns]'
@@ -292,7 +292,7 @@ def build_table_schema(
     {'fields': \
 [{'name': 'idx', 'type': 'integer'}, \
 {'name': 'A', 'type': 'integer'}, \
-{'name': 'B', 'type': 'string'}, \
+{'name': 'B', 'type': 'string', 'extDtype': 'str'}, \
 {'name': 'C', 'type': 'datetime'}], \
 'primaryKey': ['idx'], \
 'pandas_version': '1.4.0'}
