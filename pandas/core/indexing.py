@@ -897,7 +897,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
+        if not PYPY and sys.version_info < (3, 14):
             if sys.getrefcount(self.obj) <= 2:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
