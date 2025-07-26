@@ -22,7 +22,8 @@ become the default string dtype in pandas 3.0. See
 
 Bug fixes
 ^^^^^^^^^
--
+- Fix :meth:`~Series.str.isdigit` to correctly recognize unicode superscript
+  characters as digits for :class:`StringDtype` backed by PyArrow (:issue:`61466`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_232.contributors:
