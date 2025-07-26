@@ -118,8 +118,8 @@ through the ``str`` accessor will work the same:
 Overview of behavior differences and how to address them
 ---------------------------------------------------------
 
-The dtype is no longer a numpy object dtype
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The dtype is no longer a numpy "object" dtype
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When inferring or reading string data, the data type of the resulting DataFrame
 column or Series will silently start being the new ``"str"`` dtype instead of
