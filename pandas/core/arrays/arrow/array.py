@@ -2476,9 +2476,8 @@ class ArrowExtensionArray(
             pat = pat.pattern
             regex = True
         elif flags != 0:
-            raise NotImplementedError(
-                "ArrowExtensionArray does not support str.contains() with flags "
-                "for string patterns"
+            return BaseStringArrayMethods._str_contains(
+                self, pat, case, flags, na, regex
             )
 
         try:
