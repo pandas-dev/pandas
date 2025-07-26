@@ -90,8 +90,6 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "datetime"
     elif lib.is_np_dtype(x, "m"):
         return "duration"
-    elif isinstance(x, ExtensionDtype):
-        return "any"
     elif is_string_dtype(x):
         return "string"
     else:
@@ -197,7 +195,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     """
     typ = field["type"]
     if typ == "string":
-        return "object"
+        return field.get("extDtype", None)
     elif typ == "integer":
         return field.get("extDtype", "int64")
     elif typ == "number":
