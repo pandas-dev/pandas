@@ -751,7 +751,7 @@ def factorize(
     array([0, 0, 1])
     >>> uniques
     ['a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): [a, b, c]
 
     Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
@@ -764,7 +764,7 @@ def factorize(
     >>> codes
     array([0, 0, 1])
     >>> uniques
-    Index(['a', 'c'], dtype='object')
+    Index(['a', 'c'], dtype='str')
 
     If NaN is in the values, and we want to include NaN in the uniques of the
     values, it can be achieved by setting ``use_na_sentinel=False``.
