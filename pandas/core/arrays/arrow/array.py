@@ -1967,6 +1967,9 @@ class ArrowExtensionArray(
         -------
         None
         """
+        if self._readonly:
+            raise ValueError("Cannot modify readonly array")
+
         # GH50085: unwrap 1D indexers
         if isinstance(key, tuple) and len(key) == 1:
             key = key[0]
