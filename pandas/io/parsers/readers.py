@@ -1519,7 +1519,7 @@ class TextFileReader(abc.Iterator):
 
             if hasattr(self, "orig_options"):
                 dtype_arg = self.orig_options.get("dtype", None)
-                usecols = self.orig_options["usecols"]
+                usecols = self.orig_options.get("usecols", None)
             else:
                 dtype_arg = None
                 usecols = None
