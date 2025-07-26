@@ -9882,7 +9882,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         *,
         inplace: bool = False,
         axis: Axis | None = None,

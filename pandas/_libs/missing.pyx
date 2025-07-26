@@ -251,6 +251,24 @@ cdef bint checknull_with_nat_and_na(object obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def is_pdna_or_none(values: ndarray) -> ndarray:
+    cdef:
+        ndarray[uint8_t] result
+        Py_ssize_t i, N
+        object val
+
+    N = len(values)
+    result = np.zeros(N, dtype=np.uint8)
+
+    for i in range(N):
+        val = values[i]
+        if val is None or val is C_NA:
+            result[i] = True
+    return result.view(bool)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def is_numeric_na(values: ndarray) -> ndarray:
     """
     Check for NA values consistent with IntegerArray/FloatingArray.

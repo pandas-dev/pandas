@@ -481,6 +481,12 @@ class BaseStringArray(ExtensionArray):
             if self.dtype.storage == "pyarrow":
                 import pyarrow as pa
 
+                # TODO: shouldn't this already be caught my passed mask?
+                #  it isn't in test_extract_expand_capture_groups_index
+                # mask = mask | np.array(
+                #    [x is libmissing.NA for x in result], dtype=bool
+                #    )
+
                 result = pa.array(
                     result, mask=mask, type=pa.large_string(), from_pandas=True
                 )
@@ -733,7 +739,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         values = self._ndarray.copy()
         values[self.isna()] = None
-        return pa.array(values, type=type, from_pandas=True)
+        return pa.array(values, type=type)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
         arr = self._ndarray
