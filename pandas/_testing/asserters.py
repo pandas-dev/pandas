@@ -324,8 +324,8 @@ def assert_index_equal(
         if not left.equals(right):
             try:
                 mismatch = left._values != right._values
-            except TypeError :
-                mismatch = left._internal_get_values() != right._internal_get_values()    
+            except TypeError:
+                mismatch = left._internal_get_values() != right._internal_get_values()
 
             if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
