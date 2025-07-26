@@ -58,9 +58,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Python and Cython Doctests' ; echo "$MSG"
     python -c 'import pandas as pd; pd.test(run_doctests=True)'
-    # TEMP don't let doctests fail the build until all string dtype changes are fixed
-    # RET=$(($RET + $?)) ; echo "$MSG" "DONE"
-    echo "$MSG" "DONE"
+    RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
 
