@@ -2449,19 +2449,23 @@ class ArrowExtensionArray(
     def _str_contains(self, pat, case=True, flags=0, na=lib.no_default, regex=True):
         if isinstance(pat, re.Pattern):
             if flags != 0:
-                # fallback to python object implementation
                 return BaseStringArrayMethods._str_contains(
                     self, pat, case, flags, na, regex
                 )
             pat = pat.pattern
             regex = True
+        elif flags != 0:
+            raise NotImplementedError(
+                "ArrowExtensionArray does not support str.contains() with flags "
+                "for string patterns"
+            )
 
         try:
             if not regex:
                 result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
             else:
                 result = pc.match_substring_regex(
-                    self._pa_array, pat, ignore_case=not case, options=None
+                    self._pa_array, pat, ignore_case=not case
                 )
             return self._convert_bool_result(result, na=na, method_name="contains")
         except (AttributeError, NotImplementedError, pa.ArrowNotImplementedError):
