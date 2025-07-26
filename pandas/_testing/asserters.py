@@ -322,7 +322,17 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     elif check_exact and check_categorical:
         if not left.equals(right):
-            mismatch = left._values != right._values
+            try:
+                mismatch = left._values != right._values
+            except TypeError:
+                if hasattr(left, "_internal_get_values") and hasattr(
+                    right, "_internal_get_values"
+                ):
+                    mismatch = (
+                        left._internal_get_values() != right._internal_get_values()
+                    )
+                else:
+                    mismatch = left.values != right.values
 
             if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
