@@ -794,28 +794,28 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
         >>> ser.cat.categories
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
 
         >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"])
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.categories
-        Index(['b', 'c', 'd'], dtype='object')
+        Index(['b', 'c', 'd'], dtype='str')
 
         For :class:`pandas.Categorical`:
 
         >>> cat = pd.Categorical(["a", "b"], ordered=True)
         >>> cat.categories
-        Index(['a', 'b'], dtype='object')
+        Index(['a', 'b'], dtype='str')
 
         For :class:`pandas.CategoricalIndex`:
 
         >>> ci = pd.CategoricalIndex(["a", "c", "b", "a", "c", "b"])
         >>> ci.categories
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
 
         >>> ci = pd.CategoricalIndex(["a", "c"], categories=["c", "b", "a"])
         >>> ci.categories
-        Index(['c', 'b', 'a'], dtype='object')
+        Index(['c', 'b', 'a'], dtype='str')
         """
         return self.dtype.categories
 
@@ -2233,8 +2233,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         from pandas.io.formats import format as fmt
 
+        formatter = None
+        if self.categories.dtype == "str":
+            # the extension array formatter defaults to boxed=True in format_array
+            # override here to boxed=False to be consistent with QUOTE_NONNUMERIC
+            formatter = cast(ExtensionArray, self.categories._values)._formatter(
+                boxed=False
+            )
+
         format_array = partial(
-            fmt.format_array, formatter=None, quoting=QUOTE_NONNUMERIC
+            fmt.format_array, formatter=formatter, quoting=QUOTE_NONNUMERIC
         )
         if len(self.categories) > max_categories:
             num = max_categories // 2
