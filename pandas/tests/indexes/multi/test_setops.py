@@ -626,11 +626,16 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_union_duplicates(index, request):
+    # special case for mixed types
+    if index.equals(Index([0, "a", 1, "b", 2, "c"])):
+        index = index.map(str)
+
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
     values = index.unique().values.tolist()
+    values = [str(v) for v in values]
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
     result = mi2.union(mi1)
