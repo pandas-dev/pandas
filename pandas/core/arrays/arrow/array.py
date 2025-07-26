@@ -2446,6 +2446,36 @@ class ArrowExtensionArray(
     def _convert_rank_result(self, result):
         return type(self)(result)
 
+    def _str_contains(self, pat, case=True, flags=0, na=lib.no_default, regex=True):
+        import re
+
+        if isinstance(pat, re.Pattern):
+            if flags != 0:
+                # fallback to python object implementation
+                return BaseStringArrayMethods._str_contains(
+                    self, pat, case, flags, na, regex
+                )
+            pat = pat.pattern
+            regex = True
+
+        try:
+            if not regex:
+                result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
+            else:
+                result = pc.match_substring_regex(
+                    self._pa_array, pat, ignore_case=not case, options=None
+                )
+            return self._convert_bool_result(result, na=na, method_name="contains")
+        except (AttributeError, NotImplementedError, pa.ArrowNotImplementedError):
+            return BaseStringArrayMethods._str_contains(
+                self, pat, case, flags, na, regex
+            )
+
+    def _str_count(self, pat: str, flags: int = 0) -> Self:
+        if flags:
+            raise NotImplementedError(f"count not implemented with {flags=}")
+        return type(self)(pc.count_substring_regex(self._pa_array, pat))
+
     def _str_count(self, pat: str, flags: int = 0) -> Self:
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
