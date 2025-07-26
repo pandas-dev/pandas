@@ -3,6 +3,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
+import numpy as np
 
 
 @pytest.fixture(params=[True, False])
@@ -395,3 +396,23 @@ def test_assert_frame_equal_set_mismatch():
     msg = r'DataFrame.iloc\[:, 0\] \(column name="set_column"\) values are different'
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2)
+
+
+def test_assert_frame_equal_na_dtype_mismatch():
+    # GH#61473 - Test that pd.NA values are handled correctly when check_dtype=False
+    df1 = DataFrame({"a": [pd.NA, 1, 2]}, dtype="Int64")
+    df2 = DataFrame({"a": [np.nan, 1, 2]}, dtype="float64")
+    
+    # This should pass with our fix
+    tm.assert_frame_equal(df1, df2, check_dtype=False)
+    
+    # This should still fail when check_dtype=True
+    msg = (
+        "Attributes of DataFrame\\.iloc\\[:, 0\\] "
+        '\\(column name="a"\\) are different\n\n'
+        'Attribute "dtype" are different\n'
+        "\\[left\\]:  Int64\n"
+        "\\[right\\]: float64"
+    )
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2, check_dtype=True)
