@@ -242,7 +242,9 @@ else:
 
 html_theme_options = {
     "external_links": [],
-    "footer_start": ["pandas_footer", "sphinx-version"],
+    "footer_start": ["pandas_footer"],
+    "footer_center": ["sphinx-version"],
+    "footer_end": ["theme-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",
