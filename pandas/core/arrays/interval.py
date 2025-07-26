@@ -1992,9 +1992,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def unique(self) -> IntervalArray:
         # No overload variant of "__getitem__" of "ExtensionArray" matches argument
         # type "Tuple[slice, int]"
-        nc = unique(
-            self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
-        )
+        if needs_i8_conversion(self._left.dtype):
+            nc = unique(
+                self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
+            )
+        else:
+            nc = unique(
+                # Using .view("complex128") with negatives causes issues.
+                # GH#61917
+                (np.array(self._combined[:, 0], dtype=complex))
+                + (1j * np.array(self._combined[:, 1], dtype=complex))
+            )
         nc = nc[:, None]
         return self._from_combined(nc)
 
