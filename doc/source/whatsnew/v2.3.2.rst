@@ -22,7 +22,10 @@ become the default string dtype in pandas 3.0. See
 
 Bug fixes
 ^^^^^^^^^
--
+- Fix :meth:`~DataFrame.to_json` with ``orient="table"`` to correctly use the
+  "string" type in the JSON Table Schema for :class:`StringDtype` columns
+  (:issue:`61889`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_232.contributors:
