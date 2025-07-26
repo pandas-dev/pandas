@@ -1338,31 +1338,13 @@ class StringMethods(NoNewAttributesMixin):
         4    False
         dtype: bool
         """
-        if isinstance(self._data.dtype, ArrowDtype) and isinstance(pat, re.Pattern):
-            if flags != 0:
-                raise NotImplementedError(
-                    "Series.str.contains() with a compiled regex pattern and flag is "
-                    "not supported for Arrow-backed string arrays."
-               )
-            pat = pat.pattern
-            regex = True
-
-        if regex:
-            try:
-                _compiled = (
-                    pat if isinstance(pat, re.Pattern) else re.compile(pat, flags=flags)
-                )
-                if _compiled.groups:
-                    warnings.warn(
-                        "This pattern is interpreted as a regular expression, and has "
-                        "match groups. To actually get the groups, use str.extract.",
-                        UserWarning,
-                        stacklevel=find_stack_level(),
-                    )
-            except re.error as e:
-                raise ValueError(
-                    f"Invalid regex pattern passed to str.contains(): {e}"
-                ) from e
+        if regex and re.compile(pat).groups:
+            warnings.warn(
+                "This pattern is interpreted as a regular expression, and has "
+                "match groups. To actually get the groups, use str.extract.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
