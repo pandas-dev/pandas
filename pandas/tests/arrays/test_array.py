@@ -530,3 +530,16 @@ def test_array_to_numpy_na():
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_array_max_min():
+    pytest.importorskip("pyarrow")
+    # GH#61311
+    df = pd.DataFrame({"a": [1, 2], "c": [0, 2], "d": ["c", "a"]})
+    expected = df.iloc[:, df["c"]]
+    df_pyarrow = pd.DataFrame(
+        {"a": [1, 2], "c": [0, 2], "d": ["c", "a"]}
+    ).convert_dtypes(dtype_backend="pyarrow")
+    result = df_pyarrow.iloc[:, df_pyarrow["c"]]
+    expected_pyarrow = expected.convert_dtypes(dtype_backend="pyarrow")
+    tm.assert_frame_equal(result, expected_pyarrow)

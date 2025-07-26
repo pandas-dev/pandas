@@ -2948,6 +2948,14 @@ class ArrowExtensionArray(
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
 
+    def max(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
+        """Return the maximum value of the array."""
+        return self._reduce("max", skipna=skipna, **kwargs)
+
+    def min(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
+        """Return the minimum value of the array."""
+        return self._reduce("min", skipna=skipna, **kwargs)
+
 
 def transpose_homogeneous_pyarrow(
     arrays: Sequence[ArrowExtensionArray],
