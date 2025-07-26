@@ -15,6 +15,7 @@ from pandas.compat import (
     HAS_PYARROW,
     pa_version_under13p0,
     pa_version_under17p0,
+    pa_version_under21p0,
 )
 
 if HAS_PYARROW:
@@ -261,6 +262,12 @@ class ArrowStringArrayMixin:
         return self._convert_bool_result(result)
 
     def _str_isdigit(self):
+        if pa_version_under21p0:
+            # https://github.com/pandas-dev/pandas/issues/61466
+            res_list = self._apply_elementwise(str.isdigit)
+            return self._convert_bool_result(
+                pa.chunked_array(res_list, type=pa.bool_())
+            )
         result = pc.utf8_is_digit(self._pa_array)
         return self._convert_bool_result(result)
 
