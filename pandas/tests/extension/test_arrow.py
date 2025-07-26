@@ -1857,6 +1857,10 @@ def test_str_repeat():
         ["ab", False, True, [True, True]],
         ["a[a-z]{1}", False, None, [True, None]],
         ["A[a-z]{1}", True, None, [False, None]],
+        # GH#61952
+        [re.compile(r"ab"), False, None, [True, None]],
+        [re.compile(r"Abc"), True, None, [False, None]],
+        [re.compile(r"a[a-z]{1}"), False, None, [True, None]],
     ],
 )
 def test_str_match(pat, case, na, exp):
@@ -1880,6 +1884,10 @@ def test_str_match(pat, case, na, exp):
         ["abc\\$", False, None, [False, True, False, None]],
         ["Abc$", True, None, [False, False, False, None]],
         ["Abc\\$", True, None, [False, False, False, None]],
+        # GH#61952
+        [re.compile(r"abc"), False, None, [True, True, False, None]],
+        [re.compile(r"abc$"), False, None, [True, False, False, None]],
+        [re.compile(r"a[a-z]{2}"), False, None, [True, True, False, None]],
     ],
 )
 def test_str_fullmatch(pat, case, na, exp):

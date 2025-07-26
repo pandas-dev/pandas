@@ -304,11 +304,14 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str,
+        pat,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
+        if isinstance(pat, re.Pattern):
+            # GH#61952
+            pat = pat.pattern
         if not pat.startswith("^"):
             pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
@@ -320,6 +323,9 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
+        if isinstance(pat, re.Pattern):
+            # GH#61952
+            pat = pat.pattern
         if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
