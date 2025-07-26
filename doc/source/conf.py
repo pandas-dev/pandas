@@ -271,7 +271,7 @@ html_theme_options = {
         },
     ],
     "secondary_sidebar_items": ["page-toc", "sourcelink", "edit-this-page"],
-    "use_edit_page_button": True
+    "use_edit_page_button": True,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
