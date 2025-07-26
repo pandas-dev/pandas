@@ -2447,8 +2447,6 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_contains(self, pat, case=True, flags=0, na=lib.no_default, regex=True):
-        import re
-
         if isinstance(pat, re.Pattern):
             if flags != 0:
                 # fallback to python object implementation
@@ -2470,11 +2468,6 @@ class ArrowExtensionArray(
             return BaseStringArrayMethods._str_contains(
                 self, pat, case, flags, na, regex
             )
-
-    def _str_count(self, pat: str, flags: int = 0) -> Self:
-        if flags:
-            raise NotImplementedError(f"count not implemented with {flags=}")
-        return type(self)(pc.count_substring_regex(self._pa_array, pat))
 
     def _str_count(self, pat: str, flags: int = 0) -> Self:
         if flags:
