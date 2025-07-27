@@ -54,7 +54,7 @@ A ``DataFrame`` can now be written to and subsequently read back via JSON while 
 
    In [1]: df = pd.DataFrame({'foo': [1, 2, 3, 4],
       ...:                    'bar': ['a', 'b', 'c', 'd'],
-      ...:                    'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+      ...:                    'baz': pd.date_range('2018-01-01', freq='D', periods=4),
       ...:                    'qux': pd.Categorical(['a', 'b', 'c', 'c'])},
       ...:                   index=pd.Index(range(4), name='idx'))
 
@@ -516,7 +516,6 @@ The method has now gained a keyword ``join`` to control the manner of alignment,
 In v.0.23 ``join`` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
 
 .. ipython:: python
-   :okwarning:
 
     s = pd.Series(['a', 'b', 'c', 'd'])
     t = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
@@ -856,7 +855,6 @@ In a future version of pandas :func:`pandas.concat` will no longer sort the non-
 The current behavior is the same as the previous (sorting), but now a warning is issued when ``sort`` is not specified and the non-concatenation axis is not aligned (:issue:`4588`).
 
 .. ipython:: python
-   :okwarning:
 
    df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
    df2 = pd.DataFrame({"a": [4, 5]})
@@ -871,7 +869,7 @@ To keep the previous behavior (sorting) and silence the warning, pass ``sort=Tru
 
 To accept the future behavior (no sorting), pass ``sort=False``
 
-.. ipython
+.. ipython:: python
 
    pd.concat([df1, df2], sort=False)
 
