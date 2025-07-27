@@ -660,7 +660,7 @@ class TestMultiIndexSlicers:
                 [[100], [100, 100]], dtype="int64"
             )
 
-        msg = "Must have equal len keys and value when setting with an iterable"
+        msg = "Length mismatch when setting Dataframe with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[(slice(None), 1), (slice(None), ["foo"])] = np.array(
                 [100, 100, 100, 100], dtype="int64"

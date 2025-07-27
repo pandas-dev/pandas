@@ -1098,7 +1098,7 @@ class TestDataFrameSetItemBooleanMask:
             indexer = box([], dtype="object")
         else:
             indexer = box([])
-        msg = "Must have equal len keys and value when setting with an iterable"
+        msg = "Length mismatch when setting Dataframe with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[indexer, ["b"]] = [1]
 
