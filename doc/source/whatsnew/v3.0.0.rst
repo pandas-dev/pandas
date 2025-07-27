@@ -1,6 +1,6 @@
 .. _whatsnew_300:
 
-What's new in 3.0.0 (Month XX, 2024)
+What's new in 3.0.0 (Month XX, 2025)
 ------------------------------------
 
 These are the changes in pandas 3.0.0. See :ref:`release` for a full changelog

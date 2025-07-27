@@ -34,6 +34,14 @@ def cartesian_product_for_groupers(result, args, names, fill_value=np.nan):
         return a
 
     index = MultiIndex.from_product(map(f, args), names=names)
+    if isinstance(fill_value, dict):
+        # fill_value is a dict mapping column names to fill values
+        # -> reindex column by column (reindex itself does not support this)
+        res = {}
+        for col in result.columns:
+            res[col] = result[col].reindex(index, fill_value=fill_value[col])
+        return DataFrame(res, index=index).sort_index()
+
     return result.reindex(index, fill_value=fill_value).sort_index()
 
 
@@ -319,17 +327,13 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-def test_observed(request, using_infer_string, observed):
+def test_observed(observed, using_infer_string):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
     # gh-10132 (back-compat)
     # gh-8138 (back-compat)
     # gh-8869
-
-    if using_infer_string and not observed:
-        # TODO(infer_string) this fails with filling the string column with 0
-        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     cat1 = Categorical(["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True)
     cat2 = Categorical(["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True)
@@ -358,7 +362,10 @@ def test_observed(request, using_infer_string, observed):
     result = gb.sum()
     if not observed:
         expected = cartesian_product_for_groupers(
-            expected, [cat1, cat2], list("AB"), fill_value=0
+            expected,
+            [cat1, cat2],
+            list("AB"),
+            fill_value={"values": 0, "C": ""} if using_infer_string else 0,
         )
 
     tm.assert_frame_equal(result, expected)
