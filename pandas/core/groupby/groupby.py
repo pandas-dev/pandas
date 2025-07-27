@@ -1784,7 +1784,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         new_mgr = data.grouped_reduce(array_func)
         res = self._wrap_agged_manager(new_mgr)
         if how in ["idxmin", "idxmax"]:
-            res = self._wrap_idxmax_idxmin(res)
+            res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])
         out = self._wrap_aggregated_output(res)
         return out
 
@@ -5715,10 +5715,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
         return result
 
-    def _wrap_idxmax_idxmin(self, res: NDFrameT) -> NDFrameT:
+    def _wrap_idxmax_idxmin(
+        self, res: NDFrameT, how: Literal["idxmax", "idxmin"], skipna: bool
+    ) -> NDFrameT:
         index = self.obj.index
         if res.size == 0:
             result = res.astype(index.dtype)
+        elif skipna and res.lt(0).any(axis=None):
+            raise ValueError(
+                f"{type(self).__name__}.{how} with skipna=True encountered all NA "
+                f"value in a group."
+            )
         else:
             if isinstance(index, MultiIndex):
                 index = index.to_flat_index()
