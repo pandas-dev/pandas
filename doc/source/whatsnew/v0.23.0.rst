@@ -20,37 +20,3 @@ What's new in 0.23.0 (May 15, 2018)
    new_df = pd.read_json('test.json', orient='table')
    new_df
    new_df.dtypes
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('test.json')
-
-.. ipython:: python
-
-    df = pd.DataFrame({'A': [1, 2, 3]})
-    df
-    df.assign(B=df.A, C=lambda x: x['A'] + x['B'])
-
-  .. ipython:: python
-
-      df.assign(A=df.A + 1, C=lambda df: df.A * -1)
-
-.. ipython:: python
-
-   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
-
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
-                        'B': ['B0', 'B1', 'B2', 'B3'],
-                        'key2': ['K0', 'K1', 'K0', 'K1']},
-                       index=left_index)
-
-   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
-
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3'],
-                         'key2': ['K0', 'K0', 'K0', 'K1']},
-                        index=right_index)
-
-   left.merge(right, on=['key1', 'key2'])
