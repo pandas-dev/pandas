@@ -761,7 +761,8 @@ class BaseGrouper:
     def ids(self) -> npt.NDArray[np.intp]:
         return self.result_index_and_ids[1]
 
-    @cache_readonly
+    # @cache_readonly
+    @property
     def result_index_and_ids(self) -> tuple[Index, npt.NDArray[np.intp]]:
         levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
         obs = [
