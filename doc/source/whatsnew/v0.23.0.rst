@@ -11,101 +11,46 @@ What's new in 0.23.0 (May 15, 2018)
    from pandas import * # noqa F401, F403
 
 
-This is a major release from 0.22.0 and includes a number of API changes,
-deprecations, new features, enhancements, and performance improvements along
-with a large number of bug fixes. We recommend that all users upgrade to this
-version.
+.. ipython:: python
+   :okwarning:
 
-Highlights include:
+   df.index.name = 'index'
 
-- :ref:`Round-trippable JSON format with 'table' orient <whatsnew_0230.enhancements.round-trippable_json>`.
-- :ref:`Instantiation from dicts respects order for Python 3.6+ <whatsnew_0230.api_breaking.dict_insertion_order>`.
-- :ref:`Dependent column arguments for assign <whatsnew_0230.enhancements.assign_dependent>`.
-- :ref:`Merging / sorting on a combination of columns and index levels <whatsnew_0230.enhancements.merge_on_columns_and_levels>`.
-- :ref:`Extending pandas with custom types <whatsnew_023.enhancements.extension>`.
-- :ref:`Excluding unobserved categories from groupby <whatsnew_0230.enhancements.categorical_grouping>`.
-- :ref:`Changes to make output shape of DataFrame.apply consistent <whatsnew_0230.api_breaking.apply>`.
+   df.to_json('test.json', orient='table')
+   new_df = pd.read_json('test.json', orient='table')
+   new_df
+   new_df.dtypes
 
-Check the :ref:`API Changes <whatsnew_0230.api_breaking>` and :ref:`deprecations <whatsnew_0230.deprecations>` before updating.
+.. ipython:: python
+   :suppress:
 
-.. warning::
+   import os
+   os.remove('test.json')
 
-   Starting January 1, 2019, pandas feature releases will support Python 3 only.
-   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
+.. ipython:: python
 
-.. contents:: What's new in v0.23.0
-    :local:
-    :backlinks: none
-    :depth: 2
+    df = pd.DataFrame({'A': [1, 2, 3]})
+    df
+    df.assign(B=df.A, C=lambda x: x['A'] + x['B'])
 
-.. _whatsnew_0230.enhancements:
+  .. ipython:: python
 
-New features
-~~~~~~~~~~~~
+      df.assign(A=df.A + 1, C=lambda df: df.A * -1)
 
-.. _whatsnew_0230.enhancements.round-trippable_json:
+.. ipython:: python
 
-JSON read/write round-trippable with ``orient='table'``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
 
-A ``DataFrame`` can now be written to and subsequently read back via JSON while preserving metadata through usage of the ``orient='table'`` argument (see :issue:`18912` and :issue:`9146`). Previously, none of the available ``orient`` values guaranteed the preservation of dtypes and index names, amongst other metadata.
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3'],
+                        'key2': ['K0', 'K1', 'K0', 'K1']},
+                       index=left_index)
 
-.. code-block:: ipython
+   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
 
-   In [1]: df = pd.DataFrame({'foo': [1, 2, 3, 4],
-      ...:                    'bar': ['a', 'b', 'c', 'd'],
-      ...:                    'baz': pd.date_range('2018-01-01', freq='D', periods=4),
-      ...:                    'qux': pd.Categorical(['a', 'b', 'c', 'c'])},
-      ...:                   index=pd.Index(range(4), name='idx'))
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3'],
+                         'key2': ['K0', 'K0', 'K0', 'K1']},
+                        index=right_index)
 
-   In [2]: df
-   Out[2]:
-        foo bar        baz qux
-   idx
-   0      1   a 2018-01-01   a
-   1      2   b 2018-01-02   b
-   2      3   c 2018-01-03   c
-   3      4   d 2018-01-04   c
-
-   [4 rows x 4 columns]
-
-   In [3]: df.dtypes
-   Out[3]:
-   foo             int64
-   bar            object
-   baz    datetime64[ns]
-   qux          category
-   Length: 4, dtype: object
-
-   In [4]: df.to_json('test.json', orient='table')
-
-   In [5]: new_df = pd.read_json('test.json', orient='table')
-
-   In [6]: new_df
-   Out[6]:
-        foo bar        baz qux
-   idx
-   0      1   a 2018-01-01   a
-   1      2   b 2018-01-02   b
-   2      3   c 2018-01-03   c
-   3      4   d 2018-01-04   c
-
-   [4 rows x 4 columns]
-
-   In [7]: new_df.dtypes
-   Out[7]:
-   foo             int64
-   bar            object
-   baz    datetime64[ns]
-   qux          category
-   Length: 4, dtype: object
-
-Please note that the string ``index`` is not supported with the round trip format, as it is used by default in ``write_json`` to indicate a missing index name.
-
-
-.. _whatsnew_0.23.0.contributors:
-
-Contributors
-~~~~~~~~~~~~
-
-.. contributors:: v0.22.0..v0.23.0
+   left.merge(right, on=['key1', 'key2'])
