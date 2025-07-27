@@ -154,7 +154,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # GH 5686
         # GH 54643
         sio = StringIO("a,b\n1,2")
-        bad_lines_func = lambda x: x
+        bad_lines_func = lambda x, y, z, a: a
         parser = all_parsers
         if all_parsers.engine not in ["python", "pyarrow"]:
             msg = (

@@ -341,7 +341,9 @@ def test_python_engine_file_no_next(python_parser_only):
     parser.read_csv(NoNextBuffer("a\n1"))
 
 
-@pytest.mark.parametrize("bad_line_func", [lambda x: ["2", "3"], lambda x: x[:2]])
+@pytest.mark.parametrize(
+    "bad_line_func", [lambda x, y, z, a: ["2", "3"], lambda x, y, z, a: a[:2]]
+)
 def test_on_bad_lines_callable(python_parser_only, bad_line_func):
     # GH 5686
     parser = python_parser_only
@@ -367,7 +369,9 @@ def test_on_bad_lines_callable_write_to_external_list(python_parser_only):
     bad_sio = StringIO(data)
     lst = []
 
-    def bad_line_func(bad_line: list[str]) -> list[str]:
+    def bad_line_func(
+        expected_columns: int, actual_columns: int, row: int, bad_line: list[str]
+    ) -> list[str]:
         lst.append(bad_line)
         return ["2", "3"]
 
@@ -377,7 +381,9 @@ def test_on_bad_lines_callable_write_to_external_list(python_parser_only):
     assert lst == [["2", "3", "4", "5", "6"]]
 
 
-@pytest.mark.parametrize("bad_line_func", [lambda x: ["foo", "bar"], lambda x: x[:2]])
+@pytest.mark.parametrize(
+    "bad_line_func", [lambda x, y, z, a: ["foo", "bar"], lambda x, y, z, a: a[:2]]
+)
 @pytest.mark.parametrize("sep", [",", "111"])
 def test_on_bad_lines_callable_iterator_true(python_parser_only, bad_line_func, sep):
     # GH 5686
@@ -414,7 +420,7 @@ def test_on_bad_lines_callable_dont_swallow_errors(python_parser_only):
     bad_sio = StringIO(data)
     msg = "This function is buggy."
 
-    def bad_line_func(bad_line):
+    def bad_line_func(expected_columns, actual_columns, row, bad_line):
         raise ValueError(msg)
 
     with pytest.raises(ValueError, match=msg):
@@ -432,7 +438,10 @@ def test_on_bad_lines_callable_not_expected_length(python_parser_only):
     bad_sio = StringIO(data)
 
     result = parser.read_csv_check_warnings(
-        ParserWarning, "Length of header or names", bad_sio, on_bad_lines=lambda x: x
+        ParserWarning,
+        "Length of header or names",
+        bad_sio,
+        on_bad_lines=lambda x, y, z, a: a,
     )
     expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
@@ -448,7 +457,7 @@ def test_on_bad_lines_callable_returns_none(python_parser_only):
 """
     bad_sio = StringIO(data)
 
-    result = parser.read_csv(bad_sio, on_bad_lines=lambda x: None)
+    result = parser.read_csv(bad_sio, on_bad_lines=lambda x, y, z, a: None)
     expected = DataFrame({"a": [1, 3], "b": [2, 4]})
     tm.assert_frame_equal(result, expected)
 
