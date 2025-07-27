@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -717,6 +719,7 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
 def test_replace_from_index():
     # https://github.com/pandas-dev/pandas/issues/61622
     idx = pd.Index(["a", "b", "c"], dtype="string[pyarrow]")
