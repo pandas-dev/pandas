@@ -767,9 +767,6 @@ install pandas) by typing::
     if run in parallel. As long as you can import pandas from your locally built version,
     your installation is probably fine and you can start contributing!
 
-Often it is worth running only a subset of tests first around your changes before running the
-entire suite.
-
 The easiest way to do this is with::
 
     pytest pandas/path/to/test.py -k regex_matching_test_name
