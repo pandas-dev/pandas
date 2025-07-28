@@ -1405,6 +1405,10 @@ class TestTypeInference:
         ser = Series([1.0, 2.0, na_value], dtype=object)
         assert lib.infer_dtype(ser, skipna=True) == "floating"
 
+        # GH#61976
+        ser = Series([1 + 1j, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "complex"
+
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
         assert lib.infer_dtype(arr, skipna=True) == "floating"
