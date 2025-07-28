@@ -1,0 +1,11 @@
+.. _whatsnew_232:
+
+These are the changes in pandas 2.3.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+Bug fixes
+^^^^^^^^^
+
+- Fixed ``Series.str.contains`` with compiled regex on Arrow string dtype, which now correctly delegates to the object-dtype implementation. (:issue:`61942`)

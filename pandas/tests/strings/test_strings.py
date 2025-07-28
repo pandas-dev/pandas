@@ -2,10 +2,12 @@ from datetime import (
     datetime,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -174,6 +176,14 @@ def test_empty_str_methods(any_string_dtype):
 
     table = str.maketrans("a", "b")
     tm.assert_series_equal(empty_str, empty.str.translate(table))
+
+
+def test_str_contains_compiled_regex_arrow():
+    ser = Series(["foo", "bar", "baz", None], dtype="string[pyarrow]")
+    pat = re.compile(r"ba.")
+    result = ser.str.contains(pat)
+    expected = Series([False, True, True, pd.NA], dtype="boolean[pyarrow]")
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
