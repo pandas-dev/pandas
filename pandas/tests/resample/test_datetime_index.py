@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.tslibs import Day
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
@@ -33,6 +34,7 @@ from pandas.core.resample import (
 )
 
 from pandas.tseries import offsets
+from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Minute
 
 
@@ -884,7 +886,8 @@ def test_resample_origin_epoch_with_tz_day_vs_24h(unit):
 
     result_1 = ts_1.resample("D", origin="epoch").mean()
     result_2 = ts_1.resample("24h", origin="epoch").mean()
-    tm.assert_series_equal(result_1, result_2)
+    tm.assert_series_equal(result_1, result_2, check_freq=False)
+    # GH#41943 check_freq=False bc Day and Hour(24) no longer compare as equal
 
     # check that we have the same behavior with epoch even if we are not timezone aware
     ts_no_tz = ts_1.tz_localize(None)
@@ -1845,6 +1848,10 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
 
     result1 = ser.resample(str(n1_) + freq1).mean()
     result2 = ser.resample(str(n2_) + freq2).mean()
+    if freq2 == "D" and isinstance(result2.index.freq, Day):
+        # GH#55502 Day is no longer a Tick so no longer compares as equivalent,
+        #  but the actual values we expect should still match
+        result2.index.freq = to_offset(Timedelta(days=result2.index.freq.n))
     tm.assert_series_equal(result1, result2)
 
 
@@ -2059,7 +2066,8 @@ def test_resample_depr_lowercase_frequency(freq, freq_depr, data):
 
     exp_dti = DatetimeIndex(data=data, dtype="datetime64[ns]", freq=freq)
     expected = Series(2.0, index=exp_dti)
-    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected, check_freq=False)
+    # GH#41943 check_freq=False bc 24H and D no longer compare as equal
 
 
 def test_resample_ms_closed_right(unit):

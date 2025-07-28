@@ -2159,8 +2159,10 @@ class TimeGrouper(Grouper):
         fill_method=None,
         limit: int | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
-        origin: Literal["epoch", "start", "start_day", "end", "end_day"]
-        | TimestampConvertibleTypes = "start_day",
+        origin: (
+            Literal["epoch", "start", "start_day", "end", "end_day"]
+            | TimestampConvertibleTypes
+        ) = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool = False,
         **kwargs,
@@ -2174,13 +2176,10 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        if (
-            (key is None and obj is not None and isinstance(obj.index, PeriodIndex))  # type: ignore[attr-defined]
-            or (
-                key is not None
-                and obj is not None
-                and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
-            )
+        if (key is None and obj is not None and isinstance(obj.index, PeriodIndex)) or (  # type: ignore[attr-defined]
+            key is not None
+            and obj is not None
+            and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
         ):
             freq = to_offset(freq, is_period=True)
         else:
@@ -2421,7 +2420,7 @@ class TimeGrouper(Grouper):
                 f"an instance of {type(ax).__name__}"
             )
 
-        if not isinstance(self.freq, Tick):
+        if not isinstance(self.freq, (Tick, Day)):
             # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
@@ -2632,7 +2631,7 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(freq, Tick):
+    if isinstance(freq, (Tick, Day)):
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
@@ -2763,7 +2762,10 @@ def _adjust_dates_anchored(
     if offset is not None:
         offset = offset.as_unit(unit)
 
-    freq_value = Timedelta(freq).as_unit(unit)._value
+    if isinstance(freq, Day):
+        freq_value = Timedelta(days=freq.n).as_unit(unit)._value
+    else:
+        freq_value = Timedelta(freq).as_unit(unit)._value
 
     origin_timestamp = 0  # origin == "epoch"
     if origin == "start_day":
