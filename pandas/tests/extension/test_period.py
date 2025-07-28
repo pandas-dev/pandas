@@ -102,12 +102,11 @@ class TestPeriodArray(base.ExtensionTests):
             return super().check_reduce(ser, op_name, skipna)
 
     @pytest.mark.parametrize("periods", [1, -2])
-    def test_diff(self, data, periods):
+    def test_diff(self, request, data, periods):
         if is_platform_windows():
-            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
-                super().test_diff(data, periods)
-        else:
-            super().test_diff(data, periods)
+            # NOTE: No warning on Windows-ARM platforms (in CI)
+            request.applymarker(pytest.mark.filterwarnings("ignore::RuntimeWarning"))
+        super().test_diff(data, periods)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
