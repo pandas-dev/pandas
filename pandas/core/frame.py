@@ -4000,10 +4000,12 @@ class DataFrame(NDFrame, OpsMixin):
             and len(key) > 0
             and any(isinstance(k, bool) for k in key)
             and all(isinstance(k, (bool, str)) for k in key)
-            and not (len(key) == len((self.index) and all(isinstance(k, bool) for k in key)))
-        ):  
-            return self.reindex_columns(key)  
-        
+            and not (
+                len(key) == len(self.index) and all(isinstance(k, bool) for k in key)
+            )
+        ):
+            return self.reindex_columns(key)
+
         if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)

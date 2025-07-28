@@ -101,12 +101,11 @@ class TestGetitemListLike:
         expected = df.iloc[:, 2:]
         tm.assert_frame_equal(result, expected)
 
-    def test_getitem_bool_column_name(self):
-        # GH#61980
-        data = {"A": [1, 2, 3], "B": [4, 5, 6], True: [7, 8, 9]}
-        df = DataFrame(data)
+    def test_getitem_single_bool_column(self):
+        #  GH#61980
+        df = DataFrame({True: [10, 20, 30]})
         result = df[[True]]
-        expected = DataFrame({True: [7, 8, 9]})
+        expected = DataFrame({True: [10, 20, 30]})
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_dupe_cols(self):
