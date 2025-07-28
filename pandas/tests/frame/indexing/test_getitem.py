@@ -101,6 +101,14 @@ class TestGetitemListLike:
         expected = df.iloc[:, 2:]
         tm.assert_frame_equal(result, expected)
 
+    def test_getitem_bool_column_name(self):
+        # GH#61980
+        data = {"A": [1, 2, 3], "B": [4, 5, 6], True: [7, 8, 9]}
+        df = DataFrame(data)
+        result = df[[True]]
+        expected = DataFrame({True: [7, 8, 9]})
+        tm.assert_frame_equal(result, expected)
+
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
         msg = "\"None of [Index(['baf'], dtype="
