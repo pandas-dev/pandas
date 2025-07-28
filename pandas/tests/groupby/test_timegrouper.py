@@ -10,8 +10,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -75,10 +73,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
-    # TODO(infer_string) resample sum introduces 0's
-    # https://github.com/pandas-dev/pandas/issues/60229
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_groupby_with_timegrouper(self):
+    def test_groupby_with_timegrouper(self, using_infer_string):
         # GH 4161
         # TimeGrouper requires a sorted index
         # also verifies that the resultant index has the correct name
@@ -112,11 +107,13 @@ class TestGroupBy:
                 unit=df.index.unit,
             )
             expected = DataFrame(
-                {"Buyer": 0, "Quantity": 0},
+                {"Buyer": "" if using_infer_string else 0, "Quantity": 0},
                 index=exp_dti,
             )
             # Cast to object to avoid implicit cast when setting entry to "CarlCarlCarl"
             expected = expected.astype({"Buyer": object})
+            if using_infer_string:
+                expected = expected.astype({"Buyer": "str"})
             expected.iloc[0, 0] = "CarlCarlCarl"
             expected.iloc[6, 0] = "CarlCarl"
             expected.iloc[18, 0] = "Joe"
