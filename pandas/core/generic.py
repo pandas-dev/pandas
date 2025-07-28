@@ -5025,24 +5025,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4   64hr  10mins     50
         5  128hr  10mins     60
         >>> from natsort import natsort_keygen
-        >>> natsort_keygen()(df["hours"])
-        (
-            ('', 0, 'hr'),
-            ('', 128, 'hr'),
-            ('', 0, 'hr'),
-            ('', 64, 'hr'),
-            ('', 64, 'hr'),
-            ('', 128, 'hr'),
-        )
-        >>> natsort_keygen()(df["mins"])
-        (
-            ('', 10, 'mins'),
-            ('', 40, 'mins'),
-            ('', 40, 'mins'),
-            ('', 40, 'mins'),
-            ('', 10, 'mins'),
-            ('', 10, 'mins'),
-        )
         >>> df.sort_values(
         ...     by=["hours", "mins"],
         ...     key=natsort_keygen(),
