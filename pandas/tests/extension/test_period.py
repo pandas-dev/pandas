@@ -25,7 +25,6 @@ from pandas._libs import (
     Period,
     iNaT,
 )
-from pandas.compat import is_platform_windows
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -102,10 +101,9 @@ class TestPeriodArray(base.ExtensionTests):
             return super().check_reduce(ser, op_name, skipna)
 
     @pytest.mark.parametrize("periods", [1, -2])
+    # NOTE: RuntimeWarning on Windows(non-ARM) platforms (in CI)
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_diff(self, request, data, periods):
-        if is_platform_windows():
-            # NOTE: No warning on Windows-ARM platforms (in CI)
-            request.applymarker(pytest.mark.filterwarnings("ignore::RuntimeWarning"))
         super().test_diff(data, periods)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])

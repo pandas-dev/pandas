@@ -190,7 +190,7 @@ select = "*pyodide*"
 test-requires = "pytest>=7.3.2 hypothesis>=6.84.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 repair-wheel-command = ""
-# meson-python: error: Unknown option "-vv"
+# https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
