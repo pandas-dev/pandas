@@ -38,6 +38,7 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -328,8 +329,8 @@ def assert_index_equal(
             try:
                 mismatch = left._values != right._values
             except TypeError:
-                if hasattr(left, "_internal_get_values") and hasattr(
-                    right, "_internal_get_values"
+                if isinstance(left, CategoricalIndex) and isinstance(
+                    right, CategoricalIndex
                 ):
                     mismatch = (
                         left._internal_get_values() != right._internal_get_values()
