@@ -344,6 +344,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         na=lib.no_default,
         regex: bool = True,
     ):
+        if isinstance(pat, re.Pattern) and regex:
+            return super()._str_contains(pat, case, flags, na, regex)
+
         if flags:
             return super()._str_contains(pat, case, flags, na, regex)
 
