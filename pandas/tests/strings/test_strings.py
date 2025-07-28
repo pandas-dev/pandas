@@ -7,7 +7,8 @@ import re
 import numpy as np
 import pytest
 
-import pandas as pd
+pytest.importorskip("pyarrow")
+
 from pandas import (
     NA,
     DataFrame,
@@ -185,10 +186,11 @@ def test_empty_str_methods(any_string_dtype):
 
 
 def test_str_contains_compiled_regex_arrow():
+    # GH#61942
     ser = Series(["foo", "bar", "baz", None], dtype="string[pyarrow]")
     pat = re.compile(r"ba.")
     result = ser.str.contains(pat)
-    expected = Series([False, True, True, pd.NA], dtype="boolean[pyarrow]")
+    expected = Series([False, True, True, NA], dtype="boolean[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 
