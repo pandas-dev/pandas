@@ -679,6 +679,24 @@ def _read(
             kwds["parse_dates"] = False
         else:
             kwds["parse_dates"] = True
+    # 🆕 Handle engine='polars'
+    if kwds.get("engine") == "polars":
+        try:
+            import polars as pl
+        except ImportError:
+            raise ImportError(
+                "Polars is not installed. Please install it with 'pip install polars'."
+            )
+
+        pl_args = {}
+        if "nrows" in kwds:
+            pl_args["n_rows"] = kwds["nrows"]
+        if "encoding" in kwds:
+            pl_args["encoding"] = kwds["encoding"]
+
+        df = pl.read_csv(filepath_or_buffer, **pl_args)
+        return df.to_pandas()
+
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
