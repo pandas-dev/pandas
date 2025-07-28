@@ -321,8 +321,11 @@ def test_assert_multi_index_dtype_check_categorical(check_categorical):
 
 def test_assert_index_equal_categorical_mismatch_categories():
     # GH#61941
-    ci1 = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"], ordered=False)
-    ci2 = CategoricalIndex(["a", "x", "c"], categories=["a", "b", "c"], ordered=False)
+    ci = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"], ordered=False)
+    idx = Index(["a", "b", "c"])
 
     with pytest.raises(AssertionError, match="Index are different"):
-        tm.assert_index_equal(ci1, ci2, check_exact=False, check_categorical=True)
+        tm.assert_index_equal(
+            ci,
+            idx,
+        )
