@@ -1809,6 +1809,9 @@ def _refine_defaults_read(
         kwds["delimiter"] = delimiter
 
     if engine is not None:
+        if engine not in ["c", "python", "pyarrow", "polars"]:
+            raise ValueError(f"Unknown engine: {engine}")
+        kwds["engine"] = engine
         kwds["engine_specified"] = True
     else:
         kwds["engine"] = "c"
