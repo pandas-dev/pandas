@@ -855,7 +855,7 @@ class TestMultiplicationDivision:
             result = 0 % s
             expected = Series([np.nan, 0.0])
             tm.assert_series_equal(result, expected)
-    
+
     def test_np_array_mul_ea_array_returns_extensionarray(self):
         np_array = np.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_NUMPY_DTYPES[0])
         ea_array = pd.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_EA_DTYPES[0])
@@ -867,8 +867,12 @@ class TestMultiplicationDivision:
 
     def test_df_mul_np_and_ea_array_shape_and_errors(self):
         df = pd.DataFrame(np.arange(50).reshape(10, 5)).notna().values
-        NP_array = pd.array(list(range(10)), dtype=tm.SIGNED_INT_NUMPY_DTYPES[0]).reshape(10, 1)
-        EA_array = pd.array(list(range(10)), dtype=tm.SIGNED_INT_EA_DTYPES[0]).reshape(10, 1)
+        NP_array = pd.array(
+            list(range(10)), dtype=tm.SIGNED_INT_NUMPY_DTYPES[0]
+        ).reshape(10, 1)
+        EA_array = pd.array(list(range(10)), dtype=tm.SIGNED_INT_EA_DTYPES[0]).reshape(
+            10, 1
+        )
         result_np = df * NP_array
         tm.assert_isinstance(result_np, np.ndarray)
         tm.assert_equal(result_np.shape, (10, 5))
@@ -877,8 +881,12 @@ class TestMultiplicationDivision:
             _ = df * EA_array
 
     def test_non_1d_ea_raises_typeerror(self):
-        ea_array = pd.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_EA_DTYPES[0]).reshape(5, 1)
-        np_array = np.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_NUMPY_DTYPES[0]).reshape(5, 1)
+        ea_array = pd.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_EA_DTYPES[0]).reshape(
+            5, 1
+        )
+        np_array = np.array(
+            [1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_NUMPY_DTYPES[0]
+        ).reshape(5, 1)
 
         with tm.assert_raises(TypeError):
             _ = ea_array * np_array
