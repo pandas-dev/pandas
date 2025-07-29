@@ -334,11 +334,12 @@ def test_on_bad_lines_extra_fields_warns(python_parser_only):
         return ["1", "2", "3", "4", "5"]
 
     expected_warning = (
-            r"Length of header or names \(3\) does not match number of fields in line \(5\)\. Extra field will be dropped\."
+            r"Length of header or names \(3\) does not match number of fields in line \(5\)\. "
+            r"Extra field will be dropped\."
             )
 
     for index_col in [None, 0]:
-        with pytest.warns(ParserWarning, match=expected_warning):
+        with tm.assert_produces_warning(ParserWarning, match=expected_warning):
             parser.read_csv(
                 StringIO(data), on_bad_lines=line_fixer, index_col=index_col
             )
