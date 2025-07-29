@@ -332,9 +332,7 @@ def assert_index_equal(
                 if isinstance(left, CategoricalIndex) and isinstance(
                     right, CategoricalIndex
                 ):
-                    mismatch = (
-                        left._internal_get_values() != right._internal_get_values()
-                    )
+                    mismatch = left.codes != right.codes
                 else:
                     mismatch = left.values != right.values
 
