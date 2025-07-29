@@ -69,7 +69,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     "nbsphinx",
-    'edit_on_github',
+    "edit_on_github",
 ]
 
 exclude_patterns = [
@@ -149,8 +149,8 @@ nbsphinx_requirejs_path = ""
 toggleprompt_offset_right = 35
 
 # Configure the "Edit on GitHub links for Sphinx" extention
-edit_on_github_project = 'pandas-dev/pandas'
-edit_on_github_branch = 'main/doc/source'
+edit_on_github_project = "pandas-dev/pandas"
+edit_on_github_branch = "main/doc/source"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
