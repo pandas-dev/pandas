@@ -335,6 +335,7 @@ def test_on_bad_lines_extra_fields_warns(python_parser_only):
 
     expected_warning = (
             r"Length of head or names \(3)\ does not match number of fields in line \(5\)\. Extra field will be dropped\."
+            )
 
     for index_col in [None, 0]:
         with pytest.warns(ParserWarning, match=expected_warning):
