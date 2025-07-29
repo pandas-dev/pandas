@@ -857,40 +857,33 @@ class TestMultiplicationDivision:
             tm.assert_series_equal(result, expected)
 
     def test_np_array_mul_ea_array_returns_extensionarray(self):
-        np_array = np.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_NUMPY_DTYPES[0])
-        ea_array = pd.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_EA_DTYPES[0])
+        np_array = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+        ea_array = pd.array([1, 2, 3, 4, 5], dtype="Int64")
         result = np_array * ea_array
         assert isinstance(result, type(ea_array))
         tm.assert_equal(
-            result, pd.array([1, 4, 9, 16, 25], dtype=tm.SIGNED_INT_EA_DTYPES[0])
+            result, pd.array([1, 4, 9, 16, 25], dtype="Int64")
         )
 
     def test_df_mul_np_and_ea_array_shape_and_errors(self):
         df = pd.DataFrame(np.arange(50).reshape(10, 5)).notna().values
-        NP_array = pd.array(
-            list(range(10)), dtype=tm.SIGNED_INT_NUMPY_DTYPES[0]
-        ).reshape(10, 1)
-        EA_array = pd.array(list(range(10)), dtype=tm.SIGNED_INT_EA_DTYPES[0]).reshape(
-            10, 1
-        )
+        NP_array = np.array(
+            list(range(10)), dtype=np.int64).reshape(10, 1)
+        EA_array = pd.array(list(range(10)), dtype="Int64").reshape(10, 1)
         result_np = df * NP_array
         assert isinstance(result_np, np.ndarray)
         tm.assert_equal(result_np.shape, (10, 5))
 
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             _ = df * EA_array
 
     def test_non_1d_ea_raises_typeerror(self):
-        ea_array = pd.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_EA_DTYPES[0]).reshape(
-            5, 1
-        )
-        np_array = np.array(
-            [1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_NUMPY_DTYPES[0]
-        ).reshape(5, 1)
+        ea_array = pd.array([1, 2, 3, 4, 5], dtype="Int64").reshape(5, 1)
+        np_array = np.array([1, 2, 3, 4, 5], dtype=np.int64).reshape(5, 1)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             _ = ea_array * np_array
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             _ = np_array * ea_array
 
 
