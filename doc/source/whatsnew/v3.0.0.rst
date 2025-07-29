@@ -335,7 +335,6 @@ with a :class:`Day` ``freq`` no longer preserves that ``freq`` attribute.
 - Adding or subtracing a :class:`Day` with a :class:`Timedelta` is no longer supported.
 - Adding or subtracting a :class:`Day` offset to a :class:`Timestamp` or datetime-like may lead to an ambiguous or non-existent time, which will raise.
 
-
 .. _whatsnew_300.api_breaking.deps:
 
 Increased minimum version for Python
