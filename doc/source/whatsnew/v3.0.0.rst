@@ -328,8 +328,7 @@ small behavior differences as collateral:
 - :class:`offsets.Day` no longer supports division
 - :class:`Timedelta` no longer accepts :class:`Day` objects as inputs
 - :meth:`tseries.frequencies.to_offset` on a :class:`Timedelta` object returns
-a :class:`offsets.Hour` object in cases where it used to return a :class:`Day`
-object.
+a :class:`offsets.Hour` object in cases where it used to return a :class:`Day` object.
 - Adding or subtracting a scalar from a timezone-aware :class:`DatetimeIndex`
 with a :class:`Day` ``freq`` no longer preserves that ``freq`` attribute.
 - Adding or subtracing a :class:`Day` with a :class:`Timedelta` is no longer supported.
