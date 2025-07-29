@@ -861,14 +861,11 @@ class TestMultiplicationDivision:
         ea_array = array([1, 2, 3, 4, 5], dtype="Int64")
         result = np_array * ea_array
         assert isinstance(result, type(ea_array))
-        tm.assert_equal(
-            result, array([1, 4, 9, 16, 25], dtype="Int64")
-        )
+        tm.assert_equal(result, array([1, 4, 9, 16, 25], dtype="Int64"))
 
     def test_df_mul_np_and_ea_array_shape_and_errors(self):
         df = pd.DataFrame(np.arange(50).reshape(10, 5)).notna().values
-        NP_array = np.array(
-            list(range(10)), dtype=np.int64).reshape(10, 1)
+        NP_array = np.array(list(range(10)), dtype=np.int64).reshape(10, 1)
         EA_array = array(list(range(10)), dtype="Int64").reshape(10, 1)
         result_np = df * NP_array
         assert isinstance(result_np, np.ndarray)
