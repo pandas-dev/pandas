@@ -1258,3 +1258,55 @@ class TestDataFrameSelectReindex:
         msg = "Invalid fill method"
         with pytest.raises(ValueError, match=msg):
             df.reindex([1, 0, 2], method="asfreq")
+
+    def test_reindex_index_name_matches_multiindex_level(self):
+        """
+        Test automatic level detection when reindexing from Index to MultiIndex.
+        When source index name matches a level name in target MultiIndex and level
+        is not specified, should behave same as if level was explicitly set.
+        """
+        # Create source DataFrame with named Index
+        df = DataFrame(
+            {"value": [1, 2], "other": ["A", "B"]},
+            index=Index([10, 20], name="a"),
+        )
+
+        # Create target MultiIndex with matching level name
+        target = MultiIndex.from_product(
+            [[10, 20], ["x", "y"]],
+            names=["a", "b"],  # 'a' matches source index name
+        )
+
+        result = df.reindex(index=target)
+        expected = df.reindex(index=target, level="a")
+
+        tm.assert_frame_equal(result, expected)
+
+        # Verify values are propagated correctly
+        expected_values = {
+            (10, "x"): {"value": 1, "other": "A"},
+            (10, "y"): {"value": 1, "other": "A"},
+            (20, "x"): {"value": 2, "other": "B"},
+            (20, "y"): {"value": 2, "other": "B"},
+        }
+        for idx, expected_row in expected_values.items():
+            for col, val in expected_row.items():
+                assert result.loc[idx, col] == val
+
+    def test_reindex_index_name_no_match_multiindex_level(self):
+        """
+        Test reindexing behavior when source index name doesn't match any level
+        in target MultiIndex. Should fill with NaN since there's no level match.
+        """
+        df = DataFrame({"value": [1, 2]}, index=Index([10, 20], name="different_name"))
+
+        target = MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"])
+
+        result = df.reindex(index=target)
+
+        # Should fill with NaN since no level match
+        assert result.isna().all().all()
+
+        # Verify shape is correct
+        assert result.index.equals(target)
+        assert result.columns.equals(df.columns)

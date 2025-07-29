@@ -437,21 +437,21 @@ def test_reindex_expand_nonnano_nat(dtype):
 
 
 @pytest.mark.parametrize(
-    "idx,expected_match_level_a",
+    "name, expected_match_level_a",
     [
         # Source index has matching name - should match level "a"
-        (Index([81, 82], name="a"), True),
+        ("a", True),
         # Source index has no name - should not match any level
-        (Index([81, 82]), False),
+        (None, False),
         # Source index name doesn't match any level - should not match
-        (Index([81, 82], name="x"), False),
+        ("x", False),
     ],
 )
-def test_reindex_multiindex_automatic_level(idx, expected_match_level_a):
+def test_reindex_multiindex_automatic_level(name, expected_match_level_a):
     """
     Test automatic level detection when reindexing from Index to MultiIndex.
     """
-    series = Series([26.73, 24.255], index=idx)
+    series = Series([26.73, 24.255], index=Index([81, 82], name=name))
     target = MultiIndex.from_product(
         [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]], names=["a", "b", "c"]
     )

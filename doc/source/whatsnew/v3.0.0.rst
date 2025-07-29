@@ -788,6 +788,7 @@ MultiIndex
 - Bug in :class:`DataFrame` arithmetic operations in case of unaligned MultiIndex columns (:issue:`60498`)
 - Bug in :class:`DataFrame` arithmetic operations with :class:`Series` in case of unaligned MultiIndex (:issue:`61009`)
 - Bug in :meth:`MultiIndex.from_tuples` causing wrong output with input of type tuples having NaN values (:issue:`60695`, :issue:`60988`)
+- Bug in :meth:`DataFrame.reindex` where reindexing a Dataframe with a named Index to a MultiIndex would incorrectly set all values to ``NaN``. Now correctly preserves values when the source index name matches a target level name (:issue:`60923`)
 - Bug in :meth:`Series.reindex` where reindexing a Series with a named Index to a MultiIndex would incorrectly set all values to ``NaN``. Now correctly preserves values when the source index name matches a target level name (:issue:`60923`)
 
 I/O
