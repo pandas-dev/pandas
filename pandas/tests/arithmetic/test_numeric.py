@@ -860,7 +860,7 @@ class TestMultiplicationDivision:
         np_array = np.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_NUMPY_DTYPES[0])
         ea_array = pd.array([1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_EA_DTYPES[0])
         result = np_array * ea_array
-        tm.assert_isinstance(result, type(ea_array))
+        assert isinstance(result, type(ea_array))
         tm.assert_equal(
             result, pd.array([1, 4, 9, 16, 25], dtype=tm.SIGNED_INT_EA_DTYPES[0])
         )
@@ -874,10 +874,10 @@ class TestMultiplicationDivision:
             10, 1
         )
         result_np = df * NP_array
-        tm.assert_isinstance(result_np, np.ndarray)
+        assert isinstance(result_np, np.ndarray)
         tm.assert_equal(result_np.shape, (10, 5))
 
-        with tm.assert_raises(TypeError):
+        with pytest.raises(TypeError):
             _ = df * EA_array
 
     def test_non_1d_ea_raises_typeerror(self):
@@ -888,9 +888,9 @@ class TestMultiplicationDivision:
             [1, 2, 3, 4, 5], dtype=tm.SIGNED_INT_NUMPY_DTYPES[0]
         ).reshape(5, 1)
 
-        with tm.assert_raises(TypeError):
+        with pytest.raises(TypeError):
             _ = ea_array * np_array
-        with tm.assert_raises(TypeError):
+        with pytest.raises(TypeError):
             _ = np_array * ea_array
 
 
