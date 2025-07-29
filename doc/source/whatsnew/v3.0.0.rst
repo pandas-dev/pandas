@@ -327,10 +327,8 @@ small behavior differences as collateral:
 - ``pd.offsets.Day(n)`` no longer compares as equal to ``pd.offsets.Hour(24*n)``
 - :class:`offsets.Day` no longer supports division
 - :class:`Timedelta` no longer accepts :class:`Day` objects as inputs
-- :meth:`tseries.frequencies.to_offset` on a :class:`Timedelta` object returns
-a :class:`offsets.Hour` object in cases where it used to return a :class:`Day` object.
-- Adding or subtracting a scalar from a timezone-aware :class:`DatetimeIndex`
-with a :class:`Day` ``freq`` no longer preserves that ``freq`` attribute.
+- :meth:`tseries.frequencies.to_offset` on a :class:`Timedelta` object returns a :class:`offsets.Hour` object in cases where it used to return a :class:`Day` object.
+- Adding or subtracting a scalar from a timezone-aware :class:`DatetimeIndex` with a :class:`Day` ``freq`` no longer preserves that ``freq`` attribute.
 - Adding or subtracting a :class:`Day` with a :class:`Timedelta` is no longer supported.
 - Adding or subtracting a :class:`Day` offset to a :class:`Timestamp` or datetime-like may lead to an ambiguous or non-existent time, which will raise.
 
