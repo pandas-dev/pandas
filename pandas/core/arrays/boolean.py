@@ -379,7 +379,7 @@ class BooleanArray(BaseMaskedArray):
         elif is_list_like(other):
             other = np.asarray(other, dtype="bool")
             if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
+                return NotImplemented 
             other, mask = coerce_to_array(other, copy=False)
         elif isinstance(other, np.bool_):
             other = other.item()
