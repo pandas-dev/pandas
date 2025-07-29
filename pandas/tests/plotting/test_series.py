@@ -40,6 +40,10 @@ plt = pytest.importorskip("matplotlib.pyplot")
 from pandas.plotting._matplotlib.converter import DatetimeConverter
 from pandas.plotting._matplotlib.style import get_standard_colors
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:divide by zero encountered in scalar divide:RuntimeWarning"
+)
+
 
 @pytest.fixture
 def ts():
