@@ -52,9 +52,14 @@ from pandas.io.formats.printing import pprint_thing
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:divide by zero encountered in scalar divide:RuntimeWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:divide by zero encountered in scalar divide:RuntimeWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in scalar multiply:RuntimeWarning"
+    ),
+]
 
 
 class TestDataFramePlots:
