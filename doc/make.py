@@ -137,7 +137,7 @@ class DocBuilder:
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
-            cmd += ["-j", self.num_jobs]
+            cmd += ["-j", "1"]
         if self.warnings_are_errors:
             cmd += ["-W", "--keep-going"]
         if self.verbosity:
