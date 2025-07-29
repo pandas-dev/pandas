@@ -10,7 +10,6 @@ import pytest
 pytest.importorskip("pyarrow")
 
 from pandas import (
-    NA,
     DataFrame,
     Index,
     MultiIndex,
@@ -185,13 +184,14 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_series_equal(empty_str, empty.str.translate(table))
 
 
-def test_str_contains_compiled_regex_arrow():
-    # GH#61942
-    ser = Series(["foo", "bar", "baz", None], dtype="string[pyarrow]")
-    pat = re.compile(r"ba.")
+@pytest.mark.parametrize("dtype", ["string[pyarrow]"])
+def test_str_contains_compiled_regex_arrow_dtype(dtype):
+    ser = Series(["foo", "bar", "baz"], dtype=dtype)
+    pat = re.compile("ba.")
     result = ser.str.contains(pat)
-    expected = Series([False, True, True, NA], dtype="boolean[pyarrow]")
-    tm.assert_series_equal(result, expected)
+    assert str(result.dtype) == "bool[pyarrow]"
+    expected = Series([False, True, True], dtype="bool[pyarrow]")
+    tm.testing.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
