@@ -44,9 +44,6 @@ sys.path.extend(
     ]
 )
 
-# Edit on GitHub links
-sys.path.insert(0, os.path.abspath('_ext'))
-
 # -- General configuration -----------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -152,8 +149,8 @@ nbsphinx_requirejs_path = ""
 toggleprompt_offset_right = 35
 
 # Configure the "Edit on GitHub links for Sphinx" extention
-edit_on_github_project = 'username/reponame'
-edit_on_github_branch = 'master'
+edit_on_github_project = 'pandas-dev/pandas'
+edit_on_github_branch = 'main/doc/source'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
