@@ -334,9 +334,9 @@ def test_on_bad_lines_extra_fields_warns(python_parser_only):
         return ["1", "2", "3", "4", "5"]
 
     expected_warning = (
-            r"Length of header or names \(3\) does not match number of fields in "
-            r"line \(5\)\. Extra field will be dropped\."
-            )
+        r"Length of header or names \(3\) does not match number of fields in "
+        r"line \(5\)\. Extra field will be dropped\."
+    )
 
     for index_col in [None, 0]:
         with tm.assert_produces_warning(ParserWarning, match=expected_warning):
