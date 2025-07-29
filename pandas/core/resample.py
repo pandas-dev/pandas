@@ -2650,7 +2650,13 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset, unit=unit
+            first,
+            last,
+            cast("Day | Tick", freq),
+            closed=closed,
+            origin=origin,
+            offset=offset,
+            unit=unit,
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
