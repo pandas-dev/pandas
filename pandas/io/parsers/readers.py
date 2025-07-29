@@ -672,8 +672,31 @@ def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
 ) -> DataFrame | TextFileReader:
     """Generic reader of line files."""
-    # if we pass a date_format and parse_dates=False, we should not parse the
-    # dates GH#44366
+    engine = kwds.get("engine", "c")
+
+    if engine not in ("c", "python", "pyarrow", "polars"):
+        raise ValueError(f"Unknown engine: {engine}")
+
+    if engine == "polars":
+        try:
+            import polars as pl  # type: ignore[import-untyped]
+        except ImportError:
+            raise ImportError("Polars is not installed. Please install it with 'pip install polars'.")
+
+        # Filter kwargs that are not supported by Polars
+        allowed_polars_args = {
+            "has_header", "columns", "new_columns", "skip_rows", "n_rows",
+            "encoding", "separator", "quote_char", "comment_char", "null_values"
+        }
+        polars_kwargs = {k: v for k, v in kwds.items() if k in allowed_polars_args}
+
+        # Polars doesn't accept Path-like objects directly in all versions, convert to string
+        path = str(filepath_or_buffer)
+
+        df = pl.read_csv(path, **polars_kwargs).to_pandas()
+        return df
+
+    # Default pandas behavior
     if kwds.get("parse_dates", None) is None:
         if kwds.get("date_format", None) is None:
             kwds["parse_dates"] = False
@@ -1802,7 +1825,7 @@ def _refine_defaults_read(
         kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
     elif on_bad_lines == "skip":
         kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
-    elif callable(on_bad_lines):
+    elif callable(on_bad_lines): 
         if engine not in ["python", "pyarrow"]:
             raise ValueError(
                 "on_bad_line can only be a callable function "
