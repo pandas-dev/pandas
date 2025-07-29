@@ -181,6 +181,16 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_series_equal(empty_str, empty.str.translate(table))
 
 
+@pytest.mark.parametrize("dtype", ["string[pyarrow]"])
+def test_str_contains_compiled_regex_arrow_dtype(dtype):
+    ser = Series(["foo", "bar", "baz"], dtype=dtype)
+    pat = re.compile("ba.")
+    result = ser.str.contains(pat)
+    assert str(result.dtype) == "bool[pyarrow]"
+    expected = Series([False, True, True], dtype="bool[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method, expected",
     [
