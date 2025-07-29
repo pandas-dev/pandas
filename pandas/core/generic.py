@@ -1918,7 +1918,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         b  2  4
         c  3  8
         >>> d.keys()
-        Index(['A', 'B'], dtype='object')
+        Index(['A', 'B'], dtype='str')
         """
         return self._info_axis
 
@@ -4569,6 +4569,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_name = self._get_axis_name(axis)
             axes = {axis_name: labels}
         elif index is not None or columns is not None:
+            if axis == 1:
+                raise ValueError("Cannot specify both 'axis' and 'index'/'columns'")
             axes = {"index": index}
             if self.ndim == 2:
                 axes["columns"] = columns
@@ -5002,27 +5004,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         "time": ["0hr", "128hr", "72hr", "48hr", "96hr"],
-        ...         "value": [10, 20, 30, 40, 50],
+        ...         "hours": ["0hr", "128hr", "0hr", "64hr", "64hr", "128hr"],
+        ...         "mins": [
+        ...             "10mins",
+        ...             "40mins",
+        ...             "40mins",
+        ...             "40mins",
+        ...             "10mins",
+        ...             "10mins",
+        ...         ],
+        ...         "value": [10, 20, 30, 40, 50, 60],
         ...     }
         ... )
         >>> df
-            time  value
-        0    0hr     10
-        1  128hr     20
-        2   72hr     30
-        3   48hr     40
-        4   96hr     50
-        >>> from natsort import index_natsorted
+           hours    mins  value
+        0    0hr  10mins     10
+        1  128hr  40mins     20
+        2    0hr  40mins     30
+        3   64hr  40mins     40
+        4   64hr  10mins     50
+        5  128hr  10mins     60
+        >>> from natsort import natsort_keygen
         >>> df.sort_values(
-        ...     by="time", key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ...     by=["hours", "mins"],
+        ...     key=natsort_keygen(),
         ... )
-            time  value
-        0    0hr     10
-        3   48hr     40
-        2   72hr     30
-        4   96hr     50
-        1  128hr     20
+           hours    mins  value
+        0    0hr  10mins     10
+        2    0hr  40mins     30
+        4   64hr  10mins     50
+        3   64hr  40mins     40
+        5  128hr  10mins     60
+        1  128hr  40mins     20
         """
         raise AbstractMethodError(self)
 
@@ -6274,7 +6287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         float              float64
         int                  int64
         datetime    datetime64[s]
-        string              object
+        string              str
         dtype: object
         """
         data = self._mgr.get_dtypes()
@@ -6836,7 +6849,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0      a
         1      b
         2    NaN
-        dtype: object
+        dtype: str
 
         Obtain a Series with dtype ``StringDtype``.
 
@@ -8136,7 +8149,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... )
         >>> df
            age       born    name        toy
-        0  5.0        NaT  Alfred       None
+        0  5.0        NaT  Alfred        NaN
         1  6.0 1939-05-27  Batman  Batmobile
         2  NaN 1940-04-25              Joker
 
@@ -8209,7 +8222,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... )
         >>> df
            age       born    name        toy
-        0  5.0        NaT  Alfred       None
+        0  5.0        NaT  Alfred        NaN
         1  6.0 1939-05-27  Batman  Batmobile
         2  NaN 1940-04-25              Joker
 
@@ -10399,7 +10412,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    b
         3    c
         4    d
-        Name: A, dtype: object
+        Name: A, dtype: str
 
         The index values in ``truncate`` can be datetimes or string
         dates.
