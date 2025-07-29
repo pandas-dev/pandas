@@ -1,7 +1,7 @@
 import pytest
 
+
 def test_read_csv_with_polars(tmp_path):
-    pl = pytest.importorskip("polars")
     pd = pytest.importorskip("pandas")
 
     # Create a simple CSV file

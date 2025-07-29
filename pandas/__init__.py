@@ -187,7 +187,7 @@ except ImportError:
     __version__ = v.get("closest-tag", v["version"])
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
-
+__version__ = "2.3.3.dev0"
 
 # module level doc-string
 __doc__ = """

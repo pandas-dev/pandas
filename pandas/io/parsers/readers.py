@@ -680,17 +680,27 @@ def _read(
     if engine == "polars":
         try:
             import polars as pl  # type: ignore[import-untyped]
-        except ImportError:
-            raise ImportError("Polars is not installed. Please install it with 'pip install polars'.")
+        except ImportError as err:
+            raise ImportError(
+                "Polars is not installed. Please install it with 'pip install polars'."
+            ) from err
 
         # Filter kwargs that are not supported by Polars
         allowed_polars_args = {
-            "has_header", "columns", "new_columns", "skip_rows", "n_rows",
-            "encoding", "separator", "quote_char", "comment_char", "null_values"
+            "has_header",
+            "columns",
+            "new_columns",
+            "skip_rows",
+            "n_rows",
+            "encoding",
+            "separator",
+            "quote_char",
+            "comment_char",
+            "null_values",
         }
         polars_kwargs = {k: v for k, v in kwds.items() if k in allowed_polars_args}
+        # Convert Path to string for Polars compatibility
 
-        # Polars doesn't accept Path-like objects directly in all versions, convert to string
         path = str(filepath_or_buffer)
 
         df = pl.read_csv(path, **polars_kwargs).to_pandas()
@@ -1825,7 +1835,7 @@ def _refine_defaults_read(
         kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
     elif on_bad_lines == "skip":
         kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
-    elif callable(on_bad_lines): 
+    elif callable(on_bad_lines):
         if engine not in ["python", "pyarrow"]:
             raise ValueError(
                 "on_bad_line can only be a callable function "

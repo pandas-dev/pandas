@@ -16,9 +16,8 @@ build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
-dynamic = [
-  'version'
-]
+version = "2.3.3.dev0"
+
 description = 'Powerful data structures for data analysis, time series, and statistics'
 readme = 'README.md'
 authors = [
