@@ -1476,7 +1476,7 @@ def _make_field_arrays(*fields) -> list[np.ndarray]:
         (
             np.asarray(x)
             if isinstance(x, (np.ndarray, list, ABCSeries))
-            else np.repeat(x, length)
-        )  # type: ignore[arg-type]
+            else np.repeat(x, length)  # type: ignore[arg-type]
+        )
         for x in fields
     ]

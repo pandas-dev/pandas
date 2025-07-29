@@ -2746,7 +2746,7 @@ def _insert_nat_bin(
 def _adjust_dates_anchored(
     first: Timestamp,
     last: Timestamp,
-    freq: Tick,
+    freq: Tick | Day,
     closed: Literal["right", "left"] = "right",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,

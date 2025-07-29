@@ -553,7 +553,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                         freq = to_offset(Timedelta(days=self.freq.n)) / other
                 else:
                     freq = self.freq / other
-                if freq.nanos == 0 and self.freq.nanos != 0:
+                if freq.nanos == 0 and self.freq.nanos != 0:  # type: ignore[union-attr]
                     # e.g. if self.freq is Nano(1) then dividing by 2
                     #  rounds down to zero
                     freq = None
