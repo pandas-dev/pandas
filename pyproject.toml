@@ -460,6 +460,7 @@ filterwarnings = [
   "error::pytest.PytestWarning",
   # e.g. Module already imported so cannot be rewritten; _hypothesis_globals
   "ignore::pytest.PytestAssertRewriteWarning",
+  "ignore::pytest.PytestCacheWarning",
   # TODO(PY311-minimum): Specify EncodingWarning
   # Ignore 3rd party EncodingWarning but raise on pandas'
   "ignore:.*encoding.* argument not specified",
