@@ -144,10 +144,10 @@ parentdir_prefix = "pandas-"
 setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
-skip = "cp36-* cp37-* cp38-* cp39-* pp* *_i686 *_ppc64le *_s390x"
+skip = ["*_i686", "*_ppc64le", "*_s390x"]
 build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
-test-requires = "hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0"
+test-extras = "test"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
@@ -190,6 +190,8 @@ select = "*pyodide*"
 test-requires = "pytest>=7.3.2 hypothesis>=6.84.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 repair-wheel-command = ""
+# https://github.com/pyodide/pyodide/issues/5805
+build-verbosity = 1
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
