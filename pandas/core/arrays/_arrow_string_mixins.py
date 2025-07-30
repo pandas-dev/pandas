@@ -304,7 +304,7 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
