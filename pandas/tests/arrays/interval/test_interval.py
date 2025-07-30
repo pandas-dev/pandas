@@ -229,3 +229,34 @@ class TestReductions:
             res = arr_na.max(**kws)
             assert res == MAX
             assert type(res) == type(MAX)
+
+    def test_intervalarray_overlaps_all_cases(self):
+        # Basic self-overlap
+        data = [(0, 1), (1, 3), (2, 4)]
+        arr = IntervalArray.from_tuples(data)
+        result = arr.overlaps(arr)
+        expected = np.array([True, True, True])
+        tm.testing.assert_array_equal(result, expected)
+
+        # Overlap with different intervals
+        arr2 = IntervalArray.from_tuples([(0.5, 1.5), (2, 2.5), (3, 5)])
+        result2 = arr.overlaps(arr2)
+        expected2 = np.array([True, False, True])
+        tm.testing.assert_array_equal(result2, expected2)
+
+        # Length mismatch
+        arr_short = IntervalArray.from_tuples([(0, 1)])
+        with pytest.raises(ValueError, match="same length"):
+            arr.overlaps(arr_short)
+
+        # Closed property mismatch
+        arr_left = IntervalArray.from_tuples(data, closed="left")
+        arr_right = IntervalArray.from_tuples(data, closed="right")
+        with pytest.raises(ValueError, match="same 'closed' property"):
+            arr_left.overlaps(arr_right)
+
+        # Overlap with scalar interval
+        interval = Interval(1, 2)
+        result3 = arr.overlaps(interval)
+        expected3 = np.array([False, True, False])
+        tm.testing.assert_array_equal(result3, expected3)
