@@ -26,6 +26,7 @@ Bug fixes
   "string" type in the JSON Table Schema for :class:`StringDtype` columns
   (:issue:`61889`)
 - Boolean operations (``|``, ``&``, ``^``) with bool-dtype objects on the left and :class:`StringDtype` objects on the right now cast the string to bool, with a deprecation warning (:issue:`60234`)
+- Fixed ``Series.str.contains`` with compiled regex on Arrow string dtype, which now correctly delegates to the object-dtype implementation. (:issue:`61942`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_232.contributors:
