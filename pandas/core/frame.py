@@ -7173,35 +7173,43 @@ class DataFrame(NDFrame, OpsMixin):
         `natural sorting <https://en.wikipedia.org/wiki/Natural_sort_order>`__.
         This can be done using
         ``natsort`` `package <https://github.com/SethMMorton/natsort>`__,
-        which provides sorted indices according
-        to their natural order, as shown below:
+        which provides a function to generate a key
+        to sort data in their natural order:
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         "time": ["0hr", "128hr", "72hr", "48hr", "96hr"],
-        ...         "value": [10, 20, 30, 40, 50],
+        ...         "hours": ["0hr", "128hr", "0hr", "64hr", "64hr", "128hr"],
+        ...         "mins": [
+        ...             "10mins",
+        ...             "40mins",
+        ...             "40mins",
+        ...             "40mins",
+        ...             "10mins",
+        ...             "10mins",
+        ...         ],
+        ...         "value": [10, 20, 30, 40, 50, 60],
         ...     }
         ... )
         >>> df
-            time  value
-        0    0hr     10
-        1  128hr     20
-        2   72hr     30
-        3   48hr     40
-        4   96hr     50
-        >>> from natsort import index_natsorted
-        >>> index_natsorted(df["time"])
-        [0, 3, 2, 4, 1]
+           hours    mins  value
+        0    0hr  10mins     10
+        1  128hr  40mins     20
+        2    0hr  40mins     30
+        3   64hr  40mins     40
+        4   64hr  10mins     50
+        5  128hr  10mins     60
+        >>> from natsort import natsort_keygen
         >>> df.sort_values(
-        ...     by="time",
-        ...     key=lambda x: np.argsort(index_natsorted(x)),
+        ...     by=["hours", "mins"],
+        ...     key=natsort_keygen(),
         ... )
-            time  value
-        0    0hr     10
-        3   48hr     40
-        2   72hr     30
-        4   96hr     50
-        1  128hr     20
+           hours    mins  value
+        0    0hr  10mins     10
+        2    0hr  40mins     30
+        4   64hr  10mins     50
+        3   64hr  40mins     40
+        5  128hr  10mins     60
+        1  128hr  40mins     20
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
