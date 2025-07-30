@@ -399,6 +399,7 @@ html_context = {
     "github_repo": "pandas",
     "github_version": "main",
     "doc_path": "doc/source",
+    "exclude_edit_page_button": ["index"],
 }
 
 # If false, no module index is generated.
