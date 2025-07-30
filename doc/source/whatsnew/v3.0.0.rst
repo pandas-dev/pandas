@@ -321,7 +321,7 @@ behaves as a calendar-day, preserving time-of-day across DST transitions:
     ts = pd.Timestamp("2025-03-08 08:00", tz="US/Eastern")
     ts + pd.offsets.Day(1)
 
-This change fixes a long-standing bug in ``pd.date_range`` (:issue:`51716`, :issue:`35388`), but causes several
+This change fixes a long-standing bug in :func:`date_range` (:issue:`51716`, :issue:`35388`), but causes several
 small behavior differences as collateral:
 
 - ``pd.offsets.Day(n)`` no longer compares as equal to ``pd.offsets.Hour(24*n)``
@@ -330,7 +330,7 @@ small behavior differences as collateral:
 - :meth:`tseries.frequencies.to_offset` on a :class:`Timedelta` object returns a :class:`offsets.Hour` object in cases where it used to return a :class:`Day` object.
 - Adding or subtracting a scalar from a timezone-aware :class:`DatetimeIndex` with a :class:`Day` ``freq`` no longer preserves that ``freq`` attribute.
 - Adding or subtracting a :class:`Day` with a :class:`Timedelta` is no longer supported.
-- Adding or subtracting a :class:`Day` offset to a :class:`Timestamp` or datetime-like may lead to an ambiguous or non-existent time, which will raise.
+- Adding or subtracting a :class:`Day` offset to a timezone-aware :class:`Timestamp` or datetime-like may lead to an ambiguous or non-existent time, which will raise.
 
 .. _whatsnew_300.api_breaking.deps:
 
