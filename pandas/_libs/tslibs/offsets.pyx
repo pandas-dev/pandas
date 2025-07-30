@@ -1246,7 +1246,7 @@ cdef class Day(SingleConstructorOffset):
             return str(self.n) + "D"
         return "D"
 
-    # Having this here isn't strictly-correct post-GH#???
+    # Having this here isn't strictly-correct post-GH#61985
     #  but this gets called in timedelta.get_unit_for_round in cases where
     #  Day unambiguously means 24h.
     @property
