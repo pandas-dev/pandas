@@ -1478,3 +1478,14 @@ class TestILocSeries:
         result = DataFrame({"a": ["test"], "b": [np.nan]})
         with pytest.raises(TypeError, match="Invalid value"):
             result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+
+    def test_iloc_arrow_extension_array(self):
+        # GH#61311
+        pytest.importorskip("pyarrow")
+
+        df = DataFrame({"a": [1, 2], "c": [0, 2], "d": ["c", "a"]})
+
+        df_arrow = df.convert_dtypes(dtype_backend="pyarrow")
+        result = df_arrow.iloc[:, df_arrow["c"]]
+        expected = df_arrow.iloc[:, [0, 2]]
+        tm.assert_frame_equal(result, expected)

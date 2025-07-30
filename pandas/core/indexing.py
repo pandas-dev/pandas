@@ -1609,9 +1609,16 @@ class _iLocIndexer(_LocationIndexer):
             if not is_numeric_dtype(arr.dtype):
                 raise IndexError(f".iloc requires numeric indexers, got {arr}")
 
-            # check that the key does not exceed the maximum size of the index
-            if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
-                raise IndexError("positional indexers are out-of-bounds")
+            if len(arr):
+                # convert to numpy array for min/max with ExtensionArrays
+                if hasattr(arr, "to_numpy"):
+                    np_arr = arr.to_numpy()
+                else:
+                    np_arr = np.asarray(arr)
+
+                # check that the key does not exceed the maximum size
+                if np.max(np_arr) >= len_axis or np.min(np_arr) < -len_axis:
+                    raise IndexError("positional indexers are out-of-bounds")
         else:
             raise ValueError(f"Can only index by location with a [{self._valid_types}]")
 
