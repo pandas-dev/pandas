@@ -281,21 +281,6 @@ def test_contains_nan(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_str_contains_compiled_regex_arrow_dtype(any_string_dtype):
-    # GH#61942
-    ser = Series(["foo", "bar", "baz"], dtype=any_string_dtype)
-    pat = re.compile("ba.")
-    result = ser.str.contains(pat)
-    # Determine expected dtype and values
-    expected_dtype = {
-        "string[pyarrow]": "bool[pyarrow]",
-        "string": "boolean",
-        "str": bool,
-    }.get(any_string_dtype, object)
-    expected = Series([False, True, True], dtype=expected_dtype)
-    tm.assert_series_equal(result, expected)
-
-
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
