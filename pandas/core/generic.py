@@ -9746,7 +9746,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
             if has_nan:
-                cond = cond.replace({0.0: False, 1.0: True})
+                cond = cond.astype(bool)
             cond = cond.fillna(True)
 
         # make sure we are boolean
