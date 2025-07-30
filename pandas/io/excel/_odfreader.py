@@ -46,7 +46,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
-        import_optional_dependency("odf")
+        import_optional_dependency("odf", operation_context="excel")
         super().__init__(
             filepath_or_buffer,
             storage_options=storage_options,

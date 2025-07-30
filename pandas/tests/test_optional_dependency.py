@@ -12,7 +12,7 @@ import pandas._testing as tm
 
 
 def test_import_optional():
-    match = "Import .*notapackage.* pip .* conda .* notapackage"
+    match = r"Missing optional dependency 'notapackage'.*Use pip or conda to install notapackage"
     with pytest.raises(ImportError, match=match) as exc_info:
         import_optional_dependency("notapackage")
     # The original exception should be there as context:
@@ -61,6 +61,69 @@ def test_bad_version(monkeypatch):
 
     result = import_optional_dependency(
         "fakemodule", errors="ignore", min_version="1.1.0"
+    )
+    assert result is None
+
+
+def test_operation_context_excel():
+    match = (
+        r"Missing optional dependency 'notapackage'.*"
+        r"For Excel file operations, try installing openpyxl, xlsxwriter, calamine.*"
+        r".*Use pip or conda to install notapackage"
+    )
+    with pytest.raises(ImportError, match=match):
+        import_optional_dependency("notapackage", operation_context="excel")
+
+
+def test_operation_context_plotting():
+    match = (
+        r"Missing optional dependency 'notapackage'.*"
+        r"For plotting operations, try installing matplotlib.*"
+        r"Use df\.describe\(\) for text-based data summaries.*"
+        r"Use pip or conda to install notapackage"
+    )
+    with pytest.raises(ImportError, match=match):
+        import_optional_dependency("notapackage", operation_context="plotting")
+
+
+def test_operation_context_with_extra():
+    match = (
+        r"Missing optional dependency 'notapackage'.*Additional context.*"
+        r"For Excel file operations, try installing openpyxl, xlsxwriter, calamine.*"
+        r".*Use pip or conda to install notapackage"
+    )
+    with pytest.raises(ImportError, match=match):
+        import_optional_dependency(
+            "notapackage", 
+            extra="Additional context.", 
+            operation_context="excel"
+        )
+
+
+def test_operation_context_unknown():
+    # Unknown context should fall back to standard behavior
+    match = r"Missing optional dependency 'notapackage'.*Use pip or conda to install notapackage"
+    with pytest.raises(ImportError, match=match):
+        import_optional_dependency("notapackage", operation_context="unknown_context")
+
+
+def test_operation_context_filtering():
+    # The failed dependency should be filtered out from alternatives
+    match = (
+        r"Missing optional dependency 'openpyxl'.*"
+        r"For Excel file operations, try installing xlsxwriter, calamine.*"
+        r".*Use pip or conda to install openpyxl"
+    )
+    with pytest.raises(ImportError, match=match):
+        import_optional_dependency("openpyxl", operation_context="excel")
+
+
+def test_operation_context_ignore_errors():
+    # operation_context should not affect ignore behavior
+    result = import_optional_dependency(
+        "notapackage", 
+        operation_context="excel", 
+        errors="ignore"
     )
     assert result is None
 

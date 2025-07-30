@@ -550,7 +550,7 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
-        import_optional_dependency("openpyxl")
+        import_optional_dependency("openpyxl", operation_context="excel")
         super().__init__(
             filepath_or_buffer,
             storage_options=storage_options,

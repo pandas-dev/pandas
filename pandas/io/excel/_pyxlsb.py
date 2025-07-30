@@ -40,7 +40,7 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
-        import_optional_dependency("pyxlsb")
+        import_optional_dependency("pyxlsb", operation_context="excel")
         # This will call load_workbook on the filepath or buffer
         # And set the result to the book-attribute
         super().__init__(

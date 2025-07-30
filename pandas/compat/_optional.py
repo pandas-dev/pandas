@@ -72,6 +72,119 @@ INSTALL_MAPPING = {
     "tables": "pytables",
 }
 
+# Mapping of operation contexts to alternative dependencies
+OPERATION_CONTEXTS = {
+    "excel": {
+        "alternatives": ["openpyxl", "xlsxwriter", "calamine", "xlrd", "pyxlsb", "odfpy"],
+        "description": "Excel file operations",
+    },
+    "plotting": {
+        "alternatives": ["matplotlib"],
+        "description": "plotting operations",
+        "fallback": "Use df.describe() for text-based data summaries",
+    },
+    "html": {
+        "alternatives": ["lxml", "html5lib", "beautifulsoup4"],
+        "description": "HTML parsing",
+    },
+    "xml": {
+        "alternatives": ["lxml"],
+        "description": "XML parsing", 
+    },
+    "sql": {
+        "alternatives": ["sqlalchemy", "psycopg2", "pymysql"],
+        "description": "SQL database operations",
+    },
+    "performance": {
+        "alternatives": ["numexpr", "bottleneck", "numba"],
+        "description": "performance acceleration",
+        "fallback": "Operations will use standard implementations",
+    },
+    "parquet": {
+        "alternatives": ["pyarrow", "fastparquet"],
+        "description": "Parquet file operations",
+    },
+    "feather": {
+        "alternatives": ["pyarrow"],
+        "description": "Feather file operations",
+    },
+    "orc": {
+        "alternatives": ["pyarrow"],
+        "description": "ORC file operations",
+    },
+    "hdf5": {
+        "alternatives": ["tables"],
+        "description": "HDF5 file operations",
+    },
+    "spss": {
+        "alternatives": ["pyreadstat"],
+        "description": "SPSS file operations",
+    },
+    "style": {
+        "alternatives": ["jinja2"],
+        "description": "DataFrame styling operations",
+    },
+    "compression": {
+        "alternatives": ["zstandard"],
+        "description": "data compression operations",
+    },
+    "clipboard": {
+        "alternatives": ["pyqt5", "qtpy"],
+        "description": "clipboard operations",
+    },
+}
+
+
+def _build_context_message(
+    name: str, operation_context: str | None, extra: str, install_name: str
+) -> str:
+    """
+    Build an enhanced error message with context-aware alternatives.
+    
+    Parameters
+    ----------
+    name : str
+        The module name that failed to import.
+    operation_context : str or None
+        The operation context (e.g., 'excel', 'plotting').
+    extra : str
+        Additional text to include in the ImportError message.
+    install_name : str
+        The package name to install.
+        
+    Returns
+    -------
+    str
+        The enhanced error message.
+    """
+    base_msg = f"Missing optional dependency '{install_name}'."
+    if extra:
+        base_msg += f" {extra}"
+    
+    if operation_context and operation_context in OPERATION_CONTEXTS:
+        context_info = OPERATION_CONTEXTS[operation_context]
+        # Filter out the failed dependency from alternatives
+        alternatives = [
+            alt for alt in context_info["alternatives"] 
+            if alt != name and alt != install_name
+        ]
+        
+        if alternatives:
+            if len(alternatives) == 1:
+                alt_msg = f" For {context_info['description']}, try installing {alternatives[0]}."
+            elif len(alternatives) == 2:
+                alt_msg = f" For {context_info['description']}, try installing {alternatives[0]} or {alternatives[1]}."
+            else:
+                alt_list = ", ".join(alternatives[:-1]) + f", or {alternatives[-1]}"
+                alt_msg = f" For {context_info['description']}, try installing {alt_list}."
+            base_msg += alt_msg
+            
+        if "fallback" in context_info:
+            base_msg += f" {context_info['fallback']}."
+    
+    base_msg += f" Use pip or conda to install {install_name}."
+    return base_msg
+
 
 def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
@@ -91,6 +204,7 @@ def import_optional_dependency(
     min_version: str | None = ...,
     *,
     errors: Literal["raise"] = ...,
+    operation_context: str | None = ...,
 ) -> types.ModuleType: ...
 
 
@@ -101,6 +215,7 @@ def import_optional_dependency(
     min_version: str | None = ...,
     *,
     errors: Literal["warn", "ignore"],
+    operation_context: str | None = ...,
 ) -> types.ModuleType | None: ...
 
 
@@ -110,6 +225,7 @@ def import_optional_dependency(
     min_version: str | None = None,
     *,
     errors: Literal["raise", "warn", "ignore"] = "raise",
+    operation_context: str | None = None,
 ) -> types.ModuleType | None:
     """
     Import an optional dependency.
@@ -137,6 +253,11 @@ def import_optional_dependency(
     min_version : str, default None
         Specify a minimum version that is different from the global pandas
         minimum version required.
+    operation_context : str, default None
+        Provide context about the operation requiring this dependency to show
+        relevant alternatives in error messages. Supported contexts: 'excel',
+        'plotting', 'html', 'xml', 'sql', 'performance', 'parquet', 'feather', 
+        'orc', 'hdf5', 'spss', 'style', 'compression', 'clipboard'.
     Returns
     -------
     maybe_module : Optional[ModuleType]
@@ -150,10 +271,7 @@ def import_optional_dependency(
     package_name = INSTALL_MAPPING.get(name)
     install_name = package_name if package_name is not None else name
 
-    msg = (
-        f"`Import {install_name}` failed. {extra} "
-        f"Use pip or conda to install the {install_name} package."
-    )
+    msg = _build_context_message(name, operation_context, extra, install_name)
     try:
         module = importlib.import_module(name)
     except ImportError as err:

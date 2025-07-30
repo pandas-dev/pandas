@@ -913,10 +913,10 @@ def _parser_dispatch(flavor: HTMLFlavors | None) -> type[_HtmlFrameParser]:
         )
 
     if flavor in ("bs4", "html5lib"):
-        import_optional_dependency("html5lib")
-        import_optional_dependency("bs4")
+        import_optional_dependency("html5lib", operation_context="html")
+        import_optional_dependency("bs4", operation_context="html")
     else:
-        import_optional_dependency("lxml.etree")
+        import_optional_dependency("lxml.etree", operation_context="html")
     return _valid_parsers[flavor]
 
 

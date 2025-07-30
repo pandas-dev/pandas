@@ -13,6 +13,8 @@ from pandas.util._decorators import (
     Substitution,
 )
 
+from pandas.compat._optional import import_optional_dependency
+
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -1947,15 +1949,13 @@ def _load_backend(backend: str) -> types.ModuleType:
     from importlib.metadata import entry_points
 
     if backend == "matplotlib":
-        # Because matplotlib is an optional dependency and first-party backend,
-        # we need to attempt an import here to raise an ImportError if needed.
-        try:
-            module = importlib.import_module("pandas.plotting._matplotlib")
-        except ImportError:
-            raise ImportError(
-                "matplotlib is required for plotting when the "
-                'default backend "matplotlib" is selected.'
-            ) from None
+        # Check for matplotlib dependency with enhanced error message
+        import_optional_dependency(
+            "matplotlib", 
+            extra="Required for plotting when the default backend 'matplotlib' is selected.",
+            operation_context="plotting"
+        )
+        module = importlib.import_module("pandas.plotting._matplotlib")
         return module
 
     found_backend = False
