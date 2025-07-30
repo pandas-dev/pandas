@@ -589,6 +589,8 @@ def sanitize_array(
         # create an extension array from its dtype
         _sanitize_non_ordered(data)
         cls = dtype.construct_array_type()
+        if not hasattr(data, "__array__"):
+            data = list(data)
         subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
 
     # GH#846

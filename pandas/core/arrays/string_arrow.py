@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         Dtype,
+        Self,
         npt,
     )
 
@@ -468,6 +469,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return result
 
     def _cmp_method(self, other, op):
+        if (
+            isinstance(other, (BaseStringArray, ArrowExtensionArray))
+            and self.dtype.na_value is not libmissing.NA
+            and other.dtype.na_value is libmissing.NA
+        ):
+            # NA has priority of NaN semantics
+            return NotImplemented
+
         result = super()._cmp_method(other, op)
         if self.dtype.na_value is np.nan:
             if op == operator.ne:
@@ -475,6 +484,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             else:
                 return result.to_numpy(np.bool_, na_value=False)
         return result
+
+    def __pos__(self) -> Self:
+        raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):

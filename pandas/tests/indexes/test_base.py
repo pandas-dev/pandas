@@ -354,14 +354,11 @@ class TestIndex:
             msg = "When changing to a larger dtype"
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
-        elif index.dtype == "str" and not index.dtype.storage == "python":
-            # TODO(infer_string): Make the errors consistent
-            with pytest.raises(NotImplementedError, match="i8"):
-                index.view("i8")
         else:
             msg = (
-                "Cannot change data-type for array of references|"
-                "Cannot change data-type for object array|"
+                r"Cannot change data-type for array of references\.|"
+                r"Cannot change data-type for object array\.|"
+                r"Cannot change data-type for array of strings\.|"
             )
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")

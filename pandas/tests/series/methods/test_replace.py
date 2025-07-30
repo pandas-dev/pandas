@@ -625,7 +625,8 @@ class TestSeriesReplace:
 
     def test_pandas_replace_na(self):
         # GH#43344
-        ser = pd.Series(["AA", "BB", "CC", "DD", "EE", "", pd.NA], dtype="string")
+        # GH#56599
+        ser = pd.Series(["AA", "BB", "CC", "DD", "EE", "", pd.NA, "AA"], dtype="string")
         regex_mapping = {
             "AA": "CC",
             "BB": "CC",
@@ -633,7 +634,9 @@ class TestSeriesReplace:
             "CC": "CC-REPL",
         }
         result = ser.replace(regex_mapping, regex=True)
-        exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA], dtype="string")
+        exp = pd.Series(
+            ["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA, "CC"], dtype="string"
+        )
         tm.assert_series_equal(result, exp)
 
     @pytest.mark.parametrize(

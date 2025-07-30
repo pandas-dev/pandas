@@ -269,8 +269,15 @@ def pandas_validate(func_name: str):
     # Some objects are instances, e.g. IndexSlice, which numpydoc can't validate
     doc_obj = get_doc_object(func_obj, doc=func_obj.__doc__)
     doc = PandasDocstring(func_name, doc_obj)
-    result = validate(doc_obj)
-
+    if func_obj.__doc__ is not None:
+        result = validate(doc_obj)
+    else:
+        result = {
+            "docstring": "",
+            "file": None,
+            "file_line": None,
+            "errors": [("GL08", "The object does not have a docstring")],
+        }
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
         result["errors"].append(

@@ -13,6 +13,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._typing import (
     AlignJoin,
@@ -31,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_re,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -387,7 +390,9 @@ class StringMethods(NoNewAttributesMixin):
             # This is a mess.
             _dtype: DtypeObj | str | None = dtype
             vdtype = getattr(result, "dtype", None)
-            if self._is_string:
+            if _dtype is not None:
+                pass
+            elif self._is_string:
                 if is_bool_dtype(vdtype):
                     _dtype = result.dtype
                 elif returns_string:
@@ -1977,7 +1982,9 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_slice_replace(start, stop, repl)
         return self._wrap_result(result)
 
-    def decode(self, encoding, errors: str = "strict"):
+    def decode(
+        self, encoding, errors: str = "strict", dtype: str | DtypeObj | None = None
+    ):
         """
         Decode character string in the Series/Index using indicated encoding.
 
@@ -1988,6 +1995,14 @@ class StringMethods(NoNewAttributesMixin):
         ----------
         encoding : str
         errors : str, optional
+            Specifies the error handling scheme.
+            Possible values are those supported by :meth:`bytes.decode`.
+        dtype : str or dtype, optional
+            The dtype of the result. When not ``None``, must be either a string or
+            object dtype. When ``None``, the dtype of the result is determined by
+            ``pd.options.future.infer_string``.
+
+            .. versionadded:: 2.3.0
 
         Returns
         -------
@@ -2004,6 +2019,10 @@ class StringMethods(NoNewAttributesMixin):
         2   ()
         dtype: object
         """
+        if dtype is not None and not is_string_dtype(dtype):
+            raise ValueError(f"dtype must be string or object, got {dtype=}")
+        if dtype is None and get_option("future.infer_string"):
+            dtype = "str"
         # TODO: Add a similar _bytes interface.
         if encoding in _cpython_optimized_decoders:
             # CPython optimized implementation
@@ -2012,9 +2031,8 @@ class StringMethods(NoNewAttributesMixin):
             decoder = codecs.getdecoder(encoding)
             f = lambda x: decoder(x, errors)[0]
         arr = self._data.array
-        # assert isinstance(arr, (StringArray,))
         result = arr._str_map(f)
-        return self._wrap_result(result)
+        return self._wrap_result(result, dtype=dtype)
 
     @forbid_nonstring_types(["bytes"])
     def encode(self, encoding, errors: str = "strict"):

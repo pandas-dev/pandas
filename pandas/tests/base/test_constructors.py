@@ -177,3 +177,14 @@ class TestConstruction:
         arr.flags.writeable = False
         result = constructor(arr)
         tm.assert_equal(result, expected)
+
+    def test_constructor_from_dict_keys(self, constructor, using_infer_string):
+        # https://github.com/pandas-dev/pandas/issues/60343
+        d = {"a": 1, "b": 2}
+        result = constructor(d.keys(), dtype="str")
+        if using_infer_string:
+            assert result.dtype == "str"
+        else:
+            assert result.dtype == "object"
+        expected = constructor(list(d.keys()), dtype="str")
+        tm.assert_equal(result, expected)

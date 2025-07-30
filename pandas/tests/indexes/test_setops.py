@@ -64,7 +64,7 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2, request):
+def test_union_different_types(index_flat, index_flat2, request, using_infer_string):
     # This test only considers combinations of indices
     # GH 23525
     idx1 = index_flat
@@ -93,6 +93,13 @@ def test_union_different_types(index_flat, index_flat2, request):
         request.applymarker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
+    if using_infer_string:
+        if len(idx1) == 0 and (idx1.dtype.kind == "O" or isinstance(idx1, RangeIndex)):
+            common_dtype = idx2.dtype
+        elif len(idx2) == 0 and (
+            idx2.dtype.kind == "O" or isinstance(idx2, RangeIndex)
+        ):
+            common_dtype = idx1.dtype
 
     warn = None
     msg = "'<' not supported between"
@@ -524,7 +531,7 @@ class TestSetOps:
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_setop_with_categorical(index_flat, sort, method):
+def test_setop_with_categorical(index_flat, sort, method, using_infer_string):
     # MultiIndex tested separately in tests.indexes.multi.test_setops
     index = index_flat
 
@@ -533,10 +540,22 @@ def test_setop_with_categorical(index_flat, sort, method):
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
+    if (
+        using_infer_string
+        and index.empty
+        and method in ("union", "symmetric_difference")
+    ):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
+    if (
+        using_infer_string
+        and index.empty
+        and method in ("union", "symmetric_difference")
+    ):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
 

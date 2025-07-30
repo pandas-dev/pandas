@@ -13,6 +13,7 @@ from pandas.compat import (
     HAS_PYARROW,
     IS64,
     PYPY,
+    is_platform_arm,
 )
 
 from pandas import (
@@ -25,6 +26,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -547,7 +549,9 @@ def test_memory_usage_empty_no_warning(using_infer_string):
 @pytest.mark.single_cpu
 def test_info_compute_numba():
     # GH#51922
-    pytest.importorskip("numba")
+    numba = pytest.importorskip("numba")
+    if Version(numba.__version__) == Version("0.61") and is_platform_arm():
+        pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
     df = DataFrame([[1, 2], [3, 4]])
 
     with option_context("compute.use_numba", True):

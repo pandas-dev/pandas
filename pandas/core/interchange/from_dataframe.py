@@ -36,6 +36,21 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 
+    .. note::
+
+       For new development, we highly recommend using the Arrow C Data Interface
+       alongside the Arrow PyCapsule Interface instead of the interchange protocol.
+       From pandas 2.3 onwards, `from_dataframe` uses the PyCapsule Interface,
+       only falling back to the interchange protocol if that fails.
+
+    .. warning::
+
+        Due to severe implementation issues, we recommend only considering using the
+        interchange protocol in the following cases:
+
+        - converting to pandas: for pandas >= 2.0.3
+        - converting from pandas: for pandas >= 3.0.0
+
     Parameters
     ----------
     df : DataFrameXchg
@@ -66,6 +81,18 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     if isinstance(df, pd.DataFrame):
         return df
+
+    if hasattr(df, "__arrow_c_stream__"):
+        try:
+            pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        except ImportError:
+            # fallback to _from_dataframe
+            pass
+        else:
+            try:
+                return pa.table(df).to_pandas(zero_copy_only=not allow_copy)
+            except pa.ArrowInvalid as e:
+                raise RuntimeError(e) from e
 
     if not hasattr(df, "__dataframe__"):
         raise ValueError("`df` does not support __dataframe__")

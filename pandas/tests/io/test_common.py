@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+from pandas.compat.pyarrow import pa_version_under19p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -166,8 +167,8 @@ Look,a snake,🐍"""
         s = StringIO(data)
         with icom.get_handle(s, "rb", is_text=False) as handles:
             df = pa_csv.read_csv(handles.handle).to_pandas()
-            # TODO will have to update this when pyarrow' to_pandas() is fixed
-            expected = expected.astype("object")
+            if pa_version_under19p0:
+                expected = expected.astype("object")
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 

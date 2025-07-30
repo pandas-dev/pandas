@@ -7,7 +7,7 @@ dependencies:
 
   # build dependencies
   - versioneer
-  - cython>=0.29.33
+  - cython<4.0.0a0
   - meson=1.2.1
   - meson-python=0.13.1
 
@@ -17,7 +17,7 @@ dependencies:
   - pytest-xdist>=2.2.0
   - pytest-localserver>=0.7.1
   - pytest-qt>=4.2.0
-  - boto3
+  - boto3=1.37.3
 
   # required dependencies
   - python-dateutil
@@ -50,8 +50,8 @@ dependencies:
   - pytables>=3.8.0
   - python-calamine>=0.1.7
   - pyxlsb>=1.0.10
-  - s3fs>=2022.11.0
-  - scipy>=1.10.0
+  - s3fs>=2023.12.2
+  - scipy>=1.12.0
   - sqlalchemy>=2.0.0
   - tabulate>=0.9.0
   - xarray>=2022.12.0, <=2024.9.0

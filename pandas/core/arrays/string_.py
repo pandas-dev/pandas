@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import (
+    missing,
     nanops,
     ops,
 )
@@ -68,6 +69,8 @@ from pandas.core.missing import isna
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     import pyarrow
 
     from pandas._typing import (
@@ -211,6 +214,11 @@ class StringDtype(StorageExtensionDtype):
         if isinstance(other, type(self)):
             return self.storage == other.storage and self.na_value is other.na_value
         return False
+
+    def __setstate__(self, state: MutableMapping[str, Any]) -> None:
+        # back-compat for pandas < 2.3, where na_value did not yet exist
+        self.storage = state.pop("storage", "python")
+        self._na_value = state.pop("_na_value", libmissing.NA)
 
     def __hash__(self) -> int:
         # need to override __hash__ as well because of overriding __eq__
@@ -530,6 +538,11 @@ class BaseStringArray(ExtensionArray):
 
         else:
             return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        if dtype is not None:
+            raise TypeError("Cannot change data-type for string array.")
+        return super().view(dtype=dtype)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
@@ -860,6 +873,88 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return result
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> StringArray:
+        """
+        Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, there is no supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        NotImplementedError : subclass does not define accumulations
+        """
+        if name == "cumprod":
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg)
+
+        # We may need to strip out trailing NA values
+        tail: np.ndarray | None = None
+        na_mask: np.ndarray | None = None
+        ndarray = self._ndarray
+        np_func = {
+            "cumsum": np.cumsum,
+            "cummin": np.minimum.accumulate,
+            "cummax": np.maximum.accumulate,
+        }[name]
+
+        if self._hasna:
+            na_mask = cast("npt.NDArray[np.bool_]", isna(ndarray))
+            if np.all(na_mask):
+                return type(self)(ndarray)
+            if skipna:
+                if name == "cumsum":
+                    ndarray = np.where(na_mask, "", ndarray)
+                else:
+                    # We can retain the running min/max by forward/backward filling.
+                    ndarray = ndarray.copy()
+                    missing.pad_or_backfill_inplace(
+                        ndarray,
+                        method="pad",
+                        axis=0,
+                    )
+                    missing.pad_or_backfill_inplace(
+                        ndarray,
+                        method="backfill",
+                        axis=0,
+                    )
+            else:
+                # When not skipping NA values, the result should be null from
+                # the first NA value onward.
+                idx = np.argmax(na_mask)
+                tail = np.empty(len(ndarray) - idx, dtype="object")
+                tail[:] = self.dtype.na_value
+                ndarray = ndarray[:idx]
+
+        # mypy: Cannot call function of unknown type
+        np_result = np_func(ndarray)  # type: ignore[operator]
+
+        if tail is not None:
+            np_result = np.hstack((np_result, tail))
+        elif na_mask is not None:
+            # Argument 2 to "where" has incompatible type "NAType | float"
+            np_result = np.where(na_mask, self.dtype.na_value, np_result)  # type: ignore[arg-type]
+
+        result = type(self)(np_result)
+        return result
+
     def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
         if self.dtype.na_value is np.nan and result is libmissing.NA:
             # the masked_reductions use pd.NA -> convert to np.nan
@@ -926,7 +1021,30 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return super().searchsorted(value=value, side=side, sorter=sorter)
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
+        from pandas.arrays import (
+            ArrowExtensionArray,
+            BooleanArray,
+        )
+
+        if (
+            isinstance(other, BaseStringArray)
+            and self.dtype.na_value is not libmissing.NA
+            and other.dtype.na_value is libmissing.NA
+        ):
+            # NA has priority of NaN semantics
+            return NotImplemented
+
+        if isinstance(other, ArrowExtensionArray):
+            if isinstance(other, BaseStringArray):
+                # pyarrow storage has priority over python storage
+                # (except if we have NA semantics and other not)
+                if not (
+                    self.dtype.na_value is libmissing.NA
+                    and other.dtype.na_value is not libmissing.NA
+                ):
+                    return NotImplemented
+            else:
+                return NotImplemented
 
         if isinstance(other, StringArray):
             other = other._ndarray

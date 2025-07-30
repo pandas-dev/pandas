@@ -37,7 +37,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
-    CategoricalDtype,
     is_array_like,
     is_bool_dtype,
     is_float_dtype,
@@ -45,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -724,9 +724,7 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(
-            other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
-        ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
+        if isinstance(other, (ExtensionArray, np.ndarray, list)):
             try:
                 result = pc_func(self._pa_array, self._box_pa(other))
             except pa.ArrowNotImplementedError:
@@ -1617,6 +1615,9 @@ class ArrowExtensionArray(
         ------
         NotImplementedError : subclass does not define accumulations
         """
+        if is_string_dtype(self):
+            return self._str_accumulate(name=name, skipna=skipna, **kwargs)
+
         pyarrow_name = {
             "cummax": "cumulative_max",
             "cummin": "cumulative_min",
@@ -1651,6 +1652,57 @@ class ArrowExtensionArray(
             result = result.cast(pa_dtype)
 
         return type(self)(result)
+
+    def _str_accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ArrowExtensionArray | ExtensionArray:
+        """
+        Accumulate implementation for strings, see `_accumulate` docstring for details.
+
+        pyarrow.compute does not implement these methods for strings.
+        """
+        if name == "cumprod":
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg)
+
+        # We may need to strip out trailing NA values
+        tail: pa.array | None = None
+        na_mask: pa.array | None = None
+        pa_array = self._pa_array
+        np_func = {
+            "cumsum": np.cumsum,
+            "cummin": np.minimum.accumulate,
+            "cummax": np.maximum.accumulate,
+        }[name]
+
+        if self._hasna:
+            na_mask = pc.is_null(pa_array)
+            if pc.all(na_mask) == pa.scalar(True):
+                return type(self)(pa_array)
+            if skipna:
+                if name == "cumsum":
+                    pa_array = pc.fill_null(pa_array, "")
+                else:
+                    # We can retain the running min/max by forward/backward filling.
+                    pa_array = pc.fill_null_forward(pa_array)
+                    pa_array = pc.fill_null_backward(pa_array)
+            else:
+                # When not skipping NA values, the result should be null from
+                # the first NA value onward.
+                idx = pc.index(na_mask, True).as_py()
+                tail = pa.nulls(len(pa_array) - idx, type=pa_array.type)
+                pa_array = pa_array[:idx]
+
+        # error: Cannot call function of unknown type
+        pa_result = pa.array(np_func(pa_array), type=pa_array.type)  # type: ignore[operator]
+
+        if tail is not None:
+            pa_result = pa.concat_arrays([pa_result, tail])
+        elif na_mask is not None:
+            pa_result = pc.if_else(na_mask, None, pa_result)
+
+        result = type(self)(pa_result)
+        return result
 
     def _reduce_pyarrow(self, name: str, *, skipna: bool = True, **kwargs) -> pa.Scalar:
         """
@@ -1871,7 +1923,9 @@ class ArrowExtensionArray(
         """
         # child class explode method supports only list types; return
         # default implementation for non list types.
-        if not pa.types.is_list(self.dtype.pyarrow_dtype):
+        if not hasattr(self.dtype, "pyarrow_dtype") or (
+            not pa.types.is_list(self.dtype.pyarrow_dtype)
+        ):
             return super()._explode()
         values = self
         counts = pa.compute.list_value_length(values._pa_array)

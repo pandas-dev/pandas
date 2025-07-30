@@ -5,8 +5,8 @@ requires = [
     "meson-python>=0.13.1",
     "meson>=1.2.1,<2",
     "wheel",
-    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Force numpy higher than 2.0, so that built wheels are compatible
+    "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    # Force numpy higher than 2.0rc1, so that built wheels are compatible
     # with both numpy 1 and 2
     "numpy>=2.0",
     "versioneer[toml]"
@@ -161,11 +161,11 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-free-threaded-support = true
+enable = ["cpython-freethreading"]
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build.sh"
+before-build = "pip install delvewheel"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
@@ -526,6 +526,8 @@ filterwarnings = [
   "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",
   # Can be removed once https://github.com/numpy/numpy/pull/24794 is merged
   "ignore:.*In the future `np.long` will be defined as.*:FutureWarning",
+  # https://github.com/numpy/numpy/pull/29301
+  "ignore:.*align should be passed:",
 ]
 junit_family = "xunit2"
 markers = [

@@ -69,7 +69,7 @@ class TestBuildSchema:
             "primaryKey": ["idx"],
         }
         if using_infer_string:
-            expected["fields"][2] = {"name": "B", "type": "any", "extDtype": "str"}
+            expected["fields"][2] = {"name": "B", "type": "string", "extDtype": "str"}
         assert result == expected
         result = build_table_schema(df_schema)
         assert "pandas_version" in result
@@ -119,10 +119,10 @@ class TestBuildSchema:
         if using_infer_string:
             expected["fields"][0] = {
                 "name": "level_0",
-                "type": "any",
+                "type": "string",
                 "extDtype": "str",
             }
-            expected["fields"][3] = {"name": "B", "type": "any", "extDtype": "str"}
+            expected["fields"][3] = {"name": "B", "type": "string", "extDtype": "str"}
         assert result == expected
 
         df.index.names = ["idx0", None]
@@ -305,7 +305,7 @@ class TestTableOrient:
         ]
 
         if using_infer_string:
-            fields[2] = {"name": "B", "type": "any", "extDtype": "str"}
+            fields[2] = {"name": "B", "type": "string", "extDtype": "str"}
 
         schema = {"fields": fields, "primaryKey": ["idx"]}
         data = [
@@ -544,7 +544,7 @@ class TestTableOrient:
                 },
                 CategoricalDtype(categories=["a", "b", "c"], ordered=True),
             ),
-            ({"type": "string"}, "object"),
+            ({"type": "string"}, None),
         ],
     )
     def test_convert_json_field_to_pandas_type(self, inp, exp):

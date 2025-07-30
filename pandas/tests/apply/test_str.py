@@ -166,17 +166,10 @@ def test_agg_cython_table_series(series, func, expected):
         ),
     ),
 )
-def test_agg_cython_table_transform_series(request, series, func, expected):
+def test_agg_cython_table_transform_series(series, func, expected):
     # GH21224
     # test transforming functions in
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    if series.dtype == "string" and func in ("cumsum", np.cumsum, np.nancumsum):
-        request.applymarker(
-            pytest.mark.xfail(
-                raises=(TypeError, NotImplementedError),
-                reason="TODO(infer_string) cumsum not yet implemented for string",
-            )
-        )
     warn = None if isinstance(func, str) else FutureWarning
     with tm.assert_produces_warning(warn, match="is currently using Series.*"):
         result = series.agg(func)

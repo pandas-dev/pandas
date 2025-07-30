@@ -32,7 +32,7 @@ this area.
 .. warning::
 
    Whether a copy or a reference is returned for a setting operation, may
-   depend on the context. This is sometimes called ``chained assignment`` and
+   depend on the context. This is sometimes called *chained assignment* and
    should be avoided. See :ref:`Returning a View versus Copy
    <indexing.view_versus_copy>`.
 
