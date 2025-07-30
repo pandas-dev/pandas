@@ -2439,7 +2439,7 @@ class MultiIndex(Index):
         Index(['a', 'b', 'c', 'd'], dtype='object')
 
         >>> midx = pd.MultiIndex.from_arrays([[2, 2], [np.nan, 0]])
-        >>> midx.argsort(na_position='first')
+        >>> midx.argsort(na_position="first")
         array([0, 1])
 
         >>> midx.argsort()
@@ -2836,7 +2836,8 @@ class MultiIndex(Index):
         # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
         # no attribute "__iter__" (not iterable)
         level = [
-            self._get_level_number(lev) for lev in level  # type: ignore[union-attr]
+            self._get_level_number(lev)
+            for lev in level  # type: ignore[union-attr]
         ]
         sortorder = None
 
