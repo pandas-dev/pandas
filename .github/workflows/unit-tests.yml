@@ -22,6 +22,7 @@ defaults:
 
 jobs:
   ubuntu:
+    if: false
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 90
     strategy:
@@ -178,6 +179,7 @@ jobs:
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
+    if: false
     timeout-minutes: 90
     strategy:
       matrix:
@@ -215,6 +217,7 @@ jobs:
         uses: ./.github/actions/run-tests
 
   Linux-32-bit:
+    if: false
     runs-on: ubuntu-24.04
     container:
       image: quay.io/pypa/manylinux2014_i686
@@ -253,6 +256,7 @@ jobs:
       cancel-in-progress: true
 
   Linux-Musl:
+    if: false
     runs-on: ubuntu-24.04
     container:
       image: quay.io/pypa/musllinux_1_2_x86_64
@@ -313,7 +317,6 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -345,7 +348,7 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13-dev'
+          python-version: '3.14-dev'
 
       - name: Build Environment
         run: |
@@ -361,6 +364,7 @@ jobs:
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
+    if: false
     # Note: the Python version, Emscripten toolchain version are determined
     # by the Pyodide version. The appropriate versions can be found in the
     # Pyodide repodata.json "info" field, or in the Makefile.envs file:
