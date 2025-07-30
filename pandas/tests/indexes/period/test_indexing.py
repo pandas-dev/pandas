@@ -502,7 +502,7 @@ class TestGetIndexer:
         )
 
         msg = "Input has different freq=None from PeriodArray\\(freq=h\\)"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(libperiod.IncompatibleFrequency, match=msg):
             idx.get_indexer(target, "nearest", tolerance="1 minute")
 
         tm.assert_numpy_array_equal(

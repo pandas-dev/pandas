@@ -700,7 +700,7 @@ to have different probabilities, you can pass the ``sample`` function sampling w
 
     s = pd.Series([0, 1, 2, 3, 4, 5])
     example_weights = [0, 0, 0.2, 0.2, 0.2, 0.4]
-    s.sample(n=3, weights=example_weights)
+    s.sample(n=2, weights=example_weights)
 
     # Weights will be re-normalized automatically
     example_weights2 = [0.5, 0, 0, 0, 0, 0]
@@ -714,7 +714,7 @@ as a string.
 
     df2 = pd.DataFrame({'col1': [9, 8, 7, 6],
                         'weight_column': [0.5, 0.4, 0.1, 0]})
-    df2.sample(n=3, weights='weight_column')
+    df2.sample(n=2, weights='weight_column')
 
 ``sample`` also allows users to sample columns instead of rows using the ``axis`` argument.
 
