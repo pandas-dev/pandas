@@ -129,7 +129,7 @@ bar2,12,13,14,15
         tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
         tm.assert_frame_equal(reader.get_chunk(size=4), expected.iloc[2:5])
 
-        with pytest.raises(StopIteration, match=""):
+        with pytest.raises(StopIteration, match="^$"):
             reader.get_chunk(size=3)
 
 

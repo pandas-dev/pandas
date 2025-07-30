@@ -249,10 +249,14 @@ class TestDatetimeTZDtype(Base):
 
     def test_alias_to_unit_bad_alias_raises(self):
         # 23990
-        with pytest.raises(TypeError, match=""):
+        with pytest.raises(
+            TypeError, match="Cannot construct a 'DatetimeTZDtype' from"
+        ):
             DatetimeTZDtype("this is a bad string")
 
-        with pytest.raises(TypeError, match=""):
+        with pytest.raises(
+            TypeError, match="Cannot construct a 'DatetimeTZDtype' from"
+        ):
             DatetimeTZDtype("datetime64[ns, US/NotATZ]")
 
     def test_hash_vs_equality(self, dtype):

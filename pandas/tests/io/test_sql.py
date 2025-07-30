@@ -2226,7 +2226,7 @@ def test_api_chunksize_read(conn, request):
 
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(NotImplementedError, match="^$"):
             sql.read_sql_table("test_chunksize", conn, chunksize=5)
     else:
         res3 = DataFrame()
