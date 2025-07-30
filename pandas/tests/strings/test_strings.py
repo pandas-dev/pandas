@@ -11,6 +11,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    option_context,
 )
 import pandas._testing as tm
 from pandas.core.strings.accessor import StringMethods
@@ -777,4 +778,36 @@ def test_series_str_decode():
     # GH 22613
     result = Series([b"x", b"y"]).str.decode(encoding="UTF-8", errors="strict")
     expected = Series(["x", "y"], dtype="str")
+    tm.assert_series_equal(result, expected)
+
+
+def test_decode_with_dtype_none():
+    with option_context("future.infer_string", True):
+        ser = Series([b"a", b"b", b"c"])
+        result = ser.str.decode("utf-8", dtype=None)
+        expected = Series(["a", "b", "c"], dtype="str")
+        tm.assert_series_equal(result, expected)
+
+
+def test_reversed_logical_ops(any_string_dtype):
+    # GH#60234
+    dtype = any_string_dtype
+    warn = None if dtype == object else FutureWarning
+    left = Series([True, False, False, True])
+    right = Series(["", "", "b", "c"], dtype=dtype)
+
+    msg = "operations between boolean dtype and"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = left | right
+    expected = left | right.astype(bool)
+    tm.assert_series_equal(result, expected)
+
+    with tm.assert_produces_warning(warn, match=msg):
+        result = left & right
+    expected = left & right.astype(bool)
+    tm.assert_series_equal(result, expected)
+
+    with tm.assert_produces_warning(warn, match=msg):
+        result = left ^ right
+    expected = left ^ right.astype(bool)
     tm.assert_series_equal(result, expected)
