@@ -1248,8 +1248,8 @@ def test_invalid_nat_setitem_array(arr, non_casting_nats):
 @pytest.mark.parametrize(
     "arr",
     [
-        pd.date_range("2000", periods=4).array,
-        pd.timedelta_range("2000", periods=4).array,
+        pd.date_range("2000", periods=4).array.copy(),
+        pd.timedelta_range("2000", periods=4).array.copy(),
     ],
 )
 def test_to_numpy_extra(arr):
