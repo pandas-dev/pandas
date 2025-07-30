@@ -312,13 +312,13 @@ class ArrowStringArrayMixin:
         if isinstance(pat, re.Pattern):
             # GH#61952
             pat = pat.pattern
-        if not pat.startswith("^"):
+        if isinstance(pat, str) and not pat.startswith("^"):
             pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
         self,
-        pat,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -326,7 +326,7 @@ class ArrowStringArrayMixin:
         if isinstance(pat, re.Pattern):
             # GH#61952
             pat = pat.pattern
-        if not pat.endswith("$") or pat.endswith("\\$"):
+        if isinstance(pat, str) and (not pat.endswith("$") or pat.endswith("\\$")):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
