@@ -4886,15 +4886,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         limit: int | None = None,
         tolerance=None,
     ) -> Series:
-        # Automatically detect matching level when reindexing from Index to MultiIndex.
-        # This prevents values from being incorrectly set to NaN when the source index
-        # name matches a level name in the target MultiIndex
-        if (
-            level is None
-            and isinstance(index, MultiIndex)
-            and self.index.name in index.names
-        ):
-            level = self.index.name
         return super().reindex(
             index=index,
             method=method,
