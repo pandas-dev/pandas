@@ -32,8 +32,6 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_strict_nans
-
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
@@ -277,17 +275,14 @@ class TestArrowArray(base.ExtensionTests):
         self._compare_other(ser, data, comparison_op, data[0])
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data_missing, na_action):
+    def test_map(self, data_missing, na_action, using_nan_is_na):
         if data_missing.dtype.kind in "mM":
             result = data_missing.map(lambda x: x, na_action=na_action)
             expected = data_missing.to_numpy(dtype=object)
             tm.assert_numpy_array_equal(result, expected)
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
-            if (
-                data_missing.dtype == "float32[pyarrow]"
-                and not using_pyarrow_strict_nans()
-            ):
+            if data_missing.dtype == "float32[pyarrow]" and using_nan_is_na:
                 # map roundtrips through objects, which converts to float64
                 expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
             else:
@@ -698,7 +693,7 @@ class TestArrowArray(base.ExtensionTests):
 
     @pytest.mark.parametrize("dtype_backend", ["pyarrow", no_default])
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data, dtype_backend, request):
+    def test_EA_types(self, engine, data, dtype_backend, request, using_nan_is_na):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype):
             request.applymarker(
@@ -719,7 +714,7 @@ class TestArrowArray(base.ExtensionTests):
                 pytest.mark.xfail(reason="CSV parsers don't correctly handle binary")
             )
         df = pd.DataFrame({"with_dtype": pd.Series(data, dtype=str(data.dtype))})
-        if using_pyarrow_strict_nans():
+        if not using_nan_is_na:
             csv_output = df.to_csv(index=False, na_rep="NA")
         else:
             csv_output = df.to_csv(index=False, na_rep=np.nan)
@@ -1536,7 +1531,7 @@ def test_astype_errors_ignore():
     tm.assert_frame_equal(result, expected)
 
 
-def test_to_numpy_with_defaults(data):
+def test_to_numpy_with_defaults(data, using_nan_is_na):
     # GH49973
     result = data.to_numpy()
 
@@ -1548,21 +1543,19 @@ def test_to_numpy_with_defaults(data):
     else:
         expected = np.array(data._pa_array)
 
-    if data._hasna and (
-        not is_numeric_dtype(data.dtype) or using_pyarrow_strict_nans()
-    ):
+    if data._hasna and (not is_numeric_dtype(data.dtype) or not using_nan_is_na):
         expected = expected.astype(object)
         expected[pd.isna(data)] = pd.NA
 
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_to_numpy_int_with_na():
+def test_to_numpy_int_with_na(using_nan_is_na):
     # GH51227: ensure to_numpy does not convert int to float
     data = [1, None]
     arr = pd.array(data, dtype="int64[pyarrow]")
     result = arr.to_numpy()
-    if using_pyarrow_strict_nans():
+    if not using_nan_is_na:
         expected = np.array([1, pd.NA], dtype=object)
     else:
         expected = np.array([1, np.nan])
@@ -3528,10 +3521,10 @@ def test_cast_dictionary_different_value_dtype(arrow_type):
     assert result.dtypes.iloc[0] == data_type
 
 
-def test_map_numeric_na_action():
+def test_map_numeric_na_action(using_nan_is_na):
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
-    if using_pyarrow_strict_nans():
+    if not using_nan_is_na:
         expected = pd.Series([42.0, 42.0, pd.NA], dtype="object")
     else:
         expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")

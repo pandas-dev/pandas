@@ -3,8 +3,6 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_strict_nans
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -61,7 +59,7 @@ class TestConvertDtypes:
         tm.assert_index_equal(result.columns, df.columns)
         assert result.columns.name == "cols"
 
-    def test_pyarrow_dtype_backend(self):
+    def test_pyarrow_dtype_backend(self, using_nan_is_na):
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
@@ -76,7 +74,7 @@ class TestConvertDtypes:
         )
         result = df.convert_dtypes(dtype_backend="pyarrow")
 
-        item = None if not using_pyarrow_strict_nans() else np.nan
+        item = None if using_nan_is_na else np.nan
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
