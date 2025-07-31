@@ -90,6 +90,7 @@ Attribute "ordered" are different
 
 
 def test_categorical_equal_with_nans_and_different_order():
+    # GH#62008
     values = ["B", np.nan, "D"]
     categories_left = ["B", "D"]
     categories_right = categories_left[::-1]
