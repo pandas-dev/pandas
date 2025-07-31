@@ -117,19 +117,24 @@ class TestMethods:
             [(3, 4), (3, 4), (2, 3), (2, 3), (1, 2), (1, 2)]
         )
         result = idx_pos.unique()
-        assert result.shape == (3,), f"Expected shape (3,), got {result.shape}"
+        expected = IntervalIndex.from_tuples([(3, 4), (2, 3), (1, 2)])
+        tm.assert_index_equal(result, expected)
 
         idx_neg = IntervalIndex.from_tuples(
             [(-4, -3), (-4, -3), (-3, -2), (-3, -2), (-2, -1), (-2, -1)]
         )
         result = idx_neg.unique()
-        assert result.shape == (3,), f"Expected shape (3,), got {result.shape}"
+        expected = IntervalIndex.from_tuples([(-4, -3), (-3, -2), (-2, -1)])
+        tm.assert_index_equal(result, expected)
 
         idx_mix = IntervalIndex.from_tuples(
             [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2), (-3, -2)]
         )
         result = idx_mix.unique()
-        assert result.shape == (5,), f"Expected shape (5,), got {result.shape}"
+        expected = IntervalIndex.from_tuples(
+            [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2)]
+        )
+        tm.assert_index_equal(result, expected)
 
 
 class TestSetitem:

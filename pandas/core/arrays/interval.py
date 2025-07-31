@@ -1971,10 +1971,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Create a new IntervalArray with our dtype from a 1D complex128 ndarray.
         """
-        nc = combined.view("i8").reshape(-1, 2)
 
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
+            nc = combined.view("i8").reshape(-1, 2)
             assert isinstance(self._left, (DatetimeArray, TimedeltaArray))
             new_left: DatetimeArray | TimedeltaArray | np.ndarray = type(
                 self._left
@@ -1985,6 +1985,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )._from_sequence(nc[:, 1], dtype=dtype)
         else:
             assert isinstance(dtype, np.dtype)
+            nc = np.hstack(
+                [np.real(combined).astype(dtype), np.imag(combined).astype(dtype)]
+            ).reshape(-1, 2)
             new_left = nc[:, 0].view(dtype)
             new_right = nc[:, 1].view(dtype)
         return self._shallow_copy(left=new_left, right=new_right)
