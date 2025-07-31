@@ -51,10 +51,16 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     algorithms as algos,
+    arraylike,
     missing,
     ops,
     roperator,
@@ -752,6 +758,39 @@ class ArrowExtensionArray(
 
         return self.to_numpy(dtype=dtype, copy=copy)
 
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        if any(
+            isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)) for other in inputs
+        ):
+            return NotImplemented
+
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        if "out" in kwargs:
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
+        if self.dtype.kind == "f":
+            # e.g. test_log_arrow_backed_missing_value
+            new_inputs = [
+                x if x is not self else x.to_numpy(na_value=np.nan) for x in inputs
+            ]
+            return getattr(ufunc, method)(*new_inputs, **kwargs)
+
+        return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
     def __invert__(self) -> Self:
         # This is a bit wise op for integer types
         if pa.types.is_integer(self._pa_array.type):
@@ -923,7 +962,13 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self:
-        return self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+        result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+        if is_nan_na() and result.dtype.kind == "f":
+            parr = result._pa_array
+            mask = pc.is_nan(parr).to_numpy()
+            arr = pc.replace_with_mask(parr, mask, pa.scalar(None, type=parr.type))
+            result = type(self)(arr)
+        return result
 
     def equals(self, other) -> bool:
         if not isinstance(other, ArrowExtensionArray):

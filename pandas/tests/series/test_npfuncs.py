@@ -38,7 +38,7 @@ def test_numpy_argwhere(index):
 
 
 @td.skip_if_no("pyarrow")
-def test_log_arrow_backed_missing_value():
+def test_log_arrow_backed_missing_value(using_nan_is_na):
     # GH#56285
     ser = Series([1, 2, None], dtype="float64[pyarrow]")
     result = np.log(ser)

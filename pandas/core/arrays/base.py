@@ -2539,14 +2539,6 @@ class ExtensionArray:
             if result is not NotImplemented:
                 return result
 
-        # TODO: putting this here is hacky as heck
-        if self.dtype == "float64[pyarrow]":
-            # e.g. test_log_arrow_backed_missing_value
-            new_inputs = [
-                x if x is not self else x.to_numpy(na_value=np.nan) for x in inputs
-            ]
-            return getattr(ufunc, method)(*new_inputs, **kwargs)
-
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
