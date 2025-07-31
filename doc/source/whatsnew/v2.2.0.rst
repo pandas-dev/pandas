@@ -923,6 +923,10 @@ Sparse
 ^^^^^^
 - Bug in :meth:`arrays.SparseArray.take` when using a different fill value than the array's fill value (:issue:`55181`)
 
+Timeseries
+~~~~~~~
+- ``CustomBusinessDay`` now raises a ``TypeError`` when an invalid ``calendar`` argument is passed instead of quitely ignoring it. (:gh:`60647`)
+
 Other
 ^^^^^
 - :meth:`DataFrame.__dataframe__` did not support pyarrow large strings (:issue:`56702`)

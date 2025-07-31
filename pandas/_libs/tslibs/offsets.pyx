@@ -207,18 +207,16 @@ cdef _get_calendar(weekmask, holidays, calendar):
             holidays = tuple(calendar.holidays)
         elif not isinstance(holidays, tuple):
             holidays = tuple(holidays)
-        else:
-            # trust that calendar.holidays and holidays are
-            # consistent
-            pass
         return calendar, holidays
+
+    if calendar is not None:
+        raise TypeError(
+            f"The 'calendar' argument must be a numpy.busdaycalendar, "
+            f"but got an object of type {type(calendar).__name__} instead."
+        )
 
     if holidays is None:
         holidays = []
-    try:
-        holidays = holidays + calendar.holidays().tolist()
-    except AttributeError:
-        pass
     holidays = [_to_dt64D(dt) for dt in holidays]
     holidays = tuple(sorted(holidays))
 

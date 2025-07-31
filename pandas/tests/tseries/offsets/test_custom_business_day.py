@@ -77,9 +77,16 @@ class TestCustomBusinessDay:
 
     @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
+        from pandas.tseries.holiday import USFederalHolidayCalendar
+
         calendar = USFederalHolidayCalendar()
+        holidays = calendar.holidays()
+        holidays = holidays.values.astype("datetime64[D]")
+
+        busdaycal = np.busdaycalendar(holidays=holidays)
+
         dt = datetime(2014, 1, 17)
-        assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
+        assert_offset_equal(CDay(calendar=busdaycal), dt, datetime(2014, 1, 21))
 
     def test_roundtrip_pickle(self, offset, offset2):
         def _check_roundtrip(obj):
@@ -96,3 +103,13 @@ class TestCustomBusinessDay:
         cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
+
+    def test_invalid_calendar_type_raises(self):
+        class FakeCalendar:
+            def holidays(self):
+                return []
+
+        fake_calendar = FakeCalendar()
+
+        with pytest.raises(TypeError, match="must be a numpy.busdaycalendar"):
+            CDay(calendar=fake_calendar)
