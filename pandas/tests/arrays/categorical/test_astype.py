@@ -131,8 +131,8 @@ class TestAstype:
             tm.assert_categorical_equal(result, expected)
 
     def test_astype_category_copy_false_nocopy_codes(self):
+        # GH#62000
         cat = Categorical([3, 2, 4, 1])
-        # ensure that the categories are not copied
         assert cat.codes.base is not None
 
         new = cat.astype("category", copy=False)
