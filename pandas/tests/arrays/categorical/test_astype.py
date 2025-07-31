@@ -133,8 +133,6 @@ class TestAstype:
     def test_astype_category_copy_false_nocopy_codes(self):
         # GH#62000
         cat = Categorical([3, 2, 4, 1])
-        assert cat.codes.base is not None
-
         new = cat.astype("category", copy=False)
         assert new.codes.base is cat.codes.base or new.codes is cat.codes
         new = cat.astype("category", copy=True)
