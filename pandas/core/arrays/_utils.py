@@ -7,7 +7,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_pyarrow_strict_nans
+from pandas._config import is_nan_na
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
@@ -41,7 +41,7 @@ def to_numpy_dtype_inference(
                 else:
                     dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
                 if na_value is lib.no_default:
-                    if is_pyarrow and using_pyarrow_strict_nans():
+                    if is_pyarrow and not is_nan_na():
                         na_value = NA
                         dtype = np.dtype(object)
                     else:

@@ -429,10 +429,11 @@ with cf.config_prefix("mode"):
 
 with cf.config_prefix("mode"):
     cf.register_option(
-        "pyarrow_strict_nans",
-        True,
+        "nan_is_na",
+        False,
         # TODO: Change this to False before merging
-        "Whether to make ArrowDtype arrays consistently treat NaN as distinct from NA",
+        "Whether to make ArrowDtype arrays consistently treat NaN as "
+        "interchangeable with pd.NA",
         validator=is_one_of_factory([True, False]),
     )
 

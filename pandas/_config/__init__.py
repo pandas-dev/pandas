@@ -35,6 +35,6 @@ def using_string_dtype() -> bool:
     return _mode_options["infer_string"]
 
 
-def using_pyarrow_strict_nans() -> bool:
+def is_nan_na() -> bool:
     _mode_options = _global_config["mode"]
-    return _mode_options["pyarrow_strict_nans"]
+    return _mode_options["nan_is_na"]
