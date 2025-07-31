@@ -580,7 +580,7 @@ class ArrowExtensionArray(
             ):
                 arr_value = np.asarray(value, dtype=object)
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
-                mask = is_pdna_or_none(arr_value)
+                mask = is_pdna_or_none(arr_value)  # type: ignore[assignment]
 
             try:
                 pa_array = pa.array(value, type=pa_type, mask=mask)
