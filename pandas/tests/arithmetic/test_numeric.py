@@ -870,13 +870,13 @@ class TestMultiplicationDivision:
         np_array = np.array([1, 2, 3, 4, 5], dtype=np.int64).reshape(5, 1)
 
         with pytest.raises(
-            NotImplementedError, 
+            NotImplementedError,
             match="non-1D ExtensionArray operations are not supported",
         ):
             ea_array * np_array
 
         with pytest.raises(
-            NotImplementedError, 
+            NotImplementedError,
             match="non-1D ExtensionArray operations are not supported",
         ):
             np_array * ea_array
