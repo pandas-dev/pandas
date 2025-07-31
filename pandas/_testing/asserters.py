@@ -495,8 +495,15 @@ def assert_categorical_equal(
             lc, rc = left.categories, right.categories
         assert_index_equal(lc, rc, obj=f"{obj}.categories", exact=exact)
         assert_index_equal(
-            left.categories.take(left.codes),
-            right.categories.take(right.codes),
+            Index(
+                [left.categories[code] if code >= 0 else np.nan for code in left.codes]
+            ),
+            Index(
+                [
+                    right.categories[code] if code >= 0 else np.nan
+                    for code in right.codes
+                ]
+            ),
             obj=f"{obj}.values",
             exact=exact,
         )
