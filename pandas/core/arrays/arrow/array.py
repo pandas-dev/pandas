@@ -452,7 +452,7 @@ class ArrowExtensionArray(
         """
         if isinstance(value, pa.Scalar):
             pa_scalar = value
-        elif isna(value) and not lib.is_float(value):
+        elif isna(value) and not (lib.is_float(value) and not is_nan_na()):
             pa_scalar = pa.scalar(None, type=pa_type)
         else:
             # Workaround https://github.com/apache/arrow/issues/37291

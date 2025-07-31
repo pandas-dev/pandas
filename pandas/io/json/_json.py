@@ -18,6 +18,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import option_context
+
 from pandas._libs import lib
 from pandas._libs.json import (
     ujson_dumps,
@@ -994,16 +996,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         else:
             obj = self._get_object_parser(self.data)
         if self.dtype_backend is not lib.no_default:
-            if self.dtype_backend == "pyarrow":
+            with option_context("mode.nan_is_na", True):
                 # The construction above takes "null" to NaN, which we want to
                 #  convert to NA. But .convert_dtypes to pyarrow doesn't allow
                 #  that, so we do a 2-step conversion through numpy-nullable.
-                obj = obj.convert_dtypes(
-                    infer_objects=False, dtype_backend="numpy_nullable"
+                return obj.convert_dtypes(
+                    infer_objects=False, dtype_backend=self.dtype_backend
                 )
-            return obj.convert_dtypes(
-                infer_objects=False, dtype_backend=self.dtype_backend
-            )
         else:
             return obj
 
@@ -1078,16 +1077,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             raise ex
 
         if self.dtype_backend is not lib.no_default:
-            if self.dtype_backend == "pyarrow":
+            with option_context("mode.nan_is_na", True):
                 # The construction above takes "null" to NaN, which we want to
                 #  convert to NA. But .convert_dtypes to pyarrow doesn't allow
                 #  that, so we do a 2-step conversion through numpy-nullable.
-                obj = obj.convert_dtypes(
-                    infer_objects=False, dtype_backend="numpy_nullable"
+                return obj.convert_dtypes(
+                    infer_objects=False, dtype_backend=self.dtype_backend
                 )
-            return obj.convert_dtypes(
-                infer_objects=False, dtype_backend=self.dtype_backend
-            )
         else:
             return obj
 
