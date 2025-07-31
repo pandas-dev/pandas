@@ -874,7 +874,7 @@ class TestMultiplicationDivision:
         with pytest.raises(NotImplementedError, match=msg):
             ea_array * np_array
 
-        with pytest.raises(NotImplementedError, match=msg): 
+        with pytest.raises(NotImplementedError, match=msg):
             np_array * ea_array
 
 
