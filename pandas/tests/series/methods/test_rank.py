@@ -279,6 +279,7 @@ class TestSeriesRank:
             dtype == "int64"
             or dtype == "int64[pyarrow]"
             or dtype == "uint64[pyarrow]"
+            or dtype == "float64[pyarrow]"
             or (not using_infer_string and dtype == "str")
         ):
             pytest.skip("int64/str does not support NaN")

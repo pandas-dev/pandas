@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_strict_nans
+from pandas._config import is_nan_na
 
 from pandas._libs import lib
 from pandas._libs.missing import is_pdna_or_none
@@ -35,6 +35,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
+    construct_1d_object_array_from_listlike,
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
@@ -555,7 +556,22 @@ class ArrowExtensionArray(
                 return pa_array
 
             mask = None
-            if getattr(value, "dtype", None) is None or value.dtype.kind not in "iumMf":
+            if is_nan_na():
+                try:
+                    arr_value = np.asarray(value)
+                    if arr_value.ndim > 1:
+                        # e.g. test_fixed_size_list we have list data.  ndim > 1
+                        #  means there were no scalar (NA) entries.
+                        mask = np.zeros(len(value), dtype=np.bool_)
+                    else:
+                        mask = isna(arr_value)
+                except ValueError:
+                    # Ragged data that numpy raises on
+                    arr_value = construct_1d_object_array_from_listlike(value)
+                    mask = isna(arr_value)
+            elif (
+                getattr(value, "dtype", None) is None or value.dtype.kind not in "iumMf"
+            ):
                 arr_value = np.asarray(value, dtype=object)
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
                 mask = is_pdna_or_none(arr_value)
@@ -1490,7 +1506,9 @@ class ArrowExtensionArray(
         na_value: object = lib.no_default,
     ) -> np.ndarray:
         original_na_value = na_value
-        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
+        dtype, na_value = to_numpy_dtype_inference(
+            self, dtype, na_value, self._hasna, is_pyarrow=True
+        )
         pa_type = self._pa_array.type
         if not self._hasna or isna(na_value) or pa.types.is_null(pa_type):
             data = self
@@ -1522,7 +1540,7 @@ class ArrowExtensionArray(
                 or (
                     original_na_value is lib.no_default
                     and is_float_dtype(dtype)
-                    and not using_pyarrow_strict_nans()
+                    and is_nan_na()
                 )
             )
         ):
