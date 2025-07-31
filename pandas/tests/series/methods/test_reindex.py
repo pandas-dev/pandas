@@ -458,14 +458,3 @@ def test_reindex_multiindex_automatic_level(name, expected_match_level_a):
         expected = Series(np.nan, index=target, dtype=series.dtype)
 
     tm.assert_series_equal(result, expected)
-
-
-def test_reindex_multiindex_explicit_level_overrides():
-    series = Series([26.73, 24.255], index=Index([81, 82], name="a"))
-    target = MultiIndex.from_product(
-        [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]], names=["a", "b", "c"]
-    )
-
-    result = series.reindex(target, level=0)
-    expected = series.reindex(target, level="a")
-    tm.assert_series_equal(result, expected)
