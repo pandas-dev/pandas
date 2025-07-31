@@ -273,20 +273,20 @@ class TestSeriesRank:
         with pytest.raises(ValueError, match=msg):
             s.rank("average")
 
-    def test_rank_tie_methods(self, ser, results, dtype, using_infer_string):
+    def test_rank_tie_methods(
+        self, ser, results, dtype, using_infer_string, using_nan_is_na
+    ):
         method, exp = results
         if (
             dtype == "int64"
-            or dtype == "int64[pyarrow]"
-            or dtype == "uint64[pyarrow]"
-            or dtype == "float64[pyarrow]"
+            or (dtype in ["int64[pyarrow]", "uint64[pyarrow]"] and not using_nan_is_na)
             or (not using_infer_string and dtype == "str")
         ):
             pytest.skip("int64/str does not support NaN")
 
         ser = ser if dtype is None else ser.astype(dtype)
         result = ser.rank(method=method)
-        if dtype == "float64[pyarrow]":
+        if dtype == "float64[pyarrow]" and not using_nan_is_na:
             # the NaNs are not treated as NA
             exp = exp.copy()
             if method == "average":
@@ -418,11 +418,13 @@ class TestSeriesRank:
         expected = Series(exp).astype(expected_dtype(dtype, "dense"))
         tm.assert_series_equal(result, expected)
 
-    def test_rank_descending(self, ser, results, dtype, using_infer_string):
+    def test_rank_descending(
+        self, ser, results, dtype, using_infer_string, using_nan_is_na
+    ):
         method, _ = results
         if (
             dtype == "int64"
-            or dtype == "int64[pyarrow]"
+            or (dtype in ["int64[pyarrow]"] and not using_nan_is_na)
             or (not using_infer_string and dtype == "str")
         ):
             s = ser.dropna().astype(dtype)
