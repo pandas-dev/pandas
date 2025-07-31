@@ -4217,8 +4217,7 @@ class DataFrame(NDFrame, OpsMixin):
         Set item(s) in DataFrame by key.
 
         This method allows you to set the values of one or more columns in the
-        DataFrame using a key. The key can be a single column label, a list of
-        labels, or a boolean array. If the key does not exist, a new
+        DataFrame using a key. If the key does not exist, a new
         column will be created.
 
         Parameters
