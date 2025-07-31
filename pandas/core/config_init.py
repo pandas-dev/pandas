@@ -430,8 +430,7 @@ with cf.config_prefix("mode"):
 with cf.config_prefix("mode"):
     cf.register_option(
         "nan_is_na",
-        False,
-        # TODO: Change this to False before merging
+        True,
         "Whether to make ArrowDtype arrays consistently treat NaN as "
         "interchangeable with pd.NA",
         validator=is_one_of_factory([True, False]),
