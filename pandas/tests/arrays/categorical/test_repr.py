@@ -16,16 +16,11 @@ from pandas import (
 class TestCategoricalReprWithFactor:
     def test_print(self, using_infer_string):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
-        if using_infer_string:
-            expected = [
-                "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-                "Categories (3, str): [a < b < c]",
-            ]
-        else:
-            expected = [
-                "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-                "Categories (3, object): ['a' < 'b' < 'c']",
-            ]
+        dtype = "str" if using_infer_string else "object"
+        expected = [
+            "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
+            f"Categories (3, {dtype}): ['a' < 'b' < 'c']",
+        ]
         expected = "\n".join(expected)
         actual = repr(factor)
         assert actual == expected
@@ -82,10 +77,7 @@ Length: 60
 Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
 
         if using_infer_string:
-            expected = expected.replace(
-                "(3, object): ['aaaaa', 'bb', 'cccc']",
-                "(3, str): [aaaaa, bb, cccc]",
-            )
+            expected = expected.replace("object", "str")
 
         assert repr(c) == expected
 
@@ -96,10 +88,7 @@ Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
 
         if using_infer_string:
-            expected = expected.replace(
-                "(3, object): ['ああああ', 'いいいいい', 'ううううううう']",
-                "(3, str): [ああああ, いいいいい, ううううううう]",
-            )
+            expected = expected.replace("object", "str")
 
         assert repr(c) == expected
 
@@ -112,12 +101,9 @@ Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
 
         if using_infer_string:
-            expected = expected.replace(
-                "(3, object): ['ああああ', 'いいいいい', 'ううううううう']",
-                "(3, str): [ああああ, いいいいい, ううううううう]",
-            )
+            expected = expected.replace("object", "str")
 
-            assert repr(c) == expected
+        assert repr(c) == expected
 
     def test_categorical_repr(self):
         c = Categorical([1, 2, 3])
