@@ -2122,3 +2122,10 @@ def temp_file(tmp_path):
 def monkeysession():
     with pytest.MonkeyPatch.context() as mp:
         yield mp
+
+
+@pytest.fixture(params=[True, False])
+def using_nan_is_na(request):
+    opt = request.param
+    with pd.option_context("mode.nan_is_na", opt):
+        yield opt
