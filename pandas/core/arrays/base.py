@@ -1688,13 +1688,13 @@ class ExtensionArray:
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
         ['a', 'b', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat(2)
         ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
         ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         """
 
     @Substitution(klass="ExtensionArray")
@@ -2608,6 +2608,7 @@ class ExtensionArray:
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
+        initial: Any = 0
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
@@ -2632,6 +2633,7 @@ class ExtensionArray:
 
             arr = self
             if op.how == "sum":
+                initial = ""
                 # https://github.com/pandas-dev/pandas/issues/60229
                 # All NA should result in the empty string.
                 assert "skipna" in kwargs
@@ -2649,6 +2651,7 @@ class ExtensionArray:
             ngroups=ngroups,
             comp_ids=ids,
             mask=None,
+            initial=initial,
             **kwargs,
         )
 
