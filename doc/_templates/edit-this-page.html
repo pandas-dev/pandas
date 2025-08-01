@@ -1,5 +1,5 @@
 {# Displays a link to the edit interface of the page source in the specified Version Control System. #}
-{% if sourcename is defined and theme_use_edit_page_button==true and page_source_suffix and pagename not in exclude_edit_page_button %}
+{% if sourcename is defined and theme_use_edit_page_button==true and page_source_suffix and show_edit_this_page %}
   {% set src = sourcename.split('.') %}
   <div class="tocsection editthispage">
     <a href="{{ get_edit_provider_and_url()[1] }}">

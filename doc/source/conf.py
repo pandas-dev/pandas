@@ -69,6 +69,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     "nbsphinx",
+    "show_edit_this_page",
 ]
 
 exclude_patterns = [
@@ -399,7 +400,12 @@ html_context = {
     "github_repo": "pandas",
     "github_version": "main",
     "doc_path": "doc/source",
-    "exclude_edit_page_button": ["index"],
+    "exclude_edit_this_page_pagename": [
+        "index"
+    ],  # specific pages, e.g., index, development/index
+    "exclude_edit_this_page_directory": [
+        "api"
+    ],  # all files in a directory, e.g., development, reference
 }
 
 # If false, no module index is generated.
