@@ -840,6 +840,10 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     >>> is_signed_integer_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
+    if isinstance(arr_or_dtype, type) and issubclass(
+        arr_or_dtype, (np.floating, np.inexact, np.generic)
+    ):
+        return False
     return _is_dtype_type(
         arr_or_dtype, _classes_and_not_datetimelike(np.signedinteger)
     ) or _is_dtype(
