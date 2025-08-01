@@ -4222,7 +4222,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        key : str, list of str, or tuple
+        key : The object(s) in the index which are to be assigned to
             Column label(s) to set. Can be a single column name, list of column names,
             or tuple for MultiIndex columns.
         value : scalar, array-like, Series, or DataFrame
