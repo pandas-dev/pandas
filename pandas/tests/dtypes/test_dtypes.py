@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_interval_dtype,
     is_period_dtype,
+    is_signed_integer_dtype,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -1148,6 +1149,13 @@ def test_registry_find(dtype, expected):
 def test_is_bool_dtype(dtype, expected):
     result = is_bool_dtype(dtype)
     assert result is expected
+
+
+def test_is_signed_integer_dtype_with_abstract_types():
+    # GH 62018
+    assert is_signed_integer_dtype(np.floating) is False
+    assert is_signed_integer_dtype(np.inexact) is False
+    assert is_signed_integer_dtype(np.generic) is False
 
 
 def test_is_bool_dtype_sparse():
