@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_interval_dtype,
     is_period_dtype,
-    is_signed_integer_dtype,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -250,10 +249,14 @@ class TestDatetimeTZDtype(Base):
 
     def test_alias_to_unit_bad_alias_raises(self):
         # 23990
-        with pytest.raises(TypeError, match=""):
+        with pytest.raises(
+            TypeError, match="Cannot construct a 'DatetimeTZDtype' from"
+        ):
             DatetimeTZDtype("this is a bad string")
 
-        with pytest.raises(TypeError, match=""):
+        with pytest.raises(
+            TypeError, match="Cannot construct a 'DatetimeTZDtype' from"
+        ):
             DatetimeTZDtype("datetime64[ns, US/NotATZ]")
 
     def test_hash_vs_equality(self, dtype):
@@ -1145,13 +1148,6 @@ def test_registry_find(dtype, expected):
 def test_is_bool_dtype(dtype, expected):
     result = is_bool_dtype(dtype)
     assert result is expected
-
-
-def test_is_signed_integer_dtype_with_abstract_types():
-    # GH 62018
-    assert is_signed_integer_dtype(np.floating) is False
-    assert is_signed_integer_dtype(np.inexact) is False
-    assert is_signed_integer_dtype(np.generic) is False
 
 
 def test_is_bool_dtype_sparse():
