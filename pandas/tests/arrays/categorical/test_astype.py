@@ -134,9 +134,9 @@ class TestAstype:
         # GH#62000
         cat = Categorical([3, 2, 4, 1])
         new = cat.astype("category", copy=False)
-        assert new.codes.base is cat.codes.base or new.codes is cat.codes
+        assert tm.shares_memory(new.codes, cat.codes)
         new = cat.astype("category", copy=True)
-        assert not (new.codes.base is cat.codes.base or new.codes is cat.codes)
+        assert not tm.shares_memory(new.codes, cat.codes)
 
     def test_astype_object_datetime_categories(self):
         # GH#40754
