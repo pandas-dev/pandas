@@ -575,7 +575,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
-            result = self._set_dtype(dtype)
+            result = self._set_dtype(dtype, copy=False)
 
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
@@ -945,7 +945,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         super().__init__(self._ndarray, new_dtype)
 
-    def _set_dtype(self, dtype: CategoricalDtype) -> Self:
+    def _set_dtype(self, dtype: CategoricalDtype, copy: bool = True) -> Self:
         """
         Internal method for directly updating the CategoricalDtype
 
@@ -958,7 +958,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         We don't do any validation here. It's assumed that the dtype is
         a (valid) instance of `CategoricalDtype`.
         """
-        codes = recode_for_categories(self.codes, self.categories, dtype.categories)
+        codes = recode_for_categories(
+            self.codes, self.categories, dtype.categories, copy
+        )
         return type(self)._simple_new(codes, dtype=dtype)
 
     def set_ordered(self, value: bool) -> Self:

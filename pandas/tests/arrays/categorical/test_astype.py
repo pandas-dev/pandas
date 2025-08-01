@@ -130,6 +130,14 @@ class TestAstype:
             expected = cat
             tm.assert_categorical_equal(result, expected)
 
+    def test_astype_category_copy_false_nocopy_codes(self):
+        # GH#62000
+        cat = Categorical([3, 2, 4, 1])
+        new = cat.astype("category", copy=False)
+        assert tm.shares_memory(new.codes, cat.codes)
+        new = cat.astype("category", copy=True)
+        assert not tm.shares_memory(new.codes, cat.codes)
+
     def test_astype_object_datetime_categories(self):
         # GH#40754
         cat = Categorical(to_datetime(["2021-03-27", NaT]))
