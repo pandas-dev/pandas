@@ -71,7 +71,7 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
             platform: ubuntu-24.04
-          - name: "Past no infer strings"
+          - name: "PANDAS_FUTURE_INFER_STRING=0"
             env_file: actions-312.yaml
             pandas_future_infer_string: "0"
             platform: ubuntu-24.04
