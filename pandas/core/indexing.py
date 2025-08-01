@@ -1610,7 +1610,7 @@ class _iLocIndexer(_LocationIndexer):
                 raise IndexError(f".iloc requires numeric indexers, got {arr}")
 
             if len(arr):
-                # handle ExtensionArray safely using _reduce method else use numpy
+                # handle ExtensionArray using _reduce method else use numpy
                 if isinstance(arr.dtype, ExtensionDtype):
                     arr_max = arr._reduce("max")
                     arr_min = arr._reduce("min")
@@ -1618,6 +1618,7 @@ class _iLocIndexer(_LocationIndexer):
                     arr_max = np.max(arr)
                     arr_min = np.min(arr)
 
+                # check that the key does not exceed the maximum size
                 if arr_max >= len_axis or arr_min < -len_axis:
                     raise IndexError("positional indexers are out-of-bounds")
         else:
