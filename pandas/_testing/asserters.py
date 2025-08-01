@@ -495,8 +495,8 @@ def assert_categorical_equal(
             lc, rc = left.categories, right.categories
         assert_index_equal(lc, rc, obj=f"{obj}.categories", exact=exact)
         assert_index_equal(
-            left.categories.take(left.codes),
-            right.categories.take(right.codes),
+            left.categories.take(left.codes, allow_fill=True, fill_value=np.nan),
+            right.categories.take(right.codes, allow_fill=True, fill_value=np.nan),
             obj=f"{obj}.values",
             exact=exact,
         )
