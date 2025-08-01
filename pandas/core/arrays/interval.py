@@ -1932,8 +1932,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if self.dtype == values.dtype:
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
-                left = self._combined.view("complex128")
-                right = values._combined.view("complex128")
+                left = self._combined
+                right = values._combined
                 # error: Argument 1 to "isin" has incompatible type
                 # "Union[ExtensionArray, ndarray[Any, Any],
                 # ndarray[Any, dtype[Any]]]"; expected
@@ -1941,7 +1941,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
                 # int, float, complex, str, bytes, _NestedSequence[
                 # Union[bool, int, float, complex, str, bytes]]]"
-                return np.isin(left, right).ravel()  # type: ignore[arg-type]
+                return np.isin(left, right).ravel()
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype
@@ -1963,8 +1963,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             comb = left._concat_same_type(  # type: ignore[union-attr]
                 [left, right], axis=1
             )
+            comb = comb.view("complex128")[:, 0]
         else:
-            comb = np.concatenate([left, right], axis=1)
+            comb = (np.array(left.ravel(), dtype=complex)) + (
+                1j * np.array(right.ravel(), dtype=complex)
+            )
         return comb
 
     def _from_combined(self, combined: np.ndarray) -> IntervalArray:
@@ -1985,27 +1988,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )._from_sequence(nc[:, 1], dtype=dtype)
         else:
             assert isinstance(dtype, np.dtype)
-            nc = np.hstack(
-                [np.real(combined).astype(dtype), np.imag(combined).astype(dtype)]
-            ).reshape(-1, 2)
-            new_left = nc[:, 0].view(dtype)
-            new_right = nc[:, 1].view(dtype)
+            new_left = np.real(combined).astype(dtype).ravel()
+            new_right = np.imag(combined).astype(dtype).ravel()
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
         # No overload variant of "__getitem__" of "ExtensionArray" matches argument
         # type "Tuple[slice, int]"
-        if needs_i8_conversion(self._left.dtype):
-            nc = unique(
-                self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
-            )
-        else:
-            nc = unique(
-                # Using .view("complex128") with negatives causes issues.
-                # GH#61917
-                (np.array(self._combined[:, 0], dtype=complex))
-                + (1j * np.array(self._combined[:, 1], dtype=complex))
-            )
+        nc = unique(self._combined)
         nc = nc[:, None]
         return self._from_combined(nc)
 
