@@ -507,3 +507,19 @@ def test_assert_series_equal_check_exact_index_default(left_idx, right_idx):
     ser2 = Series(np.zeros(6, dtype=int), right_idx)
     tm.assert_series_equal(ser1, ser2)
     tm.assert_frame_equal(ser1.to_frame(), ser2.to_frame())
+
+
+def test_assert_series_equal_categorical_nulls_different_order():
+    # https://github.com/pandas-dev/pandas/issues/62008
+    values = ["B", np.nan, "D"]
+    categorical_left = ["B", "D"]
+    categorical_right = categorical_left[::-1]  # Different Order
+
+    left = Series(Categorical(values, categories=categorical_left))
+    right = Series(Categorical(values, categories=categorical_right))
+
+    tm.assert_series_equal(left, right, check_category_order=False)
+
+    msg = "Categorical.categories are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_category_order=True)
