@@ -609,6 +609,22 @@ class IndexingMixin:
 
         Please see the :ref:`user guide<advanced.advanced_hierarchical>`
         for more details and explanations of advanced indexing.
+
+        **Assignment with Series**
+
+        When assigning a Series to .loc[row_indexer, col_indexer], pandas aligns
+        the Series by index labels, not by order or position.
+
+        Series assignment with .loc and index alignment:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+        >>> s = pd.Series([10, 20], index=[1, 0])  # Note reversed order
+        >>> df.loc[:, "B"] = s  # Aligns by index, not order
+        >>> df
+           A   B
+        0  1  20.0
+        1  2  10.0
+        2  3 NaN
         """
         return _LocIndexer("loc", self)
 
