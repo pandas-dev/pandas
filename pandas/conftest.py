@@ -179,7 +179,7 @@ def pytest_collection_modifyitems(items, config) -> None:
 # Similar to "ci" config in
 # https://hypothesis.readthedocs.io/en/latest/reference/api.html#built-in-profiles
 hypothesis.settings.register_profile(
-    "ci",
+    "pandas_ci",
     database=None,
     deadline=None,
     max_examples=15,
@@ -188,7 +188,7 @@ hypothesis.settings.register_profile(
         hypothesis.HealthCheck.differing_executors,
     ),
 )
-hypothesis.settings.load_profile("ci")
+hypothesis.settings.load_profile("pandas_ci")
 
 # Registering these strategies makes them globally available via st.from_type,
 # which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
