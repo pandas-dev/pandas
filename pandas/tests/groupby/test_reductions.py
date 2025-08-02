@@ -272,7 +272,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     max_value = np.finfo(float_numpy_dtype).max
     df = DataFrame(
         {
-            "a": Series(np.repeat(range(1, 6), repeats=2), dtype="intp"),
+            "a": Series(np.repeat(range(1, 5), repeats=2), dtype="intp"),
             "b": Series(
                 [
                     np.nan,
@@ -282,8 +282,6 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
                     min_value,
                     np.nan,
                     max_value,
-                    np.nan,
-                    np.nan,
                     np.nan,
                 ],
                 dtype=float_numpy_dtype,
@@ -299,7 +297,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
         return
     result = getattr(gb, how)(skipna=skipna)
     expected = DataFrame(
-        {"b": [1, 3, 4, 6, np.nan]}, index=pd.Index(range(1, 6), name="a", dtype="intp")
+        {"b": [1, 3, 4, 6]}, index=pd.Index(range(1, 5), name="a", dtype="intp")
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1003,8 +1001,6 @@ def test_string_dtype_all_na(
         else:
             expected_dtype = "int64"
         expected_value = 1 if reduction_func == "size" else 0
-    elif reduction_func in ["idxmin", "idxmax"]:
-        expected_dtype, expected_value = "float64", np.nan
     elif not skipna or min_count > 0:
         expected_value = pd.NA
     elif reduction_func == "sum":
@@ -1032,8 +1028,11 @@ def test_string_dtype_all_na(
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)
         return
-    elif reduction_func in ["idxmin", "idxmax"] and not skipna:
-        msg = f"{reduction_func} with skipna=False encountered an NA value."
+    elif reduction_func in ["idxmin", "idxmax"]:
+        if skipna:
+            msg = f"{reduction_func} with skipna=True encountered all NA values"
+        else:
+            msg = f"{reduction_func} with skipna=False encountered an NA value."
         with pytest.raises(ValueError, match=msg):
             method(*args, **kwargs)
         return

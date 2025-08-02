@@ -2048,9 +2048,8 @@ def group_idxmin_idxmax(
         group_min_or_max = np.empty_like(out, dtype=values.dtype)
         seen = np.zeros_like(out, dtype=np.uint8)
 
-    # When using transform, we need a valid value for take in the case
-    # a category is not observed; these values will be dropped
-    out[:] = 0
+    # Sentinel for no valid values.
+    out[:] = -1
 
     with nogil(numeric_object_t is not object):
         for i in range(N):
