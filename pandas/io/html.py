@@ -1,8 +1,9 @@
 """
-:mod:`pandas.io.html` is a module containing functionality for dealing with
-HTML IO.
+:mod:`pandas.io.html` is a module containing functionality for dealing with HTML IO.
 
+Provides utilities for reading and parsing HTML tables into pandas DataFrames.
 """
+
 
 from __future__ import annotations
 
@@ -387,7 +388,7 @@ class _HtmlFrameParser:
 
     def _equals_tag(self, obj, tag) -> bool:
         """
-        Return whether an individual DOM node matches a tag
+        Return whether an individual DOM node matches a tag.
 
         Parameters
         ----------
@@ -399,8 +400,8 @@ class _HtmlFrameParser:
 
         Returns
         -------
-        boolean
-            Whether `obj`'s tag name is `tag`
+        bool
+            Whether `obj`'s tag name is `tag`.
         """
         raise AbstractMethodError(self)
 
@@ -562,7 +563,7 @@ class _HtmlFrameParser:
 
     def _handle_hidden_tables(self, tbl_list, attr_name: str):
         """
-        Return list of tables, potentially removing hidden elements
+        Return list of tables, potentially removing hidden elements.
 
         Parameters
         ----------
@@ -679,8 +680,9 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
 def _build_xpath_expr(attrs) -> str:
     """
-    Build an xpath expression to simulate bs4's ability to pass in kwargs to
-    search for attributes when using the lxml parser.
+    Build an XPath expression to simulate bs4's ability to pass in kwargs.
+
+    Search for attributes when using the lxml parser.
 
     Parameters
     ----------
@@ -689,10 +691,11 @@ def _build_xpath_expr(attrs) -> str:
 
     Returns
     -------
-    expr : unicode
+    str
         An XPath expression that checks for the given HTML attributes.
     """
     # give class attribute as class_ because class is a python keyword
+
     if "class_" in attrs:
         attrs["class"] = attrs.pop("class_")
 
@@ -768,6 +771,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
     def _build_doc(self):
         """
+        Build and parse the HTML document into a DOM tree.
+
         Raises
         ------
         ValueError
