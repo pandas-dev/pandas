@@ -71,7 +71,7 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
             platform: ubuntu-24.04
-          - name: "Past no infer strings"
+          - name: "PANDAS_FUTURE_INFER_STRING=0"
             env_file: actions-312.yaml
             pandas_future_infer_string: "0"
             platform: ubuntu-24.04
@@ -91,7 +91,7 @@ jobs:
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_CI: '1'
-      PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '0' }}
+      PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
