@@ -19,6 +19,7 @@ import sys
 import warnings
 
 import jinja2
+from markupsafe import Markup
 from numpydoc.docscrape import NumpyDocString
 from sphinx.ext.autosummary import _import_by_name
 
@@ -150,7 +151,7 @@ nbsphinx_requirejs_path = ""
 toggleprompt_offset_right = 35
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["../_templates"]
+# templates_path = ["../_templates"]
 
 # The suffix of source filenames.
 source_suffix = [".rst"]
@@ -164,7 +165,7 @@ master_doc = "index"
 # General information about the project.
 project = "pandas"
 # We have our custom "pandas_footer.html" template, using copyright for the current year
-copyright = f"{datetime.now().year},"
+# copyright = f"{datetime.now().year},"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -240,9 +241,15 @@ else:
     # only keep major.minor version number to match versions.json
     switcher_version = ".".join(version.split(".")[:2])
 
+copyright = Markup(f"{datetime.now().year}, " 
+                   "pandas via <a href=\"https://numfocus.org\">NumFOCUS, Inc.</a> "
+                   "Hosted by <a href=\"https://www.ovhcloud.com\">OVHcloud</a>.")
+
 html_theme_options = {
     "external_links": [],
-    "footer_start": ["pandas_footer", "sphinx-version"],
+    "footer_start": ["copyright"],
+    "footer_center": ["sphinx-version"],
+    "footer_end": ["version-theme"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",
