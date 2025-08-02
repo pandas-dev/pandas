@@ -1412,7 +1412,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
-            NA and ``skipna=False`, this method would return NA. Now it raises instead.
+            NA and ``skipna=False``, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -1473,7 +1473,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
-            NA and ``skipna=False`, this method would return NA. Now it raises instead.
+            NA and ``skipna=False``, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -2621,7 +2621,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
-            NA and ``skipna=False`, this method would return NA. Now it raises instead.
+            NA and ``skipna=False``, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -2695,7 +2695,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
-            NA and ``skipna=False`, this method would return NA. Now it raises instead.
+            NA and ``skipna=False``, this method would return NA. Now it raises instead.
 
         See Also
         --------
