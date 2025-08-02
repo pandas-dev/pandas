@@ -11,7 +11,7 @@ import pandas._testing as tm
 # np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
 @pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
 def test_ufuncs_single(ufunc):
-    a = pd.array([1, 2, -3, np.nan], dtype="Float64")
+    a = pd.array([1, 2, -3, pd.NA], dtype="Float64")
     result = ufunc(a)
     expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
@@ -88,7 +88,7 @@ def test_ufunc_reduce_raises(values):
     ],
 )
 def test_stat_method(pandasmethname, kwargs):
-    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, np.nan, np.nan], dtype="Float64")
+    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, pd.NA, pd.NA], dtype="Float64")
     pandasmeth = getattr(s, pandasmethname)
     result = pandasmeth(**kwargs)
     s2 = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], dtype="float64")

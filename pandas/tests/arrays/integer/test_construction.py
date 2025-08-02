@@ -77,7 +77,7 @@ def test_integer_array_constructor():
     mask = np.array([False, False, False, True], dtype="bool")
 
     result = IntegerArray(values, mask)
-    expected = pd.array([1, 2, 3, np.nan], dtype="Int64")
+    expected = pd.array([1, 2, 3, pd.NA], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     msg = r".* should be .* numpy array. Use the 'pd.array' function instead"
