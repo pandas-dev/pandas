@@ -1,0 +1,34 @@
+.. _whatsnew_232:
+
+What's new in 2.3.2 (August XX, 2025)
+-------------------------------------
+
+These are the changes in pandas 2.3.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_232.string_fixes:
+
+Improvements and fixes for the StringDtype
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most changes in this release are related to :class:`StringDtype` which will
+become the default string dtype in pandas 3.0. See
+:ref:`whatsnew_230.upcoming_changes` for more details.
+
+.. _whatsnew_232.string_fixes.bugs:
+
+Bug fixes
+^^^^^^^^^
+- Fix :meth:`~DataFrame.to_json` with ``orient="table"`` to correctly use the
+  "string" type in the JSON Table Schema for :class:`StringDtype` columns
+  (:issue:`61889`)
+- Boolean operations (``|``, ``&``, ``^``) with bool-dtype objects on the left and :class:`StringDtype` objects on the right now cast the string to bool, with a deprecation warning (:issue:`60234`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_232.contributors:
+
+Contributors
+~~~~~~~~~~~~
