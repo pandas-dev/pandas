@@ -382,7 +382,7 @@ class TestMaskedArrays(base.ExtensionTests):
         if op_name == "cumsum":
             pass
         elif op_name in ["cummax", "cummin"]:
-            expected_dtype = ser.dtype
+            expected_dtype = ser.dtype  # type: ignore[assignment]
         elif op_name == "cumprod":
             ser = ser[:12]
         else:

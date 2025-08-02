@@ -251,7 +251,7 @@ class TestDataFrameDiff:
                     {
                         "a": [pd.NA, 0, 1, 0, pd.NA, pd.NA, pd.NA, 0],
                         "b": [pd.NA, 1, pd.NA, pd.NA, -2, 1, pd.NA, pd.NA],
-                        "c": np.repeat(pd.NA, 8),
+                        "c": np.repeat(pd.NA, 8),  # type: ignore[call-overload]
                         "d": [pd.NA, 3, 5, 7, 9, 11, 13, 15],
                     },
                     dtype="Int64",
@@ -261,10 +261,10 @@ class TestDataFrameDiff:
                 1,
                 DataFrame(
                     {
-                        "a": np.repeat(pd.NA, 8),
+                        "a": np.repeat(pd.NA, 8),  # type: ignore[call-overload]
                         "b": [0, 1, pd.NA, 1, pd.NA, pd.NA, pd.NA, 0],
-                        "c": np.repeat(pd.NA, 8),
-                        "d": np.repeat(pd.NA, 8),
+                        "c": np.repeat(pd.NA, 8),  # type: ignore[call-overload]
+                        "d": np.repeat(pd.NA, 8),  # type: ignore[call-overload]
                     },
                     dtype="Int64",
                 ),
