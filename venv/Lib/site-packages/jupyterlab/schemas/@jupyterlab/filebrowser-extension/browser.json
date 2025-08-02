@@ -1,0 +1,249 @@
+{
+  "jupyter.lab.setting-icon": "ui-components:folder",
+  "jupyter.lab.setting-icon-label": "File Browser",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-file",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 1
+          },
+          {
+            "command": "filebrowser:open-path",
+            "rank": 1
+          },
+          {
+            "command": "filebrowser:open-url",
+            "rank": 1
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "command": "filebrowser:toggle-hidden-files",
+            "rank": 9.95
+          }
+        ]
+      }
+    ],
+    "context": [
+      {
+        "type": "separator",
+        "selector": ".jp-DirListing-content",
+        "rank": 0
+      },
+      {
+        "command": "filebrowser:open",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 1
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 4
+      },
+      {
+        "command": "filebrowser:rename",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 5
+      },
+      {
+        "command": "filebrowser:delete",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 6
+      },
+      {
+        "command": "filebrowser:cut",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 7
+      },
+      {
+        "command": "filebrowser:copy",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 8
+      },
+      {
+        "command": "filebrowser:paste",
+        "selector": ".jp-DirListing-content",
+        "rank": 8.5
+      },
+      {
+        "command": "filebrowser:duplicate",
+        "selector": ".jp-DirListing-item[data-isdir=\"false\"]",
+        "rank": 9
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 10
+      },
+      {
+        "command": "filebrowser:shutdown",
+        "selector": ".jp-DirListing-item[data-isdir=\"false\"].jp-mod-running",
+        "rank": 11
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 12
+      },
+      {
+        "command": "filebrowser:copy-path",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 14
+      },
+      {
+        "command": "filebrowser:toggle-last-modified",
+        "selector": ".jp-DirListing-header",
+        "rank": 14
+      },
+      {
+        "command": "filebrowser:toggle-file-size",
+        "selector": ".jp-DirListing-header",
+        "rank": 15
+      },
+      {
+        "command": "filebrowser:toggle-file-checkboxes",
+        "selector": ".jp-DirListing-header",
+        "rank": 16
+      },
+      {
+        "command": "filebrowser:toggle-sort-notebooks-first",
+        "selector": ".jp-DirListing-header",
+        "rank": 17
+      },
+      {
+        "command": "filebrowser:share-main",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 17
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-DirListing-item[data-isdir]",
+        "rank": 50
+      },
+      {
+        "command": "filebrowser:create-new-file",
+        "selector": ".jp-DirListing-content",
+        "rank": 51
+      },
+      {
+        "command": "filebrowser:create-new-directory",
+        "selector": ".jp-DirListing-content",
+        "rank": 55
+      }
+    ]
+  },
+  "title": "File Browser",
+  "description": "File Browser settings.",
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "filebrowser:go-up",
+      "keys": ["Backspace"],
+      "selector": ".jp-DirListing:focus"
+    },
+    {
+      "command": "filebrowser:go-up",
+      "keys": ["Backspace"],
+      "selector": ".jp-DirListing-content .jp-DirListing-itemText"
+    },
+    {
+      "command": "filebrowser:delete",
+      "keys": ["Delete"],
+      "selector": ".jp-DirListing-content .jp-DirListing-itemText"
+    },
+    {
+      "command": "filebrowser:cut",
+      "keys": ["Accel X"],
+      "selector": ".jp-DirListing-content .jp-DirListing-itemText"
+    },
+    {
+      "command": "filebrowser:copy",
+      "keys": ["Accel C"],
+      "selector": ".jp-DirListing-content .jp-DirListing-itemText"
+    },
+    {
+      "command": "filebrowser:paste",
+      "keys": ["Accel V"],
+      "selector": ".jp-DirListing-content .jp-DirListing-itemText"
+    },
+    {
+      "command": "filebrowser:rename",
+      "keys": ["F2"],
+      "selector": ".jp-DirListing-content .jp-DirListing-itemText"
+    },
+    {
+      "command": "filebrowser:duplicate",
+      "keys": ["Accel D"],
+      "selector": ".jp-DirListing-content .jp-DirListing-itemText"
+    }
+  ],
+  "properties": {
+    "navigateToCurrentDirectory": {
+      "type": "boolean",
+      "title": "Navigate to current folder",
+      "description": "Whether to automatically navigate to a document's current folder",
+      "default": false
+    },
+    "useFuzzyFilter": {
+      "type": "boolean",
+      "title": "Filter on file name with a fuzzy search",
+      "description": "Whether to apply fuzzy algorithm while filtering on file names",
+      "default": true
+    },
+    "filterDirectories": {
+      "type": "boolean",
+      "title": "Filter folders",
+      "description": "Whether to apply the search on folders",
+      "default": true
+    },
+    "showLastModifiedColumn": {
+      "type": "boolean",
+      "title": "Show last modified column",
+      "description": "Whether to show the last modified column",
+      "default": true
+    },
+    "showFileSizeColumn": {
+      "type": "boolean",
+      "title": "Show file size column",
+      "description": "Whether to show the file size column",
+      "default": false
+    },
+    "showHiddenFiles": {
+      "type": "boolean",
+      "title": "Show hidden files",
+      "description": "Whether to show hidden files. The server parameter `ContentsManager.allow_hidden` must be set to `True` to display hidden files.",
+      "default": false
+    },
+    "showFileCheckboxes": {
+      "type": "boolean",
+      "title": "Use checkboxes to select items",
+      "description": "Whether to show checkboxes next to files and folders",
+      "default": false
+    },
+    "showFullPath": {
+      "type": "boolean",
+      "title": "Show full path in browser bread crumbs",
+      "description": "Whether to show full path in browser bread crumbs",
+      "default": false
+    },
+    "sortNotebooksFirst": {
+      "type": "boolean",
+      "title": "When sorting by name, group notebooks before other files",
+      "description": "Whether to group the notebooks away from files",
+      "default": false
+    },
+    "singleClickNavigation": {
+      "type": "boolean",
+      "title": "Navigate files and directories with single click",
+      "description": "Whether to allow single click selection on file browser items",
+      "default": false
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

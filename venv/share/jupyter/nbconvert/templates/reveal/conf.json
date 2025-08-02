@@ -1,0 +1,16 @@
+{
+  "base_template": "lab",
+  "mimetypes": {
+    "text/html": true
+  },
+  "preprocessors": {
+    "100-pygments": {
+      "type": "nbconvert.preprocessors.CSSHTMLHeaderPreprocessor",
+      "enabled": true
+    },
+    "500-reveal": {
+      "type": "nbconvert.exporters.slides._RevealMetadataPreprocessor",
+      "enabled": true
+    }
+  }
+}

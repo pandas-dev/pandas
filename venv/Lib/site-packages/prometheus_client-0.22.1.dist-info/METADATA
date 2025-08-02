@@ -1,0 +1,51 @@
+Metadata-Version: 2.4
+Name: prometheus_client
+Version: 0.22.1
+Summary: Python client for the Prometheus monitoring system.
+Author-email: The Prometheus Authors <prometheus-developers@googlegroups.com>
+License-Expression: Apache-2.0 AND BSD-2-Clause
+Project-URL: Homepage, https://github.com/prometheus/client_python
+Project-URL: Documentation, https://prometheus.github.io/client_python/
+Keywords: prometheus,monitoring,instrumentation,client
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: System Administrators
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: System :: Monitoring
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+License-File: NOTICE
+Provides-Extra: twisted
+Requires-Dist: twisted; extra == "twisted"
+Dynamic: license-file
+
+# Prometheus Python Client
+
+The official Python client for [Prometheus](https://prometheus.io).
+
+## Installation
+
+```
+pip install prometheus-client
+```
+
+This package can be found on [PyPI](https://pypi.python.org/pypi/prometheus_client).
+
+## Documentation
+
+Documentation is available on https://prometheus.github.io/client_python
+
+## Links
+
+* [Releases](https://github.com/prometheus/client_python/releases): The releases page shows the history of the project and acts as a changelog.
+* [PyPI](https://pypi.python.org/pypi/prometheus_client)

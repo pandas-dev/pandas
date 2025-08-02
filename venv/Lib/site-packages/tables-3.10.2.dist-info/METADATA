@@ -1,0 +1,47 @@
+Metadata-Version: 2.1
+Name: tables
+Version: 3.10.2
+Summary: Hierarchical datasets for Python
+Author: Francesc Alted, Ivan Vilata, Antonio Valentino, Anthony Scopatz, et al.
+Author-email: pytables@pytables.org
+Maintainer-email: PyTables maintainers <pytables@pytables.org>
+License: BSD 3-Clause License
+Project-URL: homepage, http://www.pytables.org
+Project-URL: documentation, http://www.pytables.org
+Project-URL: repository, https://github.com/PyTables/PyTables
+Project-URL: changelog, http://www.pytables.org/release_notes.html
+Project-URL: tracker, https://github.com/PyTables/PyTables/issues
+Keywords: hdf5
+Platform: any
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: Unix
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Database
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.11
+Description-Content-Type: text/x-rst
+License-File: LICENSE.txt
+Requires-Dist: numpy>=1.20.0
+Requires-Dist: numexpr>=2.6.2
+Requires-Dist: packaging
+Requires-Dist: py-cpuinfo
+Requires-Dist: blosc2>=2.3.0
+Requires-Dist: typing-extensions>=4.4.0
+
+PyTables is a package for managing hierarchical datasets and
+designed to efficiently cope with extremely large amounts of
+data. PyTables is built on top of the HDF5 library and the
+NumPy package and features an object-oriented interface
+that, combined with C-code generated from Cython sources,
+makes of it a fast, yet extremely easy to use tool for
+interactively save and retrieve large amounts of data.
