@@ -9946,9 +9946,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The {name} method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``{cond}`` the
         element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` {klass}, the values of ``cond`` on misaligned index positions
-        will be filled with {cond_rev}.
+        ``other`` is used. If the axis of ``self`` does not align with axis of
+        ``cond``, misaligned index positions will be filled with the original value
+        from ``self``.
 
         The signature for :func:`Series.where` or
         :func:`DataFrame.where` differs from :func:`numpy.where`.
