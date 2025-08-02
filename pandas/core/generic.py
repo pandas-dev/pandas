@@ -33,6 +33,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
+
 from pandas._typing import (
     AlignJoin,
     AnyArrayLike,
@@ -67,7 +68,8 @@ from pandas._typing import (
     Renamer,
     Scalar,
     Self,
-    SequenceNotStr,
+
+SequenceNotStr,
     SortKind,
     StorageOptions,
     Suffixes,
@@ -9946,7 +9948,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The {name} method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``{cond}`` the
         element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``other`` does not align with axis of
+       ``other`` is used. If the axis of ``other`` does not align with axis of
         ``cond`` {klass}, the values of ``cond`` on misaligned index positions
         will be filled with {cond_rev}.
 
@@ -9982,6 +9984,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> t = pd.Series([True, False])
         >>> s.where(t, 99)
         0     0
+ 
         1    99
         2    99
         3    99
@@ -10017,7 +10020,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  2  3
         2  4  5
         3  6  7
-        4  8  9
+        4
+        8  9
         >>> m = df % 3 == 0
         >>> df.where(m, -df)
            A  B
