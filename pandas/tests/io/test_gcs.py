@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under17p0
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -84,7 +85,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df1.to_json(path)
         df2 = read_json(path, convert_dates=["dt"])
     elif format == "parquet":
