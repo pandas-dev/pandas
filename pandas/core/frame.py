@@ -11850,6 +11850,14 @@ class DataFrame(NDFrame, OpsMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
+        if axis == 0:
+            data = self._get_numeric_data() if numeric_only else self
+            results = {}
+            for col in data.columns:
+                ser = data[col]
+                results[col] = getattr(ser, name)(skipna=skipna, **kwds)
+            return self._constructor_sliced(results)
+
         def func(values: np.ndarray):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)

@@ -221,6 +221,20 @@ def float_frame_with_na():
     return df
 
 
+def test_mixed_reduction_nan_vs_NA():
+    df = DataFrame(
+        {
+            "B": [1, None, 3],
+            "C": pd.array([1, None, 3], dtype="Int64"),
+        }
+    )
+    result = df.skew()
+    assert np.isnan(result["B"])
+    assert isna(result["C"]) and type(result["C"]).__name__ == "NAType"
+    result_B = df[["B"]].skew()
+    assert np.isnan(result_B["B"])
+
+
 class TestDataFrameAnalytics:
     # ---------------------------------------------------------------------
     # Reductions
