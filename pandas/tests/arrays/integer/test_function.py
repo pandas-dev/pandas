@@ -10,7 +10,7 @@ from pandas.core.arrays import FloatingArray
 # np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
 @pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
 def test_ufuncs_single_int(ufunc):
-    a = pd.array([1, 2, -3, np.nan])
+    a = pd.array([1, 2, -3, pd.NA], dtype="Int64")
     result = ufunc(a)
     expected = pd.array(ufunc(a.astype(float)), dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
@@ -23,7 +23,7 @@ def test_ufuncs_single_int(ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.log, np.exp, np.sin, np.cos, np.sqrt])
 def test_ufuncs_single_float(ufunc):
-    a = pd.array([1, 2, -3, np.nan])
+    a = pd.array([1, 2, -3, pd.NA], dtype="Int64")
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
         expected = FloatingArray(ufunc(a.astype(float)), mask=a._mask)
@@ -39,7 +39,7 @@ def test_ufuncs_single_float(ufunc):
 @pytest.mark.parametrize("ufunc", [np.add, np.subtract])
 def test_ufuncs_binary_int(ufunc):
     # two IntegerArrays
-    a = pd.array([1, 2, -3, np.nan])
+    a = pd.array([1, 2, -3, pd.NA], dtype="Int64")
     result = ufunc(a, a)
     expected = pd.array(ufunc(a.astype(float), a.astype(float)), dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
@@ -99,7 +99,7 @@ def test_ufunc_reduce_raises(values):
     ],
 )
 def test_stat_method(pandasmethname, kwargs):
-    s = pd.Series(data=[1, 2, 3, 4, 5, 6, np.nan, np.nan], dtype="Int64")
+    s = pd.Series(data=[1, 2, 3, 4, 5, 6, pd.NA, pd.NA], dtype="Int64")
     pandasmeth = getattr(s, pandasmethname)
     result = pandasmeth(**kwargs)
     s2 = pd.Series(data=[1, 2, 3, 4, 5, 6], dtype="Int64")

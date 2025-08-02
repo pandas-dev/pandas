@@ -1348,8 +1348,10 @@ def test_unstack_sort_false(frame_or_series, dtype):
         )
     else:
         expected_columns = ["b", "a"]
+
+    item = pd.NA if dtype == "Float64" else np.nan
     expected = DataFrame(
-        [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
+        [[1.0, item], [item, 2.0], [3.0, item], [item, 4.0]],
         columns=expected_columns,
         index=MultiIndex.from_tuples(
             [("two", "z"), ("two", "y"), ("one", "z"), ("one", "y")]

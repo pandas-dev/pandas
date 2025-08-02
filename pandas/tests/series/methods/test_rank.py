@@ -254,8 +254,7 @@ class TestSeriesRank:
 
     def test_rank_nullable_integer(self):
         # GH 56976
-        exp = Series([np.nan, 2, np.nan, 3, 3, 2, 3, 1])
-        exp = exp.astype("Int64")
+        exp = Series([None, 2, None, 3, 3, 2, 3, 1], dtype="Int64")
         result = exp.rank(na_option="keep")
 
         expected = Series([np.nan, 2.5, np.nan, 5.0, 5.0, 2.5, 5.0, 1.0])

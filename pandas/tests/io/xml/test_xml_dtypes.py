@@ -8,6 +8,7 @@ from pandas.errors import ParserWarning
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     DataFrame,
     DatetimeIndex,
     Series,
@@ -145,8 +146,8 @@ def test_dtypes_with_names(parser):
     df_expected = DataFrame(
         {
             "Col1": ["square", "circle", "triangle"],
-            "Col2": Series(["00360", "00360", "00180"]).astype("string"),
-            "Col3": Series([4.0, float("nan"), 3.0]).astype("Int64"),
+            "Col2": Series(["00360", "00360", "00180"], dtype="string"),
+            "Col3": Series([4.0, NA, 3.0], dtype="Int64"),
             "Col4": DatetimeIndex(
                 ["2020-01-01", "2021-01-01", "2022-01-01"], dtype="M8[ns]"
             ),
@@ -170,7 +171,7 @@ def test_dtype_nullable_int(parser):
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
-            "sides": Series([4.0, float("nan"), 3.0]).astype("Int64"),
+            "sides": Series([4.0, NA, 3.0], dtype="Int64"),
         }
     )
 
