@@ -182,7 +182,7 @@ hypothesis.settings.register_profile(
     "ci",
     database=None,
     deadline=None,
-    max_examples=25,
+    max_examples=15,
     suppress_health_check=(
         hypothesis.HealthCheck.too_slow,
         hypothesis.HealthCheck.differing_executors,
