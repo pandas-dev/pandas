@@ -1404,7 +1404,15 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty or skipna=False and any value is NA.
+            When there are no valid values for a group. Then can happen if:
+
+                * There is an unobserved group and ``observed=False``.
+                * All values for a group are NA.
+                * Some values for a group are NA and ``skipna=False``.
+
+        .. versionchanged:: 3.0.0
+            Previously if all values for a group are NA or some values for a group are
+            NA and ``skipna=False`, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -1457,7 +1465,15 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty or skipna=False and any value is NA.
+            When there are no valid values for a group. Then can happen if:
+
+                * There is an unobserved group and ``observed=False``.
+                * All values for a group are NA.
+                * Some values for a group are NA and ``skipna=False``.
+
+        .. versionchanged:: 3.0.0
+            Previously if all values for a group are NA or some values for a group are
+            NA and ``skipna=False`, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -2597,7 +2613,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If a column is empty or skipna=False and any value is NA.
+            When there are no valid values for a group. Then can happen if:
+
+                * There is an unobserved group and ``observed=False``.
+                * All values for a group are NA.
+                * Some values for a group are NA and ``skipna=False``.
+
+        .. versionchanged:: 3.0.0
+            Previously if all values for a group are NA or some values for a group are
+            NA and ``skipna=False`, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -2663,7 +2687,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If a column is empty or skipna=False and any value is NA.
+            When there are no valid values for a group. Then can happen if:
+
+                * There is an unobserved group and ``observed=False``.
+                * All values for a group are NA.
+                * Some values for a group are NA and ``skipna=False``.
+
+        .. versionchanged:: 3.0.0
+            Previously if all values for a group are NA or some values for a group are
+            NA and ``skipna=False`, this method would return NA. Now it raises instead.
 
         See Also
         --------

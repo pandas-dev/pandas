@@ -1784,7 +1784,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         new_mgr = data.grouped_reduce(array_func)
         res = self._wrap_agged_manager(new_mgr)
         if how in ["idxmin", "idxmax"]:
-            res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])
+            # mypy expects how to be Literal["idxmin", "idxmax"].
+            res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])  # type: ignore[arg-type]
         out = self._wrap_aggregated_output(res)
         return out
 
