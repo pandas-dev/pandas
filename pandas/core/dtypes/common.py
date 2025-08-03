@@ -1654,7 +1654,10 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     elif isinstance(arr_or_dtype, type):
         if issubclass(arr_or_dtype, ExtensionDtype):
             arr_or_dtype = arr_or_dtype.type
-        return condition(np.dtype(arr_or_dtype).type)
+         try:
+            return condition(np.dtype(arr_or_dtype).type)
+        except TypeError:
+            return condition(type(None))
 
     # if we have an array-like
     if hasattr(arr_or_dtype, "dtype"):
