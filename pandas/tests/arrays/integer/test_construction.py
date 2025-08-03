@@ -191,7 +191,7 @@ def test_to_integer_array_float():
 
 def test_to_integer_array_str():
     result = IntegerArray._from_sequence(["1", "2", None], dtype="Int64")
-    expected = pd.array([1, 2, np.nan], dtype="Int64")
+    expected = pd.array([1, 2, pd.NA], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     with pytest.raises(
