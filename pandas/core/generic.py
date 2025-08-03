@@ -9798,7 +9798,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                         other = np.broadcast_to(other, self.shape)
                     else:
-                        # GH#38729 avoid lossy casting or object-casting
+                        # GH#38729, GH#62038 avoid lossy casting or object-casting
                         if axis == 0:
                             res_cols = [
                                 self.iloc[:, i]._where(

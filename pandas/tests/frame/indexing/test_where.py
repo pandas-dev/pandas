@@ -698,7 +698,7 @@ class TestDataFrameIndexingWhere:
         tm.assert_equal(result, expected)
 
     def test_where_ea_other(self):
-        # GH#38729/GH#38742
+        # GH#38729/GH#38742, GH#62038
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         arr = pd.array([7, pd.NA, 9])
         ser = Series(arr)
