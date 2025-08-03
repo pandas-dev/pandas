@@ -159,8 +159,8 @@ If you want to do a full clean build, do::
 
 .. error::
   The command ``python make.py html`` requires SSL verification.
-  If the command exits with an error status.
-  Try running the command ``python make.py html --num-jobs=1``.
+  If the command exits with an error status,
+  try running the command ``python make.py html --num-jobs=1``.
   If the terminal output reports a SSLCertVerificationError,
   update your local SSL. Then, rerun ``python make.py html``.
 
