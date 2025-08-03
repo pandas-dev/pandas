@@ -4213,6 +4213,16 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
+        if isinstance(key, str):
+        indexer = self.columns.get_loc(key)
+        if isinstance(value, Series):
+            value = value.reindex(self.index)
+            if key in self.columns:
+                value = value.copy()
+            self._mgr = self._mgr.setitem(indexer, value)
+        else:
+            self._iset_item(indexer, value)
+        return
         """
         Set item(s) in DataFrame by key.
 
