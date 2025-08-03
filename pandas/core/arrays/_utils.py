@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 def to_numpy_dtype_inference(
     arr: ArrayLike, dtype: npt.DTypeLike | None, na_value, hasna: bool
-) -> tuple[npt.DTypeLike, Any]:
+) -> tuple[np.dtype | None, Any]:
     if dtype is None and is_numeric_dtype(arr.dtype):
         dtype_given = False
         if hasna:

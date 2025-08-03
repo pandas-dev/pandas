@@ -115,6 +115,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
 
     # ------------------------------------------------------------------------
 
+    @overload
+    def view(self) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         # We handle datetime64, datetime64tz, timedelta64, and period
         #  dtypes here. Everything else we pass through to the underlying

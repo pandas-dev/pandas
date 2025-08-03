@@ -159,7 +159,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
     # NumPy Array Interface
 
     def __array__(
-        self, dtype: NpDtype | None = None, copy: bool | None = None
+        self, dtype: np.dtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         if copy is not None:
             # Note: branch avoids `copy=None` for NumPy 1.x support
