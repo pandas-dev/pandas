@@ -90,9 +90,9 @@ def consensus_name_attr(objs):
     for obj in objs[1:]:
         try:
             if obj.name != name:
-                name = None
+                return None
         except ValueError:
-            name = None
+            return None
     return name
 
 
