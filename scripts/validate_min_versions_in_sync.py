@@ -237,7 +237,7 @@ def get_versions_from_toml() -> dict[str, str]:
     """Min versions in pyproject.toml for pip install pandas[extra]."""
     install_map = _optional.INSTALL_MAPPING
     optional_dependencies = {}
-    with open(SETUP_PATH, "rb") as pyproject_f:
+    with open(SETUP_PATH, "rb", encoding="utf-8") as pyproject_f:
         pyproject_toml = tomllib.load(pyproject_f)
         opt_deps = pyproject_toml["project"]["optional-dependencies"]
         dependencies = set(opt_deps["all"])
