@@ -9788,14 +9788,42 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise InvalidIndexError
 
                 if other.ndim < self.ndim:
-                    # TODO(EA2D): avoid object-dtype cast in EA case GH#38729
                     other = other._values
-                    if axis == 0:
-                        other = np.reshape(other, (-1, 1))
-                    elif axis == 1:
-                        other = np.reshape(other, (1, -1))
+                    if isinstance(other, np.ndarray):
+                        # TODO(EA2D): could also do this for NDArrayBackedEA cases?
+                        if axis == 0:
+                            other = np.reshape(other, (-1, 1))
+                        elif axis == 1:
+                            other = np.reshape(other, (1, -1))
 
-                    other = np.broadcast_to(other, self.shape)
+                        other = np.broadcast_to(other, self.shape)
+                    else:
+                        # GH#38729 avoid lossy casting or object-casting
+                        if axis == 0:
+                            res_cols = [
+                                self.iloc[:, i]._where(
+                                    cond.iloc[:, i],
+                                    other,
+                                )
+                                for i in range(self.shape[1])
+                            ]
+                        elif axis == 1:
+                            # TODO: can we use a zero-copy alternative to "repeat"?
+                            res_cols = [
+                                self.iloc[:, i]._where(
+                                    cond.iloc[:, i],
+                                    other[i : i + 1].repeat(len(self)),
+                                )
+                                for i in range(self.shape[1])
+                            ]
+                        res = self._constructor(
+                            {i: res_cols[i] for i in range(len(res_cols))}
+                        )
+                        res.index = self.index
+                        res.columns = self.columns
+                        if inplace:
+                            return self._update_inplace(res)
+                        return res.__finalize__(self)
 
             # slice me out of the other
             else:
