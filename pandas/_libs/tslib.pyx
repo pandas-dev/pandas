@@ -355,7 +355,7 @@ cpdef array_to_datetime(
                 iresult[i] = parse_pydatetime(val, &dts, creso=creso)
 
             elif PyDate_Check(val):
-                item_reso = NPY_DATETIMEUNIT.NPY_FR_s
+                item_reso = NPY_DATETIMEUNIT.NPY_FR_us
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso

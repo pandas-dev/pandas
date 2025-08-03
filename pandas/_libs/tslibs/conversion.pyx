@@ -33,6 +33,7 @@ from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
+    get_supported_reso_for_dts,
     npy_unit_to_attrname,
     periods_per_second,
 )
@@ -507,6 +508,9 @@ cdef _TSObject convert_datetime_to_tsobject(
     if nanos:
         obj.dts.ps = nanos * 1000
 
+    reso = get_supported_reso_for_dts(reso, &obj.dts)
+    obj.creso = reso
+
     try:
         obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
     except OverflowError as err:
@@ -622,7 +626,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                 &out_tzoffset, False
             )
             if not string_to_dts_failed:
-                reso = get_supported_reso(out_bestunit)
+                reso = get_supported_reso_for_dts(out_bestunit, &dts)
                 check_dts_bounds(&dts, reso)
                 obj = _TSObject()
                 obj.dts = dts
