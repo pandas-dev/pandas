@@ -209,7 +209,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     2      a
     3    NaN
     dtype: category
-    Categories (2, object): ['b' < 'a']
+    Categories (2, str): ['b' < 'a']
 
     An empty CategoricalDtype with a specific dtype can be created
     by providing an empty index. As follows,
@@ -302,7 +302,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         >>> pd.CategoricalDtype._from_values_or_dtype(
         ...     categories=["a", "b"], ordered=True
         ... )
-        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
+        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=str)
         >>> dtype1 = pd.CategoricalDtype(["a", "b"], ordered=True)
         >>> dtype2 = pd.CategoricalDtype(["x", "y"], ordered=False)
         >>> c = pd.Categorical([0, 1], dtype=dtype1)
@@ -317,7 +317,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         The supplied dtype takes precedence over values' dtype:
 
         >>> pd.CategoricalDtype._from_values_or_dtype(c, dtype=dtype2)
-        CategoricalDtype(categories=['x', 'y'], ordered=False, categories_dtype=object)
+        CategoricalDtype(categories=['x', 'y'], ordered=False, categories_dtype=str)
         """
 
         if dtype is not None:
