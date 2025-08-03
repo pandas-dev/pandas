@@ -695,7 +695,7 @@ class TestSeriesReductions:
         assert result is pd.NA
 
         # ALL-NA series
-        nser = Series([np.nan], dtype=dtype)
+        nser = Series([pd.NA], dtype=dtype)
         result = getattr(nser, method)()
         assert result is pd.NA
 

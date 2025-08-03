@@ -24,7 +24,7 @@ def test_ufuncs_single(ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.log, np.exp, np.sin, np.cos, np.sqrt])
 def test_ufuncs_single_float(ufunc):
-    a = pd.array([1.0, 0.2, 3.0, np.nan], dtype="Float64")
+    a = pd.array([1.0, 0.2, 3.0, pd.NA], dtype="Float64")
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
         expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
@@ -40,7 +40,7 @@ def test_ufuncs_single_float(ufunc):
 @pytest.mark.parametrize("ufunc", [np.add, np.subtract])
 def test_ufuncs_binary_float(ufunc):
     # two FloatingArrays
-    a = pd.array([1, 0.2, -3, np.nan], dtype="Float64")
+    a = pd.array([1, 0.2, -3, pd.NA], dtype="Float64")
     result = ufunc(a, a)
     expected = pd.array(ufunc(a.astype(float), a.astype(float)), dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
