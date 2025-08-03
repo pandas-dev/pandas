@@ -737,12 +737,14 @@ class StringMethods(NoNewAttributesMixin):
     %(raises_split)s
     See Also
     --------
-    Series.str.split : Split strings around given separator/delimiter.
+    Series.str.split : Split strings around given separator/delimiter or
+        regular expression.
     Series.str.rsplit : Splits string around given separator/delimiter,
         starting from the right.
     Series.str.join : Join lists contained as elements in the Series/Index
         with passed delimiter.
-    str.split : Standard library version for split.
+    re.split : Standard library version for split with ``regex=True``.
+    str.split : Standard library version for split with ``regex=False``.
     str.rsplit : Standard library version for rsplit.
 
     Notes
@@ -931,7 +933,7 @@ class StringMethods(NoNewAttributesMixin):
         % {
             "side": "end",
             "pat_regex": "",
-            "pat_description": "String to split on",
+            "pat_description": "String to split on. Does not support regex",
             "regex_argument": "",
             "raises_split": "",
             "regex_pat_note": "",
@@ -941,6 +943,9 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, *, n=-1, expand: bool = False):
+        if pat is not None and not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         result = self._data.array._str_rsplit(pat, n=n)
         dtype = object if self._data.dtype == object else None
         return self._wrap_result(
