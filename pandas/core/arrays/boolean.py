@@ -43,8 +43,8 @@ class BooleanDtype(BaseMaskedDtype):
     """
     Extend Boolean data type.
 
-    `BooleanDtype` enables use of nullable boolean data in pandas 
-    structures such as`Series`. Internally, it is backed by pandas BooleanArray, 
+    `BooleanDtype` enables use of null boolean data in pandas structures such as
+    `Series` and `array`. Internally, it is backed by pandas BooleanArray, 
     which stores data using two numpy boolean arrays: one to store values('True'/'False')
     and a mask to indicate missing values (`pd.NA`)
 
