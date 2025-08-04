@@ -22,7 +22,7 @@ repos:
     rev: v0.12.7
     hooks:
     -   id: ruff
-        args: [--exit-non-zero-on-fix]
+        args: [--exit-non-zero-on-fix --show-fixes]
         exclude: ^pandas/tests/frame/test_query_eval.py
     -   id: ruff
         # TODO: remove autofix only rules when they are checked by ruff
