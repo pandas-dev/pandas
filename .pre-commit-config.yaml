@@ -22,7 +22,7 @@ repos:
     rev: v0.12.7
     hooks:
     -   id: ruff
-        args: [--exit-non-zero-on-fix --show-fixes]
+        args: [--exit-non-zero-on-fix]
         exclude: ^pandas/tests/frame/test_query_eval.py
     -   id: ruff
         # TODO: remove autofix only rules when they are checked by ruff
@@ -30,9 +30,10 @@ repos:
         alias: ruff-selected-autofixes
         files: ^pandas
         exclude: ^pandas/tests
-        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix,  --show-fixes]
     -   id: ruff-format
         exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
+        args: [--show-fixes]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: v2.14
     hooks:
