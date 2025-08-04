@@ -1067,12 +1067,13 @@ def rank(
     is_datetimelike = needs_i8_conversion(values.dtype)
     if (
         isinstance(values.dtype, BaseMaskedDtype)
-        and values._hasna
+        and values._hasna  # type: ignore[union-attr]
         and values.dtype.kind in "iuf"
     ):
         # e.g. test_rank_ea_small_values
-        # TODO: bug in the object-dtype path that we would get without this special casting.
-        values = values.to_numpy(dtype=np.float64, na_value=np.nan)
+        # TODO: bug in the object-dtype path that we would get without
+        #  this special casting.
+        values = values.to_numpy(dtype=np.float64, na_value=np.nan)  # type: ignore[union-attr]
     else:
         values = _ensure_data(values)
 
