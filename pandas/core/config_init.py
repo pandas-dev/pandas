@@ -429,7 +429,7 @@ with cf.config_prefix("mode"):
 
     cf.register_option(
         "nan_is_na",
-        os.environ.get("PANDAS_NAN_IS_NA", 0) == "1",
+        os.environ.get("PANDAS_NAN_IS_NA", "0") == "1",
         "Whether to treat NaN entries as interchangeable with pd.NA in "
         "numpy-nullable and pyarrow float dtypes. See discussion in "
         "https://github.com/pandas-dev/pandas/issues/32265",
