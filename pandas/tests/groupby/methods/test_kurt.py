@@ -43,7 +43,7 @@ def test_groupby_kurt_arrow_float64(dtype):
     # Test groupby.kurt() with float64[pyarrow] and Float64 dtypes
     df = pd.DataFrame(
         {
-            "x": [1.0, np.nan, 3.2, 4.8, 2.3, 1.9, 8.9],
+            "x": [1.0, pd.NA, 3.2, 4.8, 2.3, 1.9, 8.9],
             "y": [1.6, 3.3, 3.2, 6.8, 1.3, 2.9, 9.0],
         },
         dtype=dtype,

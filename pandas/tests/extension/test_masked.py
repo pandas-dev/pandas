@@ -380,32 +380,19 @@ class TestMaskedArrays(base.ExtensionTests):
             )
 
         if op_name == "cumsum":
-            result = getattr(ser, op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
+            pass
         elif op_name in ["cummax", "cummin"]:
-            result = getattr(ser, op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
-                    dtype=ser.dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
+            expected_dtype = ser.dtype  # type: ignore[assignment]
         elif op_name == "cumprod":
-            result = getattr(ser[:12], op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser[:12].astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
-
+            ser = ser[:12]
         else:
             raise NotImplementedError(f"{op_name} not supported")
+
+        result = getattr(ser, op_name)(skipna=skipna)
+        expected = pd.Series(
+            pd.array(
+                getattr(ser.astype("float64"), op_name)(skipna=skipna),
+                dtype=expected_dtype,
+            )
+        )
+        tm.assert_series_equal(result, expected)

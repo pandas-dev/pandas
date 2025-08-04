@@ -173,9 +173,9 @@ class TestFeather:
         # GH#50765
         df = pd.DataFrame(
             {
-                "a": pd.Series([1, np.nan, 3], dtype="Int64"),
+                "a": pd.Series([1, pd.NA, 3], dtype="Int64"),
                 "b": pd.Series([1, 2, 3], dtype="Int64"),
-                "c": pd.Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "c": pd.Series([1.5, pd.NA, 2.5], dtype="Float64"),
                 "d": pd.Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": [True, False, None],
                 "f": [True, False, True],
@@ -200,9 +200,9 @@ class TestFeather:
 
         expected = pd.DataFrame(
             {
-                "a": pd.Series([1, np.nan, 3], dtype="Int64"),
+                "a": pd.Series([1, pd.NA, 3], dtype="Int64"),
                 "b": pd.Series([1, 2, 3], dtype="Int64"),
-                "c": pd.Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "c": pd.Series([1.5, pd.NA, 2.5], dtype="Float64"),
                 "d": pd.Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": pd.Series([True, False, pd.NA], dtype="boolean"),
                 "f": pd.Series([True, False, True], dtype="boolean"),

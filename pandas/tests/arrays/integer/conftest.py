@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 import pandas as pd
@@ -40,7 +39,7 @@ def data(dtype):
     Used to test dtype conversion with and without missing values.
     """
     return pd.array(
-        list(range(8)) + [np.nan] + list(range(10, 98)) + [np.nan] + [99, 100],
+        list(range(8)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100],
         dtype=dtype,
     )
 
@@ -53,7 +52,7 @@ def data_missing(dtype):
 
     Used to test dtype conversion with and without missing values.
     """
-    return pd.array([np.nan, 1], dtype=dtype)
+    return pd.array([pd.NA, 1], dtype=dtype)
 
 
 @pytest.fixture(params=["data", "data_missing"])

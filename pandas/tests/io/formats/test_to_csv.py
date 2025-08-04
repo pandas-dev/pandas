@@ -622,7 +622,7 @@ z
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):
         # see gh-25099
-        df = DataFrame({"c": [float("nan")] * 3})
+        df = DataFrame({"c": [pd.NA] * 3})
         df = df.astype(df_new_type)
         expected_rows = ["c", "mynull", "mynull", "mynull"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
