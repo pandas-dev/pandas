@@ -308,6 +308,7 @@ class TestSeriesRank:
             else:
                 exp_dtype = "uint64[pyarrow]"
         elif dtype == "Float64":
+            # GH#62043
             if rank_method == "average":
                 exp_dtype = "Float64"
             else:

@@ -1002,7 +1002,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         ascending: bool = True,
         pct: bool = False,
     ):
-        # Avoid going through copy-making ensure_data in algorithms.rank
+        # GH#62043 Avoid going through copy-making ensure_data in algorithms.rank
         if axis != 0 or self.ndim != 1:
             raise NotImplementedError
 
