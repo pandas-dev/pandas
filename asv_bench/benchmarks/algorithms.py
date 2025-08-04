@@ -199,8 +199,8 @@ class SortIntegerArray:
     params = [10**3, 10**5]
 
     def setup(self, N):
-        data = np.arange(N, dtype=float)
-        data[40] = np.nan
+        data = np.arange(N, dtype=float).astype(object)
+        data[40] = pd.NA
         self.array = pd.array(data, dtype="Int64")
 
     def time_argsort(self, N):
