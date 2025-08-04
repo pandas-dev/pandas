@@ -1065,17 +1065,7 @@ def rank(
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     is_datetimelike = needs_i8_conversion(values.dtype)
-    if (
-        isinstance(values.dtype, BaseMaskedDtype)
-        and values._hasna  # type: ignore[union-attr]
-        and values.dtype.kind in "iuf"
-    ):
-        # e.g. test_rank_ea_small_values
-        # TODO: bug in the object-dtype path that we would get without
-        #  this special casting.
-        values = values.to_numpy(dtype=np.float64, na_value=np.nan)  # type: ignore[union-attr]
-    else:
-        values = _ensure_data(values)
+    values = _ensure_data(values)
 
     if values.ndim == 1:
         ranks = algos.rank_1d(
