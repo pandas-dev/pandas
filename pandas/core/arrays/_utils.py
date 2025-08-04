@@ -28,7 +28,6 @@ def to_numpy_dtype_inference(
     dtype: npt.DTypeLike | None,
     na_value,
     hasna: bool,
-    is_pyarrow: bool = True,
 ) -> tuple[npt.DTypeLike, Any]:
     if dtype is None and is_numeric_dtype(arr.dtype):
         dtype_given = False
@@ -41,7 +40,7 @@ def to_numpy_dtype_inference(
                 else:
                     dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
                 if na_value is lib.no_default:
-                    if is_pyarrow and not is_nan_na():
+                    if not is_nan_na():
                         na_value = NA
                         dtype = np.dtype(object)
                     else:

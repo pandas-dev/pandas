@@ -279,7 +279,10 @@ class TestSeriesRank:
         method, exp = results
         if (
             dtype == "int64"
-            or (dtype in ["int64[pyarrow]", "uint64[pyarrow]"] and not using_nan_is_na)
+            or (
+                dtype in ["int64[pyarrow]", "uint64[pyarrow]", "Int64"]
+                and not using_nan_is_na
+            )
             or (not using_infer_string and dtype == "str")
         ):
             pytest.skip("int64/str does not support NaN")
@@ -299,6 +302,11 @@ class TestSeriesRank:
                 exp[np.isnan(ser)] = 9
             elif method == "first":
                 exp[np.isnan(ser)] = [9, 10]
+
+        if dtype == "string[pyarrow]" and not using_nan_is_na:
+            mask = np.isnan(exp)
+            exp = exp.astype(object)
+            exp[mask] = NA
 
         expected = Series(exp, dtype=expected_dtype(dtype, method))
         tm.assert_series_equal(result, expected)
@@ -320,7 +328,15 @@ class TestSeriesRank:
         ],
     )
     def test_rank_tie_methods_on_infs_nans(
-        self, rank_method, na_option, ascending, dtype, na_value, pos_inf, neg_inf
+        self,
+        rank_method,
+        na_option,
+        ascending,
+        dtype,
+        na_value,
+        pos_inf,
+        neg_inf,
+        using_nan_is_na,
     ):
         pytest.importorskip("scipy")
         if dtype == "float64[pyarrow]":
@@ -352,7 +368,7 @@ class TestSeriesRank:
             order = [ranks[1], ranks[0], ranks[2]]
         elif na_option == "bottom":
             order = [ranks[0], ranks[2], ranks[1]]
-        elif dtype == "float64[pyarrow]":
+        elif dtype == "float64[pyarrow]" and not using_nan_is_na:
             order = [ranks[0], [NA] * chunk, ranks[1]]
         else:
             order = [ranks[0], [np.nan] * chunk, ranks[1]]
@@ -424,7 +440,7 @@ class TestSeriesRank:
         method, _ = results
         if (
             dtype == "int64"
-            or (dtype in ["int64[pyarrow]"] and not using_nan_is_na)
+            or (dtype in ["int64[pyarrow]", "Int64", "Float64"] and not using_nan_is_na)
             or (not using_infer_string and dtype == "str")
         ):
             s = ser.dropna().astype(dtype)
@@ -436,6 +452,8 @@ class TestSeriesRank:
             expected = (s.astype("float64").max() - s.astype("float64")).rank()
         else:
             expected = (s.max() - s).rank()
+        if dtype == "string[pyarrow]" and not using_nan_is_na:
+            expected = expected.replace(np.nan, NA)
         tm.assert_series_equal(res, expected.astype(expected_dtype(dtype, "average")))
 
         if dtype.startswith("str"):
@@ -445,6 +463,8 @@ class TestSeriesRank:
         else:
             expected = (s.max() - s).rank(method=method)
         res2 = s.rank(method=method, ascending=False)
+        if dtype == "string[pyarrow]" and not using_nan_is_na:
+            expected = expected.replace(np.nan, NA)
         tm.assert_series_equal(res2, expected.astype(expected_dtype(dtype, method)))
 
     def test_rank_int(self, ser, results):

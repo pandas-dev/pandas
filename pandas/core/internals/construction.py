@@ -17,6 +17,7 @@ from numpy import ma
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
@@ -34,7 +35,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -364,7 +368,11 @@ def dict_to_mgr(
 
     if columns is not None:
         columns = ensure_index(columns)
-        arrays = [np.nan] * len(columns)
+        if dtype is not None and not isinstance(dtype, np.dtype):
+            # e.g. test_dataframe_from_dict_of_series
+            arrays = [NA] * len(columns)
+        else:
+            arrays = [np.nan] * len(columns)
         midxs = set()
         data_keys = ensure_index(data.keys())  # type: ignore[arg-type]
         data_values = list(data.values())
@@ -414,12 +422,14 @@ def dict_to_mgr(
         arrays = [
             x.copy()
             if isinstance(x, ExtensionArray)
-            else x.copy(deep=True)
-            if (
-                isinstance(x, Index)
-                or (isinstance(x, ABCSeries) and is_1d_only_ea_dtype(x.dtype))
+            else (
+                x.copy(deep=True)
+                if (
+                    isinstance(x, Index)
+                    or (isinstance(x, ABCSeries) and is_1d_only_ea_dtype(x.dtype))
+                )
+                else x
             )
-            else x
             for x in arrays
         ]
 
@@ -949,10 +959,13 @@ def convert_object_array(
 
     def convert(arr):
         if dtype != np.dtype("O"):
+            # e.g. if dtype is UInt32 then we want to cast Nones to NA instead of
+            #  NaN in maybe_convert_objects.
+            to_nullable = dtype_backend != "numpy" or isinstance(dtype, BaseMaskedDtype)
             arr = lib.maybe_convert_objects(
                 arr,
                 try_float=coerce_float,
-                convert_to_nullable_dtype=dtype_backend != "numpy",
+                convert_to_nullable_dtype=to_nullable,
             )
             # Notes on cases that get here 2023-02-15
             # 1) we DO get here when arr is all Timestamps and dtype=None

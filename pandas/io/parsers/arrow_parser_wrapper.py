@@ -19,9 +19,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    BaseMaskedDtype,
-)
+from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pandas.core.dtypes.inference import is_integer
 
 from pandas.core.arrays.string_ import StringDtype
