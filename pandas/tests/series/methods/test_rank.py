@@ -280,6 +280,7 @@ class TestSeriesRank:
         if (
             dtype == "int64"
             or (
+                # TODO: these can work but need to update ser construction.
                 dtype in ["int64[pyarrow]", "uint64[pyarrow]", "Int64"]
                 and not using_nan_is_na
             )
