@@ -318,7 +318,8 @@ def union_categoricals(
             categories = categories.sort_values()
 
         new_codes = [
-            recode_for_categories(c.codes, c.categories, categories) for c in to_union
+            recode_for_categories(c.codes, c.categories, categories, copy=False)
+            for c in to_union
         ]
         new_codes = np.concatenate(new_codes)
     else:

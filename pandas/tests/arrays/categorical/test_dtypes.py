@@ -49,12 +49,12 @@ class TestCategoricalDtypes:
 
     def test_set_dtype_same(self):
         c = Categorical(["a", "b", "c"])
-        result = c._set_dtype(CategoricalDtype(["a", "b", "c"]))
+        result = c._set_dtype(CategoricalDtype(["a", "b", "c"]), copy=True)
         tm.assert_categorical_equal(result, c)
 
     def test_set_dtype_new_categories(self):
         c = Categorical(["a", "b", "c"])
-        result = c._set_dtype(CategoricalDtype(list("abcd")))
+        result = c._set_dtype(CategoricalDtype(list("abcd")), copy=True)
         tm.assert_numpy_array_equal(result.codes, c.codes)
         tm.assert_index_equal(result.dtype.categories, Index(list("abcd")))
 
@@ -86,12 +86,12 @@ class TestCategoricalDtypes:
     def test_set_dtype_many(self, values, categories, new_categories, ordered):
         c = Categorical(values, categories)
         expected = Categorical(values, new_categories, ordered)
-        result = c._set_dtype(expected.dtype)
+        result = c._set_dtype(expected.dtype, copy=True)
         tm.assert_categorical_equal(result, expected)
 
     def test_set_dtype_no_overlap(self):
         c = Categorical(["a", "b", "c"], ["d", "e"])
-        result = c._set_dtype(CategoricalDtype(["a", "b"]))
+        result = c._set_dtype(CategoricalDtype(["a", "b"]), copy=True)
         expected = Categorical([None, None, None], categories=["a", "b"])
         tm.assert_categorical_equal(result, expected)
 

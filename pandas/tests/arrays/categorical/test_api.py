@@ -480,7 +480,7 @@ class TestPrivateCategoricalAPI:
         expected = np.asanyarray(expected, dtype=np.int8)
         old = Index(old)
         new = Index(new)
-        result = recode_for_categories(codes, old, new)
+        result = recode_for_categories(codes, old, new, copy=True)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_recode_to_categories_large(self):
@@ -489,5 +489,5 @@ class TestPrivateCategoricalAPI:
         old = Index(codes)
         expected = np.arange(N - 1, -1, -1, dtype=np.int16)
         new = Index(expected)
-        result = recode_for_categories(codes, old, new)
+        result = recode_for_categories(codes, old, new, copy=True)
         tm.assert_numpy_array_equal(result, expected)
