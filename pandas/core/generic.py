@@ -9816,9 +9816,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                                 )
                                 for i in range(self.shape[1])
                             ]
-                        res = self._constructor(
-                            dict(enumerate(res_cols))
-                        )
+                        res = self._constructor(dict(enumerate(res_cols)))
                         res.index = self.index
                         res.columns = self.columns
                         if inplace:

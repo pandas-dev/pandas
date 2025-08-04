@@ -30,10 +30,9 @@ repos:
         alias: ruff-selected-autofixes
         files: ^pandas
         exclude: ^pandas/tests
-        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix,  --show-fixes]
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
         exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
-        args: [--show-fixes]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: v2.14
     hooks:
