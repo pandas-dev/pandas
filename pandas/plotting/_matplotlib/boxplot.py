@@ -190,7 +190,8 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self, fig: Figure) -> None:
         if self.subplots:
-            self._return_obj = pd.Series(dtype=object)
+            axes = []
+            labels = []
 
             # Re-create iterated data if `by` is assigned by users
             data = (
@@ -221,10 +222,12 @@ class BoxPlot(LinePlot):
                     ax, y, column_num=i, return_type=self.return_type, **kwds
                 )
                 self.maybe_color_bp(bp)
-                self._return_obj[label] = ret
+                axes.append(ret)
+                labels.append(label)
                 _set_ticklabels(
                     ax=ax, labels=ticklabels, is_vertical=self.orientation == "vertical"
                 )
+            self._return_obj = pd.Series(axes, index=labels, dtype=object)
         else:
             y = self.data.values.T
             ax = self._get_ax(0)
