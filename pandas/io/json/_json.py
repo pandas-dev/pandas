@@ -997,9 +997,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             obj = self._get_object_parser(self.data)
         if self.dtype_backend is not lib.no_default:
             with option_context("mode.nan_is_na", True):
-                # The construction above takes "null" to NaN, which we want to
-                #  convert to NA. But .convert_dtypes to pyarrow doesn't allow
-                #  that, so we do a 2-step conversion through numpy-nullable.
                 return obj.convert_dtypes(
                     infer_objects=False, dtype_backend=self.dtype_backend
                 )
@@ -1078,9 +1075,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
         if self.dtype_backend is not lib.no_default:
             with option_context("mode.nan_is_na", True):
-                # The construction above takes "null" to NaN, which we want to
-                #  convert to NA. But .convert_dtypes to pyarrow doesn't allow
-                #  that, so we do a 2-step conversion through numpy-nullable.
                 return obj.convert_dtypes(
                     infer_objects=False, dtype_backend=self.dtype_backend
                 )

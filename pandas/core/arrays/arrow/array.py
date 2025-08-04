@@ -352,9 +352,7 @@ class ArrowExtensionArray(
             from pandas.core.tools.datetimes import to_datetime
 
             scalars = to_datetime(strings, errors="raise").date
-
-            scalars = pa.array(scalars, mask=mask.view(bool), type=pa_type)
-
+            scalars = pa.array(scalars, type=pa_type, mask=mask)
         elif pa.types.is_duration(pa_type):
             from pandas.core.tools.timedeltas import to_timedelta
 
@@ -965,7 +963,10 @@ class ArrowExtensionArray(
     def __contains__(self, key) -> bool:
         # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
         if isna(key) and key is not self.dtype.na_value:
-            if self.dtype.kind == "f" and lib.is_float(key):
+            if lib.is_float(key) and is_nan_na():
+                return self.dtype.na_value in self
+            elif self.dtype.kind == "f" and lib.is_float(key):
+                # Check specifically for NaN
                 return pc.any(pc.is_nan(self._pa_array)).as_py()
 
             # e.g. date or timestamp types we do not allow None here to match pd.NA
@@ -1512,9 +1513,7 @@ class ArrowExtensionArray(
         na_value: object = lib.no_default,
     ) -> np.ndarray:
         original_na_value = na_value
-        dtype, na_value = to_numpy_dtype_inference(
-            self, dtype, na_value, self._hasna, is_pyarrow=True
-        )
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
         if not self._hasna or isna(na_value) or pa.types.is_null(pa_type):
             data = self
@@ -2073,7 +2072,7 @@ class ArrowExtensionArray(
                 raise ValueError("Length of indexer and values mismatch")
             chunks = [
                 *self._pa_array[:key].chunks,
-                pa.array([value], type=self._pa_array.type),
+                pa.array([value], type=self._pa_array.type, from_pandas=is_nan_na()),
                 *self._pa_array[key + 1 :].chunks,
             ]
             data = pa.chunked_array(chunks).combine_chunks()
@@ -2127,7 +2126,7 @@ class ArrowExtensionArray(
                 pa_type = pa.float64()
             else:
                 pa_type = pa.uint64()
-            result = pa.array(ranked, type=pa_type)
+            result = pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
             return result
 
         data = self._pa_array.combine_chunks()
@@ -2379,7 +2378,7 @@ class ArrowExtensionArray(
         right, right_type = _to_numpy_and_type(right)
         pa_type = left_type or right_type
         result = np.where(cond, left, right)
-        return pa.array(result, type=pa_type)
+        return pa.array(result, type=pa_type, from_pandas=is_nan_na())
 
     @classmethod
     def _replace_with_mask(
@@ -2423,7 +2422,7 @@ class ArrowExtensionArray(
 
         result = np.array(values, dtype=object)
         result[mask] = replacements
-        return pa.array(result, type=values.type)
+        return pa.array(result, type=values.type, from_pandas=is_nan_na())
 
     # ------------------------------------------------------------------
     # GroupBy Methods

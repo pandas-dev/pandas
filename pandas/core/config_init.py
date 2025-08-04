@@ -427,12 +427,12 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([True, False, "warn"]),
     )
 
-with cf.config_prefix("mode"):
     cf.register_option(
         "nan_is_na",
-        True,
-        "Whether to make ArrowDtype arrays consistently treat NaN as "
-        "interchangeable with pd.NA",
+        os.environ.get("PANDAS_NAN_IS_NA", 0) == "1",
+        "Whether to treat NaN entries as interchangeable with pd.NA in "
+        "numpy-nullable and pyarrow float dtypes. See discussion in "
+        "https://github.com/pandas-dev/pandas/issues/32265",
         validator=is_one_of_factory([True, False]),
     )
 
