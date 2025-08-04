@@ -288,20 +288,14 @@ class TestSeriesRank:
             pytest.skip("int64/str does not support NaN")
 
         ser = ser if dtype is None else ser.astype(dtype)
+        if dtype in ["float64[pyarrow]", "Float64"] and not using_nan_is_na:
+            # TODO: use ser.replace(np.nan, NA) once that works
+            ser[np.isnan(ser.to_numpy(dtype=np.float64, na_value=np.nan))] = NA
+            mask = np.isnan(exp)
+            exp = exp.astype(object)
+            exp[mask] = NA
+
         result = ser.rank(method=method)
-        if dtype == "float64[pyarrow]" and not using_nan_is_na:
-            # the NaNs are not treated as NA
-            exp = exp.copy()
-            if method == "average":
-                exp[np.isnan(ser)] = 9.5
-            elif method == "dense":
-                exp[np.isnan(ser)] = 6
-            elif method == "max":
-                exp[np.isnan(ser)] = 10
-            elif method == "min":
-                exp[np.isnan(ser)] = 9
-            elif method == "first":
-                exp[np.isnan(ser)] = [9, 10]
 
         if dtype == "string[pyarrow]" and not using_nan_is_na:
             mask = np.isnan(exp)
@@ -368,7 +362,7 @@ class TestSeriesRank:
             order = [ranks[1], ranks[0], ranks[2]]
         elif na_option == "bottom":
             order = [ranks[0], ranks[2], ranks[1]]
-        elif dtype == "float64[pyarrow]" and not using_nan_is_na:
+        elif dtype in ("float64[pyarrow]", "Float64") and not using_nan_is_na:
             order = [ranks[0], [NA] * chunk, ranks[1]]
         else:
             order = [ranks[0], [np.nan] * chunk, ranks[1]]
