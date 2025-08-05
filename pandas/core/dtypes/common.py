@@ -1168,10 +1168,10 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    is_a_numeric_array = is_a_array and a.dtype.kind in ("u", "i", "f", "c", "b")
-    is_b_numeric_array = is_b_array and b.dtype.kind in ("u", "i", "f", "c", "b")
-    is_a_string_array = is_a_array and a.dtype.kind in ("S", "U")
-    is_b_string_array = is_b_array and b.dtype.kind in ("S", "U")
+    is_a_numeric_array = is_a_array and a.dtype.kind in "uifcb"
+    is_b_numeric_array = is_b_array and b.dtype.kind in "uifcb"
+    is_a_string_array = is_a_array and a.dtype.kind in "SU"
+    is_b_string_array = is_b_array and b.dtype.kind in "SU"
 
     is_b_scalar_string_like = not is_b_array and isinstance(b, str)
 
