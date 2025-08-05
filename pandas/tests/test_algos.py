@@ -435,7 +435,7 @@ class TestFactorize:
                 np.array(["b", "a"], dtype=object),
             ),
             (
-                pd.array([2, 1, np.nan, 2], dtype="Int64"),
+                pd.array([2, 1, pd.NA, 2], dtype="Int64"),
                 pd.array([2, 1], dtype="Int64"),
             ),
         ],

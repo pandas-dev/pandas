@@ -91,8 +91,10 @@ def consensus_name_attr(objs):
         try:
             if obj.name != name:
                 name = None
+                break
         except ValueError:
             name = None
+            break
     return name
 
 
