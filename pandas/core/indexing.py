@@ -1610,7 +1610,6 @@ class _iLocIndexer(_LocationIndexer):
                 raise IndexError(f".iloc requires numeric indexers, got {arr}")
 
             if len(arr):
-                # handle ExtensionArray using _reduce method else use numpy
                 if isinstance(arr.dtype, ExtensionDtype):
                     arr_max = arr._reduce("max")
                     arr_min = arr._reduce("min")
