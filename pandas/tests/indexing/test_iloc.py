@@ -795,9 +795,9 @@ class TestiLocBaseIndependent:
                     idx is None or (idx == "index" and method != ".iloc")
                 ) and "0b" in expected_result:
                     # For successful numeric results, exact match is needed
-                    assert (
-                        expected_result == answer
-                    ), f"[{key}] does not match [{answer}]"
+                    assert expected_result == answer, (
+                        f"[{key}] does not match [{answer}]"
+                    )
                 else:
                     # For error messages, substring match is sufficient
                     assert expected_result in answer, f"[{key}] not found in [{answer}]"
