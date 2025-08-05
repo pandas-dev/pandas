@@ -66,7 +66,7 @@ class BooleanDtype(BaseMaskedDtype):
     --------
     StringDtype : Extension dtype for string data.
     BooleanArray: Array of boolean (True/False) data with missing values.
-    BaseMaskedDType: Base class for dtypes for the BaseMaskedArray subclasses.
+    BaseMaskedDtype: Base class for dtypes for the BaseMaskedArray subclasses.
 
     Examples
     --------
@@ -78,7 +78,7 @@ class BooleanDtype(BaseMaskedDtype):
     2     <NA>
     dtype: boolean
 
-    Constructing a BooleanDType directly:
+    Constructing a BooleanDtype directly:
 
     >>> pd.BooleanDtype()
     BooleanDtype
