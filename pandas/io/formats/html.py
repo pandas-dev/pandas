@@ -263,7 +263,7 @@ class HTMLFormatter:
             border_attr = f' border="{self.border}"'
 
         self.write(
-            f'<table{border_attr} class="{" ".join(_classes)}"{id_section}>',
+            f'<table style={border_attr} class="{" ".join(_classes)}"{id_section}>',
             indent,
         )
 
