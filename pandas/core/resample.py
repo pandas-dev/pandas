@@ -2631,7 +2631,7 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(freq, (Tick, Day)):
+    if isinstance(freq, Tick):
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
@@ -2640,27 +2640,15 @@ def _get_timestamp_range_edges(
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
 
-        if isinstance(freq, Day):
-            # _adjust_dates_anchored assumes 'D' means 24h, but first/last
-            # might contain a DST transition (23h, 24h, or 25h).
-            # So "pretend" the dates are naive when adjusting the endpoints
-            first = first.tz_localize(None)
-            last = last.tz_localize(None)
-            if isinstance(origin, Timestamp):
-                origin = origin.tz_localize(None)
-
         first, last = _adjust_dates_anchored(
             first,
             last,
-            cast("Day | Tick", freq),
+            freq,
             closed=closed,
             origin=origin,
             offset=offset,
             unit=unit,
         )
-        if isinstance(freq, Day):
-            first = first.tz_localize(index_tz)
-            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()
@@ -2752,7 +2740,7 @@ def _insert_nat_bin(
 def _adjust_dates_anchored(
     first: Timestamp,
     last: Timestamp,
-    freq: Tick | Day,
+    freq: Tick,
     closed: Literal["right", "left"] = "right",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
@@ -2768,10 +2756,7 @@ def _adjust_dates_anchored(
     if offset is not None:
         offset = offset.as_unit(unit)
 
-    if isinstance(freq, Day):
-        freq_value = Timedelta(days=freq.n).as_unit(unit)._value
-    else:
-        freq_value = Timedelta(freq).as_unit(unit)._value
+    freq_value = Timedelta(freq).as_unit(unit)._value
 
     origin_timestamp = 0  # origin == "epoch"
     if origin == "start_day":

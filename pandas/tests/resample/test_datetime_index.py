@@ -935,8 +935,9 @@ def test_resample_origin_with_day_freq_on_dst(unit):
     rng = date_range(start, end, freq="1h").as_unit(unit)
     ts = Series(np.ones(len(rng)), index=rng)
 
-    expected_ts = ["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"]
-    expected = _create_series([23.0, 2.0], expected_ts)
+    # GH#61985 changed this to behave like "B" rather than "24h"
+    expected_ts = ["2013-11-03 00:00-05:00"]
+    expected = _create_series([25.0], expected_ts)
     result = ts.resample("D", origin="start", offset="-2h").sum()
     tm.assert_series_equal(result, expected)
 
@@ -945,18 +946,19 @@ def test_resample_origin_with_day_freq_on_dst(unit):
     result = ts.resample("24h", origin="start", offset="-2h").sum()
     tm.assert_series_equal(result, expected)
 
-    expected_ts = ["2013-11-02 02:00-05:00", "2013-11-03 02:00-06:00"]
-    expected = _create_series([3.0, 22.0], expected_ts)
+    # GH#61985 changed this to behave like "B" rather than "24h"
+    expected_ts = ["2013-11-03 00:00-05:00"]
+    expected = _create_series([25.0], expected_ts)
     result = ts.resample("D", origin="start", offset="2h").sum()
     tm.assert_series_equal(result, expected)
 
-    expected_ts = ["2013-11-02 23:00-05:00", "2013-11-03 23:00-06:00"]
-    expected = _create_series([24.0, 1.0], expected_ts)
+    expected_ts = ["2013-11-03 00:00-05:00"]
+    expected = _create_series([25.0], expected_ts)
     result = ts.resample("D", origin="start", offset="-1h").sum()
     tm.assert_series_equal(result, expected)
 
-    expected_ts = ["2013-11-02 01:00-05:00", "2013-11-03 01:00:00-0500"]
-    expected = _create_series([1.0, 24.0], expected_ts)
+    expected_ts = ["2013-11-03 00:00-05:00"]
+    expected = _create_series([25.0], expected_ts)
     result = ts.resample("D", origin="start", offset="1h").sum()
     tm.assert_series_equal(result, expected)
 
