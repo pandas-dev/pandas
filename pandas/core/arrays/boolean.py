@@ -45,8 +45,8 @@ class BooleanDtype(BaseMaskedDtype):
 
     `BooleanDtype` enables use of null boolean data in pandas structures such as
     `Series` and `array`. Internally, it is backed by pandas BooleanArray,
-    which stores data using two numpy boolean arrays: one to store values('True'/'False')
-    and a mask to indicate missing values (`pd.NA`)
+    which stores data using two numpy boolean arrays: one to store values
+    ('True'/'False') and a mask to indicate missing values (`pd.NA`)
 
     .. warning::
 
@@ -83,7 +83,6 @@ class BooleanDtype(BaseMaskedDtype):
     >>> pd.BooleanDtype()
     BooleanDtype
     """
-
 
     name: ClassVar[str] = "boolean"
 
