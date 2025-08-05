@@ -427,6 +427,15 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([True, False, "warn"]),
     )
 
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "nan_is_na",
+        True,
+        "Whether to make ArrowDtype arrays consistently treat NaN as "
+        "interchangeable with pd.NA",
+        validator=is_one_of_factory([True, False]),
+    )
+
 
 # user warnings
 chained_assignment = """
