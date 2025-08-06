@@ -73,6 +73,7 @@ from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
     ravel_compat,
 )
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.base import (
     ExtensionArray,
     NoNewAttributesMixin,
@@ -483,6 +484,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         else:
+            if isinstance(values, ArrowExtensionArray):
+                from pandas.api.types import (
+                    is_datetime64_any_dtype,
+                    is_timedelta64_dtype,
+                )
+
+                cat_dtype = dtype.categories.dtype
+                if is_datetime64_any_dtype(cat_dtype) or is_timedelta64_dtype(
+                    cat_dtype
+                ):
+                    values = values.to_numpy()
+
             codes = _get_codes_for_values(values, dtype.categories)
 
         if null_mask.any():
