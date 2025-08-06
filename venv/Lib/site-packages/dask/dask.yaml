@@ -1,0 +1,57 @@
+temporary-directory: null  # Directory for local disk like /tmp, /scratch, or /local
+
+visualization:
+  engine: null  # Default visualization engine to use when calling `.visualize()` on a collection
+
+tokenize:
+  ensure-deterministic: false  # If true, tokenize will error instead of falling back to uuids
+
+dataframe:
+  backend: "pandas"  # Backend dataframe library for input IO and data creation
+  shuffle:
+    method: null
+    compression: null  # compression for on disk-shuffling. Partd supports ZLib, BZ2, SNAPPY
+  parquet:
+    metadata-task-size-local: 512  # Number of files per local metadata-processing task
+    metadata-task-size-remote: 1  # Number of files per remote metadata-processing task
+    minimum-partition-size: 75000000
+  convert-string: null  # Whether to convert string-like data to pyarrow strings
+  query-planning: null  # Whether to use dask-expr
+
+array:
+  backend: "numpy"  # Backend array library for input IO and data creation
+  chunk-size: "128MiB"
+  chunk-size-tolerance: 1.25  # Tolerance for different algorithms when creating output chunks.
+  rechunk:
+    method: null  # Rechunking method to use
+    threshold: 4
+  svg:
+    size: 120  # pixels
+  slicing:
+    split-large-chunks: null  # How to handle large output chunks in slicing. Warns by default.
+  query-planning: null  # Whether to use dask-expr
+
+optimization:
+  annotations:
+    fuse: true  # Automatically fuse compatible annotations on layers
+  fuse:
+    active: null  # Treat as false for dask.dataframe, true for everything else
+    ave-width: 1
+    max-width: null  # 1.5 + ave_width * log(ave_width + 1)
+    max-height: .inf
+    max-depth-new-edges: null  # ave_width * 1.5
+    rename-keys: true
+    delayed: false
+
+admin:
+  async-client-fallback: null
+  traceback:
+    shorten:
+      - concurrent[\\\/]futures[\\\/]
+      - dask[\\\/](base|core|local|multiprocessing|optimization|threaded|utils)\.py
+      - dask[\\\/]array[\\\/]core\.py
+      - dask[\\\/]dataframe[\\\/](core|methods)\.py
+      - dask[\\\/]_task_spec\.py
+      - distributed[\\\/](client|scheduler|utils|worker)\.py
+      - tornado[\\\/]gen\.py
+      - pandas[\\\/]core[\\\/]

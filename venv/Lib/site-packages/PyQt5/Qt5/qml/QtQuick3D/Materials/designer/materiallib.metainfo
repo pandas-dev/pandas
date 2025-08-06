@@ -1,0 +1,306 @@
+MetaInfo {
+    Type {
+        name: "QtQuick3D.Materials.AluminumAnodizedEmissiveMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Aluminum Anod Emis"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.AluminumAnodizedMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Aluminum Anodized"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.AluminumBrushedMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Aluminum Brushed"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.AluminumEmissiveMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Aluminum Emissive"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.AluminumMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Aluminum"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.CopperMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Copper"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.FrostedGlassMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Frosted Glass"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.FrostedGlassSinglePassMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Frosted Glass Single Pass"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.GlassMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Glass"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.GlassRefractiveMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Glass Refractive"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.PaperArtisticMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Paper Artistic"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.PaperOfficeMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Paper Office"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.PlasticStructuredRedEmissiveMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Plastic Struct Emissive"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.PlasticStructuredRedMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Plastic Structured"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.SteelMilledConcentricMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+            canBeDroppedInView3D: false
+        }
+
+        ItemLibraryEntry {
+            name: "Steel Milled Concentric"
+            category: "Qt Quick 3D Materials"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+        }
+    }
+    Type {
+        name: "QtQuick3D.Materials.CustomMaterial"
+        icon: "images/custommaterial16.png"
+
+        Hints {
+            visibleInNavigator: true
+            canBeDroppedInNavigator: true
+            canBeDroppedInFormEditor: false
+        }
+
+        ItemLibraryEntry {
+            name: "Custom Material"
+            category: "Qt Quick 3D Custom Shader Utils"
+            libraryIcon: "images/custommaterial.png"
+            version: "1.14"
+            requiredImport: "QtQuick3D.Materials"
+            QmlSource { source: "./source/custommaterial_template.qml" }
+        }
+    }
+}

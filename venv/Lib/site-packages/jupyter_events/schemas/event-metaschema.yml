@@ -1,0 +1,30 @@
+$schema: http://json-schema.org/draft-07/schema
+$id: http://event.jupyter.org/event-metaschema
+version: "1"
+title: Event Metaschema
+description: |
+  A meta schema for validating that all registered Jupyter Event
+  schemas are appropriately defined.
+type: object
+properties:
+  version:
+    type: string
+  title:
+    type: string
+  description:
+    type: string
+  properties:
+    type: object
+    additionalProperties:
+      $ref: http://event.jupyter.org/property-metaschema
+    propertyNames:
+      pattern: ^(?!__.*)
+patternProperties:
+  "\\$id":
+    type: string
+    format: uri
+
+required:
+  - $id
+  - version
+  - properties

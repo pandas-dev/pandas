@@ -1,0 +1,97 @@
+Metadata-Version: 2.1
+Name: asv
+Version: 0.6.4
+Summary: Airspeed Velocity: A simple Python history benchmarking tool
+Author-email: Michael Droettboom <mdroe@stsci.edu>
+License: BSD-3-Clause
+Project-URL: Source Code, https://github.com/airspeed-velocity/asv
+Project-URL: Documentation, https://asv.readthedocs.io/en/stable/
+Platform: any
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Environment :: Web Environment
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Testing
+Requires-Python: >=3.7
+Description-Content-Type: text/x-rst
+License-File: LICENSE.rst
+Requires-Dist: asv-runner>=v0.2.1
+Requires-Dist: json5
+Requires-Dist: build
+Requires-Dist: tabulate
+Requires-Dist: virtualenv
+Requires-Dist: pyyaml; platform_python_implementation != "PyPy"
+Requires-Dist: pympler; platform_python_implementation != "PyPy"
+Requires-Dist: colorama; platform_system == "Windows"
+Requires-Dist: tomli; python_version < "3.11"
+Provides-Extra: dev
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: isort>=5.11.5; extra == "dev"
+Provides-Extra: doc
+Requires-Dist: sphinx; extra == "doc"
+Requires-Dist: sphinx-bootstrap-theme; extra == "doc"
+Provides-Extra: hg
+Requires-Dist: python-hglib; extra == "hg"
+Provides-Extra: plugs
+Requires-Dist: asv-bench-memray; extra == "plugs"
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: pytest-xdist; extra == "test"
+Requires-Dist: pytest-timeout; extra == "test"
+Requires-Dist: pytest-rerunfailures>=10.0; extra == "test"
+Requires-Dist: filelock; extra == "test"
+Requires-Dist: virtualenv; extra == "test"
+Requires-Dist: numpy; extra == "test"
+Requires-Dist: feedparser; extra == "test"
+Requires-Dist: selenium; extra == "test"
+Requires-Dist: flaky; extra == "test"
+Requires-Dist: pytest-rerunfailures; extra == "test"
+Requires-Dist: scipy; platform_python_implementation != "PyPy" and extra == "test"
+Requires-Dist: python-hglib; platform_system != "Windows" and extra == "test"
+Requires-Dist: rpy2; (platform_system != "Windows" and platform_python_implementation != "PyPy") and extra == "test"
+Provides-Extra: virtualenv
+Requires-Dist: virtualenv; extra == "virtualenv"
+Requires-Dist: packaging; extra == "virtualenv"
+
+airspeed velocity
+=================
+
+**airspeed velocity** (``asv``) is a tool for benchmarking Python
+packages over their lifetime.
+
+It is primarily designed to benchmark a single project over its
+lifetime using a given suite of benchmarks.  The results are displayed
+in an interactive web frontend that requires only a basic static
+webserver to host.
+
+See an `example airspeed velocity site <https://pv.github.io/numpy-bench/>`__.
+
+See the `full documentation <https://asv.readthedocs.io/>`__
+for more information.
+
+The latest release can be installed from PyPI using::
+
+    pip install asv
+
+Are you using ``asv``?  Consider adding a badge to your project's
+README like this:
+
+.. image:: http://img.shields.io/badge/benchmarked%20by-asv-blue.svg?style=flat
+
+By using the following markdown::
+
+  [![asv](http://img.shields.io/badge/benchmarked%20by-asv-blue.svg?style=flat)](http://your-url-here/)
+
+License: `BSD three-clause license
+<http://opensource.org/licenses/BSD-3-Clause>`__.
+
+Authors: Michael Droettboom, Pauli Virtanen, asv Developers
