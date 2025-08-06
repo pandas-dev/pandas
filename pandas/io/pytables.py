@@ -1170,7 +1170,7 @@ class HDFStore:
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
-         min_itemsize : int, dict of str: int, or None, default None
+        min_itemsize : int, dict of str: int, or None, default None
             Minimum size in bytes for string columns. This parameter is only used when
             format='table'. Can be:
             - int: Apply the same minimum size to all string columns
@@ -1213,7 +1213,7 @@ class HDFStore:
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
         >>> store.put("data", df)  # doctest: +SKIP
 
-         Basic usage with ASCII strings:
+        Basic usage with ASCII strings:
         >>> df = pd.DataFrame([['hello', 'world']], columns=['A', 'B'])
         >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
         >>> store.put('data', df, format='table', min_itemsize={'A': 10, 'B': 10})  # doctest: +SKIP
