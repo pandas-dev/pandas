@@ -351,9 +351,9 @@ class ArrowParserWrapper(ParserBase):
                         frame[key] = ser.astype(sdt)
                         frame.loc[ser.isna(), key] = np.nan
                     else:
-                        sdt = StringDtype(na_value=np.nan)
+                        sdt = StringDtype(na_value=np.nan)  # type: ignore[assignment]
                         frame[key] = frame[key].astype(sdt)
-                    new_dtype[key] = sdt  # type: ignore[assignment]
+                    new_dtype[key] = sdt
 
             new_dtype.update(old_dtype)
             self.dtype = new_dtype
