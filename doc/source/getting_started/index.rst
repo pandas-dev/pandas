@@ -531,6 +531,27 @@ Data sets often contain more than just numerical data. pandas provides a wide ra
     </div>
     </div>
 
+.. grid:: 1 2 2 2
+    :gutter: 4
+
+    .. grid-item-card:: Pandas Playground
+        :class-card: install-card
+        :columns: 12
+        :padding: 3
+
+        Try out pandas in your browser using an interactive environment, no installation needed.
+
+        +++
+
+        .. button-link:: https://pandas.pydata.org/try.html
+            :ref-type: ref
+            :click-parent:
+            :color: secondary
+            :expand:
+
+            Try Pandas Online
+
+
 
 .. _comingfrom:
 
