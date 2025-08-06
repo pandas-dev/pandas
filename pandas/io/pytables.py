@@ -1169,18 +1169,16 @@ class HDFStore:
             This parameter is currently not accepted.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
-            A value of 0 or None disables compression.
+            A value of 0 or None disables compression.        
         min_itemsize : int, dict of str: int, or None, default None
-            Minimum size in bytes for string columns. This parameter is only used when
-            format='table'. Can be:
-            - int: Apply the same minimum size to all string columns
-            - dict: Map column names to their minimum sizes
-            - None: Use default sizing
-            **Important**: The size refers to the number of bytes after encoding, not
-            the number of characters. For multi-byte characters (e.g., Chinese, Arabic),
-            you need to account for the encoding. For example, the character '香' is
-            1 character but 3 bytes when encoded as UTF-8
-            See examples below for proper usage with encoded strings. 
+            Minimum size in bytes for string columns when format = 'table'. 
+            int - Apply the same minimum size to all string columns, 
+            dict - Map column names to their minimum sizes or, 
+            None - use the default the sizing
+            Important: This specifies the byte length after encoding, not the 
+            character count. For multi-byte characters, calculate the required
+            size using the encoded byte length.
+            See examples below for use.
         nan_rep : str
             Str to use as str nan representation.
         data_columns : list of columns or True, default None
@@ -1213,22 +1211,9 @@ class HDFStore:
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
         >>> store.put("data", df)  # doctest: +SKIP
 
-        Basic usage with ASCII strings:
-        >>> df = pd.DataFrame([['hello', 'world']], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> store.put('data', df, format='table', min_itemsize={'A': 10, 'B': 10})  # doctest: +SKIP
-        Usage with multi-byte characters:
-        >>> df_unicode = pd.DataFrame([['香港', '北京']], columns=['city1', 'city2'])  # doctest: +SKIP
-        >>> # Each Chinese character is 3 bytes in UTF-8, so '香港' needs 6 bytes
-        >>> store.put('cities', df_unicode, format='table',  # doctest: +SKIP
-        ...           min_itemsize={'city1': 12, 'city2': 12}, encoding='utf-8')  # doctest: +SKIP
-        Determining the correct size for encoded strings:
-        >>> text = '香港'  # doctest: +SKIP
-        >>> len(text)  # Character length  # doctest: +SKIP
-        2
-        >>> len(text.encode('utf-8'))  # Byte length  # doctest: +SKIP
-        6
-        >>> # Use the byte length for min_itemsize
+        >>> ASCII 'hello' = 5 bytes
+        >>> UTF-8 '香' = 3 bytes (though only 1 character)
+        >>> To find byte length: len(string.encode('utf-8'))
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1355,18 +1340,16 @@ class HDFStore:
             Specifies a compression level for data.
             A value of 0 or None disables compression.
         columns : default None
-            This parameter is currently not accepted, try data_columns.
+            This parameter is currently not accepted, try data_columns.        
         min_itemsize : int, dict of str: int, or None, default None
-            Minimum size in bytes for string columns. Can be:
-            - int: Apply the same minimum size to all string columns
-            - dict: Map column names to their minimum sizes  
-            - None: Use the existing table's column sizes
-             **Important**: This parameter is only effective when creating a new table.
-            If the table already exists, the column sizes are fixed and cannot be
-            changed. The size refers to the number of bytes after encoding, not
-            the number of characters.
-            For multi-byte characters, calculate the size using the encoded byte length. 
-            For example: len('香'.encode('utf-8')) returns 3, not len('香') which returns 1.
+            Minimum size in bytes for string columns when format = 'table'. 
+            int - Apply the same minimum size to all string columns, 
+            dict - Map column names to their minimum sizes or, 
+            None - use the default the sizing
+            Important: This specifies the byte length after encoding, not the 
+            character count. For multi-byte characters, calculate the required
+            size using the encoded byte length.
+            See examples below for use.
         nan_rep : str
             Str to use as str nan representation.
         chunksize : int or None
@@ -1417,37 +1400,9 @@ class HDFStore:
         0  5  6
         1  7  8
 
-        Creating a table and appending data:
-    
-        >>> df1 = pd.DataFrame([['short', 'text']], columns=['A', 'B'])
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> # Set min_itemsize when creating the table
-        >>> store.put('data', df1, format='table', min_itemsize={'A': 20, 'B': 20})  # doctest: +SKIP
-        >>> 
-        >>> df2 = pd.DataFrame([['longer text here', 'more text']], columns=['A', 'B'])
-        >>> store.append('data', df2)  # doctest: +SKIP
-        >>> store.close()  # doctest: +SKIP
-        
-        Handling multi-byte characters:
-        
-        >>> df_en = pd.DataFrame([['hello']], columns=['text'])
-        >>> df_zh = pd.DataFrame([['你好世界']], columns=['text'])  # "Hello World" in Chinese
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> # Calculate size needed: len('你好世界'.encode('utf-8')) = 12 bytes
-        >>> store.put('messages', df_en, format='table', 
-        ...           min_itemsize={'text': 15}, encoding='utf-8')  # doctest: +SKIP
-        >>> store.append('messages', df_zh)  # doctest: +SKIP
-        >>> store.close()  # doctest: +SKIP
-        
-        Common error when min_itemsize is too small:
-        
-        >>> df = pd.DataFrame([['香']], columns=['char'])  # 3 bytes in UTF-8
-        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
-        >>> # This will raise ValueError: string length [3] exceeds limit [1]
-        >>> # store.put('test', df, format='table', min_itemsize={'char': 1})
-        >>> # Correct usage:
-        >>> store.put('test', df, format='table', min_itemsize={'char': 3})  # doctest: +SKIP
-        >>> store.close()  # doctest: +SKIP
+        >>> ASCII 'hello' = 5 bytes
+        >>> UTF-8 '香' = 3 bytes (though only 1 character)
+        >>> To find byte length: len(string.encode('utf-8'))
         """
         if columns is not None:
             raise TypeError(
