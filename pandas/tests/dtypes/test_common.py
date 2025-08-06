@@ -576,8 +576,7 @@ def test_is_numeric_dtype():
         def name(self):
             raise NotImplementedError
 
-        @classmethod
-        def construct_array_type(cls):
+        def construct_array_type(self):
             raise NotImplementedError
 
         def _is_numeric(self) -> bool:

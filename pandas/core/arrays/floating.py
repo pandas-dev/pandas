@@ -28,8 +28,7 @@ class FloatingDtype(NumericDtype):
     _default_np_dtype = np.dtype(np.float64)
     _checker = is_float_dtype
 
-    @classmethod
-    def construct_array_type(cls) -> type[FloatingArray]:
+    def construct_array_type(self) -> type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 

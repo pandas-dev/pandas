@@ -283,12 +283,7 @@ class StringDtype(StorageExtensionDtype):
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
-    # https://github.com/pandas-dev/pandas/issues/36126
-    # error: Signature of "construct_array_type" incompatible with supertype
-    # "ExtensionDtype"
-    def construct_array_type(  # type: ignore[override]
-        self,
-    ) -> type_t[BaseStringArray]:
+    def construct_array_type(self) -> type_t[BaseStringArray]:
         """
         Return the array type associated with this dtype.
 

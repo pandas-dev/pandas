@@ -211,8 +211,7 @@ class ExtensionDtype:
         """
         return None
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[ExtensionArray]:
+    def construct_array_type(self) -> type_t[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -220,7 +219,7 @@ class ExtensionDtype:
         -------
         type
         """
-        raise AbstractMethodError(cls)
+        raise AbstractMethodError(self)
 
     def empty(self, shape: Shape) -> ExtensionArray:
         """
