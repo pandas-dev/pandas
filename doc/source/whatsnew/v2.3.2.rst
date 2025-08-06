@@ -29,9 +29,9 @@ Bug fixes
 
 
 Other Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
-- Added a "Try Pandas Online" section to the getting started page of the docs (:issue:`61010`)
+- Added a "Try Pandas Online" section to the getting started page of the docs (:issue:`61060`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_232.contributors:
