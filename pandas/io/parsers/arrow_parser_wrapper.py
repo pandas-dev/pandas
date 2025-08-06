@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import warnings
 
+import numpy as np
+
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -12,7 +14,12 @@ from pandas.errors import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+)
 from pandas.core.dtypes.inference import is_integer
+
+from pandas.core.arrays.string_ import StringDtype
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.parsers.base_parser import ParserBase
@@ -140,20 +147,7 @@ class ArrowParserWrapper(ParserBase):
             "encoding": self.encoding,
         }
 
-    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
-        """
-        Processes data read in based on kwargs.
-
-        Parameters
-        ----------
-        frame: DataFrame
-            The DataFrame to process.
-
-        Returns
-        -------
-        DataFrame
-            The processed DataFrame.
-        """
+    def _finalize_column_names(self, frame: DataFrame) -> DataFrame:
         num_cols = len(frame.columns)
         multi_index_named = True
         if self.header is None:
@@ -195,6 +189,23 @@ class ArrowParserWrapper(ParserBase):
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
+
+        return frame
+
+    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
+        """
+        Processes data read in based on kwargs.
+
+        Parameters
+        ----------
+        frame: DataFrame
+            The DataFrame to process.
+
+        Returns
+        -------
+        DataFrame
+            The processed DataFrame.
+        """
 
         if self.dtype is not None:
             # Ignore non-existent columns from dtype mapping
@@ -282,6 +293,14 @@ class ArrowParserWrapper(ParserBase):
 
             table = table.cast(new_schema)
 
+        workaround = False
+        pass_backend = dtype_backend
+        if self.dtype is not None and dtype_backend != "pyarrow":
+            # We pass dtype_backend="pyarrow" and subsequently cast
+            #  to avoid lossy conversion e.g. GH#56136
+            workaround = True
+            pass_backend = "numpy_nullable"
+
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
@@ -289,7 +308,32 @@ class ArrowParserWrapper(ParserBase):
                 DeprecationWarning,
             )
             frame = arrow_table_to_pandas(
-                table, dtype_backend=dtype_backend, null_to_int64=True
+                table, dtype_backend=pass_backend, null_to_int64=True
             )
+
+        frame = self._finalize_column_names(frame)
+
+        if workaround and dtype_backend != "numpy_nullable":
+            old_dtype = self.dtype
+            if not isinstance(old_dtype, dict):
+                # e.g. test_categorical_dtype_utf16
+                old_dtype = dict.fromkeys(frame.columns, old_dtype)
+
+            # _finalize_pandas_output will call astype, but we need to make
+            #  sure all keys are populated appropriately.
+            new_dtype = {}
+            for key in frame.columns:
+                ser = frame[key]
+                if isinstance(ser.dtype, BaseMaskedDtype):
+                    new_dtype[key] = ser.dtype.numpy_dtype
+                elif isinstance(ser.dtype, StringDtype):
+                    # We cast here in case the user passed "category" in
+                    #  order to get the correct dtype.categories.dtype
+                    #  e.g. test_categorical_dtype_utf16
+                    new_dtype[key] = StringDtype(na_value=np.nan)
+                    frame[key] = frame[key].astype(new_dtype[key])
+
+            new_dtype.update(old_dtype)
+            self.dtype = new_dtype
 
         return self._finalize_pandas_output(frame)
