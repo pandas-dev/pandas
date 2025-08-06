@@ -3578,3 +3578,16 @@ def test_timestamp_dtype_matches_to_datetime():
     expected = pd.Series([ts], dtype=dtype1).convert_dtypes(dtype_backend="pyarrow")
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "datetime64[ns]"])
+def test_map_timestamp(dtype):
+    # GH#61231
+    date_range = pd.date_range("2018-01-01", "2018-01-07")
+    df = pd.DataFrame({"a": date_range}).astype({"a": dtype})
+    date2pos = {date: i for i, date in enumerate(df["a"])}
+
+    result = df["a"].map(date2pos)
+    expected = pd.Series(range(len(date_range)), name="a")
+
+    tm.assert_series_equal(result, expected, check_dtype=False)
