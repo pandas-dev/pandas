@@ -25,7 +25,9 @@ body:
       description: >
         Please provide a minimal, copy-pastable example that quantifies
         [slow runtime](https://docs.python.org/3/library/timeit.html) or
-        [memory](https://pypi.org/project/memory-profiler/) issues.
+        [memory](https://pypi.org/project/memory-profiler/) issues. Reports
+        without reproducible examples will generally be closed
+        until they are provided.
     validations:
       required: true
   - type: textarea

@@ -28,7 +28,8 @@ body:
     attributes:
       label: Documentation problem
       description: >
-        Please provide a description of what documentation you believe needs to be fixed/improved
+        Please provide a description of what documentation you believe needs to be fixed/improved.
+        Reports without a clear, actionable request will generally be closed.
     validations:
       required: true
   - type: textarea

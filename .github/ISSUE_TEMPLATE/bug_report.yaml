@@ -26,7 +26,8 @@ body:
       label: Reproducible Example
       description: >
         Please follow [this guide](https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports) on how to
-        provide a minimal, copy-pastable example.
+        provide a minimal, copy-pastable example. Reports without reproducible examples will generally be closed
+        until they are provided.
       placeholder: >
         import pandas as pd
 
