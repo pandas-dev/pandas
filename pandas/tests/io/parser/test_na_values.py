@@ -803,7 +803,7 @@ False
 """
     msg = (
         "cannot safely convert passed user dtype of int(64|32) for "
-        "<class 'numpy.bool'> dtyped data in column 0 due to NA values"
+        "<class 'numpy.bool_?'> dtyped data in column 0 due to NA values"
     )
     if parser.engine == "python":
         msg = "Unable to convert column 0 to type int(64|32)"
