@@ -796,7 +796,6 @@ def rstjinja(app, docname, source) -> None:
     rendered = app.builder.templates.render_string(src, app.config.html_context)
     source[0] = rendered
 
-
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
