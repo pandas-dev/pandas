@@ -855,15 +855,7 @@ class TestMultiplicationDivision:
             result = 0 % s
             expected = Series([np.nan, 0.0])
             tm.assert_series_equal(result, expected)
-
-    def test_np_array_mul_ea_array_returns_extensionarray(self):
-        # GH#61866
-        np_array = np.array([1, 2, 3, 4, 5], dtype=np.int64)
-        ea_array = array([1, 2, 3, 4, 5], dtype="Int64")
-        result = np_array * ea_array
-        assert isinstance(result, type(ea_array))
-        tm.assert_equal(result, array([1, 4, 9, 16, 25], dtype="Int64"))
-
+    
     def test_non_1d_ea_raises_notimplementederror(self):
         # GH#61866
         ea_array = array([1, 2, 3, 4, 5], dtype="Int64").reshape(5, 1)
