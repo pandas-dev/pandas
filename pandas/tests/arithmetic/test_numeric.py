@@ -855,7 +855,7 @@ class TestMultiplicationDivision:
             result = 0 % s
             expected = Series([np.nan, 0.0])
             tm.assert_series_equal(result, expected)
-    
+
     def test_non_1d_ea_raises_notimplementederror(self):
         # GH#61866
         ea_array = array([1, 2, 3, 4, 5], dtype="Int64").reshape(5, 1)
