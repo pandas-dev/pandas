@@ -130,14 +130,14 @@ class DocBuilder:
 
         Examples
         --------
-        >>> DocBuilder(num_jobs=4)._sphinx_build("html")
+        >>> DocBuilder(num_jobs=1)._sphinx_build("html")
         """
         if kind not in ("html", "latex", "linkcheck"):
             raise ValueError(f"kind must be html, latex or linkcheck, not {kind}")
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
-            cmd += ["-j", self.num_jobs]
+            cmd += ["-j", "1"]
         if self.warnings_are_errors:
             cmd += ["-W", "--keep-going"]
         if self.verbosity:
