@@ -219,7 +219,7 @@ class TestReductions:
         df = DataFrame(
             {
                 "A": Series([1, 2, NaT], dtype="timedelta64[ns]"),
-                "B": Series([1, 2, np.nan], dtype="Int64"),
+                "B": Series([1, 2, pd.NA], dtype="Int64"),
             }
         )
         expected = Series({"A": Timedelta(3), "B": 3})
@@ -587,6 +587,7 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty(self, method, unit, use_bottleneck, dtype):
+        item = pd.NA if dtype in ["Float32", "Int64"] else np.nan
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#9422 / GH#18921
             # Entirely empty
@@ -620,7 +621,7 @@ class TestSeriesReductions:
             assert isna(result)
 
             # All-NA
-            s = Series([np.nan], dtype=dtype)
+            s = Series([item], dtype=dtype)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -644,7 +645,7 @@ class TestSeriesReductions:
             assert isna(result)
 
             # Mix of valid, empty
-            s = Series([np.nan, 1], dtype=dtype)
+            s = Series([item, 1], dtype=dtype)
             # Default
             result = getattr(s, method)()
             assert result == 1.0
@@ -674,11 +675,11 @@ class TestSeriesReductions:
             result = getattr(s, method)(skipna=False, min_count=2)
             assert isna(result)
 
-            s = Series([np.nan], dtype=dtype)
+            s = Series([item], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
-            s = Series([np.nan, 1], dtype=dtype)
+            s = Series([item, 1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
@@ -694,7 +695,7 @@ class TestSeriesReductions:
         assert result is pd.NA
 
         # ALL-NA series
-        nser = Series([np.nan], dtype=dtype)
+        nser = Series([pd.NA], dtype=dtype)
         result = getattr(nser, method)()
         assert result is pd.NA
 

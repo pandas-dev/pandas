@@ -154,9 +154,9 @@ def test_pow_array():
 def test_rpow_one_to_na():
     # https://github.com/pandas-dev/pandas/issues/22022
     # https://github.com/pandas-dev/pandas/issues/29997
-    arr = pd.array([np.nan, np.nan], dtype="Int64")
+    arr = pd.array([pd.NA, pd.NA], dtype="Int64")
     result = np.array([1.0, 2.0]) ** arr
-    expected = pd.array([1.0, np.nan], dtype="Float64")
+    expected = pd.array([1.0, pd.NA], dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -243,14 +243,14 @@ def test_arithmetic_conversion(all_arithmetic_operators, other):
 def test_cross_type_arithmetic():
     df = pd.DataFrame(
         {
-            "A": pd.Series([1, 2, np.nan], dtype="Int64"),
-            "B": pd.Series([1, np.nan, 3], dtype="UInt8"),
+            "A": pd.Series([1, 2, pd.NA], dtype="Int64"),
+            "B": pd.Series([1, pd.NA, 3], dtype="UInt8"),
             "C": [1, 2, 3],
         }
     )
 
     result = df.A + df.C
-    expected = pd.Series([2, 4, np.nan], dtype="Int64")
+    expected = pd.Series([2, 4, pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = (df.A + df.C) * 3 == 12
@@ -258,7 +258,7 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
     result = df.A + df.B
-    expected = pd.Series([2, np.nan, np.nan], dtype="Int64")
+    expected = pd.Series([2, pd.NA, pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 
