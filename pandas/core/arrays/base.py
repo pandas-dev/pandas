@@ -757,7 +757,11 @@ class ExtensionArray:
         >>> arr2.dtype
         dtype('float64')
         """
-        from pandas.api.types import CategoricalDtype
+        from pandas.api.types import (
+            CategoricalDtype,
+            is_datetime64_any_dtype,
+        )
+        from pandas.core.arrays import Categorical
 
         dtype = pandas_dtype(dtype)
         if dtype == self.dtype:
@@ -766,9 +770,11 @@ class ExtensionArray:
             else:
                 return self.copy()
 
-        if isinstance(dtype, CategoricalDtype):
-            from pandas.core.arrays import Categorical
-
+        if (
+            isinstance(self, Categorical)
+            and isinstance(dtype, CategoricalDtype)
+            and is_datetime64_any_dtype(self.categories)
+        ):
             return Categorical(self.to_numpy(), dtype=dtype)
 
         if isinstance(dtype, ExtensionDtype):
