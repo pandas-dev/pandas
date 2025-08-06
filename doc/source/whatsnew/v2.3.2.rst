@@ -27,6 +27,12 @@ Bug fixes
   (:issue:`61889`)
 - Boolean operations (``|``, ``&``, ``^``) with bool-dtype objects on the left and :class:`StringDtype` objects on the right now cast the string to bool, with a deprecation warning (:issue:`60234`)
 
+
+Other Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added a "Try Pandas Online" section to the getting started page of the docs (:issue:`61010`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_232.contributors:
 
