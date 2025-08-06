@@ -670,11 +670,14 @@ def test_inf_na_values_with_int_index(all_parsers):
     tm.assert_frame_equal(out, expected)
 
 
-@xfail_pyarrow  # mismatched shape
 @pytest.mark.parametrize("na_filter", [True, False])
-def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
+def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter, request):
     # see gh-20377
     parser = all_parsers
+    if parser.engine == "pyarrow" and na_filter is False:
+        mark = pytest.mark.xfail(reason="mismatched shape")
+        request.applymarker(mark)
+
     data = "a,b,c\n1,,3\n4,5,6"
 
     # na_filter=True --> missing value becomes NaN.
@@ -798,7 +801,15 @@ NaN
 True
 False
 """
-    with pytest.raises(ValueError, match="convert|NoneType"):
+    msg = (
+        "cannot safely convert passed user dtype of int64 for "
+        "<class 'numpy.bool'> dtyped data in column 0 due to NA values"
+    )
+    if parser.engine == "python":
+        msg = "Unable to convert column 0 to type int64"
+    elif parser.engine == "pyarrow":
+        msg = r"cannot convert NA to integer"
+    with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), dtype="int")
 
 
