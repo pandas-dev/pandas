@@ -1972,7 +1972,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool = True,
         dropna: bool = True,
     ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy

@@ -33,7 +33,7 @@ def data_missing(dtype):
     Fixture returning array with missing data according to parametrized float
     'dtype'.
     """
-    return pd.array([np.nan, 0.1], dtype=dtype)
+    return pd.array([pd.NA, 0.1], dtype=dtype)
 
 
 @pytest.fixture(params=["data", "data_missing"])
