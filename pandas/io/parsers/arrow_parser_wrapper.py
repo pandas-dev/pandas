@@ -330,7 +330,8 @@ class ArrowParserWrapper(ParserBase):
                     # We cast here in case the user passed "category" in
                     #  order to get the correct dtype.categories.dtype
                     #  e.g. test_categorical_dtype_utf16
-                    new_dtype[key] = StringDtype(na_value=np.nan)
+                    sdt = StringDtype(na_value=np.nan)
+                    new_dtype[key] = sdt  # type: ignore[assignment]
                     frame[key] = frame[key].astype(new_dtype[key])
 
             new_dtype.update(old_dtype)
