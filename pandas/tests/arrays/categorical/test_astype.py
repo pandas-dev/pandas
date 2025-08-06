@@ -165,6 +165,7 @@ class TestAstype:
         tm.assert_extension_array_equal(result, expected)
 
     def test_arrow_array_astype_to_categorical_dtype_temporal(self):
+        # GH#62051
         arr = array(
             ["2017-01-01", "2018-01-01", "2019-01-01"], dtype="date32[day][pyarrow]"
         )
