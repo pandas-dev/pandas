@@ -1258,3 +1258,31 @@ class TestDataFrameSelectReindex:
         msg = "Invalid fill method"
         with pytest.raises(ValueError, match=msg):
             df.reindex([1, 0, 2], method="asfreq")
+
+    def test_reindex_index_name_matches_multiindex_level(self):
+        df = DataFrame(
+            {"value": [1, 2], "other": ["A", "B"]},
+            index=Index([10, 20], name="a"),
+        )
+        target = MultiIndex.from_product(
+            [[10, 20], ["x", "y"]],
+            names=["a", "b"],
+        )
+
+        result = df.reindex(index=target)
+        expected = DataFrame(
+            data={"value": [1, 1, 2, 2], "other": ["A", "A", "B", "B"]},
+            index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_index_name_no_match_multiindex_level(self):
+        df = DataFrame({"value": [1, 2]}, index=Index([10, 20], name="different_name"))
+        target = MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"])
+
+        result = df.reindex(index=target)
+        expected = DataFrame(
+            data={"value": [np.nan] * 4},
+            index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
+        )
+        tm.assert_frame_equal(result, expected)
