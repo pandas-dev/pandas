@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -28,7 +29,6 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
-        Self,
         Shape,
         npt,
         type_t,

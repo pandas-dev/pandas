@@ -26,6 +26,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
+    Self,
     TypeAlias,
     TypeVar,
     Union,
@@ -148,7 +149,6 @@ if TYPE_CHECKING:
         Any,
         Concatenate,
         P,
-        Self,
         T,
     )
 

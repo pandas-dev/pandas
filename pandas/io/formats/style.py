@@ -10,6 +10,7 @@ import operator
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Self,
     overload,
 )
 
@@ -75,7 +76,6 @@ if TYPE_CHECKING:
         P,
         QuantileInterpolation,
         Scalar,
-        Self,
         StorageOptions,
         T,
         WriteBuffer,

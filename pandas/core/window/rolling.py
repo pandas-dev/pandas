@@ -14,6 +14,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     final,
     overload,
 )
@@ -113,7 +114,6 @@ if TYPE_CHECKING:
         NDFrameT,
         QuantileInterpolation,
         P,
-        Self,
         T,
         WindowingRankType,
         npt,

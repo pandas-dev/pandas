@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     final,
     overload,
 )
@@ -44,7 +45,6 @@ if TYPE_CHECKING:
         Concatenate,
         P,
         QuantileInterpolation,
-        Self,
         T,
         WindowingRankType,
     )

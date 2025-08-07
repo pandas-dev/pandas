@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -196,7 +197,6 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
         PositionalIndexer,
         Scalar,
-        Self,
         SortKind,
         TakeIndexer,
         TimeAmbiguous,
