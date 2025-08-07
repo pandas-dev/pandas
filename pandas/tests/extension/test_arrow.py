@@ -2868,7 +2868,7 @@ def test_dt_components():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[1, 0, 0, 2, 0, 3, 4], [None, None, None, None, None, None, None]],
+        [[1, 0, 0, 2, 0, 3, 4], [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA]],
         columns=[
             "days",
             "hours",
@@ -2893,7 +2893,10 @@ def test_dt_components_large_values():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[365, 23, 59, 59, 999, 0, 0], [None, None, None, None, None, None, None]],
+        [
+            [365, 23, 59, 59, 999, 0, 0],
+            [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA],
+        ],
         columns=[
             "days",
             "hours",
@@ -3081,7 +3084,7 @@ def test_infer_dtype_pyarrow_dtype(data, request):
     res = lib.infer_dtype(data)
     assert res != "unknown-array"
 
-    if data._hasna and res in ["floating", "datetime64", "timedelta64"]:
+    if data._hasna and res in ["datetime64", "timedelta64"]:
         mark = pytest.mark.xfail(
             reason="in infer_dtype pd.NA is not ignored in these cases "
             "even with skipna=True in the list(data) check below"

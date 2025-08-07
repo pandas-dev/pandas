@@ -2305,8 +2305,22 @@ class TimeGrouper(Grouper):
         )
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self, obj: NDFrameT, validate: bool = True, observed: bool = True
     ) -> tuple[BinGrouper, NDFrameT]:
+        """
+        Parameters
+        ----------
+        obj : Series or DataFrame
+            Object being grouped.
+        validate : bool, default True
+            Unused. Only for compatibility with ``Grouper._get_grouper``.
+        observed : bool, default True
+            Unused. Only for compatibility with ``Grouper._get_grouper``.
+
+        Returns
+        -------
+        A tuple of grouper, obj (possibly sorted)
+        """
         # create the resampler and return our binner
         r = self._get_resampler(obj)
         return r._grouper, cast(NDFrameT, r.obj)

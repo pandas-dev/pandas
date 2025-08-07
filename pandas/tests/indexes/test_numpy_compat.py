@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    BooleanDtype,
     CategoricalIndex,
     DatetimeIndex,
     Index,
@@ -14,7 +15,6 @@ from pandas.api.types import (
     is_complex_dtype,
     is_numeric_dtype,
 )
-from pandas.core.arrays import BooleanArray
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
@@ -111,11 +111,10 @@ def test_numpy_ufuncs_other(index, func):
         if func in (np.isfinite, np.isinf, np.isnan):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
-            assert isinstance(result, np.ndarray)
 
             out = np.empty(index.shape, dtype=bool)
             func(index, out=out)
-            tm.assert_numpy_array_equal(out, result)
+            tm.assert_index_equal(Index(out), result)
         else:
             with tm.external_error_raised(TypeError):
                 func(index)
@@ -129,19 +128,20 @@ def test_numpy_ufuncs_other(index, func):
     ):
         # Results in bool array
         result = func(index)
+        assert isinstance(result, Index)
         if not isinstance(index.dtype, np.dtype):
             # e.g. Int64 we expect to get BooleanArray back
-            assert isinstance(result, BooleanArray)
+            assert isinstance(result.dtype, BooleanDtype)
         else:
-            assert isinstance(result, np.ndarray)
+            assert isinstance(result.dtype, np.dtype)
 
         out = np.empty(index.shape, dtype=bool)
         func(index, out=out)
 
         if not isinstance(index.dtype, np.dtype):
-            tm.assert_numpy_array_equal(out, result._data)
+            tm.assert_index_equal(result, Index(out, dtype="boolean"))
         else:
-            tm.assert_numpy_array_equal(out, result)
+            tm.assert_index_equal(result, Index(out))
 
     elif len(index) == 0:
         pass

@@ -105,7 +105,7 @@ def test_mask_stringdtype(frame_or_series):
         {"A": ["this", "that"]}, index=["id2", "id3"], dtype=StringDtype()
     )
     expected = DataFrame(
-        {"A": [NA, "this", "that", NA]},
+        {"A": ["foo", "this", "that", NA]},
         index=["id1", "id2", "id3", "id4"],
         dtype=StringDtype(),
     )
@@ -114,7 +114,10 @@ def test_mask_stringdtype(frame_or_series):
         filtered_obj = filtered_obj["A"]
         expected = expected["A"]
 
-    filter_ser = Series([False, True, True, False])
+    filter_ser = Series(
+        [False, True, True, False],
+        index=["id1", "id2", "id3", "id4"],
+    )
     result = obj.mask(filter_ser, filtered_obj)
 
     tm.assert_equal(result, expected)
