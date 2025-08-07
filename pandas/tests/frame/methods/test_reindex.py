@@ -1270,7 +1270,10 @@ class TestDataFrameSelectReindex:
         )
 
         result = df.reindex(index=target)
-        expected = df.reindex(index=target, level="a")
+        expected = DataFrame(
+            data={"value": [1, 1, 2, 2], "other": ["A", "A", "B", "B"]},
+            index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_index_name_no_match_multiindex_level(self):
@@ -1279,7 +1282,7 @@ class TestDataFrameSelectReindex:
 
         result = df.reindex(index=target)
         expected = DataFrame(
-            {"value": [np.nan] * 4},
+            data={"value": [np.nan] * 4},
             index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
         )
         tm.assert_frame_equal(result, expected)
