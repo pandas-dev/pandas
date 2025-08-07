@@ -42,7 +42,7 @@ dependencies:
   - odfpy=1.4.1
   - qtpy=2.3.0
   - openpyxl=3.1.2
-  - psycopg2=2.9.6
+  - psycopg2=2.9.9
   - pyarrow=12.0.1
   - pyiceberg=0.7.1
   - pymysql=1.1.0

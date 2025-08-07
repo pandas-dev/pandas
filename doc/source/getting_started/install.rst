@@ -290,7 +290,7 @@ Dependency                                                         Minimum Versi
 `SQLAlchemy <https://github.com/sqlalchemy/sqlalchemy>`__          2.0.0              postgresql,     SQL support for databases other than sqlite
                                                                                       mysql,
                                                                                       sql-other
-`psycopg2 <https://github.com/psycopg/psycopg2>`__                 2.9.6              postgresql      PostgreSQL engine for sqlalchemy
+`psycopg2 <https://github.com/psycopg/psycopg2>`__                 2.9.9              postgresql      PostgreSQL engine for sqlalchemy
 `pymysql <https://github.com/PyMySQL/PyMySQL>`__                   1.1.0              mysql           MySQL engine for sqlalchemy
 `adbc-driver-postgresql <https://github.com/apache/arrow-adbc>`__  1.2.0              postgresql      ADBC Driver for PostgreSQL
 `adbc-driver-sqlite <https://github.com/apache/arrow-adbc>`__      1.2.0              sql-other       ADBC Driver for SQLite
