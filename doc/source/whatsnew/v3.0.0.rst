@@ -333,7 +333,9 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | fastparquet            | 2024.2.0            |
 +------------------------+---------------------+
-| adbc-driver-postgresql | 1.0.0               |
+| adbc-driver-postgresql | 1.2.0               |
++------------------------+---------------------+
+| adbc-driver-sqlite     | 1.2.0               |
 +------------------------+---------------------+
 | mypy (dev)             | 1.9.0               |
 +------------------------+---------------------+
