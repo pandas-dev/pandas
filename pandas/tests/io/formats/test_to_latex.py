@@ -42,7 +42,7 @@ class TestToLatex:
         df = DataFrame([["au\xdfgangen"]])
         with tm.ensure_clean("test.tex") as path:
             df.to_latex(path, encoding="utf-8")
-            with codecs.open(path, "r", encoding="utf-8") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 assert df.to_latex() == f.read()
 
     def test_to_latex_to_file_utf8_without_encoding(self):
@@ -50,7 +50,7 @@ class TestToLatex:
         df = DataFrame([["au\xdfgangen"]])
         with tm.ensure_clean("test.tex") as path:
             df.to_latex(path)
-            with codecs.open(path, "r", encoding="utf-8") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 assert df.to_latex() == f.read()
 
     def test_to_latex_tabular_with_index(self):
