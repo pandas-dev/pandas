@@ -22,8 +22,8 @@ from pandas.compat._constants import (
     PY312,
     PY314,
     PYPY,
-    WASM,
     WARNING_CHECK_BROKEN,
+    WASM,
 )
 from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (

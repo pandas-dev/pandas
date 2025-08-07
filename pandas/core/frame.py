@@ -49,7 +49,10 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT, WARNING_CHECK_BROKEN
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_BROKEN,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (

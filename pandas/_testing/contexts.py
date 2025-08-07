@@ -12,7 +12,10 @@ from typing import (
 )
 import uuid
 
-from pandas.compat import PYPY, WARNING_CHECK_BROKEN
+from pandas.compat import (
+    PYPY,
+    WARNING_CHECK_BROKEN,
+)
 from pandas.errors import ChainedAssignmentError
 
 from pandas.io.common import get_handle
