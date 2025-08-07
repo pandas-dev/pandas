@@ -421,7 +421,7 @@ def test_reindexing_with_float64_NA_log():
     tm.assert_numpy_array_equal(result, expected)
     with tm.assert_produces_warning(None):
         result_log = np.log(s_reindex)
-        expected_log = Series([0, np.nan, np.nan], dtype=Float64Dtype())
+        expected_log = Series([0, NA, NA], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
 
 

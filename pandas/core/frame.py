@@ -4213,6 +4213,89 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
+        """
+        Set item(s) in DataFrame by key.
+
+        This method allows you to set the values of one or more columns in the
+        DataFrame using a key. If the key does not exist, a new
+        column will be created.
+
+        Parameters
+        ----------
+        key : The object(s) in the index which are to be assigned to
+            Column label(s) to set. Can be a single column name, list of column names,
+            or tuple for MultiIndex columns.
+        value : scalar, array-like, Series, or DataFrame
+            Value(s) to set for the specified key(s).
+
+        Returns
+        -------
+        None
+            This method does not return a value.
+
+        See Also
+        --------
+        DataFrame.loc : Access and set values by label-based indexing.
+        DataFrame.iloc : Access and set values by position-based indexing.
+        DataFrame.assign : Assign new columns to a DataFrame.
+
+        Notes
+        -----
+        When assigning a Series to a DataFrame column, pandas aligns the Series
+        by index labels, not by position. This means:
+
+        * Values from the Series are matched to DataFrame rows by index label
+        * If a Series index label doesn't exist in the DataFrame index, it's ignored
+        * If a DataFrame index label doesn't exist in the Series index, NaN is assigned
+        * The order of values in the Series doesn't matter; only the index labels matter
+
+        Examples
+        --------
+        Basic column assignment:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]})
+        >>> df["B"] = [4, 5, 6]  # Assigns by position
+        >>> df
+            A  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        Series assignment with index alignment:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+        >>> s = pd.Series([10, 20], index=[1, 3])  # Note: index 3 doesn't exist in df
+        >>> df["B"] = s  # Assigns by index label, not position
+        >>> df
+            A   B
+        0  1 NaN
+        1  2  10
+        2  3 NaN
+
+        Series assignment with partial index match:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3, 4]}, index=["a", "b", "c", "d"])
+        >>> s = pd.Series([100, 200], index=["b", "d"])
+        >>> df["B"] = s
+        >>> df
+            A    B
+        a  1  NaN
+        b  2  100
+        c  3  NaN
+        d  4  200
+
+        Series index labels NOT in DataFrame, ignored:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=["x", "y", "z"])
+        >>> s = pd.Series([10, 20, 30, 40, 50], index=["x", "y", "a", "b", "z"])
+        >>> df["B"] = s
+        >>> df
+           A   B
+        x  1  10
+        y  2  20
+        z  3  50
+        # Values for 'a' and 'b' are completely ignored!
+        """
         if not PYPY:
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
