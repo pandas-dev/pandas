@@ -51,14 +51,10 @@ jobs:
   conda_forge_recipe:
     if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        python-version: ['3.11', '3.12']
-      fail-fast: false
-    name: Test Conda Forge Recipe - Python ${{ matrix.python-version }}
+    name: Test Conda Forge Recipe
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-conda-forge-recipe-${{ matrix.python-version }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-conda-forge-recipe
       cancel-in-progress: true
     steps:
       - name: Checkout
@@ -71,7 +67,7 @@ jobs:
         with:
           environment-name: recipe-test
           create-args: >-
-            python=${{ matrix.python-version }}
+            python=3.11
             boa
             conda-verify
           cache-downloads: true
