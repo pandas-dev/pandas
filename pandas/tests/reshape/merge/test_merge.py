@@ -2424,11 +2424,16 @@ def test_merge_suffix_raises(suffixes):
 
 TWO_GOT_THREE = "2, got 3" if PY314 else "2"
 
+
 @pytest.mark.parametrize(
     "col1, col2, suffixes, msg",
     [
-        ("a", "a", ("a", "b", "c"), (
-            fr"too many values to unpack \(expected {TWO_GOT_THREE}\)")),
+        (
+            "a",
+            "a",
+            ("a", "b", "c"),
+            (rf"too many values to unpack \(expected {TWO_GOT_THREE}\)"),
+        ),
         ("a", "a", tuple("a"), r"not enough values to unpack \(expected 2, got 1\)"),
     ],
 )

@@ -62,8 +62,10 @@ PARSING_ERR_MSG = (
 
 if PY314:
     NOT_99 = ", not 99"
-    DAY_IS_OUT_OF_RANGE = (r"day \d{1,2} must be in range 1\.\.\d{1,2} for "
-                           r"month \d{1,2} in year \d{4}")
+    DAY_IS_OUT_OF_RANGE = (
+        r"day \d{1,2} must be in range 1\.\.\d{1,2} for "
+        r"month \d{1,2} in year \d{4}"
+    )
 else:
     NOT_99 = ""
     DAY_IS_OUT_OF_RANGE = "day is out of range for month"
@@ -1383,7 +1385,7 @@ class TestToDatetime:
                 r'^Given date string "a" not likely a datetime$',
                 r'^unconverted data remains when parsing with format "%H:%M:%S": "9". '
                 f"{PARSING_ERR_MSG}$",
-                fr"^second must be in 0..59{NOT_99}: 00:01:99$",
+                rf"^second must be in 0..59{NOT_99}: 00:01:99$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1435,7 +1437,7 @@ class TestToDatetime:
                 f"{PARSING_ERR_MSG}$",
                 r'^unconverted data remains when parsing with format "%H:%M:%S": "9". '
                 f"{PARSING_ERR_MSG}$",
-                fr"^second must be in 0..59{NOT_99}: 00:01:99$",
+                rf"^second must be in 0..59{NOT_99}: 00:01:99$",
             ]
         )
         with pytest.raises(ValueError, match=msg):

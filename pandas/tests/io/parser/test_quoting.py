@@ -32,6 +32,7 @@ else:
     MSG1 = "a(n)? 1-character string"
     MSG2 = "string( or None)?"
 
+
 @pytest.mark.parametrize(
     "kwargs,msg",
     [

@@ -525,7 +525,7 @@ def test_codecs_encoding(encoding, format):
     with tm.ensure_clean() as path:
         with open(path, mode="w", encoding=encoding) as handle:
             getattr(expected, f"to_{format}")(handle)
-        with open(path, mode="r", encoding=encoding) as handle:
+        with open(path, encoding=encoding) as handle:
             if format == "csv":
                 df = pd.read_csv(handle, index_col=0)
             else:
