@@ -8,7 +8,10 @@ from io import StringIO
 
 import pytest
 
-from pandas.compat import PY311, PY314
+from pandas.compat import (
+    PY311,
+    PY314,
+)
 from pandas.errors import ParserError
 
 from pandas import DataFrame
@@ -24,7 +27,7 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 if PY314:
     # TODO: write a regex that works with all new possitibilities here
     MSG1 = ""
-    MSG2 = "[\s\S]*"
+    MSG2 = r"[\s\S]*"
 else:
     MSG1 = "a(n)? 1-character string"
     MSG2 = "string( or None)?"

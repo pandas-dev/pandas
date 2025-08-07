@@ -16,8 +16,8 @@ from dateutil.tz import (
 import numpy as np
 import pytest
 
-from pandas.compat import PY314
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import PY314
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
@@ -214,7 +214,7 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
             Timestamp(2000, 1)
 
         if PY314:
-            msg = 'month must be in 1..12, not'
+            msg = "month must be in 1..12, not"
         else:
             msg = "day is out of range for month"
         with pytest.raises(ValueError, match=msg):

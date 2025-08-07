@@ -1,4 +1,3 @@
-import codecs
 from datetime import datetime
 from textwrap import dedent
 

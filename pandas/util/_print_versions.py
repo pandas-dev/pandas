@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import codecs
 import json
 import locale
 import os

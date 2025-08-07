@@ -21,7 +21,10 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
-from pandas.compat import WASM, PY314
+from pandas.compat import (
+    PY314,
+    WASM,
+)
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -59,7 +62,8 @@ PARSING_ERR_MSG = (
 
 if PY314:
     NOT_99 = ", not 99"
-    DAY_IS_OUT_OF_RANGE = "day \d{1,2} must be in range 1\.\.\d{1,2} for month \d{1,2} in year \d{4}"
+    DAY_IS_OUT_OF_RANGE = (r"day \d{1,2} must be in range 1\.\.\d{1,2} for "
+                           r"month \d{1,2} in year \d{4}")
 else:
     NOT_99 = ""
     DAY_IS_OUT_OF_RANGE = "day is out of range for month"
