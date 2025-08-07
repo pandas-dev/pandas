@@ -4297,7 +4297,7 @@ class DataFrame(NDFrame, OpsMixin):
         # Values for 'a' and 'b' are completely ignored!
         """
         if not PYPY and sys.version_info < (3, 14):
-            if sys.getrefcount(self) <= 3:
+            if sys.getrefcount(self) <= REF_COUNT + 1:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
