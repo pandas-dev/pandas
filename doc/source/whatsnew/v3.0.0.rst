@@ -943,6 +943,7 @@ Other
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` throwing ``ValueError`` when ``regex=True`` and all NA values. (:issue:`60688`)
 - Bug in :meth:`Series.to_string` when series contains complex floats with exponents (:issue:`60405`)
+- Bug in :meth:`pandas.testing.assert_series_equal` incorrectly failing when comparing :class:`Categorical` series with null values and different category orders when ``check_category_order=False`` (:issue:`62008`)
 - Bug in :meth:`read_csv` where chained fsspec TAR file and ``compression="infer"`` fails with ``tarfile.ReadError`` (:issue:`60028`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
