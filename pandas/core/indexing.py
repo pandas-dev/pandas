@@ -15,7 +15,7 @@ import numpy as np
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
+from pandas.compat._constants import REF_COUNT, WARNING_CHECK_BROKEN
 from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
@@ -914,7 +914,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY and sys.version_info < (3, 14):
+        if not PYPY and not WARNING_CHECK_BROKEN:
             if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2

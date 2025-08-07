@@ -19,13 +19,9 @@ PY314 = sys.version_info >= (3, 14)
 PYPY = platform.python_implementation() == "PyPy"
 WASM = (sys.platform == "emscripten") or (platform.machine() in ["wasm32", "wasm64"])
 ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
-if PY311:
-    REF_COUNT = 2
-elif PY314:
-    REF_COUNT = 1
-else:
-    # Python 3.10 and older
-    REF_COUNT = 3
+REF_COUNT = 2 if PY311 else 3
+# hopefully there is a workaround in Python 3.14.1
+WARNING_CHECK_BROKEN = PY314
 
 __all__ = [
     "IS64",
