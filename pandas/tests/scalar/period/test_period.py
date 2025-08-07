@@ -8,6 +8,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import PY314
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
@@ -344,7 +345,10 @@ class TestPeriodConstruction:
         msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "Y")
-        msg = "day is out of range for month"
+        if PY314:
+            msg = 'day 0 must be in range 1..31 for month 1 in year 1: 0'
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(DateParseError, match=msg):
             Period("0", "Y")
         msg = "Unknown datetime string format, unable to parse"
