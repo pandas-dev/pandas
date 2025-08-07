@@ -15,6 +15,7 @@ PyQt5>=5.15.9
 coverage
 python-dateutil
 numpy<3
+adbc-driver-postgresql>=1.0.0
 beautifulsoup4>=4.12.3
 bottleneck>=1.3.6
 fastparquet>=2024.2.0
@@ -83,7 +84,6 @@ requests
 pygments
 jupyterlite-core
 jupyterlite-pyodide-kernel
-adbc-driver-postgresql>=0.10.0
 adbc-driver-sqlite>=0.8.0
 typing_extensions; python_version<"3.11"
 tzdata>=2023.3
