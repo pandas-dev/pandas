@@ -23,7 +23,8 @@ dependencies:
   - numpy
 
   # optional dependencies
-  - adbc-driver-postgresql>=1.0.0
+  - adbc-driver-postgresql>=1.2.0
+  - adbc-driver-sqlite>=1.2.0
   - beautifulsoup4>=4.12.3
   - blosc>=1.21.3
   - bottleneck>=1.3.6
@@ -59,5 +60,4 @@ dependencies:
   - zstandard>=0.22.0
 
   - pip:
-    - adbc-driver-sqlite>=0.8.0
     - tzdata>=2023.3

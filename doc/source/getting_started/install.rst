@@ -292,8 +292,8 @@ Dependency                                                         Minimum Versi
                                                                                       sql-other
 `psycopg2 <https://github.com/psycopg/psycopg2>`__                 2.9.6              postgresql      PostgreSQL engine for sqlalchemy
 `pymysql <https://github.com/PyMySQL/PyMySQL>`__                   1.1.0              mysql           MySQL engine for sqlalchemy
-`adbc-driver-postgresql <https://github.com/apache/arrow-adbc>`__  1.0.0              postgresql      ADBC Driver for PostgreSQL
-`adbc-driver-sqlite <https://github.com/apache/arrow-adbc>`__      0.8.0              sql-other       ADBC Driver for SQLite
+`adbc-driver-postgresql <https://github.com/apache/arrow-adbc>`__  1.2.0              postgresql      ADBC Driver for PostgreSQL
+`adbc-driver-sqlite <https://github.com/apache/arrow-adbc>`__      1.2.0              sql-other       ADBC Driver for SQLite
 ================================================================== ================== =============== ============================================
 
 Other data sources
