@@ -45,7 +45,6 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
-        additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
     rev: v0.16.7
     hooks:
@@ -235,7 +234,7 @@ repos:
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
-        additional_dependencies: [tomli, pyyaml]
+        additional_dependencies: [pyyaml]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
@@ -290,7 +289,7 @@ repos:
         entry: python -m scripts.validate_min_versions_in_sync
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
-        additional_dependencies: [tomli, pyyaml]
+        additional_dependencies: [pyyaml]
         pass_filenames: false
     -   id: validate-errors-locations
         name: Validate errors locations
