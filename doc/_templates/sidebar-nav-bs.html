@@ -5,47 +5,31 @@
     {% else %}
     {{ generate_toctree_html("sidebar", maxdepth=4, collapse=False, includehidden=True, titles_only=True) }}
     {% endif %}
-
-    <!-- {% if pagename.startswith("reference") %}
-      {% set toc = generate_toctree_html(
-        "sidebar",
-        maxdepth=4,
-        collapse=True,
-        includehidden=True,
-        titles_only=True
-      ) %}
-      {% set toc_items = toc.split('<li>') %}
-      {% set sorted_items = ['<li>' + item for item in toc_items[1:]|sort(case_sensitive=False)] %}
-      {{ sorted_items|join('')|safe }}
-    {% else %}
-      {{ generate_toctree_html("sidebar", maxdepth=4, collapse=False, includehidden=True, titles_only=True) }}
-    {% endif %} -->
-
-    <!-- {% if pagename.startswith("reference") %}
-      {% set toc = generate_toctree_html(
-        "sidebar",
-        maxdepth=4,
-        collapse=True,
-        includehidden=True,
-        titles_only=True
-      ) %}
-      {% set toc_items = toc.split('<li>') %}
-      {% set sorted_items = ['<li>' + item for item in toc_items[1:]|sort(case_sensitive=False)] %}
-      <div class="bd-toc-item navbar-nav">
-        {{ sorted_items|join('')|safe }}
-      </div>
-    {% else %}
-      {{ generate_toctree_html("sidebar", maxdepth=4, collapse=False, includehidden=True, titles_only=True) }}
-    {% endif %} -->
-
-    <!-- {% if pagename.startswith("reference") %}
-      {% set toc = generate_toctree_html("sidebar", maxdepth=4, collapse=True, includehidden=True, titles_only=True) %}
-      {% set items = toc.split('</li>') %}
-      {% for item in items|sort(case_sensitive=False) %}
-        {{ item }}</li>
-      {% endfor %}
-    {% else %}
-      {{ generate_toctree_html("sidebar", maxdepth=4, collapse=False, includehidden=True, titles_only=True) }}
-    {% endif %} -->
   </div>
 </nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Only sort on reference pages
+  if (window.location.pathname.includes('/reference/')) {
+    const navContainer = document.querySelector('#bd-docs-nav .bd-toc-item');
+    if (navContainer) {
+      const lists = navContainer.querySelectorAll('ul');
+      
+      lists.forEach(list => {
+        const items = Array.from(list.children);
+        
+        // Sort items alphabetically
+        items.sort((a, b) => {
+          const textA = a.textContent.trim().toLowerCase();
+          const textB = b.textContent.trim().toLowerCase();
+          return textA.localeCompare(textB);
+        });
+        
+        // Reattach sorted items
+        items.forEach(item => list.appendChild(item));
+      });
+    }
+  }
+});
+</script>
