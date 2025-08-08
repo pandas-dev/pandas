@@ -1170,8 +1170,12 @@ class HDFStore:
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
-        min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
+        min_itemsize : int, dict, or None, default None
+            Refers to the minimum size for string columns in bytes.
+            When the format = 'table'.
+            Since this specifies the byte length after encoding,
+            multi-byte characters need to be calculated using 
+            their encoded byte length rather than character count. 
         nan_rep : str
             Str to use as str nan representation.
         data_columns : list of columns or True, default None
@@ -1203,6 +1207,9 @@ class HDFStore:
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
         >>> store.put("data", df)  # doctest: +SKIP
+
+        >>> The word 'hello' = 5 bytes
+        >>> Japanese character "勉" = 2 bytes
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1330,8 +1337,12 @@ class HDFStore:
             A value of 0 or None disables compression.
         columns : default None
             This parameter is currently not accepted, try data_columns.
-        min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
+        min_itemsize : int, dict, or None, default None
+            Refers to the minimum size for string columns in bytes.
+            When the format = 'table'.
+            Since this specifies the byte length after encoding,
+            multi-byte characters need to be calculated using 
+            their encoded byte length rather than character count.
         nan_rep : str
             Str to use as str nan representation.
         chunksize : int or None
@@ -1377,6 +1388,9 @@ class HDFStore:
         1  3  4
         0  5  6
         1  7  8
+
+        >>> The word 'hello' = 5 bytes
+        >>> Japanese character "勉" = 2 bytes
         """
         if columns is not None:
             raise TypeError(
