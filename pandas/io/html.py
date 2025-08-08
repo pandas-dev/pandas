@@ -4,7 +4,6 @@
 Provides utilities for reading and parsing HTML tables into pandas DataFrames.
 """
 
-
 from __future__ import annotations
 
 from collections import abc
