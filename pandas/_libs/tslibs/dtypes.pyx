@@ -2,11 +2,21 @@
 # originals
 from enum import Enum
 
+import numpy as np
+
+from cpython.object cimport (
+    Py_GE,
+    Py_LE,
+)
+
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    cmp_dtstructs,
     get_conversion_factor,
     import_pandas_datetime,
+    npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
 )
 
 import_pandas_datetime()
@@ -499,6 +509,36 @@ cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
         return NPY_DATETIMEUNIT.NPY_FR_ns
     if reso < NPY_DATETIMEUNIT.NPY_FR_s:
         return NPY_DATETIMEUNIT.NPY_FR_s
+    elif reso > NPY_DATETIMEUNIT.NPY_FR_ns:
+        return NPY_DATETIMEUNIT.NPY_FR_ns
+    return reso
+
+
+cdef npy_datetimestruct dts_us_min, dts_us_max
+pandas_datetime_to_datetimestruct(
+    np.iinfo(np.int64).min + 1, NPY_DATETIMEUNIT.NPY_FR_us, &dts_us_min
+)
+pandas_datetime_to_datetimestruct(
+    np.iinfo(np.int64).max, NPY_DATETIMEUNIT.NPY_FR_us, &dts_us_max
+)
+
+
+cdef NPY_DATETIMEUNIT get_supported_reso_for_dts(
+    NPY_DATETIMEUNIT reso, npy_datetimestruct* dts
+):
+    # Similar as above, but taking the actual datetime value in account,
+    # defaulting to 'us' if possible.
+    if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        return NPY_DATETIMEUNIT.NPY_FR_ns
+    if reso < NPY_DATETIMEUNIT.NPY_FR_us:
+        if (
+            cmp_dtstructs(dts, &dts_us_min, Py_GE)
+            and cmp_dtstructs(dts, &dts_us_max, Py_LE)
+        ):
+            return NPY_DATETIMEUNIT.NPY_FR_us
+        else:
+            # TODO still distinguish between ms or s?
+            return NPY_DATETIMEUNIT.NPY_FR_s
     elif reso > NPY_DATETIMEUNIT.NPY_FR_ns:
         return NPY_DATETIMEUNIT.NPY_FR_ns
     return reso

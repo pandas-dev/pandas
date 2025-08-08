@@ -53,6 +53,7 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
+    get_supported_reso_for_dts,
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
 )
@@ -421,7 +422,7 @@ def array_strptime(
                 continue
             elif PyDate_Check(val):
                 state.found_other = True
-                item_reso = NPY_DATETIMEUNIT.NPY_FR_s
+                item_reso = NPY_DATETIMEUNIT.NPY_FR_us
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
@@ -460,7 +461,7 @@ def array_strptime(
             if string_to_dts_succeeded:
                 # No error reported by string_to_dts, pick back up
                 # where we left off
-                item_reso = get_supported_reso(out_bestunit)
+                item_reso = get_supported_reso_for_dts(out_bestunit, &dts)
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
@@ -622,7 +623,7 @@ cdef tzinfo _parse_with_format(
                 f"time data \"{val}\" doesn't match format \"{fmt}\""
             )
 
-    item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_s
+    item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_us
 
     iso_year = -1
     year = 1900
@@ -710,11 +711,7 @@ cdef tzinfo _parse_with_format(
         elif parse_code == 10:
             # e.g. val='10:10:10.100'; fmt='%H:%M:%S.%f'
             s = found_dict["f"]
-            if len(s) <= 3:
-                item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ms
-            elif len(s) <= 6:
-                item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_us
-            else:
+            if len(s) > 6:
                 item_reso[0] = NPY_FR_ns
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
