@@ -268,8 +268,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.YearEnd.month GL08" \
         -i "pandas.tseries.offsets.YearEnd.n GL08" \
-        -i "pandas.tseries.offsets.YearEnd.normalize GL08" \
-        -i "pandas.util.hash_pandas_object PR07,SA01" # There should be no backslash in the final line, please keep this comment in the last ignored function
+        -i "pandas.tseries.offsets.YearEnd.normalize GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

@@ -94,6 +94,8 @@ def hash_pandas_object(
     Parameters
     ----------
     obj : Index, Series, or DataFrame
+        The pandas object to hash. This can be a single-dimensional Index or Series,
+        or a multi-dimensional DataFrame.
     index : bool, default True
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
@@ -108,6 +110,11 @@ def hash_pandas_object(
     -------
     Series of uint64
         Same length as the object.
+
+    See Also
+    --------
+    util.hash_array : Hash the elements of a 1D NumPy or ExtensionArray.
+    util.combine_hash_arrays : Combine multiple hash arrays into a single hash.
 
     Examples
     --------
