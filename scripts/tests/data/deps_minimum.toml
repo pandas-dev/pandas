@@ -65,7 +65,7 @@ parquet = ['pyarrow>=7.0.0']
 feather = ['pyarrow>=7.0.0']
 hdf5 = ['tables>=3.6.1']
 spss = ['pyreadstat>=1.1.2']
-postgresql = ['SQLAlchemy>=1.4.16', 'psycopg2>=2.8.6']
+postgresql = ['SQLAlchemy>=1.4.16', 'psycopg2>=2.9.9']
 mysql = ['SQLAlchemy>=1.4.16', 'pymysql>=1.1.0']
 sql-other = ['SQLAlchemy>=1.4.16']
 html = ['beautifulsoup4>=4.9.3', 'html5lib>=1.1', 'lxml>=4.6.3']
@@ -88,7 +88,7 @@ all = ['beautifulsoup4>=5.9.3',
        'numexpr>=2.7.3',
        'odfpy>=1.4.1',
        'openpyxl>=3.0.7',
-       'psycopg2>=2.8.6',
+       'psycopg2>=2.9.9',
        'pyarrow>=7.0.0',
        'pymysql>=1.1.0',
        'PyQt5>=5.15.1',

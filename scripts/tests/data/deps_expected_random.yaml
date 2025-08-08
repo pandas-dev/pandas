@@ -36,7 +36,7 @@ dependencies:
   - numexpr>=2.7.3
   - openpyxl>=3.0.7
   - odfpy>=1.4.1
-  - psycopg2>=2.8.6
+  - psycopg2>=2.9.9
   - pyarrow<11, >=7.0.0
   - pymysql>=1.1.0
   - pyreadstat>=1.1.2
