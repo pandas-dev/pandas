@@ -1022,7 +1022,7 @@ cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
     if PY_VERSION_HEX >= 0x030E0000:
         return PyUnstable_Object_IsUniqueReferencedTemporary(obj)
     else:
-        return sys.getrefcount(obj) == 2
+        return sys.getrefcount(obj) <= 1
 
 
 # # Python version compatibility for PyUnstable_Object_IsUniqueReferencedTemporary
@@ -1038,6 +1038,7 @@ cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
 #         return sys.getrefcount(obj) == 2
 
 
+# @cython.auto_pickle(False)
 cdef class SetitemMixin:
 
     def __setitem__(self, key, value):
@@ -1052,3 +1053,6 @@ cdef class SetitemMixin:
                 stacklevel=1,
                 )
         self._setitem(key, value)
+
+    def __delitem__(self, key) -> None:
+        self._delitem(key)

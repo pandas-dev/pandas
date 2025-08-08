@@ -27,7 +27,6 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
-from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
@@ -223,7 +222,7 @@ _shared_doc_kwargs = {
 }
 
 
-class NDFrame(PandasObject, indexing.IndexingMixin, SetitemMixin):
+class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -252,11 +251,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin, SetitemMixin):
 
     # ----------------------------------------------------------------------
     # Constructors
-
-    # override those to avoid inheriting from SetitemMixin (cython generates
-    # them by default)
-    __new__ = object.__new__
-    __reduce__ = object.__reduce__
 
     def __init__(self, data: Manager) -> None:
         object.__setattr__(self, "_mgr", data)
@@ -4263,8 +4257,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin, SetitemMixin):
         result = result.__finalize__(self)
         return result
 
+    # __delitem__ is implemented in SetitemMixin and dispatches to this method
     @final
-    def __delitem__(self, key) -> None:
+    def _delitem(self, key) -> None:
         """
         Delete item
         """
