@@ -47,7 +47,6 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
@@ -511,7 +510,7 @@ ValueError: columns overlap but no suffix specified:
 
 
 @set_module("pandas")
-class DataFrame(NDFrame, OpsMixin, SetitemMixin):
+class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 

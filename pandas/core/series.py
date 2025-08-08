@@ -32,7 +32,6 @@ from pandas._libs import (
     properties,
     reshape,
 )
-from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
@@ -234,7 +233,7 @@ axis : int or str, optional
 # class "NDFrame")
 # definition in base class "NDFrame"
 @set_module("pandas")
-class Series(base.IndexOpsMixin, NDFrame, SetitemMixin):  # type: ignore[misc]
+class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 

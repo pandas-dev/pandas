@@ -27,6 +27,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
+from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
@@ -222,7 +223,7 @@ _shared_doc_kwargs = {
 }
 
 
-class NDFrame(PandasObject, indexing.IndexingMixin):
+class NDFrame(PandasObject, indexing.IndexingMixin, SetitemMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -251,6 +252,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     # ----------------------------------------------------------------------
     # Constructors
+
+    # override those to avoid inheriting from SetitemMixin (cython generates
+    # them by default)
+    __new__ = object.__new__
+    __reduce__ = object.__reduce__
 
     def __init__(self, data: Manager) -> None:
         object.__setattr__(self, "_mgr", data)
@@ -305,7 +311,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The axes must match mgr.axes, but are required for future-proofing
         in the event that axes are refactored out of the Manager objects.
         """
-        obj = object.__new__(cls)
+        obj = cls.__new__(cls)
         NDFrame.__init__(obj, mgr)
         return obj
 
