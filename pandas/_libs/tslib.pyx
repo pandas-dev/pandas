@@ -267,6 +267,7 @@ cpdef array_to_datetime(
     str unit_for_numerics=None,
 ):
     """
+    TODO no longer up to date
     Converts a 1D array of date-like values to a numpy array of either:
         1) datetime64[ns] data
         2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError
