@@ -10,24 +10,24 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Only sort on reference pages
   if (window.location.pathname.includes('/reference/')) {
     const navContainer = document.querySelector('#bd-docs-nav .bd-toc-item');
     if (navContainer) {
-      const lists = navContainer.querySelectorAll('ul');
+      const topLevelItems = Array.from(navContainer.children);
       
-      lists.forEach(list => {
-        const items = Array.from(list.children);
-        
-        // Sort items alphabetically
-        items.sort((a, b) => {
-          const textA = a.textContent.trim().toLowerCase();
-          const textB = b.textContent.trim().toLowerCase();
-          return textA.localeCompare(textB);
+      topLevelItems.forEach(section => {
+        const subLists = section.querySelectorAll('ul');
+        subLists.forEach(list => {
+          const items = Array.from(list.children);
+          
+          items.sort((a, b) => {
+            const textA = a.textContent.trim().toLowerCase();
+            const textB = b.textContent.trim().toLowerCase();
+            return textA.localeCompare(textB);
+          });
+          
+          items.forEach(item => list.appendChild(item));
         });
-        
-        // Reattach sorted items
-        items.forEach(item => list.appendChild(item));
       });
     }
   }
