@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas import Categorical
@@ -86,3 +87,15 @@ Attribute "ordered" are different
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_categorical_equal(c1, c2, obj=obj)
+
+
+def test_categorical_equal_with_nans_and_different_order():
+    # GH#62008
+    values = ["B", np.nan, "D"]
+    categories_left = ["B", "D"]
+    categories_right = categories_left[::-1]
+
+    left = Categorical(values, categories=categories_left)
+    right = Categorical(values, categories=categories_right)
+
+    tm.assert_categorical_equal(left, right, check_category_order=False)
