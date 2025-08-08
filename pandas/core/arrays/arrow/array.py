@@ -2953,7 +2953,7 @@ class ArrowExtensionArray(
         if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")
         if tz is None:
-            result = self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit))
+            result = pc.local_timestamp(self._pa_array)
         else:
             result = pc.assume_timezone(
                 self._pa_array, str(tz), ambiguous=ambiguous, nonexistent=nonexistent_pa

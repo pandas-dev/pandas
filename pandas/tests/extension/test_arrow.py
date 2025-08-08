@@ -2686,7 +2686,6 @@ def test_dt_tz_localize_unsupported_tz_options():
         ser.dt.tz_localize("UTC", nonexistent="NaT")
 
 
-@pytest.mark.xfail(reason="Converts to UTC before localizing GH#61780")
 def test_dt_tz_localize_none():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
