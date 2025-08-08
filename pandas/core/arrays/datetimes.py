@@ -7,6 +7,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -84,7 +85,6 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         IntervalClosedType,
-        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,

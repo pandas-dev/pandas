@@ -4,8 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
-    PY311,
-    is_ci_environment,
     is_platform_linux,
     is_platform_little_endian,
     is_platform_mac,
@@ -279,18 +277,10 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 @pytest.mark.parametrize("lvl", range(10))
 @pytest.mark.parametrize("lib", tables.filters.all_complibs)
 @pytest.mark.filterwarnings("ignore:object name is not a valid")
-@pytest.mark.skipif(
-    not PY311 and is_ci_environment() and is_platform_linux(),
-    reason="Segfaulting in a CI environment",
-    # with xfail, would sometimes raise UnicodeDecodeError
-    # invalid state byte
-)
 def test_complibs(tmp_path, lvl, lib, request):
     # GH14478
-    if PY311 and is_platform_linux() and lib == "blosc2" and lvl != 0:
-        request.applymarker(
-            pytest.mark.xfail(reason=f"Fails for {lib} on Linux and PY > 3.11")
-        )
+    if is_platform_linux() and lib == "blosc2" and lvl != 0:
+        request.applymarker(pytest.mark.xfail(reason=f"Fails for {lib} on Linux"))
     df = DataFrame(
         np.ones((30, 4)), columns=list("ABCD"), index=np.arange(30).astype(np.str_)
     )

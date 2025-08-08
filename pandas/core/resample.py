@@ -4,7 +4,9 @@ import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
     Literal,
+    Self,
     cast,
     final,
     no_type_check,
@@ -96,13 +98,11 @@ if TYPE_CHECKING:
         Any,
         AnyArrayLike,
         Axis,
-        Concatenate,
         FreqIndexT,
         Frequency,
         IndexLabel,
         InterpolateOptions,
         P,
-        Self,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,

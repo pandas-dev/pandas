@@ -4,6 +4,7 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
 )
 
 import numpy as np
@@ -36,7 +37,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         DtypeObj,
-        Self,
         npt,
     )
 

@@ -7,6 +7,7 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -105,7 +106,6 @@ if TYPE_CHECKING:
         DtypeObj,
         NpDtype,
         Ordered,
-        Self,
         Shape,
         SortKind,
         npt,

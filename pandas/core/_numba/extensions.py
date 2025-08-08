@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import operator
-from typing import TYPE_CHECKING
+from typing import Self
 
 import numba
 from numba import types
@@ -40,9 +40,6 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexing import _iLocIndexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.series import Series
-
-if TYPE_CHECKING:
-    from pandas._typing import Self
 
 
 # Helper function to hack around fact that Index casts numpy string dtype to object

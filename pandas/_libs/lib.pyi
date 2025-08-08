@@ -11,6 +11,7 @@ from typing import (
     Final,
     Literal,
     TypeAlias,
+    TypeGuard,
     overload,
 )
 
@@ -19,7 +20,6 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    TypeGuard,
     npt,
 )
 

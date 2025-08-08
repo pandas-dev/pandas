@@ -16,12 +16,13 @@ from datetime import (
     tzinfo,
 )
 from os import PathLike
-import sys
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    ParamSpec,
     Protocol,
+    SupportsIndex,
     TypeAlias,
     TypeVar,
     Union,
@@ -85,28 +86,8 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter: TypeAlias = npt._ArrayLikeInt_co | None  # type: ignore[name-defined]
 
-    from typing import (
-        ParamSpec,
-        SupportsIndex,
-    )
-    from typing import Concatenate  # pyright: ignore[reportUnusedImport]
-    from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
 
-    P = ParamSpec("P")
-
-    if sys.version_info >= (3, 11):
-        from typing import Self  # pyright: ignore[reportUnusedImport]
-        from typing import Unpack  # pyright: ignore[reportUnusedImport]
-    else:
-        from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
-        from typing_extensions import Unpack  # pyright: ignore[reportUnusedImport]
-
-else:
-    ParamSpec: Any = None
-    Self: Any = None
-    TypeGuard: Any = None
-    Concatenate: Any = None
-    Unpack: Any = None
+P = ParamSpec("P")
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 HashableT2 = TypeVar("HashableT2", bound=Hashable)

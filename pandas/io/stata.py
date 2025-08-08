@@ -26,6 +26,7 @@ from typing import (
     TYPE_CHECKING,
     AnyStr,
     Final,
+    Self,
     cast,
 )
 import warnings
@@ -84,7 +85,6 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         ReadBuffer,
-        Self,
         StorageOptions,
         WriteBuffer,
     )

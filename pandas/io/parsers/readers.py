@@ -19,7 +19,9 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     TypedDict,
+    Unpack,
     overload,
 )
 import warnings
@@ -89,9 +91,7 @@ if TYPE_CHECKING:
         HashableT,
         IndexLabel,
         ReadCsvBuffer,
-        Self,
         StorageOptions,
-        Unpack,
         UsecolsArgType,
     )
 

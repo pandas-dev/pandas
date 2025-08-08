@@ -11,6 +11,7 @@ from typing import (
     Any,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
 )
@@ -99,7 +100,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeObj,
         QuantileInterpolation,
-        Self,
         Shape,
         npt,
     )

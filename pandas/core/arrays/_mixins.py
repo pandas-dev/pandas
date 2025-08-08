@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -23,7 +24,6 @@ from pandas._typing import (
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
-    Self,
     SequenceIndexer,
     Shape,
     TakeIndexer,

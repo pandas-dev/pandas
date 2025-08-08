@@ -4,6 +4,7 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
+    Self,
 )
 import warnings
 
@@ -54,7 +55,6 @@ if TYPE_CHECKING:
         ArrayLike,
         Dtype,
         NpDtype,
-        Self,
         npt,
     )
 

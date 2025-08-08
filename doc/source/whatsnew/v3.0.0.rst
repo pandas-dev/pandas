@@ -305,7 +305,7 @@ This change also applies to :meth:`.DataFrameGroupBy.value_counts`. Here, there 
 Increased minimum version for Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-pandas 3.0.0 supports Python 3.10 and higher.
+pandas 3.0.0 supports Python 3.11 and higher.
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

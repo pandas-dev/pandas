@@ -16,15 +16,10 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import tomllib
+from typing import Any
 
 import yaml
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
-from typing import Any
 
 from scripts.generate_pip_deps_from_conda import CONDA_TO_PIP
 
