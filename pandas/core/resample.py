@@ -4,6 +4,7 @@ import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
     Literal,
     Self,
     cast,
@@ -97,7 +98,6 @@ if TYPE_CHECKING:
         Any,
         AnyArrayLike,
         Axis,
-        Concatenate,
         FreqIndexT,
         Frequency,
         IndexLabel,

@@ -20,7 +20,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    ParamSpec,
     Protocol,
+    SupportsIndex,
     TypeAlias,
     TypeVar,
     Union,
@@ -84,18 +86,8 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter: TypeAlias = npt._ArrayLikeInt_co | None  # type: ignore[name-defined]
 
-    from typing import (
-        ParamSpec,
-        SupportsIndex,
-    )
-    from typing import Concatenate  # pyright: ignore[reportUnusedImport]
-    from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
 
-    P = ParamSpec("P")
-else:
-    ParamSpec: Any = None
-    TypeGuard: Any = None
-    Concatenate: Any = None
+P = ParamSpec("P")
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 HashableT2 = TypeVar("HashableT2", bound=Hashable)
