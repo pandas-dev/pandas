@@ -15,6 +15,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     cast,
 )
 import warnings
@@ -84,7 +85,6 @@ if TYPE_CHECKING:
         IntervalClosedType,
         Ordered,
         Scalar,
-        Self,
         npt,
         type_t,
     )

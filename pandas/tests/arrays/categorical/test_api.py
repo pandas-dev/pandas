@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -47,11 +45,7 @@ class TestCategoricalAPI:
         assert not cat2.set_ordered(False).ordered
 
         # removed in 0.19.0
-        msg = (
-            "property 'ordered' of 'Categorical' object has no setter"
-            if PY311
-            else "can't set attribute"
-        )
+        msg = "property 'ordered' of 'Categorical' object has no setter"
         with pytest.raises(AttributeError, match=msg):
             cat.ordered = True
         with pytest.raises(AttributeError, match=msg):
@@ -435,11 +429,7 @@ class TestPrivateCategoricalAPI:
         tm.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
-        msg = (
-            "property 'codes' of 'Categorical' object has no setter"
-            if PY311
-            else "can't set attribute"
-        )
+        msg = "property 'codes' of 'Categorical' object has no setter"
         with pytest.raises(AttributeError, match=msg):
             c.codes = np.array([0, 1, 2, 0, 1], dtype="int8")
 
