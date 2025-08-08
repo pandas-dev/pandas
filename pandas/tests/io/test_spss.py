@@ -11,10 +11,6 @@ from pandas.util.version import Version
 pyreadstat = pytest.importorskip("pyreadstat")
 
 
-# TODO(CoW) - detection of chained assignment in cython
-# https://github.com/pandas-dev/pandas/issues/51315
-@pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
-@pytest.mark.filterwarnings("ignore:ChainedAssignmentError:FutureWarning")
 @pytest.mark.parametrize("path_klass", [lambda p: p, Path])
 def test_spss_labelled_num(path_klass, datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
@@ -31,8 +27,6 @@ def test_spss_labelled_num(path_klass, datapath):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
-@pytest.mark.filterwarnings("ignore:ChainedAssignmentError:FutureWarning")
 def test_spss_labelled_num_na(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
@@ -48,8 +42,6 @@ def test_spss_labelled_num_na(datapath):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
-@pytest.mark.filterwarnings("ignore:ChainedAssignmentError:FutureWarning")
 def test_spss_labelled_str(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
@@ -65,8 +57,6 @@ def test_spss_labelled_str(datapath):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
-@pytest.mark.filterwarnings("ignore:ChainedAssignmentError:FutureWarning")
 def test_spss_kwargs(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
@@ -81,8 +71,6 @@ def test_spss_kwargs(datapath):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
-@pytest.mark.filterwarnings("ignore:ChainedAssignmentError:FutureWarning")
 def test_spss_umlauts(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
@@ -140,8 +128,6 @@ def test_invalid_dtype_backend():
         pd.read_spss("test", dtype_backend="numpy")
 
 
-@pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
-@pytest.mark.filterwarnings("ignore:ChainedAssignmentError:FutureWarning")
 def test_spss_metadata(datapath):
     # GH 54264
     fname = datapath("io", "data", "spss", "labelled-num.sav")
