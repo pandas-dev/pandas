@@ -47,6 +47,7 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
+from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
@@ -58,7 +59,6 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
-    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -511,7 +511,7 @@ ValueError: columns overlap but no suffix specified:
 
 
 @set_module("pandas")
-class DataFrame(NDFrame, OpsMixin):
+class DataFrame(NDFrame, OpsMixin, SetitemMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -4212,7 +4212,7 @@ class DataFrame(NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    def __setitem__(self, key, value) -> None:
+    def _setitem(self, key, value) -> None:
         """
         Set item(s) in DataFrame by key.
 
@@ -4296,11 +4296,11 @@ class DataFrame(NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
-        if not PYPY:
-            if sys.getrefcount(self) <= 3:
-                warnings.warn(
-                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
-                )
+        # if not PYPY:
+        #     if sys.getrefcount(self) <= 3:
+        #         warnings.warn(
+        #             _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+        #         )
 
         key = com.apply_if_callable(key, self)
 

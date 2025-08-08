@@ -32,6 +32,7 @@ from pandas._libs import (
     properties,
     reshape,
 )
+from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
@@ -43,7 +44,6 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
-    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -234,7 +234,7 @@ axis : int or str, optional
 # class "NDFrame")
 # definition in base class "NDFrame"
 @set_module("pandas")
-class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
+class Series(base.IndexOpsMixin, NDFrame, SetitemMixin):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -1058,12 +1058,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             return self.iloc[loc]
 
-    def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self) <= 3:
-                warnings.warn(
-                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
-                )
+    def _setitem(self, key, value) -> None:
+        # if not PYPY:
+        #     if sys.getrefcount(self) <= 3:
+        #         warnings.warn(
+        #             _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+        #         )
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)

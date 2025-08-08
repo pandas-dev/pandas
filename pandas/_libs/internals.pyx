@@ -1,6 +1,9 @@
 from collections import defaultdict
+import sys
+import warnings
 
 cimport cython
+from cpython cimport PY_VERSION_HEX
 from cpython.object cimport PyObject
 from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
@@ -20,6 +23,7 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
+from pandas.errors import ChainedAssignmentError
 
 from pandas._libs.util cimport (
     is_array,
@@ -996,3 +1000,55 @@ cdef class BlockValuesRefs:
                 return self._has_reference_maybe_locked()
         ELSE:
             return self._has_reference_maybe_locked()
+
+
+cdef extern from "Python.h":
+    """
+    #if PY_VERSION_HEX < 0x030E0000
+    int __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary(PyObject *ref)
+    {
+        return 0;
+    }
+    #else
+    #define __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary \
+        PyUnstable_Object_IsUniqueReferencedTemporary
+    #endif
+    """
+    int PyUnstable_Object_IsUniqueReferencedTemporary\
+        "__Pyx_PyUnstable_Object_IsUniqueReferencedTemporary"(object o) except -1
+
+
+cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
+    if PY_VERSION_HEX >= 0x030E0000:
+        return PyUnstable_Object_IsUniqueReferencedTemporary(obj)
+    else:
+        return sys.getrefcount(obj) == 2
+
+
+# # Python version compatibility for PyUnstable_Object_IsUniqueReferencedTemporary
+# IF PY_VERSION_HEX >= 0x030E0000:
+#     # Python 3.14+ has PyUnstable_Object_IsUniqueReferencedTemporary
+#     cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
+#         return PyUnstable_Object_IsUniqueReferencedTemporary(obj)
+# ELSE:
+#     # Fallback for older Python versions using sys.getrefcount
+#     cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
+#         # sys.getrefcount includes the reference from getrefcount itself
+#         # So if refcount is 2, it means only one external reference exists
+#         return sys.getrefcount(obj) == 2
+
+
+cdef class SetitemMixin:
+
+    def __setitem__(self, key, value):
+        cdef bint is_unique = _is_unique_referenced_temporary(self)
+        # print("Refcount self: ", sys.getrefcount(self))
+        # print("Is unique referenced temporary: ", is_unique)
+        if is_unique:
+            warnings.warn(
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment.",
+                ChainedAssignmentError,
+                stacklevel=1,
+                )
+        self._setitem(key, value)

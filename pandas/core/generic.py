@@ -305,7 +305,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The axes must match mgr.axes, but are required for future-proofing
         in the event that axes are refactored out of the Manager objects.
         """
-        obj = cls.__new__(cls)
+        obj = object.__new__(cls)
         NDFrame.__init__(obj, mgr)
         return obj
 
