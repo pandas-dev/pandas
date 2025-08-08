@@ -318,3 +318,9 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         expected = ser.copy()
         tm.assert_series_equal(result, expected)
+    
+    def test_float32_series_addition_preserves_dtype(self):
+        # GH#61951
+        ser_a = pd.Series(np.zeros(1000000), dtype="float32") + np.float32(1)
+        ser_b = pd.Series(np.zeros(1000001), dtype="float32") + np.float32(1)
+        assert all(dtype == np.float32 for dtype in (ser_a.dtype, ser_b.dtype))
