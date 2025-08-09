@@ -2516,13 +2516,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         nv.validate_round(args, kwargs)
         if self.dtype == "object":
-            # Try to safely cast to a numeric nullable dtype when
-            # values are numbers or pd.NA.
-            try:
-                converted = self.astype("Float64")
-                return converted.round(decimals)
-            except Exception as err:
-                raise TypeError("Expected numeric dtype, got object instead.") from err
+            # If the object-dtype Series contains pd.NA and is otherwise numeric,
+            # cast to nullable Float64 and round. Otherwise, fall back to the
+            # existing implementation to preserve prior behavior (incl. errors).
+            has_pd_na = self.isna().any()
+            if has_pd_na:
+                try:
+                    converted = self.astype("Float64")
+                except Exception as err:
+                    raise TypeError(
+                        "Expected numeric dtype, got object instead."
+                    ) from err
+                else:
+                    return converted.round(decimals)
+
+            raise TypeError("Expected numeric dtype, got object instead.")
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
