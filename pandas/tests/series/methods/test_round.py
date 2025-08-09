@@ -81,9 +81,8 @@ class TestSeriesRound:
             ser.round()
 
     def test_round_with_pd_na(self):
-        import pandas as pd
-        import numpy as np
-        s = pd.Series([0.5, pd.NA], dtype="object")
+        # GH61712
+        s = Series([0.5, pd.NA], dtype="object")
         result = s.round(0)
-        expected = pd.Series([0.0, pd.NA], dtype="Float64")
-        pd.testing.assert_series_equal(result, expected)
+        expected = Series([0.0, pd.NA], dtype="Float64")
+        tm.assert_series_equal(result, expected)
