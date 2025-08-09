@@ -766,6 +766,26 @@ This is like an ``append`` operation on the ``DataFrame``.
    dfi.loc[3] = 5
    dfi
 
+When assigning a :class:`Series` to a column, values are **aligned on index labels**.
+The order of the ``Series`` does not matter. Labels not present in the
+``DataFrame`` index result in ``NaN``.
+
+.. ipython:: python
+
+   import pandas as pd
+
+   df = pd.DataFrame({"a": [1, 2, 3]})
+   df
+
+   # assigning a partial Series aligns by index; other rows become NaN
+   df["b"] = pd.Series({1: "b"})
+   df
+
+   # order of the Series is irrelevant; labels drive the alignment
+   s = pd.Series({2: "zero", 1: "one", 0: "two"})
+   df["c"] = s
+   df
+
 .. _indexing.basics.get_value:
 
 Fast scalar value getting and setting
