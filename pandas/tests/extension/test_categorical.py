@@ -180,6 +180,31 @@ class TestCategorical(base.ExtensionTests):
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 
+    def test_categorical_preserve_object_dtype_from_pandas(self):
+        import numpy as np
+
+        import pandas as pd
+
+        pd.options.future.infer_string = True
+
+        ser = pd.Series(["foo", "bar", "baz"], dtype="object")
+        idx = pd.Index(["foo", "bar", "baz"], dtype="object")
+        arr = np.array(["foo", "bar", "baz"], dtype="object")
+        pylist = ["foo", "bar", "baz"]
+
+        cat_from_ser = Categorical(ser)
+        cat_from_idx = Categorical(idx)
+        cat_from_arr = Categorical(arr)
+        cat_from_list = Categorical(pylist)
+
+        # Series/Index with object dtype: preserve object dtype
+        assert cat_from_ser.categories.dtype == "object"
+        assert cat_from_idx.categories.dtype == "object"
+
+        # Numpy array or list: infer string dtype
+        assert cat_from_arr.categories.dtype == "str"
+        assert cat_from_list.categories.dtype == "str"
+
 
 class Test2DCompat(base.NDArrayBacked2DTests):
     def test_repr_2d(self, data):
