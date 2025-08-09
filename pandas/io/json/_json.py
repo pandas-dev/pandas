@@ -292,14 +292,8 @@ class Writer(ABC):
 
     def write(self) -> str:
         iso_dates = self.date_format == "iso"
-        payload = self.obj_to_write
-        # When maximum precision is requested, avoid truncation by stringifying
-        # finite float values at full IEEE-754 precision. Skip for orient='table'
-        # to preserve Table Schema type conformance.
-        if self.double_precision == 15 and not isinstance(self, JSONTableWriter):
-            payload = _stringify_floats_full_precision(payload)
         return ujson_dumps(
-            payload,
+            self.obj_to_write,
             orient=self.orient,
             double_precision=self.double_precision,
             ensure_ascii=self.ensure_ascii,
