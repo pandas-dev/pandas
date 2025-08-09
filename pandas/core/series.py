@@ -2516,7 +2516,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         nv.validate_round(args, kwargs)
         if self.dtype == "object":
-            raise TypeError("Expected numeric dtype, got object instead.")
+            # Try to safely cast to numeric type (like float) if values are pd.NA or numbers
+            try:
+                converted = self.astype("Float64")
+                return converted.round(decimals)
+            except Exception:
+                raise TypeError("Expected numeric dtype, got object instead.")
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
