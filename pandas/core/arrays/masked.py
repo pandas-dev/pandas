@@ -12,6 +12,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     algos as libalgos,
     lib,
@@ -310,7 +312,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __contains__(self, key) -> bool:
         if isna(key) and key is not self.dtype.na_value:
             # GH#52840
-            if self._data.dtype.kind == "f" and lib.is_float(key):
+            if lib.is_float(key) and is_nan_na():
+                key = self.dtype.na_value
+            elif self._data.dtype.kind == "f" and lib.is_float(key):
                 return bool((np.isnan(self._data) & ~self._mask).any())
 
         return bool(super().__contains__(key))
@@ -668,6 +672,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     # reached in e.g. np.sqrt on BooleanArray
                     # we don't support float16
                     x = x.astype(np.float32)
+                if is_nan_na():
+                    m[np.isnan(x)] = True
                 return FloatingArray(x, m)
             else:
                 x[mask] = np.nan
@@ -872,6 +878,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if result.dtype.kind == "f":
             from pandas.core.arrays import FloatingArray
+
+            if is_nan_na():
+                mask[np.isnan(result)] = True
 
             return FloatingArray(result, mask, copy=False)
 

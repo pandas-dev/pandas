@@ -671,7 +671,7 @@ def test_from_frame_missing_values_multiIndex():
     multi_indexed = MultiIndex.from_frame(df)
     expected = MultiIndex.from_arrays(
         [
-            Series([1, 2, None]).astype("Int64"),
+            Series([1, 2, None], dtype="Int64"),
             pd.Float64Dtype().__from_arrow__(pa.array([0.2, None, None])),
         ],
         names=["a", "b"],
