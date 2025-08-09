@@ -27,7 +27,10 @@ import numpy as np
 
 from pandas._libs import Interval
 from pandas._libs.hashtable import duplicated
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -3364,7 +3367,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         warnings.warn(
             "DataFrameGroupBy.corrwith is deprecated",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         result = self._op_via_apply(
