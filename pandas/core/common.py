@@ -232,6 +232,27 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLik
 
 
 def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
+    """
+    Convert input values to a NumPy array or ExtensionArray,
+    preserving tuples as single elements.
+
+    Parameters
+    ----------
+    values : iterable or array-like
+        The data to be converted. Tuples preserved as single elements.
+    dtype : numpy.dtype or None, default None
+        Data type for the result. If None, the dtype is inferred.
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+        The converted array or extension array.
+
+    Notes
+    -----
+    For object dtype lists, uses
+    `construct_1d_object_array_from_listlike` to preserve structure.
+    """
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
