@@ -1771,30 +1771,40 @@ Key Points:
 * This behavior is consistent across df[col] = series and df.loc[:, col] = series
 
 Examples:
-.. ipython:: python
+~~~~~~~~~
 
-   import pandas as pd
+.. ipython:: python
 
    # Create a DataFrame
    df = pd.DataFrame({'values': [1, 2, 3]}, index=['x', 'y', 'z'])
+   df
 
    # Series with matching indices (different order)
    s1 = pd.Series([10, 20, 30], index=['z', 'x', 'y'])
    df['aligned'] = s1  # Aligns by index, not position
-   print(df)
+   df
 
    # Series with partial index match
    s2 = pd.Series([100, 200], index=['x', 'z'])
    df['partial'] = s2  # Missing 'y' gets NaN
-   print(df)
+   df
 
    # Series with non-matching indices
    s3 = pd.Series([1000, 2000], index=['a', 'b'])
    df['nomatch'] = s3  # All values become NaN
-   print(df)
+   df
 
+Avoiding Confusion:
+~~~~~~~~~~~~~~~~~~~
 
-   #Avoiding Confusion:
-   #If you want positional assignment instead of index alignment:
-   # reset the Series index to match DataFrame index
-   df['s1_values'] = s1.reindex(df.index)
+If you want positional assignment instead of index alignment:
+
+.. ipython:: python
+
+   # Use .values or .to_numpy() to assign by position
+   df['position_based'] = s1.values[:len(df)]
+   df
+
+   # Or align the Series to the DataFrame's index first
+   df['reindexed'] = s1.reindex(df.index)
+   df
