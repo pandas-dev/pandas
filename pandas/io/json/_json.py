@@ -120,7 +120,8 @@ def _stringify_floats_full_precision(obj: Any) -> Any:
     if isinstance(obj, Series):
         return obj.map(_format_float_full_precision)
     if isinstance(obj, DataFrame):
-        return obj.applymap(_format_float_full_precision)
+        # Apply element-wise via Series.map to avoid deprecated/removed applymap
+        return obj.apply(lambda s: s.map(_format_float_full_precision))
     if isinstance(obj, dict):
         return {k: _stringify_floats_full_precision(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -129,6 +130,7 @@ def _stringify_floats_full_precision(obj: Any) -> Any:
         return [_stringify_floats_full_precision(v) for v in obj.tolist()]
     # Scalars
     return _format_float_full_precision(obj)
+
 
 # interface to/from
 @overload
