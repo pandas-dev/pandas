@@ -766,7 +766,7 @@ This is like an ``append`` operation on the ``DataFrame``.
    dfi.loc[3] = 5
    dfi
 
-When assigning a :class:`Series` to a column, values are **aligned on index labels**.
+When assigning a :class:`pandas.Series` to a column, values are **aligned on index labels**.
 The order of the ``Series`` does not matter. Labels not present in the
 ``DataFrame`` index result in ``NaN``.
 
