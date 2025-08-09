@@ -5,6 +5,7 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     cast,
     final,
 )
@@ -81,7 +82,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         AxisInt,
-        Self,
         T,
         npt,
     )
