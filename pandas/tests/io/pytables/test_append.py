@@ -826,7 +826,7 @@ because its data contents are not [string] but [mixed] object dtype"""
         msg = re.escape(
             "Cannot serialize the column [foo] "
             "because its data contents are not [string] "
-            "but [datetime64[s]] object dtype"
+            "but [datetime64[us]] object dtype"
         )
         with pytest.raises(ValueError, match=msg):
             store.append("df", df)

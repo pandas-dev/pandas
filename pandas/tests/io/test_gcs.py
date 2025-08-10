@@ -117,8 +117,6 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
         df2 = df1
 
     expected = df1[:]
-    if format in ["csv", "excel"]:
-        expected["dt"] = expected["dt"].dt.as_unit("s")
 
     tm.assert_frame_equal(df2, expected)
 
