@@ -20,6 +20,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -191,7 +192,6 @@ if TYPE_CHECKING:
         ReindexMethod,
         Renamer,
         Scalar,
-        Self,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -1972,7 +1972,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool = True,
         dropna: bool = True,
     ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy
