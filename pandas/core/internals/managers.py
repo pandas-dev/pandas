@@ -11,6 +11,7 @@ from typing import (
     Any,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
 )
@@ -99,7 +100,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeObj,
         QuantileInterpolation,
-        Self,
         Shape,
         npt,
     )
@@ -1298,7 +1298,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     # Defer setting the new values to enable consolidation
                     self._iset_split_block(blkno_l, blk_locs, refs=refs)
 
-        if len(removed_blknos):
+        if removed_blknos:
             # Remove blocks & update blknos accordingly
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
@@ -1800,6 +1800,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
+            if passed_nan and blk.dtype.kind in "mM":
+                arr[isna(blk.values)] = na_value
 
             if not copy:
                 arr = arr.view()
@@ -1865,6 +1867,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = blk.get_values(dtype)
             result[rl.indexer] = arr
+            if na_value is not lib.no_default and blk.dtype.kind in "mM":
+                result[rl.indexer][isna(arr)] = na_value
             itemmask[rl.indexer] = 1
 
         if not itemmask.all():
@@ -1894,10 +1898,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
-        # In general, _consolidate_inplace should only be called via
-        #  DataFrame._consolidate_inplace, otherwise we will fail to invalidate
-        #  the DataFrame's _item_cache. The exception is for newly-created
-        #  BlockManager objects not yet attached to a DataFrame.
         if not self.is_consolidated():
             self.blocks = _consolidate(self.blocks)
             self._is_consolidated = True

@@ -592,21 +592,6 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self):
-        # previous behavior incorrect retained an invalid _item_cache entry
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
-        )
-        df["D"] = df["A"] * 2
-        ser = df["A"]
-        assert len(df._mgr.blocks) == 2
-
-        df.sort_values(by="A")
-
-        ser.iloc[0] = 99
-        assert df.iloc[0, 0] == df["A"][0]
-        assert df.iloc[0, 0] != 99
-
     def test_sort_values_reshaping(self):
         # GH 39426
         values = list(range(21))
@@ -628,6 +613,13 @@ class TestDataFrameSortValues:
         df = DataFrame({"A": [10, 20], "B": [1, 5]}, index=[2, 3])
         result = df.sort_values(by="A", ignore_index=True)
         expected = DataFrame({"A": [10, 20], "B": [1, 5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_by_column_named_none(self):
+        # GH#61512
+        df = DataFrame([[3, 1], [2, 2]], columns=[None, "C1"])
+        result = df.sort_values(by=None)
+        expected = DataFrame([[2, 2], [3, 1]], columns=[None, "C1"], index=[1, 0])
         tm.assert_frame_equal(result, expected)
 
 

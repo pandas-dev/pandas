@@ -2779,7 +2779,20 @@ class TestDataFrameConstructors:
             ["NaT", "0 days 00:00:00.000000001"], dtype="timedelta64[ns]"
         )
         tm.assert_frame_equal(result, expected)
-        
+
+    def test_dataframe_from_array_like_with_name_attribute(self):
+        # GH#61443
+        class DummyArray(np.ndarray):
+            def __new__(cls, input_array):
+                obj = np.asarray(input_array).view(cls)
+                obj.name = "foo"
+                return obj
+
+        dummy = DummyArray(np.eye(3))
+        df = DataFrame(dummy)
+        expected = DataFrame(np.eye(3))
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):

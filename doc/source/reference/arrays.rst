@@ -664,6 +664,7 @@ Data type introspection
     api.types.is_datetime64_dtype
     api.types.is_datetime64_ns_dtype
     api.types.is_datetime64tz_dtype
+    api.types.is_dtype_equal
     api.types.is_extension_array_dtype
     api.types.is_float_dtype
     api.types.is_int64_dtype

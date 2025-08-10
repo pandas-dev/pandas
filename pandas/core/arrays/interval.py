@@ -9,7 +9,8 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Literal,
-    Union,
+    Self,
+    TypeAlias,
     overload,
 )
 
@@ -31,7 +32,6 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
-    Self,
     SequenceIndexer,
     SortKind,
     TimeArrayLike,
@@ -109,8 +109,8 @@ if TYPE_CHECKING:
     )
 
 
-IntervalSide = Union[TimeArrayLike, np.ndarray]
-IntervalOrNA = Union[Interval, float]
+IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
+IntervalOrNA: TypeAlias = Interval | float
 
 _interval_shared_docs: dict[str, str] = {}
 
@@ -1775,7 +1775,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         [(0, 1], (1, 2]]
         Length: 2, dtype: interval[int64, right]
         >>> idx.to_tuples()
-        array([(0, 1), (1, 2)], dtype=object)
+        array([(np.int64(0), np.int64(1)), (np.int64(1), np.int64(2))],
+              dtype=object)
 
         For :class:`pandas.IntervalIndex`:
 

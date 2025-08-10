@@ -31,13 +31,12 @@ requirements:
     - numpy >=1.21.6  # [py<311]
     - numpy >=1.23.2  # [py>=311]
     - versioneer
-    - tomli  # [py<311]
   run:
     - python
     - numpy >=1.21.6  # [py<311]
     - numpy >=1.23.2  # [py>=311]
     - python-dateutil >=2.8.2
-    - python-tzdata >=2022.7
+    - python-tzdata >=2023.3
 
 test:
   imports:
@@ -66,7 +65,6 @@ test:
     - pytest-xdist >=3.4.0
     - pytest-cov
     - hypothesis >=6.84.0
-    - tomli  # [py<311]
 
 about:
   home: http://pandas.pydata.org
@@ -89,4 +87,3 @@ extra:
     - datapythonista
     - phofl
     - lithomas1
-    - marcogorelli

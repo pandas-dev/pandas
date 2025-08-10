@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_dict_like,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -215,7 +216,7 @@ def _reconstruct_data(
         values = cls._from_sequence(values, dtype=dtype)  # type: ignore[assignment]
 
     else:
-        values = values.astype(dtype, copy=False)
+        values = values.astype(dtype, copy=False)  # type: ignore[assignment]
 
     return values
 
@@ -390,11 +391,11 @@ def unique(values):
 
     >>> pd.unique(pd.Series(pd.Categorical(list("baabc"))))
     ['b', 'a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     >>> pd.unique(pd.Series(pd.Categorical(list("baabc"), categories=list("abc"))))
     ['b', 'a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     An ordered Categorical preserves the category ordering.
 
@@ -404,7 +405,7 @@ def unique(values):
     ...     )
     ... )
     ['b', 'a', 'c']
-    Categories (3, object): ['a' < 'b' < 'c']
+    Categories (3, str): ['a' < 'b' < 'c']
 
     An array of tuples
 
@@ -511,6 +512,7 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             len(values) > 0
             and values.dtype.kind in "iufcb"
             and not is_signed_integer_dtype(comps)
+            and not is_dtype_equal(values, comps)
         ):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
@@ -749,7 +751,7 @@ def factorize(
     array([0, 0, 1])
     >>> uniques
     ['a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
@@ -762,7 +764,7 @@ def factorize(
     >>> codes
     array([0, 0, 1])
     >>> uniques
-    Index(['a', 'c'], dtype='object')
+    Index(['a', 'c'], dtype='str')
 
     If NaN is in the values, and we want to include NaN in the uniques of the
     values, it can be achieved by setting ``use_na_sentinel=False``.

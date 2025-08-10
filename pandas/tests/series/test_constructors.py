@@ -632,7 +632,7 @@ class TestSeriesConstructors:
 
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range("20090415", "20090519", freq="B")
-        data = {k: 1 for k in rng}
+        data = dict.fromkeys(rng, 1)
 
         result = Series(data, index=rng)
         assert result.index.is_(rng)
@@ -2066,7 +2066,7 @@ class TestSeriesConstructors:
     def test_series_constructor_overflow_uint_with_nan(self):
         # GH#38798
         max_val = np.iinfo(np.uint64).max - 1
-        result = Series([max_val, np.nan], dtype="UInt64")
+        result = Series([max_val, pd.NA], dtype="UInt64")
         expected = Series(
             IntegerArray(
                 np.array([max_val, 1], dtype="uint64"),
@@ -2077,7 +2077,7 @@ class TestSeriesConstructors:
 
     def test_series_constructor_ea_all_na(self):
         # GH#38798
-        result = Series([np.nan, np.nan], dtype="UInt64")
+        result = Series([pd.NA, pd.NA], dtype="UInt64")
         expected = Series(
             IntegerArray(
                 np.array([1, 1], dtype="uint64"),

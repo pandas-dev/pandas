@@ -12,11 +12,16 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import (
+    algos as libalgos,
+)
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    ensure_int64,
+    ensure_platform_int,
     is_list_like,
     is_scalar,
 )
@@ -38,7 +43,10 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.series import Series
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    PrettyDict,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -278,18 +286,22 @@ class Grouper:
         self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self, obj: NDFrameT, validate: bool = True, observed: bool = True
     ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
         obj : Series or DataFrame
+            Object being grouped.
         validate : bool, default True
-            if True, validate the grouper
+            If True, validate the grouper.
+        observed : bool, default True
+            Whether only observed groups should be in the result. Only
+            has an impact when grouping on categorical data.
 
         Returns
         -------
-        a tuple of grouper, obj (possibly sorted)
+        A tuple of grouper, obj (possibly sorted)
         """
         obj, _, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
@@ -299,6 +311,7 @@ class Grouper:
             sort=self.sort,
             validate=validate,
             dropna=self.dropna,
+            observed=observed,
         )
 
         return grouper, obj
@@ -668,8 +681,14 @@ class Grouping:
     def groups(self) -> dict[Hashable, Index]:
         codes, uniques = self._codes_and_uniques
         uniques = Index._with_infer(uniques, name=self.name)
-        cats = Categorical.from_codes(codes, uniques, validate=False)
-        return self._index.groupby(cats)
+
+        r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
+        counts = ensure_int64(counts).cumsum()
+        _result = (r[start:end] for start, end in zip(counts, counts[1:]))
+        # map to the label
+        result = {k: self._index.take(v) for k, v in zip(uniques, _result)}
+
+        return PrettyDict(result)
 
     @property
     def observed_grouping(self) -> Grouping:
@@ -773,7 +792,7 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        grouper, obj = key._get_grouper(obj, validate=False)
+        grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
         if key.key is None:
             return grouper, frozenset(), obj
         else:

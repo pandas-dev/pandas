@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -28,7 +29,6 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
-        Self,
         Shape,
         npt,
         type_t,
@@ -44,6 +44,11 @@ if TYPE_CHECKING:
 class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
+
+    This enables support for third-party and custom dtypes within the
+    pandas ecosystem. By implementing this interface and pairing it with a custom
+    `ExtensionArray`, users can create rich data types that integrate cleanly
+    with pandas operations, such as grouping, joining, or aggregation.
 
     See Also
     --------
@@ -141,7 +146,7 @@ class ExtensionDtype:
         return False
 
     def __hash__(self) -> int:
-        # for python>=3.10, different nan objects have different hashes
+        # different nan objects have different hashes
         # we need to avoid that and thus use hash function with old behavior
         return object_hash(tuple(getattr(self, attr) for attr in self._metadata))
 
@@ -206,8 +211,7 @@ class ExtensionDtype:
         """
         return None
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[ExtensionArray]:
+    def construct_array_type(self) -> type_t[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -215,7 +219,7 @@ class ExtensionDtype:
         -------
         type
         """
-        raise AbstractMethodError(cls)
+        raise AbstractMethodError(self)
 
     def empty(self, shape: Shape) -> ExtensionArray:
         """

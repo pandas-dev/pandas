@@ -16,15 +16,10 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import tomllib
+from typing import Any
 
 import yaml
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
-from typing import Any
 
 from scripts.generate_pip_deps_from_conda import CONDA_TO_PIP
 
@@ -36,8 +31,7 @@ CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
 SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
-EXCLUDE_DEPS = {"tzdata", "blosc", "pyqt", "pyqt5"}
-EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]"])
+EXCLUDE_DEPS = {"tzdata", "pyqt", "pyqt5"}
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")
@@ -111,7 +105,6 @@ def get_yaml_map_from(
     for dependency in yaml_dic:
         if (
             isinstance(dependency, dict)
-            or dependency in EXCLUSION_LIST
             or dependency in yaml_map
         ):
             continue
@@ -124,11 +117,6 @@ def get_yaml_map_from(
             yaml_package, yaml_version2 = yaml_dependency.split(operator)
             yaml_version2 = operator + yaml_version2
             yaml_map[yaml_package] = [yaml_version1, yaml_version2]
-        elif "[build=*_pypy]" in dependency:
-            search_text = search_text.replace("[build=*_pypy]", "")
-            yaml_package, yaml_version = search_text.split(operator)
-            yaml_version = operator + yaml_version
-            yaml_map[yaml_package] = [yaml_version]
         elif operator is not None:
             yaml_package, yaml_version = search_text.split(operator)
             yaml_version = operator + yaml_version
@@ -164,8 +152,6 @@ def pin_min_versions_to_yaml_file(
 ) -> str:
     data = yaml_file_data
     for yaml_package, yaml_versions in yaml_map.items():
-        if yaml_package in EXCLUSION_LIST:
-            continue
         old_dep = yaml_package
         if yaml_versions is not None:
             old_dep = old_dep + ", ".join(yaml_versions)

@@ -2458,7 +2458,7 @@ you can use the ``tz_convert`` method.
 
     For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``.
+    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``).
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 
@@ -2541,7 +2541,7 @@ Fold is supported only for constructing from naive ``datetime.datetime``
 or for constructing from components (see below). Only ``dateutil`` timezones are supported
 (see `dateutil documentation <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
 for ``dateutil`` methods that deal with ambiguous datetimes) as ``pytz``
-timezones do not support fold (see `pytz documentation <http://pytz.sourceforge.net/index.html>`__
+timezones do not support fold (see `pytz documentation <https://pythonhosted.org/pytz/>`__
 for details on how ``pytz`` deals with ambiguous datetimes). To localize an ambiguous datetime
 with ``pytz``, please use :meth:`Timestamp.tz_localize`. In general, we recommend to rely
 on :meth:`Timestamp.tz_localize` when localizing ambiguous datetimes if you need direct

@@ -15,6 +15,7 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -95,7 +96,6 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
         PositionalIndexer,
         ScalarIndexer,
-        Self,
         SequenceIndexer,
         Shape,
         SortKind,
@@ -596,7 +596,7 @@ class ExtensionArray:
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:
-            result[self.isna()] = na_value
+            result[self.isna()] = na_value  # type: ignore[index]
         return result
 
     # ------------------------------------------------------------------------
@@ -941,7 +941,7 @@ class ExtensionArray:
         --------
         >>> arr = pd.array([3, 1, 2, 5, 4])
         >>> arr.argmin()
-        1
+        np.int64(1)
         """
         # Implementer note: You have two places to override the behavior of
         # argmin.
@@ -975,7 +975,7 @@ class ExtensionArray:
         --------
         >>> arr = pd.array([3, 1, 2, 5, 4])
         >>> arr.argmax()
-        3
+        np.int64(3)
         """
         # Implementer note: You have two places to override the behavior of
         # argmax.
@@ -1688,13 +1688,13 @@ class ExtensionArray:
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
         ['a', 'b', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat(2)
         ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
         ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         """
 
     @Substitution(klass="ExtensionArray")
@@ -1959,10 +1959,10 @@ class ExtensionArray:
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
         ...     def _formatter(self, boxed=False):
-        ...         return lambda x: "*" + str(x) + "*" if boxed else repr(x) + "*"
+        ...         return lambda x: "*" + str(x) + "*"
         >>> MyExtensionArray(np.array([1, 2, 3, 4]))
         <MyExtensionArray>
-        [1*, 2*, 3*, 4*]
+        [*1*, *2*, *3*, *4*]
         Length: 4, dtype: int64
         """
         if boxed:
@@ -2176,15 +2176,15 @@ class ExtensionArray:
         Examples
         --------
         >>> pd.array([1, 2, 3])._reduce("min")
-        1
+        np.int64(1)
         >>> pd.array([1, 2, 3])._reduce("max")
-        3
+        np.int64(3)
         >>> pd.array([1, 2, 3])._reduce("sum")
-        6
+        np.int64(6)
         >>> pd.array([1, 2, 3])._reduce("mean")
-        2.0
+        np.float64(2.0)
         >>> pd.array([1, 2, 3])._reduce("median")
-        2.0
+        np.float64(2.0)
         """
         meth = getattr(self, name, None)
         if meth is None:
@@ -2608,6 +2608,7 @@ class ExtensionArray:
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
+        initial: Any = 0
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
@@ -2632,6 +2633,7 @@ class ExtensionArray:
 
             arr = self
             if op.how == "sum":
+                initial = ""
                 # https://github.com/pandas-dev/pandas/issues/60229
                 # All NA should result in the empty string.
                 assert "skipna" in kwargs
@@ -2649,6 +2651,7 @@ class ExtensionArray:
             ngroups=ngroups,
             comp_ids=ids,
             mask=None,
+            initial=initial,
             **kwargs,
         )
 

@@ -513,9 +513,8 @@ def test_is_fsspec_url_chained():
     assert not icom.is_fsspec_url("filecache::://pandas/test.csv")
 
 
-@pytest.mark.parametrize("encoding", [None, "utf-8"])
 @pytest.mark.parametrize("format", ["csv", "json"])
-def test_codecs_encoding(encoding, format):
+def test_codecs_encoding(format):
     # GH39247
     expected = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -523,9 +522,9 @@ def test_codecs_encoding(encoding, format):
         index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     with tm.ensure_clean() as path:
-        with codecs.open(path, mode="w", encoding=encoding) as handle:
+        with open(path, mode="w", encoding="utf-8") as handle:
             getattr(expected, f"to_{format}")(handle)
-        with codecs.open(path, mode="r", encoding=encoding) as handle:
+        with open(path, encoding="utf-8") as handle:
             if format == "csv":
                 df = pd.read_csv(handle, index_col=0)
             else:
@@ -650,7 +649,7 @@ def test_close_on_error():
                 handles.created_handles.append(TestError())
 
 
-@td.skip_if_no("fsspec", min_version="2023.1.0")
+@td.skip_if_no("fsspec")
 @pytest.mark.parametrize("compression", [None, "infer"])
 def test_read_csv_chained_url_no_error(compression):
     # GH 60100

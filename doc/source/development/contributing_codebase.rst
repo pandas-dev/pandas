@@ -444,11 +444,11 @@ be located.
                result = ser.loc[[3, 4]]
                tm.assert_series_equal(result, expected)
 
-    In cases like this, the test location should be based on the *underlying*
-    method being tested.  Or in the case of a test for a bugfix, the location
-    of the actual bug.  So in this example, we know that ``Series.__getitem__``
-    calls ``Series.loc.__getitem__``, so this is *really* a test for
-    ``loc.__getitem__``.  So this test belongs in ``tests.indexing.test_loc``.
+      In cases like this, the test location should be based on the *underlying*
+      method being tested.  Or in the case of a test for a bugfix, the location
+      of the actual bug.  So in this example, we know that ``Series.__getitem__``
+      calls ``Series.loc.__getitem__``, so this is *really* a test for
+      ``loc.__getitem__``.  So this test belongs in ``tests.indexing.test_loc``.
 
 6. Is your test for a DataFrame or Series method?
 
@@ -537,7 +537,7 @@ Preferred ``pytest`` idioms
     test and does not check if the test will fail. If this is the behavior you desire, use ``pytest.skip`` instead.
 
 If a test is known to fail but the manner in which it fails
-is not meant to be captured, use ``pytest.mark.xfail`` It is common to use this method for a test that
+is not meant to be captured, use ``pytest.mark.xfail``. It is common to use this method for a test that
 exhibits buggy behavior or a non-implemented feature. If
 the failing test has flaky behavior, use the argument ``strict=False``. This
 will make it so pytest does not fail if the test happens to pass. Using ``strict=False`` is highly undesirable, please use it only as a last resort.

@@ -4,6 +4,7 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
+    Self,
     cast,
 )
 
@@ -69,7 +70,6 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         NpDtype,
-        Self,
         npt,
     )
 
@@ -325,7 +325,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value._value, self.unit)
+            return np.timedelta64(value._value, self.unit)  # type: ignore[call-overload]
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 

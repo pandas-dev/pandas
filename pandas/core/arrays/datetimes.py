@@ -7,6 +7,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -84,7 +85,6 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         IntervalClosedType,
-        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,
@@ -331,7 +331,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         else:
             # DatetimeTZDtype. If we have e.g. DatetimeTZDtype[us, UTC],
             #  then values.dtype should be M8[us].
-            assert dtype._creso == get_unit_from_dtype(values.dtype)
+            assert dtype._creso == get_unit_from_dtype(values.dtype)  # type: ignore[union-attr]
 
         result = super()._simple_new(values, dtype)
         result._freq = freq
@@ -542,7 +542,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.datetime64(value._value, self.unit)
+            return np.datetime64(value._value, self.unit)  # type: ignore[call-overload]
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
@@ -813,10 +813,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
-                # error: Argument 1 to "view" of "ndarray" has incompatible type
-                # "dtype[datetime64] | DatetimeTZDtype"; expected
-                # "dtype[Any] | type[Any] | _SupportsDType[dtype[Any]]"
-                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
+                res_values = res_values.view(values.dtype)
         except NotImplementedError:
             if get_option("performance_warnings"):
                 warnings.warn(
@@ -1311,14 +1308,14 @@ default 'raise'
         0     January
         1    February
         2       March
-        dtype: object
+        dtype: str
 
         >>> idx = pd.date_range(start="2018-01", freq="ME", periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
                       dtype='datetime64[ns]', freq='ME')
         >>> idx.month_name()
-        Index(['January', 'February', 'March'], dtype='object')
+        Index(['January', 'February', 'March'], dtype='str')
 
         Using the ``locale`` parameter you can set a different locale language,
         for example: ``idx.month_name(locale='pt_BR.utf8')`` will return month
@@ -1329,7 +1326,7 @@ default 'raise'
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
                       dtype='datetime64[ns]', freq='ME')
         >>> idx.month_name(locale="pt_BR.utf8")  # doctest: +SKIP
-        Index(['Janeiro', 'Fevereiro', 'Março'], dtype='object')
+        Index(['Janeiro', 'Fevereiro', 'Março'], dtype='str')
         """
         values = self._local_timestamps()
 
@@ -1379,14 +1376,14 @@ default 'raise'
         0       Monday
         1      Tuesday
         2    Wednesday
-        dtype: object
+        dtype: str
 
         >>> idx = pd.date_range(start="2018-01-01", freq="D", periods=3)
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
         >>> idx.day_name()
-        Index(['Monday', 'Tuesday', 'Wednesday'], dtype='object')
+        Index(['Monday', 'Tuesday', 'Wednesday'], dtype='str')
 
         Using the ``locale`` parameter you can set a different locale language,
         for example: ``idx.day_name(locale='pt_BR.utf8')`` will return day
@@ -1397,7 +1394,7 @@ default 'raise'
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
         >>> idx.day_name(locale="pt_BR.utf8")  # doctest: +SKIP
-        Index(['Segunda', 'Terça', 'Quarta'], dtype='object')
+        Index(['Segunda', 'Terça', 'Quarta'], dtype='str')
         """
         values = self._local_timestamps()
 

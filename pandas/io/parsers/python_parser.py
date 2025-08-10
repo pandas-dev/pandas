@@ -281,7 +281,7 @@ class PythonParser(ParserBase):
 
         index: Index | None
         columns: Sequence[Hashable] = list(self.orig_names)
-        if not len(content):  # pragma: no cover
+        if not content:  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             # error: Cannot determine type of 'index_col'
             names = dedup_names(
@@ -1468,7 +1468,7 @@ class FixedWidthReader(abc.Iterator):
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
         edge_pairs = list(zip(edges[::2], edges[1::2]))
-        return edge_pairs
+        return edge_pairs  # type: ignore[return-value]
 
     def __next__(self) -> list[str]:
         # Argument 1 to "next" has incompatible type "Union[IO[str],
