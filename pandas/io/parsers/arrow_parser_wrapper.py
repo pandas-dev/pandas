@@ -239,21 +239,23 @@ class ArrowParserWrapper(ParserBase):
                 raise ValueError(str(err)) from err
         return frame
 
-    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
+    def _finalize_pandas_output(
+        self, frame: DataFrame, multi_index_named: bool
+    ) -> DataFrame:
         """
         Processes data read in based on kwargs.
 
         Parameters
         ----------
-        frame: DataFrame
+        frame : DataFrame
             The DataFrame to process.
+        multi_index_named : bool
 
         Returns
         -------
         DataFrame
             The processed DataFrame.
         """
-        frame, multi_index_named = self._adjust_column_names(frame)
         frame = self._do_date_conversions(frame.columns, frame)
         frame = self._finalize_index(frame, multi_index_named)
         frame = self._finalize_dtype(frame)
@@ -329,7 +331,7 @@ class ArrowParserWrapper(ParserBase):
                 table, dtype_backend=pass_backend, null_to_int64=True
             )
 
-        frame = self._finalize_column_names(frame)
+        frame, multi_index_named = self._adjust_column_names(frame)
 
         if workaround and dtype_backend != "numpy_nullable":
             old_dtype = self.dtype
@@ -371,4 +373,4 @@ class ArrowParserWrapper(ParserBase):
             new_dtype.update(old_dtype)
             self.dtype = new_dtype
 
-        return self._finalize_pandas_output(frame)
+        return self._finalize_pandas_output(frame, multi_index_named)
