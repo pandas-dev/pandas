@@ -16,7 +16,7 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst, actions-310-minimum_versions.yaml,
+# Update install.rst, actions-311-minimum_versions.yaml,
 # deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {

@@ -25,7 +25,9 @@ from functools import (
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
     Literal,
+    Self,
     TypeAlias,
     TypeVar,
     Union,
@@ -146,9 +148,7 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.timedeltas import Timedelta
     from pandas._typing import (
         Any,
-        Concatenate,
         P,
-        Self,
         T,
     )
 

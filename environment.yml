@@ -36,7 +36,6 @@ dependencies:
   - hypothesis>=6.84.0
   - gcsfs>=2023.12.2
   - ipython
-  - pickleshare  # Needed for IPython Sphinx directive in the docs GH#60429
   - jinja2>=3.1.3
   - lxml>=4.9.2
   - matplotlib>=3.8.3
@@ -85,6 +84,7 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - natsort  # DataFrame.sort_values doctest
+  - pickleshare  # Needed for IPython Sphinx directive in the docs GH#60429
   - numpydoc
   - pydata-sphinx-theme=0.16
   - pytest-cython  # doctest
@@ -122,5 +122,4 @@ dependencies:
   - jupyterlite-pyodide-kernel
 
   - pip:
-      - typing_extensions; python_version<"3.11"
       - tzdata>=2023.3

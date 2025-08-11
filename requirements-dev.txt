@@ -25,7 +25,6 @@ html5lib>=1.1
 hypothesis>=6.84.0
 gcsfs>=2023.12.2
 ipython
-pickleshare
 jinja2>=3.1.3
 lxml>=4.9.2
 matplotlib>=3.8.3
@@ -60,6 +59,7 @@ tokenize-rt
 pre-commit>=4.2.0
 gitpython
 natsort
+pickleshare
 numpydoc
 pydata-sphinx-theme==0.16
 pytest-cython
@@ -85,5 +85,4 @@ requests
 pygments
 jupyterlite-core
 jupyterlite-pyodide-kernel
-typing_extensions; python_version<"3.11"
 tzdata>=2023.3
