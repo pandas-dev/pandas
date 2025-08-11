@@ -30,6 +30,5 @@ runs:
         else
           EDITABLE=""
         fi
-        pip wheel $EDITABLE --no-build-isolation -v --no-deps --config-settings=setup-args="-Werror" --config-settings=setup-args="-Wno-error=unused-parameter" --wheel-dir=/tmp/wheelhouse .
-        pip install --no-index --find-links=/tmp/wheelhouse pandas
+        pip install $EDITABLE . --no-build-isolation -v --no-deps -Csetup-args="-Werror" -Csetup-args="-Wno-error=unused-parameter"
       shell: bash -el {0}
