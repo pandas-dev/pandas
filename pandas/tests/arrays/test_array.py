@@ -487,8 +487,7 @@ def test_bounds_check():
 class DecimalDtype2(DecimalDtype):
     name = "decimal2"
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         """
         Return the array type associated with this dtype.
 

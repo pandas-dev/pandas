@@ -14,8 +14,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Concatenate,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
     overload,
@@ -41,7 +43,6 @@ from pandas._typing import (
     Axis,
     AxisInt,
     CompressionOptions,
-    Concatenate,
     DtypeArg,
     DtypeBackend,
     DtypeObj,
@@ -66,7 +67,6 @@ from pandas._typing import (
     ReindexMethod,
     Renamer,
     Scalar,
-    Self,
     SequenceNotStr,
     SortKind,
     StorageOptions,
@@ -5373,6 +5373,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         # TODO: Decide if we care about having different examples for different
         # kinds
+
+        # Automatically detect matching level when reindexing from Index to MultiIndex.
+        # This prevents values from being incorrectly set to NaN when the source index
+        # name matches a index name in the target MultiIndex
+        if (
+            level is None
+            and index is not None
+            and isinstance(index, MultiIndex)
+            and not isinstance(self.index, MultiIndex)
+            and self.index.name in index.names
+        ):
+            level = self.index.name
         self._check_copy_deprecation(copy)
 
         if index is not None and columns is not None and labels is not None:

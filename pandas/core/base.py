@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     cast,
     final,
     overload,
@@ -23,7 +24,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
-    Self,
     Shape,
     npt,
 )

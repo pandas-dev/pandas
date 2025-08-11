@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
 )
 
 import numpy as np
@@ -97,7 +98,6 @@ if TYPE_CHECKING:
         Dtype,
         DtypeObj,
         IntervalClosedType,
-        Self,
         npt,
     )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
