@@ -30,5 +30,5 @@ runs:
         else
           EDITABLE=""
         fi
-        pip install $EDITABLE . --no-build-isolation -v --no-deps -Csetup-args="-Werror" -Csetup-args="-Wno-error=unused-parameter"
+        pip install $EDITABLE . --no-build-isolation -v --no-deps --config-settings=setup-args="-Werror" --config-settings=setup-args="-Wno-error=unused-parameter"
       shell: bash -el {0}
