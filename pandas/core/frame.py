@@ -2234,7 +2234,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_iterator(data):
             if nrows == 0:
-                return cls(columns=columns)
+                return cls(index=index, columns=columns)
 
             try:
                 first_row = next(data)

@@ -496,6 +496,8 @@ class TestFromRecords:
     def test_from_records_empty_iterator_with_preserve_columns(self):
         # GH#61140
         rows = []
-        result = DataFrame.from_records(iter(rows), columns=["col_1", "Col_2"], nrows=0)
-        expected = DataFrame([], columns=["col_1", "Col_2"])
+        result = DataFrame.from_records(
+            iter(rows), index=[0, 1], columns=["col_1", "Col_2"], nrows=0
+        )
+        expected = DataFrame([], index=[0, 1], columns=["col_1", "Col_2"])
         tm.assert_frame_equal(result, expected)
