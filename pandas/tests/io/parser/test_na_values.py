@@ -808,7 +808,10 @@ False
     if parser.engine == "python":
         msg = "Unable to convert column 0 to type int(64|32)"
     elif parser.engine == "pyarrow":
-        msg = r"cannot convert NA to integer"
+        msg = (
+            r"int\(\) argument must be a string, a bytes-like object or a "
+            "real number, not 'NoneType"
+        )
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), dtype="int")
 

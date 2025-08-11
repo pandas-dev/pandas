@@ -3,10 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import warnings
 
-import numpy as np
-
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -16,20 +12,16 @@ from pandas.errors import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    BaseMaskedDtype,
-)
 from pandas.core.dtypes.inference import is_integer
-
-from pandas.core.arrays.string_ import StringDtype
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
+    import pyarrow as pa
+
     from pandas._typing import ReadBuffer
 
     from pandas import DataFrame
@@ -174,8 +166,8 @@ class ArrowParserWrapper(ParserBase):
 
         return convert_options
 
-    def _adjust_column_names(self, frame: DataFrame) -> tuple[DataFrame, bool]:
-        num_cols = len(frame.columns)
+    def _adjust_column_names(self, table: pa.Table) -> bool:
+        num_cols = len(table.columns)
         multi_index_named = True
         if self.header is None:
             if self.names is None:
@@ -188,8 +180,7 @@ class ArrowParserWrapper(ParserBase):
                 columns_prefix = [str(x) for x in range(num_cols - len(self.names))]
                 self.names = columns_prefix + self.names
                 multi_index_named = False
-            frame.columns = self.names
-        return frame, multi_index_named
+        return multi_index_named
 
     def _finalize_index(self, frame: DataFrame, multi_index_named: bool) -> DataFrame:
         if self.index_col is not None:
@@ -312,13 +303,7 @@ class ArrowParserWrapper(ParserBase):
 
             table = table.cast(new_schema)
 
-        workaround = False
-        pass_backend = dtype_backend
-        if self.dtype is not None and dtype_backend != "pyarrow":
-            # We pass dtype_backend="pyarrow" and subsequently cast
-            #  to avoid lossy conversion e.g. GH#56136
-            workaround = True
-            pass_backend = "numpy_nullable"
+        multi_index_named = self._adjust_column_names(table)
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -327,49 +312,14 @@ class ArrowParserWrapper(ParserBase):
                 DeprecationWarning,
             )
             frame = arrow_table_to_pandas(
-                table, dtype_backend=pass_backend, null_to_int64=True
+                table,
+                dtype_backend=dtype_backend,
+                null_to_int64=True,
+                dtype=self.dtype,
+                names=self.names,
             )
 
-        frame, multi_index_named = self._adjust_column_names(frame)
-
-        if workaround and dtype_backend != "numpy_nullable":
-            old_dtype = self.dtype
-            if not isinstance(old_dtype, dict):
-                # e.g. test_categorical_dtype_utf16
-                old_dtype = dict.fromkeys(frame.columns, old_dtype)
-
-            # _finalize_pandas_output will call astype, but we need to make
-            #  sure all keys are populated appropriately.
-            new_dtype = {}
-            for key in frame.columns:
-                ser = frame[key]
-                if isinstance(ser.dtype, BaseMaskedDtype):
-                    new_dtype[key] = ser.dtype.numpy_dtype
-                    if (
-                        key in old_dtype
-                        and not using_string_dtype()
-                        and is_string_dtype(old_dtype[key])
-                        and not isinstance(old_dtype[key], StringDtype)
-                        and ser.array._hasna
-                    ):
-                        # Cast to make sure we get "NaN" string instead of "NA"
-                        frame[key] = ser.astype(old_dtype[key])
-                        frame.loc[ser.isna(), key] = np.nan
-                        old_dtype[key] = object  # Avoid re-casting
-                elif isinstance(ser.dtype, StringDtype):
-                    # We cast here in case the user passed "category" in
-                    #  order to get the correct dtype.categories.dtype
-                    #  e.g. test_categorical_dtype_utf16
-                    if not using_string_dtype():
-                        sdt = np.dtype(object)
-                        frame[key] = ser.astype(sdt)
-                        frame.loc[ser.isna(), key] = np.nan
-                    else:
-                        sdt = StringDtype(na_value=np.nan)  # type: ignore[assignment]
-                        frame[key] = frame[key].astype(sdt)
-                    new_dtype[key] = sdt
-
-            new_dtype.update(old_dtype)
-            self.dtype = new_dtype
+        if self.header is None:
+            frame.columns = self.names
 
         return self._finalize_pandas_output(frame, multi_index_named)
