@@ -4,9 +4,6 @@ inputs:
   editable:
     description: Whether to build pandas in editable mode (default true)
     default: true
-  werror:
-    description: Enable werror flag for build
-    default: true
 runs:
   using: composite
   steps:
@@ -26,12 +23,12 @@ runs:
       shell: bash -el {0}
 
     - name: Build Pandas
+      # wno-error reason: https://github.com/cython/cython/issues/6870
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
-          pip install -e . --no-build-isolation -v --no-deps \
-            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
+          EDITABLE="-e"
         else
-          pip install . --no-build-isolation -v --no-deps \
-            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
+          EDITABLE=""
         fi
+        pip install $EDITABLE . --no-build-isolation -v --no-deps -Csetup-args="-Werror" -Csetup-args="-Wno-error=unused-parameter"
       shell: bash -el {0}
