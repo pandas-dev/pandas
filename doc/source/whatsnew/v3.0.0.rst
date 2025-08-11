@@ -801,7 +801,7 @@ I/O
 - Bug in :meth:`.DataFrame.to_json` when ``"index"`` was a value in the :attr:`DataFrame.column` and :attr:`Index.name` was ``None``. Now, this will fail with a ``ValueError`` (:issue:`58925`)
 - Bug in :meth:`.io.common.is_fsspec_url` not recognizing chained fsspec URLs (:issue:`48978`)
 - Bug in :meth:`DataFrame._repr_html_` which ignored the ``"display.float_format"`` option (:issue:`59876`)
-- Bug in :meth:`DataFrame.from_records` ignoring ``columns`` parameter when ``data`` is an iterator and ``nrows=0``. (:issue:`61140`)
+- Bug in :meth:`DataFrame.from_records` ignoring ``columns`` and ``index`` parameters when ``data`` is an empty iterator and ``nrows=0``. (:issue:`61140`)
 - Bug in :meth:`DataFrame.from_records` where ``columns`` parameter with numpy structured array was not reordering and filtering out the columns (:issue:`59717`)
 - Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
 - Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
