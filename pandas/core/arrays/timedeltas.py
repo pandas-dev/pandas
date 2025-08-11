@@ -4,6 +4,7 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
+    Self,
     cast,
 )
 
@@ -71,7 +72,6 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         NpDtype,
-        Self,
         npt,
     )
 

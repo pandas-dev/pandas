@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -87,7 +88,6 @@ if TYPE_CHECKING:
         NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
-        Self,
         npt,
     )
 

@@ -4,7 +4,9 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
     Literal,
+    Self,
     final,
     overload,
 )
@@ -41,10 +43,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pandas._typing import (
-        Concatenate,
         P,
         QuantileInterpolation,
-        Self,
         T,
         WindowingRankType,
     )

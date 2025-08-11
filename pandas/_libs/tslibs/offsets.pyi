@@ -7,6 +7,7 @@ from datetime import (
 from typing import (
     Any,
     Literal,
+    Self,
     TypeVar,
     overload,
 )
@@ -16,7 +17,6 @@ import numpy as np
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     OffsetCalendar,
-    Self,
     npt,
 )
 
