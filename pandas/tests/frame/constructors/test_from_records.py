@@ -492,3 +492,12 @@ class TestFromRecords:
         expected_result = DataFrame(modified_data)
 
         tm.assert_frame_equal(actual_result, expected_result)
+
+    def test_from_records_empty_iterator_with_preserve_columns(self):
+        # GH#61140
+        rows = []
+        result = DataFrame.from_records(
+            iter(rows), index=[0, 1], columns=["col_1", "Col_2"], nrows=0
+        )
+        expected = DataFrame([], index=[0, 1], columns=["col_1", "Col_2"])
+        tm.assert_frame_equal(result, expected)
