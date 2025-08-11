@@ -703,11 +703,11 @@ def test_precision_float_conversion(strrep):
 @pytest.mark.parametrize(
     "values, expected",
     [
-        (["1", "2", None], Series([1, 2, np.nan], dtype="Int64")),
+        (["1", "2", None], Series([1, 2, pd.NA], dtype="Int64")),
         (["1", "2", "3"], Series([1, 2, 3], dtype="Int64")),
         (["1", "2", 3], Series([1, 2, 3], dtype="Int64")),
         (["1", "2", 3.5], Series([1, 2, 3.5], dtype="Float64")),
-        (["1", None, 3.5], Series([1, np.nan, 3.5], dtype="Float64")),
+        (["1", None, 3.5], Series([1, pd.NA, 3.5], dtype="Float64")),
         (["1", "2", "3.5"], Series([1, 2, 3.5], dtype="Float64")),
     ],
 )

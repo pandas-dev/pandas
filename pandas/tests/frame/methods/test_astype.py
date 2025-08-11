@@ -857,8 +857,7 @@ class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
 class Int16DtypeNoCopy(pd.Int16Dtype):
     # GH 42501
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         return IntegerArrayNoCopy
 
 
