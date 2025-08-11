@@ -12,6 +12,7 @@ import numpy as np
 from pandas._libs.lib import i8max
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
@@ -55,8 +56,13 @@ def generate_regular_range(
     """
     istart = start._value if start is not None else None
     iend = end._value if end is not None else None
-    freq.nanos  # raises if non-fixed frequency
-    td = Timedelta(freq)
+    if isinstance(freq, Day):
+        # In contexts without a timezone, a Day offset is unambiguously
+        #  interpretable as Timedelta-like.
+        td = Timedelta(days=freq.n)
+    else:
+        freq.nanos  # raises if non-fixed frequency
+        td = Timedelta(freq)
     b: int
     e: int
     try:
