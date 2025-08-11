@@ -300,6 +300,41 @@ This change also applies to :meth:`.DataFrameGroupBy.value_counts`. Here, there 
 
     df.groupby("a", sort=True).value_counts(sort=False)
 
+.. _whatsnew_300.api_breaking.offsets_day_not_a_tick:
+
+Changed behavior of ``pd.offsets.Day`` to always represent calendar-day
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, :class:`offsets.Day` represented a fixed span
+of 24 hours, disregarding Daylight Savings Time transitions. It now consistently
+behaves as a calendar-day, preserving time-of-day across DST transitions:
+
+*Old behavior*
+
+.. code-block:: ipython
+
+    In [5]: ts = pd.Timestamp("2025-03-08 08:00", tz="US/Eastern")
+    In [6]: ts + pd.offsets.Day(1)
+    Out[3]: Timestamp('2025-03-09 09:00:00-0400', tz='US/Eastern')
+
+*New behavior*
+
+.. ipython:: python
+
+    ts = pd.Timestamp("2025-03-08 08:00", tz="US/Eastern")
+    ts + pd.offsets.Day(1)
+
+This change fixes a long-standing bug in :func:`date_range` (:issue:`51716`, :issue:`35388`), but causes several
+small behavior differences as collateral:
+
+- ``pd.offsets.Day(n)`` no longer compares as equal to ``pd.offsets.Hour(24*n)``
+- :class:`offsets.Day` no longer supports division
+- :class:`Timedelta` no longer accepts :class:`Day` objects as inputs
+- :meth:`tseries.frequencies.to_offset` on a :class:`Timedelta` object returns a :class:`offsets.Hour` object in cases where it used to return a :class:`Day` object.
+- Adding or subtracting a scalar from a timezone-aware :class:`DatetimeIndex` with a :class:`Day` ``freq`` no longer preserves that ``freq`` attribute.
+- Adding or subtracting a :class:`Day` with a :class:`Timedelta` is no longer supported.
+- Adding or subtracting a :class:`Day` offset to a timezone-aware :class:`Timestamp` or datetime-like may lead to an ambiguous or non-existent time, which will raise.
+
 .. _whatsnew_300.api_breaking.deps:
 
 Increased minimum version for Python
@@ -732,6 +767,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :meth:`DatetimeIndex.union`, :meth:`DatetimeIndex.intersection`, and :meth:`DatetimeIndex.symmetric_difference` changing timezone to UTC when merging two DatetimeIndex objects with the same timezone but different units (:issue:`60080`)
+- Bug in :meth:`Series.dt.tz_localize` with a timezone-aware :class:`ArrowDtype` incorrectly converting to UTC when ``tz=None`` (:issue:`61780`)
 -
 
 Numeric

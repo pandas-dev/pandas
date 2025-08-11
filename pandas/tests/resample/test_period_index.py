@@ -560,9 +560,10 @@ class TestPeriodIndex:
         )
         s = Series([1, 2], index=idx)
 
+        # GH#61985 changed this to behave like "B" rather than "24h"
         result = s.resample("D", closed="right", label="right").mean()
-        ex_index = date_range("2001-09-21", periods=1, freq="D", tz="Australia/Sydney")
-        expected = Series([1.5], index=ex_index)
+        ex_index = date_range("2001-09-20", periods=2, freq="D", tz="Australia/Sydney")
+        expected = Series([np.nan, 1.5], index=ex_index)
 
         tm.assert_series_equal(result, expected)
 
