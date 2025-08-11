@@ -1,8 +1,9 @@
+# Non-dependencies that pandas utilizes or has compatibility with pandas objects
 name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.13
 
   # build dependencies
   - versioneer
@@ -57,6 +58,17 @@ dependencies:
   - xlsxwriter>=3.2.0
   - zstandard>=0.22.0
 
+  # downstream packages
+  - botocore
+  - cftime
+  - dask
+  - ipython
+  - seaborn
+  - scikit-learn
+  - statsmodels
+  - coverage
+  - pandas-datareader
+  - pyyaml
   - pip:
     - adbc-driver-postgresql>=0.10.0
     - adbc-driver-sqlite>=0.8.0

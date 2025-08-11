@@ -35,7 +35,6 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
-    PY311,
     PY312,
     is_ci_environment,
     is_platform_windows,
@@ -344,13 +343,7 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]") and not PY311:
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="Nanosecond time parsing not supported.",
-                )
-            )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
             _require_timezone_database(request)
 
         pa_array = data._pa_array.cast(pa.string())
@@ -2868,7 +2861,7 @@ def test_dt_components():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[1, 0, 0, 2, 0, 3, 4], [None, None, None, None, None, None, None]],
+        [[1, 0, 0, 2, 0, 3, 4], [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA]],
         columns=[
             "days",
             "hours",
@@ -2893,7 +2886,10 @@ def test_dt_components_large_values():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[365, 23, 59, 59, 999, 0, 0], [None, None, None, None, None, None, None]],
+        [
+            [365, 23, 59, 59, 999, 0, 0],
+            [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA],
+        ],
         columns=[
             "days",
             "hours",

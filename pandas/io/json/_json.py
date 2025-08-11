@@ -11,6 +11,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     TypeVar,
     final,
     overload,
@@ -82,7 +83,6 @@ if TYPE_CHECKING:
         JSONEngine,
         JSONSerializable,
         ReadBuffer,
-        Self,
         StorageOptions,
         WriteBuffer,
     )
@@ -746,9 +746,9 @@ def read_json(
     >>> df.to_json(orient='table')
         '\
 {{"schema":{{"fields":[\
-{{"name":"index","type":"string"}},\
-{{"name":"col 1","type":"string"}},\
-{{"name":"col 2","type":"string"}}],\
+{{"name":"index","type":"string","extDtype":"str"}},\
+{{"name":"col 1","type":"string","extDtype":"str"}},\
+{{"name":"col 2","type":"string","extDtype":"str"}}],\
 "primaryKey":["index"],\
 "pandas_version":"1.4.0"}},\
 "data":[\
