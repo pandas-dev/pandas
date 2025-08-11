@@ -140,20 +140,29 @@ class ArrowParserWrapper(ParserBase):
             "encoding": self.encoding,
         }
 
-    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
-        """
-        Processes data read in based on kwargs.
+    def _get_convert_options(self):
+        pyarrow_csv = import_optional_dependency("pyarrow.csv")
 
-        Parameters
-        ----------
-        frame: DataFrame
-            The DataFrame to process.
+        try:
+            convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
+        except TypeError as err:
+            include = self.convert_options.get("include_columns", None)
+            if include is not None:
+                self._validate_usecols(include)
 
-        Returns
-        -------
-        DataFrame
-            The processed DataFrame.
-        """
+            nulls = self.convert_options.get("null_values", set())
+            if not lib.is_list_like(nulls) or not all(
+                isinstance(x, str) for x in nulls
+            ):
+                raise TypeError(
+                    "The 'pyarrow' engine requires all na_values to be strings"
+                ) from err
+
+            raise
+
+        return convert_options
+
+    def _adjust_column_names(self, frame: DataFrame) -> tuple[DataFrame, bool]:
         num_cols = len(frame.columns)
         multi_index_named = True
         if self.header is None:
@@ -169,8 +178,9 @@ class ArrowParserWrapper(ParserBase):
                 self.names = columns_prefix + self.names
                 multi_index_named = False
             frame.columns = self.names
+        return frame, multi_index_named
 
-        frame = self._do_date_conversions(frame.columns, frame)
+    def _finalize_index(self, frame: DataFrame, multi_index_named: bool) -> DataFrame:
         if self.index_col is not None:
             index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):
@@ -196,6 +206,9 @@ class ArrowParserWrapper(ParserBase):
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
 
+        return frame
+
+    def _finalize_dtype(self, frame: DataFrame) -> DataFrame:
         if self.dtype is not None:
             # Ignore non-existent columns from dtype mapping
             # like other parsers do
@@ -212,6 +225,26 @@ class ArrowParserWrapper(ParserBase):
             except TypeError as err:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(str(err)) from err
+        return frame
+
+    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
+        """
+        Processes data read in based on kwargs.
+
+        Parameters
+        ----------
+        frame: DataFrame
+            The DataFrame to process.
+
+        Returns
+        -------
+        DataFrame
+            The processed DataFrame.
+        """
+        frame, multi_index_named = self._adjust_column_names(frame)
+        frame = self._do_date_conversions(frame.columns, frame)
+        frame = self._finalize_index(frame, multi_index_named)
+        frame = self._finalize_dtype(frame)
         return frame
 
     def _validate_usecols(self, usecols) -> None:
@@ -239,23 +272,7 @@ class ArrowParserWrapper(ParserBase):
         pa = import_optional_dependency("pyarrow")
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
-
-        try:
-            convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
-        except TypeError as err:
-            include = self.convert_options.get("include_columns", None)
-            if include is not None:
-                self._validate_usecols(include)
-
-            nulls = self.convert_options.get("null_values", set())
-            if not lib.is_list_like(nulls) or not all(
-                isinstance(x, str) for x in nulls
-            ):
-                raise TypeError(
-                    "The 'pyarrow' engine requires all na_values to be strings"
-                ) from err
-
-            raise
+        convert_options = self._get_convert_options()
 
         try:
             table = pyarrow_csv.read_csv(
