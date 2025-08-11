@@ -530,6 +530,15 @@ cdef NPY_DATETIMEUNIT get_supported_reso_for_dts(
     # defaulting to 'us' if possible.
     if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         return NPY_DATETIMEUNIT.NPY_FR_ns
+        # if dts.ps != 0:
+        #     return NPY_DATETIMEUNIT.NPY_FR_ns
+        # elif (
+        #     cmp_dtstructs(dts, &dts_us_min, Py_GE)
+        #     and cmp_dtstructs(dts, &dts_us_max, Py_LE)
+        # ):
+        #     return NPY_DATETIMEUNIT.NPY_FR_us
+        # else:
+        #     return NPY_DATETIMEUNIT.NPY_FR_s
     if reso < NPY_DATETIMEUNIT.NPY_FR_us:
         if (
             cmp_dtstructs(dts, &dts_us_min, Py_GE)

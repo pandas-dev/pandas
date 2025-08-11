@@ -1093,6 +1093,19 @@ class TestDatetimeIndex:
         tm.assert_index_equal(res3, expected)
         tm.assert_index_equal(res4, expected)
 
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_constructor_from_timestamp_objects(self, unit, tz):
+        result = DatetimeIndex(
+            [
+                Timestamp("2012-01-01 00:00:00", tz=tz).as_unit(unit),
+                Timestamp("2012-01-02 00:00:00", tz=tz).as_unit(unit),
+            ],
+        )
+        expected = (
+            DatetimeIndex(["2012-01-01", "2012-01-02"]).as_unit(unit).tz_localize(tz)
+        )
+        tm.assert_index_equal(result, expected)
+
 
 class TestTimeSeries:
     def test_dti_constructor_preserve_dti_freq(self):
