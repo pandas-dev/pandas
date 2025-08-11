@@ -179,8 +179,7 @@ class ArrowParserWrapper(ParserBase):
         multi_index_named = True
         if self.header is None:
             if self.names is None:
-                if self.header is None:
-                    self.names = range(num_cols)
+                self.names = range(num_cols)
             if len(self.names) != num_cols:
                 # usecols is passed through to pyarrow, we only handle index col here
                 # The only way self.names is not the same length as number of cols is
