@@ -671,10 +671,12 @@ def test_inf_na_values_with_int_index(all_parsers):
 
 
 @pytest.mark.parametrize("na_filter", [True, False])
-def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter, request):
+def test_na_values_with_dtype_str_and_na_filter(
+    all_parsers, na_filter, using_infer_string, request
+):
     # see gh-20377
     parser = all_parsers
-    if parser.engine == "pyarrow" and na_filter is False:
+    if parser.engine == "pyarrow" and (na_filter is False or not using_infer_string):
         mark = pytest.mark.xfail(reason="mismatched shape")
         request.applymarker(mark)
 
