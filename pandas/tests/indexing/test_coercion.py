@@ -596,7 +596,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
-            (pd.Timestamp("2012-01-01"), "datetime64[s]"),
+            (pd.Timestamp("2012-01-01"), "datetime64[us]"),
             (pd.Timestamp("2012-01-01", tz="US/Eastern"), object),
             (1, object),
             ("x", object),
@@ -613,7 +613,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
                 pd.Timestamp("2011-01-04"),
             ]
         )
-        assert obj.dtype == "datetime64[s]"
+        assert obj.dtype == "datetime64[us]"
 
         exp = klass(
             [
@@ -628,10 +628,10 @@ class TestFillnaSeriesCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
-            (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[s, US/Eastern]"),
+            (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[us, US/Eastern]"),
             (pd.Timestamp("2012-01-01"), object),
             # pre-2.0 with a mismatched tz we would get object result
-            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), "datetime64[s, US/Eastern]"),
+            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), "datetime64[us, US/Eastern]"),
             (1, object),
             ("x", object),
         ],
@@ -648,7 +648,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
                 pd.Timestamp("2011-01-04", tz=tz),
             ]
         )
-        assert obj.dtype == "datetime64[s, US/Eastern]"
+        assert obj.dtype == "datetime64[us, US/Eastern]"
 
         if getattr(fill_val, "tz", None) is None:
             fv = fill_val

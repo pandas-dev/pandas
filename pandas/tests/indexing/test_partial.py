@@ -574,7 +574,7 @@ class TestPartialSetting:
                 ],
             ),
             (
-                date_range(start="2000", periods=20, freq="D", unit="s"),
+                date_range(start="2000", periods=20, freq="D", unit="us"),
                 ["2000-01-04", "2000-01-08", "2000-01-12"],
                 [
                     Timestamp("2000-01-04"),
