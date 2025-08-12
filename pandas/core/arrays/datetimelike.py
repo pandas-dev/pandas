@@ -1095,9 +1095,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             and isinstance(other, Timestamp)
         ):
             self = cast("DatetimeArray", self)
-            if (
-                self.tz is None or timezones.is_utc(self.tz)
-            ) and (
+            if (self.tz is None or timezones.is_utc(self.tz)) and (
                 other.tz is None or timezones.is_utc(other.tz)
             ):
                 # e.g. issue gh-62094: subtracting a Timestamp from a DTI
