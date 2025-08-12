@@ -6,10 +6,13 @@ import warnings
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     pandas_dtype,
@@ -309,7 +312,7 @@ class ArrowParserWrapper(ParserBase):
             warnings.filterwarnings(
                 "ignore",
                 "make_block is deprecated",
-                DeprecationWarning,
+                Pandas4Warning,
             )
             frame = arrow_table_to_pandas(
                 table,

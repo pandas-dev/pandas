@@ -162,7 +162,10 @@ def test_seaborn(mpl_cleanup):
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
+@pytest.mark.xfail(reason="pandas_datareader uses old variant of deprecate_kwarg")
 def test_pandas_datareader():
+    # https://github.com/pandas-dev/pandas/pull/61468
+    # https://github.com/pydata/pandas-datareader/issues/1005
     pytest.importorskip("pandas_datareader")
 
 

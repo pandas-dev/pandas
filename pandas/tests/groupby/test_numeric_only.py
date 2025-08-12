@@ -3,6 +3,7 @@ import re
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -266,7 +267,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
     if has_arg and numeric_only is True:
         # Cases where b does not appear in the result
         if kernel == "corrwith":
-            warn = FutureWarning
+            warn = Pandas4Warning
             msg = "DataFrameGroupBy.corrwith is deprecated"
         else:
             warn = None
@@ -311,7 +312,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             msg = "'>' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
             if kernel == "corrwith":
-                warn = FutureWarning
+                warn = Pandas4Warning
                 msg = "DataFrameGroupBy.corrwith is deprecated"
             else:
                 warn = None

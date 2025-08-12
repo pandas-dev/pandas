@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import ensure_platform_int
 
@@ -1103,7 +1104,7 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
 
     args = get_groupby_method_args(reduction_func, obj)
     if func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -1470,7 +1471,7 @@ def test_as_index_no_change(keys, df, groupby_func):
     gb_as_index_true = df.groupby(keys, as_index=True)
     gb_as_index_false = df.groupby(keys, as_index=False)
     if groupby_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None

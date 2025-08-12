@@ -44,6 +44,7 @@ from pandas.compat import (
     pa_version_under20p0,
     pa_version_under21p0,
 )
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -2834,14 +2835,14 @@ def test_dt_to_pytimedelta():
     ser = pd.Series(data, dtype=ArrowDtype(pa.duration("ns")))
 
     msg = "The behavior of ArrowTemporalProperties.to_pytimedelta is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = ser.dt.to_pytimedelta()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is timedelta for res in result)
 
     msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
     tm.assert_numpy_array_equal(result, expected)
 

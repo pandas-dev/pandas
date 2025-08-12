@@ -2,6 +2,8 @@ from io import StringIO
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -15,7 +17,7 @@ def test_keyword_deprecation():
         "except for the argument 'buf' will be keyword-only."
     )
     s = pd.Series()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         s.to_markdown(None, "wt")
 
 
