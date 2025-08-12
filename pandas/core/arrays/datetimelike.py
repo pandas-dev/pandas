@@ -1089,6 +1089,16 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             # e.g. TestTimedelta64ArithmeticUnsorted::test_timedelta
             # Day is unambiguously 24h
             return self.freq
+        elif (
+            lib.is_np_dtype(self.dtype, "M")
+            and isinstance(self.freq, Day)
+            and isinstance(other, Timestamp)
+            and (self.tz is None or timezones.is_utc(self.tz))
+            and (other.tz is None or timezones.is_utc(other.tz))
+        ):
+            # e.g. issue gh-62094: subtracting a Timestamp from a DTI
+            # with Day freq retains that freq
+            return self.freq
 
         return None
 
