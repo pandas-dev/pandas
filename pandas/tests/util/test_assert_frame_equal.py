@@ -395,3 +395,11 @@ def test_assert_frame_equal_set_mismatch():
     msg = r'DataFrame.iloc\[:, 0\] \(column name="set_column"\) values are different'
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2)
+
+
+def test_assert_frame_equal_pdNa_ignore_dtype():
+    # GH#61473
+    df1 = DataFrame({"x": pd.Series([pd.NA], dtype="Int32")})
+    df2 = DataFrame({"x": pd.Series([pd.NA], dtype="object")})
+
+    tm.assert_frame_equal(df1, df2, check_dtype=False)
