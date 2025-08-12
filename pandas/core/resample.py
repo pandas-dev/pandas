@@ -4,7 +4,9 @@ import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
     Literal,
+    Self,
     cast,
     final,
     no_type_check,
@@ -96,13 +98,11 @@ if TYPE_CHECKING:
         Any,
         AnyArrayLike,
         Axis,
-        Concatenate,
         FreqIndexT,
         Frequency,
         IndexLabel,
         InterpolateOptions,
         P,
-        Self,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
@@ -2159,8 +2159,10 @@ class TimeGrouper(Grouper):
         fill_method=None,
         limit: int | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
-        origin: Literal["epoch", "start", "start_day", "end", "end_day"]
-        | TimestampConvertibleTypes = "start_day",
+        origin: (
+            Literal["epoch", "start", "start_day", "end", "end_day"]
+            | TimestampConvertibleTypes
+        ) = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool = False,
         **kwargs,
@@ -2174,13 +2176,10 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        if (
-            (key is None and obj is not None and isinstance(obj.index, PeriodIndex))  # type: ignore[attr-defined]
-            or (
-                key is not None
-                and obj is not None
-                and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
-            )
+        if (key is None and obj is not None and isinstance(obj.index, PeriodIndex)) or (  # type: ignore[attr-defined]
+            key is not None
+            and obj is not None
+            and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
         ):
             freq = to_offset(freq, is_period=True)
         else:
@@ -2435,7 +2434,7 @@ class TimeGrouper(Grouper):
                 f"an instance of {type(ax).__name__}"
             )
 
-        if not isinstance(self.freq, Tick):
+        if not isinstance(self.freq, (Tick, Day)):
             # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
@@ -2655,21 +2654,15 @@ def _get_timestamp_range_edges(
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
 
-        if isinstance(freq, Day):
-            # _adjust_dates_anchored assumes 'D' means 24h, but first/last
-            # might contain a DST transition (23h, 24h, or 25h).
-            # So "pretend" the dates are naive when adjusting the endpoints
-            first = first.tz_localize(None)
-            last = last.tz_localize(None)
-            if isinstance(origin, Timestamp):
-                origin = origin.tz_localize(None)
-
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset, unit=unit
+            first,
+            last,
+            freq,
+            closed=closed,
+            origin=origin,
+            offset=offset,
+            unit=unit,
         )
-        if isinstance(freq, Day):
-            first = first.tz_localize(index_tz)
-            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()

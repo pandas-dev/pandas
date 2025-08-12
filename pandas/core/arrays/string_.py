@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 import warnings
@@ -85,7 +86,6 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
-        Self,
         npt,
         type_t,
     )

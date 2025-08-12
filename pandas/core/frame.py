@@ -31,6 +31,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -242,7 +243,6 @@ if TYPE_CHECKING:
         ReindexMethod,
         Renamer,
         Scalar,
-        Self,
         SequenceNotStr,
         SortKind,
         StorageOptions,
@@ -2234,7 +2234,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_iterator(data):
             if nrows == 0:
-                return cls()
+                return cls(index=index, columns=columns)
 
             try:
                 first_row = next(data)

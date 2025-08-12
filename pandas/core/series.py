@@ -20,6 +20,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -191,7 +192,6 @@ if TYPE_CHECKING:
         ReindexMethod,
         Renamer,
         Scalar,
-        Self,
         SortKind,
         StorageOptions,
         Suffixes,
