@@ -19,7 +19,7 @@
 **pandas** is a Python package that provides fast, flexible, and expressive data
 structures designed to make working with "relational" or "labeled" data both
 easy and intuitive. It aims to be the fundamental high-level building block for
-doing practical, **real world** data analysis in Python. Additionally, it has
+doing practical, **real-world** data analysis in Python. Additionally, it has
 the broader goal of becoming **the most powerful and flexible open source data
 analysis / manipulation tool available in any language**. It is already well on
 its way towards this goal.
@@ -64,7 +64,7 @@ Here are just a few of the things that pandas does well:
     data sets
   - [**Hierarchical**][mi] labeling of axes (possible to have multiple
     labels per tick)
-  - Robust IO tools for loading data from [**flat files**][flat-files]
+  - Robust I/O tools for loading data from [**flat files**][flat-files]
     (CSV and delimited), [**Excel files**][excel], [**databases**][db],
     and saving/loading data from the ultrafast [**HDF5 format**][hdfstore]
   - [**Time series**][timeseries]-specific functionality: date range
@@ -155,7 +155,7 @@ has been under active development since then.
 
 ## Getting Help
 
-For usage questions, the best place to go to is [StackOverflow](https://stackoverflow.com/questions/tagged/pandas).
+For usage questions, the best place to go to is [Stack Overflow](https://stackoverflow.com/questions/tagged/pandas).
 Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
 
 ## Discussion and Development
