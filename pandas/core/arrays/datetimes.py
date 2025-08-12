@@ -2267,7 +2267,7 @@ default 'raise'
 
         See Also
         --------
-        Timestamp.to_julian_date : this same method on ``Timestamp`` objects.
+        Timestamp.to_julian_date : Equivalent method on ``Timestamp`` objects.
 
         Examples
         --------
