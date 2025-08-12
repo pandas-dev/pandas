@@ -1070,26 +1070,13 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         elif isinstance(self.freq, Tick):
             # In these cases
             return self.freq
-        elif self.dtype.kind == "m" and isinstance(other, Timedelta):
-            return self.freq
-        elif (
-            self.dtype.kind == "m"
-            and isinstance(other, Timestamp)
-            and (other.tz is None or timezones.is_utc(other.tz))
-        ):
-            # e.g. test_td64arr_add_sub_datetimelike_scalar tdarr + timestamp
-            #  gives a DatetimeArray. As long as the timestamp has no timezone
-            #  or UTC, the result can retain a Day freq.
-            return self.freq
-        elif (
-            lib.is_np_dtype(self.dtype, "M")
-            and isinstance(self.freq, Day)
-            and isinstance(other, Timedelta)
-        ):
-            # e.g. TestTimedelta64ArithmeticUnsorted::test_timedelta
-            # Day is unambiguously 24h
-            return self.freq
-
+        # If no explicit freq, use inferred_freq when the index is regular
+        elif self.freq is None:
+            inferred = self.inferred_freq
+            if inferred is not None:
+                offset = to_offset(inferred)
+                if isinstance(offset, Tick):
+                    return offset
         return None
 
     @final

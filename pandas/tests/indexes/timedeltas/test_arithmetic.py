@@ -2,6 +2,7 @@
 # Other cases can be shared in tests.arithmetic.test_timedelta64
 import numpy as np
 
+import pandas as pd
 from pandas import (
     NaT,
     Timedelta,
@@ -49,3 +50,11 @@ class TestTimedeltaIndexArithmetic:
             [31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan]
         )
         tm.assert_equal(result, expected)
+
+    def test_timedeltaindex_shift_infers_freq(self):
+        # GH#62094: TimedeltaIndex.shift() should work if freq can be inferred
+        ind = pd.date_range("1/1/2021", "1/5/2021") - pd.Timestamp("1/3/2019")
+        shifted = ind.shift(1)
+        expected = ind + Timedelta(days=1)
+        tm.assert_index_equal(shifted, expected)
+        assert shifted.freq == pd.tseries.frequencies.to_offset("D")
