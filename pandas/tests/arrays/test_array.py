@@ -127,7 +127,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[us]"),
         ),
         (
             ["2000", "2001"],
@@ -324,7 +324,7 @@ def test_array_copy():
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[us]"),
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
@@ -335,16 +335,16 @@ def test_array_copy():
             DatetimeArray._from_sequence(np.array([1, 2], dtype="M8[ns]")),
         ),
         (
-            np.array([1, 2], dtype="M8[us]"),
+            np.array([1, 2], dtype="M8[s]"),
             DatetimeArray._simple_new(
-                np.array([1, 2], dtype="M8[us]"), dtype=np.dtype("M8[us]")
+                np.array([1, 2], dtype="M8[s]"), dtype=np.dtype("M8[s]")
             ),
         ),
         # datetimetz
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="s")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="us")
             ),
         ),
         (
