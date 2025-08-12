@@ -369,7 +369,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         result = getattr(ser.dt, method)(freq, nonexistent="NaT")
-        expected = Series([pd.NaT]).dt.tz_localize(result.dt.tz)
+        expected = Series([pd.NaT], dtype="datetime64[us]").dt.tz_localize(result.dt.tz)
         tm.assert_series_equal(result, expected)
 
         with pytest.raises(ValueError, match="2018-03-11 02:00:00"):

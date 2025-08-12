@@ -1163,7 +1163,7 @@ class TestSeriesConstructors:
                 Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
             ]
         )
-        assert ser.dtype == "datetime64[s, US/Pacific]"
+        assert ser.dtype == "datetime64[us, US/Pacific]"
         assert lib.infer_dtype(ser, skipna=True) == "datetime64"
 
     def test_constructor_with_datetime_tz3(self):
@@ -1408,10 +1408,10 @@ class TestSeriesConstructors:
         result_datetime = Series(data_datetime)
         result_Timestamp = Series(data_Timestamp)
 
-        tm.assert_series_equal(result_datetime64, expected)
         tm.assert_series_equal(
-            result_datetime, expected.set_axis(expected.index.as_unit("us"))
+            result_datetime64, expected.set_axis(expected.index.as_unit("s"))
         )
+        tm.assert_series_equal(result_datetime, expected)
         tm.assert_series_equal(result_Timestamp, expected)
 
     def test_constructor_dict_tuple_indexer(self):

@@ -313,7 +313,7 @@ class TestSeriesFillNA:
     def test_datetime64_fillna_mismatched_reso_no_rounding(self, tz, scalar):
         # GH#56410
         dti = date_range("2016-01-01", periods=3, unit="s", tz=tz)
-        item = Timestamp("2016-02-03 04:05:06.789", tz=tz)
+        item = Timestamp("2016-02-03 04:05:06.789", tz=tz).as_unit("ms")
         vec = date_range(item, periods=3, unit="ms")
 
         exp_dtype = "M8[ms]" if tz is None else "M8[ms, UTC]"
@@ -340,8 +340,12 @@ class TestSeriesFillNA:
     )
     def test_timedelta64_fillna_mismatched_reso_no_rounding(self, scalar):
         # GH#56410
-        tdi = date_range("2016-01-01", periods=3, unit="s") - Timestamp("1970-01-01")
-        item = Timestamp("2016-02-03 04:05:06.789") - Timestamp("1970-01-01")
+        tdi = date_range("2016-01-01", periods=3, unit="s") - Timestamp(
+            "1970-01-01"
+        ).as_unit("s")
+        item = (Timestamp("2016-02-03 04:05:06.789") - Timestamp("1970-01-01")).as_unit(
+            "ms"
+        )
         vec = timedelta_range(item, periods=3, unit="ms")
 
         expected = Series([item, tdi[1], tdi[2]], dtype="m8[ms]")
