@@ -67,6 +67,7 @@ def group_sum(
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
+    initial: object = ...,
     skipna: bool = ...,
 ) -> None: ...
 def group_prod(

@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 import warnings
@@ -25,7 +26,7 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under10p1,
+    pa_version_under12p1,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -52,6 +53,7 @@ from pandas.core import (
     missing,
     nanops,
     ops,
+    roperator,
 )
 from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
@@ -72,6 +74,8 @@ from pandas.core.missing import isna
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     import pyarrow
 
     from pandas._typing import (
@@ -82,7 +86,6 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
-        Self,
         npt,
         type_t,
     )
@@ -182,9 +185,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under10p1:
+        if storage == "pyarrow" and pa_version_under12p1:
             raise ImportError(
-                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
+                "pyarrow>=12.0.1 is required for PyArrow backed StringArray."
             )
 
         if isinstance(na_value, float) and np.isnan(na_value):
@@ -217,6 +220,11 @@ class StringDtype(StorageExtensionDtype):
         if isinstance(other, type(self)):
             return self.storage == other.storage and self.na_value is other.na_value
         return False
+
+    def __setstate__(self, state: MutableMapping[str, Any]) -> None:
+        # back-compat for pandas < 2.3, where na_value did not yet exist
+        self.storage = state.pop("storage", "python")
+        self._na_value = state.pop("_na_value", libmissing.NA)
 
     def __hash__(self) -> int:
         # need to override __hash__ as well because of overriding __eq__
@@ -275,12 +283,7 @@ class StringDtype(StorageExtensionDtype):
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
-    # https://github.com/pandas-dev/pandas/issues/36126
-    # error: Signature of "construct_array_type" incompatible with supertype
-    # "ExtensionDtype"
-    def construct_array_type(  # type: ignore[override]
-        self,
-    ) -> type_t[BaseStringArray]:
+    def construct_array_type(self) -> type_t[BaseStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -382,6 +385,26 @@ class BaseStringArray(ExtensionArray):
     """
 
     dtype: StringDtype
+
+    # TODO(4.0): Once the deprecation here is enforced, this method can be
+    #  removed and we use the parent class method instead.
+    def _logical_method(self, other, op):
+        if (
+            op in (roperator.ror_, roperator.rand_, roperator.rxor)
+            and isinstance(other, np.ndarray)
+            and other.dtype == bool
+        ):
+            # GH#60234 backward compatibility for the move to StringDtype in 3.0
+            op_name = op.__name__[1:].strip("_")
+            warnings.warn(
+                f"'{op_name}' operations between boolean dtype and {self.dtype} are "
+                "deprecated and will raise in a future version. Explicitly "
+                "cast the strings to a boolean dtype before operating instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return op(other, self.astype(bool))
+        return NotImplemented
 
     @doc(ExtensionArray.tolist)
     def tolist(self) -> list:

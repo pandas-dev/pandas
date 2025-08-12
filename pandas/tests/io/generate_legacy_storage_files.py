@@ -147,6 +147,7 @@ def create_pickle_data():
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
         "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
+        "string": Index(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
     index["range"] = RangeIndex(10)
@@ -185,6 +186,7 @@ def create_pickle_data():
         "dt": Series(date_range("20130101", periods=5)),
         "dt_tz": Series(date_range("20130101", periods=5, tz="US/Eastern")),
         "period": Series([Period("2000Q1")] * 5),
+        "string": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
     mixed_dup_df = DataFrame(data)
@@ -232,6 +234,12 @@ def create_pickle_data():
                 "C": Timestamp("20130603", tz="UTC"),
             },
             index=range(5),
+        ),
+        "string": DataFrame(
+            {
+                "A": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
+                "B": Series(["one", "two", "one", "two", "three"], dtype="string"),
+            }
         ),
     }
 

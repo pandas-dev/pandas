@@ -10,16 +10,13 @@ These are used for:
 from __future__ import annotations
 
 from typing import (
-    TYPE_CHECKING,
     NoReturn,
+    Self,
 )
 
 from pandas.core.base import PandasObject
 
 from pandas.io.formats.printing import pprint_thing
-
-if TYPE_CHECKING:
-    from pandas._typing import Self
 
 
 class FrozenList(PandasObject, list):

@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     cast,
     final,
     overload,
@@ -23,7 +24,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
-    Self,
     Shape,
     npt,
 )
@@ -323,12 +323,12 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.T
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
 
         For Index:
 
@@ -383,7 +383,7 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.ndim
         1
 
@@ -452,9 +452,9 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.nbytes
-        24
+        34
 
         For Index:
 
@@ -487,7 +487,7 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.size
         3
 
@@ -567,7 +567,7 @@ class IndexOpsMixin(OpsMixin):
         >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.array
         ['a', 'b', 'a']
-        Categories (2, object): ['a', 'b']
+        Categories (2, str): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -1076,7 +1076,7 @@ class IndexOpsMixin(OpsMixin):
 
         >>> df.dtypes
         a    category
-        b      object
+        b      str
         c    category
         d    category
         dtype: object
@@ -1084,7 +1084,7 @@ class IndexOpsMixin(OpsMixin):
         >>> df.dtypes.value_counts()
         category    2
         category    1
-        object      1
+        str         1
         Name: count, dtype: int64
         """
         return algorithms.value_counts_internal(
@@ -1386,7 +1386,7 @@ class IndexOpsMixin(OpsMixin):
         ... )
         >>> ser
         ['apple', 'bread', 'bread', 'cheese', 'milk']
-        Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
+        Categories (4, str): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
         np.int64(1)

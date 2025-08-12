@@ -1566,11 +1566,8 @@ class TestPandasContainer:
         result = read_json(StringIO(dfjson), orient="table")
         tm.assert_frame_equal(result, expected)
 
-    # TODO: We are casting to string which coerces None to NaN before casting back
-    # to object, ending up with incorrect na values
-    @pytest.mark.xfail(using_string_dtype(), reason="incorrect na conversion")
     @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
-    def test_to_json_from_json_columns_dtypes(self, orient):
+    def test_to_json_from_json_columns_dtypes(self, orient, using_infer_string):
         # GH21892 GH33205
         expected = DataFrame.from_dict(
             {
@@ -1590,6 +1587,11 @@ class TestPandasContainer:
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             dfjson = expected.to_json(orient=orient)
+
+        if using_infer_string:
+            # When this is read back in it is inferred to "str" dtype which
+            #  uses NaN instead of None.
+            expected.loc[0, "Object"] = np.nan
 
         result = read_json(
             StringIO(dfjson),
@@ -2134,9 +2136,9 @@ class TestPandasContainer:
         # GH#50750
         df = DataFrame(
             {
-                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "a": Series([1, NA, 3], dtype="Int64"),
                 "b": Series([1, 2, 3], dtype="Int64"),
-                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "c": Series([1.5, NA, 2.5], dtype="Float64"),
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": [True, False, None],
                 "f": [True, False, True],
@@ -2159,9 +2161,9 @@ class TestPandasContainer:
 
         expected = DataFrame(
             {
-                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "a": Series([1, NA, 3], dtype="Int64"),
                 "b": Series([1, 2, 3], dtype="Int64"),
-                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "c": Series([1.5, NA, 2.5], dtype="Float64"),
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
@@ -2216,7 +2218,7 @@ class TestPandasContainer:
     def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):
         # GH#50750
         pa = pytest.importorskip("pyarrow")
-        ser = Series([1, np.nan, 3], dtype="Int64")
+        ser = Series([1, NA, 3], dtype="Int64")
 
         out = ser.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
@@ -2224,7 +2226,7 @@ class TestPandasContainer:
                 StringIO(out), dtype_backend=dtype_backend, orient=orient, typ="series"
             )
 
-        expected = Series([1, np.nan, 3], dtype="Int64")
+        expected = Series([1, NA, 3], dtype="Int64")
 
         if dtype_backend == "pyarrow":
             from pandas.arrays import ArrowExtensionArray
