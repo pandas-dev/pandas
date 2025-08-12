@@ -1093,12 +1093,16 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             lib.is_np_dtype(self.dtype, "M")
             and isinstance(self.freq, Day)
             and isinstance(other, Timestamp)
-            and (self.tz is None or timezones.is_utc(self.tz))
-            and (other.tz is None or timezones.is_utc(other.tz))
         ):
-            # e.g. issue gh-62094: subtracting a Timestamp from a DTI
-            # with Day freq retains that freq
-            return self.freq
+            self = cast("DatetimeArray", self)
+            if (
+                self.tz is None or timezones.is_utc(self.tz)
+            ) and (
+                other.tz is None or timezones.is_utc(other.tz)
+            ):
+                # e.g. issue gh-62094: subtracting a Timestamp from a DTI
+                # with Day freq retains that freq
+                return self.freq
 
         return None
 
