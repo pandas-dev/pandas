@@ -518,9 +518,6 @@ def test_dtype_backend_pyarrow(all_parsers, request):
     tm.assert_frame_equal(result, expected)
 
 
-# pyarrow engine failing:
-# https://github.com/pandas-dev/pandas/issues/56136
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_ea_int_avoid_overflow(all_parsers):
     # GH#32134
     parser = all_parsers
@@ -594,7 +591,6 @@ z,a"""
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_accurate_parsing_of_large_integers(all_parsers):
     # GH#52505
     data = """SYMBOL,MOMENT,ID,ID_DEAL
