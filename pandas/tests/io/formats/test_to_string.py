@@ -12,6 +12,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -42,7 +44,7 @@ class TestDataFrameToStringFormatters:
             "except for the argument 'buf' will be keyword-only."
         )
         s = Series(["a", "b"])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             s.to_string(None, "NaN")
 
     def test_to_string_masked_ea_with_formatter(self):
