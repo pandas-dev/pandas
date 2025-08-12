@@ -37,12 +37,6 @@ from pandas.io.excel import (
 from pandas.io.excel._util import _writers
 
 
-def get_exp_unit(path: str) -> str:
-    if path.endswith(".ods"):
-        return "s"
-    return "us"
-
-
 @pytest.fixture
 def frame(float_frame):
     """
@@ -297,13 +291,12 @@ class TestRoundTrip:
 
         res = pd.read_excel(tmp_excel, parse_dates=["date_strings"], index_col=0)
         expected = df[:]
-        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
         tm.assert_frame_equal(res, expected)
 
         res = pd.read_excel(
             tmp_excel, parse_dates=["date_strings"], date_format="%m/%d/%Y", index_col=0
         )
-        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
         tm.assert_frame_equal(expected, res)
 
     def test_multiindex_interval_datetimes(self, tmp_excel):
@@ -364,13 +357,6 @@ class TestRoundTrip:
                 names=["date", "category"],
             ),
         )
-        time_format = (
-            "datetime64[s]" if tmp_excel.endswith(".ods") else "datetime64[us]"
-        )
-        expected.index = expected.index.set_levels(
-            expected.index.levels[0].astype(time_format), level=0
-        )
-
         tm.assert_frame_equal(result, expected)
 
 
@@ -507,24 +493,20 @@ class TestExcelWriter:
         tm.assert_frame_equal(mixed_frame, recons)
 
     def test_ts_frame(self, tmp_excel):
-        unit = get_exp_unit(tmp_excel)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=5, freq="B"),
+            index=date_range("2000-01-01", periods=5, freq="B", unit="us"),
         )
 
         # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
         df.index = index
 
-        expected = df[:]
-        expected.index = expected.index.as_unit(unit)
-
         df.to_excel(tmp_excel, sheet_name="test1")
         with ExcelFile(tmp_excel) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
-        tm.assert_frame_equal(expected, recons)
+        tm.assert_frame_equal(recons, df)
 
     def test_basics_with_nan(self, frame, tmp_excel):
         frame = frame.copy()
@@ -594,18 +576,14 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, tmp_excel):
         # freq doesn't round-trip
-        unit = get_exp_unit(tmp_excel)
         tsframe = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=5, freq="B"),
+            index=date_range("2000-01-01", periods=5, freq="B", unit="us"),
         )
 
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
-
-        expected = tsframe[:]
-        expected.index = expected.index.as_unit(unit)
 
         frame = frame.copy()
         frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
@@ -623,7 +601,7 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
             tm.assert_frame_equal(frame, recons)
             recons = pd.read_excel(reader, sheet_name="test2", index_col=0)
-        tm.assert_frame_equal(expected, recons)
+        tm.assert_frame_equal(tsframe, recons)
         assert 2 == len(reader.sheet_names)
         assert "test1" == reader.sheet_names[0]
         assert "test2" == reader.sheet_names[1]
@@ -727,13 +705,12 @@ class TestExcelWriter:
 
     def test_excel_roundtrip_datetime(self, merge_cells, tmp_excel):
         # datetime.date, not sure what to test here exactly
-        unit = get_exp_unit(tmp_excel)
 
         # freq does not round-trip
         tsframe = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=5, freq="B"),
+            index=date_range("2000-01-01", periods=5, freq="B", unit="us"),
         )
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
@@ -746,15 +723,12 @@ class TestExcelWriter:
         with ExcelFile(tmp_excel) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
 
-        expected = tsframe[:]
-        expected.index = expected.index.as_unit(unit)
-        tm.assert_frame_equal(expected, recons)
+        tm.assert_frame_equal(tsframe, recons)
 
     def test_excel_date_datetime_format(self, ext, tmp_excel, tmp_path):
         # see gh-4133
         #
         # Excel output format strings
-        unit = get_exp_unit(tmp_excel)
         df = DataFrame(
             [
                 [date(2014, 1, 31), date(1999, 9, 24)],
@@ -771,7 +745,6 @@ class TestExcelWriter:
             index=["DATE", "DATETIME"],
             columns=["X", "Y"],
         )
-        df_expected = df_expected.astype(f"M8[{unit}]")
 
         filename2 = tmp_path / f"tmp2{ext}"
         filename2.touch()
@@ -790,9 +763,6 @@ class TestExcelWriter:
 
         with ExcelFile(filename2) as reader2:
             rs2 = pd.read_excel(reader2, sheet_name="test1", index_col=0)
-
-        # TODO: why do we get different units?
-        rs2 = rs2.astype(f"M8[{unit}]")
 
         tm.assert_frame_equal(rs1, rs2)
 
@@ -955,7 +925,6 @@ class TestExcelWriter:
 
     def test_to_excel_multiindex_dates(self, merge_cells, tmp_excel):
         # try multiindex with dates
-        unit = get_exp_unit(tmp_excel)
         tsframe = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
             columns=Index(list("ABCD")),
@@ -963,7 +932,7 @@ class TestExcelWriter:
         )
         tsframe.index = MultiIndex.from_arrays(
             [
-                tsframe.index.as_unit(unit),
+                tsframe.index.as_unit("us"),
                 np.arange(len(tsframe.index), dtype=np.int64),
             ],
             names=["time", "foo"],
@@ -1314,7 +1283,6 @@ class TestExcelWriter:
 
     def test_datetimes(self, tmp_excel):
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
-        unit = get_exp_unit(tmp_excel)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
             datetime(2013, 1, 13, 2, 45, 56),
@@ -1333,8 +1301,7 @@ class TestExcelWriter:
         write_frame.to_excel(tmp_excel, sheet_name="Sheet1")
         read_frame = pd.read_excel(tmp_excel, sheet_name="Sheet1", header=0)
 
-        expected = write_frame.astype(f"M8[{unit}]")
-        tm.assert_series_equal(expected["A"], read_frame["A"])
+        tm.assert_series_equal(write_frame["A"], read_frame["A"])
 
     def test_bytes_io(self, engine):
         # see gh-7074
