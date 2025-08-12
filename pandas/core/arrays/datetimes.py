@@ -2256,7 +2256,7 @@ default 'raise'
         """
         Convert TimeStamp to a Julian Date.
 
-        This method returns the number of days as a float since
+        This method returns the number of days as a float since noon January 1, 4713 BC.
 
         https://en.wikipedia.org/wiki/Julian_day
 
