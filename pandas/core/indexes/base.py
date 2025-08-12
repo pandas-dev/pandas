@@ -3674,6 +3674,16 @@ class Index(IndexOpsMixin, PandasObject):
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
 
+        from pandas.api.types import is_timedelta64_dtype
+        if (
+            self.dtype == "string[pyarrow]" and is_timedelta64_dtype(target.dtype)
+        ) or (
+            target.dtype == "string[pyarrow]" and is_timedelta64_dtype(self.dtype)
+        ):
+            from pandas.core.arrays.timedeltas import sequence_to_td64ns
+            data, freq = sequence_to_td64ns(target, copy=False, unit=None)
+            target = type(target)(data)
+
         self._check_indexing_method(method, limit, tolerance)
 
         if not self._index_as_unique:
@@ -6272,6 +6282,16 @@ class Index(IndexOpsMixin, PandasObject):
                 target_dtype
             ):
                 return _dtype_obj
+
+        # from pandas.api.types import is_timedelta64_dtype
+        # from pandas.core.arrays.timedeltas import sequence_to_td64ns
+
+        # if (
+        #     self.dtype == "string[pyarrow]" and is_timedelta64_dtype(target_dtype)
+        # ) or (
+        #     target_dtype == "string[pyarrow]" and is_timedelta64_dtype(self.dtype)
+        # ):
+        #     return np.dtype("m8[ns]")
 
         dtype = find_result_type(self.dtype, target)
         dtype = common_dtype_categorical_compat([self, target], dtype)
