@@ -3676,9 +3676,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas.api.types import is_timedelta64_dtype
 
-        if (self.dtype == "string[pyarrow]" and is_timedelta64_dtype(target.dtype)) or (
-            target.dtype == "string[pyarrow]" and is_timedelta64_dtype(self.dtype)
-        ):
+        if target.dtype == "string[pyarrow]" and is_timedelta64_dtype(self.dtype):
             from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
             data, freq = sequence_to_td64ns(target, copy=False, unit=None)
