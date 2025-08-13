@@ -57,6 +57,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",
+    'sphinx_toggleprompt',
     "sphinx_design",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -296,6 +297,10 @@ html_css_files = [
     "css/pandas.css",
 ]
 
+html_js_files = [
+    'js/custom-copy.js'
+]
+
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
@@ -462,8 +467,11 @@ latex_documents = [
 # latex_use_modindex = True
 
 # Configure copybutton to strip Python REPL prompts and output when copying
-copybutton_prompt_text = r">>> |\.\.\.:|In \[\d+\]:?|Out\[\d+\]:?"
-copybutton_prompt_is_regexp = True
+toggleprompt_prompt_text = r">>> |\.\.\.:|In \[\d+\]:|Out\[\d+\]:"
+toggleprompt_is_regexp = True
+
+copybutton_prompt_text = ''
+copybutton_is_regexp = False
 
 if include_api:
     intersphinx_mapping = {
