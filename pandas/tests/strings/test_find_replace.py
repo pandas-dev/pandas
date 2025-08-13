@@ -287,7 +287,10 @@ def test_str_contains_compiled_regex_arrow_dtype(any_string_dtype):
     pat = re.compile("ba.")
     result = ser.str.contains(pat)
 
-    expected = Series([False, True, True], dtype=bool)
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([False, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
