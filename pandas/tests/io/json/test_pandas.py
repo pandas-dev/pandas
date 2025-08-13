@@ -145,7 +145,7 @@ class TestPandasContainer:
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
-        if df.iloc[:, 0].dtype == "datetime64[s]":
+        if df.iloc[:, 0].dtype == "datetime64[us]":
             expected_warning = FutureWarning
 
         with tm.assert_produces_warning(expected_warning, match=msg):
@@ -154,7 +154,7 @@ class TestPandasContainer:
             )
         if orient == "values":
             expected = DataFrame(data)
-            if expected.iloc[:, 0].dtype == "datetime64[s]":
+            if expected.iloc[:, 0].dtype == "datetime64[us]":
                 # orient == "values" by default will write Timestamp objects out
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need

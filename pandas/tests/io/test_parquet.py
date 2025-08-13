@@ -691,7 +691,6 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
-    @pytest.mark.xfail(reason="datetime_with_nat unit doesn't round-trip")
     def test_basic(self, pa, df_full):
         df = df_full
         pytest.importorskip("pyarrow", "11.0.0")
@@ -731,10 +730,6 @@ class TestParquetPyArrow(Base):
         if pa_version_under13p0:
             expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
                 "M8[ns]"
-            )
-        else:
-            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-                "M8[ms]"
             )
         tm.assert_frame_equal(res, expected)
 
@@ -1044,10 +1039,6 @@ class TestParquetPyArrow(Base):
             expected["datetime_tz"] = expected["datetime_tz"].astype(
                 pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
             )
-
-        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-            "timestamp[ms][pyarrow]"
-        )
 
         check_round_trip(
             df,

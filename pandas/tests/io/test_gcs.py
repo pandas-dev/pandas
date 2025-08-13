@@ -66,7 +66,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
             "int": [1, 3],
             "float": [2.0, np.nan],
             "str": ["t", "s"],
-            "dt": date_range("2018-06-18", periods=2),
+            "dt": date_range("2018-06-18", periods=2, unit="us"),
         }
     )
 
@@ -117,6 +117,9 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
         df2 = df1
 
     expected = df1[:]
+    if format == "json":
+        # json stores datetime in nanoseconds
+        expected["dt"] = expected["dt"].dt.as_unit("ns")
 
     tm.assert_frame_equal(df2, expected)
 
