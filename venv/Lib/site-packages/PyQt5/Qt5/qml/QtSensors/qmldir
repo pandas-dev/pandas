@@ -1,0 +1,4 @@
+module QtSensors
+plugin declarative_sensors
+classname QtSensorsDeclarativeModule
+typeinfo plugins.qmltypes

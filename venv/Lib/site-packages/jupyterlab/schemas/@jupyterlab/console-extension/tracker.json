@@ -1,0 +1,246 @@
+{
+  "title": "Code Console",
+  "description": "Code Console settings.",
+  "jupyter.lab.setting-icon": "ui-components:console",
+  "jupyter.lab.setting-icon-label": "Code Console Settings",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-file",
+        "items": [
+          {
+            "type": "submenu",
+            "submenu": {
+              "id": "jp-mainmenu-file-new",
+              "items": [
+                {
+                  "command": "console:create",
+                  "rank": 1
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-settings",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 9
+          },
+          {
+            "type": "submenu",
+            "submenu": {
+              "id": "jp-mainmenu-settings-consoleexecute",
+              "label": "Console Run Keystroke",
+              "items": [
+                {
+                  "command": "console:interaction-mode",
+                  "args": {
+                    "interactionMode": "terminal"
+                  }
+                },
+                {
+                  "command": "console:interaction-mode",
+                  "args": {
+                    "interactionMode": "notebook"
+                  }
+                }
+              ]
+            },
+            "rank": 9
+          },
+          {
+            "type": "separator",
+            "rank": 9
+          }
+        ]
+      }
+    ],
+    "context": [
+      {
+        "command": "console:undo",
+        "selector": ".jp-CodeConsole-promptCell",
+        "rank": 1
+      },
+      {
+        "command": "console:redo",
+        "selector": ".jp-CodeConsole-promptCell",
+        "rank": 2
+      },
+      {
+        "command": "console:clear",
+        "selector": ".jp-CodeConsole-content",
+        "rank": 10
+      },
+      {
+        "command": "console:restart-kernel",
+        "selector": ".jp-CodeConsole",
+        "rank": 30
+      }
+    ]
+  },
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "console:run-forced",
+      "keys": ["Shift Enter"],
+      "selector": ".jp-CodeConsole[data-jp-interaction-mode='notebook'] .jp-CodeConsole-promptCell"
+    },
+    {
+      "command": "console:linebreak",
+      "keys": ["Accel Enter"],
+      "selector": ".jp-CodeConsole[data-jp-interaction-mode='terminal'] .jp-CodeConsole-promptCell"
+    },
+    {
+      "command": "console:run-forced",
+      "keys": ["Shift Enter"],
+      "selector": ".jp-CodeConsole[data-jp-interaction-mode='terminal'] .jp-CodeConsole-promptCell"
+    },
+    {
+      "command": "console:run-unforced",
+      "keys": ["Enter"],
+      "selector": ".jp-CodeConsole[data-jp-interaction-mode='terminal'] .jp-CodeConsole-promptCell"
+    }
+  ],
+  "jupyter.lab.toolbars": {
+    "ConsolePanel": [
+      {
+        "name": "run",
+        "command": "console:run-forced",
+        "rank": 0
+      },
+      { "name": "restart", "command": "console:restart-kernel", "rank": 10 },
+      { "name": "clear", "command": "console:clear", "rank": 20 },
+      { "name": "spacer", "type": "spacer", "rank": 100 },
+      { "name": "kernelName", "rank": 1000 },
+      { "name": "kernelStatus", "rank": 1010 },
+      { "name": "promptPosition", "rank": 1020 }
+    ]
+  },
+  "jupyter.lab.transform": true,
+  "properties": {
+    "clearCellsOnExecute": {
+      "title": "Clear Cells on Execute",
+      "description": "Whether to clear the console when code is executed.",
+      "type": "boolean",
+      "default": false
+    },
+    "clearCodeContentOnExecute": {
+      "title": "Clear Code Content on Execute",
+      "description": "Whether to clear the code content of the console when code is executed.",
+      "type": "boolean",
+      "default": true
+    },
+    "hideCodeInput": {
+      "title": "Hide Code Input",
+      "description": "Whether to hide the code input after a cell is executed.",
+      "type": "boolean",
+      "default": false
+    },
+    "interactionMode": {
+      "title": "Interaction mode",
+      "description": "Whether the console interaction mimics the notebook\nor terminal keyboard shortcuts.",
+      "type": "string",
+      "enum": ["notebook", "terminal"],
+      "default": "notebook"
+    },
+    "showAllKernelActivity": {
+      "title": "Show All Kernel Activity",
+      "description": "Whether the console defaults to showing all\nkernel activity or just kernel activity originating from itself.",
+      "type": "boolean",
+      "default": false
+    },
+    "promptCellConfig": {
+      "title": "Prompt Cell Configuration",
+      "description": "The configuration for all prompt cells; it will override the CodeMirror default configuration.",
+      "type": "object",
+      "default": {
+        "codeFolding": false,
+        "lineNumbers": false
+      }
+    },
+    "promptCellPosition": {
+      "title": "Prompt Cell Position",
+      "description": "Where to place the prompt cell of the console.",
+      "type": "string",
+      "oneOf": [
+        { "const": "bottom", "title": "Bottom" },
+        { "const": "top", "title": "Top" },
+        { "const": "left", "title": "Left" },
+        { "const": "right", "title": "Right" }
+      ],
+      "default": "bottom"
+    },
+    "showBanner": {
+      "title": "Show Banner",
+      "description": "Whether to show the kernel banner.",
+      "type": "boolean",
+      "default": true
+    },
+    "toolbar": {
+      "title": "Console panel toolbar items",
+      "description": "Note: To disable a toolbar item,\ncopy it to User Preferences and add the\n\"disabled\" key. The following example will disable the Interrupt button item:\n{\n  \"toolbar\": [\n    {\n      \"name\": \"interrupt\",\n      \"disabled\": true\n    }\n  ]\n}\n\nToolbar description:",
+      "items": {
+        "$ref": "#/definitions/toolbarItem"
+      },
+      "type": "array",
+      "default": []
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "toolbarItem": {
+      "properties": {
+        "name": {
+          "title": "Unique name",
+          "type": "string"
+        },
+        "args": {
+          "title": "Command arguments",
+          "type": "object"
+        },
+        "command": {
+          "title": "Command id",
+          "type": "string",
+          "default": ""
+        },
+        "disabled": {
+          "title": "Whether the item is ignored or not",
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "title": "Item icon id",
+          "description": "If defined, it will override the command icon",
+          "type": "string"
+        },
+        "label": {
+          "title": "Item label",
+          "description": "If defined, it will override the command label",
+          "type": "string"
+        },
+        "caption": {
+          "title": "Item caption",
+          "description": "If defined, it will override the command caption",
+          "type": "string"
+        },
+        "type": {
+          "title": "Item type",
+          "type": "string",
+          "enum": ["command", "spacer"]
+        },
+        "rank": {
+          "title": "Item rank",
+          "type": "number",
+          "minimum": 0,
+          "default": 50
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+module QtWebView
+plugin declarative_webview
+typeinfo plugins.qmltypes
+classname QWebViewModule
+depends QtWebEngine 1.0
