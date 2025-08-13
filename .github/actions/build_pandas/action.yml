@@ -29,5 +29,5 @@ runs:
         else
           EDITABLE=""
         fi
-        pip install $EDITABLE . --no-build-isolation -v --no-deps -Ccompile-args="-Werror"
+        pip install $EDITABLE . --no-build-isolation -v --no-deps -Csetup-args="-Werror"
       shell: bash -el {0}
