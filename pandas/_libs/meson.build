@@ -50,15 +50,6 @@ _khash_primitive_helper_dep = declare_dependency(
     sources: _khash_primitive_helper,
 )
 
-cc = meson.get_compiler('c')
-add_project_arguments(
-# https://github.com/cython/cython/issues/6870
-    cc.get_supported_arguments(
-        ['-Wno-error=unused-parameter', '-Wno-error=unused-function'],
-    ),
-    language: 'c',
-)
-
 cdata = configuration_data()
 if cy.version().version_compare('>=3.1.0')
     cdata.set('freethreading_compatible', '1')
