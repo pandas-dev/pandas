@@ -41,6 +41,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
@@ -1473,7 +1474,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None: ...
 
     @deprecate_nonkeyword_arguments(
-        version="4.0", allowed_args=["self", "buf"], name="to_string"
+        Pandas4Warning, allowed_args=["self", "buf"], name="to_string"
     )
     def to_string(
         self,
@@ -1631,7 +1632,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ),
     )
     @deprecate_nonkeyword_arguments(
-        version="4.0", allowed_args=["self", "buf"], name="to_markdown"
+        Pandas4Warning, allowed_args=["self", "buf"], name="to_markdown"
     )
     def to_markdown(
         self,
@@ -6685,7 +6686,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="all")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="all")
     @Appender(make_doc("all", ndim=1))
     def all(
         self,
@@ -6705,7 +6706,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="min")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="min")
     def min(
         self,
         axis: Axis | None = 0,
@@ -6776,7 +6777,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="max")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="max")
     def max(
         self,
         axis: Axis | None = 0,
@@ -6847,7 +6848,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sum")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sum")
     def sum(
         self,
         axis: Axis | None = None,
@@ -6948,7 +6949,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="prod")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="prod")
     @doc(make_doc("prod", ndim=1))
     def prod(
         self,
@@ -6967,7 +6968,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="mean")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="mean")
     def mean(
         self,
         axis: Axis | None = 0,
@@ -7021,7 +7022,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="median")
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self"], name="median"
+    )
     def median(
         self,
         axis: Axis | None = 0,
@@ -7102,7 +7105,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sem")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sem")
     @doc(make_doc("sem", ndim=1))
     def sem(
         self,
@@ -7121,7 +7124,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="var")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="var")
     def var(
         self,
         axis: Axis | None = None,
@@ -7208,7 +7211,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="std")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="std")
     @doc(make_doc("std", ndim=1))
     def std(
         self,
@@ -7227,7 +7230,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="skew")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="skew")
     @doc(make_doc("skew", ndim=1))
     def skew(
         self,
@@ -7240,7 +7243,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="kurt")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="kurt")
     def kurt(
         self,
         axis: Axis | None = 0,
