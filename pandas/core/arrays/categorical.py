@@ -7,6 +7,7 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -105,7 +106,6 @@ if TYPE_CHECKING:
         DtypeObj,
         NpDtype,
         Ordered,
-        Self,
         Shape,
         SortKind,
         npt,
@@ -575,7 +575,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
-            result = self._set_dtype(dtype)
+            result = self._set_dtype(dtype, copy=False)
 
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
@@ -670,13 +670,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if known_categories:
             # Recode from observation order to dtype.categories order.
             categories = dtype.categories
-            codes = recode_for_categories(inferred_codes, cats, categories)
+            codes = recode_for_categories(inferred_codes, cats, categories, copy=False)
         elif not cats.is_monotonic_increasing:
             # Sort categories and recode for unknown categories.
             unsorted = cats.copy()
             categories = cats.sort_values()
 
-            codes = recode_for_categories(inferred_codes, unsorted, categories)
+            codes = recode_for_categories(
+                inferred_codes, unsorted, categories, copy=False
+            )
             dtype = CategoricalDtype(categories, ordered=False)
         else:
             dtype = CategoricalDtype(cats, ordered=False)
@@ -945,7 +947,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         super().__init__(self._ndarray, new_dtype)
 
-    def _set_dtype(self, dtype: CategoricalDtype) -> Self:
+    def _set_dtype(self, dtype: CategoricalDtype, *, copy: bool) -> Self:
         """
         Internal method for directly updating the CategoricalDtype
 
@@ -958,7 +960,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         We don't do any validation here. It's assumed that the dtype is
         a (valid) instance of `CategoricalDtype`.
         """
-        codes = recode_for_categories(self.codes, self.categories, dtype.categories)
+        codes = recode_for_categories(
+            self.codes, self.categories, dtype.categories, copy=copy
+        )
         return type(self)._simple_new(codes, dtype=dtype)
 
     def set_ordered(self, value: bool) -> Self:
@@ -1152,7 +1156,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = cat._codes
         else:
             codes = recode_for_categories(
-                cat.codes, cat.categories, new_dtype.categories
+                cat.codes, cat.categories, new_dtype.categories, copy=False
             )
         NDArrayBacked.__init__(cat, codes, new_dtype)
         return cat
@@ -3004,7 +3008,7 @@ def _get_codes_for_values(
 
 
 def recode_for_categories(
-    codes: np.ndarray, old_categories, new_categories, copy: bool = True
+    codes: np.ndarray, old_categories, new_categories, *, copy: bool
 ) -> np.ndarray:
     """
     Convert a set of codes for to a new set of categories
@@ -3025,7 +3029,7 @@ def recode_for_categories(
     >>> old_cat = pd.Index(["b", "a", "c"])
     >>> new_cat = pd.Index(["a", "b"])
     >>> codes = np.array([0, 1, 1, 2])
-    >>> recode_for_categories(codes, old_cat, new_cat)
+    >>> recode_for_categories(codes, old_cat, new_cat, copy=True)
     array([ 1,  0,  0, -1], dtype=int8)
     """
     if len(old_categories) == 0:
