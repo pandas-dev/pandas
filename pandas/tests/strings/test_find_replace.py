@@ -287,18 +287,7 @@ def test_str_contains_compiled_regex_arrow_dtype(any_string_dtype):
     pat = re.compile("ba.")
     result = ser.str.contains(pat)
 
-    # Get the string representation of the dtype for comparison
-    dtype_str = str(any_string_dtype)
-
-    if "pyarrow" in dtype_str:
-        expected_dtype = "bool[pyarrow]"
-    elif "StringDtype" in dtype_str:
-        expected_dtype = "boolean"
-    else:
-        # For object and regular string dtypes
-        expected_dtype = bool
-
-    expected = Series([False, True, True], dtype=expected_dtype)
+    expected = Series([False, True, True], dtype=bool)
     tm.assert_series_equal(result, expected)
 
 
