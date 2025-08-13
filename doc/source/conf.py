@@ -466,12 +466,10 @@ latex_documents = [
 # If false, no module index is generated.
 # latex_use_modindex = True
 
-# Configure copybutton to strip Python REPL prompts and output when copying
-toggleprompt_prompt_text = r">>> |\.\.\.:|In \[\d+\]:|Out\[\d+\]:"
-toggleprompt_is_regexp = True
+# Configure copybutton to strip Python REPL prompts and output when copying code cells
+copybutton_prompt_text = r">>> |\.\.\.:|In \[\d+\]:\n?|Out\[\d+\]:\n?"
+copybutton_prompt_is_regexp = True
 
-copybutton_prompt_text = ''
-copybutton_is_regexp = False
 
 if include_api:
     intersphinx_mapping = {
