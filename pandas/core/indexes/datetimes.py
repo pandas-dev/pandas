@@ -222,6 +222,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     to_pydatetime
     to_series
     to_frame
+    to_julian_date
     month_name
     day_name
     mean

@@ -2254,9 +2254,26 @@ default 'raise'
 
     def to_julian_date(self) -> npt.NDArray[np.float64]:
         """
-        Convert Datetime Array to float64 ndarray of Julian Dates.
-        0 Julian date is noon January 1, 4713 BC.
+        Convert TimeStamp to a Julian Date.
+
+        This method returns the number of days as a float since noon January 1, 4713 BC.
+
         https://en.wikipedia.org/wiki/Julian_day
+
+        Returns
+        -------
+        ndarray or Index
+            Float values that represent each date in Julian Calendar.
+
+        See Also
+        --------
+        Timestamp.to_julian_date : Equivalent method on ``Timestamp`` objects.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2028-08-12 00:54", "2028-08-12 02:06"])
+        >>> idx.to_julian_date()
+        Index([2461995.5375, 2461995.5875], dtype='float64')
         """
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
