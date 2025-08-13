@@ -6,12 +6,15 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under21p0
+
 from pandas import (
     NA,
     DataFrame,
     Index,
     MultiIndex,
     Series,
+    StringDtype,
     option_context,
 )
 import pandas._testing as tm
@@ -264,6 +267,16 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
         "bool" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
     )
     expected = Series(expected, dtype=expected_dtype)
+    if (
+        method == "isdigit"
+        and isinstance(ser.dtype, StringDtype)
+        and ser.dtype.storage == "pyarrow"
+        and not pa_version_under21p0
+    ):
+        # known difference in behavior between python and pyarrow unicode handling
+        # pyarrow 21+ considers ¼ as a digit, while python does not
+        expected.iloc[3] = True
+
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
 
