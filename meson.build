@@ -44,6 +44,12 @@ else
     meson.add_dist_script(py, versioneer, '-o', '_version_meson.py')
 endif
 
+cc = meson.get_compiler('c')
+add_project_arguments(
+# https://github.com/cython/cython/issues/6870
+    cc.get_supported_arguments(['-Wno-error=unused-parameter']),
+    language: 'c',
+)
 cy = meson.get_compiler('cython')
 if cy.version().version_compare('>=3.1.0')
     add_project_arguments('-Xfreethreading_compatible=true', language: 'cython')

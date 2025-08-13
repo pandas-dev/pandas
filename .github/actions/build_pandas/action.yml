@@ -23,12 +23,11 @@ runs:
       shell: bash -el {0}
 
     - name: Build Pandas
-      # wno-error reason: https://github.com/cython/cython/issues/6870
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
           EDITABLE="-e"
         else
           EDITABLE=""
         fi
-        pip install $EDITABLE . --no-build-isolation -v --no-deps --config-settings=setup-args="-Werror" --config-settings=setup-args="-Wno-error=unused-parameter"
+        pip install $EDITABLE . --no-build-isolation -v --no-deps -Ccompile-args="-Werror"
       shell: bash -el {0}
