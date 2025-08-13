@@ -52,6 +52,12 @@ Exceptions and warnings
    errors.OptionError
    errors.OutOfBoundsDatetime
    errors.OutOfBoundsTimedelta
+   errors.PandasChangeWarning
+   errors.Pandas4Warning
+   errors.Pandas5Warning
+   errors.PandasPendingDeprecationWarning
+   errors.PandasDeprecationWarning
+   errors.PandasFutureWarning
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning
