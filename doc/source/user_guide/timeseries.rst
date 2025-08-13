@@ -903,7 +903,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
     :class:`~pandas.tseries.offsets.BusinessHour`, ``'bh'``, "business hour"
     :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'cbh'``, "custom business hour"
-    :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
+    :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one calendar day"
     :class:`~pandas.tseries.offsets.Hour`, ``'h'``, "one hour"
     :class:`~pandas.tseries.offsets.Minute`, ``'min'``,"one minute"
     :class:`~pandas.tseries.offsets.Second`, ``'s'``, "one second"
@@ -1000,7 +1000,7 @@ apply the offset to each element.
    s + pd.DateOffset(months=2)
    s - pd.DateOffset(months=2)
 
-If the offset class maps directly to a ``Timedelta`` (``Day``, ``Hour``,
+If the offset class maps directly to a ``Timedelta`` (``Hour``,
 ``Minute``, ``Second``, ``Micro``, ``Milli``, ``Nano``) it can be
 used exactly like a ``Timedelta`` - see the
 :ref:`Timedelta section<timedeltas.operations>` for more examples.
