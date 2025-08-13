@@ -921,10 +921,10 @@ class TestPeriodIndex:
         ser = Series(np.arange(len(pi)), index=pi)
         msg = "Resampling with a PeriodIndex is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs = ser.resample("M", offset="3h")
+            rs = ser.resample("M")
         result = rs.mean()
         result = result.to_timestamp("M")
-        expected = ser.to_timestamp().resample("ME", offset="3h").mean()
+        expected = ser.to_timestamp().resample("ME").mean()
         # TODO: is non-tick the relevant characteristic? (GH 33815)
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)

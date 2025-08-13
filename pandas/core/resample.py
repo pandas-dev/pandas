@@ -2185,6 +2185,22 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
+        if not isinstance(freq, Tick):
+            if offset is not None:
+                warnings.warn(
+                    "The 'offset' keyword does not take effect when resampling "
+                    "with a 'freq' that is not Tick-like (h, m, s, ms, us, ns)",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+            if origin != "start_day":
+                warnings.warn(
+                    "The 'origin' keyword does not take effect when resampling "
+                    "with a 'freq' that is not Tick-like (h, m, s, ms, us, ns)",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
