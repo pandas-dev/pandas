@@ -78,6 +78,7 @@ from pandas._libs.tslibs.np_datetime import (
 )
 
 from pandas._libs.tslibs.offsets cimport is_tick_object
+from pandas._libs.tslibs.offsets import Day
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_float_object,
@@ -2576,5 +2577,9 @@ cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
     from pandas._libs.tslibs.offsets import to_offset
 
     freq = to_offset(freq)
-    freq.nanos  # raises on non-fixed freq
+    if isinstance(freq, Day):
+        # In the "round" context, Day unambiguously means 24h, not calendar-day
+        freq = Timedelta(days=freq.n)
+    else:
+        freq.nanos  # raises on non-fixed freq
     return delta_to_nanoseconds(freq, creso)

@@ -24,6 +24,10 @@ Bug fixes
 ^^^^^^^^^
 - Fix :meth:`~Series.str.isdigit` to correctly recognize unicode superscript
   characters as digits for :class:`StringDtype` backed by PyArrow (:issue:`61466`)
+- Fix :meth:`~DataFrame.to_json` with ``orient="table"`` to correctly use the
+  "string" type in the JSON Table Schema for :class:`StringDtype` columns
+  (:issue:`61889`)
+- Boolean operations (``|``, ``&``, ``^``) with bool-dtype objects on the left and :class:`StringDtype` objects on the right now cast the string to bool, with a deprecation warning (:issue:`60234`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_232.contributors:

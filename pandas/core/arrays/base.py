@@ -15,6 +15,7 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -95,7 +96,6 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
         PositionalIndexer,
         ScalarIndexer,
-        Self,
         SequenceIndexer,
         Shape,
         SortKind,
@@ -1688,13 +1688,13 @@ class ExtensionArray:
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
         ['a', 'b', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat(2)
         ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
         ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         """
 
     @Substitution(klass="ExtensionArray")

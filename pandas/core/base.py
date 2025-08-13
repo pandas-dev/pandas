@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     cast,
     final,
     overload,
@@ -23,7 +24,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
-    Self,
     Shape,
     npt,
 )
@@ -567,7 +567,7 @@ class IndexOpsMixin(OpsMixin):
         >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.array
         ['a', 'b', 'a']
-        Categories (2, str): [a, b]
+        Categories (2, str): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -1386,7 +1386,7 @@ class IndexOpsMixin(OpsMixin):
         ... )
         >>> ser
         ['apple', 'bread', 'bread', 'cheese', 'milk']
-        Categories (4, str): [apple < bread < cheese < milk]
+        Categories (4, str): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
         np.int64(1)

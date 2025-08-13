@@ -35,7 +35,6 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
-    PY311,
     PY312,
     is_ci_environment,
     is_platform_windows,
@@ -45,6 +44,7 @@ from pandas.compat import (
     pa_version_under20p0,
     pa_version_under21p0,
 )
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -344,13 +344,7 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]") and not PY311:
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="Nanosecond time parsing not supported.",
-                )
-            )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
             _require_timezone_database(request)
 
         pa_array = data._pa_array.cast(pa.string())
@@ -2686,8 +2680,9 @@ def test_dt_tz_localize_unsupported_tz_options():
         ser.dt.tz_localize("UTC", nonexistent="NaT")
 
 
-@pytest.mark.xfail(reason="Converts to UTC before localizing GH#61780")
-def test_dt_tz_localize_none():
+def test_dt_tz_localize_none(request):
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp("ns", tz="US/Pacific")),
@@ -2840,14 +2835,14 @@ def test_dt_to_pytimedelta():
     ser = pd.Series(data, dtype=ArrowDtype(pa.duration("ns")))
 
     msg = "The behavior of ArrowTemporalProperties.to_pytimedelta is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = ser.dt.to_pytimedelta()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is timedelta for res in result)
 
     msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
     tm.assert_numpy_array_equal(result, expected)
 
@@ -2868,7 +2863,7 @@ def test_dt_components():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[1, 0, 0, 2, 0, 3, 4], [None, None, None, None, None, None, None]],
+        [[1, 0, 0, 2, 0, 3, 4], [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA]],
         columns=[
             "days",
             "hours",
@@ -2893,7 +2888,10 @@ def test_dt_components_large_values():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[365, 23, 59, 59, 999, 0, 0], [None, None, None, None, None, None, None]],
+        [
+            [365, 23, 59, 59, 999, 0, 0],
+            [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA],
+        ],
         columns=[
             "days",
             "hours",

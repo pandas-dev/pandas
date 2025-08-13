@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
 )
 
 import numpy as np
@@ -25,10 +26,7 @@ if HAS_PYARROW:
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pandas._typing import (
-        Scalar,
-        Self,
-    )
+    from pandas._typing import Scalar
 
 
 class ArrowStringArrayMixin:

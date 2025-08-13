@@ -7,6 +7,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -84,7 +85,6 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         IntervalClosedType,
-        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,
@@ -474,7 +474,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 if end is not None:
                     end = end.tz_localize(None)
 
-            if isinstance(freq, Tick):
+            if isinstance(freq, (Tick, Day)):
                 i8values = generate_regular_range(start, end, periods, freq, unit=unit)
             else:
                 xdr = _generate_range(
@@ -928,7 +928,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
+        new_freq = None
+        if isinstance(self.freq, Tick):
+            new_freq = self.freq
+        return self._simple_new(self._ndarray, dtype=dtype, freq=new_freq)
 
     @dtl.ravel_compat
     def tz_localize(
@@ -2251,9 +2254,26 @@ default 'raise'
 
     def to_julian_date(self) -> npt.NDArray[np.float64]:
         """
-        Convert Datetime Array to float64 ndarray of Julian Dates.
-        0 Julian date is noon January 1, 4713 BC.
+        Convert TimeStamp to a Julian Date.
+
+        This method returns the number of days as a float since noon January 1, 4713 BC.
+
         https://en.wikipedia.org/wiki/Julian_day
+
+        Returns
+        -------
+        ndarray or Index
+            Float values that represent each date in Julian Calendar.
+
+        See Also
+        --------
+        Timestamp.to_julian_date : Equivalent method on ``Timestamp`` objects.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2028-08-12 00:54", "2028-08-12 02:06"])
+        >>> idx.to_julian_date()
+        Index([2461995.5375, 2461995.5875], dtype='float64')
         """
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm

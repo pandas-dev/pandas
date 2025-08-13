@@ -7,10 +7,12 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
     Series,
+    option_context,
 )
 import pandas._testing as tm
 from pandas.core.strings.accessor import StringMethods
@@ -41,10 +43,14 @@ def test_iter_raises():
 def test_count(any_string_dtype):
     ser = Series(["foo", "foofoo", np.nan, "foooofooofommmfoo"], dtype=any_string_dtype)
     result = ser.str.count("f[o]+")
-    expected_dtype = (
-        np.float64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
-    expected = Series([1, 2, np.nan, 4], dtype=expected_dtype)
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = NA
+
+    expected = Series([1, 2, item, 4], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -313,10 +319,13 @@ def test_len(any_string_dtype):
         dtype=any_string_dtype,
     )
     result = ser.str.len()
-    expected_dtype = (
-        "float64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
-    expected = Series([3, 4, 6, np.nan, 8, 4, 1], dtype=expected_dtype)
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = "float64"
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = NA
+    expected = Series([3, 4, 6, item, 8, 4, 1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -387,12 +396,15 @@ def test_index_wrong_type_raises(index_or_series, any_string_dtype, method):
 )
 def test_index_missing(any_string_dtype, method, exp):
     ser = Series(["abcb", "ab", "bcbe", np.nan], dtype=any_string_dtype)
-    expected_dtype = (
-        np.float64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = NA
 
     result = getattr(ser.str, method)("b")
-    expected = Series(exp + [np.nan], dtype=expected_dtype)
+    expected = Series(exp + [item], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -778,4 +790,36 @@ def test_series_str_decode():
     # GH 22613
     result = Series([b"x", b"y"]).str.decode(encoding="UTF-8", errors="strict")
     expected = Series(["x", "y"], dtype="str")
+    tm.assert_series_equal(result, expected)
+
+
+def test_decode_with_dtype_none():
+    with option_context("future.infer_string", True):
+        ser = Series([b"a", b"b", b"c"])
+        result = ser.str.decode("utf-8", dtype=None)
+        expected = Series(["a", "b", "c"], dtype="str")
+        tm.assert_series_equal(result, expected)
+
+
+def test_reversed_logical_ops(any_string_dtype):
+    # GH#60234
+    dtype = any_string_dtype
+    warn = None if dtype == object else FutureWarning
+    left = Series([True, False, False, True])
+    right = Series(["", "", "b", "c"], dtype=dtype)
+
+    msg = "operations between boolean dtype and"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = left | right
+    expected = left | right.astype(bool)
+    tm.assert_series_equal(result, expected)
+
+    with tm.assert_produces_warning(warn, match=msg):
+        result = left & right
+    expected = left & right.astype(bool)
+    tm.assert_series_equal(result, expected)
+
+    with tm.assert_produces_warning(warn, match=msg):
+        result = left ^ right
+    expected = left ^ right.astype(bool)
     tm.assert_series_equal(result, expected)
