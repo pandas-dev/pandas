@@ -712,7 +712,7 @@ class TestIndex:
     )
     @pytest.mark.parametrize("keys", [["foo", "bar"], ["1", "bar"]])
     def test_drop_by_str_label_raises_missing_keys(self, index, keys):
-        with pytest.raises(KeyError, match=""):
+        with pytest.raises(KeyError, match=".* not found in axis"):
             index.drop(keys)
 
     @pytest.mark.parametrize(
@@ -741,7 +741,7 @@ class TestIndex:
 
     def test_drop_by_numeric_label_raises_missing_keys(self):
         index = Index([1, 2, 3])
-        with pytest.raises(KeyError, match=""):
+        with pytest.raises(KeyError, match=re.escape("[4] not found in axis")):
             index.drop([3, 4])
 
     @pytest.mark.parametrize(

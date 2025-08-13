@@ -8,10 +8,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
 import unicodedata
+import warnings
 
 import numpy as np
 
@@ -27,6 +29,7 @@ from pandas.compat import (
     pa_version_under13p0,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -194,7 +197,6 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
         PositionalIndexer,
         Scalar,
-        Self,
         SortKind,
         TakeIndexer,
         TimeAmbiguous,
@@ -852,6 +854,25 @@ class ArrowExtensionArray(
         # integer types. Otherwise these are boolean ops.
         if pa.types.is_integer(self._pa_array.type):
             return self._evaluate_op_method(other, op, ARROW_BIT_WISE_FUNCS)
+        elif (
+            (
+                pa.types.is_string(self._pa_array.type)
+                or pa.types.is_large_string(self._pa_array.type)
+            )
+            and op in (roperator.ror_, roperator.rand_, roperator.rxor)
+            and isinstance(other, np.ndarray)
+            and other.dtype == bool
+        ):
+            # GH#60234 backward compatibility for the move to StringDtype in 3.0
+            op_name = op.__name__[1:].strip("_")
+            warnings.warn(
+                f"'{op_name}' operations between boolean dtype and {self.dtype} are "
+                "deprecated and will raise in a future version. Explicitly "
+                "cast the strings to a boolean dtype before operating instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return op(other, self.astype(bool))
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
@@ -2932,7 +2953,7 @@ class ArrowExtensionArray(
         if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")
         if tz is None:
-            result = self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit))
+            result = pc.local_timestamp(self._pa_array)
         else:
             result = pc.assume_timezone(
                 self._pa_array, str(tz), ambiguous=ambiguous, nonexistent=nonexistent_pa
