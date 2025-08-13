@@ -7,7 +7,7 @@ dependencies:
   # build dependencies
   - versioneer
   - cython>=3.1,<4.0.0a0
-  - meson>=1.6,<2
+  - meson>=1.2.1,<2
   - meson-python>=0.17.1,<1
 
   # test dependencies
