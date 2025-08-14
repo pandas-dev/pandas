@@ -234,14 +234,14 @@ and merged into project to appear the in the next release. To submit a pull requ
 #. Write a descriptive title that includes prefixes. pandas uses a convention for title
    prefixes. Here are some common ones along with general guidelines for when to use them:
 
-    * ENH: Enhancement, new functionality
-    * BUG: Bug fix
-    * DOC: Additions/updates to documentation
-    * TST: Additions/updates to tests
-    * BLD: Updates to the build process/scripts
-    * PERF: Performance improvement
-    * TYP: Type annotations
-    * CLN: Code cleanup
+   * ENH: Enhancement, new functionality
+   * BUG: Bug fix
+   * DOC: Additions/updates to documentation
+   * TST: Additions/updates to tests
+   * BLD: Updates to the build process/scripts
+   * PERF: Performance improvement
+   * TYP: Type annotations
+   * CLN: Code cleanup
 
 #. Write a description of your changes in the ``Preview Discussion`` tab
 #. Click ``Send Pull Request``.

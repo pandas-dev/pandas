@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.8
+    rev: v0.12.7
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -45,9 +45,8 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
-        additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.16.6
+    rev: v0.16.7
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -74,10 +73,10 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.1
+    rev: v3.20.0
     hooks:
     -   id: pyupgrade
-        args: [--py310-plus]
+        args: [--py311-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -95,14 +94,14 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v20.1.3
+    rev: v20.1.8
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.8.0
+    rev: v1.8.3
     hooks:
     - id: meson-fmt
       args: ['--inplace']
@@ -140,7 +139,7 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-    -   id: mypy
+    -   id: stubtest
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
@@ -235,7 +234,7 @@ repos:
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
-        additional_dependencies: [tomli, pyyaml]
+        additional_dependencies: [pyyaml]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
@@ -290,7 +289,7 @@ repos:
         entry: python -m scripts.validate_min_versions_in_sync
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
-        additional_dependencies: [tomli, pyyaml]
+        additional_dependencies: [pyyaml]
         pass_filenames: false
     -   id: validate-errors-locations
         name: Validate errors locations

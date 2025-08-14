@@ -9,7 +9,6 @@ from datetime import (
 )
 from itertools import (
     product,
-    starmap,
 )
 import operator
 
@@ -771,11 +770,18 @@ class TestDatetimeIndexComparisons:
 
         result = dti == other
         expected = np.array([False] * 10)
-        tm.assert_numpy_array_equal(result, expected)
+        if isinstance(other, Series):
+            tm.assert_series_equal(result, Series(expected, index=other.index))
+        else:
+            tm.assert_numpy_array_equal(result, expected)
 
         result = dti != other
         expected = np.array([True] * 10)
-        tm.assert_numpy_array_equal(result, expected)
+        if isinstance(other, Series):
+            tm.assert_series_equal(result, Series(expected, index=other.index))
+        else:
+            tm.assert_numpy_array_equal(result, expected)
+
         msg = "Invalid comparison between"
         with pytest.raises(TypeError, match=msg):
             dti < other
@@ -829,6 +835,8 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz)
         expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz)
+        if tz is not None:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -849,6 +857,8 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz)
         expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz)
+        if tz is not None:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -956,7 +966,12 @@ class TestDatetime64Arithmetic:
 
         result = dtarr - tdarr
         tm.assert_equal(result, expected)
-        msg = "cannot subtract|(bad|unsupported) operand type for unary"
+        msg = "|".join(
+            [
+                "cannot subtract DatetimeArray from ndarray",
+                "cannot subtract a datelike from a TimedeltaArray",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             tdarr - dtarr
 
@@ -1273,7 +1288,7 @@ class TestDatetime64DateOffsetArithmetic:
 
         result2 = -pd.offsets.Second(5) + ser
         tm.assert_equal(result2, expected)
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from Second"
         with pytest.raises(TypeError, match=msg):
             pd.offsets.Second(5) - ser
 
@@ -1318,9 +1333,7 @@ class TestDatetime64DateOffsetArithmetic:
             roundtrip = offset - scalar
             tm.assert_equal(roundtrip, dates)
 
-            msg = "|".join(
-                ["bad operand type for unary -", "cannot subtract DatetimeArray"]
-            )
+            msg = "cannot subtract DatetimeArray from"
             with pytest.raises(TypeError, match=msg):
                 scalar - dates
 
@@ -1379,7 +1392,7 @@ class TestDatetime64DateOffsetArithmetic:
             expected = DatetimeIndex([x - off for x in vec_items]).as_unit(exp_unit)
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, vec - off)
-            msg = "(bad|unsupported) operand type for unary"
+            msg = "cannot subtract DatetimeArray from"
             with pytest.raises(TypeError, match=msg):
                 off - vec
 
@@ -1495,7 +1508,7 @@ class TestDatetime64DateOffsetArithmetic:
         expected = DatetimeIndex([offset + x for x in vec_items]).as_unit(unit)
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, offset + vec)
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from"
         with pytest.raises(TypeError, match=msg):
             offset - vec
 
@@ -1984,7 +1997,7 @@ class TestTimestampSeriesArithmetic:
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
         tm.assert_series_equal(result, exp)
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from"
         with pytest.raises(TypeError, match=msg):
             td1[0] - dt1
 
@@ -2211,7 +2224,7 @@ class TestDatetimeIndexArithmetic:
 
         def timedelta64(*args):
             # see casting notes in NumPy gh-12927
-            return np.sum(list(starmap(np.timedelta64, zip(args, intervals))))
+            return np.sum(list(map(np.timedelta64, args, intervals)))
 
         for d, h, m, s, us in product(*([range(2)] * 5)):
             nptd = timedelta64(d, h, m, s, us)

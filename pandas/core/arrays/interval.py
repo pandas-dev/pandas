@@ -9,7 +9,8 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Literal,
-    Union,
+    Self,
+    TypeAlias,
     overload,
 )
 
@@ -31,7 +32,6 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
-    Self,
     SequenceIndexer,
     SortKind,
     TimeArrayLike,
@@ -109,8 +109,8 @@ if TYPE_CHECKING:
     )
 
 
-IntervalSide = Union[TimeArrayLike, np.ndarray]
-IntervalOrNA = Union[Interval, float]
+IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
+IntervalOrNA: TypeAlias = Interval | float
 
 _interval_shared_docs: dict[str, str] = {}
 

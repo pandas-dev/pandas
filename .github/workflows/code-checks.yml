@@ -21,7 +21,7 @@ permissions:
 jobs:
   docstring_typing_manual_hooks:
     name: Docstring validation, typing, and other manual pre-commit hooks
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash -el {0}
@@ -102,7 +102,7 @@ jobs:
 
   asv-benchmarks:
     name: ASV Benchmarks
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash -el {0}
@@ -133,7 +133,7 @@ jobs:
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash -el {0}
@@ -160,7 +160,7 @@ jobs:
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -177,7 +177,7 @@ jobs:
         id: setup_python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: 'requirements-dev.txt'
 

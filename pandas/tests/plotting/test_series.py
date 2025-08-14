@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_linux
-from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -40,6 +39,15 @@ plt = pytest.importorskip("matplotlib.pyplot")
 
 from pandas.plotting._matplotlib.converter import DatetimeConverter
 from pandas.plotting._matplotlib.style import get_standard_colors
+
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:divide by zero encountered in scalar divide:RuntimeWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in scalar multiply:RuntimeWarning"
+    ),
+]
 
 
 @pytest.fixture
@@ -277,7 +285,7 @@ class TestSeriesPlots:
         assert label2 == ""
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
+        is_platform_linux(),
         reason="Weird rounding problems",
         strict=False,
     )
@@ -290,7 +298,7 @@ class TestSeriesPlots:
         tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
+        is_platform_linux(),
         reason="Weird rounding problems",
         strict=False,
     )

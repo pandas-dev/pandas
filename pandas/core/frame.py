@@ -31,6 +31,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -55,6 +56,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
@@ -111,6 +113,10 @@ from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
     ExtensionDtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -238,7 +244,6 @@ if TYPE_CHECKING:
         ReindexMethod,
         Renamer,
         Scalar,
-        Self,
         SequenceNotStr,
         SortKind,
         StorageOptions,
@@ -333,15 +338,15 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
       to SQL left anti join; preserve key order.
     * right_anti: use only keys from right frame that are not in left frame, similar
       to SQL right anti join; preserve key order.
-on : label or list
+on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
     to the intersection of the columns in both DataFrames.
-left_on : label or list, or array-like
+left_on : Hashable or a sequence of the previous, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
     These arrays are treated as if they are columns.
-right_on : label or list, or array-like
+right_on : Hashable or a sequence of the previous, or array-like
     Column or index level names to join on in the right DataFrame. Can also
     be an array or list of arrays of the length of the right DataFrame.
     These arrays are treated as if they are columns.
@@ -795,12 +800,12 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype,
                     copy,
                 )
-            elif getattr(data, "name", None) is not None:
+            elif isinstance(data, (ABCSeries, ABCIndex)) and data.name is not None:
                 # i.e. Series/Index with non-None name
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
-                    {data.name: data},  # type: ignore[union-attr]
+                    {data.name: data},
                     index,
                     columns,
                     dtype=dtype,
@@ -1011,8 +1016,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         >>> df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
         >>> df.axes
-        [RangeIndex(start=0, stop=2, step=1), Index(['col1', 'col2'],
-        dtype='object')]
+        [RangeIndex(start=0, stop=2, step=1), Index(['col1', 'col2'], dtype='str')]
         """
         return [self.index, self.columns]
 
@@ -2231,7 +2235,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_iterator(data):
             if nrows == 0:
-                return cls()
+                return cls(index=index, columns=columns)
 
             try:
                 first_row = next(data)
@@ -3543,6 +3547,62 @@ class DataFrame(NDFrame, OpsMixin):
 
         return xml_formatter.write_output()
 
+    def to_iceberg(
+        self,
+        table_identifier: str,
+        catalog_name: str | None = None,
+        *,
+        catalog_properties: dict[str, Any] | None = None,
+        location: str | None = None,
+        append: bool = False,
+        snapshot_properties: dict[str, str] | None = None,
+    ) -> None:
+        """
+        Write a DataFrame to an Apache Iceberg table.
+
+        .. versionadded:: 3.0.0
+
+        .. warning::
+
+           to_iceberg is experimental and may change without warning.
+
+        Parameters
+        ----------
+        table_identifier : str
+            Table identifier.
+        catalog_name : str, optional
+            The name of the catalog.
+        catalog_properties : dict of {str: str}, optional
+            The properties that are used next to the catalog configuration.
+        location : str, optional
+            Location for the table.
+        append : bool, default False
+            If ``True``, append data to the table, instead of replacing the content.
+        snapshot_properties : dict of {str: str}, optional
+            Custom properties to be added to the snapshot summary
+
+        See Also
+        --------
+        read_iceberg : Read an Apache Iceberg table.
+        DataFrame.to_parquet : Write a DataFrame in Parquet format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
+        >>> df.to_iceberg("my_table", catalog_name="my_catalog")  # doctest: +SKIP
+        """
+        from pandas.io.iceberg import to_iceberg
+
+        to_iceberg(
+            self,
+            table_identifier,
+            catalog_name,
+            catalog_properties=catalog_properties,
+            location=location,
+            append=append,
+            snapshot_properties=snapshot_properties,
+        )
+
     # ----------------------------------------------------------------------
     @doc(INFO_DOCSTRING, **frame_sub_kwargs)
     def info(
@@ -4154,6 +4214,89 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
+        """
+        Set item(s) in DataFrame by key.
+
+        This method allows you to set the values of one or more columns in the
+        DataFrame using a key. If the key does not exist, a new
+        column will be created.
+
+        Parameters
+        ----------
+        key : The object(s) in the index which are to be assigned to
+            Column label(s) to set. Can be a single column name, list of column names,
+            or tuple for MultiIndex columns.
+        value : scalar, array-like, Series, or DataFrame
+            Value(s) to set for the specified key(s).
+
+        Returns
+        -------
+        None
+            This method does not return a value.
+
+        See Also
+        --------
+        DataFrame.loc : Access and set values by label-based indexing.
+        DataFrame.iloc : Access and set values by position-based indexing.
+        DataFrame.assign : Assign new columns to a DataFrame.
+
+        Notes
+        -----
+        When assigning a Series to a DataFrame column, pandas aligns the Series
+        by index labels, not by position. This means:
+
+        * Values from the Series are matched to DataFrame rows by index label
+        * If a Series index label doesn't exist in the DataFrame index, it's ignored
+        * If a DataFrame index label doesn't exist in the Series index, NaN is assigned
+        * The order of values in the Series doesn't matter; only the index labels matter
+
+        Examples
+        --------
+        Basic column assignment:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]})
+        >>> df["B"] = [4, 5, 6]  # Assigns by position
+        >>> df
+            A  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        Series assignment with index alignment:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+        >>> s = pd.Series([10, 20], index=[1, 3])  # Note: index 3 doesn't exist in df
+        >>> df["B"] = s  # Assigns by index label, not position
+        >>> df
+            A   B
+        0  1 NaN
+        1  2  10
+        2  3 NaN
+
+        Series assignment with partial index match:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3, 4]}, index=["a", "b", "c", "d"])
+        >>> s = pd.Series([100, 200], index=["b", "d"])
+        >>> df["B"] = s
+        >>> df
+            A    B
+        a  1  NaN
+        b  2  100
+        c  3  NaN
+        d  4  200
+
+        Series index labels NOT in DataFrame, ignored:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=["x", "y", "z"])
+        >>> s = pd.Series([10, 20, 30, 40, 50], index=["x", "y", "a", "b", "z"])
+        >>> df["B"] = s
+        >>> df
+           A   B
+        x  1  10
+        y  2  20
+        z  3  50
+        # Values for 'a' and 'b' are completely ignored!
+        """
         if not PYPY:
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
@@ -4477,18 +4620,58 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def query(
-        self, expr: str, *, inplace: Literal[False] = ..., **kwargs
+        self,
+        expr: str,
+        *,
+        parser: Literal["pandas", "python"] = ...,
+        engine: Literal["python", "numexpr"] | None = ...,
+        local_dict: dict[str, Any] | None = ...,
+        global_dict: dict[str, Any] | None = ...,
+        resolvers: list[Mapping] | None = ...,
+        level: int = ...,
+        inplace: Literal[False] = ...,
     ) -> DataFrame: ...
 
     @overload
-    def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None: ...
+    def query(
+        self,
+        expr: str,
+        *,
+        parser: Literal["pandas", "python"] = ...,
+        engine: Literal["python", "numexpr"] | None = ...,
+        local_dict: dict[str, Any] | None = ...,
+        global_dict: dict[str, Any] | None = ...,
+        resolvers: list[Mapping] | None = ...,
+        level: int = ...,
+        inplace: Literal[True],
+    ) -> None: ...
 
     @overload
     def query(
-        self, expr: str, *, inplace: bool = ..., **kwargs
+        self,
+        expr: str,
+        *,
+        parser: Literal["pandas", "python"] = ...,
+        engine: Literal["python", "numexpr"] | None = ...,
+        local_dict: dict[str, Any] | None = ...,
+        global_dict: dict[str, Any] | None = ...,
+        resolvers: list[Mapping] | None = ...,
+        level: int = ...,
+        inplace: bool = ...,
     ) -> DataFrame | None: ...
 
-    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(
+        self,
+        expr: str,
+        *,
+        parser: Literal["pandas", "python"] = "pandas",
+        engine: Literal["python", "numexpr"] | None = None,
+        local_dict: dict[str, Any] | None = None,
+        global_dict: dict[str, Any] | None = None,
+        resolvers: list[Mapping] | None = None,
+        level: int = 0,
+        inplace: bool = False,
+    ) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4507,11 +4690,41 @@ class DataFrame(NDFrame, OpsMixin):
 
             See the documentation for :meth:`DataFrame.eval` for details on
             referring to column names and variables in the query string.
+        parser : {'pandas', 'python'}, default 'pandas'
+            The parser to use to construct the syntax tree from the expression. The
+            default of ``'pandas'`` parses code slightly different than standard
+            Python. Alternatively, you can parse an expression using the
+            ``'python'`` parser to retain strict Python semantics.  See the
+            :ref:`enhancing performance <enhancingperf.eval>` documentation for
+            more details.
+        engine : {'python', 'numexpr'}, default 'numexpr'
+
+            The engine used to evaluate the expression. Supported engines are
+
+            - None : tries to use ``numexpr``, falls back to ``python``
+            - ``'numexpr'`` : This default engine evaluates pandas objects using
+              numexpr for large speed ups in complex expressions with large frames.
+            - ``'python'`` : Performs operations as if you had ``eval``'d in top
+              level python. This engine is generally not that useful.
+
+            More backends may be available in the future.
+        local_dict : dict or None, optional
+            A dictionary of local variables, taken from locals() by default.
+        global_dict : dict or None, optional
+            A dictionary of global variables, taken from globals() by default.
+        resolvers : list of dict-like or None, optional
+            A list of objects implementing the ``__getitem__`` special method that
+            you can use to inject an additional collection of namespaces to use for
+            variable lookup. For example, this is used in the
+            :meth:`~DataFrame.query` method to inject the
+            ``DataFrame.index`` and ``DataFrame.columns``
+            variables that refer to their respective :class:`~pandas.DataFrame`
+            instance attributes.
+        level : int, optional
+            The number of prior stack frames to traverse and add to the current
+            scope. Most users will **not** need to change this parameter.
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
-        **kwargs
-            See the documentation for :func:`eval` for complete details
-            on the keyword arguments accepted by :meth:`DataFrame.query`.
 
         Returns
         -------
@@ -4624,10 +4837,17 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs["level"] = kwargs.pop("level", 0) + 1
-        kwargs["target"] = None
 
-        res = self.eval(expr, **kwargs)
+        res = self.eval(
+            expr,
+            level=level + 1,
+            parser=parser,
+            target=None,
+            engine=engine,
+            local_dict=local_dict,
+            global_dict=global_dict,
+            resolvers=resolvers or (),
+        )
 
         try:
             result = self.loc[res]
@@ -7037,35 +7257,43 @@ class DataFrame(NDFrame, OpsMixin):
         `natural sorting <https://en.wikipedia.org/wiki/Natural_sort_order>`__.
         This can be done using
         ``natsort`` `package <https://github.com/SethMMorton/natsort>`__,
-        which provides sorted indices according
-        to their natural order, as shown below:
+        which provides a function to generate a key
+        to sort data in their natural order:
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         "time": ["0hr", "128hr", "72hr", "48hr", "96hr"],
-        ...         "value": [10, 20, 30, 40, 50],
+        ...         "hours": ["0hr", "128hr", "0hr", "64hr", "64hr", "128hr"],
+        ...         "mins": [
+        ...             "10mins",
+        ...             "40mins",
+        ...             "40mins",
+        ...             "40mins",
+        ...             "10mins",
+        ...             "10mins",
+        ...         ],
+        ...         "value": [10, 20, 30, 40, 50, 60],
         ...     }
         ... )
         >>> df
-            time  value
-        0    0hr     10
-        1  128hr     20
-        2   72hr     30
-        3   48hr     40
-        4   96hr     50
-        >>> from natsort import index_natsorted
-        >>> index_natsorted(df["time"])
-        [0, 3, 2, 4, 1]
+           hours    mins  value
+        0    0hr  10mins     10
+        1  128hr  40mins     20
+        2    0hr  40mins     30
+        3   64hr  40mins     40
+        4   64hr  10mins     50
+        5  128hr  10mins     60
+        >>> from natsort import natsort_keygen
         >>> df.sort_values(
-        ...     by="time",
-        ...     key=lambda x: np.argsort(index_natsorted(x)),
+        ...     by=["hours", "mins"],
+        ...     key=natsort_keygen(),
         ... )
-            time  value
-        0    0hr     10
-        3   48hr     40
-        2   72hr     30
-        4   96hr     50
-        1  128hr     20
+           hours    mins  value
+        0    0hr  10mins     10
+        2    0hr  40mins     30
+        4   64hr  10mins     50
+        3   64hr  40mins     40
+        5  128hr  10mins     60
+        1  128hr  40mins     20
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -7098,7 +7326,7 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = lexsort_indexer(
                 keys_data, orders=ascending, na_position=na_position, key=key
             )
-        elif len(by):
+        elif by:
             # len(by) == 1
 
             k = self._get_label_or_level_values(by[0], axis=axis)
@@ -7314,7 +7542,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : label or list of labels, optional
+        subset : Hashable or a sequence of the previous, optional
             Columns to use when counting unique combinations.
         normalize : bool, default False
             Return proportions rather than frequencies.
@@ -7465,7 +7693,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         n : int
             Number of rows to return.
-        columns : label or list of labels
+        columns : Hashable or a sequence of the previous
             Column label(s) to order by.
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
@@ -9177,11 +9405,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------%s
-        columns : str or object or a list of str
+        columns : Hashable or a sequence of the previous
             Column to use to make new frame's columns.
-        index : str or object or a list of str, optional
+        index : Hashable or a sequence of the previous, optional
             Column to use to make new frame's index. If not given, uses existing index.
-        values : str, object or a list of the previous, optional
+        values : Hashable or a sequence of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
@@ -9320,12 +9548,12 @@ class DataFrame(NDFrame, OpsMixin):
         ----------%s
         values : list-like or scalar, optional
             Column or columns to aggregate.
-        index : column, Grouper, array, or list of the previous
+        index : column, Grouper, array, or sequence of the previous
             Keys to group by on the pivot table index. If a list is passed,
             it can contain any of the other types (except list). If an array is
             passed, it must be the same length as the data and will be used in
             the same manner as column values.
-        columns : column, Grouper, array, or list of the previous
+        columns : column, Grouper, array, or sequence of the previous
             Keys to group by on the pivot table column. If a list is passed,
             it can contain any of the other types (except list). If an array is
             passed, it must be the same length as the data and will be used in
@@ -9854,7 +10082,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         level : int, str, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name.
-        fill_value : int, str or dict
+        fill_value : scalar
             Replace NaN with this value if the unstack produces missing values.
         sort : bool, default True
             Sort the level(s) in the resulting MultiIndex columns.
@@ -11353,6 +11581,12 @@ class DataFrame(NDFrame, OpsMixin):
         c -0.150812  0.191417  0.895202
         """
         data = self._get_numeric_data() if numeric_only else self
+        if any(blk.dtype.kind in "mM" for blk in self._mgr.blocks):
+            msg = (
+                "DataFrame contains columns with dtype datetime64 "
+                "or timedelta64, which are not supported for cov."
+            )
+            raise TypeError(msg)
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
@@ -11828,7 +12062,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="all")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="all")
     @doc(make_doc("all", ndim=1))
     def all(
         self,
@@ -11875,7 +12109,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="min")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -11922,7 +12156,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="max")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=2))
     def max(
         self,
@@ -11938,7 +12172,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="max")
         return result
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sum")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sum")
     def sum(
         self,
         axis: Axis | None = 0,
@@ -12039,7 +12273,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="sum")
         return result
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="prod")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="prod")
     def prod(
         self,
         axis: Axis | None = 0,
@@ -12157,7 +12391,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="mean")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=2))
     def mean(
         self,
@@ -12204,7 +12438,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="median")
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self"], name="median"
+    )
     @doc(make_doc("median", ndim=2))
     def median(
         self,
@@ -12254,7 +12490,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sem")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sem")
     def sem(
         self,
         axis: Axis | None = 0,
@@ -12374,7 +12610,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="var")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="var")
     def var(
         self,
         axis: Axis | None = 0,
@@ -12493,7 +12729,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="std")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="std")
     def std(
         self,
         axis: Axis | None = 0,
@@ -12616,7 +12852,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="skew")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="skew")
     def skew(
         self,
         axis: Axis | None = 0,
@@ -12736,7 +12972,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="kurt")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="kurt")
     def kurt(
         self,
         axis: Axis | None = 0,
@@ -13927,7 +14163,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     columns=("name", "max_speed", "rank"),
         ... )
         >>> df2.dtypes
-        name          object
+        name             str
         max_speed    float64
         rank          object
         dtype: object

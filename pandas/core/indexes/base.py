@@ -11,6 +11,7 @@ from typing import (
     ClassVar,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
     overload,
@@ -38,7 +39,6 @@ from pandas._libs.lib import (
     no_default,
 )
 from pandas._libs.tslibs import (
-    IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
@@ -60,7 +60,6 @@ from pandas._typing import (
     Level,
     NaPosition,
     ReindexMethod,
-    Self,
     Shape,
     SliceType,
     npt,
@@ -368,7 +367,7 @@ class Index(IndexOpsMixin, PandasObject):
     Index([1, 2, 3], dtype='int64')
 
     >>> pd.Index(list("abc"))
-    Index(['a', 'b', 'c'], dtype='object')
+    Index(['a', 'b', 'c'], dtype='str')
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
     Index([1, 2, 3], dtype='uint8')
@@ -965,12 +964,8 @@ class Index(IndexOpsMixin, PandasObject):
         Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
-        if (not isinstance(result, Index) and is_bool_dtype(result.dtype)) or np.ndim(
-            result
-        ) > 1:
-            # exclude Index to avoid warning from is_bool_dtype deprecation;
-            #  in the Index case it doesn't matter which path we go down.
-            # reached in plotting tests with e.g. np.nonzero(index)
+        if np.ndim(result) > 1:
+            # Reached in plotting tests with e.g. np.nonzero(index)
             return result
 
         return Index(result, name=self.name)
@@ -1214,7 +1209,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(['a', 'b', 'c'])
         >>> idx.take([2, 2, 1, 2])
-        Index(['c', 'c', 'b', 'c'], dtype='object')
+        Index(['c', 'c', 'b', 'c'], dtype='str')
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
@@ -1420,7 +1415,7 @@ class Index(IndexOpsMixin, PandasObject):
             is_justify = False
         elif isinstance(self.dtype, CategoricalDtype):
             self = cast("CategoricalIndex", self)
-            if is_object_dtype(self.categories.dtype):
+            if is_string_dtype(self.categories.dtype):
                 is_justify = False
         elif isinstance(self, ABCRangeIndex):
             # We will do the relevant formatting via attrs
@@ -1731,10 +1726,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return Index or MultiIndex name.
 
+        Returns
+        -------
+        label (hashable object)
+            The name of the Index.
+
         See Also
         --------
         Index.set_names: Able to set new names partially and by level.
         Index.rename: Able to set new names partially and by level.
+        Series.name: Corresponding Series property.
 
         Examples
         --------
@@ -1907,12 +1908,12 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
 
-        names : label or list of label or dict-like for MultiIndex
+        names : Hashable or a sequence of the previous or dict-like for MultiIndex
             Name(s) to set.
 
             .. versionchanged:: 1.3.0
 
-        level : int, label or list of int or label, optional
+        level : int, Hashable or a sequence of the previous, optional
             If the index is a MultiIndex and names is not dict-like, level(s) to set
             (None for all levels). Otherwise level must be None.
 
@@ -2017,7 +2018,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        name : label or list of labels
+        name : Hashable or a sequence of the previous
             Name(s) to set.
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
@@ -2961,10 +2962,14 @@ class Index(IndexOpsMixin, PandasObject):
             and self.tz is not None
             and other.tz is not None
         ):
-            # GH#39328, GH#45357
-            left = self.tz_convert("UTC")
-            right = other.tz_convert("UTC")
-            return left, right
+            # GH#39328, GH#45357, GH#60080
+            # If both timezones are the same, no need to convert to UTC
+            if self.tz == other.tz:
+                return self, other
+            else:
+                left = self.tz_convert("UTC")
+                right = other.tz_convert("UTC")
+                return left, right
         return self, other
 
     @final
@@ -3133,7 +3138,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  test_union_same_value_duplicated_in_both fails)
             try:
                 return self._outer_indexer(other)[0]
-            except (TypeError, IncompatibleFrequency):
+            except TypeError:
                 # incomparable objects; should only be for object dtype
                 value_list = list(lvals)
 
@@ -5471,11 +5476,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quickly return if the lengths are different
             return False
 
-        if (
-            isinstance(self.dtype, StringDtype)
-            and self.dtype.na_value is np.nan
-            and other.dtype != self.dtype
-        ):
+        if isinstance(self.dtype, StringDtype) and other.dtype != self.dtype:
             # TODO(infer_string) can we avoid this special case?
             # special case for object behavior
             return other.equals(self.astype(object))
@@ -6861,11 +6862,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.delete(1)
-        Index(['a', 'c'], dtype='object')
+        Index(['a', 'c'], dtype='str')
 
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.delete([0, 2])
-        Index(['b'], dtype='object')
+        Index(['b'], dtype='str')
         """
         values = self._values
         res_values: ArrayLike
@@ -6905,7 +6906,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.insert(1, "x")
-        Index(['a', 'x', 'b', 'c'], dtype='object')
+        Index(['a', 'x', 'b', 'c'], dtype='str')
         """
         item = lib.item_from_zerodim(item)
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
@@ -7016,6 +7017,23 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         copy : bool, default True
             Whether to make a copy in cases where no inference occurs.
+
+        Returns
+        -------
+        Index
+            An Index with a new dtype if the dtype was inferred
+            or a shallow copy if the dtype could not be inferred.
+
+        See Also
+        --------
+        Index.inferred_type: Return a string of the type inferred from the values.
+
+        Examples
+        --------
+        >>> pd.Index(["a", 1]).infer_objects()
+        Index(['a', '1'], dtype='object')
+        >>> pd.Index([1, 2], dtype="object").infer_objects()
+        Index([1, 2], dtype='int64')
         """
         if self._is_multi:
             raise NotImplementedError(
@@ -7580,7 +7598,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     Examples
     --------
     >>> ensure_index(["a", "b"])
-    Index(['a', 'b'], dtype='object')
+    Index(['a', 'b'], dtype='str')
 
     >>> ensure_index([("a", "a"), ("b", "c")])
     Index([('a', 'a'), ('b', 'c')], dtype='object')
@@ -7608,7 +7626,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
             # check in clean_index_list
             index_like = list(index_like)
 
-        if len(index_like) and lib.is_all_arraylike(index_like):
+        if index_like and lib.is_all_arraylike(index_like):
             from pandas.core.indexes.multi import MultiIndex
 
             return MultiIndex.from_arrays(index_like)

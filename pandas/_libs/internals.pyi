@@ -1,6 +1,9 @@
-from typing import (
+from collections.abc import (
     Iterator,
     Sequence,
+)
+from typing import (
+    Self,
     final,
     overload,
 )
@@ -10,7 +13,6 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    Self,
     npt,
 )
 
