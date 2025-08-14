@@ -831,6 +831,17 @@ def test_match_case_kwarg(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_match_compiled_regex(any_string_dtype):
+    # GH#61952
+    values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+    result = values.str.match(re.compile(r"ab"), case=False)
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([True, True, True, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -897,6 +908,17 @@ def test_fullmatch_case_kwarg(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     result = ser.str.fullmatch("ab", flags=re.IGNORECASE)
+    tm.assert_series_equal(result, expected)
+
+
+def test_fullmatch_compiled_regex(any_string_dtype):
+    # GH#61952
+    values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+    result = values.str.fullmatch(re.compile(r"ab"), case=False)
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([True, True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -1009,32 +1031,35 @@ def test_find_nan(any_string_dtype):
     ser = Series(
         ["ABCDEFG", np.nan, "DEFGHIJEF", np.nan, "XXXX"], dtype=any_string_dtype
     )
-    expected_dtype = (
-        np.float64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = pd.NA
 
     result = ser.str.find("EF")
-    expected = Series([4, np.nan, 1, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, 1, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.rfind("EF")
-    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, 7, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.find("EF", 3)
-    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, 7, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.rfind("EF", 3)
-    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, 7, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.find("EF", 3, 6)
-    expected = Series([4, np.nan, -1, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, -1, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.rfind("EF", 3, 6)
-    expected = Series([4, np.nan, -1, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, -1, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 

@@ -25,6 +25,7 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
     TypeVar,
     cast,
     overload,
@@ -51,7 +52,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
-        Concatenate,
         NpDtype,
         P,
         RandomState,
@@ -91,8 +91,10 @@ def consensus_name_attr(objs):
         try:
             if obj.name != name:
                 name = None
+                break
         except ValueError:
             name = None
+            break
     return name
 
 
