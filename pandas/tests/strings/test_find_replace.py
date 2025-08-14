@@ -822,6 +822,17 @@ def test_match_case_kwarg(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_match_compiled_regex(any_string_dtype):
+    # GH#61952
+    values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+    result = values.str.match(re.compile(r"ab"), case=False)
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([True, True, True, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -888,6 +899,17 @@ def test_fullmatch_case_kwarg(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     result = ser.str.fullmatch("ab", flags=re.IGNORECASE)
+    tm.assert_series_equal(result, expected)
+
+
+def test_fullmatch_compiled_regex(any_string_dtype):
+    # GH#61952
+    values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+    result = values.str.fullmatch(re.compile(r"ab"), case=False)
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([True, True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
