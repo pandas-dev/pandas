@@ -54,9 +54,6 @@ from pandas.util._decorators import (
     doc,
     set_module,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -4328,7 +4325,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def map(
         self,
-        func: Callable | Mapping | Series | None = None,
+        func: Callable | Mapping | Series,
         na_action: Literal["ignore"] | None = None,
         engine: Callable | None = None,
         **kwargs,
@@ -4368,7 +4365,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
-            `arg`.
+            `func`.
 
             .. versionadded:: 3.0.0
 
@@ -4432,19 +4429,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3  I am a rabbit
         dtype: object
         """
-        if func is None:
-            if "arg" in kwargs:
-                # `.map(arg=my_func)`
-                func = kwargs.pop("arg")
-                warnings.warn(
-                    "The parameter `arg` has been renamed to `func`, and it "
-                    "will stop being supported in a future version of pandas.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                raise ValueError("The `func` parameter is required")
-
         if engine is not None:
             if not callable(func):
                 raise ValueError(
