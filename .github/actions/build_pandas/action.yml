@@ -1,9 +1,6 @@
 name: Build pandas
 description: Rebuilds the C extensions and installs pandas
 inputs:
-  editable:
-    description: Whether to build pandas in editable mode (default true)
-    default: true
   werror:
     description: Enable werror flag for build
     default: true
@@ -26,12 +23,5 @@ runs:
       shell: bash -el {0}
 
     - name: Build Pandas
-      run: |
-        if [[ ${{ inputs.editable }} == "true" ]]; then
-          pip install -e . --no-build-isolation -v --no-deps \
-            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
-        else
-          pip install . --no-build-isolation -v --no-deps \
-            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
-        fi
+      run: pip install . --no-build-isolation -v --no-deps ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
       shell: bash -el {0}
