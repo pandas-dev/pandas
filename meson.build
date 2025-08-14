@@ -47,7 +47,9 @@ endif
 cc = meson.get_compiler('c')
 add_project_arguments(
 # https://github.com/cython/cython/issues/6870
-    cc.get_supported_arguments(['-Wno-error=unused-parameter', '-Wno-error=unused-function']),
+    cc.get_supported_arguments(
+        ['-Wno-error=unused-parameter', '-Wno-error=unused-function'],
+    ),
     language: 'c',
 )
 cy = meson.get_compiler('cython')
