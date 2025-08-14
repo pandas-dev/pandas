@@ -607,6 +607,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _from_factorized(cls, values, original) -> Self:
         return cls(values, dtype=original.dtype)
 
+    def _cast_pointwise_result(self, values):
+        result = super()._cast_pointwise_result(values)
+        return type(self)._from_sequence(result)
+
     # ------------------------------------------------------------------------
     # Data
     # ------------------------------------------------------------------------

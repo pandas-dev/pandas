@@ -147,6 +147,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
         return cls(values, mask)
 
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        values = np.asarray(values, dtype=object)
+        return lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
+
     @classmethod
     @doc(ExtensionArray._empty)
     def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:

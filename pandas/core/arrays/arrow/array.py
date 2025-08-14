@@ -392,6 +392,18 @@ class ArrowExtensionArray(
             )
         return cls._from_sequence(scalars, dtype=pa_type, copy=copy)
 
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        if len(values) == 0:
+            # Retain our dtype
+            return self[:0].copy()
+        arr = pa.array(values, from_pandas=True)
+        if isinstance(self.dtype, StringDtype):
+            if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
+                # ArrowStringArrayNumpySemantics
+                return type(self)(arr)
+            return ArrowExtensionArray(arr)
+        return type(self)(arr)
+
     @classmethod
     def _box_pa(
         cls, value, pa_type: pa.DataType | None = None

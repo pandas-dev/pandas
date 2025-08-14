@@ -90,7 +90,6 @@ from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_result_type,
     infer_dtype_from,
-    maybe_cast_pointwise_result,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -6398,17 +6397,18 @@ class Index(IndexOpsMixin, PandasObject):
         if not new_values.size:
             # empty
             dtype = self.dtype
-
-        # e.g. if we are floating and new_values is all ints, then we
-        #  don't want to cast back to floating.  But if we are UInt64
-        #  and new_values is all ints, we want to try.
-        same_dtype = lib.infer_dtype(new_values, skipna=False) == self.inferred_type
-        if same_dtype:
-            new_values = maybe_cast_pointwise_result(
-                new_values, self.dtype, same_dtype=same_dtype
-            )
-
-        return Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
+            return Index(new_values, dtype=dtype, copy=False, name=self.name)
+        else:
+            # e.g. if we are floating and new_values is all ints, then we
+            #  don't want to cast back to floating.  But if we are UInt64
+            #  and new_values is all ints, we want to try.
+            if isinstance(self._values, np.ndarray):
+                return Index(new_values, dtype=dtype, copy=False, name=self.name)
+            else:
+                new_values = self._values._cast_pointwise_result(new_values)
+                return Index(
+                    new_values, dtype=new_values.dtype, copy=False, name=self.name
+                )
 
     # TODO: De-duplicate with map, xref GH#32349
     @final

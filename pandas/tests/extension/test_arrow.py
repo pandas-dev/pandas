@@ -786,6 +786,8 @@ class TestArrowArray(base.ExtensionTests):
 
         return tm.get_op_from_name(op_name)
 
+    # TODO: use EA._cast_pointwise_result, same with other test files that
+    #  override this
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         # BaseOpsUtil._combine can upcast expected dtype
         # (because it generates expected on python scalars)

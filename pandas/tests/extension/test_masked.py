@@ -168,6 +168,8 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
+    _combine_le_expected_dtype = "boolean"
+
     @pytest.fixture(autouse=True)
     def skip_if_doesnt_support_2d(self, dtype, request):
         # Override the fixture so that we run these tests.
@@ -262,16 +264,6 @@ class TestMaskedArrays(base.ExtensionTests):
             )
             request.applymarker(mark)
         super().test_divmod_series_array(data, data_for_twos)
-
-    def test_combine_le(self, data_repeated):
-        # TODO: patching self is a bad pattern here
-        orig_data1, orig_data2 = data_repeated(2)
-        if orig_data1.dtype.kind == "b":
-            self._combine_le_expected_dtype = "boolean"
-        else:
-            # TODO: can we make this boolean?
-            self._combine_le_expected_dtype = object
-        super().test_combine_le(data_repeated)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         if op_name in ["any", "all"] and ser.dtype.kind != "b":
