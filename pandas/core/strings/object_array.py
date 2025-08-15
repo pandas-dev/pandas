@@ -245,14 +245,15 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_match(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not case:
             flags |= re.IGNORECASE
-
+        if isinstance(pat, re.Pattern):
+            pat = pat.pattern
         regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.match(x) is not None
@@ -267,7 +268,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     ):
         if not case:
             flags |= re.IGNORECASE
-
+        if isinstance(pat, re.Pattern):
+            pat = pat.pattern
         regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.fullmatch(x) is not None
