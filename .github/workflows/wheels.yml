@@ -189,7 +189,7 @@ jobs:
         # installing wheel here because micromamba step was skipped
         if: matrix.buildplat[1] == 'win_arm64'
         shell: bash -el {0}
-        run: python -m pip install wheel
+        run: python -m pip install wheel anaconda-client
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
