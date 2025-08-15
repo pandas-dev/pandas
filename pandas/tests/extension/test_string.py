@@ -101,6 +101,14 @@ def data_for_grouping(dtype, chunked):
 
 
 class TestStringArray(base.ExtensionTests):
+    def test_combine_le(self, data_repeated):
+        dtype = next(iter(data_repeated(2))).dtype
+        if dtype.storage == "pyarrow" and dtype.na_value is pd.NA:
+            self._combine_le_expected_dtype = "bool[pyarrow]"
+        else:
+            self._combine_le_expected_dtype = "bool"
+        return super().test_combine_le(data_repeated)
+
     def test_eq_with_str(self, dtype):
         super().test_eq_with_str(dtype)
 
@@ -220,18 +228,6 @@ class TestStringArray(base.ExtensionTests):
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
-
-    def test_combine_add(self, data_repeated, using_infer_string, request):
-        dtype = next(data_repeated(1)).dtype
-        if using_infer_string and (
-            (dtype.na_value is pd.NA) and dtype.storage == "python"
-        ):
-            mark = pytest.mark.xfail(
-                reason="The pointwise operation result will be inferred to "
-                "string[nan, pyarrow], which does not match the input dtype"
-            )
-            request.applymarker(mark)
-        super().test_combine_add(data_repeated)
 
     def test_arith_series_with_array(
         self, data, all_arithmetic_operators, using_infer_string, request

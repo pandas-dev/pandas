@@ -26,6 +26,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -149,7 +150,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         values = np.asarray(values, dtype=object)
-        return lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
+        result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
+        lkind = self.dtype.kind
+        rkind = result.dtype.kind
+        if (lkind in "iu" and rkind in "iu") or (lkind == rkind == "f"):
+            new_data = maybe_downcast_to_dtype(
+                result._data, dtype=self.dtype.numpy_dtype
+            )
+            result = type(result)(new_data, result._mask)
+        return result
 
     @classmethod
     @doc(ExtensionArray._empty)

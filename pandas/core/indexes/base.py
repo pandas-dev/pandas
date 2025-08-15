@@ -6397,18 +6397,20 @@ class Index(IndexOpsMixin, PandasObject):
         if not new_values.size:
             # empty
             dtype = self.dtype
-            return Index(new_values, dtype=dtype, copy=False, name=self.name)
+        elif isinstance(new_values, Categorical):
+            # cast_pointwise_result is unnecessary
+            dtype = new_values.dtype
         else:
+            if isinstance(self, MultiIndex):
+                arr = self[:0].to_flat_index().array
+            else:
+                arr = self[:0].array
             # e.g. if we are floating and new_values is all ints, then we
             #  don't want to cast back to floating.  But if we are UInt64
             #  and new_values is all ints, we want to try.
-            if isinstance(self._values, np.ndarray):
-                return Index(new_values, dtype=dtype, copy=False, name=self.name)
-            else:
-                new_values = self._values._cast_pointwise_result(new_values)
-                return Index(
-                    new_values, dtype=new_values.dtype, copy=False, name=self.name
-                )
+            new_values = arr._cast_pointwise_result(new_values)
+            dtype = new_values.dtype
+        return Index(new_values, dtype=dtype, copy=False, name=self.name)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
