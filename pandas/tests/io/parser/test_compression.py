@@ -34,6 +34,15 @@ def parser_and_data(all_parsers, csv1):
     return parser, data, expected
 
 
+@pytest.fixture
+def empty_zip_file(tmp_path):
+    # Create an empty zip file for testing
+    zip_path = tmp_path / "empty.zip"
+    with zipfile.ZipFile(zip_path, "w"):
+        pass
+    return zip_path
+
+
 @pytest.mark.parametrize("compression", ["zip", "infer", "zip2"])
 def test_zip(parser_and_data, compression):
     parser, data, expected = parser_and_data
@@ -158,14 +167,14 @@ def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding
 
 
 @pytest.mark.parametrize("invalid_compression", ["sfark", "bz3", "zipper"])
-def test_invalid_compression(all_parsers, invalid_compression):
+def test_invalid_compression(all_parsers, empty_zip_file, invalid_compression):
     parser = all_parsers
     compress_kwargs = {"compression": invalid_compression}
 
     msg = f"Unrecognized compression type: {invalid_compression}"
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv("test_file.zip", **compress_kwargs)
+        parser.read_csv(empty_zip_file, **compress_kwargs)
 
 
 def test_compression_tar_archive(all_parsers, csv_dir_path):
