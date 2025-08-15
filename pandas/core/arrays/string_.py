@@ -400,7 +400,7 @@ class BaseStringArray(ExtensionArray):
                 f"'{op_name}' operations between boolean dtype and {self.dtype} are "
                 "deprecated and will raise in a future version. Explicitly "
                 "cast the strings to a boolean dtype before operating instead.",
-                FutureWarning,
+                DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
             return op(other, self.astype(bool))
