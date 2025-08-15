@@ -729,7 +729,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         result = super()._cast_pointwise_result(values)
         if isinstance(result.dtype, StringDtype):
             # Ensure we retain our same na_value/storage
-            result = result.astype(self.dtype)
+            result = result.astype(self.dtype)  # type: ignore[call-overload]
         return result
 
     @classmethod

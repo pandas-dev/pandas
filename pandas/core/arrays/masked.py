@@ -154,6 +154,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         lkind = self.dtype.kind
         rkind = result.dtype.kind
         if (lkind in "iu" and rkind in "iu") or (lkind == rkind == "f"):
+            result = cast(BaseMaskedArray, result)
             new_data = maybe_downcast_to_dtype(
                 result._data, dtype=self.dtype.numpy_dtype
             )

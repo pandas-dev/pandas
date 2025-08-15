@@ -409,22 +409,22 @@ class ArrowExtensionArray(
             # workaround for https://github.com/apache/arrow/issues/40620
             result = ArrowExtensionArray._from_sequence(values)
             if pa.types.is_duration(self._pa_array.type):
-                result = result.astype(self.dtype)
+                result = result.astype(self.dtype)  # type: ignore[assignment]
             elif pa.types.is_timestamp(self._pa_array.type):
                 # Try to retain original unit
                 new_dtype = ArrowDtype(pa.duration(self._pa_array.type.unit))
                 try:
-                    result = result.astype(new_dtype)
+                    result = result.astype(new_dtype)  # type: ignore[assignment]
                 except ValueError:
                     pass
             elif pa.types.is_date64(self._pa_array.type):
                 # Try to match unit we get on non-pointwise op
                 dtype = ArrowDtype(pa.duration("ms"))
-                result = result.astype(dtype)
+                result = result.astype(dtype)  # type: ignore[assignment]
             elif pa.types.is_date(self._pa_array.type):
                 # Try to match unit we get on non-pointwise op
                 dtype = ArrowDtype(pa.duration("s"))
-                result = result.astype(dtype)
+                result = result.astype(dtype)  # type: ignore[assignment]
             return result
 
         elif pa.types.is_date(arr.type) and pa.types.is_date(self._pa_array.type):

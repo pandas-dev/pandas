@@ -837,7 +837,9 @@ class TestArrowArray(base.ExtensionTests):
         elif type(other) is float:
             return expected.astype("float64[pyarrow]")
 
-        orig_pa_type = original_dtype.pyarrow_dtype
+        # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
+        #  no attribute "pyarrow_dtype"
+        orig_pa_type = original_dtype.pyarrow_dtype  # type: ignore[union-attr]
         if not was_frame and isinstance(other, pd.Series):
             # i.e. test_arith_series_with_array
             if not (
