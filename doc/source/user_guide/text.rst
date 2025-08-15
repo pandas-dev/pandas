@@ -75,7 +75,7 @@ or convert from existing pandas data:
 
 .. ipython:: python
 
-   s1 = pd.Series([1, 2, np.nan], dtype="Int64")
+   s1 = pd.Series([1, 2, pd.NA], dtype="Int64")
    s1
    s2 = s1.astype("string")
    s2
