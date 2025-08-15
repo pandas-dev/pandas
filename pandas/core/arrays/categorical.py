@@ -457,6 +457,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 codes = arr.indices.to_numpy()
                 dtype = CategoricalDtype(categories, values.dtype.pyarrow_dtype.ordered)
             else:
+                # Check for pandas Series/ Index with object dtye
+                preserve_object_dtpe = False
+                if isinstance(values, (ABCSeries, ABCIndex)):
+                    if getattr(values.dtype, "name", None) == "object":
+                        preserve_object_dtpe = True
                 if not isinstance(values, ABCIndex):
                     # in particular RangeIndex xref test_index_equal_range_categories
                     values = sanitize_array(values, None)
@@ -465,15 +470,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 except TypeError as err:
                     codes, categories = factorize(values, sort=False)
                     if dtype.ordered:
-                        # raise, as we don't have a sortable data structure and so
-                        # the user should give us one by specifying categories
                         raise TypeError(
                             "'values' is not ordered, please "
                             "explicitly specify the categories order "
                             "by passing in a categories argument."
                         ) from err
 
-                # we're inferring from values
+                # If we should prserve object dtype, force categories to object dtype
+                if preserve_object_dtpe:
+                    from pandas import Index
+
+                    categories = Index(categories, dtype=object, copy=False)
                 dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):
