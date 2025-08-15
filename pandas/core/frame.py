@@ -4218,6 +4218,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
+    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
     def _setitem(self, key, value) -> None:
         """
         Set item(s) in DataFrame by key.
@@ -4302,12 +4303,6 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
-        # if not PYPY:
-        #     if sys.getrefcount(self) <= 3:
-        #         warnings.warn(
-        #             _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
-        #         )
-
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows

@@ -4258,7 +4258,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = result.__finalize__(self)
         return result
 
-    # __delitem__ is implemented in SetitemMixin and dispatches to this method
+    # def __delitem__() is implemented in SetitemMixin and dispatches to this method
     @final
     def _delitem(self, key) -> None:
         """

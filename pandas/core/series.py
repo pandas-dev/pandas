@@ -1064,13 +1064,8 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             return self.iloc[loc]
 
+    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
     def _setitem(self, key, value) -> None:
-        # if not PYPY:
-        #     if sys.getrefcount(self) <= 3:
-        #         warnings.warn(
-        #             _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
-        #         )
-
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
 

@@ -24,6 +24,8 @@ cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 from pandas.errors import ChainedAssignmentError
+from pandas.errors.cow import _chained_assignment_msg
+
 
 from pandas._libs.util cimport (
     is_array,
@@ -1005,10 +1007,7 @@ cdef class BlockValuesRefs:
 cdef extern from "Python.h":
     """
     #if PY_VERSION_HEX < 0x030E0000
-    int __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary(PyObject *ref)
-    {
-        return 0;
-    }
+    int __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary(PyObject *ref);
     #else
     #define __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary \
         PyUnstable_Object_IsUniqueReferencedTemporary
@@ -1018,40 +1017,25 @@ cdef extern from "Python.h":
         "__Pyx_PyUnstable_Object_IsUniqueReferencedTemporary"(object o) except -1
 
 
+# Python version compatibility for PyUnstable_Object_IsUniqueReferencedTemporary
 cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
     if PY_VERSION_HEX >= 0x030E0000:
+        # Python 3.14+ has PyUnstable_Object_IsUniqueReferencedTemporary
         return PyUnstable_Object_IsUniqueReferencedTemporary(obj)
     else:
+        # Fallback for older Python versions using sys.getrefcount
         return sys.getrefcount(obj) <= 1
 
 
-# # Python version compatibility for PyUnstable_Object_IsUniqueReferencedTemporary
-# IF PY_VERSION_HEX >= 0x030E0000:
-#     # Python 3.14+ has PyUnstable_Object_IsUniqueReferencedTemporary
-#     cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
-#         return PyUnstable_Object_IsUniqueReferencedTemporary(obj)
-# ELSE:
-#     # Fallback for older Python versions using sys.getrefcount
-#     cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
-#         # sys.getrefcount includes the reference from getrefcount itself
-#         # So if refcount is 2, it means only one external reference exists
-#         return sys.getrefcount(obj) == 2
-
-
-# @cython.auto_pickle(False)
 cdef class SetitemMixin:
+    # class used in DataFrame and Series for checking for chained assignment
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         cdef bint is_unique = _is_unique_referenced_temporary(self)
-        # print("Refcount self: ", sys.getrefcount(self))
-        # print("Is unique referenced temporary: ", is_unique)
         if is_unique:
             warnings.warn(
-                "A value is trying to be set on a copy of a DataFrame or Series "
-                "through chained assignment.",
-                ChainedAssignmentError,
-                stacklevel=1,
-                )
+                _chained_assignment_msg, ChainedAssignmentError, stacklevel=1
+            )
         self._setitem(key, value)
 
     def __delitem__(self, key) -> None:
