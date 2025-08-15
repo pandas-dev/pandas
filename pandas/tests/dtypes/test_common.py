@@ -117,7 +117,7 @@ dtypes = {
     "float": np.dtype(np.float64),
     "object": np.dtype(object),
     "category": com.pandas_dtype("category"),
-    "string": pd.StringDtype(),
+    "string": pd.StringDtype("python"),
 }
 
 
