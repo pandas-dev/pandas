@@ -229,6 +229,16 @@ class TestStringArray(base.ExtensionTests):
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
+    def test_combine_add(self, data_repeated, using_infer_string, request):
+        dtype = next(data_repeated(1)).dtype
+        if not using_infer_string and dtype.storage == "python":
+            mark = pytest.mark.xfail(
+                reason="The pointwise operation result will be inferred to "
+                "string[nan, pyarrow], which does not match the input dtype"
+            )
+            request.applymarker(mark)
+        super().test_combine_add(data_repeated)
+
     def test_arith_series_with_array(
         self, data, all_arithmetic_operators, using_infer_string, request
     ):
