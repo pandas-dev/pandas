@@ -464,8 +464,12 @@ def to_parquet(
 
         .. versionadded:: 2.1.0
 
-    kwargs
-        Additional keyword arguments passed to the engine.
+    **kwargs
+        Additional keyword arguments passed to the engine:
+
+        * For ``engine="pyarrow"``: passed to :func:`pyarrow.parquet.write_table`
+          or :func:`pyarrow.parquet.write_to_dataset` (when using partition_cols)
+        * For ``engine="fastparquet"``: passed to :func:`fastparquet.write`
 
     Returns
     -------
@@ -585,7 +589,11 @@ def read_parquet(
         .. versionadded:: 3.0.0
 
     **kwargs
-        Any additional kwargs are passed to the engine.
+        Additional keyword arguments passed to the engine:
+
+        * For ``engine="pyarrow"``: passed to :func:`pyarrow.parquet.read_table`
+        * For ``engine="fastparquet"``: passed to
+          :meth:`fastparquet.ParquetFile.to_pandas`
 
     Returns
     -------
