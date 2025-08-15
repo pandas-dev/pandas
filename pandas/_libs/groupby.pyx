@@ -672,6 +672,7 @@ def group_sum(
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
     bint is_datetimelike=False,
+    object initial=0,
 ) -> None:
     """
     Only aggregates on axis=0 using Kahan summation
@@ -689,9 +690,15 @@ def group_sum(
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    # the below is equivalent to `np.zeros_like(out)` but faster
-    sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
-    compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    if initial == 0:
+        # the below is equivalent to `np.zeros_like(out)` but faster
+        sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+        compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    else:
+        # in practice this path is only taken for strings to use empty string as initial
+        assert sum_t is object
+        sumx = np.full((<object>out).shape, initial, dtype=object)
+        # object code path does not use `compensation`
 
     N, K = (<object>values).shape
 
