@@ -230,14 +230,14 @@ def array(
     Length: 2, dtype: Float64
 
     >>> pd.array(["a", None, "c"])
-    <StringArray>
+    <ArrowStringArray>
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
-    >>> with pd.option_context("string_storage", "pyarrow"):
+    >>> with pd.option_context("string_storage", "python"):
     ...     arr = pd.array(["a", None, "c"])
     >>> arr
-    <ArrowStringArray>
+    <StringArray>
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
