@@ -83,7 +83,7 @@ def test_astype_numpy_to_ea():
 
 
 @pytest.mark.parametrize(
-    "dtype, new_dtype", [("object", "string"), ("string", "object")]
+    "dtype, new_dtype", [("object", "string[python]"), ("string[python]", "object")]
 )
 def test_astype_string_and_object(dtype, new_dtype):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
@@ -96,7 +96,7 @@ def test_astype_string_and_object(dtype, new_dtype):
 
 
 @pytest.mark.parametrize(
-    "dtype, new_dtype", [("object", "string"), ("string", "object")]
+    "dtype, new_dtype", [("object", "string[python]"), ("string[python]", "object")]
 )
 def test_astype_string_and_object_update_original(dtype, new_dtype):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
@@ -224,9 +224,7 @@ def test_convert_dtypes(using_infer_string):
     df_orig = df.copy()
     df2 = df.convert_dtypes()
 
-    if using_infer_string and HAS_PYARROW:
-        # TODO the default nullable string dtype still uses python storage
-        # this should be changed to pyarrow if installed
+    if HAS_PYARROW:
         assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
