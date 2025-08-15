@@ -412,13 +412,6 @@ class BaseStringArray(ExtensionArray):
             return [x.tolist() for x in self]
         return list(self.to_numpy())
 
-    @classmethod
-    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
-            # TODO: require any NAs be valid-for-string
-            raise ValueError
-        return cls._from_sequence(scalars, dtype=dtype)
-
     def _formatter(self, boxed: bool = False):
         formatter = partial(
             printing.pprint_thing,
@@ -731,6 +724,13 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        result = super()._cast_pointwise_result(values)
+        if isinstance(result.dtype, StringDtype):
+            # Ensure we retain our same na_value/storage
+            result = result.astype(self.dtype)  # type: ignore[call-overload]
+        return result
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:

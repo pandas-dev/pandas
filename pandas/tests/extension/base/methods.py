@@ -367,6 +367,18 @@ class BaseMethodsTests:
         )
         tm.assert_series_equal(result, expected)
 
+    def _construct_for_combine_add(self, left, right):
+        if isinstance(right, type(left)):
+            return left._from_sequence(
+                [a + b for (a, b) in zip(list(left), list(right))],
+                dtype=left.dtype,
+            )
+        else:
+            return left._from_sequence(
+                [a + right for a in list(left)],
+                dtype=left.dtype,
+            )
+
     def test_combine_add(self, data_repeated):
         # GH 20825
         orig_data1, orig_data2 = data_repeated(2)
@@ -377,26 +389,22 @@ class BaseMethodsTests:
         #  we will expect Series.combine to raise as well.
         try:
             with np.errstate(over="ignore"):
-                expected = pd.Series(
-                    orig_data1._from_sequence(
-                        [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
-                    )
-                )
+                arr = self._construct_for_combine_add(orig_data1, orig_data2)
         except TypeError:
             # If the operation is not supported pointwise for our scalars,
             #  then Series.combine should also raise
             with pytest.raises(TypeError):
                 s1.combine(s2, lambda x1, x2: x1 + x2)
             return
+        expected = pd.Series(arr)
 
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
         tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 + x2)
-        expected = pd.Series(
-            orig_data1._from_sequence([a + val for a in list(orig_data1)])
-        )
+        arr = self._construct_for_combine_add(orig_data1, val)
+        expected = pd.Series(arr)
         tm.assert_series_equal(result, expected)
 
     def test_combine_first(self, data):
