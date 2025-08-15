@@ -635,6 +635,13 @@ def is_string_dtype(arr_or_dtype) -> bool:
     >>> is_string_dtype(pd.Series([1, 2], dtype=object))
     False
     """
+    # Handle Categorical consistently whether passed as array or dtype
+    if hasattr(arr_or_dtype, "dtype") and isinstance(_get_dtype(arr_or_dtype), CategoricalDtype):
+        return is_all_strings(arr_or_dtype)
+    elif isinstance(arr_or_dtype, CategoricalDtype):
+        # For CategoricalDtype, check if categories are strings
+        return arr_or_dtype.categories.inferred_type == "string"
+    
     if hasattr(arr_or_dtype, "dtype") and _get_dtype(arr_or_dtype).kind == "O":
         return is_all_strings(arr_or_dtype)
 
