@@ -180,7 +180,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 should_try = other.inferred_type in inferable
             elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
-                should_try = other.categories.inferred_type in inferable
+                # Handle case where categories is None
+                if other.categories is not None:
+                    should_try = other.categories.inferred_type in inferable
+                else:
+                    should_try = False
 
             if should_try:
                 try:

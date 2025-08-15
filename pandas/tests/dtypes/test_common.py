@@ -339,15 +339,15 @@ def test_is_string_dtype_nullable(nullable_string_dtype):
 
 def test_is_string_dtype_categorical():
     # GH#XXXXX - is_string_dtype should be consistent for Categorical series and dtype
-    cat_series = pd.Categorical(['A', 'B', 'C'])
+    cat_series = pd.Categorical(["A", "B", "C"])
     assert not com.is_string_dtype(cat_series)
     assert not com.is_string_dtype(cat_series.dtype)
-    
+
     # Test with string categories
-    cat_string_series = pd.Categorical(['A', 'B', 'C'], categories=['A', 'B', 'C'])
+    cat_string_series = pd.Categorical(["A", "B", "C"], categories=["A", "B", "C"])
     assert com.is_string_dtype(cat_string_series)
     assert com.is_string_dtype(cat_string_series.dtype)
-    
+
     # Test with non-string categories
     cat_int_series = pd.Categorical([1, 2, 3], categories=[1, 2, 3])
     assert not com.is_string_dtype(cat_int_series)
