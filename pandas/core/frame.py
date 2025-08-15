@@ -9368,6 +9368,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
     def groupby(
         self,
         by=None,
