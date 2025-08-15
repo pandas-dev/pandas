@@ -25,10 +25,10 @@ Python object can be stored in an ``object``-dtype array, not just strings) and
 it is often not very efficient (both performance wise and for memory usage).
 
 Starting with pandas 3.0, a dedicated string data type is enabled by default
-(backed by PyArrow under the hood, if installed, otherwise falling back to
-NumPy). This means that pandas will start inferring columns containing string
-data as the new ``str`` data type when creating pandas objects, such as in
-constructors or IO functions.
+(backed by PyArrow under the hood, if installed, otherwise falling back to being
+backed by NumPy ``object``-dtype). This means that pandas will start inferring
+columns containing string data as the new ``str`` data type when creating pandas
+objects, such as in constructors or IO functions.
 
 Old behavior:
 
