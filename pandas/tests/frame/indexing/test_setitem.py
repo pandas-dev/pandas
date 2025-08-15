@@ -260,7 +260,7 @@ class TestDataFrameSetItem:
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(unit="s", tz="US/Eastern"),
+                DatetimeTZDtype(unit="us", tz="US/Eastern"),
             ),
         ],
     )

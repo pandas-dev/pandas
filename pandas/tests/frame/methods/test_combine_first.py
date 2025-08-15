@@ -197,7 +197,7 @@ class TestDataFrameCombineFirst:
         # GH 7509 (not fixed)
         dfa = DataFrame([[pd.Timestamp("2011-01-01"), 2]], columns=["a", "b"])
         dfb = DataFrame([[4], [5]], columns=["b"])
-        assert dfa["a"].dtype == "datetime64[s]"
+        assert dfa["a"].dtype == "datetime64[us]"
         assert dfa["b"].dtype == "int64"
 
         res = dfa.combine_first(dfb)
@@ -206,7 +206,7 @@ class TestDataFrameCombineFirst:
             columns=["a", "b"],
         )
         tm.assert_frame_equal(res, exp)
-        assert res["a"].dtype == "datetime64[s]"
+        assert res["a"].dtype == "datetime64[us]"
         # TODO: this must be int64
         assert res["b"].dtype == "int64"
 

@@ -71,8 +71,8 @@ class TestToNumpy:
         expected = np.array(
             [
                 [0.00e00, 0.00e00, 1.00e00],
-                [8.64e04, np.nan, np.nan],
-                [np.nan, 8.64e04, 2.00e00],
+                [8.64e10, np.nan, np.nan],
+                [np.nan, 8.64e10, 2.00e00],
             ]
         )
         result = df.to_numpy(float, na_value=np.nan)

@@ -1858,10 +1858,8 @@ def test_api_custom_dateparsing_error(
 
     if conn_name == "postgresql_adbc_types" and pa_version_under14p1:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[ns]")
-    elif "postgres" in conn_name or "mysql" in conn_name:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
     else:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
+        expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
     tm.assert_frame_equal(result, expected)
 
 

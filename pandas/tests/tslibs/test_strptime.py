@@ -36,7 +36,9 @@ class TestArrayStrptimeResolutionInference:
         fmt = "%Y-%m-%d %H:%M:%S"
         dtstr = dt.strftime(fmt)
         arr = np.array([dtstr] * 3, dtype=object)
-        expected = np.array([dt.replace(tzinfo=None)] * 3, dtype="M8[s]")
+        expected = np.array(
+            [dt.replace(tzinfo=None, microsecond=0)] * 3, dtype="M8[us]"
+        )
 
         res, _ = array_strptime(arr, fmt=fmt, utc=False, creso=creso_infer)
         tm.assert_numpy_array_equal(res, expected)
@@ -97,14 +99,14 @@ class TestArrayStrptimeResolutionInference:
 
     def test_array_strptime_str_outside_nano_range(self):
         vals = np.array(["2401-09-15"], dtype=object)
-        expected = np.array(["2401-09-15"], dtype="M8[s]")
+        expected = np.array(["2401-09-15"], dtype="M8[us]")
         fmt = "ISO8601"
         res, _ = array_strptime(vals, fmt=fmt, creso=creso_infer)
         tm.assert_numpy_array_equal(res, expected)
 
         # non-iso -> different path
         vals2 = np.array(["Sep 15, 2401"], dtype=object)
-        expected2 = np.array(["2401-09-15"], dtype="M8[s]")
+        expected2 = np.array(["2401-09-15"], dtype="M8[us]")
         fmt2 = "%b %d, %Y"
         res2, _ = array_strptime(vals2, fmt=fmt2, creso=creso_infer)
         tm.assert_numpy_array_equal(res2, expected2)

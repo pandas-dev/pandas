@@ -35,7 +35,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
 
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
                                             int32_t nanos=*,
-                                            NPY_DATETIMEUNIT reso=*)
+                                            NPY_DATETIMEUNIT reso=*,
+                                            NPY_DATETIMEUNIT best_reso=*)
 
 cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                                        bint dayfirst=*,

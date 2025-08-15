@@ -33,6 +33,7 @@ from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
+    get_supported_reso_for_dts,
     npy_unit_to_attrname,
     periods_per_second,
 )
@@ -422,10 +423,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         return convert_datetime_to_tsobject(ts, tz, nanos, reso=reso)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
-        # For date object we give the lowest supported resolution, i.e. "s"
         ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(
-            ts, tz, nanos=0, reso=NPY_DATETIMEUNIT.NPY_FR_s
+            ts, tz, nanos=0, reso=NPY_DATETIMEUNIT.NPY_FR_us
         )
     else:
         from .period import Period
@@ -453,7 +453,8 @@ cdef _TSObject convert_datetime_to_tsobject(
     datetime ts,
     tzinfo tz,
     int32_t nanos=0,
-    NPY_DATETIMEUNIT reso=NPY_FR_ns,
+    NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
+    NPY_DATETIMEUNIT best_reso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
 ):
     """
     Convert a datetime (or Timestamp) input `ts`, along with optional timezone
@@ -480,7 +481,6 @@ cdef _TSObject convert_datetime_to_tsobject(
         _TSObject obj = _TSObject()
         int64_t pps
 
-    obj.creso = reso
     obj.fold = ts.fold
     if tz is not None:
 
@@ -506,6 +506,10 @@ cdef _TSObject convert_datetime_to_tsobject(
 
     if nanos:
         obj.dts.ps = nanos * 1000
+
+    if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        reso = get_supported_reso_for_dts(best_reso, &obj.dts)
+    obj.creso = reso
 
     try:
         obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
@@ -622,7 +626,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                 &out_tzoffset, False
             )
             if not string_to_dts_failed:
-                reso = get_supported_reso(out_bestunit)
+                reso = get_supported_reso_for_dts(out_bestunit, &dts)
                 check_dts_bounds(&dts, reso)
                 obj = _TSObject()
                 obj.dts = dts
@@ -660,8 +664,13 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             out_bestunit=&out_bestunit,
             nanos=&nanos,
         )
-        reso = get_supported_reso(out_bestunit)
-        return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
+        return convert_datetime_to_tsobject(
+            dt,
+            tz,
+            nanos=nanos,
+            reso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
+            best_reso=out_bestunit
+        )
 
 
 cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):

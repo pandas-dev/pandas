@@ -935,7 +935,7 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
             Timestamp("2011-01-01", tz="US/Eastern"),
-            DatetimeTZDtype(unit="s", tz="US/Eastern"),
+            DatetimeTZDtype(unit="us", tz="US/Eastern"),
         ),
         (Timedelta(seconds=500), "timedelta64[ns]"),
     ]

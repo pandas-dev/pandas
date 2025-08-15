@@ -308,7 +308,6 @@ def test_fwf_regression():
         parse_dates=True,
         date_format="%Y%j%H%M%S",
     )
-    expected.index = expected.index.astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
