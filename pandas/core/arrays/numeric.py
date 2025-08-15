@@ -4,6 +4,7 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
 )
 
 import numpy as np
@@ -36,7 +37,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         DtypeObj,
-        Self,
         npt,
     )
 
@@ -150,7 +150,7 @@ def _coerce_to_data_and_mask(
     if dtype is not None:
         dtype = dtype_cls._standardize_dtype(dtype)
 
-    cls = dtype_cls.construct_array_type()
+    cls = dtype_cls().construct_array_type()
     if isinstance(values, cls):
         values, mask = values._data, values._mask
         if dtype is not None:
