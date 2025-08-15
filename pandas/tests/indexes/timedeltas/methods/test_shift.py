@@ -74,3 +74,10 @@ class TestTimedeltaIndexShift:
         tdi = TimedeltaIndex(["1 days 01:00:00", "2 days 01:00:00"], freq=None)
         with pytest.raises(NullFrequencyError, match="Cannot shift with no freq"):
             tdi.shift(2)
+
+    def test_shift_after_dti_sub_timestamp(self):
+        dti = pd.date_range("1/1/2021", "1/5/2021")
+        tdi = dti - pd.Timestamp("1/3/2019")
+        result = tdi.shift(1)
+        expected = tdi + pd.Timedelta(days=1)
+        tm.assert_index_equal(result, expected)
