@@ -4135,6 +4135,33 @@ class MultiIndex(Index):
     # base class "Index" defined the type as "Callable[[Index, Any, bool], Any]")
     rename = Index.set_names  # type: ignore[assignment]
 
+    def difference(self, other, sort=None):
+    """
+    Return a new MultiIndex with elements in self that are not in other.
+    Fixed to work with pyarrow-backed Timestamps.
+    """
+    if isinstance(other, type(self)):
+        # Convert pyarrow-backed Timestamps to pandas Timestamps for comparison
+        self_arrays = [level.to_pandas() if hasattr(level, "to_pandas") else level
+                       for level in self.levels]
+        other_arrays = [level.to_pandas() if hasattr(level, "to_pandas") else level
+                        for level in other.levels]
+        self_conv = pd.MultiIndex.from_arrays(self_arrays, names=self.names)
+        other_conv = pd.MultiIndex.from_arrays(other_arrays, names=other.names)
+        result = self_conv.difference(other_conv, sort=sort)
+        # Preserve pyarrow dtypes if present
+        for i, level in enumerate(self.levels):
+            if getattr(level, "dtype", None) == "timestamp[ns][pyarrow]":
+                result = pd.MultiIndex.from_arrays(
+                    [pd.Series(arr, dtype="timestamp[ns][pyarrow]") if i==idx else arr
+                     for idx, arr in enumerate(result.levels)],
+                    names=result.names
+                )
+        return result
+    else:
+        return super(type(self), self).difference(other, sort=sort)
+
+
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled
 
