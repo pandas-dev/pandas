@@ -28,13 +28,14 @@ OP_SYMBOLS = {
     "__rtruediv__": "/",
     "__floordiv__": "//",
     "__rfloordiv__": "//",
+    "__mod__": "%",
+    "__rmod__": "%",
     "__ge__": ">=",
     "__gt__": ">",
     "__le__": "<=",
     "__lt__": "<",
     "__eq__": "==",
     "__ne__": "!=",
-    "__mod__": "%",
 }
 
 
@@ -135,6 +136,9 @@ class Expr:
 
     def __mod__(self, other: Any) -> Expr:
         return self._with_binary_op("__mod__", other)
+
+    def __rmod__(self, other: Any) -> Expr:
+        return self._with_binary_op("__rmod__", other)
 
     # Everything else
     def __getattr__(self, attr: str, /) -> Callable[..., Expr]:
@@ -253,4 +257,4 @@ def col(col_name: Hashable) -> Expr:
             raise ValueError(msg)
         return df[col_name]
 
-    return Expr(func)
+    return Expr(func, f"col({col_name!r})")
