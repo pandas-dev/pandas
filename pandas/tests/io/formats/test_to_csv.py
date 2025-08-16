@@ -2,6 +2,7 @@ import io
 import os
 import sys
 from zipfile import ZipFile
+from datetime import datetime, timezone
 
 from _csv import Error
 import numpy as np
@@ -712,6 +713,30 @@ z
                 handle.seek(0)
                 assert handle.read().startswith(b'\xef\xbb\xbf""')
 
+
+    """
+    tz-aware timestamps with/without microseconds should be written consistently
+    Checks if the .ffffff format is consistent, even when microseconds==0
+
+    GH 62111
+    """
+    def test_to_csv_tz_aware_consistent_microseconds_formatting_python_datetime(self):
+        df = DataFrame({"timestamp": [
+            datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
+            datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
+        ]})
+        with tm.ensure_clean("test.csv") as path:
+            df.to_csv(path, index=False, lineterminator="\n")
+            with open(path, encoding="utf-8") as f:
+                contents = f.read()
+
+        #
+        expected = (
+            "timestamp\n"
+            "2025-08-14 12:34:56.000000+00:00\n"
+            "2025-08-14 12:34:56.000001+00:00\n"
+        )
+        assert contents == expected
 
 def test_to_csv_iterative_compression_name(compression):
     # GH 38714
