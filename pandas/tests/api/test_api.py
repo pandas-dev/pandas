@@ -63,6 +63,7 @@ class TestPDApi(Base):
         "DatetimeIndex",
         "ExcelFile",
         "ExcelWriter",
+        "Expr",
         "Flags",
         "Grouper",
         "HDFStore",
