@@ -159,14 +159,11 @@ def is_scalar(val: object) -> bool:
     Return True if given object is scalar.
 
     This function considers any object as scalar EXCEPT:
-    
     - list
     - tuple  
     - numpy.ndarray
     - pandas Series
-    
-    All other objects are treated as scalar, including:
-    
+    All other objects are treated as scalar, including: 
     - Python builtin numerics (int, float, complex)
     - Python builtin strings and byte arrays  
     - None
@@ -176,7 +173,6 @@ def is_scalar(val: object) -> bool:
     - decimal.Decimal, fractions.Fraction
     - Enum members
     - Custom objects and other types
-
     Parameters
     ----------
     val : object
@@ -202,7 +198,6 @@ def is_scalar(val: object) -> bool:
     >>> dt = datetime.datetime(2018, 10, 3)
     >>> pd.api.types.is_scalar(dt)
     True
-
     >>> class Status(Enum):
     ...     ACTIVE = auto()
     ...     INACTIVE = auto()
