@@ -7,3 +7,29 @@
     {% endif %}
   </div>
 </nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.location.pathname.includes('/reference/')) {
+    const navContainer = document.querySelector('#bd-docs-nav .bd-toc-item');
+    if (navContainer) {
+      const topLevelItems = Array.from(navContainer.children);
+
+      topLevelItems.forEach(section => {
+        const subLists = section.querySelectorAll('ul');
+        subLists.forEach(list => {
+          const items = Array.from(list.children);
+
+          items.sort((a, b) => {
+            const textA = a.textContent.trim().toLowerCase();
+            const textB = b.textContent.trim().toLowerCase();
+            return textA.localeCompare(textB);
+          });
+
+          items.forEach(item => list.appendChild(item));
+        });
+      });
+    }
+  }
+});
+</script>
