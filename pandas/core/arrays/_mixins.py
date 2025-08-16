@@ -115,6 +115,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
 
     # ------------------------------------------------------------------------
 
+    @overload
+    def view(self) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         # We handle datetime64, datetime64tz, timedelta64, and period
         #  dtypes here. Everything else we pass through to the underlying
@@ -252,6 +258,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         return self._from_backing_data(new_values)
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify readonly array")
+
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
         self._ndarray[key] = value

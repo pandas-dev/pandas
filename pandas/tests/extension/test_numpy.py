@@ -77,7 +77,7 @@ def allow_in_pandas(monkeypatch):
 @pytest.fixture
 def data(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
-        return pd.Series([(i,) for i in range(100)]).array
+        return pd.Series([(i,) for i in range(100)]).array.copy()
     return NumpyExtensionArray(np.arange(1, 101, dtype=dtype._dtype))
 
 

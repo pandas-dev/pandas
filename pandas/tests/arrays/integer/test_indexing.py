@@ -12,7 +12,7 @@ def test_array_setitem_nullable_boolean_mask():
 
 def test_array_setitem():
     # GH 31446
-    arr = pd.Series([1, 2], dtype="Int64").array
+    arr = pd.array([1, 2], dtype="Int64")
     arr[arr > 1] = 1
 
     expected = pd.array([1, 1], dtype="Int64")
