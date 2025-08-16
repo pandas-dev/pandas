@@ -6114,7 +6114,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # of an empty dict is 50x more expensive than the empty check.
                 # We provide the new dataset via the deepcopy memo to properly
                 # supply eventual attribute copy routines requiring information
-                # from its destination
+                # from its destination.
                 self.attrs = deepcopy(other.attrs, memo={object(): self})
             self.flags.allows_duplicate_labels = (
                 self.flags.allows_duplicate_labels
