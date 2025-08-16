@@ -158,28 +158,34 @@ def is_scalar(val: object) -> bool:
     """
     Return True if given object is scalar.
 
+    This function considers any object as scalar EXCEPT:
+    
+    - list
+    - tuple  
+    - numpy.ndarray
+    - pandas Series
+    
+    All other objects are treated as scalar, including:
+    
+    - Python builtin numerics (int, float, complex)
+    - Python builtin strings and byte arrays  
+    - None
+    - datetime objects (datetime, timedelta, date, time)
+    - numpy scalar types (np.int64, np.float32, etc.)
+    - pandas types (Period, Timedelta, Timestamp, Interval, DateOffset)
+    - decimal.Decimal, fractions.Fraction
+    - Enum members
+    - Custom objects and other types
+
     Parameters
     ----------
     val : object
-        This includes:
-
-        - numpy array scalar (e.g. np.int64)
-        - Python builtin numerics
-        - Python builtin byte arrays and strings
-        - None
-        - datetime.datetime
-        - datetime.timedelta
-        - Period
-        - decimal.Decimal
-        - Interval
-        - DateOffset
-        - Fraction
-        - Number.
+        Object to check for scalar properties.
 
     Returns
     -------
     bool
-        Return True if given object is scalar.
+        True if given object is scalar, False otherwise.
 
     See Also
     --------
@@ -191,8 +197,16 @@ def is_scalar(val: object) -> bool:
     Examples
     --------
     >>> import datetime
+    >>> from enum import Enum, auto
+    >>> 
     >>> dt = datetime.datetime(2018, 10, 3)
     >>> pd.api.types.is_scalar(dt)
+    True
+
+    >>> class Status(Enum):
+    ...     ACTIVE = auto()
+    ...     INACTIVE = auto()
+    >>> pd.api.types.is_scalar(Status.ACTIVE)
     True
 
     >>> pd.api.types.is_scalar([2, 3])
@@ -234,9 +248,8 @@ def is_scalar(val: object) -> bool:
     return (PyNumber_Check(val)
             or is_period_object(val)
             or isinstance(val, Interval)
-            or is_offset_object(val))
-
-
+            or is_offset_object(val)
+            or isinstance(val, Enum))
 cdef int64_t get_itemsize(object val):
     """
     Get the itemsize of a NumPy scalar, -1 if not a NumPy scalar.
