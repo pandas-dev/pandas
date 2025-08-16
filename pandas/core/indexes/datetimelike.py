@@ -509,7 +509,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             return self.copy()
 
         if self.freq is None:
-            raise NullFrequencyError("Cannot shift with no freq")
+            if(len(self) > 1):
+                self.freq = self[1] - self[0]
+            else:
+                raise NullFrequencyError("Cannot shift with no freq")
 
         start = self[0] + periods * self.freq
         end = self[-1] + periods * self.freq
