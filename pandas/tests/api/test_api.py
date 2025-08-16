@@ -63,6 +63,7 @@ class TestPDApi(Base):
         "DatetimeIndex",
         "ExcelFile",
         "ExcelWriter",
+        "Expr",
         "Flags",
         "Grouper",
         "HDFStore",
@@ -107,6 +108,7 @@ class TestPDApi(Base):
     funcs = [
         "array",
         "bdate_range",
+        "col",
         "concat",
         "crosstab",
         "cut",

@@ -105,6 +105,7 @@ from pandas.core.api import (
     Series,
     DataFrame,
 )
+from pandas.core.col import col, Expr
 
 from pandas.core.dtypes.dtypes import SparseDtype
 
@@ -246,6 +247,7 @@ __all__ = [
     "DatetimeTZDtype",
     "ExcelFile",
     "ExcelWriter",
+    "Expr",
     "Flags",
     "Float32Dtype",
     "Float64Dtype",
@@ -281,6 +283,7 @@ __all__ = [
     "array",
     "arrays",
     "bdate_range",
+    "col",
     "concat",
     "crosstab",
     "cut",
