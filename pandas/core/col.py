@@ -243,4 +243,14 @@ def col(col_name: Hashable) -> Expr:
     if not isinstance(col_name, Hashable):
         msg = f"Expected Hashable, got: {type(col_name)}"
         raise TypeError(msg)
-    return Expr(lambda df: df[col_name], f"col({col_name!r})")
+
+    def func(df: DataFrame) -> Series:
+        if col_name not in df.columns:
+            msg = (
+                f"Column '{col_name}' not found in given DataFrame.\n\n"
+                f"Hint: did you mean one of {df.columns.tolist()} instead?"
+            )
+            raise ValueError(msg)
+        return df[col_name]
+
+    return Expr(func)
