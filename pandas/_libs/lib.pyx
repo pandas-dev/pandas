@@ -248,6 +248,8 @@ def is_scalar(val: object) -> bool:
             or isinstance(val, Interval)
             or is_offset_object(val)
             or isinstance(val, Enum))
+
+
 cdef int64_t get_itemsize(object val):
     """
     Get the itemsize of a NumPy scalar, -1 if not a NumPy scalar.
