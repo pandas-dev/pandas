@@ -119,22 +119,25 @@ process in more detail.
 
 .. _whatsnew_300.enhancements.col:
 
-``pd.col`` syntax can now be used in :meth:`DataFrame.assign` and :meth:`DataFrame.loc`.
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``pd.col`` syntax can now be used in :meth:`DataFrame.assign` and :meth:`DataFrame.loc`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now use ``pd.col`` to create callables for use in dataframe methods which accept them. For example, if you have a dataframe
 
 .. ipython:: python
-    df = pd.DataFrame({'a': [1, 1, 2], 'b': [4, 5, 6])
+
+    df = pd.DataFrame({'a': [1, 1, 2], 'b': [4, 5, 6]})
 
 and you want to create a new column ``'c'`` by summing ``'a'`` and ``'b'``, then instead of
 
 .. ipython:: python
+
     df.assign(c = lambda df: df['a'] + df['b'])
 
 you can now write:
 
 .. ipython:: python
+
     df.assign(c = pd.col('a') + pd.col('b'))
 
 New Deprecation Policy
