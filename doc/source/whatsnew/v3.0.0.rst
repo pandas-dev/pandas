@@ -117,7 +117,7 @@ process in more detail.
 
     `PDEP-7: Consistent copy/view semantics in pandas with Copy-on-Write <https://pandas.pydata.org/pdeps/0007-copy-on-write.html>`__
 
-.. _whatsnew_300.enhancements.enhancement2:
+.. _whatsnew_300.enhancements.col:
 
 ``pd.col`` syntax can now be used in :meth:`DataFrame.assign` and :meth:`DataFrame.loc`.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
