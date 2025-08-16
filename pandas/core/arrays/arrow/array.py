@@ -189,6 +189,7 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         Dtype,
+        DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         Iterator,
@@ -305,6 +306,20 @@ class ArrowExtensionArray(
                 f"Unsupported type '{type(values)}' for ArrowExtensionArray"
             )
         self._dtype = ArrowDtype(self._pa_array.type)
+
+    @classmethod
+    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
+        inferred_dtype = lib.infer_dtype(scalars, skipna=True)
+        try:
+            pa_array = cls._from_sequence(scalars, dtype=dtype)
+        except pa.ArrowNotImplementedError as err:
+            # _from_scalars should only raise ValueError or TypeError.
+            raise ValueError from err
+
+        same_dtype = lib.infer_dtype(pa_array, skipna=True) == inferred_dtype
+        if not same_dtype:
+            raise ValueError
+        return pa_array
 
     @classmethod
     def _from_sequence(
