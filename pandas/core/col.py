@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+# Used only for generating the str repr of expressions.
 OP_SYMBOLS = {
     "__add__": "+",
     "__radd__": "+",
