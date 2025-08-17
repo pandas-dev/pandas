@@ -312,6 +312,9 @@ CompressionDict: TypeAlias = dict[str, Any]
 CompressionOptions: TypeAlias = (
     Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"] | CompressionDict | None
 )
+ParquetCompressionOptions: TypeAlias = (
+    Literal["snappy", "gzip", "brotli", "lz4", "zstd"] | None
+)
 
 # types in DataFrameFormatter
 FormattersType: TypeAlias = (

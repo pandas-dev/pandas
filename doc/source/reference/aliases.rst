@@ -38,7 +38,7 @@ Alias                                Meaning
 :py:type:`Axis`                      Argument type for ``axis`` in many methods
 :py:type:`CSVEngine`                 Argument type for ``engine`` in :meth:`DataFrame.read_csv`
 :py:type:`ColspaceArgType`           Argument type for ``colspace`` in :meth:`DataFrame.to_html`
-:py:type:`CompressionOptions`        Argument type for ``compression`` in many I/O output methods
+:py:type:`CompressionOptions`        Argument type for ``compression`` in all I/O output methods except :meth:`DataFrame.to_parquet`
 :py:type:`CorrelationMethod`         Argument type for ``correlation`` in :meth:`corr`
 :py:type:`DropKeep`                  Argument type for ``keep`` in :meth:`drop_duplicates`
 :py:type:`Dtype`                     Types as objects that can be used to specify dtypes
@@ -66,6 +66,7 @@ Alias                                Meaning
 :py:type:`NsmallestNlargestKeep`     Argument type for ``keep`` in :meth:`nlargest` and :meth:`nsmallest`
 :py:type:`OpenFileErrors`            Argument type for ``errors`` in :meth:`to_hdf` and :meth:`to_csv`
 :py:type:`Ordered`                   Return type for :py:attr:`ordered`` in :class:`CategoricalDtype` and :class:`Categorical`
+:py:type:`ParquetCompressionOptions` Argument type for ``compression`` in :meth:`DataFrame.to_parquet`
 :py:type:`QuantileInterpolation`     Argument type for ``interpolation`` in :meth:`quantile`
 :py:type:`ReadBuffer`                Additional argument type corresponding to buffers for various file reading methods
 :py:type:`ReadCsvBuffer`             Additional argument type corresponding to buffers for :meth:`pandas.read_csv`
@@ -73,6 +74,7 @@ Alias                                Meaning
 :py:type:`ReindexMethod`             Argument type for ``reindex`` in :meth:`reindex`
 :py:type:`Scalar`                    Basic type that can be stored in :class:`Series`
 :py:type:`SequenceNotStr`            Used for arguments that require sequences, but not plain strings
+:py:type:`SliceType`                 Argument types for ``start`` and ``end`` in :meth:`Index.slice_locs`
 :py:type:`SortKind`                  Argument type for ``kind`` in :meth:`sort_index` and :meth:`sort_values`
 :py:type:`StorageOptions`            Argument type for ``storage_options`` in various file output methods
 :py:type:`Suffixes`                  Argument type for ``suffixes`` in :meth:`merge`, :meth:`compare` and :meth:`merge_ordered`
