@@ -6,29 +6,26 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
 )
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas.compat import (
-    pa_version_under10p1,
-    pa_version_under11p0,
+    HAS_PYARROW,
     pa_version_under13p0,
     pa_version_under17p0,
 )
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pandas._typing import (
-        Scalar,
-        Self,
-    )
+    from pandas._typing import Scalar
 
 
 class ArrowStringArrayMixin:
@@ -132,7 +129,7 @@ class ArrowStringArrayMixin:
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
     ) -> Self:
-        if pa_version_under11p0:
+        if pa_version_under13p0:
             # GH#59724
             result = self._apply_elementwise(lambda val: val[start:stop:step])
             return type(self)(pa.chunked_array(result, type=self._pa_array.type))
@@ -305,23 +302,29 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not pat.startswith("^"):
+        if isinstance(pat, re.Pattern):
+            # GH#61952
+            pat = pat.pattern
+        if isinstance(pat, str) and not pat.startswith("^"):
             pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
         self,
-        pat,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not pat.endswith("$") or pat.endswith("\\$"):
+        if isinstance(pat, re.Pattern):
+            # GH#61952
+            pat = pat.pattern
+        if isinstance(pat, str) and (not pat.endswith("$") or pat.endswith("\\$")):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 

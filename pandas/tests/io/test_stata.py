@@ -1030,7 +1030,13 @@ class TestStata:
         # {c : c[-2:] for c in columns}
         path = temp_file
         expected.index.name = "index"
-        expected.to_stata(path, convert_dates=date_conversion)
+        msg = (
+            "Converting object-dtype columns of datetimes to datetime64 "
+            "when writing to stata is deprecated"
+        )
+        exp_object = expected.astype(object)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            exp_object.to_stata(path, convert_dates=date_conversion)
         written_and_read_again = self.read_dta(path)
 
         tm.assert_frame_equal(
@@ -2050,9 +2056,10 @@ the string values returned are correct."""
         ["numpy_nullable", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
     )
     def test_read_write_ea_dtypes(self, dtype_backend, temp_file, tmp_path):
+        dtype = "Int64" if dtype_backend == "numpy_nullable" else "int64[pyarrow]"
         df = DataFrame(
             {
-                "a": [1, 2, None],
+                "a": pd.array([1, 2, None], dtype=dtype),
                 "b": ["a", "b", "c"],
                 "c": [True, False, None],
                 "d": [1.5, 2.5, 3.5],

@@ -18,7 +18,7 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas.compat import pa_version_under10p1
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -183,7 +183,7 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
