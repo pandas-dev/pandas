@@ -223,7 +223,7 @@ class NamespaceExpr:
 
 def col(col_name: Hashable) -> Expr:
     """
-    Generate deferred objected representing a dataframe's column.
+    Generate deferred object representing a column of a `DataFrame`.
 
     Any place which accepts ``lambda df: df[col_name]``, such as
     :meth:`DataFrame.assign` or :meth:`DataFrame.loc`, can also accept
