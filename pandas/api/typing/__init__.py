@@ -6,7 +6,7 @@ from pandas._libs import NaTType
 from pandas._libs.lib import NoDefault
 from pandas._libs.missing import NAType
 
-from pandas.core.col import Expr
+from pandas.core.col import Expression
 from pandas.core.groupby import (
     DataFrameGroupBy,
     SeriesGroupBy,
@@ -42,7 +42,7 @@ __all__ = [
     "ExpandingGroupby",
     "ExponentialMovingWindow",
     "ExponentialMovingWindowGroupby",
-    "Expr",
+    "Expression",
     "FrozenList",
     "JsonReader",
     "NAType",
