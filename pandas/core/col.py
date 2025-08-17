@@ -139,6 +139,9 @@ class Expr:
 
     # Everything else
     def __getattr__(self, attr: str, /) -> Callable[..., Expr]:
+        if attr in Series._accessors:
+            return NamespaceExpr(self, attr)
+
         def func(df: DataFrame, *args: Any, **kwargs: Any) -> Any:
             parsed_args = _parse_args(df, *args)
             parsed_kwargs = _parse_kwargs(df, **kwargs)
@@ -169,31 +172,6 @@ class Expr:
 
     def __repr__(self) -> str:
         return self._repr_str or "Expr(...)"
-
-    # Namespaces
-    @property
-    def dt(self) -> NamespaceExpr:
-        return NamespaceExpr(self, "dt")
-
-    @property
-    def str(self) -> NamespaceExpr:
-        return NamespaceExpr(self, "str")
-
-    @property
-    def cat(self) -> NamespaceExpr:
-        return NamespaceExpr(self, "cat")
-
-    @property
-    def list(self) -> NamespaceExpr:
-        return NamespaceExpr(self, "list")
-
-    @property
-    def sparse(self) -> NamespaceExpr:
-        return NamespaceExpr(self, "sparse")
-
-    @property
-    def struct(self) -> NamespaceExpr:
-        return NamespaceExpr(self, "struct")
 
 
 class NamespaceExpr:
