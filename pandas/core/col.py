@@ -239,7 +239,7 @@ def col(col_name: Hashable) -> Expression:
 
     Returns
     -------
-    Expr
+    `pandas.api.typing.Expression`
 
     Examples
     --------
