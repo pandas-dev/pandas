@@ -4,6 +4,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.typing import Expr
 from pandas.tests.test_register_accessor import ensure_removed
 
 
@@ -33,7 +34,7 @@ from pandas.tests.test_register_accessor import ensure_removed
     ],
 )
 def test_col_simple(
-    expr: pd.Expr, expected_values: list[object], expected_str: str
+    expr: Expr, expected_values: list[object], expected_str: str
 ) -> None:
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     result = df.assign(c=expr)
@@ -51,7 +52,7 @@ def test_col_simple(
     ],
 )
 def test_namespaces(
-    expr: pd.Expr, expected_values: list[object], expected_str: str
+    expr: Expr, expected_values: list[object], expected_str: str
 ) -> None:
     df = pd.DataFrame({"a": [datetime(2020, 1, 1)], "b": ["foo"]})
     result = df.assign(c=expr)
