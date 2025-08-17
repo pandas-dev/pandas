@@ -4,6 +4,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.tests.test_register_accessor import ensure_removed
 
 
 @pytest.mark.parametrize(
@@ -65,3 +66,20 @@ def test_invalid() -> None:
     df = pd.DataFrame({"a": [1, 2]})
     with pytest.raises(ValueError, match="did you mean"):
         df.assign(c=pd.col("b").mean())
+
+
+def test_custom_accessor() -> None:
+    df = pd.DataFrame({"a": [1, 2, 3]})
+
+    class XYZAccessor:
+        def __init__(self, pandas_obj):
+            self._obj = pandas_obj
+
+        def mean(self):
+            return self._obj.mean()
+
+    with ensure_removed(pd.Series, "xyz"):
+        pd.api.extensions.register_series_accessor("xyz")(XYZAccessor)
+        result = df.assign(b=pd.col("a").xyz.mean())
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [2.0, 2.0, 2.0]})
+    tm.assert_frame_equal(result, expected)
