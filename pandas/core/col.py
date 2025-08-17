@@ -138,7 +138,7 @@ class Expr:
         return self._with_binary_op("__rmod__", other)
 
     # Everything else
-    def __getattr__(self, attr: str, /) -> Callable[..., Expr]:
+    def __getattr__(self, attr: str, /) -> Any:
         if attr in Series._accessors:
             return NamespaceExpr(self, attr)
 
