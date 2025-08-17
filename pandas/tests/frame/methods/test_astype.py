@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -745,10 +743,7 @@ class TestAstype:
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) GH#60639")
-    def test_astype_dt64_to_string(
-        self, frame_or_series, tz_naive_fixture, using_infer_string
-    ):
+    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture):
         # GH#41409
         tz = tz_naive_fixture
 
@@ -766,10 +761,7 @@ class TestAstype:
         item = result.iloc[0]
         if frame_or_series is DataFrame:
             item = item.iloc[0]
-        if using_infer_string:
-            assert item is np.nan
-        else:
-            assert item is pd.NA
+        assert item is pd.NA
 
         # For non-NA values, we should match what we get for non-EA str
         alt = obj.astype(str)
@@ -865,8 +857,7 @@ class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
 class Int16DtypeNoCopy(pd.Int16Dtype):
     # GH 42501
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         return IntegerArrayNoCopy
 
 

@@ -37,7 +37,9 @@ def new_func_with_deprecation():
 
 
 def test_deprecate_ok():
-    depr_func = deprecate("depr_func", new_func, "1.0", msg="Use new_func instead.")
+    depr_func = deprecate(
+        FutureWarning, "depr_func", new_func, "1.0", msg="Use new_func instead."
+    )
 
     with tm.assert_produces_warning(FutureWarning):
         result = depr_func()
@@ -48,7 +50,11 @@ def test_deprecate_ok():
 
 def test_deprecate_no_docstring():
     depr_func = deprecate(
-        "depr_func", new_func_no_docstring, "1.0", msg="Use new_func instead."
+        FutureWarning,
+        "depr_func",
+        new_func_no_docstring,
+        "1.0",
+        msg="Use new_func instead.",
     )
     with tm.assert_produces_warning(FutureWarning):
         result = depr_func()
@@ -59,5 +65,9 @@ def test_deprecate_wrong_docstring():
     msg = "deprecate needs a correctly formatted docstring"
     with pytest.raises(AssertionError, match=msg):
         deprecate(
-            "depr_func", new_func_wrong_docstring, "1.0", msg="Use new_func instead."
+            FutureWarning,
+            "depr_func",
+            new_func_wrong_docstring,
+            "1.0",
+            msg="Use new_func instead.",
         )

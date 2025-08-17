@@ -8,6 +8,7 @@ from datetime import (
     time,
     timedelta,
 )
+from decimal import Decimal
 from io import StringIO
 from pathlib import Path
 import sqlite3
@@ -1038,6 +1039,12 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
 def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
     # GH 52046
     pytest.importorskip("pyarrow")
+    if isinstance(nulls_fixture, Decimal):
+        pytest.skip(
+            # GH#61773
+            reason="Decimal('NaN') not supported in constructor for timestamp dtype"
+        )
+
     df = DataFrame(
         {
             "datetime": pd.array(
@@ -2219,7 +2226,7 @@ def test_api_chunksize_read(conn, request):
 
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(NotImplementedError, match="^$"):
             sql.read_sql_table("test_chunksize", conn, chunksize=5)
     else:
         res3 = DataFrame()
@@ -3685,9 +3692,9 @@ def test_read_sql_invalid_dtype_backend_table(conn, request, func, dtype_backend
 def dtype_backend_data() -> DataFrame:
     return DataFrame(
         {
-            "a": Series([1, np.nan, 3], dtype="Int64"),
+            "a": Series([1, pd.NA, 3], dtype="Int64"),
             "b": Series([1, 2, 3], dtype="Int64"),
-            "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+            "c": Series([1.5, pd.NA, 2.5], dtype="Float64"),
             "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
             "e": [True, False, None],
             "f": [True, False, True],
@@ -3709,9 +3716,9 @@ def dtype_backend_expected():
 
         df = DataFrame(
             {
-                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "a": Series([1, pd.NA, 3], dtype="Int64"),
                 "b": Series([1, 2, 3], dtype="Int64"),
-                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "c": Series([1.5, pd.NA, 2.5], dtype="Float64"),
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, pd.NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),

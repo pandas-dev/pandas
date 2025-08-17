@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -29,6 +30,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
+    DatetimeLikeBlock,
     check_ndim,
     ensure_block_shape,
     extract_pandas_array,
@@ -74,6 +76,14 @@ def _make_block(values: ArrayLike, placement: np.ndarray) -> Block:
     return klass(values, ndim=2, placement=placement_obj)
 
 
+class _DatetimeTZBlock(DatetimeLikeBlock):
+    """implement a datetime64 block with a tz attribute"""
+
+    values: DatetimeArray
+
+    __slots__ = ()
+
+
 def make_block(
     values, placement, klass=None, ndim=None, dtype: Dtype | None = None
 ) -> Block:
@@ -93,7 +103,7 @@ def make_block(
         "make_block is deprecated and will be removed in a future version. "
         "Use pd.api.internals.create_dataframe_from_blocks or "
         "(recommended) higher-level public APIs instead.",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
 
@@ -114,10 +124,20 @@ def make_block(
         dtype = dtype or values.dtype
         klass = get_block_type(dtype)
 
+    elif klass is _DatetimeTZBlock and not isinstance(values.dtype, DatetimeTZDtype):
+        # pyarrow calls get here (pyarrow<15)
+        values = DatetimeArray._simple_new(
+            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+            # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
+            # expected "Union[dtype[datetime64], DatetimeTZDtype]"
+            values,
+            dtype=dtype,  # type: ignore[arg-type]
+        )
+
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
-    ndim = maybe_infer_ndim(values, placement, ndim)
+    ndim = _maybe_infer_ndim(values, placement, ndim)
     if isinstance(values.dtype, (PeriodDtype, DatetimeTZDtype)):
         # GH#41168 ensure we can pass 1D dt64tz values
         # More generally, any EA dtype that isn't is_1d_only_ea_dtype
@@ -129,7 +149,7 @@ def make_block(
     return klass(values, ndim=ndim, placement=placement)
 
 
-def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
+def _maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
     """
     If `ndim` is not provided, infer it from placement and values.
     """
@@ -143,3 +163,15 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
         else:
             ndim = values.ndim
     return ndim
+
+
+def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
+    """
+    If `ndim` is not provided, infer it from placement and values.
+    """
+    warnings.warn(
+        "maybe_infer_ndim is deprecated and will be removed in a future version.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return _maybe_infer_ndim(values, placement, ndim)

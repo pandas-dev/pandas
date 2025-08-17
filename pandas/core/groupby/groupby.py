@@ -25,7 +25,10 @@ from functools import (
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
     Literal,
+    Self,
+    TypeAlias,
     TypeVar,
     Union,
     cast,
@@ -145,9 +148,7 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.timedeltas import Timedelta
     from pandas._typing import (
         Any,
-        Concatenate,
         P,
-        Self,
         T,
     )
 
@@ -449,13 +450,13 @@ class GroupByPlot(PandasObject):
         return attr
 
 
-_KeysArgType = Union[
-    Hashable,
-    list[Hashable],
-    Callable[[Hashable], Hashable],
-    list[Callable[[Hashable], Hashable]],
-    Mapping[Hashable, Hashable],
-]
+_KeysArgType: TypeAlias = (
+    Hashable
+    | list[Hashable]
+    | Callable[[Hashable], Hashable]
+    | list[Callable[[Hashable], Hashable]]
+    | Mapping[Hashable, Hashable]
+)
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
@@ -957,9 +958,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         level = self.level
         result = self._grouper.get_iterator(self._selected_obj)
         # mypy: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
-        if (
-            (is_list_like(level) and len(level) == 1)  # type: ignore[arg-type]
-            or (isinstance(keys, list) and len(keys) == 1)
+        if (is_list_like(level) and len(level) == 1) or (  # type: ignore[arg-type]
+            isinstance(keys, list) and len(keys) == 1
         ):
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
@@ -1784,7 +1784,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         new_mgr = data.grouped_reduce(array_func)
         res = self._wrap_agged_manager(new_mgr)
         if how in ["idxmin", "idxmax"]:
-            res = self._wrap_idxmax_idxmin(res)
+            # mypy expects how to be Literal["idxmin", "idxmax"].
+            res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])  # type: ignore[arg-type]
         out = self._wrap_aggregated_output(res)
         return out
 
@@ -4628,13 +4629,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         >>> df = pd.DataFrame({"color": ["red", None, "red", "blue", "blue", "red"]})
         >>> df
-           color
-        0    red
-        1   None
-        2    red
-        3   blue
-        4   blue
-        5    red
+          color
+        0   red
+        1   NaN
+        2   red
+        3  blue
+        4  blue
+        5   red
         >>> df.groupby("color").ngroup()
         0    1.0
         1    NaN
@@ -5715,10 +5716,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
         return result
 
-    def _wrap_idxmax_idxmin(self, res: NDFrameT) -> NDFrameT:
+    def _wrap_idxmax_idxmin(
+        self, res: NDFrameT, how: Literal["idxmax", "idxmin"], skipna: bool
+    ) -> NDFrameT:
         index = self.obj.index
         if res.size == 0:
             result = res.astype(index.dtype)
+        elif skipna and res.lt(0).any(axis=None):
+            raise ValueError(
+                f"{type(self).__name__}.{how} with skipna=True encountered all NA "
+                f"values in a group."
+            )
         else:
             if isinstance(index, MultiIndex):
                 index = index.to_flat_index()

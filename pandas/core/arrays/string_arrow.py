@@ -4,7 +4,7 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
-    Union,
+    Self,
 )
 import warnings
 
@@ -15,7 +15,8 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas.compat import (
-    pa_version_under10p1,
+    HAS_PYARROW,
+    pa_version_under12p1,
     pa_version_under13p0,
     pa_version_under16p0,
 )
@@ -39,7 +40,7 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -54,7 +55,6 @@ if TYPE_CHECKING:
         ArrayLike,
         Dtype,
         NpDtype,
-        Self,
         npt,
     )
 
@@ -63,12 +63,9 @@ if TYPE_CHECKING:
     from pandas import Series
 
 
-ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
-
-
 def _chk_pyarrow_available() -> None:
-    if pa_version_under10p1:
-        msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
+    if pa_version_under12p1:
+        msg = "pyarrow>=12.0.1 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
@@ -349,6 +346,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ):
         if flags:
             return super()._str_contains(pat, case, flags, na, regex)
+        if isinstance(pat, re.Pattern):
+            pat = pat.pattern
 
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
