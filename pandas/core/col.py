@@ -269,3 +269,6 @@ def col(col_name: Hashable) -> Expr:
         return df[col_name]
 
     return Expr(func, f"col({col_name!r})")
+
+
+__all__ = ["Expr", "col"]
