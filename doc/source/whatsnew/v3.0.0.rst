@@ -623,6 +623,7 @@ Other Deprecations
 - Deprecated strings ``w``, ``d``, ``MIN``, ``MS``, ``US`` and ``NS`` denoting units in :class:`Timedelta` in favour of ``W``, ``D``, ``min``, ``ms``, ``us`` and ``ns`` (:issue:`59051`)
 - Deprecated the ``arg`` parameter of ``Series.map``; pass the added ``func`` argument instead. (:issue:`61260`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
+- Deprecated using empty string ('') as default value for lsuffix and rsuffix parameters in :meth:`DataFrame.join`, will use None instead in a future version. (:issue:`61294`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.prior_deprecations:
