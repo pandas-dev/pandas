@@ -90,7 +90,7 @@ _shared_docs: dict[str, str] = {}
 
 class PandasObject(DirNamesMixin):
     """
-    Baseclass for various pandas objects.
+    Base class for various pandas objects.
     """
 
     # results from calls to methods decorated with cache_readonly get added to _cache

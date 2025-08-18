@@ -1,5 +1,5 @@
 """
-Data IO api
+Data I/O API
 """
 
 from pandas.io.clipboards import read_clipboard
