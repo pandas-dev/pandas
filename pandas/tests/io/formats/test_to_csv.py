@@ -2,7 +2,7 @@ import io
 import os
 import sys
 from zipfile import ZipFile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from _csv import Error
 import numpy as np
@@ -737,6 +737,63 @@ z
             "2025-08-14 12:34:56.000001+00:00\n"
         )
         assert contents == expected
+
+
+    def test_to_csv_tz_aware_consistent_microseconds_formatting_timestamp(self):
+        df = DataFrame({"timestamp": [
+            pd.Timestamp("2025-08-14 12:34:56+00:00"),
+            pd.Timestamp("2025-08-14 12:34:56.000001+00:00"),
+        ]})
+        with tm.ensure_clean("test.csv") as path:
+            df.to_csv(path, index=False, lineterminator="\n")
+            with open(path, encoding="utf-8") as f:
+                contents = f.read()
+
+        expected = (
+            "timestamp\n"
+            "2025-08-14 12:34:56.000000+00:00\n"
+            "2025-08-14 12:34:56.000001+00:00\n"
+        )
+        assert contents == expected
+
+
+    def test_to_csv_tz_aware_respects_date_format_python_datetime(self):
+        # No microseconds in date_format; %z produces +0000 (no colon) by design.
+        df = DataFrame({"timestamp": [
+            datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
+            datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
+        ]})
+        with tm.ensure_clean("test.csv") as path:
+            df.to_csv(path, index=False, lineterminator="\n", date_format="%Y-%m-%d %H:%M:%S%z")
+            with open(path, encoding="utf-8") as f:
+                contents = f.read()
+
+        expected = (
+            "timestamp\n"
+            "2025-08-14 12:34:56+0000\n"
+            "2025-08-14 12:34:56+0000\n"
+        )
+        assert contents == expected
+
+
+    def test_to_csv_tz_aware_consistent_microseconds_non_utc_offset_python_datetime(self):
+        ist = timezone(timedelta(hours=5, minutes=30))  # +05:30
+        df = DataFrame({"timestamp": [
+            datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=ist),
+            datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=ist),
+        ]})
+        with tm.ensure_clean("test.csv") as path:
+            df.to_csv(path, index=False, lineterminator="\n")
+            with open(path, encoding="utf-8") as f:
+                contents = f.read()
+
+        expected = (
+            "timestamp\n"
+            "2025-08-14 12:34:56.000000+05:30\n"
+            "2025-08-14 12:34:56.000001+05:30\n"
+        )
+        assert contents == expected
+
 
 def test_to_csv_iterative_compression_name(compression):
     # GH 38714
