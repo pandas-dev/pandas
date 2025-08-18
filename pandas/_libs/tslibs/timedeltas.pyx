@@ -722,6 +722,7 @@ cpdef inline str parse_timedelta_unit(str unit):
     elif unit == "M":
         return unit
     elif unit in c_DEPR_UNITS:
+        # TODO: Enforce in 3.0 (#59240)
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
             f"future version. Please use \'{c_DEPR_UNITS.get(unit)}\' "

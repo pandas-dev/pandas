@@ -228,6 +228,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "

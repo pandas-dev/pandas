@@ -930,6 +930,7 @@ class ArrowExtensionArray(
             and isinstance(other, np.ndarray)
             and other.dtype == bool
         ):
+            # TODO: Enforce in 3.0 (#60234)
             # GH#60234 backward compatibility for the move to StringDtype in 3.0
             op_name = op.__name__[1:].strip("_")
             warnings.warn(

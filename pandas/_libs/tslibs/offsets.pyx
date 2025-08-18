@@ -5192,6 +5192,7 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
     if name in _lite_rule_alias:
         return name
     if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+        # TODO: Enforce in 3.0 (#59240)
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
@@ -5206,6 +5207,7 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         if name == _name:
             continue
         if _name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values():
+            # TODO: Enforce in 3.0 (#59240)
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "

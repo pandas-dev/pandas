@@ -384,7 +384,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
             data = data.copy(deep=False)
@@ -408,7 +408,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
 
@@ -477,7 +477,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
                 allow_mgr = True
@@ -4432,6 +4432,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if "arg" in kwargs:
                 # `.map(arg=my_func)`
                 func = kwargs.pop("arg")
+                # TODO: Enforce in 3.0 (#61264)
                 warnings.warn(
                     "The parameter `arg` has been renamed to `func`, and it "
                     "will stop being supported in a future version of pandas.",
