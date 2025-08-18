@@ -2070,13 +2070,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             result = self.obj._constructor(index=res_index, columns=data.columns)
             result = result.astype(data.dtypes)
-            
+
             # Preserve metadata for subclassed DataFrames
-            if hasattr(self.obj, '_metadata'):
+            if hasattr(self.obj, "_metadata"):
                 for attr in self.obj._metadata:
                     if hasattr(self.obj, attr):
                         setattr(result, attr, getattr(self.obj, attr))
-            
+
             return result
 
         # GH12824
@@ -2088,13 +2088,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # GH57775 - Ensure that columns and dtypes from original frame are kept.
             result = self.obj._constructor(columns=data.columns)
             result = result.astype(data.dtypes)
-            
+
             # Preserve metadata for subclassed DataFrames
-            if hasattr(self.obj, '_metadata'):
+            if hasattr(self.obj, "_metadata"):
                 for attr in self.obj._metadata:
                     if hasattr(self.obj, attr):
                         setattr(result, attr, getattr(self.obj, attr))
-            
+
             return result
         elif isinstance(first_not_none, DataFrame):
             result = self._concat_objects(
@@ -2102,13 +2102,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 not_indexed_same=not_indexed_same,
                 is_transform=is_transform,
             )
-            
+
             # Preserve metadata for subclassed DataFrames
-            if hasattr(self.obj, '_metadata'):
+            if hasattr(self.obj, "_metadata"):
                 for attr in self.obj._metadata:
                     if hasattr(self.obj, attr):
                         setattr(result, attr, getattr(self.obj, attr))
-            
+
             return result
 
         key_index = self._grouper.result_index if self.as_index else None
@@ -2128,13 +2128,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # has type "Tuple[Any, ...]")
                 name = self._selection  # type: ignore[assignment]
             result = self.obj._constructor_sliced(values, index=key_index, name=name)
-            
+
             # Preserve metadata for subclassed Series
-            if hasattr(self.obj, '_metadata'):
+            if hasattr(self.obj, "_metadata"):
                 for attr in self.obj._metadata:
                     if hasattr(self.obj, attr):
                         setattr(result, attr, getattr(self.obj, attr))
-            
+
             return result
         elif not isinstance(first_not_none, Series):
             # values are not series or array-like but scalars
@@ -2143,24 +2143,24 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # of columns
             if self.as_index:
                 result = self.obj._constructor_sliced(values, index=key_index)
-                
+
                 # Preserve metadata for subclassed Series
-                if hasattr(self.obj, '_metadata'):
+                if hasattr(self.obj, "_metadata"):
                     for attr in self.obj._metadata:
                         if hasattr(self.obj, attr):
                             setattr(result, attr, getattr(self.obj, attr))
-                
+
                 return result
             else:
                 result = self.obj._constructor(values, columns=[self._selection])
                 result = self._insert_inaxis_grouper(result)
-                
+
                 # Preserve metadata for subclassed DataFrames
-                if hasattr(self.obj, '_metadata'):
+                if hasattr(self.obj, "_metadata"):
                     for attr in self.obj._metadata:
                         if hasattr(self.obj, attr):
                             setattr(result, attr, getattr(self.obj, attr))
-                
+
                 return result
         else:
             # values are Series
@@ -2171,13 +2171,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 key_index,
                 is_transform,
             )
-            
+
             # Preserve metadata for subclassed DataFrames/Series
-            if hasattr(self.obj, '_metadata'):
+            if hasattr(self.obj, "_metadata"):
                 for attr in self.obj._metadata:
                     if hasattr(self.obj, attr):
                         setattr(result, attr, getattr(self.obj, attr))
-            
+
             return result
 
     def _wrap_applied_output_series(

@@ -607,6 +607,59 @@ class TestDataFrameSetItem:
         df[("joe", "last")] = df[("jolie", "first")].loc[i, j]
         tm.assert_frame_equal(df[("joe", "last")], df[("jolie", "first")])
 
+    def test_setitem_multiindex_scalar_indexer(self):
+        # GH#62135: Fix DataFrame.__setitem__ with MultiIndex columns and scalar indexer
+        # Test scalar key assignment with MultiIndex columns
+        columns = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "a")])
+        df = DataFrame(np.arange(15).reshape(5, 3), columns=columns)
+
+        # Test setting new column with scalar tuple key
+        df[("C", "c")] = 100
+        expected_new = DataFrame(
+            np.array(
+                [
+                    [0, 1, 2, 100],
+                    [3, 4, 5, 100],
+                    [6, 7, 8, 100],
+                    [9, 10, 11, 100],
+                    [12, 13, 14, 100],
+                ]
+            ),
+            columns=MultiIndex.from_tuples(
+                [("A", "a"), ("A", "b"), ("B", "a"), ("C", "c")]
+            ),
+        )
+        tm.assert_frame_equal(df, expected_new)
+
+        # Test setting existing column with scalar tuple key
+        df[("A", "a")] = 999
+        expected_existing = expected_new.copy()
+        expected_existing[("A", "a")] = 999
+        tm.assert_frame_equal(df, expected_existing)
+
+        # Test setting with Series using scalar tuple key
+        series_data = Series([10, 20, 30, 40, 50])
+        df[("D", "d")] = series_data
+        expected_series = expected_existing.copy()
+        expected_series[("D", "d")] = series_data
+        tm.assert_frame_equal(df, expected_series)
+
+        # Test with 3-level MultiIndex
+        columns_3level = MultiIndex.from_tuples(
+            [("X", "A", "1"), ("X", "A", "2"), ("Y", "B", "1")]
+        )
+        df_3level = DataFrame(np.arange(12).reshape(4, 3), columns=columns_3level)
+
+        # Test scalar assignment with 3-level MultiIndex
+        df_3level[("Z", "C", "3")] = 42
+        assert ("Z", "C", "3") in df_3level.columns
+        tm.assert_series_equal(df_3level[("Z", "C", "3")], Series([42, 42, 42, 42]))
+
+        # Test Series assignment with 3-level MultiIndex
+        new_series = Series([1, 2, 3, 4])
+        df_3level[("W", "D", "4")] = new_series
+        tm.assert_series_equal(df_3level[("W", "D", "4")], new_series)
+
     @pytest.mark.parametrize(
         "columns,box,expected",
         [
