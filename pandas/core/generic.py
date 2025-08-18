@@ -10216,6 +10216,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
+            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
