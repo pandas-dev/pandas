@@ -11,6 +11,7 @@ from collections.abc import (
     Sequence,
 )
 import csv as csvlib
+from datetime import datetime as _pydatetime
 import os
 from typing import (
     TYPE_CHECKING,
@@ -20,15 +21,12 @@ from typing import (
 
 import numpy as np
 
-from datetime import datetime as _pydatetime
-
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.common import is_object_dtype
-
 from pandas._libs import writers as libwriters
 from pandas._typing import SequenceNotStr
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.common import is_object_dtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCIndex,
@@ -317,7 +315,6 @@ class CSVFormatter:
                 break
             self._save_chunk(start_i, end_i)
 
-
     # tz-aware CSV formatting helper
     @staticmethod
     def _csv_format_datetime_tz_ea(ser, na_rep: str):
@@ -344,20 +341,23 @@ class CSVFormatter:
 
         def _is_tzaware_dt(x: object) -> bool:
             return (
-                    isinstance(x, _pydatetime)
-                    and getattr(x, "tzinfo", None) is not None
-                    and x.tzinfo.utcoffset(x) is not None
+                isinstance(x, _pydatetime)
+                and getattr(x, "tzinfo", None) is not None
+                and x.tzinfo.utcoffset(x) is not None
             )
 
-        mask = np.fromiter((_is_tzaware_dt(x) for x in vals), dtype=bool, count=len(vals))
+        mask = np.fromiter(
+            (_is_tzaware_dt(x) for x in vals), dtype=bool, count=len(vals)
+        )
         if mask.any():
             out = vals.copy()
             # isoformat gives 'YYYY-MM-DD HH:MM:SS.ffffff+HH:MM'
-            out[mask] = [x.isoformat(sep=" ", timespec="microseconds") for x in out[mask]]
+            out[mask] = [
+                x.isoformat(sep=" ", timespec="microseconds") for x in out[mask]
+            ]
             ser = ser._constructor(out, index=ser.index, name=ser.name)
 
         return ser.fillna(na_rep)
-
 
     def _save_chunk(self, start_i: int, end_i: int) -> None:
         # create the data for a chunk

@@ -1,8 +1,12 @@
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 import io
 import os
 import sys
 from zipfile import ZipFile
-from datetime import datetime, timezone, timedelta
 
 from _csv import Error
 import numpy as np
@@ -713,37 +717,43 @@ z
                 handle.seek(0)
                 assert handle.read().startswith(b'\xef\xbb\xbf""')
 
-
     """
     tz-aware timestamps with/without microseconds should be written consistently
     Checks if the .ffffff format is consistent, even when microseconds==0
 
     GH 62111
     """
+
     def test_to_csv_tz_aware_consistent_microseconds_formatting_python_datetime(self):
-        df = DataFrame({"timestamp": [
-            datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
-            datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
-        ]})
+        df = DataFrame(
+            {
+                "timestamp": [
+                    datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
+                    datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
+                ]
+            }
+        )
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, index=False, lineterminator="\n")
             with open(path, encoding="utf-8") as f:
                 contents = f.read()
 
-        #
         expected = (
             "timestamp\n"
             "2025-08-14 12:34:56.000000+00:00\n"
             "2025-08-14 12:34:56.000001+00:00\n"
         )
         assert contents == expected
-
 
     def test_to_csv_tz_aware_consistent_microseconds_formatting_timestamp(self):
-        df = DataFrame({"timestamp": [
-            pd.Timestamp("2025-08-14 12:34:56+00:00"),
-            pd.Timestamp("2025-08-14 12:34:56.000001+00:00"),
-        ]})
+        df = DataFrame(
+            {
+                "timestamp": [
+                    pd.Timestamp("2025-08-14 12:34:56+00:00"),
+                    pd.Timestamp("2025-08-14 12:34:56.000001+00:00"),
+                ]
+            }
+        )
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, index=False, lineterminator="\n")
             with open(path, encoding="utf-8") as f:
@@ -755,33 +765,42 @@ z
             "2025-08-14 12:34:56.000001+00:00\n"
         )
         assert contents == expected
-
 
     def test_to_csv_tz_aware_respects_date_format_python_datetime(self):
         # No microseconds in date_format; %z produces +0000 (no colon) by design.
-        df = DataFrame({"timestamp": [
-            datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
-            datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
-        ]})
+        df = DataFrame(
+            {
+                "timestamp": [
+                    datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
+                    datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
+                ]
+            }
+        )
         with tm.ensure_clean("test.csv") as path:
-            df.to_csv(path, index=False, lineterminator="\n", date_format="%Y-%m-%d %H:%M:%S%z")
+            df.to_csv(
+                path,
+                index=False,
+                lineterminator="\n",
+                date_format="%Y-%m-%d %H:%M:%S%z",
+            )
             with open(path, encoding="utf-8") as f:
                 contents = f.read()
 
-        expected = (
-            "timestamp\n"
-            "2025-08-14 12:34:56+0000\n"
-            "2025-08-14 12:34:56+0000\n"
-        )
+        expected = "timestamp\n2025-08-14 12:34:56+0000\n2025-08-14 12:34:56+0000\n"
         assert contents == expected
 
-
-    def test_to_csv_tz_aware_consistent_microseconds_non_utc_offset_python_datetime(self):
-        ist = timezone(timedelta(hours=5, minutes=30))  # +05:30
-        df = DataFrame({"timestamp": [
-            datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=ist),
-            datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=ist),
-        ]})
+    def test_to_csv_tz_aware_consistent_microseconds_non_utc_offset_python_datetime(
+        self,
+    ):
+        am_tz = timezone(timedelta(hours=4))  # +04:00 (Armenia / Asia/Yerevan)
+        df = DataFrame(
+            {
+                "timestamp": [
+                    datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=am_tz),
+                    datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=am_tz),
+                ]
+            }
+        )
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, index=False, lineterminator="\n")
             with open(path, encoding="utf-8") as f:
@@ -789,8 +808,8 @@ z
 
         expected = (
             "timestamp\n"
-            "2025-08-14 12:34:56.000000+05:30\n"
-            "2025-08-14 12:34:56.000001+05:30\n"
+            "2025-08-14 12:34:56.000000+04:00\n"
+            "2025-08-14 12:34:56.000001+04:00\n"
         )
         assert contents == expected
 
