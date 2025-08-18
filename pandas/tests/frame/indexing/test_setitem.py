@@ -653,10 +653,12 @@ class TestDataFrameSetItem:
         # Test scalar assignment with 3-level MultiIndex
         df_3level[("Z", "C", "3")] = 42
         assert ("Z", "C", "3") in df_3level.columns
-        tm.assert_series_equal(df_3level[("Z", "C", "3")], Series([42, 42, 42, 42]))
+        tm.assert_series_equal(
+            df_3level[("Z", "C", "3")], Series([42, 42, 42, 42], name=("Z", "C", "3"))
+        )
 
         # Test Series assignment with 3-level MultiIndex
-        new_series = Series([1, 2, 3, 4])
+        new_series = Series([1, 2, 3, 4], name=("W", "D", "4"))
         df_3level[("W", "D", "4")] = new_series
         tm.assert_series_equal(df_3level[("W", "D", "4")], new_series)
 

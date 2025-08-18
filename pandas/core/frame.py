@@ -4517,7 +4517,20 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        value, refs = self._sanitize_column(value)
+        # Check if we're setting a new column with a tuple key in a MultiIndex DataFrame
+        # and the value is a scalar. In this case, we need to create a Series with the
+        # proper name to ensure the name attribute matches the key.
+        if (
+            isinstance(key, tuple)
+            and isinstance(self.columns, MultiIndex)
+            and not is_list_like(value)
+            and key not in self.columns
+        ):
+            # Create a Series with the proper name
+            value = Series([value] * len(self.index), index=self.index, name=key)
+            value, refs = self._sanitize_column(value)
+        else:
+            value, refs = self._sanitize_column(value)
 
         if (
             key in self.columns
