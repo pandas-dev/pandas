@@ -132,7 +132,9 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(res, exp, check_index_type=True)
 
         # 3 elements
-        res = Series(vals1)._append_internal([Series(vals2), Series(vals3)], ignore_index=True)
+        res = Series(vals1)._append_internal(
+            [Series(vals2), Series(vals3)], ignore_index=True
+        )
         exp = Series(exp_data3)
         tm.assert_series_equal(res, exp)
 
@@ -244,7 +246,9 @@ class TestConcatAppendCommon:
 
         # 3 elements
         # GH#39817
-        res = Series(vals1)._append_internal([Series(vals2), Series(vals3)], ignore_index=True)
+        res = Series(vals1)._append_internal(
+            [Series(vals2), Series(vals3)], ignore_index=True
+        )
         exp = Series(exp_data3, dtype=exp_series_dtype)
         tm.assert_series_equal(res, exp)
 

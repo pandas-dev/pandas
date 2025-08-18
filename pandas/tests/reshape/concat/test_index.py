@@ -194,7 +194,11 @@ class TestIndexConcat:
         result = df.iloc[0:8, :]._append_internal(df.iloc[8:])
         tm.assert_frame_equal(result, df)
 
-        result = df.iloc[0:8, :]._append_internal(df.iloc[8:9])._append_internal(df.iloc[9:10])
+        result = (
+            df.iloc[0:8, :]
+            ._append_internal(df.iloc[8:9])
+            ._append_internal(df.iloc[9:10])
+        )
         tm.assert_frame_equal(result, df)
 
         expected = concat([df, df], axis=0)

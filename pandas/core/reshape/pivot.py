@@ -450,7 +450,9 @@ def _add_margins(
     if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        return table._append_internal(table._constructor({key: grand_margin[margins_name]}))
+        return table._append_internal(
+            table._constructor({key: grand_margin[margins_name]})
+        )
 
     elif values:
         marginal_result_set = _generate_marginal_results(
