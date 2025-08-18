@@ -11,6 +11,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -23,6 +24,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -479,7 +481,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif isinstance(values.dtype, CategoricalDtype):
             old_codes = extract_array(values)._codes
             codes = recode_for_categories(
-                old_codes, values.dtype.categories, dtype.categories, copy=copy
+                old_codes,
+                values.dtype.categories,
+                dtype.categories,
+                copy=copy,
+                warn=True,
             )
 
         else:
@@ -535,7 +541,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # The _from_scalars strictness doesn't make much sense in this case.
             raise NotImplementedError
 
-        res = cls._from_sequence(scalars, dtype=dtype)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "Constructing a Categorical with a dtype and values",
+                FutureWarning,
+            )
+            res = cls._from_sequence(scalars, dtype=dtype)
 
         # if there are any non-category elements in scalars, these will be
         #  converted to NAs in res.
@@ -576,6 +588,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
             result = self._set_dtype(dtype, copy=False)
+            wrong = result.isna() & ~self.isna()
+            if wrong.any():
+                warnings.warn(
+                    "Constructing a Categorical with a dtype and values containing "
+                    "non-null entries not in that dtype's categories is deprecated "
+                    "and will raise in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
@@ -670,14 +691,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if known_categories:
             # Recode from observation order to dtype.categories order.
             categories = dtype.categories
-            codes = recode_for_categories(inferred_codes, cats, categories, copy=False)
+            codes = recode_for_categories(
+                inferred_codes, cats, categories, copy=False, warn=True
+            )
         elif not cats.is_monotonic_increasing:
             # Sort categories and recode for unknown categories.
             unsorted = cats.copy()
             categories = cats.sort_values()
 
             codes = recode_for_categories(
-                inferred_codes, unsorted, categories, copy=False
+                inferred_codes, unsorted, categories, copy=False, warn=True
             )
             dtype = CategoricalDtype(categories, ordered=False)
         else:
@@ -1156,7 +1179,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = cat._codes
         else:
             codes = recode_for_categories(
-                cat.codes, cat.categories, new_dtype.categories, copy=False
+                cat.codes, cat.categories, new_dtype.categories, copy=False, warn=False
             )
         NDArrayBacked.__init__(cat, codes, new_dtype)
         return cat
@@ -3004,11 +3027,25 @@ def _get_codes_for_values(
     If `values` is known to be a Categorical, use recode_for_categories instead.
     """
     codes = categories.get_indexer_for(values)
+    wrong = (codes == -1) & ~isna(values)
+    if wrong.any():
+        warnings.warn(
+            "Constructing a Categorical with a dtype and values containing "
+            "non-null entries not in that dtype's categories is deprecated "
+            "and will raise in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
     return coerce_indexer_dtype(codes, categories)
 
 
 def recode_for_categories(
-    codes: np.ndarray, old_categories, new_categories, *, copy: bool
+    codes: np.ndarray,
+    old_categories,
+    new_categories,
+    *,
+    copy: bool = True,
+    warn: bool = False,
 ) -> np.ndarray:
     """
     Convert a set of codes for to a new set of categories
@@ -3019,6 +3056,8 @@ def recode_for_categories(
     old_categories, new_categories : Index
     copy: bool, default True
         Whether to copy if the codes are unchanged.
+    warn : bool, default False
+        Whether to warn on silent-NA mapping.
 
     Returns
     -------
@@ -3043,9 +3082,18 @@ def recode_for_categories(
             return codes.copy()
         return codes
 
-    indexer = coerce_indexer_dtype(
-        new_categories.get_indexer_for(old_categories), new_categories
-    )
+    codes_in_old_cats = new_categories.get_indexer_for(old_categories)
+    if warn:
+        wrong = codes_in_old_cats == -1
+        if wrong.any():
+            warnings.warn(
+                "Constructing a Categorical with a dtype and values containing "
+                "non-null entries not in that dtype's categories is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+    indexer = coerce_indexer_dtype(codes_in_old_cats, new_categories)
     new_codes = take_nd(indexer, codes, fill_value=-1)
     return new_codes
 

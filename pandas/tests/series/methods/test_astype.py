@@ -624,8 +624,11 @@ class TestAstypeCategorical:
 
         # different categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
-        result = ser.astype(dtype)
-        expected = Series(s_data, name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.astype(dtype)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = Series(s_data, name=name, dtype=dtype)
         tm.assert_series_equal(result, expected)
 
         if dtype_ordered is False:

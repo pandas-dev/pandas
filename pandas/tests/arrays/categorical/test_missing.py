@@ -29,8 +29,9 @@ class TestCategoricalMissing:
         categories = list(range(10))
         labels = np.random.default_rng(2).integers(0, 10, 20)
         labels[::5] = -1
-
-        cat = Categorical(labels, categories)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat = Categorical(labels, categories)
         repr(cat)
 
         tm.assert_numpy_array_equal(isna(cat), labels == -1)

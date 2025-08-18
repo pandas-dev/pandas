@@ -141,9 +141,11 @@ class TestCategoricalConcat:
         tm.assert_frame_equal(result, expected)
 
         # wrong categories -> uses concat_compat, which casts to object
-        df3 = DataFrame(
-            {"A": a, "B": Categorical(b, categories=list("abe"))}
-        ).set_index("B")
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df3 = DataFrame(
+                {"A": a, "B": Categorical(b, categories=list("abe"))}
+            ).set_index("B")
         result = pd.concat([df2, df3])
         expected = pd.concat(
             [

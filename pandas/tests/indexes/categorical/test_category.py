@@ -124,11 +124,11 @@ class TestCategoricalIndex:
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-        idx = CategoricalIndex([0, 1], categories=[2, 3], name="foo")
+        idx = CategoricalIndex([None, None], categories=[2, 3], name="foo")
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-        idx = CategoricalIndex([0, 1, 2, 3], categories=[1, 2, 3], name="foo")
+        idx = CategoricalIndex([None, 1, 2, 3], categories=[1, 2, 3], name="foo")
         assert idx.is_unique is True
         assert idx.has_duplicates is False
 
@@ -145,7 +145,7 @@ class TestCategoricalIndex:
                 },
             ),
             (
-                [1, 1, 1],
+                [None, None, None],
                 list("abc"),
                 {
                     "first": np.array([False, True, True]),
@@ -154,7 +154,7 @@ class TestCategoricalIndex:
                 },
             ),
             (
-                [2, "a", "b"],
+                [None, "a", "b"],
                 list("abc"),
                 {
                     "first": np.zeros(shape=(3), dtype=np.bool_),
@@ -193,8 +193,11 @@ class TestCategoricalIndex:
     def test_unique(self, data, categories, expected_data, ordered):
         dtype = CategoricalDtype(categories, ordered=ordered)
 
-        idx = CategoricalIndex(data, dtype=dtype)
-        expected = CategoricalIndex(expected_data, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        warn = None if expected_data == [1] else FutureWarning
+        with tm.assert_produces_warning(warn, match=msg):
+            idx = CategoricalIndex(data, dtype=dtype)
+            expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):

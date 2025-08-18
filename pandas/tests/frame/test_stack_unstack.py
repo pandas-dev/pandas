@@ -255,8 +255,8 @@ class TestDataFrameReshape:
         result = data.unstack()
         expected = DataFrame(
             {
-                "a": pd.Categorical(list("axa"), categories=list("abc")),
-                "b": pd.Categorical(list("bcx"), categories=list("abc")),
+                "a": pd.Categorical(["a", None, "a"], categories=list("abc")),
+                "b": pd.Categorical(["b", "c", None], categories=list("abc")),
             },
             index=list("xyz"),
         )
