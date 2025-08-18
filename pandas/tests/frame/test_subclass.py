@@ -497,6 +497,10 @@ class TestDataFrameSubclassing:
 
         tm.assert_frame_equal(melted, expected)
 
+    @pytest.mark.filterwarnings(
+        r"ignore:The default value of empty string \(''\) for suffix parameters "
+        "is deprecated:DeprecationWarning"
+    )
     def test_subclassed_wide_to_long(self):
         # GH 9762
 

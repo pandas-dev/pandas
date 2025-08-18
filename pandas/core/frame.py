@@ -10940,8 +10940,8 @@ class DataFrame(NDFrame, OpsMixin):
         other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
-        lsuffix: str = "",
-        rsuffix: str = "",
+        lsuffix: str | lib.NoDefault = lib.no_default,
+        rsuffix: str | lib.NoDefault = lib.no_default,
         sort: bool = False,
         validate: JoinValidate | None = None,
     ) -> DataFrame:
@@ -10983,8 +10983,24 @@ class DataFrame(NDFrame, OpsMixin):
               index.
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
+
+            .. note::
+                The default value of empty string ("") is deprecated and will be
+                changed to None in a future version. When suffixes are specified,
+                any non-string columns will be converted to strings before applying
+                the suffix.
+
+            .. deprecated:: 3.0.0
         rsuffix : str, default ''
             Suffix to use from right frame's overlapping columns.
+
+            .. note::
+                The default value of empty string ("") is deprecated and will be
+                changed to None in a future version. When suffixes are specified,
+                any non-string columns will be converted to strings before applying
+                the suffix.
+
+            .. deprecated:: 3.0.0
         sort : bool, default False
             Order result DataFrame lexicographically by the join key. If False,
             the order of the join key depends on the join type (how keyword).
@@ -11107,6 +11123,17 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
+
+        if lsuffix is lib.no_default or rsuffix is lib.no_default:
+            warnings.warn(
+                "The default value of empty string ('') for suffix "
+                "parameters is deprecated and will be changed to None "
+                "in a future version.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+            lsuffix = "" if lsuffix is lib.no_default else lsuffix
+            rsuffix = "" if rsuffix is lib.no_default else rsuffix
 
         if isinstance(other, Series):
             if other.name is None:

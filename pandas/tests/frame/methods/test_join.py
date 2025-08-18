@@ -5,6 +5,7 @@ import zoneinfo
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.errors import MergeError
 
 import pandas as pd
@@ -17,6 +18,11 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
+
+pytestmark = pytest.mark.filterwarnings(
+    r"ignore:The default value of empty string \(''\) for suffix "
+    "parameters is deprecated:DeprecationWarning"
+)
 
 
 @pytest.fixture
@@ -414,7 +420,45 @@ def test_suppress_future_warning_with_sort_kw(sort):
         expected = expected.reindex(index=["c", "a", "b"])
 
     with tm.assert_produces_warning(None):
-        result = a.join([b, c], how="outer", sort=sort_kw)
+        result = a.join([b, c], how="outer", sort=sort_kw, lsuffix="", rsuffix="")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "lsuffix,rsuffix,warning,is_rsuffix_test",
+    [
+        (lib.no_default, "_test", DeprecationWarning, True),
+        ("", "_test", None, True),
+        ("_test", lib.no_default, DeprecationWarning, False),
+        ("_test", "", None, False),
+    ],
+)
+def test_join_suffix_deprecation_combined(lsuffix, rsuffix, warning, is_rsuffix_test):
+    df1 = DataFrame({0: [1, 2, 3]})
+    df2 = DataFrame(index=[1, 2, 3], data={0: [4, 5, 6]})
+    msg = (
+        "The default value of empty string ('') for suffix parameters is deprecated "
+        "and will be changed to None in a future version."
+    )
+
+    with tm.assert_produces_warning(warning, match=re.escape(msg) if warning else None):
+        kwargs = {}
+        if lsuffix is not lib.no_default:
+            kwargs["lsuffix"] = lsuffix
+        if rsuffix is not lib.no_default:
+            kwargs["rsuffix"] = rsuffix
+        result = df1.join(df2, on=0, **kwargs)
+
+    if is_rsuffix_test:
+        expected = DataFrame(
+            index=[0, 1, 2],
+            data={"key_0": [1, 2, 3], "0": [1, 2, 3], "0_test": [4, 5, 6]},
+        )
+    else:
+        expected = DataFrame(
+            index=[0, 1, 2],
+            data={"key_0": [1, 2, 3], "0_test": [1, 2, 3], "0": [4, 5, 6]},
+        )
     tm.assert_frame_equal(result, expected)
 
 
