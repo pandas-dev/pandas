@@ -318,38 +318,27 @@ class TestCategoricalRepr:
         assert exp == a.__str__()
 
         a = Series(Categorical(["a", "b"] * 25))
+        exp = (
+            "0     a\n1     b\n"
+            "     ..\n"
+            "48    a\n49    b\n"
+            "Length: 50, dtype: category\nCategories (2, object): ['a', 'b']"
+        )
         if using_infer_string:
-            exp = (
-                "0     a\n1     b\n"
-                "     ..\n"
-                "48    a\n49    b\n"
-                "Length: 50, dtype: category\nCategories (2, str): [a, b]"
-            )
-        else:
-            exp = (
-                "0     a\n1     b\n"
-                "     ..\n"
-                "48    a\n49    b\n"
-                "Length: 50, dtype: category\nCategories (2, object): ['a', 'b']"
-            )
+            exp = exp.replace("object", "str")
         with option_context("display.max_rows", 5):
             assert exp == repr(a)
 
         levs = list("abcdefghijklmnopqrstuvwxyz")
         a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
+        exp = (
+            "0    a\n1    b\n"
+            "dtype: category\n"
+            "Categories (26, object): ['a' < 'b' < 'c' < 'd' ... "
+            "'w' < 'x' < 'y' < 'z']"
+        )
         if using_infer_string:
-            exp = (
-                "0    a\n1    b\n"
-                "dtype: category\n"
-                "Categories (26, str): [a < b < c < d ... w < x < y < z]"
-            )
-        else:
-            exp = (
-                "0    a\n1    b\n"
-                "dtype: category\n"
-                "Categories (26, object): ['a' < 'b' < 'c' < 'd' ... "
-                "'w' < 'x' < 'y' < 'z']"
-            )
+            exp = exp.replace("object", "str")
         assert exp == a.__str__()
 
     def test_categorical_series_repr(self):

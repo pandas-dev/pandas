@@ -2215,8 +2215,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         from pandas.io.formats import format as fmt
 
+        formatter = None
+        if self.categories.dtype == "str":
+            # the extension array formatter defaults to boxed=True in format_array
+            # override here to boxed=False to be consistent with QUOTE_NONNUMERIC
+            formatter = cast(ExtensionArray, self.categories._values)._formatter(
+                boxed=False
+            )
+
         format_array = partial(
-            fmt.format_array, formatter=None, quoting=QUOTE_NONNUMERIC
+            fmt.format_array, formatter=formatter, quoting=QUOTE_NONNUMERIC
         )
         if len(self.categories) > max_categories:
             num = max_categories // 2

@@ -2575,6 +2575,22 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self.obj) <= 2:
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+        elif not PYPY and not using_copy_on_write():
+            ctr = sys.getrefcount(self.obj)
+            ref_count = 2
+            if not warn_copy_on_write() and _check_cacher(self.obj):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count:
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
+                )
+
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
             if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
@@ -2598,6 +2614,25 @@ class _iAtIndexer(_ScalarAccessIndexer):
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer indexers")
         return key
+
+    def __setitem__(self, key, value) -> None:
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self.obj) <= 2:
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+        elif not PYPY and not using_copy_on_write():
+            ctr = sys.getrefcount(self.obj)
+            ref_count = 2
+            if not warn_copy_on_write() and _check_cacher(self.obj):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count:
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
+                )
+
+        return super().__setitem__(key, value)
 
 
 def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:

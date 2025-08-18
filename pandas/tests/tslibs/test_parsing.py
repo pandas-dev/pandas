@@ -395,7 +395,8 @@ def test_hypothesis_delimited_date(
         request.applymarker(
             pytest.mark.xfail(
                 reason="parse_datetime_string cannot reliably tell whether "
-                "e.g. %m.%Y is a float or a date"
+                "e.g. %m.%Y is a float or a date",
+                strict=False,
             )
         )
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
