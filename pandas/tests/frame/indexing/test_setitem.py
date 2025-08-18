@@ -623,7 +623,8 @@ class TestDataFrameSetItem:
                     [6, 7, 8, 100],
                     [9, 10, 11, 100],
                     [12, 13, 14, 100],
-                ]
+                ],
+                dtype=np.int64,
             ),
             columns=MultiIndex.from_tuples(
                 [("A", "a"), ("A", "b"), ("B", "a"), ("C", "c")]
@@ -638,7 +639,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected_existing)
 
         # Test setting with Series using scalar tuple key
-        series_data = Series([10, 20, 30, 40, 50])
+        series_data = Series([10, 20, 30, 40, 50], dtype=np.int64)
         df[("D", "d")] = series_data
         expected_series = expected_existing.copy()
         expected_series[("D", "d")] = series_data
@@ -654,11 +655,12 @@ class TestDataFrameSetItem:
         df_3level[("Z", "C", "3")] = 42
         assert ("Z", "C", "3") in df_3level.columns
         tm.assert_series_equal(
-            df_3level[("Z", "C", "3")], Series([42, 42, 42, 42], name=("Z", "C", "3"))
+            df_3level[("Z", "C", "3")],
+            Series([42, 42, 42, 42], name=("Z", "C", "3"), dtype=np.int64),
         )
 
         # Test Series assignment with 3-level MultiIndex
-        new_series = Series([1, 2, 3, 4], name=("W", "D", "4"))
+        new_series = Series([1, 2, 3, 4], name=("W", "D", "4"), dtype=np.int64)
         df_3level[("W", "D", "4")] = new_series
         tm.assert_series_equal(df_3level[("W", "D", "4")], new_series)
 
