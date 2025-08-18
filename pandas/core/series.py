@@ -2991,7 +2991,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # -------------------------------------------------------------------
     # Combination
 
-    def _append(
+    def _append_internal(
         self, to_append, ignore_index: bool = False, verify_integrity: bool = False
     ):
         from pandas.core.reshape.concat import concat
