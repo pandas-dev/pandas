@@ -20,6 +20,11 @@ from typing import (
 
 import numpy as np
 
+from datetime import datetime as _pydatetime
+
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.common import is_object_dtype
+
 from pandas._libs import writers as libwriters
 from pandas._typing import SequenceNotStr
 from pandas.util._decorators import cache_readonly
@@ -312,10 +317,62 @@ class CSVFormatter:
                 break
             self._save_chunk(start_i, end_i)
 
+
+    # tz-aware CSV formatting helper
+    @staticmethod
+    def _csv_format_datetime_tz_ea(ser, na_rep: str):
+        """
+        Consistent tz-aware formatting for ExtensionArray datetimes:
+        'YYYY-MM-DD HH:MM:SS.ffffff+HH:MM'
+        """
+        # +HHMM → +HH:MM
+        s = ser.dt.strftime("%Y-%m-%d %H:%M:%S.%f%z")
+        s = s.str.replace(r"([+-]\d{2})(\d{2})$", r"\1:\2", regex=True)
+        return s.fillna(na_rep)
+
+    # tz-aware CSV formatting helper
+    @staticmethod
+    def _csv_format_py_tz_aware_obj(ser, na_rep: str):
+        """
+        For object-dtype Series containing stdlib tz-aware datetimes, render
+        with microseconds and colonized offset. Leave other objects untouched.
+        """
+        if ser.empty:
+            return ser.astype(str)
+
+        vals = ser.to_numpy(object, copy=False)
+
+        def _is_tzaware_dt(x: object) -> bool:
+            return (
+                    isinstance(x, _pydatetime)
+                    and getattr(x, "tzinfo", None) is not None
+                    and x.tzinfo.utcoffset(x) is not None
+            )
+
+        mask = np.fromiter((_is_tzaware_dt(x) for x in vals), dtype=bool, count=len(vals))
+        if mask.any():
+            out = vals.copy()
+            # isoformat gives 'YYYY-MM-DD HH:MM:SS.ffffff+HH:MM'
+            out[mask] = [x.isoformat(sep=" ", timespec="microseconds") for x in out[mask]]
+            ser = ser._constructor(out, index=ser.index, name=ser.name)
+
+        return ser.fillna(na_rep)
+
+
     def _save_chunk(self, start_i: int, end_i: int) -> None:
         # create the data for a chunk
         slicer = slice(start_i, end_i)
         df = self.obj.iloc[slicer]
+
+        # If user didn't set date_format, normalize tz-aware datetimes to a
+        # single canonical string form for CSV (GH 62111).
+        if self.date_format is None:
+            for col in df.columns:
+                col_dtype = df.dtypes[col]
+                if isinstance(col_dtype, DatetimeTZDtype):
+                    df[col] = self._csv_format_datetime_tz_ea(df[col], self.na_rep)
+                elif is_object_dtype(col_dtype):
+                    df[col] = self._csv_format_py_tz_aware_obj(df[col], self.na_rep)
 
         res = df._get_values_for_csv(**self._number_format)
         data = list(res._iter_column_arrays())
