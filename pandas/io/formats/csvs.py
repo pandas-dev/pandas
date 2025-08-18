@@ -50,6 +50,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.series import Series
+
     from pandas.io.formats.format import DataFrameFormatter
 
 
@@ -317,7 +319,7 @@ class CSVFormatter:
 
     # tz-aware CSV formatting helper
     @staticmethod
-    def _csv_format_datetime_tz_ea(ser, na_rep: str):
+    def _csv_format_datetime_tz_ea(ser: Series, na_rep: str) -> Series:
         """
         Consistent tz-aware formatting for ExtensionArray datetimes:
         'YYYY-MM-DD HH:MM:SS.ffffff+HH:MM'
@@ -329,7 +331,7 @@ class CSVFormatter:
 
     # tz-aware CSV formatting helper
     @staticmethod
-    def _csv_format_py_tz_aware_obj(ser, na_rep: str):
+    def _csv_format_py_tz_aware_obj(ser: Series, na_rep: str) -> Series:
         """
         For object-dtype Series containing stdlib tz-aware datetimes, render
         with microseconds and colonized offset. Leave other objects untouched.
@@ -340,11 +342,10 @@ class CSVFormatter:
         vals = ser.to_numpy(object, copy=False)
 
         def _is_tzaware_dt(x: object) -> bool:
-            return (
-                isinstance(x, _pydatetime)
-                and getattr(x, "tzinfo", None) is not None
-                and x.tzinfo.utcoffset(x) is not None
-            )
+            if not isinstance(x, _pydatetime):
+                return False
+            tz = getattr(x, "tzinfo", None)
+            return tz is not None and tz.utcoffset(x) is not None
 
         mask = np.fromiter(
             (_is_tzaware_dt(x) for x in vals), dtype=bool, count=len(vals)
