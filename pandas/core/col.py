@@ -260,9 +260,14 @@ def col(col_name: Hashable) -> Expression:
 
     def func(df: DataFrame) -> Series:
         if col_name not in df.columns:
+            columns_list = df.columns.tolist()
+            if len(columns_list) > 10:
+                columns_hint = columns_list[:10] + ["..."]
+            else:
+                columns_hint = columns_list
             msg = (
                 f"Column '{col_name}' not found in given DataFrame.\n\n"
-                f"Hint: did you mean one of {df.columns.tolist()} instead?"
+                f"Hint: did you mean one of {columns_hint} instead?"
             )
             raise ValueError(msg)
         return df[col_name]
