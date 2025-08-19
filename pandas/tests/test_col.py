@@ -75,7 +75,7 @@ def test_invalid() -> None:
         "did you mean one of "
         r"\['col_0', 'col_1', 'col_2', 'col_3', "
         "'col_4', 'col_5', 'col_6', 'col_7', "
-        r"'col_8', 'col_9', '\.\.\.'\] instead"
+        r"'col_8', 'col_9',\.\.\.\] instead"
     )
     ""
     with pytest.raises(ValueError, match=msg):

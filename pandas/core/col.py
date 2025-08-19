@@ -222,20 +222,21 @@ class NamespaceExpression:
 
 def col(col_name: Hashable) -> Expression:
     """
-    Generate deferred object representing a column of a `DataFrame`.
+    Generate deferred object representing a column of a DataFrame.
 
     Any place which accepts ``lambda df: df[col_name]``, such as
     :meth:`DataFrame.assign` or :meth:`DataFrame.loc`, can also accept
     ``pd.col(col_name)``.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     col_name : Hashable
         Column name.
 
     Returns
     -------
     `pandas.api.typing.Expression`
+        A deferred object representing a column of a DataFrame.
 
     Examples
     --------
@@ -260,15 +261,14 @@ def col(col_name: Hashable) -> Expression:
 
     def func(df: DataFrame) -> Series:
         if col_name not in df.columns:
-            columns_list = df.columns.tolist()
-            max_cols = 10
-            if len(columns_list) > max_cols:
-                columns_hint = columns_list[:max_cols] + ["..."]
-            else:
-                columns_hint = columns_list
+            columns_str = str(df.columns.tolist())
+            max_len = 90
+            if len(columns_str) > max_len:
+                columns_str = columns_str[:max_len] + "...]"
+
             msg = (
                 f"Column '{col_name}' not found in given DataFrame.\n\n"
-                f"Hint: did you mean one of {columns_hint} instead?"
+                f"Hint: did you mean one of {columns_str} instead?"
             )
             raise ValueError(msg)
         return df[col_name]
