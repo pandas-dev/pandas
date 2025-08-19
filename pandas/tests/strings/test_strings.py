@@ -274,8 +274,9 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
         and not pa_version_under21p0
     ):
         # known difference in behavior between python and pyarrow unicode handling
-        # pyarrow 21+ considers ¼ as a digit, while python does not
+        # pyarrow 21+ considers ¼ and ፸ as a digit, while python does not
         expected.iloc[3] = True
+        expected.iloc[5] = True
 
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
