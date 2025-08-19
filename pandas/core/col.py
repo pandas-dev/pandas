@@ -138,6 +138,38 @@ class Expression:
     def __rmod__(self, other: Any) -> Expression:
         return self._with_binary_op("__rmod__", other)
 
+    def __array_ufunc__(
+        self, ufunc: Callable[..., Any], method: str, *inputs: Any, **kwargs: Any
+    ) -> Expression:
+        if method != "__call__":
+            msg = f"Only `__call__` ufuncs are currently supported, got: '{method}'"
+            raise NotImplementedError(msg)
+
+        def func(df: DataFrame) -> Any:
+            parsed_inputs = _parse_args(df, *inputs)
+            parsed_kwargs = _parse_kwargs(df, *kwargs)
+            return ufunc(*parsed_inputs, **parsed_kwargs)
+
+        inputs_repr = ", ".join(
+            arg._repr_str if isinstance(arg, Expression) else repr(arg)
+            for arg in inputs
+        )
+        kwargs_repr = ", ".join(
+            f"{k}={v._repr_str if isinstance(v, Expression) else v!r}"
+            for k, v in kwargs.items()
+        )
+
+        all_args = []
+        if inputs_repr:
+            all_args.append(inputs_repr)
+        if kwargs_repr:
+            all_args.append(kwargs_repr)
+
+        args_str = ", ".join(all_args)
+        repr_str = f"{ufunc.__name__}({args_str})"
+
+        return Expression(func, repr_str)
+
     # Everything else
     def __getattr__(self, attr: str, /) -> Any:
         if attr in Series._accessors:
