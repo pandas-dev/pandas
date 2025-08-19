@@ -261,8 +261,9 @@ def col(col_name: Hashable) -> Expression:
     def func(df: DataFrame) -> Series:
         if col_name not in df.columns:
             columns_list = df.columns.tolist()
-            if len(columns_list) > 10:
-                columns_hint = columns_list[:10] + ["..."]
+            max_cols = 10
+            if len(columns_list) > max_cols:
+                columns_hint = columns_list[:max_cols] + ["..."]
             else:
                 columns_hint = columns_list
             msg = (
