@@ -51,6 +51,24 @@ def _parse_kwargs(df: DataFrame, **kwargs: Any) -> dict[Hashable, Series]:
     }
 
 
+def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
+    inputs_repr = ", ".join(
+        arg._repr_str if isinstance(arg, Expression) else repr(arg) for arg in args
+    )
+    kwargs_repr = ", ".join(
+        f"{k}={v._repr_str if isinstance(v, Expression) else v!r}"
+        for k, v in kwargs.items()
+    )
+
+    all_args = []
+    if inputs_repr:
+        all_args.append(inputs_repr)
+    if kwargs_repr:
+        all_args.append(kwargs_repr)
+
+    return ", ".join(all_args)
+
+
 class Expression:
     """
     Class representing a deferred column.
@@ -141,31 +159,12 @@ class Expression:
     def __array_ufunc__(
         self, ufunc: Callable[..., Any], method: str, *inputs: Any, **kwargs: Any
     ) -> Expression:
-        if method != "__call__":
-            msg = f"Only `__call__` ufuncs are currently supported, got: '{method}'"
-            raise NotImplementedError(msg)
-
         def func(df: DataFrame) -> Any:
             parsed_inputs = _parse_args(df, *inputs)
             parsed_kwargs = _parse_kwargs(df, *kwargs)
             return ufunc(*parsed_inputs, **parsed_kwargs)
 
-        inputs_repr = ", ".join(
-            arg._repr_str if isinstance(arg, Expression) else repr(arg)
-            for arg in inputs
-        )
-        kwargs_repr = ", ".join(
-            f"{k}={v._repr_str if isinstance(v, Expression) else v!r}"
-            for k, v in kwargs.items()
-        )
-
-        all_args = []
-        if inputs_repr:
-            all_args.append(inputs_repr)
-        if kwargs_repr:
-            all_args.append(kwargs_repr)
-
-        args_str = ", ".join(all_args)
+        args_str = _pretty_print_args_kwargs(*inputs, **kwargs)
         repr_str = f"{ufunc.__name__}({args_str})"
 
         return Expression(func, repr_str)
@@ -181,23 +180,7 @@ class Expression:
             return getattr(self(df), attr)(*parsed_args, **parsed_kwargs)
 
         def wrapper(*args: Any, **kwargs: Any) -> Expression:
-            # Create a readable representation for method calls
-            args_repr = ", ".join(
-                repr(arg._repr_str if isinstance(arg, Expression) else arg)
-                for arg in args
-            )
-            kwargs_repr = ", ".join(
-                f"{k}={v._repr_str if isinstance(v, Expression) else v!r}"
-                for k, v in kwargs.items()
-            )
-
-            all_args = []
-            if args_repr:
-                all_args.append(args_repr)
-            if kwargs_repr:
-                all_args.append(kwargs_repr)
-
-            args_str = ", ".join(all_args)
+            args_str = _pretty_print_args_kwargs(*args, **kwargs)
             repr_str = f"{self._repr_str}.{attr}({args_str})"
 
             return Expression(lambda df: func(df, *args, **kwargs), repr_str)
@@ -232,25 +215,8 @@ class NamespaceExpression:
             )
 
         def wrapper(*args: Any, **kwargs: Any) -> Expression:
-            # Create a readable representation for namespace method calls
-            args_repr = ", ".join(
-                repr(arg._repr_str if isinstance(arg, Expression) else arg)
-                for arg in args
-            )
-            kwargs_repr = ", ".join(
-                f"{k}={v._repr_str if isinstance(v, Expression) else v!r}"
-                for k, v in kwargs.items()
-            )
-
-            all_args = []
-            if args_repr:
-                all_args.append(args_repr)
-            if kwargs_repr:
-                all_args.append(kwargs_repr)
-
-            args_str = ", ".join(all_args)
+            args_str = _pretty_print_args_kwargs(*args, **kwargs)
             repr_str = f"{self._func._repr_str}.{self._namespace}.{attr}({args_str})"
-
             return Expression(lambda df: func(df, *args, **kwargs), repr_str)
 
         return wrapper
