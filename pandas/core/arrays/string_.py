@@ -301,7 +301,7 @@ class StringDtype(StorageExtensionDtype):
         elif self.storage == "pyarrow" and self._na_value is libmissing.NA:
             return ArrowStringArray
         elif self.storage == "python":
-            return StringArrayNumpySemantics
+            return StringArray
         else:
             return ArrowStringArrayNumpySemantics
 
@@ -500,9 +500,14 @@ class BaseStringArray(ExtensionArray):
                 result = pa.array(
                     result, mask=mask, type=pa.large_string(), from_pandas=True
                 )
-            # error: Too many arguments for "BaseStringArray"
-            return type(self)(result)  # type: ignore[call-arg]
-
+            if self.dtype.storage == "python":
+                # StringArray
+                # error: Too many arguments for "BaseStringArray"
+                return type(self)(result, dtype=self.dtype)  # type: ignore[call-arg]
+            else:
+                # ArrowStringArray
+                # error: Too many arguments for "BaseStringArray"
+                return type(self)(result)  # type: ignore[call-arg]
         else:
             # This is when the result type is object. We reach this when
             # -> We know the result type is truly object (e.g. .encode returns bytes
@@ -645,36 +650,52 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"
-    _storage = "python"
-    _na_value: libmissing.NAType | float = libmissing.NA
 
-    def __init__(self, values, copy: bool = False) -> None:
+    def __init__(self, values, *, dtype: StringDtype, copy: bool = False) -> None:
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
         if not isinstance(values, type(self)):
-            self._validate()
+            self._validate(dtype)
         NDArrayBacked.__init__(
             self,
             self._ndarray,
-            StringDtype(storage=self._storage, na_value=self._na_value),
+            dtype,
         )
 
-    def _validate(self) -> None:
+    def _validate(self, dtype: StringDtype) -> None:
         """Validate that we only store NA or strings."""
-        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
-        if self._ndarray.dtype != "object":
-            raise ValueError(
-                "StringArray requires a sequence of strings or pandas.NA. Got "
-                f"'{self._ndarray.dtype}' dtype instead."
-            )
-        # Check to see if need to convert Na values to pd.NA
-        if self._ndarray.ndim > 2:
-            # Ravel if ndims > 2 b/c no cythonized version available
-            lib.convert_nans_to_NA(self._ndarray.ravel("K"))
+
+        if dtype._na_value is libmissing.NA:
+            if len(self._ndarray) and not lib.is_string_array(
+                self._ndarray, skipna=True
+            ):
+                raise ValueError(
+                    "StringArray requires a sequence of strings or pandas.NA"
+                )
+            if self._ndarray.dtype != "object":
+                raise ValueError(
+                    "StringArray requires a sequence of strings or pandas.NA. Got "
+                    f"'{self._ndarray.dtype}' dtype instead."
+                )
+            # Check to see if need to convert Na values to pd.NA
+            if self._ndarray.ndim > 2:
+                # Ravel if ndims > 2 b/c no cythonized version available
+                lib.convert_nans_to_NA(self._ndarray.ravel("K"))
+            else:
+                lib.convert_nans_to_NA(self._ndarray)
         else:
-            lib.convert_nans_to_NA(self._ndarray)
+            # Validate that we only store NaN or strings.
+            if len(self._ndarray) and not lib.is_string_array(
+                self._ndarray, skipna=True
+            ):
+                raise ValueError("StringArray requires a sequence of strings or NaN")
+            if self._ndarray.dtype != "object":
+                raise ValueError(
+                    "StringArray requires a sequence of strings "
+                    "or NaN. Got '{self._ndarray.dtype}' dtype instead."
+                )
+            # TODO validate or force NA/None to NaN
 
     def _validate_scalar(self, value):
         # used by NDArrayBackedExtensionIndex.insert
@@ -736,7 +757,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     def _empty(cls, shape, dtype) -> StringArray:
         values = np.empty(shape, dtype=object)
         values[:] = libmissing.NA
-        return cls(values).astype(dtype, copy=False)
+        return cls(values, dtype=dtype).astype(dtype, copy=False)
 
     def __arrow_array__(self, type=None):
         """
@@ -936,7 +957,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if self._hasna:
             na_mask = cast("npt.NDArray[np.bool_]", isna(ndarray))
             if np.all(na_mask):
-                return type(self)(ndarray)
+                return type(self)(ndarray, dtype=self.dtype)
             if skipna:
                 if name == "cumsum":
                     ndarray = np.where(na_mask, "", ndarray)
@@ -970,7 +991,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # Argument 2 to "where" has incompatible type "NAType | float"
             np_result = np.where(na_mask, self.dtype.na_value, np_result)  # type: ignore[arg-type]
 
-        result = type(self)(np_result)
+        result = type(self)(np_result, dtype=self.dtype)
         return result
 
     def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
@@ -1099,29 +1120,3 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return res_arr
 
     _arith_method = _cmp_method
-
-
-class StringArrayNumpySemantics(StringArray):
-    _storage = "python"
-    _na_value = np.nan
-
-    def _validate(self) -> None:
-        """Validate that we only store NaN or strings."""
-        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError(
-                "StringArrayNumpySemantics requires a sequence of strings or NaN"
-            )
-        if self._ndarray.dtype != "object":
-            raise ValueError(
-                "StringArrayNumpySemantics requires a sequence of strings or NaN. Got "
-                f"'{self._ndarray.dtype}' dtype instead."
-            )
-        # TODO validate or force NA/None to NaN
-
-    @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> Self:
-        if dtype is None:
-            dtype = StringDtype(storage="python", na_value=np.nan)
-        return super()._from_sequence(scalars, dtype=dtype, copy=copy)

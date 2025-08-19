@@ -21,9 +21,9 @@ from pandas.core.arrays import (
     NumpyExtensionArray,
     PeriodArray,
     SparseArray,
+    StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringArrayNumpySemantics
 from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 
@@ -222,9 +222,7 @@ class TestToIterable:
 )
 def test_values_consistent(arr, expected_type, dtype, using_infer_string):
     if using_infer_string and dtype == "object":
-        expected_type = (
-            ArrowStringArrayNumpySemantics if HAS_PYARROW else StringArrayNumpySemantics
-        )
+        expected_type = ArrowStringArrayNumpySemantics if HAS_PYARROW else StringArray
     l_values = Series(arr)._values
     r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
