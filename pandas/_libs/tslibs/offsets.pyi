@@ -7,6 +7,7 @@ from datetime import (
 from typing import (
     Any,
     Literal,
+    Self,
     TypeVar,
     overload,
 )
@@ -16,7 +17,6 @@ import numpy as np
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     OffsetCalendar,
-    Self,
     npt,
 )
 
@@ -116,7 +116,7 @@ class Tick(SingleConstructorOffset):
 
 def delta_to_tick(delta: timedelta) -> Tick: ...
 
-class Day(Tick): ...
+class Day(BaseOffset): ...
 class Hour(Tick): ...
 class Minute(Tick): ...
 class Second(Tick): ...

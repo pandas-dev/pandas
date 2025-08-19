@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -59,7 +60,6 @@ if TYPE_CHECKING:
         JoinHow,
         NaPosition,
         NumpySorter,
-        Self,
         npt,
     )
 

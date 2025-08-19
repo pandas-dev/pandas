@@ -12,6 +12,7 @@ import collections
 import functools
 from typing import (
     TYPE_CHECKING,
+    Any,
     Generic,
     final,
 )
@@ -43,6 +44,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_uint64,
     is_1d_only_ea_dtype,
+    is_string_dtype,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -50,6 +52,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.arrays import Categorical
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -319,6 +322,7 @@ class WrappedCythonOp:
         comp_ids: np.ndarray,
         mask: npt.NDArray[np.bool_] | None = None,
         result_mask: npt.NDArray[np.bool_] | None = None,
+        initial: Any = 0,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -335,6 +339,7 @@ class WrappedCythonOp:
                 comp_ids=comp_ids,
                 mask=mask,
                 result_mask=result_mask,
+                initial=initial,
                 **kwargs,
             )
             if res.shape[0] == 1:
@@ -350,6 +355,7 @@ class WrappedCythonOp:
             comp_ids=comp_ids,
             mask=mask,
             result_mask=result_mask,
+            initial=initial,
             **kwargs,
         )
 
@@ -363,6 +369,7 @@ class WrappedCythonOp:
         comp_ids: np.ndarray,
         mask: npt.NDArray[np.bool_] | None,
         result_mask: npt.NDArray[np.bool_] | None,
+        initial: Any = 0,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -420,6 +427,10 @@ class WrappedCythonOp:
                 "sum",
                 "median",
             ]:
+                if self.how == "sum":
+                    # pass in through kwargs only for sum (other functions don't have
+                    # the keyword)
+                    kwargs["initial"] = initial
                 func(
                     out=result,
                     counts=counts,
@@ -954,18 +965,26 @@ class BaseGrouper:
         -------
         np.ndarray or ExtensionArray
         """
+        result = self._aggregate_series_pure_python(obj, func)
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
 
-        if not isinstance(obj._values, np.ndarray):
+        if isinstance(obj._values, ArrowExtensionArray):
+            # When obj.dtype is a string, any object can be cast. Only do so if the
+            # UDF returned strings or NA values.
+            if not is_string_dtype(obj.dtype) or lib.is_string_array(
+                npvalues, skipna=True
+            ):
+                out = maybe_cast_pointwise_result(
+                    npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
+                )
+            else:
+                out = npvalues
+
+        elif not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
-            preserve_dtype = True
-
-        result = self._aggregate_series_pure_python(obj, func)
-
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
             out = npvalues

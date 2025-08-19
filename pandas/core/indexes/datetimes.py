@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Self,
+)
 import warnings
 
 import numpy as np
@@ -55,7 +58,6 @@ if TYPE_CHECKING:
         DtypeObj,
         Frequency,
         IntervalClosedType,
-        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,
@@ -220,6 +222,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     to_pydatetime
     to_series
     to_frame
+    to_julian_date
     month_name
     day_name
     mean

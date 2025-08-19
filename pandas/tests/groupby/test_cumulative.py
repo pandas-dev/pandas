@@ -162,11 +162,12 @@ def test_cummin_getattr_series():
 @pytest.mark.parametrize("method", ["cummin", "cummax"])
 @pytest.mark.parametrize("dtype", ["UInt64", "Int64", "Float64", "float", "boolean"])
 def test_cummin_max_all_nan_column(method, dtype):
-    base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
+    item = np.nan if dtype == "float" else pd.NA
+    base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [item] * 8})
     base_df["B"] = base_df["B"].astype(dtype)
     grouped = base_df.groupby("A")
 
-    expected = DataFrame({"B": [np.nan] * 8}, dtype=dtype)
+    expected = DataFrame({"B": [item] * 8}, dtype=dtype)
     result = getattr(grouped, method)()
     tm.assert_frame_equal(expected, result)
 

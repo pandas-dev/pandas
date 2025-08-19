@@ -55,7 +55,8 @@ def to_numeric(
     """
     Convert argument to a numeric type.
 
-    The default return dtype is `float64` or `int64`
+    If the input is already of a numeric dtype, the dtype will be preserved.
+    For non-numeric inputs, the default return dtype is `float64` or `int64`
     depending on the data supplied. Use the `downcast` parameter
     to obtain other dtypes.
 
@@ -113,6 +114,14 @@ def to_numeric(
     ret
         Numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray.
+
+    Raises
+    ------
+    ValueError
+        If the input contains non-numeric values and `errors='raise'`.
+    TypeError
+        If the input is not list-like, 1D, or scalar convertible to numeric,
+        such as nested lists or unsupported input types (e.g., dict).
 
     See Also
     --------

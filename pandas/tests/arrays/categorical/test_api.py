@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -47,11 +45,7 @@ class TestCategoricalAPI:
         assert not cat2.set_ordered(False).ordered
 
         # removed in 0.19.0
-        msg = (
-            "property 'ordered' of 'Categorical' object has no setter"
-            if PY311
-            else "can't set attribute"
-        )
+        msg = "property 'ordered' of 'Categorical' object has no setter"
         with pytest.raises(AttributeError, match=msg):
             cat.ordered = True
         with pytest.raises(AttributeError, match=msg):
@@ -435,11 +429,7 @@ class TestPrivateCategoricalAPI:
         tm.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
-        msg = (
-            "property 'codes' of 'Categorical' object has no setter"
-            if PY311
-            else "can't set attribute"
-        )
+        msg = "property 'codes' of 'Categorical' object has no setter"
         with pytest.raises(AttributeError, match=msg):
             c.codes = np.array([0, 1, 2, 0, 1], dtype="int8")
 
@@ -480,7 +470,7 @@ class TestPrivateCategoricalAPI:
         expected = np.asanyarray(expected, dtype=np.int8)
         old = Index(old)
         new = Index(new)
-        result = recode_for_categories(codes, old, new)
+        result = recode_for_categories(codes, old, new, copy=True)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_recode_to_categories_large(self):
@@ -489,5 +479,5 @@ class TestPrivateCategoricalAPI:
         old = Index(codes)
         expected = np.arange(N - 1, -1, -1, dtype=np.int16)
         new = Index(expected)
-        result = recode_for_categories(codes, old, new)
+        result = recode_for_categories(codes, old, new, copy=True)
         tm.assert_numpy_array_equal(result, expected)

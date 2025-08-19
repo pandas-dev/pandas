@@ -17,7 +17,10 @@ from warnings import (
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
@@ -265,7 +268,7 @@ class PyArrowImpl(BaseImpl):
                 filterwarnings(
                     "ignore",
                     "make_block is deprecated",
-                    DeprecationWarning,
+                    Pandas4Warning,
                 )
                 result = arrow_table_to_pandas(
                     pa_table,
@@ -393,7 +396,7 @@ class FastParquetImpl(BaseImpl):
                 filterwarnings(
                     "ignore",
                     "make_block is deprecated",
-                    DeprecationWarning,
+                    Pandas4Warning,
                 )
                 return parquet_file.to_pandas(
                     columns=columns, filters=filters, **kwargs
@@ -461,8 +464,12 @@ def to_parquet(
 
         .. versionadded:: 2.1.0
 
-    kwargs
-        Additional keyword arguments passed to the engine.
+    **kwargs
+        Additional keyword arguments passed to the engine:
+
+        * For ``engine="pyarrow"``: passed to :func:`pyarrow.parquet.write_table`
+          or :func:`pyarrow.parquet.write_to_dataset` (when using partition_cols)
+        * For ``engine="fastparquet"``: passed to :func:`fastparquet.write`
 
     Returns
     -------
@@ -582,7 +589,11 @@ def read_parquet(
         .. versionadded:: 3.0.0
 
     **kwargs
-        Any additional kwargs are passed to the engine.
+        Additional keyword arguments passed to the engine:
+
+        * For ``engine="pyarrow"``: passed to :func:`pyarrow.parquet.read_table`
+        * For ``engine="fastparquet"``: passed to
+          :meth:`fastparquet.ParquetFile.to_pandas`
 
     Returns
     -------

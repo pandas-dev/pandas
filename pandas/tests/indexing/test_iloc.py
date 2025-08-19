@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under16p0
 from pandas.errors import IndexingError
 
 from pandas import (
@@ -140,6 +141,9 @@ class TestiLocBaseIndependent:
         df = ser.to_frame()
         assert df.iloc._is_scalar_access((1, 0))
 
+    @pytest.mark.skipif(
+        pa_version_under16p0, reason="https://github.com/apache/arrow/issues/40642"
+    )
     def test_iloc_exceeds_bounds(self):
         # GH6296
         # iloc should allow indexers that exceed the bounds
@@ -1478,3 +1482,14 @@ class TestILocSeries:
         result = DataFrame({"a": ["test"], "b": [np.nan]})
         with pytest.raises(TypeError, match="Invalid value"):
             result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+
+    def test_iloc_arrow_extension_array(self):
+        # GH#61311
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"a": [1, 2], "c": [0, 2], "d": ["c", "a"]})
+        df_arrow = DataFrame(
+            {"a": [1, 2], "c": [0, 2], "d": ["c", "a"]}
+        ).convert_dtypes(dtype_backend="pyarrow")
+        expected = df.iloc[:, df["c"]]
+        result = df_arrow.iloc[:, df_arrow["c"]]
+        tm.assert_frame_equal(result, expected, check_dtype=False)

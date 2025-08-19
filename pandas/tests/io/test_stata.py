@@ -2056,9 +2056,10 @@ the string values returned are correct."""
         ["numpy_nullable", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
     )
     def test_read_write_ea_dtypes(self, dtype_backend, temp_file, tmp_path):
+        dtype = "Int64" if dtype_backend == "numpy_nullable" else "int64[pyarrow]"
         df = DataFrame(
             {
-                "a": [1, 2, None],
+                "a": pd.array([1, 2, None], dtype=dtype),
                 "b": ["a", "b", "c"],
                 "c": [True, False, None],
                 "d": [1.5, 2.5, 3.5],

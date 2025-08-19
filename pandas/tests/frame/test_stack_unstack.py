@@ -1348,8 +1348,10 @@ def test_unstack_sort_false(frame_or_series, dtype):
         )
     else:
         expected_columns = ["b", "a"]
+
+    item = pd.NA if dtype == "Float64" else np.nan
     expected = DataFrame(
-        [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
+        [[1.0, item], [item, 2.0], [3.0, item], [item, 4.0]],
         columns=expected_columns,
         index=MultiIndex.from_tuples(
             [("two", "z"), ("two", "y"), ("one", "z"), ("one", "y")]
@@ -2227,7 +2229,7 @@ class TestStackUnstackMultiLevel:
         tm.assert_frame_equal(recons, df)
 
     @pytest.mark.slow
-    def test_unstack_number_of_levels_larger_than_int32(
+    def test_unstack_number_of_levels_larger_than_int32_warns(
         self, performance_warning, monkeypatch
     ):
         # GH#20601
@@ -2238,6 +2240,9 @@ class TestStackUnstackMultiLevel:
                 # __init__ will raise the warning
                 super().__init__(*args, **kwargs)
                 raise Exception("Don't compute final result.")
+
+            def _make_selectors(self) -> None:
+                pass
 
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)

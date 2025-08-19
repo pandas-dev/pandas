@@ -28,8 +28,7 @@ class IntegerDtype(NumericDtype):
     _default_np_dtype = np.dtype(np.int64)
     _checker = is_integer_dtype
 
-    @classmethod
-    def construct_array_type(cls) -> type[IntegerArray]:
+    def construct_array_type(self) -> type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 

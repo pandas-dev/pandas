@@ -24,6 +24,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -85,7 +86,6 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         IndexLabel,
-        Self,
     )
 
     from pandas import Index

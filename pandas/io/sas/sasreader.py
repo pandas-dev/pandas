@@ -11,6 +11,7 @@ from abc import (
 from collections.abc import Iterator
 from typing import (
     TYPE_CHECKING,
+    Self,
     overload,
 )
 
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         ReadBuffer,
-        Self,
     )
 
     from pandas import DataFrame

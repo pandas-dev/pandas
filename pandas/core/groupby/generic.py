@@ -27,7 +27,10 @@ import numpy as np
 
 from pandas._libs import Interval
 from pandas._libs.hashtable import duplicated
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -1404,7 +1407,15 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty or skipna=False and any value is NA.
+            When there are no valid values for a group. Then can happen if:
+
+                * There is an unobserved group and ``observed=False``.
+                * All values for a group are NA.
+                * Some values for a group are NA and ``skipna=False``.
+
+        .. versionchanged:: 3.0.0
+            Previously if all values for a group are NA or some values for a group are
+            NA and ``skipna=False``, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -1457,7 +1468,15 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty or skipna=False and any value is NA.
+            When there are no valid values for a group. Then can happen if:
+
+                * There is an unobserved group and ``observed=False``.
+                * All values for a group are NA.
+                * Some values for a group are NA and ``skipna=False``.
+
+        .. versionchanged:: 3.0.0
+            Previously if all values for a group are NA or some values for a group are
+            NA and ``skipna=False``, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -2597,7 +2616,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If a column is empty or skipna=False and any value is NA.
+            When there are no valid values for a group. Then can happen if:
+
+                * There is an unobserved group and ``observed=False``.
+                * All values for a group are NA.
+                * Some values for a group are NA and ``skipna=False``.
+
+        .. versionchanged:: 3.0.0
+            Previously if all values for a group are NA or some values for a group are
+            NA and ``skipna=False``, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -2663,7 +2690,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If a column is empty or skipna=False and any value is NA.
+            When there are no valid values for a group. Then can happen if:
+
+                * There is an unobserved group and ``observed=False``.
+                * All values for a group are NA.
+                * Some values for a group are NA and ``skipna=False``.
+
+        .. versionchanged:: 3.0.0
+            Previously if all values for a group are NA or some values for a group are
+            NA and ``skipna=False``, this method would return NA. Now it raises instead.
 
         See Also
         --------
@@ -3332,7 +3367,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         warnings.warn(
             "DataFrameGroupBy.corrwith is deprecated",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         result = self._op_via_apply(

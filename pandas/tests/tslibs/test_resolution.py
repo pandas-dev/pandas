@@ -22,7 +22,7 @@ def test_get_resolution_non_nano_data():
     res = get_resolution(arr, None, NpyDatetimeUnit.NPY_FR_us.value)
     assert res == Resolution.RESO_US
 
-    res = get_resolution(arr, datetime.timezone.utc, NpyDatetimeUnit.NPY_FR_us.value)
+    res = get_resolution(arr, datetime.UTC, NpyDatetimeUnit.NPY_FR_us.value)
     assert res == Resolution.RESO_US
 
 

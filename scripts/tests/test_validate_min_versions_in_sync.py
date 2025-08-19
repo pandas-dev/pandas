@@ -1,13 +1,8 @@
 import pathlib
-import sys
+import tomllib
 
 import pytest
 import yaml
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 from scripts.validate_min_versions_in_sync import (
     get_toml_map_from,

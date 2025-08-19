@@ -1,6 +1,5 @@
 from enum import Enum
-
-from pandas._typing import Self
+from typing import Self
 
 OFFSET_TO_PERIOD_FREQSTR: dict[str, str]
 

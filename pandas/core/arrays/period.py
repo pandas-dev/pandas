@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -21,6 +22,7 @@ from pandas._libs import (
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     NaT,
     NaTType,
     Timedelta,
@@ -86,7 +88,6 @@ if TYPE_CHECKING:
         NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
-        Self,
         npt,
     )
 
@@ -838,7 +839,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 # TODO: other cases?
             return dta
         else:
-            return dta._with_freq("infer")
+            dta = dta._with_freq("infer")
+            if freq is not None:
+                freq = to_offset(freq)
+                if (
+                    isinstance(dta.freq, Day)
+                    and not isinstance(freq, Day)
+                    and Timedelta(freq) == Timedelta(days=dta.freq.n)
+                ):
+                    dta._freq = freq
+            return dta
 
     # --------------------------------------------------------------------
 
@@ -1014,6 +1024,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
+        if isinstance(other, Day):
+            return self + np.timedelta64(other.n, "D")
+
         self._require_matching_freq(other, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
@@ -1028,7 +1041,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray
         """
-        if not isinstance(self.freq, Tick):
+        if not isinstance(self.freq, (Tick, Day)):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise raise_on_incompatible(self, other)
 
@@ -1036,7 +1049,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # i.e. np.timedelta64("NaT")
             return super()._add_timedeltalike_scalar(other)
 
-        td = np.asarray(Timedelta(other).asm8)
+        if isinstance(other, Day):
+            td = np.asarray(Timedelta(days=other.n).asm8)
+        else:
+            td = np.asarray(Timedelta(other).asm8)
         return self._add_timedelta_arraylike(td)
 
     def _add_timedelta_arraylike(
@@ -1457,8 +1473,10 @@ def _make_field_arrays(*fields) -> list[np.ndarray]:
     # "Union[Union[int, integer[Any]], Union[bool, bool_], ndarray, Sequence[Union[int,
     # integer[Any]]], Sequence[Union[bool, bool_]], Sequence[Sequence[Any]]]"
     return [
-        np.asarray(x)
-        if isinstance(x, (np.ndarray, list, ABCSeries))
-        else np.repeat(x, length)  # type: ignore[arg-type]
+        (
+            np.asarray(x)
+            if isinstance(x, (np.ndarray, list, ABCSeries))
+            else np.repeat(x, length)  # type: ignore[arg-type]
+        )
         for x in fields
     ]

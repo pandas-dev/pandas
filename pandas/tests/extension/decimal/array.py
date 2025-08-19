@@ -50,8 +50,7 @@ class DecimalDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return f"DecimalDtype(context={self.context})"
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[DecimalArray]:
+    def construct_array_type(self) -> type_t[DecimalArray]:
         """
         Return the array type associated with this dtype.
 

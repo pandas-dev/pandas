@@ -340,7 +340,7 @@ def test_half_open_interval_with_observance():
     tm.assert_index_equal(date_interval_high, expected_results)
 
 
-def test_holidays_with_timezone_specified_but_no_occurences():
+def test_holidays_with_timezone_specified_but_no_occurrences():
     # GH 54580
     # _apply_rule() in holiday.py was silently dropping timezones if you passed it
     # an empty list of holiday dates that had timezone information

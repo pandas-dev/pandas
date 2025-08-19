@@ -6,11 +6,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     final,
 )
 import warnings
-import weakref
 
 import numpy as np
 
@@ -33,7 +33,6 @@ from pandas._typing import (
     IgnoreRaise,
     InterpolateOptions,
     QuantileInterpolation,
-    Self,
     Shape,
     npt,
 )
@@ -863,14 +862,22 @@ class Block(PandasObject, libinternals.Block):
                 )
 
                 if i != src_len:
-                    # This is ugly, but we have to get rid of intermediate refs
-                    # that did not go out of scope yet, otherwise we will trigger
-                    # many unnecessary copies
+                    # This is ugly, but we have to get rid of intermediate refs. We
+                    # can simply clear the referenced_blocks if we already copied,
+                    # otherwise we have to remove ourselves
+                    self_blk_ids = {
+                        id(b()): i for i, b in enumerate(self.refs.referenced_blocks)
+                    }
                     for b in result:
-                        ref = weakref.ref(b)
-                        b.refs.referenced_blocks.pop(
-                            b.refs.referenced_blocks.index(ref)
-                        )
+                        if b.refs is self.refs:
+                            # We are still sharing memory with self
+                            if id(b) in self_blk_ids:
+                                # Remove ourselves from the refs; we are temporary
+                                self.refs.referenced_blocks.pop(self_blk_ids[id(b)])
+                        else:
+                            # We have already copied, so we can clear the refs to avoid
+                            # future copies
+                            b.refs.referenced_blocks.clear()
                 new_rb.extend(result)
             rb = new_rb
         return rb

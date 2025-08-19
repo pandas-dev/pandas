@@ -100,7 +100,7 @@ class TestNonNano:
         assert dta.dtype == dtype
 
         wrong = DatetimeTZDtype("ns", "UTC")
-        with pytest.raises(AssertionError, match=""):
+        with pytest.raises(AssertionError, match="^$"):
             DatetimeArray._simple_new(arr, dtype=wrong)
 
     def test_std_non_nano(self, unit):

@@ -68,6 +68,11 @@ def expected_dtype(dtype, method, pct=False):
             exp_dtype = "double[pyarrow]"
         else:
             exp_dtype = "uint64[pyarrow]"
+    elif dtype in ["Float64", "Int64"]:
+        if method == "average" or pct:
+            exp_dtype = "Float64"
+        else:
+            exp_dtype = "UInt64"
 
     return exp_dtype
 
@@ -254,11 +259,10 @@ class TestSeriesRank:
 
     def test_rank_nullable_integer(self):
         # GH 56976
-        exp = Series([np.nan, 2, np.nan, 3, 3, 2, 3, 1])
-        exp = exp.astype("Int64")
+        exp = Series([None, 2, None, 3, 3, 2, 3, 1], dtype="Int64")
         result = exp.rank(na_option="keep")
 
-        expected = Series([np.nan, 2.5, np.nan, 5.0, 5.0, 2.5, 5.0, 1.0])
+        expected = Series([None, 2.5, None, 5.0, 5.0, 2.5, 5.0, 1.0], dtype="Float64")
 
         tm.assert_series_equal(result, expected)
 
@@ -303,6 +307,12 @@ class TestSeriesRank:
                 exp_dtype = "float64[pyarrow]"
             else:
                 exp_dtype = "uint64[pyarrow]"
+        elif dtype == "Float64":
+            # GH#62043
+            if rank_method == "average":
+                exp_dtype = "Float64"
+            else:
+                exp_dtype = "UInt64"
         else:
             exp_dtype = "float64"
 
@@ -328,7 +338,8 @@ class TestSeriesRank:
         result = iseries.rank(
             method=rank_method, na_option=na_option, ascending=ascending
         )
-        tm.assert_series_equal(result, Series(expected, dtype=exp_dtype))
+        exp_ser = Series(expected, dtype=exp_dtype)
+        tm.assert_series_equal(result, exp_ser)
 
     def test_rank_desc_mix_nans_infs(self):
         # GH 19538
@@ -440,7 +451,7 @@ class TestSeriesRank:
             dtype="Float64",
         )
         result = ser.rank(method="min")
-        expected = Series([4, 1, 3, np.nan, 2])
+        expected = Series([4, 1, 3, NA, 2], dtype="UInt64")
         tm.assert_series_equal(result, expected)
 
 

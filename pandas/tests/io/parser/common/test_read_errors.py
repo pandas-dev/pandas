@@ -12,7 +12,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -227,12 +226,10 @@ def test_null_byte_char(request, all_parsers):
     names = ["a", "b"]
     parser = all_parsers
 
-    if parser.engine == "c" or (parser.engine == "python" and PY311):
-        if parser.engine == "python" and PY311:
+    if parser.engine in ["c", "python"]:
+        if parser.engine == "python":
             request.applymarker(
-                pytest.mark.xfail(
-                    reason="In Python 3.11, this is read as an empty character not null"
-                )
+                pytest.mark.xfail(reason="This is read as an empty character not null")
             )
         expected = DataFrame([[np.nan, "foo"]], columns=names)
         out = parser.read_csv(StringIO(data), names=names)

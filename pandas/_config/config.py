@@ -693,8 +693,8 @@ def _get_registered_option(key: str):
 
 def _translate_key(key: str) -> str:
     """
-    if key id deprecated and a replacement key defined, will return the
-    replacement key, otherwise returns `key` as - is
+    if `key` is deprecated and a replacement key defined, will return the
+    replacement key, otherwise returns `key` as-is
     """
     d = _get_deprecated_option(key)
     if d:

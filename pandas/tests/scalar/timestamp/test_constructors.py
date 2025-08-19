@@ -17,7 +17,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 from pandas import (
     NA,
@@ -325,13 +328,13 @@ class TestTimestampClassMethodConstructors:
     def test_utcnow_deprecated(self):
         # GH#56680
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             Timestamp.utcnow()
 
     def test_utcfromtimestamp_deprecated(self):
         # GH#56680
         msg = "Timestamp.utcfromtimestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             Timestamp.utcfromtimestamp(43)
 
     def test_constructor_strptime(self):
@@ -478,6 +481,13 @@ class TestTimestampResolutionInference:
 
 
 class TestTimestampConstructors:
+    def test_disallow_dt64_with_weird_unit(self):
+        # GH#25611
+        dt64 = np.datetime64(1, "500m")
+        msg = "np.datetime64 objects with units containing a multiplier"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(dt64)
+
     def test_weekday_but_no_day_raises(self):
         # GH#52659
         msg = "Parsing datetimes with weekday but no day information is not supported"

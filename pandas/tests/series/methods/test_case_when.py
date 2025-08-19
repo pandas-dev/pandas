@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
     Series,
     array as pd_array,
@@ -99,7 +100,7 @@ def test_case_when_multiple_conditions_replacement_extension_dtype(df):
             (df["a"].gt(1) & df["b"].eq(5), pd_array([1, 2, 3], dtype="Int64")),
         ],
     )
-    expected = Series([1, 2, np.nan], dtype="Float64")
+    expected = Series([1, 2, NA], dtype="Float64")
     tm.assert_series_equal(result, expected)
 
 

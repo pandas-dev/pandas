@@ -286,8 +286,7 @@ def test_combine_from_sequence_raises(monkeypatch):
     # https://github.com/pandas-dev/pandas/issues/22850
     cls = DecimalArrayWithoutFromSequence
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         return DecimalArrayWithoutFromSequence
 
     monkeypatch.setattr(DecimalDtype, "construct_array_type", construct_array_type)

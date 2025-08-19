@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 
@@ -44,7 +45,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
-        Self,
         npt,
     )
 

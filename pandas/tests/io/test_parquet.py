@@ -151,7 +151,7 @@ def df_full():
 
 @pytest.fixture(
     params=[
-        datetime.datetime.now(datetime.timezone.utc),
+        datetime.datetime.now(datetime.UTC),
         datetime.datetime.now(datetime.timezone.min),
         datetime.datetime.now(datetime.timezone.max),
         datetime.datetime.strptime("2019-01-04T16:41:24+0200", "%Y-%m-%dT%H:%M:%S%z"),
@@ -1001,7 +1001,7 @@ class TestParquetPyArrow(Base):
         expected = df[:]
         if pa_version_under13p0:
             expected.index = expected.index.as_unit("ns")
-        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
+        if timezone_aware_date_list.tzinfo != datetime.UTC:
             # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
             # https://github.com/pandas-dev/pandas/issues/37286
             try:

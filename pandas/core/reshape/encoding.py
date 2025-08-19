@@ -390,7 +390,9 @@ def from_dummies(
         The default category is the implied category when a value has none of the
         listed categories specified with a one, i.e. if all dummies in a row are
         zero. Can be a single value for all variables or a dict directly mapping
-        the default categories to a prefix of a variable.
+        the default categories to a prefix of a variable. The default category
+        will be coerced to the dtype of ``data.columns`` if such coercion is
+        lossless, and will raise otherwise.
 
     Returns
     -------

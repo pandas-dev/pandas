@@ -709,9 +709,9 @@ cdef class Block:
             self.ndim = state[2]
         else:
             # older pickle
-            from pandas.core.internals.api import maybe_infer_ndim
+            from pandas.core.internals.api import _maybe_infer_ndim
 
-            ndim = maybe_infer_ndim(self.values, self.mgr_locs)
+            ndim = _maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
 
     cpdef Block slice_block_rows(self, slice slicer):

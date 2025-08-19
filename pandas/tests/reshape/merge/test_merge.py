@@ -581,7 +581,7 @@ class TestMerge:
     @pytest.mark.parametrize(
         "series_of_dtype_all_na",
         [
-            Series([np.nan], dtype="Int64"),
+            Series([pd.NA], dtype="Int64"),
             Series([np.nan], dtype="float"),
             Series([np.nan], dtype="object"),
             Series([pd.NaT]),
@@ -2174,10 +2174,10 @@ class TestMergeCategorical:
 
     def test_merge_on_int_array(self):
         # GH 23020
-        df = DataFrame({"A": Series([1, 2, np.nan], dtype="Int64"), "B": 1})
+        df = DataFrame({"A": Series([1, 2, pd.NA], dtype="Int64"), "B": 1})
         result = merge(df, df, on="A")
         expected = DataFrame(
-            {"A": Series([1, 2, np.nan], dtype="Int64"), "B_x": 1, "B_y": 1}
+            {"A": Series([1, 2, pd.NA], dtype="Int64"), "B_x": 1, "B_y": 1}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2781,14 +2781,15 @@ def test_merge_on_left_categoricalindex():
 @pytest.mark.parametrize("dtype", [None, "Int64"])
 def test_merge_outer_with_NaN(dtype):
     # GH#43550
+    item = np.nan if dtype is None else pd.NA
     left = DataFrame({"key": [1, 2], "col1": [1, 2]}, dtype=dtype)
-    right = DataFrame({"key": [np.nan, np.nan], "col2": [3, 4]}, dtype=dtype)
+    right = DataFrame({"key": [item, item], "col2": [3, 4]}, dtype=dtype)
     result = merge(left, right, on="key", how="outer")
     expected = DataFrame(
         {
-            "key": [1, 2, np.nan, np.nan],
-            "col1": [1, 2, np.nan, np.nan],
-            "col2": [np.nan, np.nan, 3, 4],
+            "key": [1, 2, item, item],
+            "col1": [1, 2, item, item],
+            "col2": [item, item, 3, 4],
         },
         dtype=dtype,
     )
@@ -2798,9 +2799,9 @@ def test_merge_outer_with_NaN(dtype):
     result = merge(right, left, on="key", how="outer")
     expected = DataFrame(
         {
-            "key": [1, 2, np.nan, np.nan],
-            "col2": [np.nan, np.nan, 3, 4],
-            "col1": [1, 2, np.nan, np.nan],
+            "key": [1, 2, item, item],
+            "col2": [item, item, 3, 4],
+            "col1": [1, 2, item, item],
         },
         dtype=dtype,
     )
@@ -2974,7 +2975,7 @@ def test_merge_combinations(
 
 def test_merge_ea_int_and_float_numpy():
     # GH#46178
-    df1 = DataFrame([1.0, np.nan], dtype=pd.Int64Dtype())
+    df1 = DataFrame([1.0, pd.NA], dtype=pd.Int64Dtype())
     df2 = DataFrame([1.5])
     expected = DataFrame(columns=[0], dtype="Int64")
 

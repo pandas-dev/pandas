@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -150,11 +148,7 @@ def test_set_levels_codes_directly(idx):
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
 
-    msg = (
-        "property 'codes' of 'MultiIndex' object has no setter"
-        if PY311
-        else "can't set attribute"
-    )
+    msg = "property 'codes' of 'MultiIndex' object has no setter"
     with pytest.raises(AttributeError, match=msg):
         idx.codes = new_codes
 

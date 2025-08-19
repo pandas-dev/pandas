@@ -2135,7 +2135,7 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_pivot_number_of_levels_larger_than_int32(
+    def test_pivot_number_of_levels_larger_than_int32_warns(
         self, performance_warning, monkeypatch
     ):
         # GH 20601
@@ -2145,6 +2145,9 @@ class TestPivotTable:
                 # __init__ will raise the warning
                 super().__init__(*args, **kwargs)
                 raise Exception("Don't compute final result.")
+
+            def _make_selectors(self) -> None:
+                pass
 
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
@@ -2584,6 +2587,36 @@ class TestPivotTable:
         )
         expected = DataFrame(data=e_data, index=e_index, columns=e_cols)
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_include_nan_groups(self):
+        # GH#61509
+        df = DataFrame(
+            {
+                "i": [1, 2, 3],
+                "g1": ["a", "b", "b"],
+                "g2": ["x", None, None],
+            }
+        )
+
+        result = df.pivot_table(
+            index="g1",
+            columns="g2",
+            values="i",
+            aggfunc="count",
+            dropna=False,
+            margins=True,
+        )
+
+        expected = DataFrame(
+            {
+                "x": {"a": 1.0, "b": np.nan, "All": 1.0},
+                np.nan: {"a": np.nan, "b": 2.0, "All": 2.0},
+                "All": {"a": 1.0, "b": 2.0, "All": 3.0},
+            }
+        )
+        expected.index.name = "g1"
+        expected.columns.name = "g2"
+        tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 class TestPivot:

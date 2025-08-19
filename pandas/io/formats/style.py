@@ -10,6 +10,8 @@ import operator
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
+    Self,
     overload,
 )
 
@@ -66,7 +68,6 @@ if TYPE_CHECKING:
         Any,
         Axis,
         AxisInt,
-        Concatenate,
         ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
@@ -75,7 +76,6 @@ if TYPE_CHECKING:
         P,
         QuantileInterpolation,
         Scalar,
-        Self,
         StorageOptions,
         T,
         WriteBuffer,

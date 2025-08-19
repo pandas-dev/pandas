@@ -11,6 +11,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     cast,
     final,
 )
@@ -74,7 +75,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         JoinHow,
-        Self,
         npt,
     )
 

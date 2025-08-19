@@ -16,12 +16,12 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst, actions-310-minimum_versions.yaml,
+# Update install.rst, actions-311-minimum_versions.yaml,
 # deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
-    "adbc-driver-postgresql": "0.10.0",
-    "adbc-driver-sqlite": "0.8.0",
+    "adbc-driver-postgresql": "1.2.0",
+    "adbc-driver-sqlite": "1.2.0",
     "bs4": "4.12.3",
     "bottleneck": "1.3.6",
     "fastparquet": "2024.2.0",
@@ -36,7 +36,7 @@ VERSIONS = {
     "numexpr": "2.9.0",
     "odfpy": "1.4.1",
     "openpyxl": "3.1.2",
-    "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
+    "psycopg2": "2.9.9",  # (dt dec pq3 ext lo64)
     "pymysql": "1.1.0",
     "pyarrow": "12.0.1",
     "pyiceberg": "0.7.1",

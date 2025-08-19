@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-
-from pandas._config import using_string_dtype
 
 from pandas import (
     Categorical,
@@ -19,16 +16,11 @@ from pandas import (
 class TestCategoricalReprWithFactor:
     def test_print(self, using_infer_string):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
-        if using_infer_string:
-            expected = [
-                "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-                "Categories (3, str): [a < b < c]",
-            ]
-        else:
-            expected = [
-                "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-                "Categories (3, object): ['a' < 'b' < 'c']",
-            ]
+        dtype = "str" if using_infer_string else "object"
+        expected = [
+            "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
+            f"Categories (3, {dtype}): ['a' < 'b' < 'c']",
+        ]
         expected = "\n".join(expected)
         actual = repr(factor)
         assert actual == expected
@@ -77,16 +69,15 @@ class TestCategoricalRepr:
         with option_context("display.width", None):
             assert exp == repr(a)
 
-    @pytest.mark.skipif(
-        using_string_dtype(),
-        reason="Change once infer_string is set to True by default",
-    )
-    def test_unicode_print(self):
+    def test_unicode_print(self, using_infer_string):
         c = Categorical(["aaaaa", "bb", "cccc"] * 20)
         expected = """\
 ['aaaaa', 'bb', 'cccc', 'aaaaa', 'bb', ..., 'bb', 'cccc', 'aaaaa', 'bb', 'cccc']
 Length: 60
 Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
+
+        if using_infer_string:
+            expected = expected.replace("object", "str")
 
         assert repr(c) == expected
 
@@ -95,6 +86,9 @@ Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
 ['ああああ', 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', ..., 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', 'ううううううう']
 Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
+
+        if using_infer_string:
+            expected = expected.replace("object", "str")
 
         assert repr(c) == expected
 
@@ -106,7 +100,10 @@ Categories (3, object): ['ああああ', 'いいいいい', 'うううううう�
 Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
 
-            assert repr(c) == expected
+        if using_infer_string:
+            expected = expected.replace("object", "str")
+
+        assert repr(c) == expected
 
     def test_categorical_repr(self):
         c = Categorical([1, 2, 3])

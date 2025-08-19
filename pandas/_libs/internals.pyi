@@ -3,6 +3,7 @@ from collections.abc import (
     Sequence,
 )
 from typing import (
+    Self,
     final,
     overload,
 )
@@ -12,7 +13,6 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    Self,
     npt,
 )
 

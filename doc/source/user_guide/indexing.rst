@@ -700,7 +700,7 @@ to have different probabilities, you can pass the ``sample`` function sampling w
 
     s = pd.Series([0, 1, 2, 3, 4, 5])
     example_weights = [0, 0, 0.2, 0.2, 0.2, 0.4]
-    s.sample(n=3, weights=example_weights)
+    s.sample(n=2, weights=example_weights)
 
     # Weights will be re-normalized automatically
     example_weights2 = [0.5, 0, 0, 0, 0, 0]
@@ -714,7 +714,7 @@ as a string.
 
     df2 = pd.DataFrame({'col1': [9, 8, 7, 6],
                         'weight_column': [0.5, 0.4, 0.1, 0]})
-    df2.sample(n=3, weights='weight_column')
+    df2.sample(n=2, weights='weight_column')
 
 ``sample`` also allows users to sample columns instead of rows using the ``axis`` argument.
 
@@ -1732,3 +1732,49 @@ Why does assignment fail when using chained indexing?
 This means that chained indexing will never work.
 See :ref:`this section <copy_on_write_chained_assignment>`
 for more context.
+
+.. _indexing.series_assignment:
+
+Series Assignment and Index Alignment
+-------------------------------------
+
+When assigning a Series to a DataFrame column, pandas performs automatic alignment
+based on index labels. This is a fundamental behavior that can be surprising to
+new users who might expect positional assignment.
+
+Key Points:
+~~~~~~~~~~~
+
+* Series values are matched to DataFrame rows by index label
+* Position/order in the Series doesn't matter
+* Missing index labels result in NaN values
+* This behavior is consistent across df[col] = series and df.loc[:, col] = series
+
+Examples:
+.. ipython:: python
+
+   import pandas as pd
+
+   # Create a DataFrame
+   df = pd.DataFrame({'values': [1, 2, 3]}, index=['x', 'y', 'z'])
+
+   # Series with matching indices (different order)
+   s1 = pd.Series([10, 20, 30], index=['z', 'x', 'y'])
+   df['aligned'] = s1  # Aligns by index, not position
+   print(df)
+
+   # Series with partial index match
+   s2 = pd.Series([100, 200], index=['x', 'z'])
+   df['partial'] = s2  # Missing 'y' gets NaN
+   print(df)
+
+   # Series with non-matching indices
+   s3 = pd.Series([1000, 2000], index=['a', 'b'])
+   df['nomatch'] = s3  # All values become NaN
+   print(df)
+
+
+   #Avoiding Confusion:
+   #If you want positional assignment instead of index alignment:
+   # reset the Series index to match DataFrame index
+   df['s1_values'] = s1.reindex(df.index)

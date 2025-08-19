@@ -168,6 +168,13 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
+    @pytest.fixture(autouse=True)
+    def skip_if_doesnt_support_2d(self, dtype, request):
+        # Override the fixture so that we run these tests.
+        assert not dtype._supports_2d
+        # If dtype._supports_2d is ever changed to True, then this fixture
+        #  override becomes unnecessary.
+
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         result = data_missing.map(lambda x: x, na_action=na_action)
@@ -373,36 +380,19 @@ class TestMaskedArrays(base.ExtensionTests):
             )
 
         if op_name == "cumsum":
-            result = getattr(ser, op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
+            pass
         elif op_name in ["cummax", "cummin"]:
-            result = getattr(ser, op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
-                    dtype=ser.dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
+            expected_dtype = ser.dtype  # type: ignore[assignment]
         elif op_name == "cumprod":
-            result = getattr(ser[:12], op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser[:12].astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
-
+            ser = ser[:12]
         else:
             raise NotImplementedError(f"{op_name} not supported")
 
-
-class Test2DCompat(base.Dim2CompatTests):
-    pass
+        result = getattr(ser, op_name)(skipna=skipna)
+        expected = pd.Series(
+            pd.array(
+                getattr(ser.astype("float64"), op_name)(skipna=skipna),
+                dtype=expected_dtype,
+            )
+        )
+        tm.assert_series_equal(result, expected)

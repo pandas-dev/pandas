@@ -147,7 +147,7 @@ def test_to_offset_leading_plus(freqstr, expected, wrn):
         ({"days": -1, "seconds": 1}, offsets.Second(-86399)),
         ({"hours": 1, "minutes": 10}, offsets.Minute(70)),
         ({"hours": 1, "minutes": -10}, offsets.Minute(50)),
-        ({"weeks": 1}, offsets.Day(7)),
+        ({"weeks": 1}, offsets.Hour(168)),
         ({"hours": 1}, offsets.Hour(1)),
         ({"hours": 1}, to_offset("60min")),
         ({"microseconds": 1}, offsets.Micro(1)),

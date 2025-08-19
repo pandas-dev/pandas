@@ -340,7 +340,7 @@ cdef class TextReader:
     cdef:
         parser_t *parser
         object na_fvalues
-        object true_values, false_values
+        list true_values, false_values
         object handle
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
@@ -942,6 +942,7 @@ cdef class TextReader:
             bint na_filter = 0
             int64_t num_cols
             dict results
+            bint is_default_dict_dtype
 
         start = self.parser_start
 
@@ -957,26 +958,7 @@ cdef class TextReader:
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols
 
-        usecols_not_callable_and_exists = not callable(self.usecols) and self.usecols
-        names_larger_num_cols = (self.names and
-                                 len(self.names) - self.leading_cols > num_cols)
-
-        if self.table_width - self.leading_cols > num_cols:
-            if (usecols_not_callable_and_exists
-                    and self.table_width - self.leading_cols < len(self.usecols)
-                    or names_larger_num_cols):
-                raise ParserError(f"Too many columns specified: expected "
-                                  f"{self.table_width - self.leading_cols} "
-                                  f"and found {num_cols}")
-
-        if (usecols_not_callable_and_exists and
-                all(isinstance(u, int) for u in self.usecols)):
-            missing_usecols = [col for col in self.usecols if col >= num_cols]
-            if missing_usecols:
-                raise ParserError(
-                    "Defining usecols with out-of-bounds indices is not allowed. "
-                    f"{missing_usecols} are out of bounds.",
-                )
+        self._validate_usecols_and_names(num_cols)
 
         results = {}
         nused = 0
@@ -1004,22 +986,7 @@ cdef class TextReader:
                 nused += 1
 
             conv = self._get_converter(i, name)
-
-            col_dtype = None
-            if self.dtype is not None:
-                if isinstance(self.dtype, dict):
-                    if name in self.dtype:
-                        col_dtype = self.dtype[name]
-                    elif i in self.dtype:
-                        col_dtype = self.dtype[i]
-                    elif is_default_dict_dtype:
-                        col_dtype = self.dtype[name]
-                else:
-                    if self.dtype.names:
-                        # structured array
-                        col_dtype = np.dtype(self.dtype.descr[i][1])
-                    else:
-                        col_dtype = self.dtype
+            col_dtype = self._get_col_dtype(i, is_default_dict_dtype, name)
 
             if conv:
                 if col_dtype is not None:
@@ -1267,6 +1234,47 @@ cdef class TextReader:
         return _string_box_utf8(self.parser, i, start, end, na_filter,
                                 na_hashset, self.encoding_errors)
 
+    cdef void _validate_usecols_and_names(self, int num_cols):
+        usecols_not_callable_and_exists = not callable(self.usecols) and self.usecols
+        names_larger_num_cols = (self.names and
+                                 len(self.names) - self.leading_cols > num_cols)
+
+        if self.table_width - self.leading_cols > num_cols:
+            if (usecols_not_callable_and_exists
+                    and self.table_width - self.leading_cols < len(self.usecols)
+                    or names_larger_num_cols):
+                raise ParserError(f"Too many columns specified: expected "
+                                  f"{self.table_width - self.leading_cols} "
+                                  f"and found {num_cols}")
+
+        if (usecols_not_callable_and_exists and
+                all(isinstance(u, int) for u in self.usecols)):
+            missing_usecols = [col for col in self.usecols if col >= num_cols]
+            if missing_usecols:
+                raise ParserError(
+                    "Defining usecols with out-of-bounds indices is not allowed. "
+                    f"{missing_usecols} are out of bounds.",
+                )
+
+    # -> DtypeObj
+    cdef object _get_col_dtype(self, int64_t i, bint is_default_dict_dtype, name):
+        col_dtype = None
+        if self.dtype is not None:
+            if isinstance(self.dtype, dict):
+                if name in self.dtype:
+                    col_dtype = self.dtype[name]
+                elif i in self.dtype:
+                    col_dtype = self.dtype[i]
+                elif is_default_dict_dtype:
+                    col_dtype = self.dtype[name]
+            else:
+                if self.dtype.names:
+                    # structured array
+                    col_dtype = np.dtype(self.dtype.descr[i][1])
+                else:
+                    col_dtype = self.dtype
+        return col_dtype
+
     def _get_converter(self, i: int, name):
         if self.converters is None:
             return None
@@ -1347,8 +1355,8 @@ cdef _close(TextReader reader):
 
 
 cdef:
-    object _true_values = [b"True", b"TRUE", b"true"]
-    object _false_values = [b"False", b"FALSE", b"false"]
+    list _true_values = [b"True", b"TRUE", b"true"]
+    list _false_values = [b"False", b"FALSE", b"false"]
 
 
 def _ensure_encoded(list lst):

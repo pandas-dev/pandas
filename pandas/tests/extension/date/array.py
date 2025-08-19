@@ -48,8 +48,7 @@ class DateDtype(ExtensionDtype):
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         return DateArray
 
     @property

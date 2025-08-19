@@ -30,8 +30,7 @@ class ListDtype(ExtensionDtype):
     name = "list"
     na_value = np.nan
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[ListArray]:
+    def construct_array_type(self) -> type_t[ListArray]:
         """
         Return the array type associated with this dtype.
 
